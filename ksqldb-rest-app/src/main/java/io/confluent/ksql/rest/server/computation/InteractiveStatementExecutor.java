@@ -27,6 +27,8 @@ import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.PauseQuery;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -276,7 +278,23 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture
   ) {
-    if (statement.getStatement() instanceof TerminateQuery) {
+    if (statement.getStatement() instanceof PauseQuery) {
+      pauseQuery((PreparedStatement<PauseQuery>) statement);
+
+      final String successMessage = "Query paused.";
+      final CommandStatus successStatus =
+          new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, Optional.empty());
+
+      putFinalStatus(commandId, commandStatusFuture, successStatus);
+    } else     if (statement.getStatement() instanceof ResumeQuery) {
+      resumeQuery((PreparedStatement<ResumeQuery>) statement);
+
+      final String successMessage = "Query resumed.";
+      final CommandStatus successStatus =
+          new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, Optional.empty());
+
+      putFinalStatus(commandId, commandStatusFuture, successStatus);
+    } else if (statement.getStatement() instanceof TerminateQuery) {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
 
       final String successMessage = "Query terminated.";
@@ -314,6 +332,34 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
 
   private KsqlConfig buildMergedConfig(final Command command) {
     return ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+  }
+
+  private void pauseQuery(final PreparedStatement<PauseQuery> pauseQuery) {
+    final Optional<QueryId> queryId = pauseQuery.getStatement().getQueryId();
+
+    if (!queryId.isPresent()) {
+      // JNH: to-do call pause()
+      ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::pause);
+      return;
+    }
+
+    final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
+    // JNH: call pause()
+    query.ifPresent(PersistentQueryMetadata::pause);
+  }
+
+  private void resumeQuery(final PreparedStatement<ResumeQuery> resumeQuery) {
+    final Optional<QueryId> queryId = resumeQuery.getStatement().getQueryId();
+
+    if (!queryId.isPresent()) {
+      // JNH to-do call resume()
+      ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::resume);
+      return;
+    }
+
+    final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
+    // JNH to-do call resume()
+    query.ifPresent(PersistentQueryMetadata::resume);
   }
 
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {

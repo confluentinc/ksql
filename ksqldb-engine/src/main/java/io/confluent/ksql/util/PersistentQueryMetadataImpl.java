@@ -211,6 +211,19 @@ public class PersistentQueryMetadataImpl
     return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
   }
 
+
+  @Override
+  public void pause() {
+    System.out.println("In PersistentQueryMetadataImpl.java.  Calling super.pause()");
+    super.pause();
+  }
+
+  @Override
+  public void resume() {
+    System.out.println("In PersistentQueryMetadataImpl.java.  Calling super.resume()");
+    super.resume();
+  }
+
   /**
    * Stops the query without cleaning up the external resources
    * so that it can be resumed when we call {@link #start()}.

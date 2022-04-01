@@ -35,6 +35,8 @@ import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.ListVariables;
+import io.confluent.ksql.parser.tree.PauseQuery;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
@@ -110,6 +112,10 @@ public class CustomExecutors {
                 new DescribeConnectorExecutor(connectErrorHandler)::execute);
         put(TerminateQuery.class,
             (StatementExecutor<TerminateQuery>) TerminateQueryExecutor::execute);
+        put(PauseQuery.class,
+            (StatementExecutor<PauseQuery>) PauseQueryExecutor::execute);
+        put(ResumeQuery.class,
+            (StatementExecutor<ResumeQuery>) ResumeQueryExecutor::execute);
       }};
   }
 
@@ -126,6 +132,16 @@ public class CustomExecutors {
   @VisibleForTesting
   StatementExecutor<TerminateQuery> terminateQuery() {
     return (StatementExecutor<TerminateQuery>) EXECUTOR_MAP.get(TerminateQuery.class);
+  }
+
+  @VisibleForTesting
+  StatementExecutor<PauseQuery> pauseQuery() {
+    return (StatementExecutor<PauseQuery>) EXECUTOR_MAP.get(PauseQuery.class);
+  }
+
+  @VisibleForTesting
+  StatementExecutor<ResumeQuery> resumeQuery() {
+    return (StatementExecutor<ResumeQuery>) EXECUTOR_MAP.get(ResumeQuery.class);
   }
 
   @VisibleForTesting

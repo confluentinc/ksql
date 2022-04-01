@@ -38,6 +38,7 @@ import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.util.Collection;
 import java.util.List;
@@ -45,6 +46,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -60,6 +62,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private static final Logger LOG = LoggerFactory
       .getLogger(BinPackedPersistentQueryMetadataImpl.class);
 
+  private final AtomicBoolean isPaused = new AtomicBoolean(false);
   private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final String statementString;
   private final String executionPlan;
@@ -393,6 +396,33 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       sharedKafkaStreamsRuntime.start(queryId);
     }
     everStarted = true;
+  }
+
+  @Override
+  public KsqlQueryStatus getQueryStatus() {
+    if (isPaused.get()) {
+      return KsqlQueryStatus.PAUSED;
+    } else {
+      return KsqlConstants.fromStreamsState(getState());
+    }
+  }
+
+  @Override
+  public void pause() {
+    System.out.println("In BinPackedPersistentQueryMetadataImpl.java.  "
+        + "Calling kafkaStreams.pause()");
+    // JNH: to-do allow for just pausing a specific query
+    sharedKafkaStreamsRuntime.getKafkaStreams().pause();
+    isPaused.set(true);
+  }
+
+  @Override
+  public void resume() {
+    System.out.println("In BinPackedPersistentQueryMetadataImpl.java.  "
+        + "Calling kafkaStreams.resume()");
+    // JNH: to-do allow for just pausing a specific query
+    sharedKafkaStreamsRuntime.getKafkaStreams().resume();
+    isPaused.set(false);
   }
 
   @Override

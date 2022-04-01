@@ -27,7 +27,9 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
@@ -60,8 +62,12 @@ public class CommandIdAssigner {
               command -> getDropTypeCommandId((DropType) command))
           .put(InsertInto.class,
             command -> getInsertIntoCommandId((InsertInto) command))
+          .put(PauseQuery.class,
+            command -> getPauseCommandId((PauseQuery) command))
+          .put(ResumeQuery.class,
+              command -> getResumeCommandId((ResumeQuery) command))
           .put(TerminateQuery.class,
-            command -> getTerminateCommandId((TerminateQuery) command))
+              command -> getTerminateCommandId((TerminateQuery) command))
           .put(DropStream.class,
             command -> getDropStreamCommandId((DropStream) command))
           .put(DropTable.class,
@@ -112,6 +118,22 @@ public class CommandIdAssigner {
 
   private static CommandId getDropTypeCommandId(final DropType dropType) {
     return new CommandId(CommandId.Type.TYPE, dropType.getTypeName(), Action.DROP);
+  }
+
+  private static CommandId getPauseCommandId(final PauseQuery pauseQuery) {
+    return new CommandId(
+        CommandId.Type.PAUSE,
+        pauseQuery.getQueryId().map(QueryId::toString).orElse(PauseQuery.ALL_QUERIES),
+        CommandId.Action.EXECUTE
+    );
+  }
+
+  private static CommandId getResumeCommandId(final ResumeQuery resumeQuery) {
+    return new CommandId(
+        CommandId.Type.RESUME,
+        resumeQuery.getQueryId().map(QueryId::toString).orElse(ResumeQuery.ALL_QUERIES),
+        CommandId.Action.EXECUTE
+    );
   }
 
   private static CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {

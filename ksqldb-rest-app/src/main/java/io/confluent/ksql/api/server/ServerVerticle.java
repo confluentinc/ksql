@@ -103,7 +103,7 @@ public class ServerVerticle extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(stopPromise.future());
+      httpServer.close(ar -> stopPromise.complete());
     }
   }
 
@@ -356,10 +356,19 @@ public class ServerVerticle extends AbstractVerticle {
 
   private void handleWebsocket(final RoutingContext routingContext) {
     final ApiSecurityContext apiSecurityContext = DefaultApiSecurityContext.create(routingContext);
-    final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
-    endpoints
-        .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
-            server.getWorkerExecutor(), apiSecurityContext, context);
+    routingContext.request().toWebSocket(serverWebSocket -> {
+          if (serverWebSocket.failed()) {
+            routingContext.fail(serverWebSocket.cause());
+          } else {
+            endpoints.executeWebsocketStream(
+                serverWebSocket.result(),
+                routingContext.request().params(),
+                server.getWorkerExecutor(),
+                apiSecurityContext,
+                context);
+          }
+        }
+    );
   }
 
   private static void chcHandler(final RoutingContext routingContext) {

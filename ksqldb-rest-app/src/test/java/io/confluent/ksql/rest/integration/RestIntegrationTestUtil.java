@@ -52,6 +52,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.http.WebsocketVersion;
@@ -400,29 +401,33 @@ public final class RestIntegrationTestUtil {
       final Vertx vertx = Vertx.vertx();
       final HttpClient httpClient = vertx.createHttpClient(options);
       final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
-      final HttpClientRequest httpClientRequest = httpClient.request(method,
+      httpClient.request(method,
           uri,
-          resp -> {
-            resp.handler(buffer -> {
-              try {
-                chunkConsumer.accept(buffer);
-              } catch (final Throwable t) {
-                vcf.completeExceptionally(t);
-              }
+          ar -> {
+            final HttpClientRequest req = ar.result();
+            req.exceptionHandler(vcf::completeExceptionally);
+            req.response(ar2 -> {
+              final HttpClientResponse resp = ar2.result();
+              resp.handler(buffer -> {
+                try {
+                  chunkConsumer.accept(buffer);
+                } catch (final Throwable t) {
+                  vcf.completeExceptionally(t);
+                }
+              });
+              resp.endHandler(v -> {
+                chunkConsumer.accept(null);
+                vcf.complete(null);
+              });
             });
-            resp.endHandler(v -> {
-              chunkConsumer.accept(null);
-              vcf.complete(null);
-            });
-          })
-          .exceptionHandler(vcf::completeExceptionally);
 
-      httpClientRequest.putHeader("Accept", mediaType);
-      credentials.ifPresent(basicCredentials -> httpClientRequest.putHeader(
-          "Authorization", createBasicAuthHeader(basicCredentials)));
+            req.putHeader("Accept", mediaType);
+            credentials.ifPresent(basicCredentials -> req.putHeader(
+                "Authorization", createBasicAuthHeader(basicCredentials)));
 
-      Buffer bodyBuffer = Buffer.buffer(bytes);
-      httpClientRequest.end(bodyBuffer);
+            Buffer bodyBuffer = Buffer.buffer(bytes);
+            req.end(bodyBuffer);
+          });
 
       // cleanup
       vcf.handle((v, throwable) -> {

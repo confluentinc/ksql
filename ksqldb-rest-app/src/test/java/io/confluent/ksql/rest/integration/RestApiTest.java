@@ -16,104 +16,101 @@
 package io.confluent.ksql.rest.integration;
 
 
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
-import static io.vertx.core.http.HttpMethod.POST;
-import static io.vertx.core.http.HttpVersion.HTTP_1_1;
-import static io.vertx.core.http.HttpVersion.HTTP_2;
-import static org.apache.kafka.common.acl.AclOperation.ALL;
-import static org.apache.kafka.common.acl.AclOperation.CREATE;
-import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
-import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
-import static org.apache.kafka.common.acl.AclOperation.WRITE;
-import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
-import static org.apache.kafka.common.resource.ResourceType.GROUP;
-import static org.apache.kafka.common.resource.ResourceType.TOPIC;
-import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.fail;
+  import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
+  import static io.vertx.core.http.HttpMethod.POST;
+  import static io.vertx.core.http.HttpVersion.HTTP_1_1;
+  import static io.vertx.core.http.HttpVersion.HTTP_2;
+  import static org.apache.kafka.common.acl.AclOperation.ALL;
+  import static org.apache.kafka.common.acl.AclOperation.CREATE;
+  import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
+  import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
+  import static org.apache.kafka.common.acl.AclOperation.WRITE;
+  import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
+  import static org.apache.kafka.common.resource.ResourceType.GROUP;
+  import static org.apache.kafka.common.resource.ResourceType.TOPIC;
+  import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
+  import static org.hamcrest.MatcherAssert.assertThat;
+  import static org.hamcrest.Matchers.endsWith;
+  import static org.hamcrest.Matchers.equalTo;
+  import static org.hamcrest.Matchers.hasSize;
+  import static org.hamcrest.Matchers.is;
+  import static org.hamcrest.Matchers.notNullValue;
+  import static org.hamcrest.Matchers.startsWith;
+  import static org.junit.Assert.fail;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.api.utils.QueryResponse;
-import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.ApiJsonMapper;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.entity.CommandId.Action;
-import io.confluent.ksql.rest.entity.CommandId.Type;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatus.Status;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlMediaType;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.Queries;
-import io.confluent.ksql.rest.entity.QueryStreamArgs;
-import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.ServerClusterId;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.ServerMetadata;
-import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.test.util.secure.ClientTrustStore;
-import io.confluent.ksql.test.util.secure.Credentials;
-import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlRequestConfig;
-import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.PageViewDataProvider.Batch;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.util.TombstoneProvider;
-import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpVersion;
-import io.vertx.ext.web.client.HttpResponse;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import javax.ws.rs.core.MediaType;
-import org.apache.hc.core5.http.HttpStatus;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+  import com.fasterxml.jackson.core.type.TypeReference;
+  import com.google.common.collect.ImmutableList;
+  import com.google.common.collect.ImmutableMap;
+  import io.confluent.common.utils.IntegrationTest;
+  import io.confluent.ksql.api.utils.QueryResponse;
+  import io.confluent.ksql.integration.IntegrationTestHarness;
+  import io.confluent.ksql.integration.Retry;
+  import io.confluent.ksql.rest.ApiJsonMapper;
+  import io.confluent.ksql.rest.entity.CommandId;
+  import io.confluent.ksql.rest.entity.CommandId.Action;
+  import io.confluent.ksql.rest.entity.CommandId.Type;
+  import io.confluent.ksql.rest.entity.CommandStatus;
+  import io.confluent.ksql.rest.entity.CommandStatus.Status;
+  import io.confluent.ksql.rest.entity.CommandStatuses;
+  import io.confluent.ksql.rest.entity.KsqlEntity;
+  import io.confluent.ksql.rest.entity.KsqlMediaType;
+  import io.confluent.ksql.rest.entity.KsqlRequest;
+  import io.confluent.ksql.rest.entity.Queries;
+  import io.confluent.ksql.rest.entity.QueryStreamArgs;
+  import io.confluent.ksql.rest.entity.RunningQuery;
+  import io.confluent.ksql.rest.entity.ServerClusterId;
+  import io.confluent.ksql.rest.entity.ServerInfo;
+  import io.confluent.ksql.rest.entity.ServerMetadata;
+  import io.confluent.ksql.rest.server.TestKsqlRestApp;
+  import io.confluent.ksql.serde.FormatFactory;
+  import io.confluent.ksql.services.ServiceContext;
+  import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+  import io.confluent.ksql.test.util.secure.ClientTrustStore;
+  import io.confluent.ksql.test.util.secure.Credentials;
+  import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
+  import io.confluent.ksql.util.KsqlConfig;
+  import io.confluent.ksql.util.PageViewDataProvider;
+  import io.confluent.ksql.util.PageViewDataProvider.Batch;
+  import io.confluent.ksql.util.PersistentQueryMetadata;
+  import io.confluent.ksql.util.TestDataProvider;
+  import io.confluent.ksql.util.TombstoneProvider;
+  import io.confluent.ksql.util.VertxCompletableFuture;
+  import io.vertx.core.buffer.Buffer;
+  import io.vertx.core.http.HttpMethod;
+  import io.vertx.core.http.HttpVersion;
+  import io.vertx.ext.web.client.HttpResponse;
+  import java.util.ArrayList;
+  import java.util.Arrays;
+  import java.util.Collections;
+  import java.util.List;
+  import java.util.Map;
+  import java.util.Optional;
+  import java.util.concurrent.CompletableFuture;
+  import java.util.concurrent.ExecutionException;
+  import java.util.concurrent.Semaphore;
+  import java.util.concurrent.TimeUnit;
+  import java.util.function.Consumer;
+  import java.util.function.Supplier;
+  import java.util.stream.Collectors;
+  import javax.ws.rs.core.MediaType;
+  import org.apache.hc.core5.http.HttpStatus;
+  import org.junit.After;
+  import org.junit.AfterClass;
+  import org.junit.Before;
+  import org.junit.BeforeClass;
+  import org.junit.ClassRule;
+  import org.junit.Rule;
+  import org.junit.Test;
+  import org.junit.experimental.categories.Category;
+  import org.junit.rules.RuleChain;
+  import org.junit.rules.Timeout;
+  import org.slf4j.Logger;
+  import org.slf4j.LoggerFactory;
 
 @Category({IntegrationTest.class})
 public class RestApiTest {
@@ -143,18 +140,6 @@ public class RestApiTest {
   private static final Credentials SUPER_USER = VALID_USER1;
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final String AN_AGG_KEY = "USER_1";
-
-  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR =
-      ConsistencyOffsetVector.emptyVector().withComponent(
-          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition", 0, 6L);
-
-  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_BEFORE =
-      ConsistencyOffsetVector.emptyVector().withComponent(
-          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition", 0, 4L);
-
-  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_AFTER =
-      ConsistencyOffsetVector.emptyVector().withComponent(
-          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition", 0, 7L);
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(
@@ -894,34 +879,6 @@ public class RestApiTest {
   }
 
     @Test
-    public void shouldExecutePullQueryOverRestWithNoBound() {
-      // Given:
-      final String serializedCV = CONSISTENCY_OFFSET_VECTOR.serialize();
-      final Supplier<List<String>> call = () -> {
-        final String response = rawRestQueryRequest(
-            "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-            MediaType.APPLICATION_JSON,
-            Collections.emptyMap(),
-            Collections.emptyMap()
-            );
-        return Arrays.asList(response.split(System.lineSeparator()));
-      };
-
-      // When:
-      final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
-
-      // Then:
-      assertThat(messages, hasSize(HEADER + 2));
-      assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
-      assertThat(messages.get(0),
-                 endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-      assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
-      assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                         + "\"" + serializedCV + "\"}}]"));
-      verifyConsistencyVector(messages.get(2), CONSISTENCY_OFFSET_VECTOR);
-    }
-
-    @Test
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
@@ -1220,15 +1177,4 @@ public class RestApiTest {
     }, is(true));
   }
 
-  /**
-   * The format of the json string is
-   * "{\"consistencyToken\":{\"consistencyToken\":" + "\" + CT + \"}}"
-   */
-  private static void verifyConsistencyVector(
-      final String consistencyText, final ConsistencyOffsetVector consistencyOffsetVector) {
-    String serializedCV = consistencyText.split(":\"")[1];
-    serializedCV = serializedCV.substring(0, serializedCV.length()-4);
-    final ConsistencyOffsetVector cvResponse = ConsistencyOffsetVector.deserialize(serializedCV);
-    assertThat(cvResponse.equals(consistencyOffsetVector), is(true));
-  }
 }

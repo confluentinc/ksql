@@ -1064,16 +1064,6 @@ public class RestApiTest {
         .toString();
   }
 
-  private static String rawRestQueryRequest(
-        final String sql, final String mediaType, final Map<String, ?> configOverrides,
-        final Map<String, ?> requestProperties
-  ) {
-    return RestIntegrationTestUtil.rawRestQueryRequest(
-        REST_APP, sql, mediaType, configOverrides, requestProperties, Optional.empty())
-        .body()
-        .toString();
-  }
-
   private static int failingRestQueryRequest(final String sql, final String mediaType) {
     return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType, Optional.empty())
         .statusCode();

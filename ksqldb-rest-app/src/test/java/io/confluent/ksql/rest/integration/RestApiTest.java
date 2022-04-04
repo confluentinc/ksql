@@ -1091,15 +1091,6 @@ public class RestApiTest {
     }
   }
 
-  private static HttpResponse<Buffer> rawRestRequest(
-      final HttpVersion httpVersion,
-      final HttpMethod method,
-      final String uri,
-      final Object requestBody) {
-    return RestIntegrationTestUtil.rawRestRequest(
-        REST_APP, httpVersion, method, uri, requestBody, Optional.empty());
-  }
-
   private static List<String> makeWebSocketRequest(
       final String sql,
       final String mediaType,

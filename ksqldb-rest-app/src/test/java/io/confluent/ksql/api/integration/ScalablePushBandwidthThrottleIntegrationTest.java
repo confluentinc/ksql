@@ -280,6 +280,11 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
             || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
           return false;
         }
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
       }
       return true;
     }, is(true));

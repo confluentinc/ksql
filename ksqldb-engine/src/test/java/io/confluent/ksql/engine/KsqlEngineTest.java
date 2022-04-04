@@ -436,8 +436,8 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(queries, hasSize(2));
-    assertThat(queries.get(0).getStatementString(), containsString("create stream foo"));
-    assertThat(queries.get(1).getStatementString(), containsString("create stream bar"));
+    assertThat(queries.get(0).getStatementString(), containsString("CREATE STREAM FOO"));
+    assertThat(queries.get(1).getStatementString(), containsString("CREATE STREAM BAR"));
   }
 
   @Test(expected = KsqlStatementException.class)

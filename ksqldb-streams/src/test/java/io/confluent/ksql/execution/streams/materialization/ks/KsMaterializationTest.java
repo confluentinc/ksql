@@ -44,14 +44,11 @@ public class KsMaterializationTest {
   private Locator locator;
   @Mock
   private KsStateStore stateStore;
-  @Mock
-  private KsqlConfig ksqlConfig;
   private KsMaterialization materialization;
 
   @Before
   public void setUp() {
     givenWindowType(Optional.empty());
-    when(stateStore.getKsqlConfig()).thenReturn(ksqlConfig);
   }
 
   @SuppressWarnings("UnstableApiUsage")

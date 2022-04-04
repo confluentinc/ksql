@@ -38,7 +38,6 @@ import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.util.AppInfo;
-import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PushOffsetVector;
@@ -137,11 +136,6 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_SESSION) {
-      requestProperties.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          serializedConsistencyVector.get());
-    }
     if (PushOffsetVector.isContinuationTokenEnabled(properties)) {
       properties.put(
           KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED,
@@ -169,11 +163,6 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_SESSION) {
-      requestProperties.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          serializedConsistencyVector.get());
-    }
     final BatchedQueryResult result = new BatchedQueryResultImpl();
     makeQueryRequest(
         sql,

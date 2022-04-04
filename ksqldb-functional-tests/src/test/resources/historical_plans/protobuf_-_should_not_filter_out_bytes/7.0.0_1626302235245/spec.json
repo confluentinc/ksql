@@ -1,10 +1,10 @@
 {
-  "version" : "7.1.0",
-  "timestamp" : 1628037599988,
-  "path" : "query-validation-tests/bytes.json",
+  "version" : "7.0.0",
+  "timestamp" : 1626302235245,
+  "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
-    "CSAS_TEST2_0.TEST2" : {
-      "schema" : "`B` BYTES",
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`EXPECTED` INTEGER, `C2` BYTES",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -12,8 +12,8 @@
         "format" : "PROTOBUF"
       }
     },
-    "CSAS_TEST2_0.KsqlTopic.Source" : {
-      "schema" : "`B` BYTES",
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`EXPECTED` INTEGER, `C2` BYTES",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -23,42 +23,40 @@
     }
   },
   "testCase" : {
-    "name" : "PROTOBUF in/out",
+    "name" : "should not filter out bytes",
     "inputs" : [ {
-      "topic" : "test",
+      "topic" : "input",
       "key" : null,
       "value" : {
-        "b" : "dmFyaWF0aW9ucw=="
+        "expected" : 1,
+        "c4" : null
       }
     } ],
     "outputs" : [ {
-      "topic" : "TEST2",
+      "topic" : "OUTPUT",
       "key" : null,
       "value" : {
-        "B" : "dmFyaWF0aW9ucw=="
+        "EXPECTED" : 1,
+        "c2" : null
       }
     } ],
     "topics" : [ {
-      "name" : "TEST2",
-      "replicas" : 1,
-      "keySerdeFeatures" : [ ],
-      "valueSerdeFeatures" : [ ],
-      "numPartitions" : 4
-    }, {
-      "name" : "test",
-      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  bytes b = 1;\n}\n",
+      "name" : "input",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  int32 expected = 1;\n  bytes c2 = 2;\n}\n",
       "valueFormat" : "PROTOBUF",
       "replicas" : 1,
-      "keySerdeFeatures" : [ ],
-      "valueSerdeFeatures" : [ ],
       "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM TEST WITH (kafka_topic='test', value_format='PROTOBUF');", "CREATE STREAM TEST2 AS SELECT * FROM TEST;" ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`B` BYTES",
+        "schema" : "`EXPECTED` INTEGER, `C2` BYTES",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -66,9 +64,9 @@
         "keyFeatures" : [ ],
         "valueFeatures" : [ ]
       }, {
-        "name" : "TEST2",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`B` BYTES",
+        "schema" : "`EXPECTED` INTEGER, `C2` BYTES",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -78,7 +76,7 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "test",
+          "name" : "input",
           "keyFormat" : {
             "format" : "KAFKA"
           },
@@ -86,9 +84,9 @@
             "format" : "PROTOBUF"
           },
           "partitions" : 1,
-          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  bytes b = 1;\n}\n"
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  int32 expected = 1;\n  bytes c2 = 2;\n}\n"
         }, {
-          "name" : "TEST2",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "format" : "KAFKA"
           },
@@ -96,7 +94,7 @@
             "format" : "PROTOBUF"
           },
           "partitions" : 4,
-          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  bytes B = 1;\n}\n"
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 EXPECTED = 1;\n  bytes C2 = 2;\n}\n"
         } ]
       }
     }

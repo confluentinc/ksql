@@ -30,7 +30,6 @@ import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.test.util.KsqlTestFolder;
-import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -73,7 +72,7 @@ public class KsqlTest {
     ksql = new Ksql(options, systemProps, clientBuilder, cliBuilder);
 
     when(options.getOutputFormat()).thenReturn(OutputFormat.TABULAR);
-    when(clientBuilder.build(any(), any(), any(), any(), any(), any())).thenReturn(client);
+    when(clientBuilder.build(any(), any(), any(), any(), any())).thenReturn(client);
     when(cliBuilder.build(any(), any(), any(), any())).thenReturn(cli);
   }
 
@@ -135,7 +134,7 @@ public class KsqlTest {
     ksql.run();
 
     // Then:
-    verify(clientBuilder).build(eq("in a galaxy far far away"), any(), any(), any(), any(), any());
+    verify(clientBuilder).build(eq("in a galaxy far far away"), any(), any(), any(), any());
   }
 
   @Test
@@ -153,7 +152,7 @@ public class KsqlTest {
     verify(clientBuilder).build(any(), any(), eq(ImmutableMap.of(
         "ssl.truststore.location", "some/path",
         "ssl.truststore.password", "letmein"
-    )), any(), any(), any());
+    )), any(), any());
   }
 
   @Test
@@ -176,7 +175,7 @@ public class KsqlTest {
     verify(clientBuilder).build(any(), any(), eq(ImmutableMap.of(
         "ssl.truststore.location", "some/path",
         "ssl.truststore.password", "letmein"
-    )), any(), any(), any());
+    )), any(), any());
   }
 
   @Test
@@ -192,19 +191,7 @@ public class KsqlTest {
     ksql.run();
 
     // Then:
-    verify(clientBuilder).build(any(), eq(ImmutableMap.of("some.other.setting", "value")), any(), any(), any(), any());
-  }
-
-  @Test
-  public void shouldBuildClientWithConsistencyLevelOption() {
-    // Given:
-    when(options.getConsistencyLevel()).thenReturn(ConsistencyLevel.EVENTUAL);
-
-    // When:
-    ksql.run();
-
-    // Then:
-    verify(clientBuilder).build(any(), any(), any(), any(), any(), eq(ConsistencyLevel.EVENTUAL));
+    verify(clientBuilder).build(any(), eq(ImmutableMap.of("some.other.setting", "value")), any(), any(), any());
   }
 
   private void givenConfigFile(final String content) throws Exception {

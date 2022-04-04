@@ -109,7 +109,7 @@ public class TestExecutorUtilTest {
     );
     assertThat(
         asList.get(1).getPlan().getStatementText(),
-        startsWith("CREATE STREAM S1 as SELECT")
+        startsWith("CREATE STREAM S1 AS SELECT")
     );
   }
 

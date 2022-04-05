@@ -126,4 +126,4 @@ Specifically, the migrations directory is inferred as a directory with name
 `migrations` contained in the same directory as the migrations configuration file. 
 This is the default file structure created by the `ksql-migrations new-project` command.
 
-This configuration is available starting with ksqlDB 0.26.0.
+This configuration is available starting with ksqlDB 0.25.0.

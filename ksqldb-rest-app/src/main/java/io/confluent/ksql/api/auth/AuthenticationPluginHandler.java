@@ -114,7 +114,10 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public User isAuthorized(final Authorization authority, final Handler<AsyncResult<Boolean>> resultHandler) {
+    public User isAuthorized(
+        final Authorization authority,
+        final Handler<AsyncResult<Boolean>> resultHandler
+    ) {
       throw new UnsupportedOperationException();
     }
 

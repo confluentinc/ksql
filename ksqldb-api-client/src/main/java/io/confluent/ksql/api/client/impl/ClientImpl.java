@@ -43,7 +43,6 @@ import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PushOffsetVector;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;

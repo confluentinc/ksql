@@ -37,6 +37,7 @@ import java.util.Optional;
 public final class AuthHandlers {
 
   private static final String PROVIDER_KEY = "provider";
+
   private enum Provider {
     SYSTEM, JAAS, PLUGIN
   }

@@ -45,7 +45,7 @@ final class SessionUtil {
       );
       final String json = ApiJsonMapper.INSTANCE.get().writeValueAsString(finalMessage);
       webSocket
-          .writeFinalTextFrame(json, r -> {})
+          .writeFinalTextFrame(json, r -> { })
           .close((short) code, truncate(message));
     } catch (final Exception e) {
       LOG.info("Exception caught closing websocket", e);

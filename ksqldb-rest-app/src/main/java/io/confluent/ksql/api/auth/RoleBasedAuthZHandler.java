@@ -62,7 +62,7 @@ public class RoleBasedAuthZHandler implements Handler<RoutingContext> {
     return delegate;
   }
 
-  private static class StarAuthHandler implements Authorization{
+  private static class StarAuthHandler implements Authorization {
 
     private static final StarAuthHandler INSTANCE = new StarAuthHandler();
 

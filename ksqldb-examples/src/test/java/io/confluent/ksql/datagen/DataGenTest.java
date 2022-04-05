@@ -21,12 +21,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MockSystem;
+import io.confluent.ksql.util.MockSystemExit;
 import java.util.Properties;
 import org.junit.Test;
 
 public class DataGenTest {
-  private final static MockSystem mockSystem = new MockSystem();
+  private final static MockSystemExit mockSystem = new MockSystemExit();
 
   @Test(expected = DataGen.Arguments.ArgumentParseException.class)
   public void shouldThrowOnUnknownFormat() throws Throwable {

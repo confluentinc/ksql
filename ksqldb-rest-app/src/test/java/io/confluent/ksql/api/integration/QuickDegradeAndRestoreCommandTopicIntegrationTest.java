@@ -20,7 +20,7 @@ import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MockSystem;
+import io.confluent.ksql.util.MockSystemExit;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.File;
 import java.io.IOException;
@@ -137,7 +137,7 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
             "--config-file", propertiesFile.toString(),
             backupFile.toString()
         },
-        new MockSystem()
+        new MockSystemExit()
     );
 
     // Re-load the command topic

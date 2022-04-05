@@ -18,7 +18,8 @@ package io.confluent.ksql.rest.util;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.KsqlServerMain;
-import io.confluent.ksql.util.JavaSystem;
+import io.confluent.ksql.util.JavaSystemExit;
+import io.confluent.ksql.util.SystemExit;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import org.apache.kafka.streams.processor.internals.StreamThread;
@@ -47,13 +48,13 @@ public class KsqlUncaughtExceptionHandler implements Thread.UncaughtExceptionHan
 
   @SuppressFBWarnings
   public void uncaughtException(final Thread t, final Throwable e) {
-    uncaughtExceptionInternal(t, e, new JavaSystem());
+    uncaughtExceptionInternal(t, e, new JavaSystemExit());
   }
 
   void uncaughtExceptionInternal(
       final Thread t,
       final Throwable e,
-      final io.confluent.ksql.util.System system) {
+      final SystemExit systemExit) {
     if (t instanceof StreamThread) {
       countDownLatch.ifPresent(CountDownLatch::countDown);
       return;
@@ -64,6 +65,6 @@ public class KsqlUncaughtExceptionHandler implements Thread.UncaughtExceptionHan
 
     flusher.run();
 
-    system.exit(-1);
+    systemExit.exit(-1);
   }
 }

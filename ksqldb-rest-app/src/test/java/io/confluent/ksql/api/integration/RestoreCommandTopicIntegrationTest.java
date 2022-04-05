@@ -42,7 +42,7 @@ import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MockSystem;
+import io.confluent.ksql.util.MockSystemExit;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.File;
 import java.io.IOException;
@@ -73,7 +73,7 @@ import org.junit.rules.TemporaryFolder;
  */
 @Category({IntegrationTest.class})
 public class RestoreCommandTopicIntegrationTest {
-  private static final MockSystem mockSystem = new MockSystem();
+  private static final MockSystemExit mockSystem = new MockSystemExit();
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @ClassRule

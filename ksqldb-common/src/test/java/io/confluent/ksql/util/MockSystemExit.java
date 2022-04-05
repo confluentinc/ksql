@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.util;
 
-public class JavaSystem implements System {
+public class MockSystemExit implements SystemExit {
   @Override
-  public void exit(final int status) {
-    java.lang.System.exit(status);
+  public void exit(int status) {
+    throw new RuntimeException("System.exit() was called with status code " + status);
   }
 }

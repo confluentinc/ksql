@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.util;
 
-public interface System {
-  void exit(int status);
+public class JavaSystemExit implements SystemExit {
+  @Override
+  public void exit(final int status) {
+    java.lang.System.exit(status);
+  }
 }

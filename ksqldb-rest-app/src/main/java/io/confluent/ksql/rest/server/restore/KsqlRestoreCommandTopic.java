@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.restore;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.DefaultErrorMessages;
@@ -30,12 +31,13 @@ import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionExc
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
-import io.confluent.ksql.util.JavaSystem;
+import io.confluent.ksql.util.JavaSystemExit;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.SystemExit;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
@@ -201,16 +203,17 @@ public class KsqlRestoreCommandTopic {
    * Main command to restore the KSQL command topic.
    */
   public static void main(final String[] args) throws Exception {
-    mainInternal(args, new JavaSystem());
+    mainInternal(args, new JavaSystemExit());
   }
 
+  @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH")
   public static void mainInternal(
       final String[] args,
-      final io.confluent.ksql.util.System system
+      final SystemExit systemExit
   ) throws Exception {
     final RestoreOptions restoreOptions = RestoreOptions.parse(args);
     if (restoreOptions == null) {
-      system.exit(1);
+      systemExit.exit(1);
     }
 
     final File configFile = restoreOptions.getConfigFile();
@@ -221,7 +224,7 @@ public class KsqlRestoreCommandTopic {
       checkFileExists(backupFile);
     } catch (final Exception e) {
       System.err.println(e.getMessage());
-      system.exit(2);
+      systemExit.exit(2);
     }
 
     final KsqlConfig serverConfig = loadServerConfig(configFile);
@@ -229,7 +232,7 @@ public class KsqlRestoreCommandTopic {
 
     // Stop and ask the user to type 'yes' to continue to warn users about the restore process
     if (!restoreOptions.isAutomaticYes() && !promptQuestion()) {
-      system.exit(0);
+      systemExit.exit(0);
     }
 
     System.out.println("Loading backup file ...");
@@ -241,7 +244,7 @@ public class KsqlRestoreCommandTopic {
     } catch (final Exception e) {
       System.err.println(String.format(
           "Failed loading backup file.%nError = %s", e.getMessage()));
-      system.exit(1);
+      systemExit.exit(1);
     }
 
     System.out.println(String.format(
@@ -256,7 +259,7 @@ public class KsqlRestoreCommandTopic {
     } catch (final Exception e) {
       System.err.println(String.format(
           "Failed restoring command topic.%nError = %s", e.getMessage()));
-      system.exit(1);
+      systemExit.exit(1);
     }
 
     System.out.println(String.format(

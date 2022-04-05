@@ -273,7 +273,7 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   private void assertExpectedScalablePushQueries(
       final int expectedScalablePushQueries
   ) {
-    assertThatEventually(() -> {
+    assertThatEventually("expected scalable push queries", () -> {
       for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
         if (metadata.getScalablePushRegistry().get().latestNumRegistered()
             < expectedScalablePushQueries
@@ -282,6 +282,6 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
         }
       }
       return true;
-    }, is(true));
+    }, is(true), 100, 1000);
   }
 }

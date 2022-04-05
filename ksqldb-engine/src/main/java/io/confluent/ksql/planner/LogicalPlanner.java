@@ -1125,21 +1125,13 @@ public class LogicalPlanner {
     }
 
     final DataSourceNode dataSourceNode = (DataSourceNode) sourceNode;
-    final boolean isAvro = dataSourceNode.getDataSource()
+    final String dataSourceKeyFormat = dataSourceNode.getDataSource()
         .getKsqlTopic()
         .getKeyFormat()
-        .getFormat()
-        .equals(AvroFormat.NAME);
-    final boolean isProtobuf = dataSourceNode.getDataSource()
-        .getKsqlTopic()
-        .getKeyFormat()
-        .getFormat()
-        .equals(ProtobufFormat.NAME);
-    final boolean isJsonSR = dataSourceNode.getDataSource()
-        .getKsqlTopic()
-        .getKeyFormat()
-        .getFormat()
-        .equals(JsonSchemaFormat.NAME);
+        .getFormat();
+    final boolean isAvro = dataSourceKeyFormat.equals(AvroFormat.NAME);
+    final boolean isProtobuf = dataSourceKeyFormat.equals(ProtobufFormat.NAME);
+    final boolean isJsonSR = dataSourceKeyFormat.equals(JsonSchemaFormat.NAME);
     final boolean isSREnabledFormat = isAvro || isProtobuf || isJsonSR;
     final boolean hasStructInPrimaryKey = dataSourceNode.getSchema()
         .key()

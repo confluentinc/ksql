@@ -31,6 +31,8 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Objects;
@@ -44,14 +46,15 @@ import org.apache.kafka.common.config.ConfigException;
 public final class CreateSourceAsProperties {
 
   private final PropertiesConfig props;
+  private final boolean unwrapProtobufPrimitives;
 
   public static CreateSourceAsProperties none() {
-    return new CreateSourceAsProperties(ImmutableMap.of());
+    return new CreateSourceAsProperties(ImmutableMap.of(), false);
   }
 
   public static CreateSourceAsProperties from(final Map<String, Literal> literals) {
     try {
-      return new CreateSourceAsProperties(literals);
+      return new CreateSourceAsProperties(literals, false);
     } catch (final ConfigException e) {
       final String message = e.getMessage().replace(
           "configuration",
@@ -62,8 +65,12 @@ public final class CreateSourceAsProperties {
     }
   }
 
-  private CreateSourceAsProperties(final Map<String, Literal> originals) {
+  private CreateSourceAsProperties(
+      final Map<String, Literal> originals,
+      final boolean unwrapProtobufPrimitives
+  ) {
     this.props = new PropertiesConfig(CreateAsConfigs.CONFIG_METADATA, originals);
+    this.unwrapProtobufPrimitives = unwrapProtobufPrimitives;
 
     CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
@@ -134,13 +141,17 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && unwrapProtobufPrimitives) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
+    }
+
     final Optional<Integer> keySchemaId = getKeySchemaId();
     keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
     return builder.build();
   }
 
-  public Map<String, String> getValueFormatProperties() {
+  public Map<String, String> getValueFormatProperties(final String valueFormat) {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
     final String avroSchemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
@@ -154,6 +165,10 @@ public final class CreateSourceAsProperties {
     final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
     if (delimiter != null) {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
+    }
+
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && unwrapProtobufPrimitives) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
     final Optional<Integer> valueSchemaId = getValueSchemaId();
@@ -173,7 +188,7 @@ public final class CreateSourceAsProperties {
     valueSchemaName.ifPresent(
         s -> originals.put(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME, new StringLiteral(s)));
 
-    return new CreateSourceAsProperties(originals);
+    return new CreateSourceAsProperties(originals, unwrapProtobufPrimitives);
   }
 
   public Optional<Integer> getKeySchemaId() {
@@ -194,7 +209,13 @@ public final class CreateSourceAsProperties {
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
 
-    return new CreateSourceAsProperties(originals);
+    return new CreateSourceAsProperties(originals, unwrapProtobufPrimitives);
+  }
+
+  public CreateSourceAsProperties withUnwrapProtobufPrimitives(
+      final boolean unwrapProtobufPrimitives
+  ) {
+    return new CreateSourceAsProperties(props.copyOfOriginalLiterals(), unwrapProtobufPrimitives);
   }
 
   @Override
@@ -211,12 +232,13 @@ public final class CreateSourceAsProperties {
       return false;
     }
     final CreateSourceAsProperties that = (CreateSourceAsProperties) o;
-    return Objects.equals(props, that.props);
+    return Objects.equals(props, that.props)
+        && unwrapProtobufPrimitives == that.unwrapProtobufPrimitives;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(props);
+    return Objects.hash(props, unwrapProtobufPrimitives);
   }
 
   private Optional<String> getFormatName() {

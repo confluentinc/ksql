@@ -58,6 +58,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.InjectorChain;
+import io.confluent.ksql.statement.SourcePropertyInjector;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -485,10 +486,12 @@ public final class TestExecutorUtil {
 
       final ConfiguredStatement<?> withFormats =
           new DefaultFormatInjector().inject(configured);
+      final ConfiguredStatement<?> withSourceProps =
+          new SourcePropertyInjector().inject(withFormats);
       final ConfiguredStatement<?> withSchema =
           schemaInjector
-              .map(injector -> injector.inject(withFormats))
-              .orElse((ConfiguredStatement) withFormats);
+              .map(injector -> injector.inject(withSourceProps))
+              .orElse((ConfiguredStatement) withSourceProps);
 
       final KsqlPlan plan = executionContext
           .plan(executionContext.getServiceContext(), withSchema);

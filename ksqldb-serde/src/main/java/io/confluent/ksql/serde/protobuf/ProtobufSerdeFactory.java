@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.protobuf;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.connect.protobuf.ProtobufConverterConfig;
+import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.schema.connect.SchemaWalker;
@@ -65,7 +66,7 @@ final class ProtobufSerdeFactory {
 
     final Optional<Schema> physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
         SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
-            .get(), new ProtobufSchemaTranslator())) : Optional.empty();
+            .get(), new ProtobufSchemaTranslator(properties))) : Optional.empty();
 
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
         schema,
@@ -117,7 +118,7 @@ final class ProtobufSerdeFactory {
     );
   }
 
-  private static <T> KsqlConnectDeserializer<T> createDeserializer(
+  private <T> KsqlConnectDeserializer<T> createDeserializer(
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
@@ -145,7 +146,7 @@ final class ProtobufSerdeFactory {
     return new ConnectSRSchemaDataTranslator(physicalSchema.get());
   }
 
-  private static ProtobufConverter getConverter(
+  private ProtobufConverter getConverter(
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
       final Optional<Integer> schemaId,
@@ -164,6 +165,11 @@ final class ProtobufSerdeFactory {
       protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       protobufConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
     }
+
+    protobufConfig.put(
+        ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG,
+        properties.getUnwrapPrimitives()
+    );
 
     final ProtobufConverter converter = new ProtobufConverter(schemaRegistryClient);
     converter.configure(protobufConfig, isKey);

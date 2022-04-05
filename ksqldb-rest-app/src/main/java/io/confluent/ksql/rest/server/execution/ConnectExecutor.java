@@ -20,15 +20,20 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,8 +59,7 @@ public final class ConnectExecutor {
     final List<String> errors = validate(createConnector, client);
     if (!errors.isEmpty()) {
       final String errorMessage = "Validation error: " + String.join("\n", errors);
-      return StatementExecutorResponse.handled(Optional.of(new ErrorEntity(
-          statement.getStatementText(), errorMessage)));
+      throw new KsqlException(errorMessage);
     }
 
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
@@ -77,16 +81,17 @@ public final class ConnectExecutor {
       ));
     }
 
-    if (createConnector.ifNotExists()) {
-      final Optional<KsqlEntity> connectors = handleIfNotExists(statement, createConnector, client);
-
-      if (connectors.isPresent()) {
-        return StatementExecutorResponse.handled(connectors);
-      }
+    if (response.error().isPresent()) {
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(response.httpCode())
+          .entity(new KsqlErrorMessage(
+              Errors.toErrorCode(response.httpCode()),
+              "Failed to create connector: " + response.error().get()))
+          .build()
+      );
     }
 
-    return StatementExecutorResponse.handled(response.error()
-        .map(err -> new ErrorEntity(statement.getStatementText(), err)));
+    throw new IllegalStateException("Either response.datum() or response.error() must be present");
   }
 
   private static List<String> validate(final CreateConnector createConnector,
@@ -139,8 +144,8 @@ public final class ConnectExecutor {
     if (createConnector.ifNotExists()) {
       final ConnectResponse<List<String>> connectorsResponse = client.connectors();
       if (connectorsResponse.error().isPresent()) {
-        return connectorsResponse.error()
-            .map(err -> new ErrorEntity(statement.getStatementText(), err));
+        throw new KsqlServerException("Failed to check for existing connector: "
+            + connectorsResponse.error().get());
       }
 
       if (checkIfConnectorExists(createConnector, connectorsResponse)) {

@@ -21,12 +21,15 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.DescribeConnector;
+import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
-import io.confluent.ksql.rest.entity.ErrorEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -75,22 +78,26 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .status(connectorName);
     if (statusResponse.error().isPresent()) {
-      return StatementExecutorResponse.handled(Optional.of(
-          new ErrorEntity(
-              configuredStatement.getStatementText(),
-              statusResponse.error().get())
-      ));
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(statusResponse.httpCode())
+          .entity(new KsqlErrorMessage(
+              Errors.toErrorCode(statusResponse.httpCode()),
+              "Failed to query connector status: " + statusResponse.error().get()))
+          .build()
+      );
     }
 
     final ConnectResponse<ConnectorInfo> infoResponse = serviceContext
         .getConnectClient()
         .describe(connectorName);
     if (infoResponse.error().isPresent()) {
-      return StatementExecutorResponse.handled(Optional.of(
-          new ErrorEntity(
-              configuredStatement.getStatementText(),
-              infoResponse.error().get())
-      ));
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(infoResponse.httpCode())
+          .entity(new KsqlErrorMessage(
+              Errors.toErrorCode(infoResponse.httpCode()),
+              "Failed to describe connector: " + infoResponse.error().get()))
+          .build()
+      );
     }
 
     final ConnectorStateInfo status = statusResponse.datum().get();

@@ -52,7 +52,6 @@ import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
 import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -886,39 +885,6 @@ public class ConsoleTest {
   public void shouldPrintTerminateQuery() {
     // Given:
     final KsqlEntity entity = new TerminateQueryEntity("statementText", "queryId", true);
-
-    // When:
-    console.printKsqlEntityList(ImmutableList.of(entity));
-
-    // Then:
-    final String output = terminal.getOutputString();
-    Approvals.verify(output, approvalOptions);
-  }
-
-  @Test
-  public void shouldPrintErrorEntityLongNonJson() {
-    // Given:
-    final KsqlEntity entity = new ErrorEntity(
-        "statementText",
-        Strings.repeat("Not a JSON value! ", 10));
-
-    // When:
-    console.printKsqlEntityList(ImmutableList.of(entity));
-
-    // Then:
-    final String output = terminal.getOutputString();
-    Approvals.verify(output, approvalOptions);
-  }
-
-  @Test
-  public void shouldPrintErrorEntityLongJson() throws IOException {
-    // Given:
-    final KsqlEntity entity = new ErrorEntity(
-        "statementText",
-        new ObjectMapper().writeValueAsString(ImmutableMap.of(
-            "foo", "bar",
-            "message", "a " + StringUtils.repeat("really ", 20) + " long message"
-        )));
 
     // When:
     console.printKsqlEntityList(ImmutableList.of(entity));

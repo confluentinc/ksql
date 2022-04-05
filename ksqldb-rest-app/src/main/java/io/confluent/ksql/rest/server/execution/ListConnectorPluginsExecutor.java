@@ -17,10 +17,13 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectorPlugins;
+import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
-import io.confluent.ksql.rest.entity.ErrorEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -45,10 +48,13 @@ public final class ListConnectorPluginsExecutor {
     final ConnectResponse<List<PluginInfo>> plugins =
         serviceContext.getConnectClient().connectorPlugins();
     if (plugins.error().isPresent()) {
-      return StatementExecutorResponse.handled(Optional.of(new ErrorEntity(
-        configuredStatement.getStatementText(),
-        plugins.error().get()
-      )));
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(plugins.httpCode())
+          .entity(new KsqlErrorMessage(
+              Errors.toErrorCode(plugins.httpCode()),
+              "Failed to list connector plugins: " + plugins.error().get()))
+          .build()
+      );
     }
 
     final List<SimpleConnectorPluginInfo> pluginInfos = new ArrayList<>();

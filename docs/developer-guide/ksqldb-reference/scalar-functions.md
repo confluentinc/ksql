@@ -1835,7 +1835,7 @@ more information on timestamp formats, see
 
 Since: -
 
-Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
+**Deprecated since 0.17.0 (use [FORMAT_TIMESTAMP](#format_timestamp))**
 
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -1849,3 +1849,12 @@ can be escaped with two successive single quotes, `''`, for example:
 TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
 for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
 information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+!!! note
+    To use the [`FORMAT_TIMESTAMP`](#format_timestamp) function with a BIGINT millisecond timestamp
+    parameter, convert the millisecond value to a `TIMESTAMP` by using the
+    `FROM_UNIXTIME` function, for example:
+
+    ```sql
+    FORMAT_TIMESTAMP(FROM_UNIXTIME(unix_timestamp))
+    ```

@@ -24,6 +24,7 @@ import com.google.protobuf.Timestamp;
 import com.google.type.Date;
 import com.google.type.TimeOfDay;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -200,7 +201,7 @@ public class KsqlProtobufSerializerTest {
       final Schema schema,
       final Class<T> targetType
   ) {
-    return ProtobufSerdeFactory
+    return new ProtobufSerdeFactory(new ProtobufProperties(Collections.emptyMap()))
         .createSerde(
             (ConnectSchema) schema,
             ksqlConfig,

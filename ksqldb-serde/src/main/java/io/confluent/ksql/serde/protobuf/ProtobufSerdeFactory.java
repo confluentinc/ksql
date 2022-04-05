@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.protobuf;
 
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.connect.protobuf.ProtobufConverterConfig;
+import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
@@ -27,6 +28,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -36,12 +38,16 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 final class ProtobufSerdeFactory {
 
-  private ProtobufSerdeFactory() {
+  final ProtobufProperties properties;
+
+  ProtobufSerdeFactory(final ProtobufProperties properties) {
+    this.properties = Objects.requireNonNull(properties, "properties");
   }
 
-  static <T> Serde<T> createSerde(
+  <T> Serde<T> createSerde(
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
@@ -78,7 +84,7 @@ final class ProtobufSerdeFactory {
     SchemaWalker.visit(schema, new SchemaValidator());
   }
 
-  private static <T> KsqlConnectSerializer<T> createSerializer(
+  private <T> KsqlConnectSerializer<T> createSerializer(
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
@@ -95,7 +101,7 @@ final class ProtobufSerdeFactory {
     );
   }
 
-  private static <T> KsqlConnectDeserializer<T> createDeserializer(
+  private <T> KsqlConnectDeserializer<T> createDeserializer(
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
@@ -111,7 +117,7 @@ final class ProtobufSerdeFactory {
     );
   }
 
-  private static ProtobufConverter getConverter(
+  private ProtobufConverter getConverter(
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
       final boolean isKey
@@ -122,6 +128,11 @@ final class ProtobufSerdeFactory {
     protobufConfig.put(
         ProtobufConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
+    );
+
+    protobufConfig.put(
+        ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG,
+        properties.getUnwrapPrimitives()
     );
 
     final ProtobufConverter converter = new ProtobufConverter(schemaRegistryClient);

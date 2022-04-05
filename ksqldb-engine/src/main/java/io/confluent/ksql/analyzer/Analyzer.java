@@ -180,9 +180,13 @@ class Analyzer {
           srcTopic.getKeyFormat().getFormatInfo()
       );
 
+      final String valueFormatName = formatName(
+          props.getValueFormat(),
+          srcTopic.getValueFormat().getFormatInfo()
+      );
       final FormatInfo valueFmtInfo = buildFormatInfo(
-          formatName(props.getValueFormat(), srcTopic.getValueFormat().getFormatInfo()),
-          props.getValueFormatProperties(),
+          valueFormatName,
+          props.getValueFormatProperties(valueFormatName),
           srcTopic.getValueFormat().getFormatInfo()
       );
 

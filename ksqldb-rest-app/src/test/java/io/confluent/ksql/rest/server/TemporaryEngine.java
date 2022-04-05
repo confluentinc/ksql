@@ -42,7 +42,6 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -184,7 +183,7 @@ public class TemporaryEngine extends ExternalResource {
         .preconditionTopicExists(name, 1, (short) 1, Collections.emptyMap());
   }
 
-  public ConfiguredStatement<? extends Statement> configure(final String sql) {
+  public ConfiguredStatement<?> configure(final String sql) {
     return ConfiguredStatement.of(getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0)),
         SessionConfig.of(ksqlConfig, ImmutableMap.of()));
   }

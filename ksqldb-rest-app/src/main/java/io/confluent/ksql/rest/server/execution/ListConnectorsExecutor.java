@@ -20,6 +20,7 @@ import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.services.ConnectClient;
@@ -37,14 +38,13 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.Abstrac
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public final class ListConnectorsExecutor {
-  private final ConnectServerErrors connectErrorHandler;
 
-  ListConnectorsExecutor(final ConnectServerErrors connectErrorHandler) {
-    this.connectErrorHandler = connectErrorHandler;
+  private ListConnectorsExecutor() {
+
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public StatementExecutorResponse execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListConnectors> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
@@ -53,8 +53,10 @@ public final class ListConnectorsExecutor {
     final ConnectClient connectClient = serviceContext.getConnectClient();
     final ConnectResponse<List<String>> connectors = serviceContext.getConnectClient().connectors();
     if (connectors.error().isPresent()) {
-      return StatementExecutorResponse.handled(connectErrorHandler.handle(
-          configuredStatement, connectors));
+      return StatementExecutorResponse.handled(Optional.of(new ErrorEntity(
+          configuredStatement.getStatementText(),
+          connectors.error().get()
+      )));
     }
 
     final List<SimpleConnectorInfo> infos = new ArrayList<>();

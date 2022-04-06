@@ -83,6 +83,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -92,7 +93,10 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.json.JsonSchemaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -104,6 +108,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class LogicalPlanner {
@@ -463,7 +468,7 @@ public class LogicalPlanner {
 
   private PreJoinRepartitionNode buildInternalRepartitionNode(
       final PlanNode source,
-      final String side,
+      final String prefix,
       final Expression joinExpression,
       final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin
   ) {
@@ -474,7 +479,7 @@ public class LogicalPlanner {
         buildRepartitionedSchema(source, Collections.singletonList(rewrittenPartitionBy));
 
     return new PreJoinRepartitionNode(
-        new PlanNodeId(side + "SourceKeyed"),
+        new PlanNodeId(prefix + "SourceKeyed"),
         source,
         schema,
         rewrittenPartitionBy
@@ -488,7 +493,8 @@ public class LogicalPlanner {
   private PlanNode prepareSourceForJoin(
       final JoinTree.Node node,
       final PlanNode joinSource,
-      final String side,
+      final String prefix,
+      final JoinSide side,
       final Expression joinExpression,
       final boolean isForeignKeyJoin
   ) {
@@ -496,6 +502,7 @@ public class LogicalPlanner {
       return prepareSourceForJoin(
           (JoinTree.Join) node,
           joinSource,
+          prefix,
           side,
           joinExpression,
           isForeignKeyJoin
@@ -503,6 +510,7 @@ public class LogicalPlanner {
     } else {
       return prepareSourceForJoin(
           (DataSourceNode) joinSource,
+          prefix,
           side,
           joinExpression,
           isForeignKeyJoin
@@ -512,14 +520,16 @@ public class LogicalPlanner {
 
   private PlanNode prepareSourceForJoin(
       final DataSourceNode sourceNode,
-      final String side,
+      final String prefix,
+      final JoinSide side,
       final Expression joinExpression,
       final boolean isForeignKeyJoin
   ) {
     final PlanNode preProjectNode;
-    if (isForeignKeyJoin) {
-      // we do not need to repartition for foreign key joins, as FK joins do not
-      // have co-partitioning requirements
+    // In the common case, we do not need to repartition foreign key joins, as FK joins do not have
+    // co-partitioning requirements. However, there are corner cases covered by
+    // shouldRepartitionFKJoin.
+    if (isForeignKeyJoin && !shouldRepartitionFKJoin(sourceNode, side)) {
       preProjectNode = sourceNode;
     } else {
       // it is always safe to build the repartition node - this operation will be
@@ -537,12 +547,12 @@ public class LogicalPlanner {
           };
 
       preProjectNode =
-          buildInternalRepartitionNode(sourceNode, side, joinExpression, rewriter::process);
+          buildInternalRepartitionNode(sourceNode, prefix, joinExpression, rewriter::process);
     }
 
     return buildInternalProjectNode(
         preProjectNode,
-        "PrependAlias" + side,
+        "PrependAlias" + prefix,
         sourceNode.getAlias()
     );
   }
@@ -550,13 +560,15 @@ public class LogicalPlanner {
   private PlanNode prepareSourceForJoin(
       final Join join,
       final PlanNode joinedSource,
-      final String side,
+      final String prefix,
+      final JoinSide side,
       final Expression joinExpression,
       final boolean isForeignKeyJoin
   ) {
-    // we do not need to repartition for foreign key joins, as FK joins do not
-    // have co-partitioning requirements
-    if (isForeignKeyJoin) {
+    // In the common case, we do not need to repartition foreign key joins, as FK joins do not have
+    // co-partitioning requirements. However, there are corner cases covered by
+    // shouldRepartitionFKJoin.
+    if (isForeignKeyJoin && !shouldRepartitionFKJoin(joinedSource, side)) {
       return joinedSource;
     }
 
@@ -566,7 +578,7 @@ public class LogicalPlanner {
       return joinedSource;
     }
 
-    return buildInternalRepartitionNode(joinedSource, side, joinExpression, refRewriter::process);
+    return buildInternalRepartitionNode(joinedSource, prefix, joinExpression, refRewriter::process);
   }
 
   private PlanNode buildSourceNode(final boolean isWindowed) {
@@ -598,7 +610,7 @@ public class LogicalPlanner {
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getLeft();
       preRepartitionLeft = new DataSourceNode(
-          new PlanNodeId("KafkaTopic_" + prefix + "Left"),
+          new PlanNodeId("KafkaTopic_" + prefix + JoinSide.LEFT),
           leaf.getSource().getDataSource(),
           leaf.getSource().getAlias(),
           isWindowed,
@@ -612,7 +624,7 @@ public class LogicalPlanner {
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getRight();
       preRepartitionRight = new DataSourceNode(
-          new PlanNodeId("KafkaTopic_" + prefix + "Right"),
+          new PlanNodeId("KafkaTopic_" + prefix + JoinSide.RIGHT),
           leaf.getSource().getDataSource(),
           leaf.getSource().getAlias(),
           isWindowed,
@@ -630,14 +642,16 @@ public class LogicalPlanner {
     final PlanNode left = prepareSourceForJoin(
         root.getLeft(),
         preRepartitionLeft,
-        prefix + "Left",
+        prefix + JoinSide.LEFT,
+        JoinSide.LEFT,
         root.getInfo().getLeftJoinExpression(),
         fkExpression.isPresent()
     );
     final PlanNode right = prepareSourceForJoin(
         root.getRight(),
         preRepartitionRight,
-        prefix + "Right",
+        prefix + JoinSide.RIGHT,
+        JoinSide.RIGHT,
         root.getInfo().getRightJoinExpression(),
         fkExpression.isPresent()
     );
@@ -1092,6 +1106,40 @@ public class LogicalPlanner {
     );
   }
 
+  /**
+   * Given a source node and its side, return {@code true} if the source should be repartitioned
+   * for the foreign key join.
+   *
+   * <p>The right hand side of the FK join must be repartitioned if it uses schema format baked by
+   * Schema Registry and the primary key is a struct. In that case, there is a possibility that
+   * the schema was not created by ksqlDB, therefore it won't match the generated without
+   * repartitioning. See https://github.com/confluentinc/ksql/issues/8528 for more details</p>
+   *
+   * @param sourceNode the source node participating in a FK join
+   * @param side the side of the FK join the source node participates at.
+   * @return {@code true} if the source node requires repartitioning, {@code false} otherwise.
+   */
+  private boolean shouldRepartitionFKJoin(final PlanNode sourceNode, final JoinSide side) {
+    if (!(sourceNode instanceof DataSourceNode)) {
+      return false;
+    }
+
+    final DataSourceNode dataSourceNode = (DataSourceNode) sourceNode;
+    final String dataSourceKeyFormat = dataSourceNode.getDataSource()
+        .getKsqlTopic()
+        .getKeyFormat()
+        .getFormat();
+    final boolean isAvro = dataSourceKeyFormat.equals(AvroFormat.NAME);
+    final boolean isProtobuf = dataSourceKeyFormat.equals(ProtobufFormat.NAME);
+    final boolean isJsonSR = dataSourceKeyFormat.equals(JsonSchemaFormat.NAME);
+    final boolean isSREnabledFormat = isAvro || isProtobuf || isJsonSR;
+    final boolean hasStructInPrimaryKey = dataSourceNode.getSchema()
+        .key()
+        .stream()
+        .anyMatch(col -> col.type() instanceof SqlStruct);
+    return side == JoinSide.RIGHT && isSREnabledFormat && hasStructInPrimaryKey;
+  }
+
   private static final class ColumnReferenceRewriter
       extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
@@ -1180,6 +1228,15 @@ public class LogicalPlanner {
       return expressions.stream()
           .map(e -> ExpressionTreeRewriter.rewriteWith(rewriter, e))
           .collect(Collectors.toList());
+    }
+  }
+
+  enum JoinSide {
+    LEFT, RIGHT;
+
+    @Override
+    public String toString() {
+      return StringUtils.capitalize(this.name().toLowerCase());
     }
   }
 }

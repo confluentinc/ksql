@@ -71,7 +71,7 @@ public class AnalysisTest {
 
   @Before
   public void setUp() {
-    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory, ROWPARTITION_ROWOFFSET_ENABLED, true);
+    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory, ROWPARTITION_ROWOFFSET_ENABLED, true, null);
 
     when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
   }

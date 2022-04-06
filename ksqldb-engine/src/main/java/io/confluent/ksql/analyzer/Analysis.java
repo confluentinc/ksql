@@ -32,6 +32,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -73,16 +74,20 @@ public class Analysis implements ImmutableAnalysis {
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
+  private final List<FunctionCall> aggregateFunctions = new ArrayList<>();
   private boolean orReplace = false;
   private final boolean rowpartitionRowoffsetEnabled;
   private boolean pullLimitClauseEnabled = true;
+  private Query query;
 
   public Analysis(
       final Optional<RefinementInfo> refinementInfo,
       final boolean rowpartitionRowoffsetEnabled,
-      final boolean pullLimitClauseEnabled
+      final boolean pullLimitClauseEnabled,
+      final Query query
   ) {
-    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
+    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled,
+        query);
   }
 
   @VisibleForTesting
@@ -91,12 +96,14 @@ public class Analysis implements ImmutableAnalysis {
       final BiFunction<Map<SourceName, LogicalSchema>, Boolean, SourceSchemas>
           sourceSchemasFactory,
       final boolean rowpartitionRowoffsetEnabled,
-      final boolean pullLimitClauseEnabled
+      final boolean pullLimitClauseEnabled,
+      final Query query
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
     this.pullLimitClauseEnabled  = pullLimitClauseEnabled;
+    this.query = query;
   }
 
   void addSelectItem(final SelectItem selectItem) {
@@ -273,12 +280,25 @@ public class Analysis implements ImmutableAnalysis {
     return Collections.unmodifiableList(tableFunctions);
   }
 
+  void addAggregateFunction(final FunctionCall functionCall) {
+    this.aggregateFunctions.add(Objects.requireNonNull(functionCall));
+  }
+
+  @Override
+  public List<FunctionCall> getAggregateFunctions() {
+    return Collections.unmodifiableList(aggregateFunctions);
+  }
+
   public boolean getRowpartitionRowoffsetEnabled() {
     return rowpartitionRowoffsetEnabled;
   }
 
   public boolean getPullLimitClauseEnabled() {
     return pullLimitClauseEnabled;
+  }
+
+  public Query getQuery() {
+    return  query;
   }
 
   private LogicalSchema buildStreamsSchema(

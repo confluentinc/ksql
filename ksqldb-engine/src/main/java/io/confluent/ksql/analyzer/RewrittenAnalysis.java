@@ -82,6 +82,11 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
+  public List<FunctionCall> getAggregateFunctions() {
+    return rewriteList(original.getAggregateFunctions());
+  }
+
+  @Override
   public List<SelectItem> getSelectItems() {
     return original.getSelectItems().stream()
         .map(si -> {

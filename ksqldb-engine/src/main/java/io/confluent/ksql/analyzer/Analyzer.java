@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
@@ -43,6 +44,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -157,7 +159,9 @@ class Analyzer {
       this.analysis = new Analysis(
               query.getRefinement(),
               rowpartitionRowoffsetEnabled,
-              pullLimitClauseEnabled);
+              pullLimitClauseEnabled,
+              query
+          );
 
       this.persistent = persistent;
     }
@@ -668,8 +672,14 @@ class Analyzer {
         public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
           final FunctionName functionName = functionCall.getName();
           if (metaStore.isAggregate(functionName)) {
-            throw new KsqlException("Use of aggregate function "
-                + functionName.text() + " requires a GROUP BY clause.");
+            analysis.addAggregateFunction(functionCall);
+//             Do we need the correct location here?
+            NodeLocation nodeLocation =
+                new NodeLocation(analysis.getQuery().getLocation().get().getLineNumber(),
+                analysis.getQuery().getLocation().get().getColumnNumber()
+                    + " GROUP BY 1".length());
+            analysis.setGroupBy(new GroupBy(Optional.of(nodeLocation),
+                ImmutableList.of(new IntegerLiteral(1))));
           }
 
           super.visitFunctionCall(functionCall, context);

@@ -106,6 +106,39 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject).isPresent();
   }
 
+  public static Optional<ParsedSchema> getParsedSchema(
+      final SchemaRegistryClient srClient,
+      final String topic,
+      final boolean isKey
+  ) {
+    final String subject = KsqlConstants.getSRSubject(topic, isKey);
+
+    final Optional<SchemaMetadata> metadata = getLatestSchema(srClient, subject);
+    if (!metadata.isPresent()) {
+      return Optional.empty();
+    }
+
+    final int schemaId = metadata.get().getId();
+
+    try {
+      return Optional.of(srClient.getSchemaById(schemaId));
+    } catch (final Exception e) {
+      if (isAuthErrorCode(e)) {
+        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
+
+        if (deniedOperation != AclOperation.UNKNOWN) {
+          throw new KsqlSchemaAuthorizationException(
+              deniedOperation,
+              subject
+          );
+        }
+      }
+
+      throw new KsqlException(
+          "Could not get schema for subject " + subject + " and id " + schemaId, e);
+    }
+  }
+
   public static Optional<SchemaMetadata> getLatestSchema(
       final SchemaRegistryClient srClient,
       final String topic,

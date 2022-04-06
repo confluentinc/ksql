@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
+import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -150,7 +151,7 @@ class KsqlAvroSerdeFactory {
     // deserialization, if physical schema exists, we use original schema to translate to ksql data.
     return physicalSchema.<DataTranslator>map(
             value -> isDeserializer ? new ConnectDataTranslator(schema)
-                : new AvroSRSchemaDataTranslator(value))
+                : new ConnectSRSchemaDataTranslator(value, AvroFormat.NAME))
         .orElseGet(() -> new AvroDataTranslator(schema, fullSchemaName));
   }
 

@@ -25,6 +25,7 @@ import com.google.type.TimeOfDay;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.nio.ByteBuffer;
 import java.util.Optional;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -52,10 +53,12 @@ import io.confluent.protobuf.type.utils.DecimalUtils;
 
 import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 @SuppressWarnings({"SameParameterValue", "rawtypes", "unchecked"})
@@ -166,6 +169,43 @@ public class KsqlProtobufSerializerTest {
     );
 
     deserializer = new KafkaProtobufDeserializer(schemaRegistryClient, configs);
+  }
+
+  @Test
+  public void shouldUseSchemaNameFromPropertyIfExists() {
+    // Given:
+    final String schemaName = "TestSchemaName1";
+    final String schemaNamespace = "com.test.namespace";
+
+    final Schema ksqlSchema = OPTIONAL_STRING_SCHEMA;
+    final Object ksqlValue = "foobar";
+
+    final Schema ksqlRecordSchema = SchemaBuilder.struct()
+        .field("field0", ksqlSchema)
+        .build();
+
+    final Struct ksqlRecord = new Struct(ksqlRecordSchema)
+        .put("field0", ksqlValue);
+
+    final Serializer<Struct> serializer =
+        new ProtobufSerdeFactory(
+            ImmutableMap.of(
+                ConnectProperties.FULL_SCHEMA_NAME, schemaNamespace + "." + schemaName)
+        ).createSerde(
+            (ConnectSchema) ksqlRecordSchema,
+            ksqlConfig,
+            () -> schemaRegistryClient,
+            Struct.class,
+            false).serializer();
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
+
+    // Then:
+    final Message deserialized = deserialize(bytes);
+
+    assertThat(deserialized.getDescriptorForType().getFullName(),
+        is(schemaNamespace + "." + schemaName));
   }
 
   @Test

@@ -7,6 +7,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 
+import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
@@ -36,12 +39,57 @@ public class ConnectSRSchemaDataTranslatorTest {
         .put("f2", 12);
 
     // When:
-    final Object object = new ConnectSRSchemaDataTranslator(schema).toConnectRow(struct);
+    final Object object =
+        new ConnectSRSchemaDataTranslator(schema, JsonFormat.NAME).toConnectRow(struct);
 
     // Then:
     assertThat(object, instanceOf(Struct.class));
     assertThat(((Struct) object).schema(), sameInstance(schema));
     assertThat(((Struct) object).get("f3"), is(nullValue()));
+  }
+
+  @Test
+  public void shouldTransformStructWithAvroDefaultValue() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("f1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("f2", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+        .field("f3", SchemaBuilder.int64().defaultValue(123L))
+        .build();
+    final Struct struct = new Struct(ORIGINAL_SCHEMA)
+        .put("f1", "abc")
+        .put("f2", 12);
+
+    // When:
+    final Object object =
+        new ConnectSRSchemaDataTranslator(schema, AvroFormat.NAME).toConnectRow(struct);
+
+    // Then:
+    assertThat(object, instanceOf(Struct.class));
+    assertThat(((Struct) object).schema(), sameInstance(schema));
+    assertThat(((Struct) object).get("f3"), is(123L));
+  }
+
+  @Test
+  public void shouldTransformStructWithProtobufDefaultValue() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("f1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("f2", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+        .field("f3", SchemaBuilder.int64().defaultValue(123L))
+        .build();
+    final Struct struct = new Struct(ORIGINAL_SCHEMA)
+        .put("f1", "abc")
+        .put("f2", 12);
+
+    // When:
+    final Object object =
+        new ConnectSRSchemaDataTranslator(schema, ProtobufFormat.NAME).toConnectRow(struct);
+
+    // Then:
+    assertThat(object, instanceOf(Struct.class));
+    assertThat(((Struct) object).schema(), sameInstance(schema));
+    assertThat(((Struct) object).get("f3"), is(123L));
   }
 
   @Test
@@ -55,10 +103,61 @@ public class ConnectSRSchemaDataTranslatorTest {
     final List<Integer> list = Collections.emptyList();
 
     // When:
-    final Object object = new ConnectSRSchemaDataTranslator(schema).toConnectRow(list);
+    final Object object =
+        new ConnectSRSchemaDataTranslator(schema, JsonFormat.NAME).toConnectRow(list);
 
     // Then:
     assertThat(object, sameInstance(list));
+  }
+
+  @Test
+  public void shouldThrowIfExtraAvroFieldNotOptionalOrDefault() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("f1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("f2", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+        .field("f3", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("f4", SchemaBuilder.STRING_SCHEMA)
+        .build();
+    final Struct struct = new Struct(ORIGINAL_SCHEMA)
+        .put("f1", "abc")
+        .put("f2", 12);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new ConnectSRSchemaDataTranslator(schema, AvroFormat.NAME).toConnectRow(struct)
+
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Missing default value for required field: [f4]. "
+        + "This field appears in the schema in Schema Registry"));
+  }
+
+  @Test
+  public void shouldThrowIfExtraProtobufFieldNotOptionalOrDefault() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("f1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("f2", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+        .field("f3", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("f4", SchemaBuilder.STRING_SCHEMA)
+        .build();
+    final Struct struct = new Struct(ORIGINAL_SCHEMA)
+        .put("f1", "abc")
+        .put("f2", 12);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new ConnectSRSchemaDataTranslator(schema, ProtobufFormat.NAME).toConnectRow(struct)
+
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Missing default value for required field: [f4]. "
+        + "This field appears in the schema in Schema Registry"));
   }
 
   @Test
@@ -75,7 +174,7 @@ public class ConnectSRSchemaDataTranslatorTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new ConnectSRSchemaDataTranslator(schema).toConnectRow(struct)
+        () -> new ConnectSRSchemaDataTranslator(schema, JsonFormat.NAME).toConnectRow(struct)
     );
 
     // Then:
@@ -97,7 +196,7 @@ public class ConnectSRSchemaDataTranslatorTest {
     // When:
     final Exception e = assertThrows(
         DataException.class,
-        () -> new ConnectSRSchemaDataTranslator(schema).toConnectRow(struct)
+        () -> new ConnectSRSchemaDataTranslator(schema, JsonFormat.NAME).toConnectRow(struct)
     );
 
     // Then:

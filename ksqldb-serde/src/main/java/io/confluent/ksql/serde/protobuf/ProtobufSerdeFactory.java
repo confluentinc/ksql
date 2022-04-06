@@ -25,6 +25,7 @@ import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
+import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
@@ -46,10 +47,12 @@ import org.apache.kafka.connect.data.Schema.Type;
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 final class ProtobufSerdeFactory {
 
-  final ProtobufProperties properties;
+  private final ProtobufProperties properties;
+  private final Optional<String> fullSchemaName;
 
   ProtobufSerdeFactory(final ProtobufProperties properties) {
     this.properties = Objects.requireNonNull(properties, "properties");
+    this.fullSchemaName = Optional.ofNullable(properties.getFullSchemaName());
   }
 
   ProtobufSerdeFactory(final ImmutableMap<String, String> formatProperties) {
@@ -109,9 +112,13 @@ final class ProtobufSerdeFactory {
   ) {
     final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig,
         properties.getSchemaId(), isKey);
-    final ConnectDataTranslator translator = getDataTranslator(schema, physicalSchema, false);
+    final DataTranslator translator = getDataTranslator(schema, physicalSchema, false);
+    final Schema compatibleSchema = translator instanceof ProtobufDataTranslator
+        ? ((ProtobufDataTranslator) translator).getProtoCompatibleSchema()
+        : ((ConnectDataTranslator) translator).getSchema();
+
     return new KsqlConnectSerializer<>(
-        translator.getSchema(),
+        compatibleSchema,
         translator,
         converter,
         targetType
@@ -136,14 +143,20 @@ final class ProtobufSerdeFactory {
     );
   }
 
-  private static ConnectDataTranslator getDataTranslator(final Schema schema,
+  private DataTranslator getDataTranslator(final Schema schema,
       final Optional<Schema> physicalSchema, final boolean isDeserializer) {
     // If physical schema exists, we use physical schema to translate to connect data. During
     // deserialization, if physical schema exists, we use original schema to translate to ksql data.
-    if (!physicalSchema.isPresent() || isDeserializer) {
-      return new ConnectDataTranslator(schema);
-    }
-    return new ConnectSRSchemaDataTranslator(physicalSchema.get());
+    return physicalSchema.<DataTranslator>map(
+            value -> isDeserializer ? new ConnectDataTranslator(schema)
+                : new ConnectSRSchemaDataTranslator(value, ProtobufFormat.NAME))
+        .orElseGet(() -> {
+          if (fullSchemaName.isPresent()) {
+            return new ProtobufDataTranslator(schema, fullSchemaName.get());
+          } else {
+            return new ConnectDataTranslator(schema);
+          }
+        });
   }
 
   private ProtobufConverter getConverter(

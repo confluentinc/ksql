@@ -1,8 +1,8 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"; you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -13,7 +13,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.avro;
+
+package io.confluent.ksql.serde.protobuf;
 
 import io.confluent.ksql.serde.SchemaFullNameAppender;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
@@ -30,52 +31,38 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
-/**
- * Translates KSQL data and schemas to Avro equivalents.
- *
- * <p>Responsible for converting the KSQL schema to a version ready for connect to convert to an
- * avro schema.
- *
- * <p>This includes ensuring field names are valid Avro field names and that nested types do not
- * have name clashes.
- */
-public class AvroDataTranslator implements DataTranslator {
-
+public class ProtobufDataTranslator implements DataTranslator {
   private final DataTranslator innerTranslator;
   private final Schema ksqlSchema;
-  private final Schema avroCompatibleSchema;
+  private final Schema protoCompatibleSchema;
 
-  AvroDataTranslator(
-      final Schema schema,
-      final String schemaFullName
-  ) {
-    this.ksqlSchema = AvroUtil
-        .throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
+  ProtobufDataTranslator(final Schema schema, final String schemaFullName) {
+    this.ksqlSchema = Objects.requireNonNull(schema, "schema");
 
-    this.avroCompatibleSchema = SchemaFullNameAppender.appendSchemaFullName(
+    this.protoCompatibleSchema = SchemaFullNameAppender.appendSchemaFullName(
         schema, schemaFullName
     );
 
-    this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
+    this.innerTranslator = new ConnectDataTranslator(protoCompatibleSchema);
   }
 
-  Schema getAvroCompatibleSchema() {
-    return avroCompatibleSchema;
+  Schema getProtoCompatibleSchema() {
+    return protoCompatibleSchema;
   }
 
   @Override
   public Object toKsqlRow(final Schema connectSchema, final Object connectObject) {
-    final Object avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
-    if (avroCompatibleRow == null) {
+    final Object protoCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
+    if (protoCompatibleRow == null) {
       return null;
     }
 
-    return replaceSchema(ksqlSchema, avroCompatibleRow);
+    return replaceSchema(ksqlSchema, protoCompatibleRow);
   }
 
   @Override
   public Object toConnectRow(final Object ksqlData) {
-    final Object compatible = replaceSchema(avroCompatibleSchema, ksqlData);
+    final Object compatible = replaceSchema(protoCompatibleSchema, ksqlData);
     return innerTranslator.toConnectRow(compatible);
   }
 

@@ -15,25 +15,28 @@
 
 package io.confluent.ksql.datagen;
 
-import static io.confluent.ksql.datagen.DataGen.run;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MockSystemExit;
 import java.util.Properties;
 import org.junit.Test;
 
 public class DataGenTest {
+  private final static MockSystemExit mockSystem = new MockSystemExit();
 
   @Test(expected = DataGen.Arguments.ArgumentParseException.class)
   public void shouldThrowOnUnknownFormat() throws Throwable {
     DataGen.run(
+        mockSystem,
         "format=wtf",
         "schema=./src/main/resources/purchase.avro",
         "topic=foo",
-        "key=id");
+        "key=id"
+    );
   }
 
   @Test
@@ -41,11 +44,13 @@ public class DataGenTest {
     // When:
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> run(
+        () -> DataGen.run(
+            mockSystem,
             "schema=you/won't/find/me/right?",
             "format=avro",
             "topic=foo",
-            "key=id")
+            "key=id"
+        )
     );
 
     // Then:
@@ -56,15 +61,18 @@ public class DataGenTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfKeyFieldDoesNotExist() throws Throwable {
     DataGen.run(
+        mockSystem,
         "key=not_a_field",
         "schema=./src/main/resources/purchase.avro",
         "format=avro",
-        "topic=foo");
+        "topic=foo"
+    );
   }
 
   @Test(expected = DataGen.Arguments.ArgumentParseException.class)
   public void shouldThrowOnUnknownQuickStart() throws Throwable {
     DataGen.run(
+        mockSystem,
         "quickstart=wtf",
         "format=avro",
         "topic=foo");
@@ -97,10 +105,12 @@ public class DataGenTest {
   @Test(expected = DataGen.Arguments.ArgumentParseException.class)
   public void valueDelimiterCanOnlyBeSingleCharacter() throws Throwable {
     DataGen.run(
+        mockSystem,
         "schema=./src/main/resources/purchase.avro",
         "key=id",
         "format=delimited",
         "value_delimiter=@@",
-        "topic=foo");
+        "topic=foo"
+    );
   }
 }

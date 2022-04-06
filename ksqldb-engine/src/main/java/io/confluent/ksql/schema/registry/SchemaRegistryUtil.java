@@ -106,6 +106,15 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject).isPresent();
   }
 
+  public static Optional<Integer> getSchemaId(
+      final SchemaRegistryClient srClient,
+      final String topic,
+      final boolean isKey
+  ) {
+    final String subject = KsqlConstants.getSRSubject(topic, isKey);
+    return getLatestSchema(srClient, subject).map(SchemaMetadata::getId);
+  }
+
   public static Optional<ParsedSchema> getParsedSchema(
       final SchemaRegistryClient srClient,
       final String topic,

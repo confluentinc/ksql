@@ -84,6 +84,37 @@ public class SchemaRegistryUtilTest {
   }
 
   @Test
+  public void shouldReturnSchemaIdFromSubjectKey() throws Exception {
+    // Given:
+    when(schemaMetadata.getId()).thenReturn(123);
+    when(schemaRegistryClient.getLatestSchemaMetadata("bar-key"))
+        .thenReturn(schemaMetadata);
+
+    // When:
+    final Optional<Integer> schemaId =
+        SchemaRegistryUtil.getSchemaId(schemaRegistryClient, "bar", true);
+
+    // Then:
+    assertThat(schemaId.get(), equalTo(123));
+  }
+
+  @Test
+  public void shouldReturnSchemaIdFromSubjectValue() throws Exception {
+    // Given:
+    when(schemaMetadata.getId()).thenReturn(123);
+    when(schemaRegistryClient.getLatestSchemaMetadata("bar-value"))
+        .thenReturn(schemaMetadata);
+
+    // When:
+    final Optional<Integer> schemaId =
+        SchemaRegistryUtil.getSchemaId(schemaRegistryClient, "bar", false);
+
+    // Then:
+    assertThat(schemaId.get(), equalTo(123));
+  }
+
+
+  @Test
   public void shouldReturnParsedSchemaFromSubjectKey() throws Exception {
     // Given:
     when(schemaMetadata.getId()).thenReturn(123);

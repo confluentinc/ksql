@@ -501,6 +501,15 @@ public class InsertValuesExecutor {
       }
     }
 
+    // The SCHEMA_ID is used by the serializer to fetch the right SR schema by id
+    if (supportedProperties.contains(ConnectProperties.SCHEMA_ID)) {
+      if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
+        SchemaRegistryUtil.getSchemaId(srClient, topicName, isKey)
+            .ifPresent(schemaId ->
+                propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId)));
+      }
+    }
+
     return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
   }
 

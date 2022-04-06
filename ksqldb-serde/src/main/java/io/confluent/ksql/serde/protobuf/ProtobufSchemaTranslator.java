@@ -69,7 +69,7 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
   @Override
   public Schema toConnectSchema(final ParsedSchema schema) {
-    return protobufData.toConnectSchema((ProtobufSchema) schema);
+    return protobufData.toConnectSchema(withSchemaFullName((ProtobufSchema) schema));
   }
 
   @Override
@@ -78,6 +78,10 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
     // default naming.
     return new ProtobufData(new ProtobufDataConfig(updatedConfigs))
         .fromConnectSchema(injectSchemaFullName(schema));
+  }
+
+  private ProtobufSchema withSchemaFullName(final ProtobufSchema origSchema) {
+    return fullNameSchema.map(origSchema::copy).orElse(origSchema);
   }
 
   private Schema injectSchemaFullName(final Schema origSchema) {

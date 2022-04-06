@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -29,7 +29,7 @@ import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
@@ -86,7 +86,9 @@ public final class StreamFlatMapBuilder {
         .build();
 
     final KStream<K, GenericRow> mapped = stream.getStream().flatTransformValues(
-        () -> new KsTransformer<>(new KudtfFlatMapper<>(tableFunctionAppliers, processingLogger)),
+        () -> new KsValueTransformer<>(
+            new KudtfFlatMapper<>(tableFunctionAppliers, processingLogger)
+        ),
         Named.as(StreamsUtil.buildOpName(queryContext))
     );
 

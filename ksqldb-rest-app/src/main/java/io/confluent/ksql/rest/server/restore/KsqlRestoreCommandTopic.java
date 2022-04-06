@@ -411,7 +411,7 @@ public class KsqlRestoreCommandTopic {
     boolean sharedRuntimeQuery = false;
     String queryId = "";
     final JSONObject jsonObject = new JSONObject(new String(command, StandardCharsets.UTF_8));
-    if (hasKey(jsonObject, "plan")) {
+    if (hasKey(jsonObject, "plan") && !jsonObject.isNull("plan")) {
       final JSONObject plan = jsonObject.getJSONObject("plan");
       if (hasKey(plan, "queryPlan")) {
         final JSONObject queryPlan = plan.getJSONObject("queryPlan");

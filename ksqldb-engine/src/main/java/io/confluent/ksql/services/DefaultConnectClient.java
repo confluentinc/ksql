@@ -24,6 +24,10 @@ import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.SimpleConfigInfos;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.vertx.core.http.HttpHeaders;
@@ -55,10 +59,6 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,7 +147,7 @@ public class DefaultConnectClient implements ConnectClient {
   }
 
   @Override
-  public ConnectResponse<ConfigInfos> validate(
+  public ConnectResponse<SimpleConfigInfos> validate(
       final String plugin,
       final Map<String, String> config) {
     try {
@@ -156,7 +156,7 @@ public class DefaultConnectClient implements ConnectClient {
           plugin,
           config);
 
-      final ConnectResponse<ConfigInfos> connectResponse = withRetries(() -> Request
+      final ConnectResponse<SimpleConfigInfos> connectResponse = withRetries(() -> Request
           .put(resolveUri(String.format(VALIDATE_CONNECTOR, plugin)))
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
@@ -164,7 +164,7 @@ public class DefaultConnectClient implements ConnectClient {
           .bodyString(MAPPER.writeValueAsString(config), ContentType.APPLICATION_JSON)
           .execute(httpClient)
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, new TypeReference<ConfigInfos>() {},
+              createHandler(HttpStatus.SC_OK, new TypeReference<SimpleConfigInfos>() {},
                   Function.identity())));
 
       connectResponse.error()
@@ -206,18 +206,19 @@ public class DefaultConnectClient implements ConnectClient {
   }
 
   @Override
-  public ConnectResponse<List<PluginInfo>> connectorPlugins() {
+  public ConnectResponse<List<SimpleConnectorPluginInfo>> connectorPlugins() {
     try {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connector plugins", connectUri);
 
-      final ConnectResponse<List<PluginInfo>> connectResponse = withRetries(() -> Request
-          .get(resolveUri(CONNECTOR_PLUGINS))
+      final ConnectResponse<List<SimpleConnectorPluginInfo>> connectResponse = withRetries(() ->
+          Request.get(resolveUri(CONNECTOR_PLUGINS))
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, new TypeReference<List<PluginInfo>>() {},
+              createHandler(HttpStatus.SC_OK,
+                  new TypeReference<List<SimpleConnectorPluginInfo>>() {},
                   Function.identity())));
 
       connectResponse.error()
@@ -230,20 +231,20 @@ public class DefaultConnectClient implements ConnectClient {
   }
 
   @Override
-  public ConnectResponse<ConnectorStateInfo> status(final String connector) {
+  public ConnectResponse<SimpleConnectorStateInfo> status(final String connector) {
     try {
       LOG.debug("Issuing status request to Kafka Connect at URI {} with name {}",
           connectUri,
           connector);
 
-      final ConnectResponse<ConnectorStateInfo> connectResponse = withRetries(() -> Request
+      final ConnectResponse<SimpleConnectorStateInfo> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTORS + "/" + connector + STATUS))
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorStateInfo>() {},
+              createHandler(HttpStatus.SC_OK, new TypeReference<SimpleConnectorStateInfo>() {},
                   Function.identity())));
 
       connectResponse.error()

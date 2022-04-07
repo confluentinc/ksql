@@ -18,9 +18,9 @@ package io.confluent.ksql.cli.console.table.builder;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import java.util.List;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public class ConnectorPluginsListTableBuilder implements TableBuilder<ConnectorPluginsList> {
   private static final List<String> HEADERS = ImmutableList.of(

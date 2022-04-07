@@ -22,12 +22,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.json.StructSerializationModule;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
 import java.io.IOException;
 import java.util.Locale;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 
 /**
  * Json Mapper used by Connect integration.
@@ -40,7 +41,7 @@ public enum ConnectJsonMapper {
 
   final ObjectMapper buildMapper() {
     final SimpleModule module = new SimpleModule();
-    module.addSerializer(PluginInfo.class, new PluginInfoJsonSerializer());
+    module.addSerializer(SimpleConnectorPluginInfo.class, new PluginInfoJsonSerializer());
 
     return new ObjectMapper()
         .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
@@ -48,6 +49,7 @@ public enum ConnectJsonMapper {
         .registerModule(new StructSerializationModule())
         .registerModule(new KsqlTypesSerializationModule())
         .registerModule(module)
+        .registerModule(new GuavaModule())
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
         .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
@@ -58,15 +60,15 @@ public enum ConnectJsonMapper {
     return mapper.copy();
   }
 
-  static class PluginInfoJsonSerializer extends JsonSerializer<PluginInfo> {
+  static class PluginInfoJsonSerializer extends JsonSerializer<SimpleConnectorPluginInfo> {
     @Override
-    public void serialize(final PluginInfo value, final JsonGenerator gen,
+    public void serialize(final SimpleConnectorPluginInfo value, final JsonGenerator gen,
         final SerializerProvider serializers)
         throws IOException {
       gen.writeStartObject();
-      gen.writeStringField("class", value.className());
-      gen.writeStringField("type", value.type().toUpperCase(Locale.ROOT));
-      gen.writeStringField("version", value.version());
+      gen.writeStringField("class", value.getClassName());
+      gen.writeStringField("type", value.getType().toString().toUpperCase(Locale.ROOT));
+      gen.writeStringField("version", value.getVersion());
       gen.writeEndObject();
     }
   }

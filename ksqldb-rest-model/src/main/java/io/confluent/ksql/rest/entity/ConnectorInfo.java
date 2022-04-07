@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -20,49 +20,56 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.connect.util.ConnectorTaskId;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(Include.NON_NULL)
 @Immutable
-public class SimpleConnectorInfo {
-
+public class ConnectorInfo {
   private final String name;
+  private final ImmutableMap<String, String> config;
+  private final ImmutableList<ConnectorTaskId> tasks;
   private final ConnectorType type;
-  private final String className;
-  private final String state;
 
   @JsonCreator
-  public SimpleConnectorInfo(
-      @JsonProperty("name")       final String name,
-      @JsonProperty("type")       final ConnectorType type,
-      @JsonProperty("className")  final String className,
-      @JsonProperty("state")      final String state
+  public ConnectorInfo(
+      @JsonProperty("name") final String name,
+      @JsonProperty("config") final ImmutableMap<String, String> config,
+      @JsonProperty("tasks") final ImmutableList<ConnectorTaskId> tasks,
+      @JsonProperty("type") final ConnectorType type
   ) {
-    this.name = Objects.requireNonNull(name, "name");
+    this.name = name;
+    this.config = config;
+    this.tasks = tasks;
     this.type = type;
-    this.className = className;
-    this.state = state;
   }
 
-  public String getName() {
-    return name;
+  @JsonProperty
+  public String name() {
+    return this.name;
   }
 
-  public ConnectorType getType() {
-    return type;
+  @JsonProperty
+  public ConnectorType type() {
+    return this.type;
   }
 
-  public String getClassName() {
-    return className;
+  @JsonProperty
+  public Map<String, String> config() {
+    return this.config;
   }
 
-  public String getState() {
-    return state;
+  @JsonProperty
+  public List<ConnectorTaskId> tasks() {
+    return this.tasks;
   }
 
-  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -70,25 +77,14 @@ public class SimpleConnectorInfo {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final SimpleConnectorInfo that = (SimpleConnectorInfo) o;
+    final ConnectorInfo that = (ConnectorInfo) o;
     return Objects.equals(name, that.name)
         && type == that.type
-        && Objects.equals(className, that.className)
-        && Objects.equals(state, that.state);
+        && Objects.equals(tasks, that.tasks)
+        && Objects.equals(config, that.config);
   }
 
-  @Override
   public int hashCode() {
-    return Objects.hash(name, type, className, state);
-  }
-
-  @Override
-  public String toString() {
-    return "SimpleConnectorInfo{"
-        + "name='" + name + '\''
-        + ", type=" + type
-        + ", className='" + className + '\''
-        + ", state=" + state
-        + '}';
+    return Objects.hash(name, config, tasks, type);
   }
 }

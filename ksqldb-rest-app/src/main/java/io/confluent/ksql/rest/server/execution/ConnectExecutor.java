@@ -21,9 +21,11 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.SimpleConfigInfos;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
@@ -34,8 +36,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 public final class ConnectExecutor {
   private final ConnectServerErrors connectErrorHandler;
@@ -106,7 +106,7 @@ public final class ConnectExecutor {
       return ImmutableList.of("Connector type cannot be empty");
     }
 
-    final ConnectResponse<ConfigInfos> response = client.validate(connectorType, config);
+    final ConnectResponse<SimpleConfigInfos> response = client.validate(connectorType, config);
     if (response.error().isPresent()) {
       return ImmutableList.of(response.error().get());
     } else if (response.datum().isPresent()) {

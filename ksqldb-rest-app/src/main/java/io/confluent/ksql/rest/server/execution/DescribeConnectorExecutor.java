@@ -23,7 +23,9 @@ import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
@@ -36,8 +38,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +74,7 @@ public final class DescribeConnectorExecutor {
         .getStatement()
         .getConnectorName();
 
-    final ConnectResponse<ConnectorStateInfo> statusResponse = serviceContext
+    final ConnectResponse<SimpleConnectorStateInfo> statusResponse = serviceContext
         .getConnectClient()
         .status(connectorName);
     if (statusResponse.error().isPresent()) {
@@ -90,7 +90,7 @@ public final class DescribeConnectorExecutor {
           configuredStatement, infoResponse));
     }
 
-    final ConnectorStateInfo status = statusResponse.datum().get();
+    final SimpleConnectorStateInfo status = statusResponse.datum().get();
     final ConnectorInfo info = infoResponse.datum().get();
     final Optional<Connector> connector = connectorFactory.apply(info);
     final List<KsqlWarning> warnings;

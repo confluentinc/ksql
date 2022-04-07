@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -33,7 +32,7 @@ public class SimpleConnectorPluginInfo {
 
   @JsonCreator
   public SimpleConnectorPluginInfo(
-      @JsonProperty("className") final String className,
+      @JsonProperty("class") final String className,
       @JsonProperty("type") final ConnectorType type,
       @JsonProperty("version") final String version
   ) {

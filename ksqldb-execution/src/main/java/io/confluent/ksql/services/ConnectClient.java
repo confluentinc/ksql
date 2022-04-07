@@ -15,14 +15,14 @@
 
 package io.confluent.ksql.services;
 
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.SimpleConfigInfos;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 
 /**
  * An interface defining the common operations to communicate with
@@ -42,7 +42,7 @@ public interface ConnectClient {
    *
    * @return a list of connector plugins
    */
-  ConnectResponse<List<PluginInfo>> connectorPlugins();
+  ConnectResponse<List<SimpleConnectorPluginInfo>> connectorPlugins();
 
   /**
    * Gets the configuration for a specified connector.
@@ -66,14 +66,14 @@ public interface ConnectClient {
    * @param plugin  the name of the connector plugin
    * @param config  the connector configuration
    */
-  ConnectResponse<ConfigInfos> validate(String plugin, Map<String, String> config);
+  ConnectResponse<SimpleConfigInfos> validate(String plugin, Map<String, String> config);
 
   /**
    * Get the status of {@code connector}.
    *
    * @param connector the name of the connector
    */
-  ConnectResponse<ConnectorStateInfo> status(String connector);
+  ConnectResponse<SimpleConnectorStateInfo> status(String connector);
 
   /**
    * Delete the {@code connector}.

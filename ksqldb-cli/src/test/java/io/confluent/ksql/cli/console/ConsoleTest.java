@@ -50,6 +50,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -75,6 +76,9 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.TaskState;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -108,10 +112,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.approvaltests.Approvals;
 import org.approvaltests.core.Options;
 import org.junit.After;
@@ -621,7 +621,7 @@ public class ConsoleTest {
         new ConnectorDescription(
             "STATEMENT",
             "io.confluent.Connector",
-            new ConnectorStateInfo(
+            new SimpleConnectorStateInfo(
                 "name",
                 new ConnectorState("state", "worker", "msg"),
                 ImmutableList.of(

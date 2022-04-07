@@ -30,28 +30,25 @@ import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.rest.entity.ConnectorType;
+import io.confluent.ksql.rest.entity.SimpleConfigInfos;
+import io.confluent.ksql.rest.entity.SimpleConfigInfos.SimpleConfigInfo;
+import io.confluent.ksql.rest.entity.SimpleConfigInfos.SimpleConfigValueInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.TaskState;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.test.util.OptionalMatchers;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.http.HttpStatus;
-import org.apache.kafka.connect.runtime.isolation.PluginType;
 import org.apache.kafka.connect.runtime.rest.entities.ActiveTopicsInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigKeyInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigValueInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
 import org.junit.Rule;
@@ -73,7 +70,7 @@ public class DefaultConnectClientTest {
       ImmutableList.of(new ConnectorTaskId("foo", 1)),
       ConnectorType.SOURCE
   );
-  private static final ConnectorStateInfo SAMPLE_STATUS = new ConnectorStateInfo(
+  private static final SimpleConnectorStateInfo SAMPLE_STATUS = new SimpleConnectorStateInfo(
       "foo",
       new ConnectorState("state", "worker", "msg"),
       ImmutableList.of(
@@ -81,9 +78,9 @@ public class DefaultConnectClientTest {
       ),
       ConnectorType.SOURCE
   );
-  private static final PluginInfo SAMPLE_PLUGIN = new PluginInfo(
+  private static final SimpleConnectorPluginInfo SAMPLE_PLUGIN = new SimpleConnectorPluginInfo(
       "io.confluent.connect.replicator.ReplicatorSourceConnector",
-      PluginType.SOURCE,
+      ConnectorType.SOURCE,
       "1.0"
   );
   private static final String AUTH_HEADER = "Basic FOOBAR";
@@ -162,32 +159,14 @@ public class DefaultConnectClientTest {
   @Test
   public void testValidate() throws JsonProcessingException {
     // Given:
-    final String plugin = SAMPLE_PLUGIN.className();
+    final String plugin = SAMPLE_PLUGIN.getClassName();
     final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
-    final ConfigInfos body = new ConfigInfos(
-        plugin,
-        1,
-        ImmutableList.of("Common"),
-        ImmutableList.of(new ConfigInfo(new ConfigKeyInfo(
-            "file",
-            "STRING",
-            true,
-            "",
-            "HIGH",
-            "Destination filename.",
-            null,
-            -1,
-            "NONE",
-            "file",
-            Collections.emptyList()),
-            new ConfigValueInfo(
+    final SimpleConfigInfos body = new SimpleConfigInfos(
+        ImmutableList.of(new SimpleConfigInfo(
+            new SimpleConfigValueInfo(
                 "file",
-                null,
-                Collections.emptyList(),
-                ImmutableList.of(
-                    "Missing required configuration \"file\" which has no default value."),
-                true)
-            )));
+                ImmutableList.of("Missing required configuration \"file\" which has no default value.")
+            ))));
 
     WireMock.stubFor(
         WireMock.put(WireMock.urlEqualTo(url))
@@ -203,7 +182,7 @@ public class DefaultConnectClientTest {
         "tasks.max", "1",
         "topics", "test-topic"
     );
-    final ConnectResponse<ConfigInfos> response = client.validate(plugin, config);
+    final ConnectResponse<SimpleConfigInfos> response = client.validate(plugin, config);
 
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(body)));
@@ -213,7 +192,7 @@ public class DefaultConnectClientTest {
   @Test
   public void testValidateWithError() throws JsonProcessingException {
     // Given:
-    final String plugin = SAMPLE_PLUGIN.className();
+    final String plugin = SAMPLE_PLUGIN.getClassName();
     final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
     WireMock.stubFor(
         WireMock.put(WireMock.urlEqualTo(url))
@@ -224,7 +203,7 @@ public class DefaultConnectClientTest {
     );
 
     // When:
-    final ConnectResponse<ConfigInfos> response =
+    final ConnectResponse<SimpleConfigInfos> response =
         client.validate(plugin, ImmutableMap.of());
 
     // Then:
@@ -288,7 +267,7 @@ public class DefaultConnectClientTest {
     );
 
     // When:
-    final ConnectResponse<List<PluginInfo>> response = client.connectorPlugins();
+    final ConnectResponse<List<SimpleConnectorPluginInfo>> response = client.connectorPlugins();
 
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of(SAMPLE_PLUGIN))));
@@ -328,10 +307,10 @@ public class DefaultConnectClientTest {
     );
 
     // When:
-    final ConnectResponse<ConnectorStateInfo> response = client.status("foo");
+    final ConnectResponse<SimpleConnectorStateInfo> response = client.status("foo");
 
     // Then:
-    final ConnectorStateInfo connectorStateInfo = response.datum().orElseThrow(AssertionError::new);
+    final SimpleConnectorStateInfo connectorStateInfo = response.datum().orElseThrow(AssertionError::new);
     // equals is not implemented on ConnectorStateInfo
     assertThat(connectorStateInfo.name(), is(SAMPLE_STATUS.name()));
     assertThat(connectorStateInfo.type(), is(SAMPLE_STATUS.type()));

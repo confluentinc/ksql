@@ -31,10 +31,14 @@ import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.TaskState;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
@@ -43,11 +47,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,7 +67,7 @@ public class ListConnectorsExecutorTest {
       ConnectorType.SOURCE
   );
 
-  private static final ConnectorStateInfo STATUS = new ConnectorStateInfo(
+  private static final SimpleConnectorStateInfo STATUS = new SimpleConnectorStateInfo(
       "connector",
       new ConnectorState("RUNNING", "foo", "bar"),
       ImmutableList.of(
@@ -77,7 +77,7 @@ public class ListConnectorsExecutorTest {
       ConnectorType.SOURCE
   );
 
-  private static final ConnectorStateInfo STATUS_WARNING = new ConnectorStateInfo(
+  private static final SimpleConnectorStateInfo STATUS_WARNING = new SimpleConnectorStateInfo(
       "connector",
       new ConnectorState("RUNNING", "foo", "bar"),
       ImmutableList.of(

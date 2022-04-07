@@ -80,6 +80,7 @@ import io.confluent.ksql.rest.entity.QueryHostStat;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
@@ -128,7 +129,6 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
@@ -821,7 +821,7 @@ public class Console implements Closeable {
   }
 
   private void printConnectorDescription(final ConnectorDescription description) {
-    final ConnectorStateInfo status = description.getStatus();
+    final SimpleConnectorStateInfo status = description.getStatus();
     writer().println(String.format("%-20s : %s", "Name", status.name()));
     writer().println(String.format("%-20s : %s", "Class", description.getConnectorClass()));
     writer().println(String.format("%-20s : %s", "Type", description.getStatus().type()));

@@ -19,9 +19,13 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.AbstractState;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
@@ -31,10 +35,6 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.AbstractStatus.State;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.AbstractState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public final class ListConnectorsExecutor {
   private final ConnectServerErrors connectErrorHandler;
@@ -65,7 +65,7 @@ public final class ListConnectorsExecutor {
       final ConnectResponse<ConnectorInfo> response = connectClient.describe(name);
 
       if (response.datum().filter(i -> inScope(i.type(), scope)).isPresent()) {
-        final ConnectResponse<ConnectorStateInfo> status = connectClient.status(name);
+        final ConnectResponse<SimpleConnectorStateInfo> status = connectClient.status(name);
         infos.add(fromConnectorInfoResponse(name, response, status));
       } else if (response.error().isPresent()) {
         if (scope == Scope.ALL) {
@@ -102,7 +102,7 @@ public final class ListConnectorsExecutor {
   private static SimpleConnectorInfo fromConnectorInfoResponse(
       final String name,
       final ConnectResponse<ConnectorInfo> response,
-      final ConnectResponse<ConnectorStateInfo> status
+      final ConnectResponse<SimpleConnectorStateInfo> status
   ) {
     if (response.error().isPresent() || status.error().isPresent()) {
       return new SimpleConnectorInfo(name, null, null, status.datum().get().connector().state());
@@ -117,7 +117,7 @@ public final class ListConnectorsExecutor {
     );
   }
 
-  private static String summarizeState(final ConnectorStateInfo connectorState) {
+  private static String summarizeState(final SimpleConnectorStateInfo connectorState) {
     if (!connectorState.connector().state().equals(State.RUNNING.name())) {
       return connectorState.connector().state();
     }

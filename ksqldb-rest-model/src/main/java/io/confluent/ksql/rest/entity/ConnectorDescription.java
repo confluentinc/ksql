@@ -22,13 +22,12 @@ import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConnectorDescription extends KsqlEntity {
 
   private final String connectorClass;
-  private final ConnectorStateInfo status;
+  private final SimpleConnectorStateInfo status;
   private final ImmutableList<SourceDescription> sources;
   private final ImmutableList<String> topics;
 
@@ -36,7 +35,7 @@ public class ConnectorDescription extends KsqlEntity {
   public ConnectorDescription(
       @JsonProperty("statementText")  final String statementText,
       @JsonProperty("connectorClass") final String connectorClass,
-      @JsonProperty("status")         final ConnectorStateInfo status,
+      @JsonProperty("status")         final SimpleConnectorStateInfo status,
       @JsonProperty("sources")        final List<SourceDescription> sources,
       @JsonProperty("topics")         final List<String> topics,
       @JsonProperty("warnings")       final List<KsqlWarning> warnings
@@ -52,7 +51,7 @@ public class ConnectorDescription extends KsqlEntity {
     return connectorClass;
   }
 
-  public ConnectorStateInfo getStatus() {
+  public SimpleConnectorStateInfo getStatus() {
     return status;
   }
 

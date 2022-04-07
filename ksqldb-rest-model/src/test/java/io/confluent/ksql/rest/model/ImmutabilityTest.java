@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.health.AbstractState;
+import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KGroupedTable;
@@ -75,6 +77,8 @@ public class ImmutabilityTest {
         .withKnownImmutableType(KGroupedStream.class)
         .withKnownImmutableType(KGroupedTable.class)
         .withKnownImmutableType(Serde.class)
+        .withKnownImmutableType(ConnectorTaskId.class)
+        .withKnownImmutableType(AbstractState.class)
         .test(modelClass);
   }
 }

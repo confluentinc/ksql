@@ -57,6 +57,8 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -79,6 +81,9 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.TaskState;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
@@ -105,9 +110,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -139,8 +141,7 @@ public class ClientTest extends BaseApiTest {
   protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
-  protected static final org.apache.kafka.connect.runtime.rest.entities.ConnectorType SOURCE_TYPE =
-      org.apache.kafka.connect.runtime.rest.entities.ConnectorType.SOURCE;
+  protected static final ConnectorType SOURCE_TYPE = ConnectorType.SOURCE;
 
   protected static final Map<String, String> REQUEST_HEADERS = ImmutableMap.of("h1", "v1", "h2", "v2");
 
@@ -1128,10 +1129,10 @@ public class ClientTest extends BaseApiTest {
     // Given
     final ConnectorDescription entity = new ConnectorDescription("describe connector;",
         "connectorClass",
-        new ConnectorStateInfo(
+        new SimpleConnectorStateInfo(
             "name",
             new ConnectorState("state", "worker", "msg"),
-            Collections.emptyList(),
+            ImmutableList.of(),
             SOURCE_TYPE),
         Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
@@ -1153,7 +1154,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldFailToCreateConnectorViaExecuteStatement() {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+        new ConnectorInfo("name", ImmutableMap.of(), ImmutableList.of(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When
@@ -1538,10 +1539,10 @@ public class ClientTest extends BaseApiTest {
     // Given:
     final ConnectorDescription entity = new ConnectorDescription("describe connector;",
         "connectorClass",
-        new ConnectorStateInfo(
+        new SimpleConnectorStateInfo(
             "name",
             new ConnectorState("state", "worker", "msg"),
-            Collections.emptyList(),
+            ImmutableList.of(),
             SOURCE_TYPE),
         Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
@@ -1562,7 +1563,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldCreateConnector() throws Exception {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+        new ConnectorInfo("name", ImmutableMap.of(), ImmutableList.of(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
@@ -1576,7 +1577,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldCreateConnectorIfNotExist() throws Exception {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+        new ConnectorInfo("name", ImmutableMap.of(), ImmutableList.of(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
@@ -1716,7 +1717,7 @@ public class ClientTest extends BaseApiTest {
     // Given
     javaClient.define("a", "a");
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+        new ConnectorInfo("name", ImmutableMap.of(), ImmutableList.of(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
@@ -1732,10 +1733,10 @@ public class ClientTest extends BaseApiTest {
     javaClient.define("a", "a");
     final ConnectorDescription entity = new ConnectorDescription("describe connector;",
         "connectorClass",
-        new ConnectorStateInfo(
+        new SimpleConnectorStateInfo(
             "name",
             new ConnectorState("state", "worker", "msg"),
-            Collections.emptyList(),
+            ImmutableList.of(),
             SOURCE_TYPE),
         Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));

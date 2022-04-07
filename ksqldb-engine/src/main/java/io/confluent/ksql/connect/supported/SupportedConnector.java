@@ -16,9 +16,9 @@
 package io.confluent.ksql.connect.supported;
 
 import io.confluent.ksql.connect.Connector;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 /**
  * KSQL supports some "Blessed" connectors that we integrate well with. To be "blessed"

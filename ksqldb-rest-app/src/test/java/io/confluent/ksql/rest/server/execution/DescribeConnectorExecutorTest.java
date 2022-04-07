@@ -43,8 +43,13 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.TaskState;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo.ConnectorState;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -67,11 +72,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,7 +87,7 @@ public class DescribeConnectorExecutorTest {
   private static final String CONNECTOR_NAME = "connector";
   private static final String CONNECTOR_CLASS = "io.confluent.ConnectorClazz";
 
-  private static final ConnectorStateInfo STATUS = new ConnectorStateInfo(
+  private static final SimpleConnectorStateInfo STATUS = new SimpleConnectorStateInfo(
       "connector",
       new ConnectorState("state", "worker", "msg"),
       ImmutableList.of(

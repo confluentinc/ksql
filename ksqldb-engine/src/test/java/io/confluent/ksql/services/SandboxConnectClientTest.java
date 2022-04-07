@@ -20,11 +20,11 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorStateInfo;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.test.util.OptionalMatchers;
 import java.util.List;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,7 +70,7 @@ public class SandboxConnectClientTest {
   @Test
   public void shouldReturnErrorOnStatus() {
     // When:
-    final ConnectResponse<ConnectorStateInfo> foo = sandboxClient.status("foo");
+    final ConnectResponse<SimpleConnectorStateInfo> foo = sandboxClient.status("foo");
 
     // Then:
     assertThat(foo.error(), OptionalMatchers.of(is("sandbox")));

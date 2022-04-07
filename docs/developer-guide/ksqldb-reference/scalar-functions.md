@@ -1573,8 +1573,8 @@ Intervals are defined by an integer value and a supported
 
 !!!note
 
-   Only plural time units are supported, for example `MINUTES`. Singular time
-   units, like `MINUTE`, will cause an error.
+   Only plural time units are supported, for example, `MINUTES`. Singular time
+   units, like `MINUTE`, will cause an error. `MILLISECOND` is supported.
 
 ---
 
@@ -1591,8 +1591,8 @@ Intervals are defined by an integer value and a supported
 
 !!!note
 
-   Only plural time units are supported, for example `MINUTES`. Singular time
-   units, like `MINUTE`, will cause an error.
+   Only plural time units are supported, for example, `MINUTES`. Singular time
+   units, like `MINUTE`, will cause an error. `MILLISECOND` is supported.
 
 ---
 
@@ -1609,8 +1609,8 @@ Intervals are defined by an integer value and a supported
 
 !!!note
 
-   Only plural time units are supported, for example `MINUTES`. Singular time
-   units, like `MINUTE`, will cause an error.
+   Only plural time units are supported, for example, `MINUTES`. Singular time
+   units, like `MINUTE`, will cause an error. `MILLISECOND` is supported.
 
 ---
 
@@ -1627,8 +1627,8 @@ Intervals are defined by an integer value and a supported
 
 !!!note
 
-   Only plural time units are supported, for example `MINUTES`. Singular time
-   units, like `MINUTE`, will cause an error.
+   Only plural time units are supported, for example, `MINUTES`. Singular time
+   units, like `MINUTE`, will cause an error. `MILLISECOND` is supported.
 
 ---
 

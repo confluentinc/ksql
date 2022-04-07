@@ -151,6 +151,19 @@ Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
 documentation in the [function](/developer-guide/ksqldb-reference/scalar-functions)
 guide for details.
 
+## `ksql.endpoint.logging.log.queries`
+
+Whether or not to log the query portion of the URI when logging endpoints. Note that enabling 
+this may log sensitive information.
+
+## `ksql.endpoint.logging.ignored.paths.regex`
+
+A regex that allows users to filter out logging from certain endpoints. Without this filter, 
+all endpoints are logged. An example usage of this configuration would be to disable heartbeat 
+logging, for example, ksql.endpoint.logging.ignored.paths.regex=.*heartbeat.*, which can otherwise be 
+verbose. Note that this works on the entire URI, respecting the ksql.endpoint.logging.log.queries 
+configuration)
+
 ## `ksql.heartbeat.enable`
 
 If enabled, ksqlDB servers in the same ksqlDB cluster send heartbeats to each

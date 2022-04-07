@@ -377,7 +377,8 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DOC =
       "A regex that allows users to filter out logging from certain endpoints. Without this filter,"
           + " all endpoints are logged. An example usage of this configuration would be to disable"
-          + " heartbeat logging (e.g. ksql.endpoint.logging.filter=.*heartbeat.* ) which can"
+          + " heartbeat logging (e.g. " + KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG
+          + " =.*heartbeat.* ) which can"
           + " otherwise be verbose. Note that this works on the entire URI, respecting the "
           + KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG + " configuration";
 

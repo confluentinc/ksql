@@ -26,8 +26,6 @@ import io.confluent.ksql.test.util.OptionalMatchers;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,18 +45,6 @@ public class SandboxConnectClientTest {
   @Before
   public void setUp() {
     sandboxClient = SandboxConnectClient.createProxy(delegate);
-  }
-
-  @Test
-  public void shouldReturnStubSuccessOnCreate() {
-    // When:
-    final ConnectResponse<ConnectorInfo> createResponse =
-        sandboxClient.create("foo", ImmutableMap.of());
-
-    // Then:
-    assertThat(createResponse.datum(), OptionalMatchers.of(is(
-        new ConnectorInfo("dummy", ImmutableMap.of(), ImmutableList.of(), ConnectorType.UNKNOWN))));
-    assertThat("expected no error", !createResponse.error().isPresent());
   }
 
   @Test

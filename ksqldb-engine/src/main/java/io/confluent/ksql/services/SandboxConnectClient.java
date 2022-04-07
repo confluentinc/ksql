@@ -18,13 +18,10 @@ package io.confluent.ksql.services;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Map;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 /**
  * Supplies {@link ConnectClient}s to use that do not make any
@@ -41,11 +38,6 @@ final class SandboxConnectClient {
         .forward("validate", methodParams(String.class, Map.class), delegate)
         .swallow("connectors", methodParams(),
             ConnectResponse.success(ImmutableList.of(), HttpStatus.SC_OK))
-        .swallow("create", methodParams(String.class, Map.class),
-            ConnectResponse.success(
-                new ConnectorInfo(
-                    "dummy", ImmutableMap.of(), ImmutableList.of(), ConnectorType.UNKNOWN),
-                HttpStatus.SC_OK))
         .build();
   }
 }

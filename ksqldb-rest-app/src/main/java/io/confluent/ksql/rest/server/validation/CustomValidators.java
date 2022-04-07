@@ -91,7 +91,7 @@ public enum CustomValidators {
   LIST_CONNECTORS(ListConnectors.class, StatementValidator.NO_VALIDATION),
   LIST_CONNECTOR_PLUGINS(ListConnectorPlugins.class, StatementValidator.NO_VALIDATION),
   LIST_TYPES(ListTypes.class, StatementValidator.NO_VALIDATION),
-  CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
+  CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::validate),
   DROP_CONNECTOR(DropConnector.class, StatementValidator.NO_VALIDATION),
   LIST_VARIABLES(ListVariables.class, ListVariablesExecutor::execute),
 

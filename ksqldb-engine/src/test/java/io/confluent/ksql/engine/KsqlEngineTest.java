@@ -311,6 +311,25 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldThrowForBadSumAggregate() {
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.executeQuery(
+            serviceContext,
+            ksqlEngine,
+            "SELECT 'dummy', SUM(CAST(col1 AS STRING)) FROM test1 GROUP BY 'dummy' EMIT CHANGES;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
+        "No SUM aggregate function with STRING argument type exists!")));
+  }
+
+  @Test
   public void shouldThrowOnInsertIntoStreamWithTableResult() {
     KsqlEngineTestUtil.execute(
         serviceContext,

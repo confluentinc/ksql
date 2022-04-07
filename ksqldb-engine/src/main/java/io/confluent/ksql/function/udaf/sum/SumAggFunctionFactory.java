@@ -55,9 +55,13 @@ public class SumAggFunctionFactory extends AggregateFunctionFactory {
       case DECIMAL:
         return new DecimalSumKudaf(FUNCTION_NAME, initArgs.udafIndex(), (SqlDecimal) argSchema);
       default:
-        throw new KsqlException("No Max aggregate function with " + argTypeList.get(0) + " "
-            + " argument type exists!");
-
+        throw new KsqlException(
+          String.format(
+            "No %s aggregate function with %s argument type exists!",
+            FUNCTION_NAME,
+            argTypeList.get(0)
+          )
+        );
     }
   }
 

@@ -53,9 +53,13 @@ public class MinAggFunctionFactory extends AggregateFunctionFactory {
       case TIMESTAMP:
         return new MinKudaf(FUNCTION_NAME, initArgs.udafIndex(), argSchema);
       default:
-        throw new KsqlException("No MIN aggregate function with " + argTypeList.get(0) + " "
-            + "argument type exists!");
-
+        throw new KsqlException(
+          String.format(
+            "No %s aggregate function with %s argument type exists!",
+            FUNCTION_NAME,
+            argTypeList.get(0)
+          )
+        );
     }
   }
 

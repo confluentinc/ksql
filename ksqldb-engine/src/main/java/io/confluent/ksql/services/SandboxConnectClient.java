@@ -17,11 +17,8 @@ package io.confluent.ksql.services;
 
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Map;
-import org.apache.hc.core5.http.HttpStatus;
 
 /**
  * Supplies {@link ConnectClient}s to use that do not make any
@@ -36,8 +33,6 @@ final class SandboxConnectClient {
   public static ConnectClient createProxy(final ConnectClient delegate) {
     return LimitedProxyBuilder.forClass(ConnectClient.class)
         .forward("validate", methodParams(String.class, Map.class), delegate)
-        .swallow("connectors", methodParams(),
-            ConnectResponse.success(ImmutableList.of(), HttpStatus.SC_OK))
         .build();
   }
 }

@@ -19,11 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
-import io.confluent.ksql.test.util.OptionalMatchers;
-import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.junit.Before;
@@ -45,16 +42,6 @@ public class SandboxConnectClientTest {
   @Before
   public void setUp() {
     sandboxClient = SandboxConnectClient.createProxy(delegate);
-  }
-
-  @Test
-  public void shouldReturnEmptyListOnList() {
-    // When:
-    final ConnectResponse<List<String>> listResponse = sandboxClient.connectors();
-
-    // Then:
-    assertThat(listResponse.datum(), OptionalMatchers.of(is(ImmutableList.of())));
-    assertThat("expected no error", !listResponse.error().isPresent());
   }
 
   @Test

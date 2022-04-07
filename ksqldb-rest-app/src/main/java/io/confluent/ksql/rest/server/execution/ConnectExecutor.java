@@ -101,12 +101,6 @@ public final class ConnectExecutor {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
 
-    final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
-        statement, createConnector, client);
-    if (connectorsResponse.isPresent()) {
-      return StatementExecutorResponse.handled(connectorsResponse);
-    }
-
     final List<String> errors = validate(createConnector, client);
     if (!errors.isEmpty()) {
       final String errorMessage = "Validation error: " + String.join("\n", errors);

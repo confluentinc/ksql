@@ -20,6 +20,7 @@ import static io.confluent.ksql.util.BytesUtils.toJsonMsg;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.api.client.util.JsonMapper;
 import io.confluent.ksql.api.client.util.RowUtil;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
@@ -29,8 +30,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends ResponseHandler<T> {
-
-  private static final ObjectMapper JSON_MAPPER = JsonMapper.get();
 
   protected boolean hasReadArguments;
 
@@ -78,6 +77,8 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends Resp
                       RowUtil.colNamesFromSchema(schema),
                       RowUtil.colTypesFromSchema(schema),
                       null);
+      // queryResponseMetadata = ApiJsonMapper.INSTANCE.get()
+      //    .readValue(buff.getBytes(), QueryResponseMetadata.class);
     } catch (Exception e) {
       cf.completeExceptionally(e);
       return;

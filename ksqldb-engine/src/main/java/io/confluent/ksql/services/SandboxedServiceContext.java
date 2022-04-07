@@ -47,7 +47,8 @@ public final class SandboxedServiceContext implements ServiceContext {
         .createProxy(serviceContext.getTopicClient(), serviceContext::getAdminClient);
     final SchemaRegistryClient schemaRegistryClient =
         SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
-    final ConnectClient connectClient = SandboxConnectClient.createProxy();
+    final ConnectClient connectClient =
+        SandboxConnectClient.createProxy(serviceContext.getConnectClient()); // TODO: does this load custom configs?
     final KafkaConsumerGroupClient kafkaConsumerGroupClient = SandboxedKafkaConsumerGroupClient
         .createProxy(serviceContext.getConsumerGroupClient());
 

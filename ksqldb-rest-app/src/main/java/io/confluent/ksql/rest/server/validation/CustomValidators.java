@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.server.execution.ConnectExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
 import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
@@ -90,7 +91,7 @@ public enum CustomValidators {
   LIST_CONNECTORS(ListConnectors.class, StatementValidator.NO_VALIDATION),
   LIST_CONNECTOR_PLUGINS(ListConnectorPlugins.class, StatementValidator.NO_VALIDATION),
   LIST_TYPES(ListTypes.class, StatementValidator.NO_VALIDATION),
-  CREATE_CONNECTOR(CreateConnector.class, StatementValidator.NO_VALIDATION),
+  CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
   DROP_CONNECTOR(DropConnector.class, StatementValidator.NO_VALIDATION),
   LIST_VARIABLES(ListVariables.class, ListVariablesExecutor::execute),
 

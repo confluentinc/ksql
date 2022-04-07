@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
+import io.vertx.core.Future;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
@@ -133,14 +134,14 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     return logicalSchema;
   }
 
-  public void close() {
+  public Future<Void> close() {
     if (closed) {
-      return;
+      return Future.succeededFuture();
     }
     closed = true;
     // Run async as it can block
     executeOnWorker(queryHandle::stop);
-    super.close();
+    return super.close();
   }
 
   @Override

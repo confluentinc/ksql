@@ -45,7 +45,9 @@ public class StreamQueryResponseHandler
   private Map<String, Object> properties;
   private ClientImpl client;
 
-  StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
+  StreamQueryResponseHandler(
+      final Context context,
+      final RecordParser recordParser,
       final CompletableFuture<StreamedQueryResult> cf,
       final AtomicReference<String> serializedCV,
       final AtomicReference<String> continuationToken,

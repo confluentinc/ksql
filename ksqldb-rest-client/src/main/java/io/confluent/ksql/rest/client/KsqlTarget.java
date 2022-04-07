@@ -45,6 +45,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.Collections;
@@ -450,25 +451,43 @@ public final class KsqlTarget {
   ) {
     final VertxCompletableFuture<ResponseWithBody> vcf = new VertxCompletableFuture<>();
 
-    final HttpClientRequest httpClientRequest = httpClient.request(httpMethod,
-        socketAddress, socketAddress.port(), host,
-        path,
-        resp -> responseHandler.accept(resp, vcf))
-        .exceptionHandler(vcf::completeExceptionally);
+    final RequestOptions options = new RequestOptions();
+    options.setMethod(httpMethod);
+    options.setServer(socketAddress);
+    options.setPort(socketAddress.port());
+    options.setHost(host);
+    options.setURI(path);
 
-    if (mediaType.isPresent()) {
-      httpClientRequest.putHeader("Accept", mediaType.get());
-    } else {
-      httpClientRequest.putHeader("Accept", "application/json");
-    }
-    authHeader.ifPresent(v -> httpClientRequest.putHeader("Authorization", v));
-    additionalHeaders.forEach(httpClientRequest::putHeader);
+    httpClient.request(options, ar -> {
+      if (ar.failed()) {
+        vcf.completeExceptionally(ar.cause());
+        return;
+      }
 
-    if (requestBody != null) {
-      httpClientRequest.end(serialize(requestBody));
-    } else {
-      httpClientRequest.end();
-    }
+      final HttpClientRequest httpClientRequest = ar.result();
+      httpClientRequest.response(response -> {
+        if (response.failed()) {
+          vcf.completeExceptionally(response.cause());
+        }
+
+        responseHandler.accept(response.result(), vcf);
+      });
+      httpClientRequest.exceptionHandler(vcf::completeExceptionally);
+
+      if (mediaType.isPresent()) {
+        httpClientRequest.putHeader("Accept", mediaType.get());
+      } else {
+        httpClientRequest.putHeader("Accept", "application/json");
+      }
+      authHeader.ifPresent(v -> httpClientRequest.putHeader("Authorization", v));
+      additionalHeaders.forEach(httpClientRequest::putHeader);
+
+      if (requestBody != null) {
+        httpClientRequest.end(serialize(requestBody));
+      } else {
+        httpClientRequest.end();
+      }
+    });
 
     return vcf;
   }

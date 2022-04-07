@@ -16,7 +16,6 @@
 * Generalize the UDAFs earliest_by_offset and latest_by_offset ([#8878](https://github.com/confluentinc/ksql/pull/8878)) ([adac458](https://github.com/confluentinc/ksql/commit/adac45855dce1c413073e5cbeb474cb022013a2b))
 * include checking the the config during validation of SET ([#8718](https://github.com/confluentinc/ksql/pull/8718)) ([d8ff588](https://github.com/confluentinc/ksql/commit/d8ff588d6b8afcc7059f08a7c6eb0002fc6ecd43))
 * support custom request headers from java client and migrations tool ([#8787](https://github.com/confluentinc/ksql/pull/8787)) ([ffe57f5](https://github.com/confluentinc/ksql/commit/ffe57f5ba13efcec735112382a6a5056f118fc2d))
-* Use bounds in pull query ([#8673](https://github.com/confluentinc/ksql/pull/8673)) ([13bdecd](https://github.com/confluentinc/ksql/commit/13bdecd7438714f381360ad37af32b351c479aed))
 
 
 

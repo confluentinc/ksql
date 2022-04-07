@@ -160,7 +160,7 @@ this may log sensitive information.
 
 A regex that allows users to filter out logging from certain endpoints. Without this filter, 
 all endpoints are logged. An example usage of this configuration would be to disable heartbeat 
-logging (e.g. ksql.endpoint.logging.ignored.paths.regex=.*heartbeat.* which can otherwise be 
+logging, for example, ksql.endpoint.logging.ignored.paths.regex=.*heartbeat.*, which can otherwise be 
 verbose. Note that this works on the entire URI, respecting the ksql.endpoint.logging.log.queries 
 configuration)
 

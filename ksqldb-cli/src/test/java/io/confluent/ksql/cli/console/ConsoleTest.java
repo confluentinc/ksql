@@ -703,13 +703,13 @@ public class ConsoleTest {
           + "  \"statementText\" : \"statement\"," + NEWLINE
           + "  \"warnings\" : [ ]," + NEWLINE
           + "  \"connectorsPlugins\" : [ {" + NEWLINE
-          + "    \"className\" : \"clazz1\"," + NEWLINE
           + "    \"type\" : \"source\"," + NEWLINE
-          + "    \"version\" : \"v1\"" + NEWLINE
+          + "    \"version\" : \"v1\"," + NEWLINE
+          + "    \"className\" : \"clazz1\"" + NEWLINE
           + "  }, {" + NEWLINE
-          + "    \"className\" : \"clazz2\"," + NEWLINE
           + "    \"type\" : \"sink\"," + NEWLINE
-          + "    \"version\" : \"v2\"" + NEWLINE
+          + "    \"version\" : \"v2\"," + NEWLINE
+          + "    \"className\" : \"clazz2\"" + NEWLINE
           + "  } ]" + NEWLINE
           + "} ]" + NEWLINE));
     } else {

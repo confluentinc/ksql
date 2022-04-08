@@ -240,7 +240,7 @@ public class ConnectExecutorTest {
     final KsqlException e = assertThrows(
         KsqlException.class,
         () -> ConnectExecutor.execute(createConnectorEmptyTypeConfigured, mock(SessionProperties.class),
-            null, serviceContext).getEntity());
+            null, serviceContext));
 
     // Then:
     assertThat(e.getMessage(), is("Validation error: Connector type cannot be empty"));

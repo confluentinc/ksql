@@ -329,7 +329,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           final KsqlConfigResolver resolver = new KsqlConfigResolver();
           final Optional<ConfigItem> resolvedItem = resolver.resolve(s, false);
           return resolvedItem.map(configItem ->
-              !PropertiesList.QueryLevelPropertyList.contains(configItem)).orElse(true);
+              !PropertiesList.QueryLevelPropertyList.contains(configItem.getPropertyName())).orElse(true);
         })
         .distinct()
         .collect(Collectors.joining(","));

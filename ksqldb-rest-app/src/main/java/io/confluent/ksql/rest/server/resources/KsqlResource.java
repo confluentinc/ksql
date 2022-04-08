@@ -256,7 +256,7 @@ public class KsqlResource implements KsqlConfigurable {
       final Optional<ConfigItem> resolvedItem = resolver.resolve(property, false);
       if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
           && resolvedItem.isPresent()) {
-        if (!PropertiesList.QueryLevelPropertyList.contains(resolvedItem.get())) {
+        if (!PropertiesList.QueryLevelPropertyList.contains(resolvedItem.get().getPropertyName())) {
           throw new KsqlException(String.format("When shared runtimes are enabled, the"
               + " config %s can only be set for the entire cluster and all queries currently"
               + " running in it, and not configurable for individual queries."

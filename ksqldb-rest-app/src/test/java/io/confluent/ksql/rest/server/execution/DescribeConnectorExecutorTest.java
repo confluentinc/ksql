@@ -16,9 +16,11 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -39,10 +41,12 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeConnector;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -220,36 +224,42 @@ public class DescribeConnectorExecutorTest {
   }
 
   @Test
-  public void shouldErrorIfConnectClientFailsStatus() {
+  public void shouldThrowIfConnectClientFailsStatus() {
     // Given:
     when(connectClient.status(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> executor.execute(describeStatement, mock(SessionProperties.class), engine, serviceContext));
 
     // Then:
     verify(connectClient).status("connector");
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(), is("error"));
+
+    assertThat(e.getResponse().getStatus(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+    final KsqlErrorMessage err = (KsqlErrorMessage) e.getResponse().getEntity();
+    assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+    assertThat(err.getMessage(), containsString("Failed to query connector status: error"));
   }
 
   @Test
-  public void shouldErrorIfConnectClientFailsDescribe() {
+  public void shouldThrowIfConnectClientFailsDescribe() {
     // Given:
     when(connectClient.describe(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> executor.execute(describeStatement, mock(SessionProperties.class), engine, serviceContext));
 
     // Then:
     verify(connectClient).status("connector");
     verify(connectClient).describe("connector");
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(), is("error"));
+
+    assertThat(e.getResponse().getStatus(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+    final KsqlErrorMessage err = (KsqlErrorMessage) e.getResponse().getEntity();
+    assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+    assertThat(err.getMessage(), containsString("Failed to describe connector: error"));
   }
 
   @Test

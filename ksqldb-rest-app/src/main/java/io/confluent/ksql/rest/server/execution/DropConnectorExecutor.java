@@ -17,10 +17,13 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.DropConnector;
+import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -30,7 +33,6 @@ import org.apache.hc.core5.http.HttpStatus;
 public final class DropConnectorExecutor {
 
   private DropConnectorExecutor() {
-
   }
 
   public static StatementExecutorResponse execute(
@@ -50,8 +52,12 @@ public final class DropConnectorExecutor {
             new WarningEntity(statement.getStatementText(),
                 "Connector '" + connectorName + "' does not exist.")));
       } else {
-        return StatementExecutorResponse.handled(Optional.of(
-            new ErrorEntity(statement.getStatementText(), response.error().get())));
+        final String errorMsg = "Failed to drop connector: " + response.error().get();
+        throw new KsqlRestException(EndpointResponse.create()
+            .status(response.httpCode())
+            .entity(new KsqlErrorMessage(Errors.toErrorCode(response.httpCode()), errorMsg))
+            .build()
+        );
       }
     }
 

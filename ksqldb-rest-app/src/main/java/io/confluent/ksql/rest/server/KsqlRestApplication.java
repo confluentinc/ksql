@@ -69,8 +69,6 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
-import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
-import io.confluent.ksql.rest.server.execution.DefaultConnectServerErrors;
 import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
@@ -849,8 +847,6 @@ public final class KsqlRestApplication implements Executable {
         ErrorMessages.class
     ));
 
-    final ConnectServerErrors connectErrorHandler = loadConnectErrorHandler(ksqlConfig);
-
     final Optional<LagReportingAgent> lagReportingAgent =
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
     final Optional<HeartbeatAgent> heartbeatAgent =
@@ -969,7 +965,6 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
-        connectErrorHandler,
         denyListPropertyValidator
     );
 
@@ -1134,15 +1129,6 @@ public final class KsqlRestApplication implements Executable {
         securityHandlerPlugin.configure(ksqlRestConfig.originals())
     );
     return authenticationPlugin;
-  }
-
-  private static ConnectServerErrors loadConnectErrorHandler(
-      final KsqlConfig ksqlConfig) {
-    return Optional.ofNullable(
-        ksqlConfig.getConfiguredInstance(
-            KsqlConfig.KSQL_CONNECT_SERVER_ERROR_HANDLER,
-            ConnectServerErrors.class
-        )).orElse(new DefaultConnectServerErrors());
   }
 
   private void displayWelcomeMessage() {

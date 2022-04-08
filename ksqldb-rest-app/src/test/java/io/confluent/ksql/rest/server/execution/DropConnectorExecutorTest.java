@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static io.confluent.ksql.util.KsqlConfig.KSQL_CONNECT_SERVER_ERROR_HANDLER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -65,8 +64,6 @@ public class DropConnectorExecutorTest {
           "DROP CONNECTOR \"foo\"",
           DROP_CONNECTOR_IF_EXISTS), SessionConfig.of(CONFIG, ImmutableMap.of())
       );
-  private static final DropConnectorExecutor EXECUTOR = new DropConnectorExecutor(
-      new DefaultConnectServerErrors());
 
   @Mock
   private ServiceContext serviceContext;
@@ -86,10 +83,7 @@ public class DropConnectorExecutorTest {
         .thenReturn(ConnectResponse.success("foo", HttpStatus.SC_OK));
 
     // When:
-    EXECUTOR.execute(DROP_CONNECTOR_CONFIGURED,
-        mock(SessionProperties.class),
-        null,
-        serviceContext);
+    DropConnectorExecutor.execute(DROP_CONNECTOR_CONFIGURED, mock(SessionProperties.class),null, serviceContext);
 
     // Then:
     verify(connectClient).delete("foo");
@@ -102,10 +96,8 @@ public class DropConnectorExecutorTest {
         .thenReturn(ConnectResponse.success("foo", HttpStatus.SC_OK));
 
     // When:
-    final Optional<KsqlEntity> response = EXECUTOR.execute(DROP_CONNECTOR_CONFIGURED,
-            mock(SessionProperties.class),
-            null,
-            serviceContext).getEntity();
+    final Optional<KsqlEntity> response = DropConnectorExecutor
+        .execute(DROP_CONNECTOR_CONFIGURED, mock(SessionProperties.class),null, serviceContext).getEntity();
 
     // Then:
     assertThat("expected response", response.isPresent());
@@ -119,15 +111,10 @@ public class DropConnectorExecutorTest {
         .thenReturn(ConnectResponse.failure("Danger Mouse!", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = EXECUTOR.execute(DROP_CONNECTOR_CONFIGURED,
-            mock(SessionProperties.class),
-            null,
-            serviceContext).getEntity();
-    final Optional<KsqlEntity> entityIfExists = EXECUTOR
-            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED,
-                mock(SessionProperties.class),
-                null,
-                serviceContext).getEntity();
+    final Optional<KsqlEntity> entity = DropConnectorExecutor
+        .execute(DROP_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
+    final Optional<KsqlEntity> entityIfExists = DropConnectorExecutor
+            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
@@ -143,87 +130,11 @@ public class DropConnectorExecutorTest {
             .thenReturn(ConnectResponse.failure("Danger Mouse!", HttpStatus.SC_NOT_FOUND));
 
     // When:
-    final Optional<KsqlEntity> entity = EXECUTOR.execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED,
-        mock(SessionProperties.class),
-        null,
-        serviceContext).getEntity();
+    final Optional<KsqlEntity> entity = DropConnectorExecutor
+            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
     assertThat(entity.get(), instanceOf(WarningEntity.class));
-  }
-
-  @Test
-  public void shouldReturnPluggableForbiddenError() {
-    //Given:
-    when(connectClient.delete(anyString()))
-        .thenReturn(
-            ConnectResponse.failure("FORBIDDEN", HttpStatus.SC_FORBIDDEN));
-    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
-
-    // When:
-    final Optional<KsqlEntity> entity = new DropConnectorExecutor(connectErrorHandler)
-        .execute(DROP_CONNECTOR_CONFIGURED,
-            mock(SessionProperties.class),
-            null,
-            serviceContext).getEntity();
-
-    // Then:
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
-        is(DummyConnectServerErrors.FORBIDDEN_ERR));
-  }
-
-  @Test
-  public void shouldReturnPluggableUnauthorizedError() {
-    //Given:
-    when(connectClient.delete(anyString()))
-        .thenReturn(
-            ConnectResponse.failure("UNAUTHORIZED", HttpStatus.SC_UNAUTHORIZED));
-    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
-
-    // When:
-    final Optional<KsqlEntity> entity = new DropConnectorExecutor(connectErrorHandler)
-        .execute(DROP_CONNECTOR_CONFIGURED,
-            mock(SessionProperties.class),
-            null,
-            serviceContext).getEntity();
-
-    // Then:
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
-        is(DummyConnectServerErrors.UNAUTHORIZED_ERR));
-  }
-
-  @Test
-  public void shouldReturnDefaultPluggableErrorOnUnknownCode() {
-    //Given:
-    when(connectClient.delete(anyString()))
-        .thenReturn(
-            ConnectResponse.failure("NOT ACCEPTABLE", HttpStatus.SC_NOT_ACCEPTABLE));
-    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
-
-    // When:
-    final Optional<KsqlEntity> entity = new DropConnectorExecutor(connectErrorHandler)
-        .execute(DROP_CONNECTOR_CONFIGURED,
-            mock(SessionProperties.class),
-            null,
-            serviceContext).getEntity();
-
-    // Then:
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
-        is(DummyConnectServerErrors.DEFAULT_ERR));
-  }
-
-  private ConnectServerErrors givenCustomConnectErrorHandler() {
-    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
-        KSQL_CONNECT_SERVER_ERROR_HANDLER, DummyConnectServerErrors.class));
-    return config.getConfiguredInstance(
-        KSQL_CONNECT_SERVER_ERROR_HANDLER,
-        ConnectServerErrors.class);
   }
 }

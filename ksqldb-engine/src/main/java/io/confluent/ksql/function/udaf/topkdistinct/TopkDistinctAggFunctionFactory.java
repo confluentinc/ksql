@@ -69,8 +69,13 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
             SchemaConverters.sqlToFunctionConverter().toFunctionType(argSchema),
             SchemaConverters.sqlToJavaConverter().toJavaType(argSchema));
       default:
-        throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
-            + " argument type exists!");
+        throw new KsqlException(
+          String.format(
+            "No %s aggregate function with %s argument type exists!",
+            NAME,
+            argTypeList.get(0)
+          )
+        );
     }
   }
 

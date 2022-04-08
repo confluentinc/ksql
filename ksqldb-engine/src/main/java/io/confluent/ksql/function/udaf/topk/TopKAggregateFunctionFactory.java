@@ -92,8 +92,13 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
             Collections.singletonList(ParamTypes.STRING),
             String.class);
       default:
-        throw new KsqlException("No TOPK aggregate function with " + argumentType.get(0)
-            + " argument type exists!");
+        throw new KsqlException(
+          String.format(
+            "No %s aggregate function with %s argument type exists!",
+            NAME,
+            argumentType.get(0)
+          )
+        );
     }
   }
 

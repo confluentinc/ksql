@@ -48,11 +48,10 @@ public final class ListConnectorPluginsExecutor {
     final ConnectResponse<List<PluginInfo>> plugins =
         serviceContext.getConnectClient().connectorPlugins();
     if (plugins.error().isPresent()) {
+      final String errorMsg = "Failed to list connector plugins: " + plugins.error().get();
       throw new KsqlRestException(EndpointResponse.create()
           .status(plugins.httpCode())
-          .entity(new KsqlErrorMessage(
-              Errors.toErrorCode(plugins.httpCode()),
-              "Failed to list connector plugins: " + plugins.error().get()))
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(plugins.httpCode()), errorMsg))
           .build()
       );
     }

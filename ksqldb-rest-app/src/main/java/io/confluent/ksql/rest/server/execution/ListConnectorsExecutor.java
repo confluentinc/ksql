@@ -55,11 +55,10 @@ public final class ListConnectorsExecutor {
     final ConnectClient connectClient = serviceContext.getConnectClient();
     final ConnectResponse<List<String>> connectors = serviceContext.getConnectClient().connectors();
     if (connectors.error().isPresent()) {
+      final String errorMsg = "Failed to list connectors: " + connectors.error().get();
       throw new KsqlRestException(EndpointResponse.create()
           .status(connectors.httpCode())
-          .entity(new KsqlErrorMessage(
-              Errors.toErrorCode(connectors.httpCode()),
-              "Failed to list connectors: " + connectors.error().get()))
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(connectors.httpCode()), errorMsg))
           .build()
       );
     }

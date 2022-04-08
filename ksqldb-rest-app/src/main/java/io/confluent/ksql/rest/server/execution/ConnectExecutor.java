@@ -82,11 +82,10 @@ public final class ConnectExecutor {
     }
 
     if (response.error().isPresent()) {
+      final String errorMsg = "Failed to create connector: " + response.error().get();
       throw new KsqlRestException(EndpointResponse.create()
           .status(response.httpCode())
-          .entity(new KsqlErrorMessage(
-              Errors.toErrorCode(response.httpCode()),
-              "Failed to create connector: " + response.error().get()))
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(response.httpCode()), errorMsg))
           .build()
       );
     }

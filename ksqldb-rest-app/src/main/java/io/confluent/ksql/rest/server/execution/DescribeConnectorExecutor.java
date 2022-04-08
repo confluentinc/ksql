@@ -78,11 +78,10 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .status(connectorName);
     if (statusResponse.error().isPresent()) {
+      final String errorMsg = "Failed to query connector status: " + statusResponse.error().get();
       throw new KsqlRestException(EndpointResponse.create()
           .status(statusResponse.httpCode())
-          .entity(new KsqlErrorMessage(
-              Errors.toErrorCode(statusResponse.httpCode()),
-              "Failed to query connector status: " + statusResponse.error().get()))
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(statusResponse.httpCode()), errorMsg))
           .build()
       );
     }
@@ -91,11 +90,10 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .describe(connectorName);
     if (infoResponse.error().isPresent()) {
+      final String errorMsg = "Failed to describe connector: " + infoResponse.error().get();
       throw new KsqlRestException(EndpointResponse.create()
           .status(infoResponse.httpCode())
-          .entity(new KsqlErrorMessage(
-              Errors.toErrorCode(infoResponse.httpCode()),
-              "Failed to describe connector: " + infoResponse.error().get()))
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(infoResponse.httpCode()), errorMsg))
           .build()
       );
     }

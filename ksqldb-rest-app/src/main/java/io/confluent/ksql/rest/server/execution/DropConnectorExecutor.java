@@ -52,11 +52,10 @@ public final class DropConnectorExecutor {
             new WarningEntity(statement.getStatementText(),
                 "Connector '" + connectorName + "' does not exist.")));
       } else {
+        final String errorMsg = "Failed to drop connector: " + response.error().get();
         throw new KsqlRestException(EndpointResponse.create()
             .status(response.httpCode())
-            .entity(new KsqlErrorMessage(
-                Errors.toErrorCode(response.httpCode()),
-                "Failed to drop connector: " + response.error().get()))
+            .entity(new KsqlErrorMessage(Errors.toErrorCode(response.httpCode()), errorMsg))
             .build()
         );
       }

@@ -22,9 +22,7 @@
 
 ### Bug Fixes
 
-* clean up state when restarting runtimes to avoid errors ([#8936](https://github.com/confluentinc/ksql/pull/8936)) ([8b26151](https://github.com/confluentinc/ksql/commit/8b26151984118646ae613b9897c223ad7af5a17c))
 * preserve old schema behavior for protobuf wrapped primitives ([#8934](https://github.com/confluentinc/ksql/pull/8934)) ([36485e2](https://github.com/confluentinc/ksql/commit/36485e263d8988e73c8150aaa3c59252fcdedc69))
-* add copious amounts of logging to improve visibility into Gen 2 query's runtimes ([#8811](https://github.com/confluentinc/ksql/pull/8811)) ([8d8a512](https://github.com/confluentinc/ksql/commit/8d8a512f2f6a7d7d667393dbbe43f1da1c1492ad))
 * Add null handling to functions ([#8726](https://github.com/confluentinc/ksql/pull/8726)) ([6117604](https://github.com/confluentinc/ksql/commit/6117604fa424dd051f882458a0c95abcdcd8e170))
 * Adds error handling for nested functions ([#8850](https://github.com/confluentinc/ksql/pull/8850)) ([2a60269](https://github.com/confluentinc/ksql/commit/2a60269cadddc8a11522d103d800ae2a6769d690))
 * Apply the ExtensionSecurityManager to UDAFs ([#8776](https://github.com/confluentinc/ksql/pull/8776)) ([a37688c](https://github.com/confluentinc/ksql/commit/a37688cdd33428c1f5c4e67bbc776835f72b0403))
@@ -35,13 +33,11 @@
 * coerce property values to correct type ([#8765](https://github.com/confluentinc/ksql/pull/8765)) ([7f7a076](https://github.com/confluentinc/ksql/commit/7f7a07619a6ed28f022980ad078607502f4a1f8d))
 * decrease default number of shared runtimes ([#8889](https://github.com/confluentinc/ksql/pull/8889)) ([87bc4b2](https://github.com/confluentinc/ksql/commit/87bc4b2b9e96b923a19497e0ccb8dc5b4e5adb91))
 * do not include schema id in session config ([#8869](https://github.com/confluentinc/ksql/pull/8869)) ([5ddb852](https://github.com/confluentinc/ksql/commit/5ddb852afc37939baa72d9cf6e55dfde9d1e6400))
-* empty to add future list ([#8902](https://github.com/confluentinc/ksql/pull/8902)) ([bca79ac](https://github.com/confluentinc/ksql/commit/bca79ac5922c25e2ddb8f0fd78263260babf0a1a))
 * Ensures response end handler is invoked just once ([#8849](https://github.com/confluentinc/ksql/pull/8849)) ([a2efcc5](https://github.com/confluentinc/ksql/commit/a2efcc53f05de45daf0724ff7c4e1467f2548224))
 * Fix bugs in sample standard deviation UDAF ([#8728](https://github.com/confluentinc/ksql/pull/8728)) ([b2f993b](https://github.com/confluentinc/ksql/commit/b2f993b860a4c8075d23f8a77a828eae12af499f))
 * Gives a query completed message for stream pull queries ([#8612](https://github.com/confluentinc/ksql/pull/8612)) ([a44a16b](https://github.com/confluentinc/ksql/commit/a44a16be46d3c61e7f9d8724c4900752e9fc5337))
 * **ksql:** add ifExists/ifNotExist parameters to java client connector functions ([#8851](https://github.com/confluentinc/ksql/pull/8851)) ([eaf2b1f](https://github.com/confluentinc/ksql/commit/eaf2b1f047a126de642f06a0cde30e6c5123762a))
 * **ksql:** allow migrations tool to run connector commands with IF [NOT] EXISTS clauses ([#8855](https://github.com/confluentinc/ksql/pull/8855)) ([a7c8689](https://github.com/confluentinc/ksql/commit/a7c8689a498bba812a9fc6dbc66c8a3b9d814176))
-* logging improvement ([#8715](https://github.com/confluentinc/ksql/pull/8715)) ([2a53f9f](https://github.com/confluentinc/ksql/commit/2a53f9f35474e97600f82ca9f62c874df5321213))
 * make sure topologies are done added before removing ([#8898](https://github.com/confluentinc/ksql/pull/8898)) ([08354a2](https://github.com/confluentinc/ksql/commit/08354a2af269fff557be2ffd796122eaa98305f4))
 * make writes to the backup file atomic ([#8566](https://github.com/confluentinc/ksql/pull/8566)) ([b113e9e](https://github.com/confluentinc/ksql/commit/b113e9ed4a81670424019dcff567aa01697ddca9))
 * only check configs on validation ([#8722](https://github.com/confluentinc/ksql/pull/8722)) ([6b65cd4](https://github.com/confluentinc/ksql/commit/6b65cd4da78e38832b6a9ec232595c3a8b8d1443))

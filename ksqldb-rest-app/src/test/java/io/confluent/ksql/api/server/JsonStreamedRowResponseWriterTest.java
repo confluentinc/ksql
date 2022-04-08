@@ -35,7 +35,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -94,12 +93,12 @@ public class JsonStreamedRowResponseWriterTest {
     when(response.write((Buffer) any())).thenAnswer(a -> {
       final Buffer buffer = a.getArgument(0);
       stringBuilder.append(new String(buffer.getBytes(), StandardCharsets.UTF_8));
-      return Future.succeededFuture();
+      return response;
     });
     when(response.write((String) any())).thenAnswer(a -> {
       final String str = a.getArgument(0);
       stringBuilder.append(str);
-      return Future.succeededFuture();
+      return response;
     });
     when(context.owner()).thenReturn(vertx);
     when(clock.millis()).thenAnswer(a -> timeMs.get());

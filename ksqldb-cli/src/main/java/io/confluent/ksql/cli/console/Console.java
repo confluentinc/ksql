@@ -35,6 +35,7 @@ import io.confluent.ksql.cli.console.table.builder.ConnectorPluginsListTableBuil
 import io.confluent.ksql.cli.console.table.builder.DropConnectorTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ErrorEntityTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ExecutionPlanTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.ExpressionEvaluatorTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.FunctionNameListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.KafkaTopicsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ListVariablesTableBuilder;
@@ -60,6 +61,7 @@ import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
+import io.confluent.ksql.rest.entity.ExpressionEvaluationEntity;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -143,6 +145,8 @@ public class Console implements Closeable {
 
   private static final ClassHandlerMap1<KsqlEntity, Console> PRINT_HANDLERS =
       HandlerMaps.forClass(KsqlEntity.class).withArgType(Console.class)
+          .put(ExpressionEvaluationEntity.class,
+              tablePrinter(ExpressionEvaluationEntity.class, ExpressionEvaluatorTableBuilder::new))
           .put(CommandStatusEntity.class,
               tablePrinter(CommandStatusEntity.class, CommandStatusTableBuilder::new))
           .put(PropertiesList.class,

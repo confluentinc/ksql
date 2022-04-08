@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DescribeStreams;
 import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
+import io.confluent.ksql.parser.tree.EvaluateExpression;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListConnectorPlugins;
@@ -85,6 +86,7 @@ public enum CustomValidators {
   LIST_STREAMS(ListStreams.class, StatementValidator.NO_VALIDATION),
   LIST_TABLES(ListTables.class, StatementValidator.NO_VALIDATION),
   DESCRIBE_STREAMS(DescribeStreams.class, StatementValidator.NO_VALIDATION),
+  EVALUATE_EXPRESSION(EvaluateExpression.class, StatementValidator.NO_VALIDATION),
   DESCRIBE_TABLES(DescribeTables.class, StatementValidator.NO_VALIDATION),
   LIST_FUNCTIONS(ListFunctions.class, StatementValidator.NO_VALIDATION),
   LIST_QUERIES(ListQueries.class, StatementValidator.NO_VALIDATION),

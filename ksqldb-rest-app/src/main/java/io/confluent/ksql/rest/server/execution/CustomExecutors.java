@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DescribeStreams;
 import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
+import io.confluent.ksql.parser.tree.EvaluateExpression;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListConnectorPlugins;
@@ -62,6 +63,8 @@ public class CustomExecutors {
     Objects.requireNonNull(connectErrorHandler, "connectErrorHandler");
 
     EXECUTOR_MAP = new HashMap<Class<? extends Statement>, StatementExecutor<?>>() {{
+        put(EvaluateExpression.class,
+            (StatementExecutor<EvaluateExpression>) EvaluateExpressionExecutor::execute);
         put(ListTopics.class,
             (StatementExecutor<ListTopics>) ListTopicsExecutor::execute);
         put(ListStreams.class,

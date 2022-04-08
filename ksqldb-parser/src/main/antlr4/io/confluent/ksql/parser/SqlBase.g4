@@ -46,6 +46,7 @@ singleExpression
 
 statement
     : query                                                                 #queryStatement
+    | (SELECT) expression                                                   #expressionEvaluate
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) ALL? TOPICS EXTENDED?                                   #listTopics
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams

@@ -1042,7 +1042,10 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnSchemaInferenceMismatchForKey() throws Exception {
     // Given:
-    when(srClient.getLatestSchemaMetadata(Mockito.any())).thenReturn(new SchemaMetadata(1, 1, "schema"));
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, "schema"));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new AvroSchema(RAW_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
@@ -1074,11 +1077,18 @@ public class InsertValuesExecutorTest {
 
   @Test
   public void shouldBuildSerdeWithSchemaFullName() throws Exception {
+    final String AVRO_SCHEMA = "{\"type\":\"record\","
+        + "\"name\":\"TestSchema\","
+        + "\"namespace\":\"io.avro\","
+        + "\"fields\":["
+        + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null},"
+        + "{\"name\":\"k1\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
         .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
     when(srClient.getSchemaById(1))
-        .thenReturn(new AvroSchema(RAW_SCHEMA));
+        .thenReturn(new AvroSchema(AVRO_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
@@ -1103,7 +1113,7 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerdeFactory).create(
         FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap.of(
-            AvroProperties.FULL_SCHEMA_NAME,"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema"
         )),
         PersistenceSchema.from(SCHEMA.key(), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)),
         new KsqlConfig(ImmutableMap.of()),
@@ -1115,7 +1125,7 @@ public class InsertValuesExecutorTest {
 
     verify(valueSerdeFactory).create(
         FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap.of(
-            AvroProperties.FULL_SCHEMA_NAME,"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema"
         )),
         PersistenceSchema.from(SCHEMA.value(), SerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
@@ -1166,7 +1176,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenNotAuthorizedToReadKeySchemaToSR() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenThrow(new RestClientException("foo", 401, 1));
+        .thenThrow(new RestClientException("User is denied operation Read on foo-key", 401, 1));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,

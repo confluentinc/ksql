@@ -367,14 +367,23 @@ public class InsertValuesExecutor {
       return;
     }
 
+    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
+
+    final FormatInfo formatInfo = addSerializerMissingFormatFields(
+        schemaRegistryClient,
+        dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
+        dataSource.getKafkaTopicName(),
+        true
+    );
+
     final ParsedSchema schema = format
-        .getSchemaTranslator(keyFormat.getFormatInfo().getProperties())
+        .getSchemaTranslator(formatInfo.getProperties())
         .toParsedSchema(keySchema);
 
     final Optional<SchemaMetadata> latest;
     try {
       latest = SchemaRegistryUtil.getLatestSchema(
-          serviceContext.getSchemaRegistryClient(),
+          schemaRegistryClient,
           dataSource.getKafkaTopicName(),
           true);
 
@@ -465,7 +474,7 @@ public class InsertValuesExecutor {
    * they were created previous to this fix. Those previous streams would fail with INSERT.
    * The best option was to dynamically look at the SR schema during an INSERT statement.
    */
-  private FormatInfo addSerializerMissingFormatFields(
+  private static FormatInfo addSerializerMissingFormatFields(
       final SchemaRegistryClient srClient,
       final FormatInfo formatInfo,
       final String topicName,
@@ -480,19 +489,17 @@ public class InsertValuesExecutor {
 
     final Set<String> supportedProperties = format.getSupportedProperties();
 
-    // So far, the only missing required field is the FULL_SCHEMA_NAME
-    // This field allows the serializer to check the SR schema for compatibility
-    if (!supportedProperties.contains(ConnectProperties.FULL_SCHEMA_NAME)) {
-      return formatInfo;
-    }
-
     final ImmutableMap.Builder propertiesBuilder = ImmutableMap.builder();
     propertiesBuilder.putAll(formatInfo.getProperties());
 
-    // Add the FULL_SCHEMA_NAME if found on SR
-    SchemaRegistryUtil.getParsedSchema(srClient, topicName, isKey).map(ParsedSchema::name)
-        .ifPresent(schemaName ->
-            propertiesBuilder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName));
+    // The FULL_SCHEMA_NAME allows the serializer to choose the schema definition
+    if (supportedProperties.contains(ConnectProperties.FULL_SCHEMA_NAME)) {
+      if (!formatInfo.getProperties().containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
+        SchemaRegistryUtil.getParsedSchema(srClient, topicName, isKey).map(ParsedSchema::name)
+            .ifPresent(schemaName ->
+                propertiesBuilder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName));
+      }
+    }
 
     return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
   }

@@ -20,13 +20,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
 public class ProtobufSchemaTranslatorTest {
@@ -166,9 +164,10 @@ public class ProtobufSchemaTranslatorTest {
     final Schema connectSchema =  SchemaBuilder.struct()
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .field("array", SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA))
-        .field("map", SchemaBuilder.map(Schema.BYTES_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("map", SchemaBuilder.map(Schema.BYTES_SCHEMA, Schema.FLOAT64_SCHEMA).name("InternalMap"))
         .field("struct", SchemaBuilder.struct()
             .field("c1", Schema.STRING_SCHEMA)
+            .name("InternalStruct")
             .build())
         .build();
 
@@ -191,17 +190,17 @@ public class ProtobufSchemaTranslatorTest {
             "\n" +
             "  repeated string array = 2;\n" +
             "\n" +
-            "  repeated CustomerMapEntry map = 3;\n" +
+            "  repeated InternalMapEntry map = 3;\n" +
             "\n" +
-            "  Customer_struct struct = 4;\n" +
+            "  InternalStruct struct = 4;\n" +
             "\n" +
-            "  message CustomerMapEntry {\n" +
+            "  message InternalMapEntry {\n" +
             "    bytes key = 1;\n" +
             "  \n" +
             "    double value = 2;\n" +
             "  }\n" +
             "\n" +
-            "  message Customer_struct {\n" +
+            "  message InternalStruct {\n" +
             "    string c1 = 1;\n" +
             "  }\n" +
             "}\n"

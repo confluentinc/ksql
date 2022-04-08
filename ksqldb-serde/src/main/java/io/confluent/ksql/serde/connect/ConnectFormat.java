@@ -264,7 +264,7 @@ public abstract class ConnectFormat implements Format {
 
   @Override
   public List<String> schemaFullNames(final ParsedSchema schema) {
-    if (schema.name() != null) {
+    if (schema.name() == null) {
       return ImmutableList.of();
     }
 

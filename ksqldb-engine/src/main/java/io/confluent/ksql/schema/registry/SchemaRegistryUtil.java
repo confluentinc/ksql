@@ -106,7 +106,7 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject).isPresent();
   }
 
-  public static Optional<Integer> getSchemaId(
+  public static Optional<Integer> getLatestSchemaId(
       final SchemaRegistryClient srClient,
       final String topic,
       final boolean isKey
@@ -115,7 +115,7 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject).map(SchemaMetadata::getId);
   }
 
-  public static Optional<ParsedSchema> getParsedSchema(
+  public static Optional<ParsedSchema> getLatestParsedSchema(
       final SchemaRegistryClient srClient,
       final String topic,
       final boolean isKey

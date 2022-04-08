@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.protobuf;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
@@ -87,13 +88,13 @@ public class ProtobufFormat extends ConnectFormat {
   }
 
   @Override
-  public List<String> getSchemaDefinitions(final ParsedSchema schema) {
+  public List<String> schemaFullNames(final ParsedSchema schema) {
     if (schema.rawSchema() instanceof ProtoFileElement) {
       final ProtoFileElement protoFileElement = (ProtoFileElement) schema.rawSchema();
       final String packageName = protoFileElement.getPackageName();
 
       return protoFileElement.getTypes().stream()
-          .map(typeElement -> packageName + "." + typeElement.getName())
+          .map(typeElement -> Joiner.on(".").skipNulls().join(packageName, typeElement.getName()))
           .collect(Collectors.toList());
     }
 

@@ -20,9 +20,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
 public class ProtobufSchemaTranslatorTest {
@@ -108,6 +112,102 @@ public class ProtobufSchemaTranslatorTest {
     assertThat(schema.field("c5").schema().field("value").schema().type(), is(Type.STRING));
   }
 
+  @Test
+  public void shouldReturnParsedSchemaWithDefaultFullSchemaName() {
+    // Given:
+    givenWrapPrimitives();
+    final Schema connectSchema =  SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("array", SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA))
+        .field("map", SchemaBuilder.map(Schema.BYTES_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("struct", SchemaBuilder.struct()
+            .field("c1", Schema.STRING_SCHEMA)
+            .build())
+        .build();
+
+    // When:
+    schemaTranslator.configure(ImmutableMap.of());
+    final ParsedSchema parsedSchema = schemaTranslator.fromConnectSchema(connectSchema);
+
+    // Then:
+    assertThat(parsedSchema.name(), is("ConnectDefault1"));
+    assertThat(((ProtobufSchema)parsedSchema).rawSchema().toSchema(), is(
+        "// Proto schema formatted by Wire, do not edit.\n" +
+            "// Source: \n" +
+            "\n" +
+            "syntax = \"proto3\";\n" +
+            "\n" +
+            "message ConnectDefault1 {\n" +
+            "  int64 id = 1;\n" +
+            "\n" +
+            "  repeated string array = 2;\n" +
+            "\n" +
+            "  repeated ConnectDefault2Entry map = 3;\n" +
+            "\n" +
+            "  ConnectDefault3 struct = 4;\n" +
+            "\n" +
+            "  message ConnectDefault2Entry {\n" +
+            "    bytes key = 1;\n" +
+            "  \n" +
+            "    double value = 2;\n" +
+            "  }\n" +
+            "\n" +
+            "  message ConnectDefault3 {\n" +
+            "    string c1 = 1;\n" +
+            "  }\n" +
+            "}\n"
+    ));
+  }
+
+  @Test
+  public void shouldReturnParsedSchemaWithFullSchemaName() {
+    // Given:
+    givenSchemaFullName("io.examples.Customer");
+    final Schema connectSchema =  SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("array", SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA))
+        .field("map", SchemaBuilder.map(Schema.BYTES_SCHEMA, Schema.FLOAT64_SCHEMA))
+        .field("struct", SchemaBuilder.struct()
+            .field("c1", Schema.STRING_SCHEMA)
+            .build())
+        .build();
+
+    // When:
+    schemaTranslator.configure(ImmutableMap.of());
+    final ParsedSchema parsedSchema = schemaTranslator.fromConnectSchema(connectSchema);
+
+    // Then:
+    assertThat(parsedSchema.name(), is("io.examples.Customer"));
+    assertThat(((ProtobufSchema)parsedSchema).rawSchema().toSchema(), is(
+        "// Proto schema formatted by Wire, do not edit.\n" +
+            "// Source: \n" +
+            "\n" +
+            "syntax = \"proto3\";\n" +
+            "\n" +
+            "package io.examples;\n" +
+            "\n" +
+            "message Customer {\n" +
+            "  int64 id = 1;\n" +
+            "\n" +
+            "  repeated string array = 2;\n" +
+            "\n" +
+            "  repeated CustomerMapEntry map = 3;\n" +
+            "\n" +
+            "  Customer_struct struct = 4;\n" +
+            "\n" +
+            "  message CustomerMapEntry {\n" +
+            "    bytes key = 1;\n" +
+            "  \n" +
+            "    double value = 2;\n" +
+            "  }\n" +
+            "\n" +
+            "  message Customer_struct {\n" +
+            "    string c1 = 1;\n" +
+            "  }\n" +
+            "}\n"
+    ));
+  }
+
   private void givenUnwrapPrimitives() {
     schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of(
         ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP
@@ -118,4 +218,9 @@ public class ProtobufSchemaTranslatorTest {
     schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of()));
   }
 
+  private void givenSchemaFullName(final String fullSchemaName) {
+    schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of(
+        ProtobufProperties.FULL_SCHEMA_NAME, fullSchemaName
+    )));
+  }
 }

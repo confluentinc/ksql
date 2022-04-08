@@ -170,8 +170,11 @@ public interface Format {
 
   /**
    * Returns a list of schema names found in the {@code ParsedSchema}.
+   * </p>
+   * It may return an empty list if not names are found. Names are not found ont formats
+   * such as Delimited and Json (no SR) formats.
    */
-  default List<String> getSchemaDefinitions(final ParsedSchema schema) {
+  default List<String> schemaFullNames(final ParsedSchema schema) {
     return ImmutableList.of();
   }
 }

@@ -497,8 +497,8 @@ public class DefaultSchemaInjector implements Injector {
       final Format schemaFormat,
       final boolean isKey
   ) {
-    final List<String> schemaDefinitions = schemaFormat.getSchemaDefinitions(schema);
-    if (schemaDefinitions.size() > 1) {
+    final List<String> schemaFullNames = schemaFormat.schemaFullNames(schema);
+    if (schemaFullNames.size() > 1) {
       final String schemaFullNameConfig = isKey
           ? CommonCreateConfigs.KEY_SCHEMA_FULL_NAME
           : CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME;
@@ -507,7 +507,7 @@ public class DefaultSchemaInjector implements Injector {
           (isKey ? "Key" : "Value") + " schema has multiple schema definitions. "
               + System.lineSeparator()
               + System.lineSeparator()
-              + schemaDefinitions.stream().map(n -> "- " + n).collect(Collectors.joining("\n"))
+              + schemaFullNames.stream().map(n -> "- " + n).collect(Collectors.joining("\n"))
               + System.lineSeparator()
               + System.lineSeparator()
               + "Please specify a schema full name in the WITH clause using "

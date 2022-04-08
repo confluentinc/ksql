@@ -118,7 +118,6 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
 
   @Override
   public void end() {
-    response.write("]");
-    response.end();
+    response.write("]").end();
   }
 }

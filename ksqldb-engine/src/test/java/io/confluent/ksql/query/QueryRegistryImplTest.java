@@ -281,7 +281,6 @@ public class QueryRegistryImplTest {
       assertThat(e.getMessage(), containsString("commit.interval.ms"));
     }
     givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
-
   }
 
   @Test

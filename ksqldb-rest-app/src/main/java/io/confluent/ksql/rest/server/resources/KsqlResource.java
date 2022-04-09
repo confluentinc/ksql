@@ -19,6 +19,8 @@ import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.ConfigItem;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -250,8 +252,11 @@ public class KsqlResource implements KsqlConfigurable {
       final Map<String, Object> properties = new HashMap<>();
       properties.put(property, "");
       denyListPropertyValidator.validateAll(properties);
-      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-        if (!PropertiesList.QueryLevelPropertyList.contains(property)) {
+      final KsqlConfigResolver resolver = new KsqlConfigResolver();
+      final Optional<ConfigItem> resolvedItem = resolver.resolve(property, false);
+      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+          && resolvedItem.isPresent()) {
+        if (!PropertiesList.QueryLevelPropertyList.contains(resolvedItem.get().getPropertyName())) {
           throw new KsqlException(String.format("When shared runtimes are enabled, the"
               + " config %s can only be set for the entire cluster and all queries currently"
               + " running in it, and not configurable for individual queries."

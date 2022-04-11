@@ -673,8 +673,8 @@ class Analyzer {
           final FunctionName functionName = functionCall.getName();
           if (metaStore.isAggregate(functionName)) {
             analysis.addAggregateFunction(functionCall);
-//             Do we need the correct location here?
-            NodeLocation nodeLocation =
+            // Do we need the correct location here?
+            final NodeLocation nodeLocation =
                 new NodeLocation(analysis.getQuery().getLocation().get().getLineNumber(),
                 analysis.getQuery().getLocation().get().getColumnNumber()
                     + " GROUP BY 1".length());

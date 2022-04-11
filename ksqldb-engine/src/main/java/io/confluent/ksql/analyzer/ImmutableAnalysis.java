@@ -39,7 +39,7 @@ public interface ImmutableAnalysis {
 
   List<FunctionCall> getTableFunctions();
 
-  List<FunctionCall> getAggregateFunctions ();
+  List<FunctionCall> getAggregateFunctions();
 
   List<SelectItem> getSelectItems();
 

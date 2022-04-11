@@ -66,6 +66,6 @@ The values are serialized by using the format(s) specified in the original
 `CREATE` statement.
 
 !!! Tip "See INSERT INTO VALUES in action"
-    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
     - [Event-driven microservice](/tutorials/event-driven-microservice/#seed-some-transaction-events)
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)

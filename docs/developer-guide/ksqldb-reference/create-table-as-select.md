@@ -43,9 +43,9 @@ alive to capture streaming changes. For more information, see
 [Queries](/concepts/queries/).
 
 !!! Tip "See CREATE TABLE AS SELECT in action"
-    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
-    - [Notify Passengers of Flight Updates](https://developer.confluent.io/tutorials/aviation/confluent.html#ksqldb-code)
-    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
+    - [Notify Passengers of Flight Updates](https://developer.confluent.io/tutorials/aviation/confluent.html#execute-ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 ### Joins
 
 In ksqlDB, you can join streams to streams, streams to tables, and tables to

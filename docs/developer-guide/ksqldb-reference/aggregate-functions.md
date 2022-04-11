@@ -15,7 +15,7 @@ AVG(col1)
 Returns the average value for `col1`.
 
 !!! Tip "See AVG in action"
-    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -43,7 +43,7 @@ record, then the records from the second window in the order they were
 originally processed.
 
 !!! Tip "See COLLECT_LIST in action"
-    - [Automate instant payment verifications](https://developer.confluent.io/tutorials/payment-status-check/confluent.html#ksqldb-code)
+    - [Automate instant payment verifications](https://developer.confluent.io/tutorials/payment-status-check/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -87,8 +87,8 @@ When `col1` is specified, the count returned is the number of rows where
 When `*` is specified, the count returned is the total number of rows.
 
 !!! Tip "See COUNT in action"
-    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#ksqldb-code)
-    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
+    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#execute-ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -153,7 +153,7 @@ out-of-order record, then the records from the second window in the order they
 were originally processed.
 
 !!! Tip "See HISTOGRAM in action"
-    - [Automate instant payment verifications](https://developer.confluent.io/tutorials/payment-status-check/confluent.html#ksqldb-code)
+    - [Automate instant payment verifications](https://developer.confluent.io/tutorials/payment-status-check/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -196,8 +196,8 @@ Returns the maximum value for a given column and window.
 Rows that have `col1` set to `NULL` are ignored.
 
 !!! Tip "See MAX in action"
-    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#ksqldb-code)
-    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#execute-ksqldb-code)
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -212,7 +212,7 @@ Returns the minimum value for a given column and window.
 Rows that have `col1` set to `NULL` are ignored.
 
 !!! Tip "See MIN in action"
-    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -236,8 +236,8 @@ Sums the column values.
 Rows that have `col1` set to `NULL` are ignored.
 
 !!! Tip "See SUM in action"
-    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
-    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#ksqldb-code)
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
+    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#execute-ksqldb-code)
 
 ---
 

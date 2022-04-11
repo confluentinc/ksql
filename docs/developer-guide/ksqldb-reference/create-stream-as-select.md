@@ -31,9 +31,9 @@ The PARTITION BY clause, if supplied, is applied to the source _after_ any JOIN
 or WHERE clauses, and _before_ the SELECT clause, in much the same way as GROUP BY.
 
 !!! Tip "See CREATE STREAM AS SELECT in action"
-    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
-    - [Notify Passengers of Flight Updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
-    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
+    - [Notify Passengers of Flight Updates](https://developer.confluent.io/tutorials/aviation/confluent.html#execute-ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
 ### Joins
 

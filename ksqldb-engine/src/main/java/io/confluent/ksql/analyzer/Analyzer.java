@@ -159,8 +159,7 @@ class Analyzer {
       this.analysis = new Analysis(
               query.getRefinement(),
               rowpartitionRowoffsetEnabled,
-              pullLimitClauseEnabled,
-              query
+              pullLimitClauseEnabled
           );
 
       this.persistent = persistent;
@@ -673,11 +672,8 @@ class Analyzer {
           final FunctionName functionName = functionCall.getName();
           if (metaStore.isAggregate(functionName)) {
             analysis.addAggregateFunction(functionCall);
-            // Do we need the correct location here?
-            final NodeLocation nodeLocation =
-                new NodeLocation(analysis.getQuery().getLocation().get().getLineNumber(),
-                analysis.getQuery().getLocation().get().getColumnNumber()
-                    + " GROUP BY 1".length());
+            // Since this is a dummy group by, we don't actually need a correct node location
+            final NodeLocation nodeLocation = new NodeLocation(0,0);
             analysis.setGroupBy(new GroupBy(Optional.of(nodeLocation),
                 ImmutableList.of(new IntegerLiteral(1))));
           }

@@ -32,7 +32,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
-import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -78,16 +77,13 @@ public class Analysis implements ImmutableAnalysis {
   private boolean orReplace = false;
   private final boolean rowpartitionRowoffsetEnabled;
   private boolean pullLimitClauseEnabled = true;
-  private Query query;
 
   public Analysis(
       final Optional<RefinementInfo> refinementInfo,
       final boolean rowpartitionRowoffsetEnabled,
-      final boolean pullLimitClauseEnabled,
-      final Query query
+      final boolean pullLimitClauseEnabled
   ) {
-    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled,
-        query);
+    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
   }
 
   @VisibleForTesting
@@ -96,14 +92,12 @@ public class Analysis implements ImmutableAnalysis {
       final BiFunction<Map<SourceName, LogicalSchema>, Boolean, SourceSchemas>
           sourceSchemasFactory,
       final boolean rowpartitionRowoffsetEnabled,
-      final boolean pullLimitClauseEnabled,
-      final Query query
+      final boolean pullLimitClauseEnabled
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
     this.pullLimitClauseEnabled  = pullLimitClauseEnabled;
-    this.query = query;
   }
 
   void addSelectItem(final SelectItem selectItem) {
@@ -295,10 +289,6 @@ public class Analysis implements ImmutableAnalysis {
 
   public boolean getPullLimitClauseEnabled() {
     return pullLimitClauseEnabled;
-  }
-
-  public Query getQuery() {
-    return  query;
   }
 
   private LogicalSchema buildStreamsSchema(

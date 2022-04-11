@@ -313,7 +313,7 @@ and dropping them when they go over the threshold.
 A message will be logged every 5 seconds indicating if the rate limit
 is being hit, so an absence of this message means a complete set of logs.
 
-## `ksql.max.task.idle.ms`
+## `ksql.streams.max.task.idle.ms`
 
 The maximum amount of time a task will idle without processing data when
 waiting for all of its input partition buffers to contain records. This can

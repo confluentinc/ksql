@@ -111,8 +111,7 @@ class KsqlJsonSerdeFactory {
         : getConverter();
 
     final ConnectDataTranslator dataTranslator =
-        physicalSchema.isPresent()
-            ? new ConnectSRSchemaDataTranslator(physicalSchema.get(), JsonSchemaFormat.NAME)
+        physicalSchema.isPresent() ? new ConnectSRSchemaDataTranslator(physicalSchema.get())
             : new ConnectDataTranslator(schema);
 
     return new KsqlConnectSerializer<>(

@@ -24,27 +24,11 @@ public final class ProtobufSchemas {
   }
 
   static Schema schemaWithName(final Schema schema, final String schemaName) {
-    if (schemaName == null) {
+    if (schemaName == null || schema.type() != Schema.Type.STRUCT) {
       return schema;
     }
 
-    final SchemaBuilder builder;
-    switch (schema.type()) {
-      case STRUCT:
-        builder = buildSchemaStruct(schema);
-        break;
-      case ARRAY:
-        builder = SchemaBuilder.array(schema.valueSchema());
-        break;
-      case MAP:
-        builder = SchemaBuilder.map(
-            schema.keySchema(),
-            schema.valueSchema()
-        );
-        break;
-      default:
-        builder = new SchemaBuilder(schema.type());
-    }
+    final SchemaBuilder builder = buildSchemaStruct(schema);
 
     if (schema.parameters() != null) {
       builder.parameters(schema.parameters());

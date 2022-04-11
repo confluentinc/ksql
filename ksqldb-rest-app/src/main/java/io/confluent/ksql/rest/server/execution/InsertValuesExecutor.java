@@ -371,7 +371,7 @@ public class InsertValuesExecutor {
 
     final FormatInfo formatInfo = addSerializerMissingFormatFields(
         schemaRegistryClient,
-        dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
+        dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
         dataSource.getKafkaTopicName(),
         true
     );

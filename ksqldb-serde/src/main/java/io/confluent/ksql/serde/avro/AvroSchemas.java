@@ -24,7 +24,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-public final class AvroSchemas {
+final class AvroSchemas {
 
   private AvroSchemas() {
   }

@@ -123,19 +123,23 @@ public final class SchemaRegistryUtil {
     try {
       return Optional.of(srClient.getSchemaById(schemaId));
     } catch (final Exception e) {
-      if (isAuthErrorCode(e)) {
-        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
-
-        if (deniedOperation != AclOperation.UNKNOWN) {
-          throw new KsqlSchemaAuthorizationException(
-              deniedOperation,
-              subject
-          );
-        }
-      }
+      throwOnAuthError(e, subject);
 
       throw new KsqlException(
           "Could not get schema for subject " + subject + " and id " + schemaId, e);
+    }
+  }
+
+  private static void throwOnAuthError(final Exception e, final String subject) {
+    if (isAuthErrorCode(e)) {
+      final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
+
+      if (deniedOperation != AclOperation.UNKNOWN) {
+        throw new KsqlSchemaAuthorizationException(
+            deniedOperation,
+            subject
+        );
+      }
     }
   }
 
@@ -160,16 +164,7 @@ public final class SchemaRegistryUtil {
         return Optional.empty();
       }
 
-      if (isAuthErrorCode(e)) {
-        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
-
-        if (deniedOperation != AclOperation.UNKNOWN) {
-          throw new KsqlSchemaAuthorizationException(
-              deniedOperation,
-              subject
-          );
-        }
-      }
+      throwOnAuthError(e, subject);
 
       throw new KsqlException("Could not get latest schema for subject " + subject, e);
     }

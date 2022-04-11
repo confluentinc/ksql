@@ -1318,8 +1318,8 @@ public class KsqlAvroSerializerTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Missing default value for required "
-        + "field: [EXTRA]. This field appears in the schema in Schema Registry"));
+    assertThat(e.getMessage(), containsString("Missing default value for required Avro "
+        + "field: [EXTRA]. This field appears in Avro schema in Schema Registry"));
   }
 
   private static org.apache.avro.Schema legacyMapEntrySchema() {

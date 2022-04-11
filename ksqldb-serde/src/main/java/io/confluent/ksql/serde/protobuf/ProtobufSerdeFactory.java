@@ -149,7 +149,7 @@ final class ProtobufSerdeFactory {
     // deserialization, if physical schema exists, we use original schema to translate to ksql data.
     return physicalSchema.<DataTranslator>map(
             value -> isDeserializer ? new ConnectDataTranslator(schema)
-                : new ConnectSRSchemaDataTranslator(value, ProtobufFormat.NAME))
+                : new ConnectSRSchemaDataTranslator(value))
         .orElseGet(() -> {
           if (fullSchemaName.isPresent()) {
             return new ProtobufDataTranslator(schema, fullSchemaName.get());

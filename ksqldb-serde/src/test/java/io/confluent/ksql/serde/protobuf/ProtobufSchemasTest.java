@@ -99,34 +99,4 @@ public class ProtobufSchemasTest {
                 .build())
         .build()));
   }
-
-  @Test
-  public void shouldNameSchemaWithArray() {
-    // Given
-    final Schema namedSchema = SchemaBuilder.array(Schema.INT32_SCHEMA).build();
-
-    // When
-    final Schema schemaWithNewName = ProtobufSchemas.schemaWithName(namedSchema, CUSTOM_FULL_SCHEMA_NAME);
-
-    // Then
-    assertThat(schemaWithNewName, is(SchemaBuilder
-        .array(Schema.INT32_SCHEMA)
-        .name(CUSTOM_FULL_SCHEMA_NAME)
-        .build()));
-  }
-
-  @Test
-  public void shouldNameSchemaWithMap() {
-// Given
-    final Schema namedSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build();
-
-    // When
-    final Schema schemaWithNewName = ProtobufSchemas.schemaWithName(namedSchema, CUSTOM_FULL_SCHEMA_NAME);
-
-    // Then
-    assertThat(schemaWithNewName, is(SchemaBuilder
-        .map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
-        .name(CUSTOM_FULL_SCHEMA_NAME)
-        .build()));
-  }
 }

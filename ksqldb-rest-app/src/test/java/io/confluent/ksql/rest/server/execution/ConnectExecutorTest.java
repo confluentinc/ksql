@@ -50,7 +50,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -106,9 +105,8 @@ public class ConnectExecutorTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void shouldPassInCorrectArgsToConnectClient() {
+  public void shouldPassInCorrectArgsToConnectClientOnExecute() {
     // Given:
-    givenValidationSuccess();
     givenCreationSuccess();
 
     // When:
@@ -116,11 +114,24 @@ public class ConnectExecutorTest {
         .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
 
     // Then:
-    verify(connectClient).validate(eq("FileStreamSource"),
+    verify(connectClient).create(eq("foo"),
         (Map<String, String>) and(
             argThat(hasEntry("connector.class", "FileStreamSource")),
             argThat(hasEntry("name", "foo"))));
-    verify(connectClient).create(eq("foo"),
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldPassInCorrectArgsToConnectClientOnValidate() {
+    // Given:
+    givenValidationSuccess();
+
+    // When:
+    ConnectExecutor
+        .validate(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+
+    // Then:
+    verify(connectClient).validate(eq("FileStreamSource"),
         (Map<String, String>) and(
             argThat(hasEntry("connector.class", "FileStreamSource")),
             argThat(hasEntry("name", "foo"))));
@@ -129,7 +140,6 @@ public class ConnectExecutorTest {
   @Test
   public void shouldReturnConnectorInfoEntityOnSuccess() {
     // Given:
-    givenValidationSuccess();
     givenCreationSuccess();
 
     // When:
@@ -144,7 +154,6 @@ public class ConnectExecutorTest {
   @Test
   public void shouldThrowOnCreationError() {
     // Given:
-    givenValidationSuccess();
     givenCreationError();
 
     // When / Then:
@@ -158,19 +167,17 @@ public class ConnectExecutorTest {
   public void shouldThrowOnValidationError() {
     // Given:
     givenValidationError();
-    givenCreationSuccess();
 
     // When / Then:
     assertThrows(
         KsqlException.class,
-        () -> ConnectExecutor.execute(
+        () -> ConnectExecutor.validate(
             CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext));
   }
 
   @Test
   public void shouldReturnWarningWhenIfNotExistsSetConnectorExists() {
     //Given:
-    givenValidationSuccess();
     givenConnectorExists();
 
     //When
@@ -185,7 +192,6 @@ public class ConnectExecutorTest {
   @Test
   public void shouldThrowIfConnectorExists() {
     //Given:
-    givenValidationSuccess();
     when(connectClient.create(anyString(), anyMap()))
         .thenReturn(
             ConnectResponse.failure("Connector foo already exists", HttpStatus.SC_CONFLICT));
@@ -216,7 +222,7 @@ public class ConnectExecutorTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> ConnectExecutor.execute(createConnectorMissingTypeConfigured, mock(SessionProperties.class),
+        () -> ConnectExecutor.validate(createConnectorMissingTypeConfigured, mock(SessionProperties.class),
             null, serviceContext));
 
     // Then:
@@ -239,7 +245,7 @@ public class ConnectExecutorTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> ConnectExecutor.execute(createConnectorEmptyTypeConfigured, mock(SessionProperties.class),
+        () -> ConnectExecutor.validate(createConnectorEmptyTypeConfigured, mock(SessionProperties.class),
             null, serviceContext));
 
     // Then:
@@ -297,13 +303,6 @@ public class ConnectExecutorTest {
   }
 
   private void givenCreationError() {
-    when(connectClient.validate(anyString(), anyMap()))
-        .thenReturn(ConnectResponse.success(
-            new ConfigInfos(
-                "foo",
-                0,
-                ImmutableList.of(),
-                ImmutableList.of()), HttpStatus.SC_OK));
     when(connectClient.create(anyString(), anyMap()))
         .thenReturn(ConnectResponse.failure("error!", HttpStatus.SC_BAD_REQUEST));
   }

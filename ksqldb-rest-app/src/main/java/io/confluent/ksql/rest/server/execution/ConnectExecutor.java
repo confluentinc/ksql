@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.supported.Connectors;
@@ -41,8 +42,12 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public final class ConnectExecutor {
+
+  private static final ConnectorInfo DUMMY_CREATE_RESPONSE =
+      new ConnectorInfo("dummy", ImmutableMap.of(), ImmutableList.of(), ConnectorType.UNKNOWN);
 
   private ConnectExecutor() {
   }
@@ -55,12 +60,6 @@ public final class ConnectExecutor {
   ) {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
-
-    final List<String> errors = validate(createConnector, client);
-    if (!errors.isEmpty()) {
-      final String errorMessage = "Validation error: " + String.join("\n", errors);
-      throw new KsqlException(errorMessage);
-    }
 
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
         statement, createConnector, client);
@@ -91,6 +90,27 @@ public final class ConnectExecutor {
     }
 
     throw new IllegalStateException("Either response.datum() or response.error() must be present");
+  }
+
+  public static StatementExecutorResponse validate(
+      final ConfiguredStatement<CreateConnector> statement,
+      final SessionProperties sessionProperties,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
+  ) {
+    final CreateConnector createConnector = statement.getStatement();
+    final ConnectClient client = serviceContext.getConnectClient();
+
+    final List<String> errors = validate(createConnector, client);
+    if (!errors.isEmpty()) {
+      final String errorMessage = "Validation error: " + String.join("\n", errors);
+      throw new KsqlException(errorMessage);
+    }
+
+    return StatementExecutorResponse.handled(Optional.of(new CreateConnectorEntity(
+        statement.getStatementText(),
+        DUMMY_CREATE_RESPONSE
+    )));
   }
 
   private static List<String> validate(final CreateConnector createConnector,

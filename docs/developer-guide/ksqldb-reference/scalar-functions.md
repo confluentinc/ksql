@@ -37,7 +37,7 @@ CREATE TABLE AGG AS
 ```
 
 !!! Tip "See AS_VALUE in action"
-    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -65,8 +65,8 @@ Converts one type to another. The following casts are supported:
 | `STRUCT` | `STRUCT` | (Since 0.14) Convert between structs of different field types. Only fields that exist in the target STRUCT type are copied across. Any fields in the target type that don't exist in the source are set to `NULL`. Field name matching is case-sensitive. |
 
 !!! Tip "See CAST in action"
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
-    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -279,7 +279,7 @@ Accepts any `ARRAY` type. The type of the second param must match the element
 type of the `ARRAY`.
 
 !!! Tip "See ARRAY_CONTAINS in action"
-    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#ksqldb-code)
+    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -358,7 +358,7 @@ which is an optional parameter. The default is the comma character, `,`.
 Array elements are limited to primitive ksqlDB types only.
 
 !!! Tip "See ARRAY_JOIN in action"
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -470,7 +470,7 @@ ARRAY_SORT['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]
 ```
 
 !!! Tip "See ARRAY_SORT in action"
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -501,7 +501,7 @@ AS_MAP(keys, vals)
 Constructs a map from a list of keys and a list of values.
 
 !!! Tip "See AS_MAP in action"
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -720,7 +720,7 @@ Any inputs which evaluate to `NULL` are replaced with an empty string or bytes
 in the output.
 
 !!! Tip "See CONCAT in action"
-    - [Enrich orders with change data capture (CDC)](https://developer.confluent.io/tutorials/denormalization/confluent.html#ksqldb-code)
+    - [Enrich orders with change data capture (CDC)](https://developer.confluent.io/tutorials/denormalization/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1180,7 +1180,7 @@ REPLACE(col1, 'foo', 'bar')
 Replaces all instances of a substring in a string with a new string.
 
 !!! Tip "See REPLACE in action"
-    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1299,7 +1299,7 @@ or there are contiguous delimiters, an empty space is added to the array.
 Returns `NULL` if either parameter is `NULL`.
 
 !!! Tip "See SPLIT in action"
-    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1381,7 +1381,7 @@ UCASE(col1)
 Converts a string to uppercase.
 
 !!! Tip "See UCASE in action"
-    - [Handle corrupted data from Salesforce](https://developer.confluent.io/tutorials/salesforce/confluent.html#ksqldb-code)
+    - [Handle corrupted data from Salesforce](https://developer.confluent.io/tutorials/salesforce/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1638,8 +1638,8 @@ For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
 !!! Tip "See FORMAT_TIMESTAMP in action"
-    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
-    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1662,7 +1662,7 @@ FROM_UNIXTIME(milliseconds)
 Converts a `BIGINT` millisecond timestamp value into a `TIMESTAMP` value.
 
 !!! Tip "See FROM_UNIXTIME in action"
-    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
 
 ---
 

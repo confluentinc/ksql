@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde;
+package io.confluent.ksql.serde.avro;
 
 import static java.util.Objects.requireNonNull;
 
@@ -24,30 +24,16 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-/**
- * Utility class to append a full schema name (name & namespace) to a Connect schema.
- */
-public final class SchemaFullNameAppender {
+public final class AvroSchemas {
 
-  private SchemaFullNameAppender() {
+  private AvroSchemas() {
   }
 
-  /**
-   * Appends the {@code schemaFullName} to a Connect {@code schema}. The schema full name is
-   * a fully qualified name that may contain a schema namespace and a schema name; all separated
-   * by `.`.
-   * </p>
-   * For example, {@code schemaFullName} may be `com.confluent.MySchemaName`.
-   * </p>
-   * @param schema The Connect schema to append the full schema name
-   * @param schemaFullName The full name to be used in the Connect schema
-   * @return A new Connect schema with the fully qualified schema name
-   */
-  public static Schema appendSchemaFullName(
+  public static Schema getAvroCompatibleConnectSchema(
       final Schema schema,
       final String schemaFullName
   ) {
-    return buildCompatibleSchemaFullName(
+    return buildAvroCompatibleSchema(
         schema,
         new Context(Collections.singleton(schemaFullName), true)
     );
@@ -79,14 +65,14 @@ public final class SchemaFullNameAppender {
     }
   }
 
-  private static String compatibleFieldName(final Field field) {
+  private static String avroCompatibleFieldName(final Field field) {
     // Currently the only incompatible field names expected are fully qualified
     // column identifiers. Once quoted identifier support is introduced we will
     // need to implement something more generic here.
     return field.name().replace(".", "_");
   }
 
-  private static Schema buildCompatibleSchemaFullName(
+  private static Schema buildAvroCompatibleSchema(
       final Schema schema,
       final Context context
   ) {
@@ -105,15 +91,15 @@ public final class SchemaFullNameAppender {
         break;
 
       case STRUCT:
-        schemaBuilder = buildCompatibleStruct(schema, context);
+        schemaBuilder = buildAvroCompatibleStruct(schema, context);
         break;
 
       case ARRAY:
-        schemaBuilder = buildCompatibleArray(schema, context);
+        schemaBuilder = buildAvroCompatibleArray(schema, context);
         break;
 
       case MAP:
-        schemaBuilder = buildCompatibleMap(schema, context);
+        schemaBuilder = buildAvroCompatibleMap(schema, context);
         break;
     }
 
@@ -128,14 +114,14 @@ public final class SchemaFullNameAppender {
     return schemaBuilder.build();
   }
 
-  private static SchemaBuilder buildCompatibleMap(
+  private static SchemaBuilder buildAvroCompatibleMap(
       final Schema schema, final Context context
   ) {
     final Schema keySchema =
-        buildCompatibleSchemaFullName(schema.keySchema(), context.with(Context.MAP_KEY_NAME));
+        buildAvroCompatibleSchema(schema.keySchema(), context.with(Context.MAP_KEY_NAME));
 
     final Schema valueSchema =
-        buildCompatibleSchemaFullName(schema.valueSchema(), context.with(Context.MAP_VALUE_NAME));
+        buildAvroCompatibleSchema(schema.valueSchema(), context.with(Context.MAP_VALUE_NAME));
 
     final SchemaBuilder schemaBuilder = SchemaBuilder.map(
         keySchema,
@@ -146,16 +132,16 @@ public final class SchemaFullNameAppender {
     return schemaBuilder;
   }
 
-  private static SchemaBuilder buildCompatibleArray(
+  private static SchemaBuilder buildAvroCompatibleArray(
       final Schema schema,
       final Context context
   ) {
-    final Schema valueSchema = buildCompatibleSchemaFullName(schema.valueSchema(), context);
+    final Schema valueSchema = buildAvroCompatibleSchema(schema.valueSchema(), context);
 
     return SchemaBuilder.array(valueSchema);
   }
 
-  private static SchemaBuilder buildCompatibleStruct(
+  private static SchemaBuilder buildAvroCompatibleStruct(
       final Schema schema,
       final Context context
   ) {
@@ -168,8 +154,8 @@ public final class SchemaFullNameAppender {
     }
 
     for (final Field f : schema.fields()) {
-      final String fieldName = compatibleFieldName(f);
-      final Schema fieldSchema = buildCompatibleSchemaFullName(f.schema(), context.with(f.name()));
+      final String fieldName = avroCompatibleFieldName(f);
+      final Schema fieldSchema = buildAvroCompatibleSchema(f.schema(), context.with(f.name()));
 
       schemaBuilder.field(fieldName, fieldSchema);
     }

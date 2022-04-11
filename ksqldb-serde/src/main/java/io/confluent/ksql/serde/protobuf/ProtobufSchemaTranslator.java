@@ -23,7 +23,6 @@ import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
-import io.confluent.ksql.serde.SchemaFullNameAppender;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,7 +82,7 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
   private Schema injectSchemaFullName(final Schema origSchema) {
     return fullNameSchema
-        .map(fullName -> SchemaFullNameAppender.appendSchemaFullName(origSchema, fullName))
+        .map(fullName -> ProtobufSchemas.schemaWithName(origSchema, fullName))
         .orElse(origSchema);
   }
 }

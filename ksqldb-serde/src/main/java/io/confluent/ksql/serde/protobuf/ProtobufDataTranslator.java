@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.serde.protobuf;
 
-import io.confluent.ksql.serde.SchemaFullNameAppender;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.DecimalUtil;
@@ -38,11 +37,7 @@ public class ProtobufDataTranslator implements DataTranslator {
 
   ProtobufDataTranslator(final Schema schema, final String schemaFullName) {
     this.ksqlSchema = Objects.requireNonNull(schema, "schema");
-
-    this.protoCompatibleSchema = SchemaFullNameAppender.appendSchemaFullName(
-        schema, schemaFullName
-    );
-
+    this.protoCompatibleSchema = ProtobufSchemas.schemaWithName(schema, schemaFullName);
     this.innerTranslator = new ConnectDataTranslator(protoCompatibleSchema);
   }
 

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.serde.avro;
 
-import io.confluent.ksql.serde.SchemaFullNameAppender;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.DecimalUtil;
@@ -52,7 +51,7 @@ public class AvroDataTranslator implements DataTranslator {
     this.ksqlSchema = AvroUtil
         .throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
 
-    this.avroCompatibleSchema = SchemaFullNameAppender.appendSchemaFullName(
+    this.avroCompatibleSchema = AvroSchemas.getAvroCompatibleConnectSchema(
         schema, schemaFullName
     );
 

@@ -20,7 +20,6 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
-import io.confluent.ksql.serde.SchemaFullNameAppender;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -58,8 +57,8 @@ class AvroSchemaTranslator implements ConnectSchemaTranslator {
 
   @Override
   public ParsedSchema fromConnectSchema(final Schema schema) {
-    final Schema avroCompatibleSchema = SchemaFullNameAppender
-        .appendSchemaFullName(schema, formatProps.getFullSchemaName());
+    final Schema avroCompatibleSchema = AvroSchemas
+        .getAvroCompatibleConnectSchema(schema, formatProps.getFullSchemaName());
 
     try {
       return new AvroSchema(avroData.fromConnectSchema(avroCompatibleSchema));

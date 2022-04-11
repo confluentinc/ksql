@@ -1173,41 +1173,6 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldThrowWhenNotAuthorizedToReadKeySchemaToSR() throws Exception {
-    // Given:
-    when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenThrow(new RestClientException("User is denied operation Read on foo-key", 401, 1));
-    givenDataSourceWithSchema(
-        TOPIC_NAME,
-        SCHEMA,
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
-        SerdeFeatures.of(),
-        FormatInfo.of(FormatFactory.AVRO.name()),
-        FormatInfo.of(FormatFactory.AVRO.name()),
-        false,
-        false);
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allColumnNames(SCHEMA),
-        ImmutableList.of(
-            new StringLiteral("key"),
-            new StringLiteral("str"),
-            new LongLiteral(2L)
-        )
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Authorization denied to Read on Schema Registry subject: ["
-            + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
-  }
-
-  @Test
   public void shouldThrowWhenNotAuthorizedToReadKeySchemaFromSR() throws Exception {
     // Given
     givenDataSourceWithSchema(

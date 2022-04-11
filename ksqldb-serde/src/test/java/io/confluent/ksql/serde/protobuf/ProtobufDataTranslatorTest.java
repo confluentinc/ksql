@@ -15,19 +15,13 @@
 
 package io.confluent.ksql.serde.protobuf;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.math.BigDecimal;
-import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -39,41 +33,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ProtobufDataTranslatorTest {
   @Test
-  public void shoudRenameSourceDereference() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("STREAM_NAME.COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
-        .optional()
-        .build();
-
-    final ProtobufDataTranslator dataTranslator = new ProtobufDataTranslator(
-        schema,
-        null
-    );
-
-    final Struct ksqlRow = new Struct(schema)
-        .put("STREAM_NAME.COLUMN_NAME", 123);
-
-    // When:
-    final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
-
-    // Then:
-    assertThat(struct.schema(),
-        equalTo(SchemaBuilder
-            .struct()
-            .name(struct.schema().name())
-            .field("STREAM_NAME_COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
-            .build()
-        )
-    );
-    assertThat(struct.get("STREAM_NAME_COLUMN_NAME"), equalTo(123));
-
-    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
-    assertThat(translatedRow, equalTo(ksqlRow));
-  }
-
-  @Test
-  public void shouldAddNamesToSchema() {
+  public void shouldNameParentSchemaOnly() {
     // Given:
     final Schema arrayInner = SchemaBuilder.struct()
         .field("ARRAY_INNER", Schema.OPTIONAL_INT32_SCHEMA)
@@ -120,7 +80,6 @@ public class ProtobufDataTranslatorTest {
 
     assertThat(namedSchema.type(), equalTo(Schema.Type.STRUCT));
     assertThat(namedSchema.name(), notNullValue());
-    final String baseName = namedSchema.name();
     assertThat(namedSchema.field("ARRAY").schema().type(), equalTo(Schema.Type.ARRAY));
     assertThat(namedSchema.field("MAP").schema().type(), equalTo(Schema.Type.MAP));
     assertThat(namedSchema.field("STRUCT").schema().type(), equalTo(Schema.Type.STRUCT));
@@ -131,7 +90,7 @@ public class ProtobufDataTranslatorTest {
     assertThat(
         namedArrayInner.field("ARRAY_INNER").schema(),
         equalTo(Schema.OPTIONAL_INT32_SCHEMA));
-    assertThat(namedArrayInner.name(), equalTo(baseName + "_ARRAY"));
+    assertThat(namedArrayInner.name(), nullValue());
 
     final Schema namedMapInner = namedSchema.field("MAP").schema().valueSchema();
     assertThat(namedMapInner.type(), equalTo(Schema.Type.STRUCT));
@@ -139,7 +98,7 @@ public class ProtobufDataTranslatorTest {
     assertThat(
         namedMapInner.field("MAP_INNER").schema(),
         equalTo(Schema.OPTIONAL_INT64_SCHEMA));
-    assertThat(namedMapInner.name(), equalTo(baseName + "_MAP_MapValue"));
+    assertThat(namedMapInner.name(), nullValue());
 
     final Schema namedStructInner = namedSchema.field("STRUCT").schema();
     assertThat(namedStructInner.type(), equalTo(Schema.Type.STRUCT));
@@ -147,7 +106,7 @@ public class ProtobufDataTranslatorTest {
     assertThat(
         namedStructInner.field("STRUCT_INNER").schema(),
         equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-    assertThat(namedStructInner.name(), equalTo(baseName + "_STRUCT"));
+    assertThat(namedStructInner.name(), nullValue());
 
     assertThat(struct.schema(), equalTo(namedSchema));
     assertThat(
@@ -191,31 +150,6 @@ public class ProtobufDataTranslatorTest {
   }
 
   @Test
-  public void shoudlReplacePrimitivesCorrectly() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
-        .optional()
-        .build();
-
-    final ProtobufDataTranslator dataTranslator = new ProtobufDataTranslator(
-        schema,
-        ""
-    );
-
-    final Struct ksqlRow = new Struct(schema)
-        .put("COLUMN_NAME", 123L);
-
-    // When:
-    final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
-
-    assertThat(struct.get("COLUMN_NAME"), equalTo(123L));
-
-    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
-    assertThat(translatedRow, equalTo(ksqlRow));
-  }
-
-  @Test
   public void shouldUseExplicitSchemaName() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
@@ -234,133 +168,5 @@ public class ProtobufDataTranslatorTest {
 
     // Then:
     assertThat(struct.schema().name(), equalTo(schemaFullName));
-  }
-
-  @Test
-  public void shouldDropOptionalFromRootPrimitiveSchema() {
-    // Given:
-    final Schema schema = Schema.OPTIONAL_INT64_SCHEMA;
-
-    // When:
-    final ProtobufDataTranslator translator =
-        new ProtobufDataTranslator(schema, "");
-
-    // Then:
-    assertThat("Root required", translator.getProtoCompatibleSchema().isOptional(), is(false));
-  }
-
-  @Test
-  public void shouldDropOptionalFromRootArraySchema() {
-    // Given:
-    final Schema schema = SchemaBuilder
-        .array(Schema.OPTIONAL_INT64_SCHEMA)
-        .optional()
-        .build();
-
-    // When:
-    final ProtobufDataTranslator translator =
-        new ProtobufDataTranslator(schema, "");
-
-    // Then:
-    assertThat("Root required", translator.getProtoCompatibleSchema().isOptional(), is(false));
-  }
-
-  @Test
-  public void shouldDropOptionalFromRootMapSchema() {
-    // Given:
-    final Schema schema = SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-        .optional()
-        .build();
-
-    // When:
-    final ProtobufDataTranslator translator =
-        new ProtobufDataTranslator(schema, "");
-
-    // Then:
-    assertThat("Root required", translator.getProtoCompatibleSchema().isOptional(), is(false));
-  }
-
-  @Test
-  public void shouldDropOptionalFromRootStructSchema() {
-    // Given:
-    final Schema schema = SchemaBuilder
-        .struct()
-        .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
-        .optional()
-        .build();
-
-    // When:
-    final ProtobufDataTranslator translator =
-        new ProtobufDataTranslator(schema, "");
-
-    // Then:
-    assertThat("Root required", translator.getProtoCompatibleSchema().isOptional(), is(false));
-  }
-
-  @Test
-  public void shouldRejectUnmatchingDecimalSchema() {
-    // Given:
-    final Schema ksqlSchema = DecimalUtil.builder(4, 2).build();
-    final Schema topicSchema = DecimalUtil.builder(6, 3).build();
-
-    // When:
-    final ProtobufDataTranslator translator =
-        new ProtobufDataTranslator(ksqlSchema, "");
-
-    // Then:
-    final ArithmeticException e = assertThrows(
-        ArithmeticException.class,
-        () -> translator.toKsqlRow(topicSchema, new BigDecimal("123.456")));
-    assertThat(
-        e.getMessage(),
-        containsString("Numeric field overflow: A field with precision 4 and scale 2 must round to an absolute value less than 10^2"));
-  }
-
-  @Test
-  public void shouldForceUnmatchingDecimalSchemaIfPossible() {
-    // Given:
-    final Schema ksqlSchema = DecimalUtil.builder(4, 2).build();
-    final Schema topicSchema = DecimalUtil.builder(2, 1).build();
-
-    // When:
-    final ProtobufDataTranslator translator =
-        new ProtobufDataTranslator(ksqlSchema, "");
-
-    // Then:
-    assertThat(
-        translator.toKsqlRow(topicSchema, new BigDecimal("12.1")),
-        is(new BigDecimal("12.10")));
-  }
-
-  @Test
-  public void shouldRejectConversionsRequiringRounding() {
-    // Given:
-    final Schema ksqlSchema = DecimalUtil.builder(3, 0).build();
-    final Schema topicSchema = DecimalUtil.builder(4, 1).build();
-
-    // When:
-    final ProtobufDataTranslator translator =
-        new ProtobufDataTranslator(ksqlSchema, "");
-
-    // Then:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        () -> translator.toKsqlRow(topicSchema, new BigDecimal("123.4")));
-    assertThat(
-        e.getMessage(),
-        containsString("Cannot fit decimal '123.4' into DECIMAL(3, 0) without rounding. (Requires 4,1)"));
-  }
-
-  @Test
-  public void shouldReturnBytes() {
-    // When:
-    final ProtobufDataTranslator translator =
-        new ProtobufDataTranslator(Schema.BYTES_SCHEMA, "com.proto.bytes");
-
-    // Then:
-    assertThat(
-        translator.toKsqlRow(Schema.BYTES_SCHEMA, new byte[] {123}),
-        is(new byte[] {123}));
   }
 }

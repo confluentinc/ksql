@@ -517,6 +517,18 @@ information, see [PRINT](../../ksqldb-reference/print).
 PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
 ```
 
+## RIGHT JOIN
+Select all records from the right stream/table and the matched records from the
+left stream/table. For more information, see
+[Join streams and tables](/developer-guide/joins/join-streams-and-tables).
+
+```sql hl_lines="3"
+SELECT column_name(s)
+  FROM stream_name1 | table_name1
+   RIGHT JOIN stream_name2 | table_name2
+   ON <stream_name1|table_name1>.column_name=<stream_name2|table_name2>.column_name
+```
+
 ## RUN SCRIPT
 Execute predefined queries and commands from a file. For more
 information, see [RUN SCRIPT](../../ksqldb-reference/run-script).

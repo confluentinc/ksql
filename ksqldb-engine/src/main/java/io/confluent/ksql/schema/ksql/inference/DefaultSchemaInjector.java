@@ -525,7 +525,11 @@ public class DefaultSchemaInjector implements Injector {
       final Optional<SchemaAndId> keySchema,
       final Optional<SchemaAndId> valueSchema
   ) {
-    final List<TableElement> elements = new ArrayList<>();
+    final List<TableElement> elements = preparedStatement.getStatement()
+        .getElements()
+        .stream()
+        .filter(tableElement -> tableElement.getConstraints().isHeaders())
+        .collect(Collectors.toList());
 
     if (keySchema.isPresent()) {
       final ColumnConstraints constraints = getKeyConstraints(preparedStatement.getStatement());

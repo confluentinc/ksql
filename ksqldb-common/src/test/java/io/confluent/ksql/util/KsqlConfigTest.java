@@ -239,22 +239,22 @@ public class KsqlConfigTest {
   @Test
   public void shouldSetStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
+        Collections.singletonMap(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, "128"));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+        StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG);
     assertThat(result, equalTo(128L));
   }
 
   @Test
   public void shouldSetPrefixedStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, "128"));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps().
-        get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG), equalTo(128L));
+        get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG), equalTo(128L));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps().
-            get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG),
+            get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG),
         is(nullValue()));
   }
 

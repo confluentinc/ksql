@@ -88,6 +88,7 @@ import static org.apache.kafka.streams.StreamsConfig.PROCESSING_GUARANTEE_CONFIG
 import static org.apache.kafka.streams.StreamsConfig.REPLICATION_FACTOR_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.SECURITY_PROTOCOL_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.STATE_CLEANUP_DELAY_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.STATE_DIR_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.TASK_TIMEOUT_MS_CONFIG;
@@ -174,7 +175,7 @@ public class PropertiesList extends KsqlEntity {
       ACCEPTABLE_RECOVERY_LAG_CONFIG,
       APPLICATION_SERVER_CONFIG,
       BUILT_IN_METRICS_VERSION_CONFIG,
-      CACHE_MAX_BYTES_BUFFERING_CONFIG,
+      STATESTORE_CACHE_MAX_BYTES_CONFIG,
       COMMIT_INTERVAL_MS_CONFIG,
       DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
       DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
@@ -185,6 +186,7 @@ public class PropertiesList extends KsqlEntity {
       MAX_WARMUP_REPLICAS_CONFIG,
       NUM_STANDBY_REPLICAS_CONFIG,
       POLL_MS_CONFIG,
+      CACHE_MAX_BYTES_BUFFERING_CONFIG,
       PROBING_REBALANCE_INTERVAL_MS_CONFIG,
       PROCESSING_GUARANTEE_CONFIG,
       REPLICATION_FACTOR_CONFIG,
@@ -192,6 +194,7 @@ public class PropertiesList extends KsqlEntity {
       SECURITY_PROTOCOL_CONFIG,
       STATE_CLEANUP_DELAY_MS_CONFIG,
       STATE_DIR_CONFIG,
+      STATESTORE_CACHE_MAX_BYTES_CONFIG,
       TASK_TIMEOUT_MS_CONFIG,
       WINDOW_SIZE_MS_CONFIG,
       UPGRADE_FROM_CONFIG

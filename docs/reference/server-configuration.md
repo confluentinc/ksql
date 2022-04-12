@@ -599,7 +599,7 @@ SET 'cache.max.bytes.buffering'='20000000';
 For more information, see the
 [Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
-[CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
+[STATESTORE_CACHE_MAX_BYTES_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#STATESTORE_CACHE_MAX_BYTES_CONFIG).
 
 ## `ksql.streams.num.standby.replicas`
 

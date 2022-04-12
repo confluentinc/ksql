@@ -25,12 +25,12 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
@@ -44,7 +44,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
-import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -73,6 +72,7 @@ import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownColumnException;
 import io.confluent.ksql.util.UnknownSourceException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -628,7 +628,7 @@ class Analyzer {
           .forEach(col -> checkForReservedToken(column, col));
 
       if (!analysis.getGroupBy().isPresent()) {
-        throwOnUdafs(column.getExpression());
+        addDummyGroupbyForUdafs(column.getExpression());
       }
     }
 
@@ -665,7 +665,7 @@ class Analyzer {
       return unqualifiedExpression.equalsIgnoreCase(alias.text());
     }
 
-    private void throwOnUdafs(final Expression expression) {
+    private void addDummyGroupbyForUdafs(final Expression expression) {
       new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
@@ -673,9 +673,8 @@ class Analyzer {
           if (metaStore.isAggregate(functionName)) {
             analysis.addAggregateFunction(functionCall);
             // Since this is a dummy group by, we don't actually need a correct node location
-            final NodeLocation nodeLocation = new NodeLocation(0,0);
-            analysis.setGroupBy(new GroupBy(Optional.of(nodeLocation),
-                ImmutableList.of(new IntegerLiteral(1))));
+            analysis.setGroupBy(new GroupBy(Optional.empty(),
+                ImmutableList.of(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))));
           }
 
           super.visitFunctionCall(functionCall, context);

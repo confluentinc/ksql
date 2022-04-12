@@ -106,7 +106,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
               LOG.warn("Inconsistent "
                   + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG
                   + " in shared runtimes {} and {}", cacheSizeBytesPerRuntime,
-                  queryMetadata.getStreamsProperties()
+                    queryMetadata.getStreamsProperties()
                       .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
             }
           }

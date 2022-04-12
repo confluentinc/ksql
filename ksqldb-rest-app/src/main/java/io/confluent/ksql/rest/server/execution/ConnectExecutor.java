@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
@@ -101,7 +102,17 @@ public final class ConnectExecutor {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
 
-    final List<String> errors = validate(createConnector, client);
+    if (checkForExistingConnector(statement, createConnector, client)) {
+      final String errorMsg = String.format(
+          "Connector %s already exists", createConnector.getName());
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(HttpStatus.SC_CONFLICT)
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(HttpStatus.SC_CONFLICT), errorMsg))
+          .build()
+      );
+    }
+
+    final List<String> errors = validateConfigs(createConnector, client);
     if (!errors.isEmpty()) {
       final String errorMessage = "Validation error: " + String.join("\n", errors);
       throw new KsqlException(errorMessage);
@@ -113,8 +124,8 @@ public final class ConnectExecutor {
     )));
   }
 
-  private static List<String> validate(final CreateConnector createConnector,
-      final ConnectClient client) {
+  private static List<String> validateConfigs(
+      final CreateConnector createConnector, final ConnectClient client) {
     final Map<String, String> config = buildConnectorConfig(createConnector);
 
     final String connectorType = config.get("connector.class");
@@ -156,6 +167,30 @@ public final class ConnectExecutor {
     return config;
   }
 
+  /**
+   * @return true if there already exists a connector with this name when none is expected.
+   *         This scenario is checked for as part of validation in order to fail fast, since
+   *         otherwise execution would fail with this same error.
+   */
+  private static boolean checkForExistingConnector(
+      final ConfiguredStatement<CreateConnector> statement,
+      final CreateConnector createConnector,
+      final ConnectClient client
+  ) {
+    if (createConnector.ifNotExists()) {
+      // nothing to check since the statement is not meant to fail even if the
+      // connector already exists
+      return false;
+    }
+
+    final ConnectResponse<List<String>> connectorsResponse = client.connectors();
+    if (connectorsResponse.error().isPresent()) {
+      throw new KsqlServerException("Failed to check for existing connector: "
+          + connectorsResponse.error().get());
+    }
+    return connectorExists(createConnector, connectorsResponse);
+  }
+
   private static Optional<KsqlEntity> handleIfNotExists(
       final ConfiguredStatement<CreateConnector> statement,
       final CreateConnector createConnector,
@@ -167,7 +202,7 @@ public final class ConnectExecutor {
             + connectorsResponse.error().get());
       }
 
-      if (checkIfConnectorExists(createConnector, connectorsResponse)) {
+      if (connectorExists(createConnector, connectorsResponse)) {
         return Optional.of(new WarningEntity(statement.getStatementText(),
             String.format("Connector %s already exists", createConnector.getName())));
       }
@@ -175,7 +210,7 @@ public final class ConnectExecutor {
     return Optional.empty();
   }
 
-  private static boolean checkIfConnectorExists(
+  private static boolean connectorExists(
       final CreateConnector createConnector,
       final ConnectResponse<List<String>> connectorsResponse
   ) {

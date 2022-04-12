@@ -258,7 +258,7 @@ public class ConnectIntegrationTest {
     assertThat("expected error response", response.isErroneous());
     final KsqlErrorMessage err = response.getErrorMessage();
     assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_CONFLICT)));
-    assertThat(err.getMessage(), containsString("Failed to create connector: {\"error_code\":409,\"message\":\"Connector mock-connector already exists\"}"));
+    assertThat(err.getMessage(), containsString("Connector mock-connector already exists"));
   }
 
   @Test

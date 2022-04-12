@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
+import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.junit.Before;
@@ -36,6 +37,8 @@ public class SandboxConnectClientTest {
   private ConnectClient delegate;
   @Mock
   private ConnectResponse<ConfigInfos> mockValidateResponse;
+  @Mock
+  private ConnectResponse<List<String>> mockListResponse;
 
   private ConnectClient sandboxClient;
 
@@ -55,6 +58,18 @@ public class SandboxConnectClientTest {
 
     // Then:
     assertThat(validateResponse, is(mockValidateResponse));
+  }
+
+  @Test
+  public void shouldForwardOnList() {
+    // Given:
+    when(delegate.connectors()).thenReturn(mockListResponse);
+
+    // When:
+    final ConnectResponse<List<String>> listResponse = sandboxClient.connectors();
+
+    // Then:
+    assertThat(listResponse, is(mockListResponse));
   }
 
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.services;
 
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.noParams;
 
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Map;
@@ -33,6 +34,7 @@ final class SandboxConnectClient {
   public static ConnectClient createProxy(final ConnectClient delegate) {
     return LimitedProxyBuilder.forClass(ConnectClient.class)
         .forward("validate", methodParams(String.class, Map.class), delegate)
+        .forward("connectors", noParams(), delegate)
         .build();
   }
 }

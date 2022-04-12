@@ -101,6 +101,9 @@ public class ConnectExecutorTest {
   @Before
   public void setUp() {
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
+
+    when(connectClient.connectors()).thenReturn(
+        ConnectResponse.success(ImmutableList.of(), HttpStatus.SC_OK));
   }
 
   @SuppressWarnings("unchecked")
@@ -176,7 +179,7 @@ public class ConnectExecutorTest {
   }
 
   @Test
-  public void shouldReturnWarningWhenIfNotExistsSetConnectorExists() {
+  public void shouldReturnWarningOnExecuteWhenIfNotExistsSetConnectorExists() {
     //Given:
     givenConnectorExists();
 
@@ -190,22 +193,32 @@ public class ConnectExecutorTest {
   }
 
   @Test
-  public void shouldThrowIfConnectorExists() {
-    //Given:
-    when(connectClient.create(anyString(), anyMap()))
-        .thenReturn(
-            ConnectResponse.failure("Connector foo already exists", HttpStatus.SC_CONFLICT));
+  public void shouldThrowOnValidateIfConnectorExists() {
+    // Given:
+    givenConnectorExists();
 
     // When:
     final KsqlRestException e = assertThrows(
         KsqlRestException.class,
-        () -> ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext));
+        () -> ConnectExecutor.validate(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext));
 
     // Then:
     assertThat(e.getResponse().getStatus(), is(HttpStatus.SC_CONFLICT));
     final KsqlErrorMessage err = (KsqlErrorMessage) e.getResponse().getEntity();
     assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_CONFLICT)));
-    assertThat(err.getMessage(), containsString("Failed to create connector: Connector foo already exists"));
+    assertThat(err.getMessage(), containsString("Connector foo already exists"));
+  }
+
+  @Test
+  public void shouldNotThrowOnValidateWhenIfNotExistsSetConnectorExists() {
+    // Given:
+    givenConnectorExists();
+    givenValidationSuccess();
+
+    // When:
+    ConnectExecutor.validate(CREATE_DUPLICATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+
+    // Then: did not throw
   }
 
   @Test

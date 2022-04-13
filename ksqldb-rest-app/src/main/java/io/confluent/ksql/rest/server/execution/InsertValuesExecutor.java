@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
@@ -39,6 +40,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
@@ -47,6 +49,7 @@ import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -60,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
@@ -311,8 +315,15 @@ public class InsertValuesExecutor {
 
     ensureKeySchemasMatch(physicalSchema.keySchema(), dataSource, serviceContext);
 
-    final Serde<GenericKey> keySerde = keySerdeFactory.create(
+    final FormatInfo formatInfo = addSerializerMissingFormatFields(
+        serviceContext.getSchemaRegistryClient(),
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+        dataSource.getKafkaTopicName(),
+        true
+    );
+
+    final Serde<GenericKey> keySerde = keySerdeFactory.create(
+        formatInfo,
         physicalSchema.keySchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -356,14 +367,23 @@ public class InsertValuesExecutor {
       return;
     }
 
+    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
+
+    final FormatInfo formatInfo = addSerializerMissingFormatFields(
+        schemaRegistryClient,
+        dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+        dataSource.getKafkaTopicName(),
+        true
+    );
+
     final ParsedSchema schema = format
-        .getSchemaTranslator(keyFormat.getFormatInfo().getProperties())
+        .getSchemaTranslator(formatInfo.getProperties())
         .toParsedSchema(keySchema);
 
     final Optional<SchemaMetadata> latest;
     try {
       latest = SchemaRegistryUtil.getLatestSchema(
-          serviceContext.getSchemaRegistryClient(),
+          schemaRegistryClient,
           dataSource.getKafkaTopicName(),
           true);
 
@@ -409,8 +429,15 @@ public class InsertValuesExecutor {
         dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
+    final FormatInfo formatInfo = addSerializerMissingFormatFields(
+        serviceContext.getSchemaRegistryClient(),
         dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
+        dataSource.getKafkaTopicName(),
+        false
+    );
+
+    final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
+        formatInfo,
         physicalSchema.valueSchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -433,6 +460,48 @@ public class InsertValuesExecutor {
       LOG.error("Could not serialize value.", e);
       throw new KsqlException("Could not serialize value: " + row + ". " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Add missing required fields to the passed {@code FormatInfo} and return a
+   * new {@code FormatInfo} with the new fields. These fields are required to serialize the
+   * key and value schema correctly. For instance, if running INSERT on a stream with a SR schema
+   * name different from the default name used in Connect (i.e. ConnectDefault1 for Protobuf).
+   * </p>
+   * Note: I initially thought of injecting the SCHEMA_FULL_NAME property in the WITH clause
+   * when creating the stream, keep that property in the metastore and use it here instead
+   * of looking at the SR directly. But this is not compatible with existing streams because
+   * they were created previous to this fix. Those previous streams would fail with INSERT.
+   * The best option was to dynamically look at the SR schema during an INSERT statement.
+   */
+  private static FormatInfo addSerializerMissingFormatFields(
+      final SchemaRegistryClient srClient,
+      final FormatInfo formatInfo,
+      final String topicName,
+      final boolean isKey
+  ) {
+    // Only SR information, such as schema ids and full names are required, which are available
+    // for SR formats.
+    final Format format = FormatFactory.fromName(formatInfo.getFormat());
+    if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+      return formatInfo;
+    }
+
+    final Set<String> supportedProperties = format.getSupportedProperties();
+
+    final ImmutableMap.Builder propertiesBuilder = ImmutableMap.builder();
+    propertiesBuilder.putAll(formatInfo.getProperties());
+
+    // The FULL_SCHEMA_NAME allows the serializer to choose the schema definition
+    if (supportedProperties.contains(ConnectProperties.FULL_SCHEMA_NAME)) {
+      if (!formatInfo.getProperties().containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
+        SchemaRegistryUtil.getParsedSchema(srClient, topicName, isKey).map(ParsedSchema::name)
+            .ifPresent(schemaName ->
+                propertiesBuilder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName));
+      }
+    }
+
+    return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
   }
 
   private static void maybeThrowSchemaRegistryAuthError(

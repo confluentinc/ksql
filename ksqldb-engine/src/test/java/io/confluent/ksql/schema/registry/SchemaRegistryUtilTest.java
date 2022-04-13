@@ -77,11 +77,42 @@ public class SchemaRegistryUtilTest {
 
     // When:
     final Optional<ParsedSchema> parsedSchema =
-        SchemaRegistryUtil.getParsedSchema(schemaRegistryClient, "bar", false);
+        SchemaRegistryUtil.getLatestParsedSchema(schemaRegistryClient, "bar", false);
 
     // Then:
     assertThat(parsedSchema.get(), equalTo(AVRO_SCHEMA));
   }
+
+  @Test
+  public void shouldReturnSchemaIdFromSubjectKey() throws Exception {
+    // Given:
+    when(schemaMetadata.getId()).thenReturn(123);
+    when(schemaRegistryClient.getLatestSchemaMetadata("bar-key"))
+        .thenReturn(schemaMetadata);
+
+    // When:
+    final Optional<Integer> schemaId =
+        SchemaRegistryUtil.getLatestSchemaId(schemaRegistryClient, "bar", true);
+
+    // Then:
+    assertThat(schemaId.get(), equalTo(123));
+  }
+
+  @Test
+  public void shouldReturnSchemaIdFromSubjectValue() throws Exception {
+    // Given:
+    when(schemaMetadata.getId()).thenReturn(123);
+    when(schemaRegistryClient.getLatestSchemaMetadata("bar-value"))
+        .thenReturn(schemaMetadata);
+
+    // When:
+    final Optional<Integer> schemaId =
+        SchemaRegistryUtil.getLatestSchemaId(schemaRegistryClient, "bar", false);
+
+    // Then:
+    assertThat(schemaId.get(), equalTo(123));
+  }
+
 
   @Test
   public void shouldReturnParsedSchemaFromSubjectKey() throws Exception {
@@ -94,7 +125,7 @@ public class SchemaRegistryUtilTest {
 
     // When:
     final Optional<ParsedSchema> parsedSchema =
-        SchemaRegistryUtil.getParsedSchema(schemaRegistryClient, "bar", true);
+        SchemaRegistryUtil.getLatestParsedSchema(schemaRegistryClient, "bar", true);
 
     // Then:
     assertThat(parsedSchema.get(), equalTo(AVRO_SCHEMA));

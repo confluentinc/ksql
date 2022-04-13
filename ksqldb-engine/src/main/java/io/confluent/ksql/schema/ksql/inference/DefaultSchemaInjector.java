@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.expression.tree.Type;
@@ -490,6 +491,29 @@ public class DefaultSchemaInjector implements Injector {
     return statement.copyWith(newProperties);
   }
 
+  private static void throwOnMultiSchemaDefinitions(
+      final ParsedSchema schema,
+      final Format schemaFormat,
+      final boolean isKey
+  ) {
+    final List<String> schemaFullNames = schemaFormat.schemaFullNames(schema);
+    if (schemaFullNames.size() > 1) {
+      final String schemaFullNameConfig = isKey
+          ? CommonCreateConfigs.KEY_SCHEMA_FULL_NAME
+          : CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME;
+
+      throw new KsqlException(
+          (isKey ? "Key" : "Value") + " schema has multiple schema definitions. "
+              + System.lineSeparator()
+              + System.lineSeparator()
+              + schemaFullNames.stream().map(n -> "- " + n).collect(Collectors.joining("\n"))
+              + System.lineSeparator()
+              + System.lineSeparator()
+              + "Please specify a schema full name in the WITH clause using "
+              + schemaFullNameConfig);
+    }
+  }
+
   private static CreateSource addSchemaFields(
       final ConfiguredStatement<CreateSource> preparedStatement,
       final Optional<SchemaAndId> keySchema,
@@ -502,6 +526,20 @@ public class DefaultSchemaInjector implements Injector {
 
     final Optional<String> keySchemaName;
     final Optional<String> valueSchemaName;
+
+    if (keySchema.isPresent() && !properties.getKeySchemaFullName().isPresent()) {
+      final Format keyFormat = FormatFactory.of(
+          SourcePropertiesUtil.getKeyFormat(properties, statement.getName()));
+
+      throwOnMultiSchemaDefinitions(keySchema.get().rawSchema, keyFormat, true);
+    }
+
+    if (valueSchema.isPresent() && !properties.getValueSchemaFullName().isPresent()) {
+      final Format valueFormat = FormatFactory.of(
+          SourcePropertiesUtil.getValueFormat(properties));
+
+      throwOnMultiSchemaDefinitions(valueSchema.get().rawSchema, valueFormat, false);
+    }
 
     // Only populate key and value schema names when schema ids are explicitly provided
     if (properties.getKeySchemaId().isPresent() && keySchema.isPresent()) {

@@ -2317,7 +2317,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Could not determine output schema for query due to error: Non-aggregate SELECT expression(s) not part of GROUP BY: D1\nEither add the column(s) to the GROUP BY or remove them from the SELECT."
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: D1"
       }
     },
     {

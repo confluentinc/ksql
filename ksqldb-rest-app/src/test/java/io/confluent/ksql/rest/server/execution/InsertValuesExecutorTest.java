@@ -36,6 +36,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
@@ -98,7 +99,6 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Test;
@@ -136,6 +136,13 @@ public class InsertValuesExecutorTest {
       + "\"fields\":["
       + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null},"
       + "{\"name\":\"k1\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+
+  private static final String AVRO_RAW_ONE_KEY_SCHEMA =
+      "{\"type\":\"record\","
+      + "\"name\":\"KsqlDataSourceSchema\","
+      + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
+      + "\"fields\":["
+      + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
 
   private static final LogicalSchema SCHEMA_WITH_MUTI_KEYS = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.STRING)
@@ -972,6 +979,55 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldAllowInsertOnMultipleKeySchemaDefinitions() throws Exception {
+    final String protoMultiSchema = "syntax = \"proto3\";\n"
+        + "package io.proto;\n"
+        + "\n"
+        + "message SingleKey {\n"
+        + "  string k0 = 1;\n"
+        + "}\n"
+        + "message MultiKeys {\n"
+        + "  string k0 = 1;\n"
+        + "  string k1 = 2;\n"
+        + "}\n";
+
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, protoMultiSchema));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new ProtobufSchema(protoMultiSchema));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.PROTOBUF.name(), ImmutableMap.of(
+            AvroProperties.FULL_SCHEMA_NAME,"io.proto.MultiKeys",
+            AvroProperties.SCHEMA_ID, "1"
+        )),
+        FormatInfo.of(FormatFactory.JSON.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, K1, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("K0"),
+            new StringLiteral("K1"),
+            new StringLiteral("V0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("K0", "K1"));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("V0", 21L));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
   public void shouldIgnoreConnectNameComparingKeySchema() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
@@ -1010,13 +1066,13 @@ public class InsertValuesExecutorTest {
   public void shouldSupportInsertIntoWithSchemaInferenceMatch() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+        .thenReturn(new SchemaMetadata(1, 1, ""));
     when(srClient.getSchemaById(1))
-        .thenReturn(new AvroSchema(RAW_SCHEMA));
+        .thenReturn(new AvroSchema(AVRO_RAW_ONE_KEY_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE, SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE, SerdeFeature.WRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -1043,7 +1099,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowOnSchemaInferenceMismatchForKey() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, "schema"));
+        .thenReturn(new SchemaMetadata(1, 1, ""));
     when(srClient.getSchemaById(1))
         .thenReturn(new AvroSchema(RAW_SCHEMA));
     givenDataSourceWithSchema(
@@ -1071,28 +1127,28 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
-    assertThat(e.getMessage(), containsString("Existing Schema: schema"));
+    assertThat(e.getMessage(), containsString("Existing Schema: " + RAW_SCHEMA));
     assertThat(e.getMessage(), containsString("ksqlDB Generated: {\"type\":"));
   }
 
   @Test
   public void shouldBuildSerdeWithSchemaFullName() throws Exception {
-    final String AVRO_SCHEMA = "{\"type\":\"record\","
+    final String AVRO_SCHEMA_WITH_CUSTOM_NAME = "{\"type\":\"record\","
         + "\"name\":\"TestSchema\","
         + "\"namespace\":\"io.avro\","
         + "\"fields\":["
-        + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null},"
-        + "{\"name\":\"k1\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+        + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}],"
+        + "\"connect.name\":\"io.avro.TestSchema\"}";
 
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+        .thenReturn(new SchemaMetadata(1, 1, ""));
     when(srClient.getSchemaById(1))
-        .thenReturn(new AvroSchema(AVRO_SCHEMA));
+        .thenReturn(new AvroSchema(AVRO_SCHEMA_WITH_CUSTOM_NAME));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(SerdeFeature.WRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -1113,9 +1169,10 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerdeFactory).create(
         FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap.of(
-            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema"
+            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema",
+            AvroProperties.SCHEMA_ID, "1"
         )),
-        PersistenceSchema.from(SCHEMA.key(), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)),
+        PersistenceSchema.from(SCHEMA.key(), SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -1125,7 +1182,8 @@ public class InsertValuesExecutorTest {
 
     verify(valueSerdeFactory).create(
         FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap.of(
-            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema"
+            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema",
+            AvroProperties.SCHEMA_ID, "1"
         )),
         PersistenceSchema.from(SCHEMA.value(), SerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
@@ -1212,13 +1270,13 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenNotAuthorizedToWriteKeySchemaToSR() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+        .thenReturn(new SchemaMetadata(1, 1, AVRO_RAW_ONE_KEY_SCHEMA));
     when(srClient.getSchemaById(1))
-        .thenReturn(new AvroSchema(RAW_SCHEMA));
+        .thenReturn(new AvroSchema(AVRO_RAW_ONE_KEY_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(SerdeFeature.WRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -1288,13 +1346,13 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenNotAuthorizedToWriteValSchemaToSR() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+        .thenReturn(new SchemaMetadata(1, 1, AVRO_RAW_ONE_KEY_SCHEMA));
     when(srClient.getSchemaById(1))
-        .thenReturn(new AvroSchema(RAW_SCHEMA));
+        .thenReturn(new AvroSchema(AVRO_RAW_ONE_KEY_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(SerdeFeature.WRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -1474,7 +1532,7 @@ public class InsertValuesExecutorTest {
   ) {
     final KsqlTopic topic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(keyFormat, keyFeatures),
+        KeyFormat.of(keyFormat, keyFeatures, Optional.empty()),
         ValueFormat.of(valueFormat, valFeatures)
     );
 

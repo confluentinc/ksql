@@ -101,6 +101,8 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getValueSerdeFeatures(), is(SerdeFeatures.of()));
+    assertThat(properties.getKeySchemaFullName(), is(Optional.empty()));
+    assertThat(properties.getValueSchemaFullName(), is(Optional.empty()));
   }
 
   @Test

@@ -307,7 +307,7 @@ public class KsqlProtobufSerializerTest {
     int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
         PROTOBUF_STRUCT_SCHEMA_WITH_MISSING_FIELD);
     final Serializer<Struct> serializer = givenSerializerForSchema(RANDOM_NAME_STRUCT_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.of("RandomName"));
+        Struct.class, Optional.of(schemaId), Optional.empty());
 
     // When:
     final Exception e = assertThrows(

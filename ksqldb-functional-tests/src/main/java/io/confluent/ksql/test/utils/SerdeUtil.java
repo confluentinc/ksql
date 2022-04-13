@@ -76,7 +76,7 @@ public final class SerdeUtil {
       case AvroFormat.NAME:       return new ValueSpecAvroSerdeSupplier();
       case ProtobufFormat.NAME:
         return new ValueSpecProtobufSerdeSupplier(
-            new ProtobufProperties(formatInfo.getProperties()).getUnwrapPrimitives());
+            new ProtobufProperties(formatInfo.getProperties()));
       case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(false, properties);
       case JsonSchemaFormat.NAME: return new ValueSpecJsonSerdeSupplier(true, properties);
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();

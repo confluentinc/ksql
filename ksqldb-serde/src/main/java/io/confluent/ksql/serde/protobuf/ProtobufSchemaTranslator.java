@@ -33,7 +33,7 @@ import org.apache.kafka.connect.data.Schema;
 /**
  * Translates between Connect and Protobuf Schema Registry schema types.
  */
-class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
+public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
   private final ProtobufProperties properties;
   private final Map<String, Object> baseConfigs;
@@ -42,7 +42,7 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
   private Map<String, Object> updatedConfigs;
   private ProtobufData protobufData;
 
-  ProtobufSchemaTranslator(final ProtobufProperties properties) {
+  public ProtobufSchemaTranslator(final ProtobufProperties properties) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.baseConfigs = ImmutableMap.of(
         WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives());
@@ -69,7 +69,7 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
   @Override
   public Schema toConnectSchema(final ParsedSchema schema) {
-    return protobufData.toConnectSchema((ProtobufSchema) schema);
+    return protobufData.toConnectSchema(withSchemaFullName((ProtobufSchema) schema));
   }
 
   @Override
@@ -78,6 +78,10 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
     // default naming.
     return new ProtobufData(new ProtobufDataConfig(updatedConfigs))
         .fromConnectSchema(injectSchemaFullName(schema));
+  }
+
+  private ProtobufSchema withSchemaFullName(final ProtobufSchema origSchema) {
+    return fullNameSchema.map(origSchema::copy).orElse(origSchema);
   }
 
   private Schema injectSchemaFullName(final Schema origSchema) {

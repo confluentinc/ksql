@@ -16,10 +16,10 @@
 package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericKey;
@@ -50,6 +50,9 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
+import io.confluent.ksql.serde.protobuf.ProtobufSchemaTranslator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -380,9 +383,9 @@ public class InsertValuesExecutor {
         .getSchemaTranslator(formatInfo.getProperties())
         .toParsedSchema(keySchema);
 
-    final Optional<SchemaMetadata> latest;
+    final Optional<ParsedSchema> latest;
     try {
-      latest = SchemaRegistryUtil.getLatestSchema(
+      latest = SchemaRegistryUtil.getLatestParsedSchema(
           schemaRegistryClient,
           dataSource.getKafkaTopicName(),
           true);
@@ -394,7 +397,9 @@ public class InsertValuesExecutor {
           + "operation potentially overrides existing key schema in schema registry.", e);
     }
 
-    if (latest.isPresent() && !latest.get().getSchema().equals(schema.canonicalString())) {
+    if (latest.isPresent() && !latest.get().canonicalString().equals(schema.canonicalString())) {
+      final Map<String, String> formatProps = keyFormat.getFormatInfo().getProperties();
+
       // Hack: skip comparing connect name. See https://github.com/confluentinc/ksql/issues/7211
       // Avro schema are registered in source creation time as well data insertion time.
       // CONNECT_META_DATA_CONFIG is configured to false in Avro Serializer, but it's true in
@@ -402,17 +407,36 @@ public class InsertValuesExecutor {
       // enabling it breaks lots of history QTT test which implies backward compatibility issues.
       // So we just bypass the connect name check here.
       if (format instanceof AvroFormat) {
-        final SchemaTranslator translator = format
-            .getSchemaTranslator(keyFormat.getFormatInfo().getProperties());
+        final SchemaTranslator translator = format.getSchemaTranslator(formatProps);
         translator.configure(ImmutableMap.of(AvroDataConfig.CONNECT_META_DATA_CONFIG, false));
         final ParsedSchema parsedSchema = translator.toParsedSchema(keySchema);
-        if (latest.get().getSchema().equals(parsedSchema.canonicalString())) {
+        if (latest.get().canonicalString().equals(parsedSchema.canonicalString())) {
+          return;
+        }
+      } else if (format instanceof ProtobufFormat
+          && formatProps.containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
+
+        // The SR key schema may have multiple schema definitions. The FULL_SCHEMA_NAME is used
+        // to specify one definition only. To verify the source key schema matches SR, then we
+        // extract the single schema based on the FULL_SCHEMA_NAME and then compare with the
+        // source schema.
+
+        final ProtobufSchemaTranslator protoTranslator = new ProtobufSchemaTranslator(
+            new ProtobufProperties(formatProps)
+        );
+
+        final ParsedSchema extractedSingleSchema = protoTranslator.fromConnectSchema(
+            protoTranslator.toConnectSchema(latest.get())
+        );
+
+        if (extractedSingleSchema.canonicalString().equals(schema.canonicalString())) {
           return;
         }
       }
+
       throw new KsqlException("Cannot INSERT VALUES into data source " + dataSource.getName()
           + ". ksqlDB generated schema would overwrite existing key schema."
-          + "\n\tExisting Schema: " + latest.get().getSchema()
+          + "\n\tExisting Schema: " + latest.get().canonicalString()
           + "\n\tksqlDB Generated: " + schema.canonicalString());
     }
   }
@@ -495,9 +519,32 @@ public class InsertValuesExecutor {
     // The FULL_SCHEMA_NAME allows the serializer to choose the schema definition
     if (supportedProperties.contains(ConnectProperties.FULL_SCHEMA_NAME)) {
       if (!formatInfo.getProperties().containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
-        SchemaRegistryUtil.getParsedSchema(srClient, topicName, isKey).map(ParsedSchema::name)
+        SchemaRegistryUtil.getLatestParsedSchema(srClient, topicName, isKey).map(ParsedSchema::name)
             .ifPresent(schemaName ->
                 propertiesBuilder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName));
+      }
+    }
+
+    // The SCHEMA_ID is used to by the Serde factory (i.e. ProtobufSerdeFactory) to
+    // get the SR schema and extract the full schema name in case multiple schema definitions
+    // are available.
+    if (supportedProperties.contains(ConnectProperties.SCHEMA_ID)) {
+      if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
+        // Inject the SCHEMA_ID only if the format to serialize is Protobuf and if the SR schema
+        // has multiple schema definitions. This ensures that the serializer does not attempt to
+        // register a new schema during the object serialization.
+        if (format instanceof ProtobufFormat) {
+          final List<String> schemaNames =
+              SchemaRegistryUtil.getLatestParsedSchema(srClient, topicName, isKey)
+                  .map(format::schemaFullNames)
+                  .orElse(ImmutableList.of());
+
+          if (schemaNames.size() > 1) {
+            SchemaRegistryUtil.getLatestSchemaId(srClient, topicName, isKey)
+                .ifPresent(schemaId ->
+                    propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId)));
+          }
+        }
       }
     }
 

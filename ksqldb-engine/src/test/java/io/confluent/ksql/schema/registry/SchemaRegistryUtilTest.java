@@ -40,6 +40,8 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
+import java.util.Optional;
+
 import org.apache.kafka.common.acl.AclOperation;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,6 +65,40 @@ public class SchemaRegistryUtilTest {
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
   private SchemaMetadata schemaMetadata;
+
+  @Test
+  public void shouldReturnParsedSchemaFromSubjectValue() throws Exception {
+    // Given:
+    when(schemaMetadata.getId()).thenReturn(123);
+    when(schemaRegistryClient.getLatestSchemaMetadata("bar-value"))
+        .thenReturn(schemaMetadata);
+    when(schemaRegistryClient.getSchemaById(123))
+        .thenReturn(AVRO_SCHEMA);
+
+    // When:
+    final Optional<ParsedSchema> parsedSchema =
+        SchemaRegistryUtil.getParsedSchema(schemaRegistryClient, "bar", false);
+
+    // Then:
+    assertThat(parsedSchema.get(), equalTo(AVRO_SCHEMA));
+  }
+
+  @Test
+  public void shouldReturnParsedSchemaFromSubjectKey() throws Exception {
+    // Given:
+    when(schemaMetadata.getId()).thenReturn(123);
+    when(schemaRegistryClient.getLatestSchemaMetadata("bar-key"))
+        .thenReturn(schemaMetadata);
+    when(schemaRegistryClient.getSchemaById(123))
+        .thenReturn(AVRO_SCHEMA);
+
+    // When:
+    final Optional<ParsedSchema> parsedSchema =
+        SchemaRegistryUtil.getParsedSchema(schemaRegistryClient, "bar", true);
+
+    // Then:
+    assertThat(parsedSchema.get(), equalTo(AVRO_SCHEMA));
+  }
 
   @Test
   public void shouldDeleteChangeLogTopicSchema() throws Exception {

@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.protobuf;
 
 import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
@@ -26,6 +27,7 @@ import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 
 /**
@@ -35,6 +37,7 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
   private final ProtobufProperties properties;
   private final Map<String, Object> baseConfigs;
+  private final Optional<String> fullNameSchema;
 
   private Map<String, Object> updatedConfigs;
   private ProtobufData protobufData;
@@ -43,7 +46,9 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.baseConfigs = ImmutableMap.of(
         WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives());
-
+    this.fullNameSchema = Optional.ofNullable(
+        Strings.emptyToNull(Strings.nullToEmpty(properties.getFullSchemaName()).trim())
+    );
     this.updatedConfigs = baseConfigs;
     this.protobufData = new ProtobufData(new ProtobufDataConfig(baseConfigs));
   }
@@ -71,6 +76,13 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
   public ParsedSchema fromConnectSchema(final Schema schema) {
     // Bug in ProtobufData means `fromConnectSchema` throws on the second invocation if using
     // default naming.
-    return new ProtobufData(new ProtobufDataConfig(updatedConfigs)).fromConnectSchema(schema);
+    return new ProtobufData(new ProtobufDataConfig(updatedConfigs))
+        .fromConnectSchema(injectSchemaFullName(schema));
+  }
+
+  private Schema injectSchemaFullName(final Schema origSchema) {
+    return fullNameSchema
+        .map(fullName -> ProtobufSchemas.schemaWithName(origSchema, fullName))
+        .orElse(origSchema);
   }
 }

@@ -551,6 +551,8 @@ public class SqlToJavaVisitor {
             .getLeft();
         if (arg instanceof FunctionCall) {
           code = evaluateOrReturnNull(code, ((FunctionCall) arg).getName().text());
+        } else if (arg instanceof DereferenceExpression) {
+          code = evaluateOrReturnNull(code, ((DereferenceExpression) arg).getFieldName());
         }
         joiner.add(code);
       }

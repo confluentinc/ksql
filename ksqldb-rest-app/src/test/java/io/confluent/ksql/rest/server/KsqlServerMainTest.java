@@ -50,13 +50,15 @@ public class KsqlServerMainTest {
   @Mock(MockType.NICE)
   private Executable executable;
   @Mock(MockType.NICE)
+  private Executable precondition;
+  @Mock(MockType.NICE)
   private Executor shutdownHandler;
 
   private final File mockStreamsStateDir = mock(File.class);
 
   @Before
   public void setUp() {
-    main = new KsqlServerMain(executable, shutdownHandler);
+    main = new KsqlServerMain(precondition, () -> executable, shutdownHandler);
     when(mockStreamsStateDir.exists()).thenReturn(true);
     when(mockStreamsStateDir.mkdirs()).thenReturn(true);
     when(mockStreamsStateDir.isDirectory()).thenReturn(true);

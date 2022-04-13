@@ -27,7 +27,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -37,12 +36,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
@@ -62,17 +58,14 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.function.Consumer;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -355,51 +348,6 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldCheckPreconditionsBeforeUsingServiceContext() {
-    // Given:
-    when(precondition2.checkPrecondition(any(), any(), any())).then(a -> {
-      verifyNoMoreInteractions(serviceContext);
-      return Optional.empty();
-    });
-
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serviceContext);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
-  }
-
-  @Test
-  public void shouldNotInitializeUntilPreconditionsChecked() {
-    // Given:
-    final KsqlErrorMessage error1 = new KsqlErrorMessage(50000, "error1");
-    final KsqlErrorMessage error2 = new KsqlErrorMessage(50000, "error2");
-    final Queue<KsqlErrorMessage> errors = new LinkedList<>();
-    errors.add(error1);
-    errors.add(error2);
-    when(precondition2.checkPrecondition(any(), any(), any())).then(a -> {
-      verifyNoMoreInteractions(serviceContext);
-      return Optional.ofNullable(errors.isEmpty() ? null : errors.remove());
-    });
-
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serverState);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
-    inOrder.verify(serverState).setInitializingReason(error1);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
-    inOrder.verify(serverState).setInitializingReason(error2);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
-  }
-
-  @Test
   public void shouldConfigureRocksDBConfigSetter() {
     // When:
     app.startKsql(ksqlConfig);
@@ -471,7 +419,6 @@ public class KsqlRestApplicationTest {
         Optional.empty(),
         serverState,
         processingLogContext,
-        ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlEngine, ksqlResource),
         rocksDBConfigSetterHandler,
         Optional.of(heartbeatAgent),

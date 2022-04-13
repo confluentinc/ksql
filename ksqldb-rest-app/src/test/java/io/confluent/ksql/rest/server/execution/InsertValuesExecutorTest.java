@@ -1169,9 +1169,7 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerdeFactory).create(
         FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap.of(
-            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema",
-            AvroProperties.SCHEMA_ID, "1"
-        )),
+            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema")),
         PersistenceSchema.from(SCHEMA.key(), SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
@@ -1182,9 +1180,7 @@ public class InsertValuesExecutorTest {
 
     verify(valueSerdeFactory).create(
         FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap.of(
-            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema",
-            AvroProperties.SCHEMA_ID, "1"
-        )),
+            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema")),
         PersistenceSchema.from(SCHEMA.value(), SerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,

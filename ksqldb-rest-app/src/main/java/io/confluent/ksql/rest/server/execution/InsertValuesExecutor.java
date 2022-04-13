@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -529,9 +530,21 @@ public class InsertValuesExecutor {
     // are available.
     if (supportedProperties.contains(ConnectProperties.SCHEMA_ID)) {
       if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
-        SchemaRegistryUtil.getLatestSchemaId(srClient, topicName, isKey)
-            .ifPresent(schemaId ->
-                propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId)));
+        // Inject the SCHEMA_ID only if the format to serialize is Protobuf and if the SR schema
+        // has multiple schema definitions. This ensures that the serializer does not attempt to
+        // register a new schema during the object serialization.
+        if (format instanceof ProtobufFormat) {
+          final List<String> schemaNames =
+              SchemaRegistryUtil.getLatestParsedSchema(srClient, topicName, isKey)
+                  .map(format::schemaFullNames)
+                  .orElse(ImmutableList.of());
+
+          if (schemaNames.size() > 1) {
+            SchemaRegistryUtil.getLatestSchemaId(srClient, topicName, isKey)
+                .ifPresent(schemaId ->
+                    propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId)));
+          }
+        }
       }
     }
 

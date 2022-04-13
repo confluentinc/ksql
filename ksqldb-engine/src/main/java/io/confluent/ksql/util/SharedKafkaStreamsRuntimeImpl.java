@@ -263,6 +263,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           .get(new QueryId(topology.name()));
       kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
     }
+    kafkaStreams.setStateListener(stateListener());
     setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);
   }
 }

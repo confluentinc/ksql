@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
-import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -80,7 +79,6 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
-  private final Optional<MaterializationProvider> materializationProvider;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   public boolean everStarted = false;
   private boolean corruptionCommandTopic = false;
@@ -132,11 +130,6 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.listener = new QueryListenerWrapper(listener, scalablePushRegistry);
     this.namedTopologyBuilder = requireNonNull(namedTopologyBuilder, "namedTopologyBuilder");
     this.queryErrors = sharedKafkaStreamsRuntime.getNewQueryErrorQueue();
-    this.materializationProvider = materializationProviderBuilder
-            .flatMap(builder -> builder.apply(
-                    this.sharedKafkaStreamsRuntime.getKafkaStreams(),
-                    topology
-            ));
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
   }
 
@@ -163,7 +156,6 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.listener = requireNonNull(listener, "listener");
     this.queryErrors = sharedKafkaStreamsRuntime.getNewQueryErrorQueue();
-    this.materializationProvider = original.materializationProvider;
     this.scalablePushRegistry = original.scalablePushRegistry;
     this.namedTopologyBuilder = original.namedTopologyBuilder;
   }
@@ -217,7 +209,11 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   public Optional<Materialization> getMaterialization(
       final QueryId queryId,
       final QueryContext.Stacker contextStacker) {
-    return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
+    return materializationProviderBuilder
+            .flatMap(builder -> builder.apply(
+                    this.sharedKafkaStreamsRuntime.getKafkaStreams(),
+                    topology
+            )).map(builder -> builder.build(queryId, contextStacker));
   }
 
   @Override

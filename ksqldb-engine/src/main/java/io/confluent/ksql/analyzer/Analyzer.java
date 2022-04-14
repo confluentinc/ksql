@@ -25,6 +25,7 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -71,6 +72,7 @@ import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownColumnException;
 import io.confluent.ksql.util.UnknownSourceException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -157,7 +159,8 @@ class Analyzer {
       this.analysis = new Analysis(
               query.getRefinement(),
               rowpartitionRowoffsetEnabled,
-              pullLimitClauseEnabled);
+              pullLimitClauseEnabled
+          );
 
       this.persistent = persistent;
     }
@@ -629,7 +632,7 @@ class Analyzer {
           .forEach(col -> checkForReservedToken(column, col));
 
       if (!analysis.getGroupBy().isPresent()) {
-        throwOnUdafs(column.getExpression());
+        addDummyGroupbyForUdafs(column.getExpression());
       }
     }
 
@@ -666,14 +669,16 @@ class Analyzer {
       return unqualifiedExpression.equalsIgnoreCase(alias.text());
     }
 
-    private void throwOnUdafs(final Expression expression) {
+    private void addDummyGroupbyForUdafs(final Expression expression) {
       new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
           final FunctionName functionName = functionCall.getName();
           if (metaStore.isAggregate(functionName)) {
-            throw new KsqlException("Use of aggregate function "
-                + functionName.text() + " requires a GROUP BY clause.");
+            analysis.addAggregateFunction(functionCall);
+            // Since this is a dummy group by, we don't actually need a correct node location
+            analysis.setGroupBy(new GroupBy(Optional.empty(),
+                ImmutableList.of(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))));
           }
 
           super.visitFunctionCall(functionCall, context);

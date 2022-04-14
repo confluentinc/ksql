@@ -158,7 +158,7 @@ public class LogicalPlanner {
       currentNode = buildFlatMapNode(currentNode);
     }
 
-    if (analysis.getGroupBy().isPresent()) {
+    if (analysis.getGroupBy().isPresent() || !analysis.getAggregateFunctions().isEmpty()) {
       currentNode = buildAggregateNode(currentNode);
     } else {
       if (analysis.getWindowExpression().isPresent()) {

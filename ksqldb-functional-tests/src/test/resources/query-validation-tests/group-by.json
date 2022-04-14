@@ -937,6 +937,17 @@
       }
     },
     {
+      "name": "create table as select COUNT(*) with no group by",
+      "statements": [
+        "CREATE STREAM TEST (id INT KEY, id2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "CREATE TABLE AS SELECT statement does not support aggregate function [COUNT(ROWTIME)] without a GROUP BY clause."
+      }
+    },
+    {
       "name": "with key alias that clashes with value alias",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2306,7 +2317,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Use of aggregate function COUNT requires a GROUP BY clause"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: D1"
       }
     },
     {

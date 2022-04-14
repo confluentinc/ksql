@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -55,14 +56,30 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   private static final int ADDITIONAL_CAPACITY = 4;
 
   private final GenericSerdeFactory innerFactory;
+  private final Optional<Metrics> metrics;
+  private final Optional<String> queryId;
 
   public GenericRowSerDe() {
-    this(new GenericSerdeFactory());
+    this(new GenericSerdeFactory(), Optional.empty(), Optional.empty());
+  }
+
+  public GenericRowSerDe(final Metrics metrics, final String queryId) {
+    this(
+        new GenericSerdeFactory(),
+        Optional.of(metrics),
+        Optional.of(queryId)
+    );
   }
 
   @VisibleForTesting
-  GenericRowSerDe(final GenericSerdeFactory innerFactory) {
+  GenericRowSerDe(
+      final GenericSerdeFactory innerFactory,
+      final Optional<Metrics> metrics,
+      final Optional<String> queryId
+  ) {
     this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
+    this.metrics = metrics;
+    this.queryId = queryId;
   }
 
   public static Serde<GenericRow> from(
@@ -98,8 +115,13 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
 
     final Serde<GenericRow> genericRowSerde = toGenericRowSerde(formatSerde, schema);
 
-    final Serde<GenericRow> loggingSerde = innerFactory
-        .wrapInLoggingSerde(genericRowSerde, loggerNamePrefix, processingLogContext);
+    final Serde<GenericRow> loggingSerde = innerFactory.wrapInLoggingSerde(
+        genericRowSerde,
+        loggerNamePrefix,
+        processingLogContext,
+        metrics,
+        queryId,
+        Optional.of(ksqlConfig));
 
     final Serde<GenericRow> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

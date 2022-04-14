@@ -18,32 +18,57 @@ package io.confluent.ksql.logging.processing;
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.common.logging.StructuredLoggerFactory;
 import java.util.Collection;
+import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import org.apache.kafka.common.metrics.Metrics;
 
 public class ProcessingLoggerFactoryImpl implements ProcessingLoggerFactory {
   private final ProcessingLogConfig config;
   private final StructuredLoggerFactory innerFactory;
   private final BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory;
+  private final Function<ProcessingLoggerWithMetricsInstantiator, ProcessingLogger>
+      loggerWithMetricsFactory;
 
   ProcessingLoggerFactoryImpl(
       final ProcessingLogConfig config,
-      final StructuredLoggerFactory innerFactory) {
-    this(config, innerFactory, ProcessingLoggerImpl::new);
+      final StructuredLoggerFactory innerFactory
+  ) {
+    this(config, innerFactory, ProcessingLoggerImpl::new, ProcessingLoggerImplWithMetrics::new);
   }
 
   ProcessingLoggerFactoryImpl(
       final ProcessingLogConfig config,
       final StructuredLoggerFactory innerFactory,
-      final BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory
+      final BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory,
+      final Function<ProcessingLoggerWithMetricsInstantiator, ProcessingLogger>
+          loggerWithMetricsFactory
   ) {
     this.config = config;
     this.innerFactory = innerFactory;
     this.loggerFactory = loggerFactory;
+    this.loggerWithMetricsFactory = loggerWithMetricsFactory;
   }
 
   @Override
   public ProcessingLogger getLogger(final String name) {
     return loggerFactory.apply(config, innerFactory.getLogger(name));
+  }
+
+  @Override
+  public ProcessingLogger getLoggerWithMetrics(
+      final String name,
+      final Metrics metrics,
+      final Map<String, String> customMetricsTags
+  ) {
+    return loggerWithMetricsFactory.apply(
+        new ProcessingLoggerWithMetricsInstantiator(
+            config,
+            innerFactory.getLogger(name),
+            customMetricsTags,
+            metrics
+        )
+    );
   }
 
   @Override

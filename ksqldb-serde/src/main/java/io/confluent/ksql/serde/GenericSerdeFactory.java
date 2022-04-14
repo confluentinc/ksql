@@ -28,10 +28,13 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.serde.tracked.TrackedSerde;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetricsTagsUtil;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 
@@ -82,16 +85,49 @@ final class GenericSerdeFactory {
     }
   }
 
+  <T> Serde<T> wrapInLoggingSerde(
+          final Serde<T> formatSerde,
+          final String loggerNamePrefix,
+          final ProcessingLogContext processingLogContext
+  ) {
+    return wrapInLoggingSerde(
+        formatSerde,
+        loggerNamePrefix,
+        processingLogContext,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty()
+    );
+  }
+
   @SuppressWarnings("MethodMayBeStatic") // Part of injected API
   <T> Serde<T> wrapInLoggingSerde(
       final Serde<T> formatSerde,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<Metrics> metrics,
+      final Optional<String> queryId,
+      final Optional<KsqlConfig> config
   ) {
-    final ProcessingLogger serializerProcessingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, SERIALIZER_LOGGER_NAME));
-    final ProcessingLogger deserializerProcessingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
+    final ProcessingLogger serializerProcessingLogger;
+    final ProcessingLogger deserializerProcessingLogger;
+    if (metrics.isPresent() && queryId.isPresent() && config.isPresent()) {
+      serializerProcessingLogger = processingLogContext.getLoggerFactory()
+          .getLoggerWithMetrics(
+              join(loggerNamePrefix, SERIALIZER_LOGGER_NAME),
+              metrics.get(),
+              MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.get(), config.get()));
+      deserializerProcessingLogger = processingLogContext.getLoggerFactory()
+          .getLoggerWithMetrics(
+              join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME),
+              metrics.get(),
+              MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.get(), config.get()));
+    } else {
+      serializerProcessingLogger = processingLogContext.getLoggerFactory()
+          .getLogger(join(loggerNamePrefix, SERIALIZER_LOGGER_NAME));
+      deserializerProcessingLogger = processingLogContext.getLoggerFactory()
+          .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
+    }
 
     return Serdes.serdeFrom(
         new LoggingSerializer<>(formatSerde.serializer(), serializerProcessingLogger),

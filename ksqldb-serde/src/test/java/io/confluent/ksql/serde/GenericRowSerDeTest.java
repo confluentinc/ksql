@@ -83,7 +83,7 @@ public class GenericRowSerDeTest {
 
   @Before
   public void setUp() {
-    factory = new GenericRowSerDe(innerFactory);
+    factory = new GenericRowSerDe(innerFactory, Optional.empty(), Optional.empty());
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);

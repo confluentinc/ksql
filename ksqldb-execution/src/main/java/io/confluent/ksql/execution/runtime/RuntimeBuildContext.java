@@ -41,6 +41,9 @@ import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
+
+import io.confluent.ksql.util.MetricsTagsUtil;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -68,6 +71,7 @@ public final class RuntimeBuildContext {
   private final QueryId queryId;
   private final String applicationId;
   private final QuerySchemas schemas = new QuerySchemas();
+  private final Metrics metrics;
 
   public static RuntimeBuildContext of(
       final StreamsBuilder streamsBuilder,
@@ -76,7 +80,8 @@ public final class RuntimeBuildContext {
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final String applicationId,
-      final QueryId queryId
+      final QueryId queryId,
+      final Metrics metrics
   ) {
     return new RuntimeBuildContext(
         streamsBuilder,
@@ -86,8 +91,9 @@ public final class RuntimeBuildContext {
         functionRegistry,
         applicationId,
         queryId,
-        new GenericKeySerDe(),
-        new GenericRowSerDe()
+        new GenericKeySerDe(metrics, queryId.toString()),
+        new GenericRowSerDe(metrics, queryId.toString()),
+        metrics
     );
   }
 
@@ -101,7 +107,8 @@ public final class RuntimeBuildContext {
       final String applicationId,
       final QueryId queryId,
       final KeySerdeFactory keySerdeFactory,
-      final ValueSerdeFactory valueSerdeFactory
+      final ValueSerdeFactory valueSerdeFactory,
+      final Metrics metrics
   ) {
     this.streamsBuilder = requireNonNull(streamsBuilder, "streamsBuilder");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
@@ -112,12 +119,16 @@ public final class RuntimeBuildContext {
     this.queryId = requireNonNull(queryId, "queryId");
     this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
     this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
+    this.metrics = requireNonNull(metrics, "metrics");
   }
 
   public ProcessingLogger getProcessingLogger(final QueryContext queryContext) {
     return processingLogContext
         .getLoggerFactory()
-        .getLogger(QueryLoggerUtil.queryLoggerName(queryId, queryContext));
+        .getLoggerWithMetrics(
+            QueryLoggerUtil.queryLoggerName(queryId, queryContext),
+            metrics,
+            MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.toString(), ksqlConfig));
   }
 
   public ServiceContext getServiceContext() {

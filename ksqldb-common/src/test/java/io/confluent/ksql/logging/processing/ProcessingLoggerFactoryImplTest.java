@@ -26,7 +26,12 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.common.logging.StructuredLoggerFactory;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import org.apache.kafka.common.metrics.Metrics;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,10 +49,17 @@ public class ProcessingLoggerFactoryImplTest {
   @Mock
   private BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory;
   @Mock
+  private Function<ProcessingLoggerWithMetricsInstantiator, ProcessingLogger> loggerWithMetricsFactory;
+  @Mock
   private ProcessingLogger logger;
+  @Mock
+  private ProcessingLogger loggerWithMetrics;
+  @Mock
+  private Metrics metrics;
 
   private final Collection<String> loggers = ImmutableList.of("logger1", "logger2");
 
+  private final Map<String, String> customMetricsTags = Collections.emptyMap();
   private ProcessingLoggerFactoryImpl factory;
 
   @Before
@@ -55,18 +67,24 @@ public class ProcessingLoggerFactoryImplTest {
     when(innerFactory.getLogger(anyString())).thenReturn(innerLogger);
     when(innerFactory.getLoggers()).thenReturn(loggers);
     when(loggerFactory.apply(config, innerLogger)).thenReturn(logger);
-    factory = new ProcessingLoggerFactoryImpl(config, innerFactory, loggerFactory);
+    when(loggerWithMetricsFactory.apply(new ProcessingLoggerWithMetricsInstantiator(config, innerLogger, customMetricsTags, metrics))).thenReturn(loggerWithMetrics);
+    factory = new ProcessingLoggerFactoryImpl(config, innerFactory, loggerFactory, loggerWithMetricsFactory);
   }
 
   @Test
   public void shouldCreateLogger() {
     // When:
     final ProcessingLogger logger = factory.getLogger("foo.bar");
+    final ProcessingLogger loggerWithMetrics = factory.getLoggerWithMetrics("bar.food", metrics, customMetricsTags);
 
     // Then:
     assertThat(logger, is(this.logger));
     verify(innerFactory).getLogger("foo.bar");
     verify(loggerFactory).apply(config, innerLogger);
+
+    assertThat(loggerWithMetrics, is(this.loggerWithMetrics));
+    verify(innerFactory).getLogger("bar.food");
+    verify(loggerWithMetricsFactory).apply(new ProcessingLoggerWithMetricsInstantiator(config, innerLogger, customMetricsTags, metrics));
   }
 
   @Test

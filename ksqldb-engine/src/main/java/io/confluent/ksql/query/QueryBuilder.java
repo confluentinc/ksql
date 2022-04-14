@@ -61,6 +61,7 @@ import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetricsTagsUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
@@ -87,6 +88,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -188,7 +190,8 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        streamsBuilder
+        streamsBuilder,
+        metricCollectors.getMetrics()
     );
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(
@@ -320,7 +323,8 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        streamsBuilder
+        streamsBuilder,
+        metricCollectors.getMetrics()
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final Topology topology = streamsBuilder
@@ -367,7 +371,10 @@ final class QueryBuilder {
         getConfiguredQueryErrorClassifier(ksqlConfig, applicationId),
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        getUncaughtExceptionProcessingLogger(queryId),
+        getUncaughtExceptionProcessingLogger(
+            queryId,
+            metricCollectors,
+            MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.toString(), ksqlConfig)),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
@@ -437,9 +444,10 @@ final class QueryBuilder {
             );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
-            applicationId,
-            queryId,
-            namedTopologyBuilder
+        applicationId,
+        queryId,
+        namedTopologyBuilder,
+        metricCollectors.getMetrics()
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final NamedTopology topology = namedTopologyBuilder.build();
@@ -481,7 +489,10 @@ final class QueryBuilder {
             queryId,
             materializationProviderBuilder,
             physicalPlan,
-            getUncaughtExceptionProcessingLogger(queryId),
+            getUncaughtExceptionProcessingLogger(
+                queryId,
+                metricCollectors,
+                MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.toString(), ksqlConfig)),
             sinkDataSource,
             listener,
             queryOverrides,
@@ -491,7 +502,8 @@ final class QueryBuilder {
                 queryId,
                 applicationId,
                 queryOverrides,
-                physicalPlan
+                physicalPlan,
+                metricCollectors.getMetrics()
             )
     );
     if (real) {
@@ -507,7 +519,8 @@ final class QueryBuilder {
                                         final QueryId queryId,
                                         final String applicationId,
                                         final Map<String, Object>  queryOverrides,
-                                        final ExecutionStep<?> physicalPlan) {
+                                        final ExecutionStep<?> physicalPlan,
+                                        final Metrics metrics) {
     final NamedTopologyBuilder namedTopologyBuilder =
         sharedRuntime.getKafkaStreams().newNamedTopologyBuilder(
             queryId.toString(),
@@ -517,7 +530,8 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        namedTopologyBuilder
+        namedTopologyBuilder,
+        metrics
     );
     buildQueryImplementation(physicalPlan, runtimeBuildContext);
     return namedTopologyBuilder.build();
@@ -535,12 +549,20 @@ final class QueryBuilder {
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
 
     // get logger
-    final ProcessingLogger logger;
+    final String id;
     if (queryId.isPresent()) {
-      logger = processingLogContext.getLoggerFactory().getLogger(queryId.get().toString());
+      id = queryId.get().toString();
     } else {
-      logger = processingLogContext.getLoggerFactory().getLogger(applicationId);
+      id = applicationId;
     }
+
+    final ProcessingLogger logger =
+        processingLogContext
+            .getLoggerFactory()
+            .getLoggerWithMetrics(id,
+                metricCollectors.getMetrics(),
+                MetricsTagsUtil.getCustomMetricsTagsForQuery(id, config));
+
     newStreamsProperties.put(
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
         logger);
@@ -647,12 +669,17 @@ final class QueryBuilder {
         .orElse(userErrorClassifiers);
   }
 
-  private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
+  private ProcessingLogger getUncaughtExceptionProcessingLogger(
+      final QueryId queryId,
+      final MetricCollectors collectors,
+      final Map<String, String> metricsTags) {
     final QueryContext.Stacker stacker = new QueryContext.Stacker()
         .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
 
-    return processingLogContext.getLoggerFactory().getLogger(
-        QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
+    return processingLogContext.getLoggerFactory().getLoggerWithMetrics(
+        QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()),
+        collectors.getMetrics(),
+        metricsTags);
   }
 
   private static TransientQueryQueue buildTransientQueryQueue(
@@ -694,9 +721,11 @@ final class QueryBuilder {
   }
 
   private RuntimeBuildContext buildContext(
-          final String applicationId,
-          final QueryId queryId,
-          final StreamsBuilder streamsBuilder) {
+      final String applicationId,
+      final QueryId queryId,
+      final StreamsBuilder streamsBuilder,
+      final Metrics metrics
+  ) {
     return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),
@@ -704,7 +733,8 @@ final class QueryBuilder {
         processingLogContext,
         functionRegistry,
         applicationId,
-        queryId
+        queryId,
+        metrics
     );
   }
 

@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -47,14 +48,30 @@ import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 public final class GenericKeySerDe implements KeySerdeFactory {
 
   private final GenericSerdeFactory innerFactory;
+  private Optional<Metrics> metrics;
+  private Optional<String> queryId;
 
   public GenericKeySerDe() {
-    this(new GenericSerdeFactory());
+    this(new GenericSerdeFactory(), Optional.empty(), Optional.empty());
+  }
+
+  public GenericKeySerDe(final Metrics metrics, final String queryId) {
+    this(
+        new GenericSerdeFactory(),
+        Optional.of(metrics),
+        Optional.of(queryId)
+    );
   }
 
   @VisibleForTesting
-  GenericKeySerDe(final GenericSerdeFactory innerFactory) {
+  GenericKeySerDe(
+      final GenericSerdeFactory innerFactory,
+      final Optional<Metrics> metrics,
+      final Optional<String> queryId
+  ) {
     this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
+    this.metrics = metrics;
+    this.queryId = queryId;
   }
 
   @Override
@@ -121,8 +138,13 @@ public final class GenericKeySerDe implements KeySerdeFactory {
 
     final Serde<GenericKey> genericKeySerde = toGenericKeySerde(formatSerde, schema);
 
-    final Serde<GenericKey> loggingSerde = innerFactory
-        .wrapInLoggingSerde(genericKeySerde, loggerNamePrefix, processingLogContext);
+    final Serde<GenericKey> loggingSerde = innerFactory.wrapInLoggingSerde(
+        genericKeySerde,
+        loggerNamePrefix,
+        processingLogContext,
+        metrics,
+        queryId,
+        Optional.of(ksqlConfig));
 
     final Serde<GenericKey> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

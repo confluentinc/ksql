@@ -14,6 +14,7 @@
         {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"Black\": 2}"}, "timestamp": 0},
         {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"Pink\": 1, \"Yellow\": 3}"}, "timestamp": 0},
         {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"White\": 7, \"Pink\": 8}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"White\": \"Seven\"}"}, "timestamp": 0},
         {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{}"}, "timestamp": 0},
         {"topic": "test_topic", "key": "1", "value": {"colors_obj": null, "timestamp": 0}},
         {"topic": "test_topic", "key": "1", "value": {"colors_obj": "", "timestamp": 0}}
@@ -23,6 +24,7 @@
         {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"Black": "2"}}, "timestamp": 0},
         {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"Pink": "1", "Yellow": "3"}}, "timestamp": 0},
         {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"White": "7", "Pink": "8"}}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"White": "Seven"}}, "timestamp": 0},
         {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {}}, "timestamp": 0}
       ]
     }

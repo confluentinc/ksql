@@ -166,6 +166,11 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_SERVICE_ID_DEFAULT = "default_";
 
   public static final String
+      KSQL_SERVICE_NAME_CONFIG = "ksql.service.name";
+  public static final String
+      KSQL_SERVICE_NAME_DEFAULT = "default_service_name";
+
+  public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG = "ksql.persistent.prefix";
   public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT = "query_";
@@ -826,6 +831,14 @@ public class KsqlConfig extends AbstractConfig {
                 + "all implicitly named resources created by this instance in Kafka. "
                 + "By convention, the id should end in a seperator character of some form, e.g. "
                 + "a dash or underscore, as this makes identifiers easier to read."
+        )
+        .define(
+            KSQL_SERVICE_NAME_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_SERVICE_NAME_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Indicates the NAME of the ksql service. It will be used for RBAC "
+                + "authorization instead of the existing service ID above."
         )
         .define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,

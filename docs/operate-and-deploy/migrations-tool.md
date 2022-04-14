@@ -553,7 +553,7 @@ INSERT INTO MIGRATION_EVENTS (
     '2',
     '2',
     'Add users',
-    'ERROR'
+    'ERROR',
     '1bdb2489db5d969dc2f2bc918407f2d6',
     '1615441337127',
     '1615441337408',
@@ -581,7 +581,7 @@ INSERT INTO MIGRATION_EVENTS (
     'CURRENT',
     '2',
     'Add users',
-    'ERROR'
+    'ERROR',
     '1bdb2489db5d969dc2f2bc918407f2d6',
     '1615441337127',
     '1615441337408',

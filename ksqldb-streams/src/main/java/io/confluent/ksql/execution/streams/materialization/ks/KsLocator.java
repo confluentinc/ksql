@@ -283,7 +283,7 @@ public final class KsLocator implements Locator {
    * @return Collection of StreamsMetadata
    */
   @VisibleForTesting
-  public Collection<StreamsMetadata> getStreamsMetadata() {
+  protected Collection<StreamsMetadata> getStreamsMetadata() {
     if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
       return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
           .streamsMetadataForStore(storeName, queryId);

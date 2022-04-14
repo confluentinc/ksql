@@ -34,7 +34,7 @@ public class JsonRecordsTest {
 
     // Then:
     final Map<String, String> expected = new HashMap<String, String>() {{
-        put("a", "\"abc\"");
+        put("a", "abc");
         put("b", "{\"c\":\"a\"}");
         put("d", "1");
       }};

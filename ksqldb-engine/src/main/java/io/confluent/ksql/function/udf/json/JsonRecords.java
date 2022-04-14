@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -47,7 +48,14 @@ public class JsonRecords {
     }
 
     final Map<String, String> ret = new HashMap<>(node.size());
-    node.fieldNames().forEachRemaining(k -> ret.put(k, node.get(k).toString()));
+    node.fieldNames().forEachRemaining(k -> {
+      final JsonNode value = node.get(k);
+      if (value instanceof TextNode) {
+        ret.put(k, value.textValue());
+      } else {
+        ret.put(k, value.toString());
+      }
+    });
     return ret;
   }
 }

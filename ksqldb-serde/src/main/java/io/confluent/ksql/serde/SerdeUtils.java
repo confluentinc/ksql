@@ -171,7 +171,7 @@ public final class SerdeUtils {
     }
   }
 
-  public static Schema getAndTranslateSchema(
+  public static Schema getAndTranslateSchemaById(
       final Supplier<SchemaRegistryClient> srFactory,
       final int schemaId,
       final ConnectSchemaTranslator translator
@@ -182,6 +182,21 @@ public final class SerdeUtils {
     } catch (RestClientException | IOException e) {
       throw new KsqlException("Failed to fetch schema for serialization from Schema Registry "
           + "using schema id: " + schemaId, e);
+    }
+  }
+
+  public static Schema getAndTranslateLatestSchema(
+      final Supplier<SchemaRegistryClient> srFactory,
+      final String subjectName,
+      final ConnectSchemaTranslator translator
+  ) {
+    try {
+      final int schemaId = srFactory.get().getLatestSchemaMetadata(subjectName).getId();
+      final ParsedSchema parsedSchema = srFactory.get().getSchemaById(schemaId);
+      return translator.toConnectSchema(parsedSchema);
+    } catch (RestClientException | IOException e) {
+      throw new KsqlException("Failed to fetch schema for serialization from Schema Registry "
+          + "using schema subject: " + subjectName, e);
     }
   }
 }

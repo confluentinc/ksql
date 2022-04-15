@@ -113,7 +113,7 @@ public class ProtobufSchemaTranslatorTest {
   @Test
   public void shouldReturnParsedSchemaWithDefaultFullSchemaName() {
     // Given:
-    givenWrapPrimitives();
+    givenSchemaFullName("ConnectDefault1");
     final Schema connectSchema =  SchemaBuilder.struct()
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .field("array", SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA))

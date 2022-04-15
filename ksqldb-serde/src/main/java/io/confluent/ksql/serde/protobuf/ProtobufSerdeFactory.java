@@ -24,7 +24,6 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
-import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -59,6 +58,23 @@ final class ProtobufSerdeFactory {
     this(new ProtobufProperties(formatProperties));
   }
 
+  private Optional<Schema> getSRSchema(final Supplier<SchemaRegistryClient> srFactory) {
+    if (properties.getSchemaId().isPresent()) {
+      return Optional.of(
+          SerdeUtils.getAndTranslateSchemaById(
+              srFactory,
+              properties.getSchemaId().get(),
+              new ProtobufSchemaTranslator(properties)));
+    } else if (properties.getSubjectName().isPresent()) {
+      return Optional.of(SerdeUtils.getAndTranslateLatestSchema(
+          srFactory,
+          properties.getSubjectName().get(),
+          new ProtobufSchemaTranslator(properties)));
+    }
+
+    return Optional.empty();
+  }
+
   <T> Serde<T> createSerde(
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
@@ -67,9 +83,7 @@ final class ProtobufSerdeFactory {
       final boolean isKey) {
     validate(schema);
 
-    final Optional<Schema> physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
-        SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
-            .get(), new ProtobufSchemaTranslator(properties))) : Optional.empty();
+    final Optional<Schema> physicalSchema = getSRSchema(srFactory);
 
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
         schema,
@@ -114,11 +128,11 @@ final class ProtobufSerdeFactory {
         properties.getSchemaId(), isKey);
     final DataTranslator translator = getDataTranslator(schema, physicalSchema, false);
     final Schema compatibleSchema = translator instanceof ProtobufDataTranslator
-        ? ((ProtobufDataTranslator) translator).getProtoCompatibleSchema()
+        ? ((ProtobufDataTranslator) translator).getSchema()
         : ((ConnectDataTranslator) translator).getSchema();
 
     return new KsqlConnectSerializer<>(
-        compatibleSchema,
+        physicalSchema.orElse(compatibleSchema),
         translator,
         converter,
         targetType
@@ -145,18 +159,18 @@ final class ProtobufSerdeFactory {
 
   private DataTranslator getDataTranslator(final Schema schema,
       final Optional<Schema> physicalSchema, final boolean isDeserializer) {
-    // If physical schema exists, we use physical schema to translate to connect data. During
-    // deserialization, if physical schema exists, we use original schema to translate to ksql data.
-    return physicalSchema.<DataTranslator>map(
-            value -> isDeserializer ? new ConnectDataTranslator(schema)
-                : new ConnectSRSchemaDataTranslator(value))
-        .orElseGet(() -> {
-          if (fullSchemaName.isPresent()) {
-            return new ProtobufDataTranslator(schema, fullSchemaName.get());
-          } else {
-            return new ConnectDataTranslator(schema);
-          }
-        });
+    // During deserialization, we use the original schema to translate to KSQL data.
+    if (isDeserializer) {
+      return new ConnectDataTranslator(schema);
+    }
+
+    if (physicalSchema.isPresent()) {
+      return new ProtobufSRSchemaDataTranslator(physicalSchema.get());
+    } else if (fullSchemaName.isPresent()) {
+      return new ProtobufDataTranslator(schema, fullSchemaName.get());
+    } else {
+      return new ConnectDataTranslator(schema);
+    }
   }
 
   private ProtobufConverter getConverter(

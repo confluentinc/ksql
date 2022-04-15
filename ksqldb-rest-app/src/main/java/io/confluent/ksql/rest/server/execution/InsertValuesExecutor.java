@@ -546,6 +546,16 @@ public class InsertValuesExecutor {
           }
         }
       }
+
+      // If SCHEMA_ID was not added in the previous step, then use the SUBJECT_NAME
+      // Using a SUBJECT_NAME will help the serializer to identify which schema to fetch from SR
+      // but without using the restrictions we have with SCHEMA_ID
+      if (supportedProperties.contains(ConnectProperties.SUBJECT_NAME)) {
+        if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
+          propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,
+              KsqlConstants.getSRSubject(topicName, isKey));
+        }
+      }
     }
 
     return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());

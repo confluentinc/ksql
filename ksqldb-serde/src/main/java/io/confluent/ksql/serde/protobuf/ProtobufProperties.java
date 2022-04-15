@@ -29,7 +29,8 @@ public class ProtobufProperties extends ConnectProperties {
   static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(
       FULL_SCHEMA_NAME,
       SCHEMA_ID,
-      UNWRAP_PRIMITIVES
+      UNWRAP_PRIMITIVES,
+      SUBJECT_NAME
   );
 
   static final ImmutableSet<String> INHERITABLE_PROPERTIES = ImmutableSet.of(

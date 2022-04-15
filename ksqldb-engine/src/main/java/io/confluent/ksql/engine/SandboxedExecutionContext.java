@@ -45,6 +45,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.List;
@@ -258,5 +259,24 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         context,
         scalablePushQueryMetrics
     );
+  }
+
+  @Override
+  public void updateStreamsPropertiesAndRestartRuntime() {
+    throw new UnsupportedOperationException();
+
+  }
+
+  @Override
+  public ImmutableAnalysis analyzeQueryWithNoOutputTopic(Query query, String queryText,
+      Map<String, Object> configOverrides) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public StreamPullQueryMetadata createStreamPullQuery(ServiceContext serviceContext,
+      ImmutableAnalysis analysis, ConfiguredStatement<Query> statementOrig,
+      boolean excludeTombstones) {
+    throw new UnsupportedOperationException();
   }
 }

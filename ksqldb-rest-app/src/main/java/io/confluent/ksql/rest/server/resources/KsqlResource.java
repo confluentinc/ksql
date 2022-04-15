@@ -60,6 +60,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -101,7 +102,7 @@ public class KsqlResource implements KsqlConfigurable {
           .add(UnsetProperty.class)
           .build();
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final CommandRunner commandRunner;
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;

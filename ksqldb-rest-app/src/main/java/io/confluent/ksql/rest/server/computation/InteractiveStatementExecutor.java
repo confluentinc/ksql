@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -34,7 +35,7 @@ import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
+import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -54,17 +55,16 @@ import org.slf4j.LoggerFactory;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
  * as tracking their statuses as things move along.
  */
-public class InteractiveStatementExecutor implements KsqlConfigurable {
+public class InteractiveStatementExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(InteractiveStatementExecutor.class);
 
   private final ServiceContext serviceContext;
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final StatementParser statementParser;
   private final SpecificQueryIdGenerator queryIdGenerator;
   private final Map<CommandId, CommandStatus> statusStore;
   private final Deserializer<Command> commandDeserializer;
-  private KsqlConfig ksqlConfig;
 
   private enum Mode {
     RESTORE,
@@ -101,17 +101,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     this.statusStore = new ConcurrentHashMap<>();
   }
 
-  @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public void configure(final KsqlConfig config) {
-    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
-      throw new IllegalArgumentException("Need KS application server set");
-    }
-
-    ksqlConfig = config;
-  }
-
-  KsqlEngine getKsqlEngine() {
+  KsqlExecutionContext getKsqlEngine() {
     return ksqlEngine;
   }
 
@@ -121,8 +111,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
    * @param queuedCommand The command to be executed
    */
   void handleStatement(final QueuedCommand queuedCommand) {
-    throwIfNotConfigured();
-
     handleStatementWithTerminatedQueries(
         queuedCommand.getAndDeserializeCommand(commandDeserializer),
         queuedCommand.getAndDeserializeCommandId(),
@@ -134,8 +122,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   void handleRestore(final QueuedCommand queuedCommand) {
-    throwIfNotConfigured();
-
     handleStatementWithTerminatedQueries(
         queuedCommand.getAndDeserializeCommand(commandDeserializer),
         queuedCommand.getAndDeserializeCommandId(),
@@ -162,12 +148,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
    */
   public Optional<CommandStatus> getStatus(final CommandId statementId) {
     return Optional.ofNullable(statusStore.get(statementId));
-  }
-
-  private void throwIfNotConfigured() {
-    if (ksqlConfig == null) {
-      throw new IllegalStateException("No initialized");
-    }
   }
 
   private void putStatus(final CommandId commandId,
@@ -313,7 +293,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   private KsqlConfig buildMergedConfig(final Command command) {
-    return ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+    return ksqlEngine.getKsqlConfig()
+        .overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
   }
 
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {

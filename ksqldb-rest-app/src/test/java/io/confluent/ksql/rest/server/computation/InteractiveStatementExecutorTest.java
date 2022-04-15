@@ -173,9 +173,6 @@ public class InteractiveStatementExecutorTest {
         commandDeserializer
     );
 
-    statementExecutor.configure(ksqlConfig);
-    statementExecutorWithMocks.configure(ksqlConfig);
-
     plannedCommand = new Command(
         CREATE_STREAM_FOO_STATEMENT,
         emptyMap(),
@@ -196,15 +193,6 @@ public class InteractiveStatementExecutorTest {
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(CLUSTER);
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnConfigureIfAppServerNotSet() {
-    // Given:
-    final KsqlConfig configNoAppServer = new KsqlConfig(ImmutableMap.of());
-
-    // When:
-    statementExecutorWithMocks.configure(configNoAppServer);
-  }
 
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleStatementIfNotConfigured() {
@@ -451,7 +439,6 @@ public class InteractiveStatementExecutorTest {
     givenMockPlannedQuery();
 
     // When:
-    statementExecutorWithMocks.configure(mockConfig);
     handleStatement(statementExecutorWithMocks, plannedCommand, COMMAND_ID, Optional.empty(), 0L);
 
     // Then:

@@ -124,6 +124,7 @@ import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.checkerframework.checker.units.qual.K;
 import org.codehaus.plexus.util.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
@@ -241,8 +242,6 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         queryExecutor
     );
-
-    testResource.configure(VALID_CONFIG);
   }
 
   @Test
@@ -270,50 +269,6 @@ public class StreamedQueryResourceTest {
     ))));
     assertThat(e, exceptionStatementErrorMessage(statement(containsString(
         "SELECT * FROM test_table;"))));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnConfigureIfAppServerNotSet() {
-    // Given:
-    final KsqlConfig configNoAppServer = new KsqlConfig(ImmutableMap.of());
-
-    // When:
-    testResource.configure(configNoAppServer);
-  }
-
-  @Test
-  public void shouldThrowOnHandleStatementIfNotConfigured() {
-    // Given:
-    testResource = new StreamedQueryResource(
-        mockKsqlEngine,
-        ksqlRestConfig,
-        mockStatementParser,
-        commandQueue,
-        DISCONNECT_CHECK_INTERVAL,
-        COMMAND_QUEUE_CATCHUP_TIMOEUT,
-        activenessRegistrar,
-        Optional.of(authorizationValidator),
-        errorsHandler,
-        denyListPropertyValidator,
-        queryExecutor
-    );
-
-    // When:
-    final KsqlRestException e = assertThrows(
-        KsqlRestException.class,
-        () -> testResource.streamQuery(
-            securityContext,
-            new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
-            new CompletableFuture<>(),
-            Optional.empty(),
-            new MetricsCallbackHolder(),
-            context
-        )
-    );
-
-    // Then:
-    assertThat(e, exceptionStatusCode(is(SERVICE_UNAVAILABLE.code())));
-    assertThat(e, exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
   }
 
   @Test
@@ -403,7 +358,7 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldNotCreateExternalClientsForPullQuery() {
     // Given:
-    testResource.configure(new KsqlConfig(ImmutableMap.of(
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     )));
 
@@ -471,7 +426,7 @@ public class StreamedQueryResourceTest {
     ));
     props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
         StreamsConfig.NUM_STREAM_THREADS_CONFIG);
-    testResource.configure(new KsqlConfig(props));
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(new KsqlConfig(props));
     final Map<String, Object> overrides =
         ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
     doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)

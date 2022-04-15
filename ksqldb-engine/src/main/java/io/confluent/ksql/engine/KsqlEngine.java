@@ -61,6 +61,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -99,7 +100,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class KsqlEngine implements KsqlExecutionContext, Closeable {
+public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
@@ -112,6 +113,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
   private final MetricCollectors metricCollectors;
   private TransientQueryCleanupService transientQueryCleanupService;
+  boolean configured = false;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -305,6 +307,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan,
                                final boolean restoreInProgress) {
+    throwIfNotConfigured();
     try {
       final ExecuteResult result = EngineExecutor
           .create(primaryContext, serviceContext, plan.getConfig())
@@ -364,6 +367,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public MetricCollectors metricCollectors() {
     return metricCollectors;
+  }
+
+  @Override
+  public void configure(KsqlConfig config) {
+    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new IllegalArgumentException("Need KS application server set");
+    }
+    configured = true;
+    this.primaryContext.configure(config);
   }
 
   @Override
@@ -769,5 +781,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE);
+  }
+
+  private void throwIfNotConfigured() {
+    if (!primaryContext.getKsqlConfig().getKsqlStreamConfigProps()
+        .containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new IllegalStateException("No initialized");
+    }
   }
 }

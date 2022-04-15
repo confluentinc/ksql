@@ -1,42 +1,38 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (K1 BIGINT KEY, C1 DOUBLE, C2 BIGINT) WITH (FORMAT='PROTOBUF', KAFKA_TOPIC='input', KEY_SCHEMA_FULL_NAME='ProtobufKey1', VALUE_SCHEMA_FULL_NAME='ProtobufValue1');",
+    "statementText" : "CREATE STREAM INPUT (K1 STRING KEY, C1 BIGINT) WITH (FORMAT='PROTOBUF', KAFKA_TOPIC='input', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
-      "schema" : "`K1` BIGINT KEY, `C1` DOUBLE, `C2` BIGINT",
-      "timestampColumn" : null,
+      "schema" : "`K1` STRING KEY, `C1` BIGINT",
       "topicName" : "input",
       "formats" : {
         "keyFormat" : {
           "format" : "PROTOBUF",
           "properties" : {
-            "fullSchemaName" : "ProtobufKey1",
+            "fullSchemaName" : "ProtobufKey2",
             "unwrapPrimitives" : "true"
           }
         },
         "valueFormat" : {
           "format" : "PROTOBUF",
           "properties" : {
-            "fullSchemaName" : "ProtobufValue1",
+            "fullSchemaName" : "ProtobufValue2",
             "unwrapPrimitives" : "true"
           }
         }
       },
-      "windowInfo" : null,
       "orReplace" : false,
       "isSource" : false
-    },
-    "queryPlan" : null
+    }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT WITH (FORMAT='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2') AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`K1` BIGINT KEY, `C1` DOUBLE, `C2` BIGINT",
-      "timestampColumn" : null,
+      "schema" : "`K1` STRING KEY, `C1` BIGINT",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -54,7 +50,6 @@
           }
         }
       },
-      "windowInfo" : null,
       "orReplace" : false,
       "isSource" : false
     },
@@ -81,25 +76,23 @@
               "keyFormat" : {
                 "format" : "PROTOBUF",
                 "properties" : {
-                  "fullSchemaName" : "ProtobufKey1",
+                  "fullSchemaName" : "ProtobufKey2",
                   "unwrapPrimitives" : "true"
                 }
               },
               "valueFormat" : {
                 "format" : "PROTOBUF",
                 "properties" : {
-                  "fullSchemaName" : "ProtobufValue1",
+                  "fullSchemaName" : "ProtobufValue2",
                   "unwrapPrimitives" : "true"
                 }
               }
             },
-            "timestampColumn" : null,
-            "sourceSchema" : "`K1` BIGINT KEY, `C1` DOUBLE, `C2` BIGINT",
+            "sourceSchema" : "`K1` STRING KEY, `C1` BIGINT",
             "pseudoColumnVersion" : 1
           },
           "keyColumnNames" : [ "K1" ],
-          "selectedKeys" : null,
-          "selectExpressions" : [ "C1 AS C1", "C2 AS C2" ]
+          "selectExpressions" : [ "C1 AS C1" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -117,11 +110,9 @@
             }
           }
         },
-        "topicName" : "OUTPUT",
-        "timestampColumn" : null
+        "topicName" : "OUTPUT"
       },
-      "queryId" : "CSAS_OUTPUT_0",
-      "runtimeId" : null
+      "queryId" : "CSAS_OUTPUT_0"
     }
   } ],
   "configs" : {
@@ -209,6 +200,7 @@
     "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
     "ksql.query.pull.interpreter.enabled" : "true",
     "ksql.query.pull.limit.clause.enabled" : "true",
+    "ksql.connect.error.handler" : null,
     "ksql.query.pull.router.thread.pool.size" : "50",
     "ksql.query.push.v2.continuation.tokens.enabled" : "false",
     "ksql.query.retry.backoff.max.ms" : "900000",

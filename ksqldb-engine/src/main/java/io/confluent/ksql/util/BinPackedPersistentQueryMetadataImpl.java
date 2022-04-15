@@ -211,8 +211,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final QueryContext.Stacker contextStacker) {
     return materializationProviderBuilder
             .flatMap(builder -> builder.apply(
-                    this.sharedKafkaStreamsRuntime.getKafkaStreams(),
-                    topology
+                    sharedKafkaStreamsRuntime.getKafkaStreams(),
+                    getTopologyCopy(sharedKafkaStreamsRuntime)
             )).map(builder -> builder.build(queryId, contextStacker));
   }
 

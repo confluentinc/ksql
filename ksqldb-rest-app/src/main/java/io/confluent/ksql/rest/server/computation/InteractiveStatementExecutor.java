@@ -64,7 +64,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   private final SpecificQueryIdGenerator queryIdGenerator;
   private final Map<CommandId, CommandStatus> statusStore;
   private final Deserializer<Command> commandDeserializer;
-  private KsqlConfig ksqlConfig;
 
   private enum Mode {
     RESTORE,
@@ -107,8 +106,9 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
       throw new IllegalArgumentException("Need KS application server set");
     }
-
-    ksqlConfig = config;
+    final KsqlConfig updatedConfig = ksqlEngine.getKsqlConfig()
+        .overrideBreakingConfigsWithOriginalValues(config.getKsqlStreamConfigProps());
+    ksqlEngine.updateSystemProperty(updatedConfig.getKsqlStreamConfigProps());
   }
 
   KsqlEngine getKsqlEngine() {
@@ -165,7 +165,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   private void throwIfNotConfigured() {
-    if (ksqlConfig == null) {
+    if (ksqlEngine.getKsqlConfig() == null) {
       throw new IllegalStateException("No initialized");
     }
   }
@@ -313,7 +313,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   private KsqlConfig buildMergedConfig(final Command command) {
-    return ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+    return ksqlEngine.getKsqlConfig()
+        .overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
   }
 
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {

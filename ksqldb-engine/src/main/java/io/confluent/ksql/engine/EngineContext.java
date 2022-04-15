@@ -179,6 +179,10 @@ final class EngineContext {
     this.ksqlConfig = this.ksqlConfig.cloneWithPropertyOverwrite(overrides);
   }
 
+  public void updateSystemProperty(final Map<String, Object> overrides) {
+    this.ksqlConfig = this.ksqlConfig.cloneWithPropertyOverwrite(overrides);
+  }
+
   private ParsedStatement substituteVariables(
       final ParsedStatement stmt,
       final Map<String, String> variablesMap

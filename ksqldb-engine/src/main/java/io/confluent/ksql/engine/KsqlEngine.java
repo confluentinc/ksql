@@ -372,6 +372,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     this.primaryContext.alterSystemProperty(overrides);
   }
 
+  public void updateSystemProperty(final Map<String, Object> overrides) {
+    this.primaryContext.updateSystemProperty(overrides);
+  }
+
   public StreamPullQueryMetadata createStreamPullQuery(
       final ServiceContext serviceContext,
       final ImmutableAnalysis analysis,

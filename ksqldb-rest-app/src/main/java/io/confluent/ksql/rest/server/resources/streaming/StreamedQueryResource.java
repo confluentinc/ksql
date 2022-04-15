@@ -78,8 +78,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final QueryExecutor queryExecutor;
-
-  private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
@@ -149,9 +147,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
     if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
       throw new IllegalArgumentException("Need KS application server set");
     }
-
-    ksqlConfig = config;
-  }
+    final KsqlConfig updatedConfig = ksqlEngine.getKsqlConfig()
+        .overrideBreakingConfigsWithOriginalValues(config.getKsqlStreamConfigProps());
+    ksqlEngine.updateSystemProperty(updatedConfig.getKsqlStreamConfigProps());  }
 
   public EndpointResponse streamQuery(
       final KsqlSecurityContext securityContext,
@@ -174,7 +172,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   private void throwIfNotConfigured() {
-    if (ksqlConfig == null) {
+    if (ksqlEngine.getKsqlConfig() == null) {
       throw new KsqlRestException(Errors.notReady());
     }
   }
@@ -320,7 +318,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
 
     final Map<String, Object> propertiesWithOverrides =
-        new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+        new HashMap<>(ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps());
     propertiesWithOverrides.putAll(streamProperties);
 
     final TopicStreamWriter topicStreamWriter = TopicStreamWriter.create(
@@ -348,6 +346,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
     if (overrides.containsKey(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG)) {
       return (Boolean) overrides.get(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
     }
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
+    return ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
   }
 }

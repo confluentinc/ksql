@@ -50,6 +50,7 @@ import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +64,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final String statementString;
   private final String executionPlan;
   private final String applicationId;
-  private final NamedTopology topology;
+  private NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
   private final ImmutableMap<String, Object> overriddenProperties;
@@ -212,7 +213,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     return materializationProviderBuilder
             .flatMap(builder -> builder.apply(
                     sharedKafkaStreamsRuntime.getKafkaStreams(),
-                    getTopologyCopy(sharedKafkaStreamsRuntime)
+                    topology
             )).map(builder -> builder.build(queryId, contextStacker));
   }
 
@@ -293,6 +294,10 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   public NamedTopology getTopologyCopy(final SharedKafkaStreamsRuntime builder) {
     return namedTopologyBuilder.apply(builder);
+  }
+
+  public void updateTopology(final NamedTopology topology) {
+    this.topology = topology;
   }
 
   @Override

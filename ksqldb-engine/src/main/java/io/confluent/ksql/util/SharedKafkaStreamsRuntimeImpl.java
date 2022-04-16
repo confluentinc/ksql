@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
@@ -247,6 +248,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void overrideStreamsProperties(final Map<String, Object> newProperties) {
+    newProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG, streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG));
     streamsProperties = ImmutableMap.copyOf(newProperties);
   }
 

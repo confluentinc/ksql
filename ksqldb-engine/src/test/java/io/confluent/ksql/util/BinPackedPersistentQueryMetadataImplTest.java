@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -33,6 +35,7 @@ import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.util.Map;
 import java.util.Optional;
@@ -77,14 +80,20 @@ public class BinPackedPersistentQueryMetadataImplTest {
     @Mock
     private Optional<ScalablePushRegistry> scalablePushRegistry;
     @Mock
-    private MaterializationProviderBuilderFactory.MaterializationProviderBuilder
-        materializationProviderBuilder;
+    private MaterializationProviderBuilderFactory
+        materializationProviderBuilderFactory;
     @Mock
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
     @Mock
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
     @Mock
     private QueryContext.Stacker stacker;
+    @Mock
+    private KeyFormat keyFormat;
+    @Mock
+    private MaterializationInfo materializationInfo;
+    @Mock
+    private MaterializationProviderBuilderFactory.MaterializationProviderBuilder materializationProviderBuilder;
 
     private PersistentQueryMetadata query;
 
@@ -102,16 +111,20 @@ public class BinPackedPersistentQueryMetadataImplTest {
             schemas,
             overrides,
             QUERY_ID,
-            Optional.of(materializationProviderBuilder),
+            Optional.of(materializationInfo),
+            materializationProviderBuilderFactory,
             physicalPlan,
             processingLogger,
             Optional.of(sinkDataSource),
             listener,
-            streamsProperties,
             scalablePushRegistry,
-            (runtime) -> topology);
+            (runtime) -> topology,
+            keyFormat);
 
         query.initialize();
+        when(materializationProviderBuilderFactory.materializationProviderBuilder(
+            any(), any(), any(), any(), any(), any()))
+            .thenReturn(materializationProviderBuilder);
     }
 
     @Test

@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
@@ -37,6 +38,7 @@ import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.util.Collection;
 import java.util.List;
@@ -50,7 +52,6 @@ import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final String statementString;
   private final String executionPlan;
   private final String applicationId;
+  private final Optional<MaterializationInfo> materializationInfo;
+  private final KeyFormat keyFormat;
   private NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
@@ -77,9 +80,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final Listener listener;
   private final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder;
   private final TimeBoundedQueue queryErrors;
-
-  private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-      materializationProviderBuilder;
+  private final MaterializationProviderBuilderFactory
+      materializationProviderBuilderFactory;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   public boolean everStarted = false;
   private boolean corruptionCommandTopic = false;
@@ -99,15 +101,15 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final QuerySchemas schemas,
       final Map<String, Object> overriddenProperties,
       final QueryId queryId,
-      final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-          materializationProviderBuilder,
+      final Optional<MaterializationInfo> materializationInfo,
+      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory,
       final ExecutionStep<?> physicalPlan,
       final ProcessingLogger processingLogger,
       final Optional<DataSource> sinkDataSource,
       final Listener listener,
-      final Map<String, Object> streamsProperties,
       final Optional<ScalablePushRegistry> scalablePushRegistry,
-      final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder) {
+      final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder,
+      final KeyFormat keyFormat) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -126,12 +128,13 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
     this.resultSchema = requireNonNull(schema, "schema");
-    this.materializationProviderBuilder =
-        requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
+    this.materializationProviderBuilderFactory = requireNonNull(materializationProviderBuilderFactory, "materializationProviderBuilderFactory");
+    this.materializationInfo = requireNonNull(materializationInfo, "materializationInfo");
     this.listener = new QueryListenerWrapper(listener, scalablePushRegistry);
     this.namedTopologyBuilder = requireNonNull(namedTopologyBuilder, "namedTopologyBuilder");
     this.queryErrors = sharedKafkaStreamsRuntime.getNewQueryErrorQueue();
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
+    this.keyFormat = requireNonNull(keyFormat, "keyFormat");
   }
 
   // for creating sandbox instances
@@ -154,11 +157,13 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.processingLogger = original.processingLogger;
     this.physicalPlan = original.getPhysicalPlan();
     this.resultSchema = original.resultSchema;
-    this.materializationProviderBuilder = original.materializationProviderBuilder;
+    this.materializationProviderBuilderFactory = original.materializationProviderBuilderFactory;
+    this.materializationInfo = original.materializationInfo;
     this.listener = requireNonNull(listener, "listener");
     this.queryErrors = sharedKafkaStreamsRuntime.getNewQueryErrorQueue();
     this.scalablePushRegistry = original.scalablePushRegistry;
     this.namedTopologyBuilder = original.namedTopologyBuilder;
+    this.keyFormat = original.keyFormat;
   }
 
   @Override
@@ -210,11 +215,19 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   public Optional<Materialization> getMaterialization(
       final QueryId queryId,
       final QueryContext.Stacker contextStacker) {
-    return materializationProviderBuilder
-            .flatMap(builder -> builder.apply(
-                    sharedKafkaStreamsRuntime.getKafkaStreams(),
-                    topology
-            )).map(builder -> builder.build(queryId, contextStacker));
+    return this.materializationInfo.map(info ->
+        materializationProviderBuilderFactory.materializationProviderBuilder(
+            info,
+            resultSchema,
+            keyFormat,
+            getStreamsProperties(),
+            applicationId,
+            this.queryId.toString()
+        )
+    ).flatMap(builder -> builder.apply(
+            sharedKafkaStreamsRuntime.getKafkaStreams(),
+            topology)
+    ).map(builder -> builder.build(queryId, contextStacker));
   }
 
   @Override

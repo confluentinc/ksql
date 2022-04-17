@@ -273,6 +273,42 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
+  public void shouldThrowOnHandleStatementIfNotConfigured() {
+    // Given:
+    testResource = new StreamedQueryResource(
+        mockKsqlEngine,
+        ksqlRestConfig,
+        mockStatementParser,
+        commandQueue,
+        DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
+        activenessRegistrar,
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        denyListPropertyValidator,
+        queryExecutor
+    );
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(KsqlConfig.empty());
+
+    // When:
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> testResource.streamQuery(
+            securityContext,
+            new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
+            new CompletableFuture<>(),
+            Optional.empty(),
+            new MetricsCallbackHolder(),
+            context
+        )
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(SERVICE_UNAVAILABLE.code())));
+    assertThat(e, exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
+  }
+
+  @Test
   public void shouldReturn400OnBadStatement() {
     // Given:
     when(mockStatementParser.parseSingleStatement(any()))

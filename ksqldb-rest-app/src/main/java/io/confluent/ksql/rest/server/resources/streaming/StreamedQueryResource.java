@@ -55,6 +55,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,6 +148,7 @@ public class StreamedQueryResource {
       final MetricsCallbackHolder metricsCallbackHolder,
       final Context context
   ) {
+    throwIfNotConfigured();
     activenessRegistrar.updateLastRequestTime();
 
     final PreparedStatement<?> statement = parseStatement(request);
@@ -168,6 +170,13 @@ public class StreamedQueryResource {
       return statementParser.parseSingleStatement(ksql);
     } catch (final IllegalArgumentException | KsqlException e) {
       throw new KsqlRestException(Errors.badStatement(e, ksql));
+    }
+  }
+
+  private void throwIfNotConfigured() {
+    if (!ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps()
+        .containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new KsqlRestException(Errors.notReady());
     }
   }
 

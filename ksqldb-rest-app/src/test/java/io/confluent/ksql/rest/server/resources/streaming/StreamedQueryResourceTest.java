@@ -226,6 +226,7 @@ public class StreamedQueryResourceTest {
     when(queryExecutor.handleStatement(any(), any(), any(), any(), any(), any(), any(),
         anyBoolean()))
         .thenReturn(queryMetadataHolder);
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 

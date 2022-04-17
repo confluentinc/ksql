@@ -113,7 +113,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
   private final MetricCollectors metricCollectors;
   private TransientQueryCleanupService transientQueryCleanupService;
-  boolean configured = false;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -307,7 +306,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
   @Override
   public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan,
                                final boolean restoreInProgress) {
-    throwIfNotConfigured();
     try {
       final ExecuteResult result = EngineExecutor
           .create(primaryContext, serviceContext, plan.getConfig())
@@ -370,11 +368,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
   }
 
   @Override
-  public void configure(KsqlConfig config) {
+  public void configure(final KsqlConfig config) {
     if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
       throw new IllegalArgumentException("Need KS application server set");
     }
-    configured = true;
     this.primaryContext.configure(config);
   }
 
@@ -781,12 +778,5 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
 
   private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE);
-  }
-
-  private void throwIfNotConfigured() {
-    if (!primaryContext.getKsqlConfig().getKsqlStreamConfigProps()
-        .containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
-      throw new IllegalStateException("No initialized");
-    }
   }
 }

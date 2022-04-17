@@ -268,15 +268,19 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public ImmutableAnalysis analyzeQueryWithNoOutputTopic(Query query, String queryText,
-      Map<String, Object> configOverrides) {
+  public ImmutableAnalysis analyzeQueryWithNoOutputTopic(
+      final Query query,
+      final String queryText,
+      final Map<String, Object> configOverrides) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public StreamPullQueryMetadata createStreamPullQuery(ServiceContext serviceContext,
-      ImmutableAnalysis analysis, ConfiguredStatement<Query> statementOrig,
-      boolean excludeTombstones) {
+  public StreamPullQueryMetadata createStreamPullQuery(
+      final ServiceContext serviceContext,
+      final ImmutableAnalysis analysis,
+      final ConfiguredStatement<Query> statementOrig,
+      final boolean excludeTombstones) {
     throw new UnsupportedOperationException();
   }
 }

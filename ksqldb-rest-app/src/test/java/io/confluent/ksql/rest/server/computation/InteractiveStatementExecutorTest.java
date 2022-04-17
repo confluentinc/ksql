@@ -156,6 +156,7 @@ public class InteractiveStatementExecutorTest {
         ksqlConfig,
         metricCollectors
     );
+    when(mockEngine.getKsqlConfig()).thenReturn(ksqlConfig);
 
     statementParser = new StatementParser(ksqlEngine);
     statementExecutor = new InteractiveStatementExecutor(
@@ -204,6 +205,9 @@ public class InteractiveStatementExecutorTest {
         mockQueryIdGenerator,
         commandDeserializer
     );
+    final Map<String, Object> withoutAppServer = ksqlConfig.originals();
+    withoutAppServer.remove(StreamsConfig.APPLICATION_SERVER_CONFIG);
+    when(mockEngine.getKsqlConfig()).thenReturn(new KsqlConfig(withoutAppServer));
 
     // When:
     statementExecutor.handleStatement(queuedCommand);
@@ -219,6 +223,9 @@ public class InteractiveStatementExecutorTest {
         mockQueryIdGenerator,
         commandDeserializer
     );
+    final Map<String, Object> withoutAppServer = ksqlConfig.originals();
+    withoutAppServer.remove(StreamsConfig.APPLICATION_SERVER_CONFIG);
+    when(mockEngine.getKsqlConfig()).thenReturn(new KsqlConfig(withoutAppServer));
 
     // When:
     statementExecutor.handleRestore(queuedCommand);
@@ -436,6 +443,7 @@ public class InteractiveStatementExecutorTest {
         ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "appid"));
     final KsqlConfig mergedConfig = mock(KsqlConfig.class);
     when(mockConfig.overrideBreakingConfigsWithOriginalValues(any())).thenReturn(mergedConfig);
+    when(mockEngine.getKsqlConfig()).thenReturn(mockConfig);
     givenMockPlannedQuery();
 
     // When:

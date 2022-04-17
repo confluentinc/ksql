@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
@@ -35,7 +34,6 @@ import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -111,6 +109,8 @@ public class InteractiveStatementExecutor {
    * @param queuedCommand The command to be executed
    */
   void handleStatement(final QueuedCommand queuedCommand) {
+    throwIfNotConfigured();
+
     handleStatementWithTerminatedQueries(
         queuedCommand.getAndDeserializeCommand(commandDeserializer),
         queuedCommand.getAndDeserializeCommandId(),
@@ -122,6 +122,8 @@ public class InteractiveStatementExecutor {
   }
 
   void handleRestore(final QueuedCommand queuedCommand) {
+    throwIfNotConfigured();
+
     handleStatementWithTerminatedQueries(
         queuedCommand.getAndDeserializeCommand(commandDeserializer),
         queuedCommand.getAndDeserializeCommandId(),
@@ -162,6 +164,13 @@ public class InteractiveStatementExecutor {
                              final CommandStatus status) {
     statusStore.put(commandId, status);
     commandStatusFuture.ifPresent(s -> s.setFinalStatus(status));
+  }
+
+  private void throwIfNotConfigured() {
+    if (!ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps()
+        .containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new IllegalStateException("No initialized");
+    }
   }
 
   /**

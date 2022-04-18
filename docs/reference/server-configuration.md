@@ -525,6 +525,17 @@ becomes `_confluent-ksql-default__command_topic`).
     separator character of some form, like a dash or underscore, as
     this makes the internal topic names easier to read.
 
+## `ksql.service.name`
+
+**Per query:** yes
+
+The service NAME of the ksqlDB server. This is used for RBAC authorization
+instead of the ksqlDB service ID above. This requires each ksqlDB cluster
+to have a mandatory and unique name within the same logical {{ site.ak }} 
+cluster.
+
+By default, the service NAME of KsqlDB servers is `default_service_name`.
+
 ## `ksql.source.table.materialization.enabled`
 
 Controls whether the SOURCE table feature is enabled. If you specify the SOURCE

@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -504,61 +503,31 @@ public class InsertValuesExecutor {
       final String topicName,
       final boolean isKey
   ) {
-    // Only SR information, such as schema ids and full names are required, which are available
-    // for SR formats.
+    // Just add missing fields required for serialization SR formats
     final Format format = FormatFactory.fromName(formatInfo.getFormat());
     if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       return formatInfo;
     }
 
-    final Set<String> supportedProperties = format.getSupportedProperties();
+    // If SCHEMA_ID is not specified, then add the SUBJECT_NAME which helps the serializer
+    // to identify the schema to fetch from SR but without using the restrictions we
+    // have with SCHEMA_ID
+    if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
+      final Set<String> supportedProperties = format.getSupportedProperties();
 
-    final ImmutableMap.Builder propertiesBuilder = ImmutableMap.builder();
-    propertiesBuilder.putAll(formatInfo.getProperties());
-
-    // The FULL_SCHEMA_NAME allows the serializer to choose the schema definition
-    if (supportedProperties.contains(ConnectProperties.FULL_SCHEMA_NAME)) {
-      if (!formatInfo.getProperties().containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
-        SchemaRegistryUtil.getLatestParsedSchema(srClient, topicName, isKey).map(ParsedSchema::name)
-            .ifPresent(schemaName ->
-                propertiesBuilder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName));
-      }
-    }
-
-    // The SCHEMA_ID is used to by the Serde factory (i.e. ProtobufSerdeFactory) to
-    // get the SR schema and extract the full schema name in case multiple schema definitions
-    // are available.
-    if (supportedProperties.contains(ConnectProperties.SCHEMA_ID)) {
-      if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
-        // Inject the SCHEMA_ID only if the format to serialize is Protobuf and if the SR schema
-        // has multiple schema definitions. This ensures that the serializer does not attempt to
-        // register a new schema during the object serialization.
-        if (format instanceof ProtobufFormat) {
-          final List<String> schemaNames =
-              SchemaRegistryUtil.getLatestParsedSchema(srClient, topicName, isKey)
-                  .map(format::schemaFullNames)
-                  .orElse(ImmutableList.of());
-
-          if (schemaNames.size() > 1) {
-            SchemaRegistryUtil.getLatestSchemaId(srClient, topicName, isKey)
-                .ifPresent(schemaId ->
-                    propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId)));
-          }
-        }
-      }
-
-      // If SCHEMA_ID was not added in the previous step, then use the SUBJECT_NAME
-      // Using a SUBJECT_NAME will help the serializer to identify which schema to fetch from SR
-      // but without using the restrictions we have with SCHEMA_ID
+      // Add SUBJECT_NAME only on supported SR formats
       if (supportedProperties.contains(ConnectProperties.SUBJECT_NAME)) {
-        if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
-          propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,
-              KsqlConstants.getSRSubject(topicName, isKey));
-        }
+        final ImmutableMap.Builder propertiesBuilder = ImmutableMap.builder();
+        propertiesBuilder.putAll(formatInfo.getProperties());
+
+        propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,
+            KsqlConstants.getSRSubject(topicName, isKey));
+
+        return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
       }
     }
 
-    return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
+    return formatInfo;
   }
 
   private static void maybeThrowSchemaRegistryAuthError(

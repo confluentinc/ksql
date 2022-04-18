@@ -318,7 +318,6 @@ public class InsertValuesExecutor {
     ensureKeySchemasMatch(physicalSchema.keySchema(), dataSource, serviceContext);
 
     final FormatInfo formatInfo = addSerializerMissingFormatFields(
-        serviceContext.getSchemaRegistryClient(),
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
         dataSource.getKafkaTopicName(),
         true
@@ -372,7 +371,6 @@ public class InsertValuesExecutor {
     final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
 
     final FormatInfo formatInfo = addSerializerMissingFormatFields(
-        schemaRegistryClient,
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
         dataSource.getKafkaTopicName(),
         true
@@ -453,7 +451,6 @@ public class InsertValuesExecutor {
     );
 
     final FormatInfo formatInfo = addSerializerMissingFormatFields(
-        serviceContext.getSchemaRegistryClient(),
         dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
         dataSource.getKafkaTopicName(),
         false
@@ -498,7 +495,6 @@ public class InsertValuesExecutor {
    * The best option was to dynamically look at the SR schema during an INSERT statement.
    */
   private static FormatInfo addSerializerMissingFormatFields(
-      final SchemaRegistryClient srClient,
       final FormatInfo formatInfo,
       final String topicName,
       final boolean isKey

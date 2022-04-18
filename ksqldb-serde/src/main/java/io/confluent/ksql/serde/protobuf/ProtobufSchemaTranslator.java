@@ -46,7 +46,12 @@ public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
     Objects.requireNonNull(properties, "properties");
 
     this.baseConfigs = ImmutableMap.of(
-        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives());
+        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives(),
+
+        // This flag is needed so that the schema translation in toConnectRow() adds the
+        // package name information to the row schema
+        ProtobufDataConfig.ENHANCED_PROTOBUF_SCHEMA_SUPPORT_CONFIG, "true"
+    );
     this.fullNameSchema = ignoreDefaultName(properties.getFullSchemaName());
     this.updatedConfigs = baseConfigs;
     this.protobufData = new ProtobufData(new ProtobufDataConfig(baseConfigs));

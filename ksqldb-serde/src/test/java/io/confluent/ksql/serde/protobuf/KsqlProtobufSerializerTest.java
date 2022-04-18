@@ -307,7 +307,8 @@ public class KsqlProtobufSerializerTest {
     // Then:
     final Message deserialized = deserialize(bytes);
 
-    assertThat(deserialized.getDescriptorForType().getFullName(), is(schemaName));
+    assertThat(deserialized.getDescriptorForType().getFullName(),
+        is(schemaNamespace + "." + schemaName));
     assertThat(deserialized.toString(), is("field0: \"foobar\"\n"));
   }
 

@@ -81,7 +81,9 @@ public final class PropertiesUtil {
   }
 
   /**
-   * Load a list of property files.
+   * Load a list of property files. Properties are loaded from the first entry
+   * in the list to the last, meaning that any properties specified in later
+   * files take precedence.
    *
    * @param propertiesFiles the property files to load.
    * @return an immutable map of the loaded properties.

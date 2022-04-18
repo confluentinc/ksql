@@ -1,5 +1,21 @@
+/*
+ * Copyright 2022 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.rest.server;
 
+import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.server.PreconditionVerticle;
 import io.confluent.ksql.api.util.ApiServerUtils;
@@ -7,7 +23,6 @@ import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.util.FileWatcher;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
-import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.ClientAuth;
@@ -24,13 +39,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PreconditionServer {
-  private static final Logger log = LoggerFactory.getLogger(io.confluent.ksql.api.server.Server.class);
+  private static final Logger log
+      = LoggerFactory.getLogger(io.confluent.ksql.api.server.Server.class);
 
   private final Vertx vertx;
   private final KsqlRestConfig config;
   private final Set<String> deploymentIds = new HashSet<>();
   private final ServerState serverState;
-  private final List<URI> listeners = new ArrayList<>();
+  private final List<URI> listeners;
   private FileWatcher fileWatcher;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -42,10 +58,7 @@ public class PreconditionServer {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.serverState = Objects.requireNonNull(serverState);
-    if (!OpenSsl.isAvailable()) {
-      log.warn("OpenSSL does not appear to be installed. ksqlDB will fall back to using the JDK "
-          + "TLS implementation. OpenSSL is recommended for better performance.");
-    }
+    this.listeners = ImmutableList.copyOf(ApiServerUtils.parseListeners(config));
   }
 
   public synchronized void start() {
@@ -57,13 +70,12 @@ public class PreconditionServer {
 
     fileWatcher = ApiServerUtils.configureTlsCertReload(config, this::restart);
 
-    final List<URI> listenUris = ApiServerUtils.parseListeners(config);
 
     final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
     log.debug("Deploying " + instances + " instances of server verticle");
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
-    for (URI listener : listenUris) {
+    for (URI listener : listeners) {
 
       for (int i = 0; i < instances; i++) {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
@@ -118,8 +130,11 @@ public class PreconditionServer {
       throw new KsqlException("Failure in stopping API server", e);
     }
     deploymentIds.clear();
-    listeners.clear();
     log.info("API server stopped");
+  }
+
+  public List<URI> getListeners() {
+    return ImmutableList.copyOf(listeners);
   }
 
   private void restart() {

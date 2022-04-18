@@ -37,7 +37,9 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlServerMain {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
 
@@ -96,7 +98,7 @@ public class KsqlServerMain {
   }
 
   void tryStartApp() throws Exception {
-    boolean shutdown = runExecutable(preconditionChecker);
+    final boolean shutdown = runExecutable(preconditionChecker);
     if (shutdown) {
       return;
     }

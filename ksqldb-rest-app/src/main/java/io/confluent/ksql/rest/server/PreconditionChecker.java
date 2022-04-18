@@ -35,6 +35,7 @@ import io.confluent.ksql.util.RetryUtil;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -50,7 +51,10 @@ import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class PreconditionChecker implements Executable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
   private static final Logger LOG = LoggerFactory.getLogger(PreconditionChecker.class);
 
   final ServiceContext serviceContext;
@@ -63,7 +67,7 @@ public class PreconditionChecker implements Executable {
   final ServerState serverState;
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
 
-  PreconditionChecker(
+  public PreconditionChecker(
       final Supplier<Map<String, String>> propertiesLoader,
       final ServerState serverState
   ) {
@@ -120,6 +124,11 @@ public class PreconditionChecker implements Executable {
         .anyMatch(Optional::isPresent);
   }
 
+  /**
+   * Maybe start a precondition server. A precondition server is start if any of the configured
+   * preconditions fail. Otherwise, no server is started. The precondition server responds to all
+   * requests with 503, other than the liveness and readiness probes.
+   */
   @Override
   public void startAsync() {
     if (!shouldCheckPreconditions()) {
@@ -137,11 +146,16 @@ public class PreconditionChecker implements Executable {
 
   @Override
   public void shutdown() {
-    if (server.started())
+    if (server.started()) {
       server.stop();
+    }
     vertx.close();
   }
 
+  /**
+   * Wait until either all preconditions evaluate successfully, or the process is asked
+   * to exit (by calling notifyTermianted)
+   */
   @Override
   public void awaitTerminated() {
     final List<Predicate<Exception>> predicates = ImmutableList.of(
@@ -157,6 +171,14 @@ public class PreconditionChecker implements Executable {
     );
   }
 
+  public List<URI> getListeners() {
+    return server.getListeners();
+  }
+
+  /**
+   * Checks all preconditions. This is called first to decide whether or not the precondition
+   * server needs to run. Then, it's called indefinitely until all preconditions pass.
+   */
   private void checkPreconditions() {
     LOG.info("Checking preconditions...");
     for (final KsqlServerPrecondition precondition : preconditions) {

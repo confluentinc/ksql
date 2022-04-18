@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,26 +13,28 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server;
+package io.confluent.ksql.rest.integration;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.KsqlServerPrecondition;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
-public interface KsqlServerPrecondition {
-  /**
-   * Check a precondition for initializing the KSQL server.
-   *
-   * @param properties The current ksql server properties (raw)
-   * @param serviceContext The KSQL server context for accessing external serivces
-   * @return Optional.empty() if precondition check passes, non-empty KsqlErrorMessage object if the
-   *         check does not pass.
-   */
-  Optional<KsqlErrorMessage> checkPrecondition(
+public class PreconditionCheckerIntegrationTestPrecondition implements KsqlServerPrecondition {
+
+  static AtomicReference<Supplier<Optional<KsqlErrorMessage>>> ACTION
+      = new AtomicReference<>(Optional::empty);
+
+  @Override
+  public Optional<KsqlErrorMessage> checkPrecondition(
       Map<String, String> properties,
       ServiceContext serviceContext,
       KafkaTopicClient internalTopicClient
-  );
+  ) {
+    return ACTION.get().get();
+  }
 }

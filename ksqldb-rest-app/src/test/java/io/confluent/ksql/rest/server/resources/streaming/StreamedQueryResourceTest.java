@@ -227,6 +227,9 @@ public class StreamedQueryResourceTest {
         anyBoolean()))
         .thenReturn(queryMetadataHolder);
     when(mockKsqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of(
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "a-server"
+    ));
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 

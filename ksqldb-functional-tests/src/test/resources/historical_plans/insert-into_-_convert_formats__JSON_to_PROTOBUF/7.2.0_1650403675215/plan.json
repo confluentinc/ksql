@@ -1,17 +1,34 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM SOURCE (K STRING KEY, A BIGINT, B STRING) WITH (KAFKA_TOPIC='source', KEY_FORMAT='KAFKA', VALUE_FORMAT='PROTOBUF');",
+    "statementText" : "CREATE STREAM SOURCE (K STRING KEY, A BIGINT, B STRING) WITH (KAFKA_TOPIC='source', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "SOURCE",
       "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
-      "timestampColumn" : null,
       "topicName" : "source",
       "formats" : {
         "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      },
+      "orReplace" : false,
+      "isSource" : false
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM SINK (K STRING KEY, A BIGINT, B STRING) WITH (KAFKA_TOPIC='sink', KEY_FORMAT='KAFKA', VALUE_FORMAT='PROTOBUF');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "SINK",
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "topicName" : "sink",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
         },
         "valueFormat" : {
           "format" : "PROTOBUF",
@@ -20,39 +37,12 @@
           }
         }
       },
-      "windowInfo" : null,
       "orReplace" : false,
       "isSource" : false
-    },
-    "queryPlan" : null
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM SINK (K STRING KEY, A BIGINT, B STRING) WITH (KAFKA_TOPIC='sink', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "SINK",
-      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
-      "timestampColumn" : null,
-      "topicName" : "sink",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "JSON",
-          "properties" : { }
-        }
-      },
-      "windowInfo" : null,
-      "orReplace" : false,
-      "isSource" : false
-    },
-    "queryPlan" : null
+    }
   }, {
     "@type" : "ksqlPlanV1",
     "statementText" : "INSERT INTO SINK SELECT * FROM SOURCE;",
-    "ddlCommand" : null,
     "queryPlan" : {
       "sources" : [ "SOURCE" ],
       "sink" : "SINK",
@@ -74,39 +64,32 @@
             "topicName" : "source",
             "formats" : {
               "keyFormat" : {
-                "format" : "KAFKA",
-                "properties" : { }
+                "format" : "KAFKA"
               },
               "valueFormat" : {
-                "format" : "PROTOBUF",
-                "properties" : {
-                  "unwrapPrimitives" : "true"
-                }
+                "format" : "JSON"
               }
             },
-            "timestampColumn" : null,
             "sourceSchema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
             "pseudoColumnVersion" : 1
           },
           "keyColumnNames" : [ "K" ],
-          "selectedKeys" : null,
           "selectExpressions" : [ "A AS A", "B AS B" ]
         },
         "formats" : {
           "keyFormat" : {
-            "format" : "KAFKA",
-            "properties" : { }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON",
-            "properties" : { }
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
           }
         },
-        "topicName" : "sink",
-        "timestampColumn" : null
+        "topicName" : "sink"
       },
-      "queryId" : "INSERTQUERY_0",
-      "runtimeId" : null
+      "queryId" : "INSERTQUERY_0"
     }
   } ],
   "configs" : {
@@ -194,6 +177,7 @@
     "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
     "ksql.query.pull.interpreter.enabled" : "true",
     "ksql.query.pull.limit.clause.enabled" : "true",
+    "ksql.connect.error.handler" : null,
     "ksql.query.pull.router.thread.pool.size" : "50",
     "ksql.query.push.v2.continuation.tokens.enabled" : "false",
     "ksql.query.retry.backoff.max.ms" : "900000",

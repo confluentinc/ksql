@@ -1,9 +1,18 @@
 {
-  "version" : "7.3.0",
-  "timestamp" : 1650313688267,
+  "version" : "7.2.0",
+  "timestamp" : 1650403675215,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "INSERTQUERY_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "INSERTQUERY_0.SINK" : {
       "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
       "keyFormat" : {
         "format" : "KAFKA"
@@ -14,19 +23,10 @@
           "unwrapPrimitives" : "true"
         }
       }
-    },
-    "INSERTQUERY_0.SINK" : {
-      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
-      "keyFormat" : {
-        "format" : "KAFKA"
-      },
-      "valueFormat" : {
-        "format" : "JSON"
-      }
     }
   },
   "testCase" : {
-    "name" : "convert formats: PROTOBUF to JSON",
+    "name" : "convert formats: JSON to PROTOBUF",
     "inputs" : [ {
       "topic" : "source",
       "key" : "0",
@@ -79,16 +79,16 @@
     } ],
     "topics" : [ {
       "name" : "sink",
-      "replicas" : 1,
-      "numPartitions" : 4
-    }, {
-      "name" : "source",
       "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 A = 1;\n  string B = 2;\n}\n",
       "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
+    }, {
+      "name" : "source",
+      "replicas" : 1,
+      "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM SOURCE (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='source', value_format='PROTOBUF');", "CREATE STREAM SINK (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='sink', value_format='JSON');", "INSERT INTO SINK SELECT * FROM SOURCE;" ],
+    "statements" : [ "CREATE STREAM SOURCE (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='source', value_format='JSON');", "CREATE STREAM SINK (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='sink', value_format='PROTOBUF');", "INSERT INTO SINK SELECT * FROM SOURCE;" ],
     "post" : {
       "sources" : [ {
         "name" : "SINK",
@@ -97,7 +97,7 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "valueFormat" : "JSON",
+        "valueFormat" : "PROTOBUF",
         "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
@@ -108,7 +108,7 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "valueFormat" : "PROTOBUF",
+        "valueFormat" : "JSON",
         "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
@@ -120,6 +120,15 @@
             "format" : "KAFKA"
           },
           "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "sink",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
             "format" : "PROTOBUF",
             "properties" : {
               "unwrapPrimitives" : "true"
@@ -127,15 +136,6 @@
           },
           "partitions" : 4,
           "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 A = 1;\n  string B = 2;\n}\n"
-        }, {
-          "name" : "sink",
-          "keyFormat" : {
-            "format" : "KAFKA"
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

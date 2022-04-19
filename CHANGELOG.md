@@ -38,7 +38,6 @@
 * pass DCN_NULLPOINTER_EXCEPTION spotbugs error ([#8775](https://github.com/confluentinc/ksql/pull/8775)) ([afd7fb1](https://github.com/confluentinc/ksql/commit/afd7fb1c72dc9ed52be3c991213277a401408bca))
 * prevent hanging stream pull queries on truncated topics ([#8740](https://github.com/confluentinc/ksql/pull/8740)) ([d66107c](https://github.com/confluentinc/ksql/commit/d66107ced9809b852e6c75935aa623499a793164))
 * re-order cache usage error ([#8909](https://github.com/confluentinc/ksql/pull/8909)) ([336c690](https://github.com/confluentinc/ksql/commit/336c690f81932fe263e224344a671fe71b85a0ab))
-* recreating old queries in the old runtime will still use the old runtimes ([#8704](https://github.com/confluentinc/ksql/pull/8704)) ([e248966](https://github.com/confluentinc/ksql/commit/e248966325099ba6043a0e3f9221be72e406813a))
 * register schema within sandbox ([#8614](https://github.com/confluentinc/ksql/pull/8614)) ([ba572e0](https://github.com/confluentinc/ksql/commit/ba572e0e5bd8873e538d40a58153ba345eb1573d)), closes [#1394](https://github.com/confluentinc/ksql/issues/1394)
 * reinstate the old KsqlRestClient.create overload ([#8761](https://github.com/confluentinc/ksql/pull/8761)) ([ee4a1bc](https://github.com/confluentinc/ksql/commit/ee4a1bcf4ae4487e01bd4a6341feac402ffe6ddc))
 * resolve schema registry issue for pull query  ([#8876](https://github.com/confluentinc/ksql/pull/8876)) ([6a1c2ae](https://github.com/confluentinc/ksql/commit/6a1c2ae36d1257b050798b2a1f3cdbec4b68470d))

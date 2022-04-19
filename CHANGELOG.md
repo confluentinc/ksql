@@ -7,7 +7,6 @@
 * add java client support for push query v2 ALOS through continue method ([#8785](https://github.com/confluentinc/ksql/pull/8785)) ([11ede7c](https://github.com/confluentinc/ksql/commit/11ede7c1fb9169496e9db42459105b98084bdce7))
 * add cleanup service metrics ([#8779](https://github.com/confluentinc/ksql/pull/8779)) ([1cb7846](https://github.com/confluentinc/ksql/commit/1cb7846715d5055e3aad936bcac90b37d51c9b38))
 * add rate-limiting to ksql command topic ([#8809](https://github.com/confluentinc/ksql/pull/8809)) ([b2f1540](https://github.com/confluentinc/ksql/commit/b2f15400a179126a73f9ae4b7a5a0abf4db8735d))
-* allow for only Gen 1 create or replace queries with server level configs via rest api, bars all gen 2 queries ([#8711](https://github.com/confluentinc/ksql/pull/8711)) ([4413f85](https://github.com/confluentinc/ksql/commit/4413f85e42c8b638bb6dc86010e6cafcd341af5b))
 * allow users to specify custom migrations dir location ([#8844](https://github.com/confluentinc/ksql/pull/8844)) ([cbe447e](https://github.com/confluentinc/ksql/commit/cbe447e5506f93c2c425794c9be322be8ea7a6a9))
 * cleanup transient query resources ([#8694](https://github.com/confluentinc/ksql/pull/8694)) ([24b2a7a](https://github.com/confluentinc/ksql/commit/24b2a7a2297bddd94c86c2a4e7b5a6a92298825e))
 * create command topic with command topic configs ([#8742](https://github.com/confluentinc/ksql/pull/8742)) ([ea5d6d7](https://github.com/confluentinc/ksql/commit/ea5d6d74ac159ef1c17533563f279dd0060fd494))

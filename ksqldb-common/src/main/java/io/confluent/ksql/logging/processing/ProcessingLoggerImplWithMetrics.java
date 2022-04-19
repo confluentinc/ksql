@@ -15,22 +15,23 @@
 
 package io.confluent.ksql.logging.processing;
 
+import java.time.Instant;
 import java.util.Map;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
+
+import org.apache.kafka.common.metrics.*;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 
 public class ProcessingLoggerImplWithMetrics extends ProcessingLoggerImpl {
   public static final String PROCESS_LOG_ERRORS = "processing-log-errors-sum";
   public static final String PROCESSING_LOG_METRICS_GROUP_NAME = "processing-log-metrics";
 
-  private final Sensor totalProcessingErrors;
+  private final CumulativeSum sumOfErrors;
 
   public ProcessingLoggerImplWithMetrics(
       final ProcessingLoggerWithMetricsInstantiator instantiator
   ) {
     super(instantiator.getConfig(), instantiator.getInner());
-    this.totalProcessingErrors = configureTotalProcessingErrors(
+    this.sumOfErrors = configureTotalProcessingErrors(
         instantiator.getMetrics(),
         instantiator.getCustomMetricsTags()
     );
@@ -38,24 +39,34 @@ public class ProcessingLoggerImplWithMetrics extends ProcessingLoggerImpl {
 
   @Override
   public void error(final ErrorMessage msg) {
-    // everytime we record, the value here is doubled
-    totalProcessingErrors.record(0.5);
+    final Instant instant = Instant.now();
+    sumOfErrors.record(new MetricConfig(), 1.0, instant.getEpochSecond());
     super.error(msg);
   }
 
-  private static Sensor configureTotalProcessingErrors(
+  private static CumulativeSum configureTotalProcessingErrors(
       final Metrics metrics,
       final Map<String, String> metricsTags
   ) {
     final String description = "The total number of errors emitted by the processing log.";
-    final Sensor sensor = metrics.sensor(PROCESS_LOG_ERRORS);
-    sensor.add(
-        metrics.metricName(
-            PROCESS_LOG_ERRORS,
-            PROCESSING_LOG_METRICS_GROUP_NAME,
-            description,
-            metricsTags),
-        new CumulativeSum());
-    return sensor;
+    CumulativeSum sum = new CumulativeSum();
+    final KafkaMetric metric = metrics.metric(metrics.metricName(
+          PROCESS_LOG_ERRORS,
+          PROCESSING_LOG_METRICS_GROUP_NAME,
+          description,
+          metricsTags));
+
+    // If metric doesn't exist, add the metric. If it already exists, grab the CumulativeSum measurable
+    // so that it can be used in this particular processing logger instance.
+    if (metric == null) {
+      metrics.addMetric(metrics.metricName(
+          PROCESS_LOG_ERRORS,
+          PROCESSING_LOG_METRICS_GROUP_NAME,
+          description,
+          metricsTags), sum);
+    } else {
+      sum = (CumulativeSum) metric.measurable();
+    }
+    return sum;
   }
 }

@@ -29,7 +29,7 @@ public final class ProtobufSchemas {
    * extractions are not supported.
    */
   static Schema schemaWithName(final Schema schema, final String schemaName) {
-    if (schemaName == null) {
+    if (schemaName == null || schema.type() != Schema.Type.STRUCT) {
       return schema;
     }
 

@@ -47,7 +47,6 @@
 * Set the sslFactory properly for the SR REST client. ([#8830](https://github.com/confluentinc/ksql/pull/8830)) ([e69a545](https://github.com/confluentinc/ksql/commit/e69a545a7765e9056da223075d4336d482b36614))
 * update rate limiting test so it's not flaky ([#8872](https://github.com/confluentinc/ksql/pull/8872)) ([466f8fe](https://github.com/confluentinc/ksql/commit/466f8fe92b5ec18209e37c511a91b633d07ca96e))
 * update restore command topic tool to work with command topic configs ([#8802](https://github.com/confluentinc/ksql/pull/8802)) ([371b200](https://github.com/confluentinc/ksql/commit/371b200d92b9fd6083bb453af74a31d4b754ecf2))
-* when a isolated query is restarted then it should stay isolated ([#8713](https://github.com/confluentinc/ksql/pull/8713)) ([33c81f8](https://github.com/confluentinc/ksql/commit/33c81f8e9eac63a8a457f1e71e9b03b32866479b))
 
 ## [0.24.0](https://github.com/confluentinc/ksql/releases/tag/v0.24.0) (2022-02-11)
 

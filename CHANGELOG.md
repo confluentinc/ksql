@@ -25,7 +25,6 @@
 * Adds error handling for nested functions ([#8850](https://github.com/confluentinc/ksql/pull/8850)) ([2a60269](https://github.com/confluentinc/ksql/commit/2a60269cadddc8a11522d103d800ae2a6769d690))
 * Apply the ExtensionSecurityManager to UDAFs ([#8776](https://github.com/confluentinc/ksql/pull/8776)) ([a37688c](https://github.com/confluentinc/ksql/commit/a37688cdd33428c1f5c4e67bbc776835f72b0403))
 * bug preventing decimals in (-1, 1) from being inserted / queried ([#8720](https://github.com/confluentinc/ksql/pull/8720)) ([de8284a](https://github.com/confluentinc/ksql/commit/de8284a127de323567276eb6daa2f963a30a6352))
-* clean up mistaken topic names ([#8857](https://github.com/confluentinc/ksql/pull/8857)) ([53ddafe](https://github.com/confluentinc/ksql/commit/53ddafe72dd8b2d284e9575cff856680b4280bba))
 * CLI should return non-zero error code on failure ([#8892](https://github.com/confluentinc/ksql/pull/8892)) ([238f4fd](https://github.com/confluentinc/ksql/commit/238f4fdd929541ccdd4aeee45cd331964f73b9b3))
 * coerce property values to correct type ([#8765](https://github.com/confluentinc/ksql/pull/8765)) ([7f7a076](https://github.com/confluentinc/ksql/commit/7f7a07619a6ed28f022980ad078607502f4a1f8d))
 * decrease default number of shared runtimes ([#8889](https://github.com/confluentinc/ksql/pull/8889)) ([87bc4b2](https://github.com/confluentinc/ksql/commit/87bc4b2b9e96b923a19497e0ccb8dc5b4e5adb91))

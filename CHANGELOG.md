@@ -27,7 +27,6 @@
 * bug preventing decimals in (-1, 1) from being inserted / queried ([#8720](https://github.com/confluentinc/ksql/pull/8720)) ([de8284a](https://github.com/confluentinc/ksql/commit/de8284a127de323567276eb6daa2f963a30a6352))
 * CLI should return non-zero error code on failure ([#8892](https://github.com/confluentinc/ksql/pull/8892)) ([238f4fd](https://github.com/confluentinc/ksql/commit/238f4fdd929541ccdd4aeee45cd331964f73b9b3))
 * coerce property values to correct type ([#8765](https://github.com/confluentinc/ksql/pull/8765)) ([7f7a076](https://github.com/confluentinc/ksql/commit/7f7a07619a6ed28f022980ad078607502f4a1f8d))
-* decrease default number of shared runtimes ([#8889](https://github.com/confluentinc/ksql/pull/8889)) ([87bc4b2](https://github.com/confluentinc/ksql/commit/87bc4b2b9e96b923a19497e0ccb8dc5b4e5adb91))
 * do not include schema id in session config ([#8869](https://github.com/confluentinc/ksql/pull/8869)) ([5ddb852](https://github.com/confluentinc/ksql/commit/5ddb852afc37939baa72d9cf6e55dfde9d1e6400))
 * Ensures response end handler is invoked just once ([#8849](https://github.com/confluentinc/ksql/pull/8849)) ([a2efcc5](https://github.com/confluentinc/ksql/commit/a2efcc53f05de45daf0724ff7c4e1467f2548224))
 * Fix bugs in sample standard deviation UDAF ([#8728](https://github.com/confluentinc/ksql/pull/8728)) ([b2f993b](https://github.com/confluentinc/ksql/commit/b2f993b860a4c8075d23f8a77a828eae12af499f))

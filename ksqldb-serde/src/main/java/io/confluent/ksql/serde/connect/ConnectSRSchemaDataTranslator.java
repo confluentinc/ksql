@@ -35,16 +35,15 @@ public class ConnectSRSchemaDataTranslator extends ConnectDataTranslator {
     super(schema);
   }
 
-  protected void validate(final Schema originalSchema) {
+  protected void validate(final Schema originalSchema, final Schema connectSchema) {
     if (originalSchema.type() != getSchema().type()) {
       return;
     }
     if (originalSchema.type() != Type.STRUCT) {
       return;
     }
-    final Schema schema = getSchema();
     for (final Field field : originalSchema.fields()) {
-      if (!schema.fields().stream().anyMatch(f -> field.name().equals(f.name()))) {
+      if (!connectSchema.fields().stream().anyMatch(f -> field.name().equals(f.name()))) {
         throw new KsqlException(
             "Schema from Schema Registry misses field with name: " + field.name());
       }
@@ -59,8 +58,9 @@ public class ConnectSRSchemaDataTranslator extends ConnectDataTranslator {
      * some format like Avro, create new subclass to handle
      */
     if (ksqlData instanceof Struct) {
-      validate(((Struct) ksqlData).schema());
       final Schema schema = getSchema();
+      validate(((Struct) ksqlData).schema(), schema);
+
       final Struct struct = new Struct(schema);
       final Struct source = (Struct) ksqlData;
 

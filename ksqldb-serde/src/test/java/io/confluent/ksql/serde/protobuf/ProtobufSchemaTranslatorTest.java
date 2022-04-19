@@ -35,6 +35,35 @@ public class ProtobufSchemaTranslatorTest {
   private ProtobufSchemaTranslator schemaTranslator;
 
   @Test
+  public void shouldAddFullNameToConnectSchema() {
+    // Given:
+    schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of(
+        ProtobufProperties.FULL_SCHEMA_NAME, "io.test.proto.Customer"
+    )));
+    final ProtobufSchema protoSchema = new ProtobufSchema("syntax = \"proto3\";\n" +
+        "package io.test.proto;\n" +
+        "\n" +
+        "message Customer {\n" +
+        "  int32 ID = 1;\n" +
+        "  CustomerAddress ADDRESS = 2;\n" +
+        "  \n" +
+        "  message CustomerAddress {\n" +
+        "  \t\tstring STREET = 1;\n" +
+        "  };\n" +
+        "}");
+
+    // When:
+    final Schema connectSchema = schemaTranslator.toConnectSchema(protoSchema);
+    final ParsedSchema parsedSchema = schemaTranslator.fromConnectSchema(connectSchema);
+
+    // Then:
+    assertThat(connectSchema.name(), is("io.test.proto.Customer"));
+    assertThat(connectSchema.field("ADDRESS").schema().name(),
+        is("io.test.proto.Customer.CustomerAddress"));
+    assertThat(parsedSchema, is(protoSchema));
+  }
+
+  @Test
   public void shouldUnwrapPrimitives() {
     // Given:
     givenUnwrapPrimitives();
@@ -113,7 +142,7 @@ public class ProtobufSchemaTranslatorTest {
   @Test
   public void shouldReturnParsedSchemaWithDefaultFullSchemaName() {
     // Given:
-    givenWrapPrimitives();
+    givenSchemaFullName("ConnectDefault1");
     final Schema connectSchema =  SchemaBuilder.struct()
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .field("array", SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA))

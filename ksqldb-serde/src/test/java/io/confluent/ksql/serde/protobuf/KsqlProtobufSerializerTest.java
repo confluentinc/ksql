@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.protobuf;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
@@ -25,7 +26,6 @@ import com.google.type.TimeOfDay;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.nio.ByteBuffer;
 import java.util.Optional;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -58,7 +58,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 @SuppressWarnings({"SameParameterValue", "rawtypes", "unchecked"})
@@ -172,8 +171,111 @@ public class KsqlProtobufSerializerTest {
   }
 
   @Test
-  public void shouldUseSchemaNameFromPropertyIfExists() {
+  public void shouldUseNestedStructNames() throws Exception {
     // Given:
+    final String schemaName = "TestSchemaName1";
+    final String schemaNamespace = "com.test.namespace";
+
+    givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        parseProtobufSchema(
+            "syntax = \"proto3\";\n"
+                + "\n"
+                + "package com.test.namespace;\n"
+                + "\n"
+                + "message TestSchemaName1 {\n "
+                + "  StructName1 field0 = 1;\n"
+                + "  repeated StructName1 field1 = 2;\n"
+                + "  repeated MapEntry field2 = 3;\n"
+                + "\n"
+                + "  message StructName1 {\n"
+                + "     string field0_1 = 1;\n"
+                + "  }\n"
+                + " message MapEntry {\n"
+                + "     string key = 1;\n"
+                + "     StructName1 value = 2;\n"
+                + " }\n"
+                + "}\n"
+        ));
+
+
+    final Schema internalStructSchema = SchemaBuilder.struct()
+        .field("field0_1", OPTIONAL_STRING_SCHEMA)
+        .build();
+
+    final Schema internalArraySchema = SchemaBuilder.array(internalStructSchema).build();
+
+    final Schema internalMapSchema = SchemaBuilder.map(
+        OPTIONAL_STRING_SCHEMA,
+        internalStructSchema
+    ).build();
+
+    final Schema ksqlRecordSchema = SchemaBuilder.struct()
+        .field("field0", internalStructSchema)
+        .field("field1", internalArraySchema)
+        .field("field2", internalMapSchema)
+        .build();
+
+    final Struct ksqlRecord = new Struct(ksqlRecordSchema)
+        .put("field0", new Struct(internalStructSchema)
+            .put("field0_1", "foobar"))
+        .put("field1", ImmutableList.of(
+            new Struct(internalStructSchema).put("field0_1", "arrValue1"),
+            new Struct(internalStructSchema).put("field0_1", "arrValue2")))
+        .put("field2", ImmutableMap.of(
+            "key1",
+            new Struct(internalStructSchema).put("field0_1", "mapValue1")
+        ));
+
+    final Serializer<Struct> serializer =
+        new ProtobufSerdeFactory(
+            ImmutableMap.of(
+                ConnectProperties.FULL_SCHEMA_NAME, schemaNamespace + "." + schemaName,
+                ConnectProperties.SUBJECT_NAME, SOME_TOPIC + "-value")
+        ).createSerde(
+            (ConnectSchema) ksqlRecordSchema,
+            ksqlConfig,
+            () -> schemaRegistryClient,
+            Struct.class,
+            false).serializer();
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
+
+    // Then:
+    final Message deserialized = deserialize(bytes);
+
+    assertThat(deserialized.toString(), is("field0 {\n" +
+        "  field0_1: \"foobar\"\n" +
+        "}\n" +
+        "field1 {\n" +
+        "  field0_1: \"arrValue1\"\n" +
+        "}\n" +
+        "field1 {\n" +
+        "  field0_1: \"arrValue2\"\n" +
+        "}\n" +
+        "field2 {\n" +
+        "  key: \"key1\"\n" +
+        "  value {\n" +
+        "    field0_1: \"mapValue1\"\n" +
+        "  }\n" +
+        "}\n"));
+  }
+
+  @Test
+  public void shouldUseSchemaNameFromPropertyIfExists() throws Exception {
+    // Given:
+    givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        parseProtobufSchema(
+            "syntax = \"proto3\";\n"
+                + "\n"
+                + "package com.test.namespace;\n"
+                + "\n"
+                + "message TestSchemaName1 {\n "
+                + "  string field0 = 1;\n"
+                + "}"
+                + "\n"
+        ));
+
     final String schemaName = "TestSchemaName1";
     final String schemaNamespace = "com.test.namespace";
 
@@ -190,7 +292,8 @@ public class KsqlProtobufSerializerTest {
     final Serializer<Struct> serializer =
         new ProtobufSerdeFactory(
             ImmutableMap.of(
-                ConnectProperties.FULL_SCHEMA_NAME, schemaNamespace + "." + schemaName)
+                ConnectProperties.FULL_SCHEMA_NAME, schemaNamespace + "." + schemaName,
+                ConnectProperties.SUBJECT_NAME, SOME_TOPIC + "-value")
         ).createSerde(
             (ConnectSchema) ksqlRecordSchema,
             ksqlConfig,
@@ -206,6 +309,7 @@ public class KsqlProtobufSerializerTest {
 
     assertThat(deserialized.getDescriptorForType().getFullName(),
         is(schemaNamespace + "." + schemaName));
+    assertThat(deserialized.toString(), is("field0: \"foobar\"\n"));
   }
 
   @Test

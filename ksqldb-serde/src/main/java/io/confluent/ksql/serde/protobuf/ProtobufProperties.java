@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.protobuf;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.serde.connect.ConnectProperties;
@@ -29,7 +30,8 @@ public class ProtobufProperties extends ConnectProperties {
   static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(
       FULL_SCHEMA_NAME,
       SCHEMA_ID,
-      UNWRAP_PRIMITIVES
+      UNWRAP_PRIMITIVES,
+      SUBJECT_NAME
   );
 
   static final ImmutableSet<String> INHERITABLE_PROPERTIES = ImmutableSet.of(
@@ -54,5 +56,12 @@ public class ProtobufProperties extends ConnectProperties {
 
   public boolean getUnwrapPrimitives() {
     return UNWRAP.equalsIgnoreCase(properties.getOrDefault(UNWRAP_PRIMITIVES, WRAP));
+  }
+
+  public ProtobufProperties withFullSchemaName(final String name) {
+    final ImmutableMap.Builder builder = ImmutableMap.builder();
+    builder.putAll(properties);
+    builder.put(FULL_SCHEMA_NAME, name);
+    return new ProtobufProperties(builder.build());
   }
 }

@@ -34,8 +34,8 @@ import org.apache.kafka.connect.data.Schema;
  * Translates between Connect and Protobuf Schema Registry schema types.
  */
 public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
+  private static final String DEFAULT_PREFIX_SCHEMA_NAME = "ConnectDefault";
 
-  private final ProtobufProperties properties;
   private final Map<String, Object> baseConfigs;
   private final Optional<String> fullNameSchema;
 
@@ -43,14 +43,35 @@ public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
   private ProtobufData protobufData;
 
   public ProtobufSchemaTranslator(final ProtobufProperties properties) {
-    this.properties = Objects.requireNonNull(properties, "properties");
+    Objects.requireNonNull(properties, "properties");
+
     this.baseConfigs = ImmutableMap.of(
-        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives());
-    this.fullNameSchema = Optional.ofNullable(
-        Strings.emptyToNull(Strings.nullToEmpty(properties.getFullSchemaName()).trim())
+        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives(),
+
+        // This flag is needed so that the schema translation in toConnectRow() adds the
+        // package name information to the row schema
+        ProtobufDataConfig.ENHANCED_PROTOBUF_SCHEMA_SUPPORT_CONFIG, "true"
     );
+    this.fullNameSchema = ignoreDefaultName(properties.getFullSchemaName());
     this.updatedConfigs = baseConfigs;
     this.protobufData = new ProtobufData(new ProtobufDataConfig(baseConfigs));
+  }
+
+  private Optional<String> ignoreDefaultName(final String fullNameSchema) {
+    if (fullNameSchema == null) {
+      return Optional.empty();
+    }
+
+    final String trimmedName = fullNameSchema.trim();
+    if (trimmedName.startsWith(DEFAULT_PREFIX_SCHEMA_NAME)) {
+      // Ignore the fullSchemaName if a default name is used. Otherwise, if the parent schema
+      // is named with this name by ProtobufSchemas, then the fromConnectSchema() starts the
+      // default name consecutive number in the nested structs, not the parent, which causes
+      // serializers to fail with incompatible schema.
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(Strings.emptyToNull(trimmedName));
   }
 
   @Override
@@ -72,6 +93,11 @@ public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
     return protobufData.toConnectSchema(withSchemaFullName((ProtobufSchema) schema));
   }
 
+  /**
+   * Converts a Connect schema to a SR schema. The conversion uses the full schema name
+   * (if provided during initialization) to name the SR schema as well as extract a
+   * single schema definition if multiple schema definitions are found in {@code schema}.
+   */
   @Override
   public ParsedSchema fromConnectSchema(final Schema schema) {
     // Bug in ProtobufData means `fromConnectSchema` throws on the second invocation if using

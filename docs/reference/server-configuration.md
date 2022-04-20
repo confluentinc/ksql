@@ -529,12 +529,12 @@ becomes `_confluent-ksql-default__command_topic`).
 
 **Per query:** yes
 
-The service NAME of the ksqlDB server. This is used for RBAC authorization
-instead of the ksqlDB service ID above. This requires each ksqlDB cluster
+The service NAME of the ksqlDB server. May be used for authorization 
+based on the external authorization plugin. This requires each ksqlDB cluster
 to have a mandatory and unique name within the same logical {{ site.ak }} 
 cluster.
 
-By default, the service NAME of KsqlDB servers is `default_service_name`.
+By default, the service NAME of ksqlDB servers is `default_service_name`.
 
 ## `ksql.source.table.materialization.enabled`
 

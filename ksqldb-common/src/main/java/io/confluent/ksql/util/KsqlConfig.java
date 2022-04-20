@@ -837,8 +837,7 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Type.STRING,
             KSQL_SERVICE_NAME_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Indicates the NAME of the ksql service. It will be used for RBAC "
-                + "authorization instead of the existing service ID above."
+            "Indicates the NAME of the ksql service."
         )
         .define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,

@@ -267,7 +267,6 @@ public class RecoveryTest {
           denyListPropertyValidator
       );
 
-      this.statementExecutor.configure(ksqlConfig);
       this.ksqlResource.configure(ksqlConfig);
     }
 

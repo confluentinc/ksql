@@ -111,10 +111,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
-  private KsqlServerPrecondition precondition1;
-  @Mock
-  private KsqlServerPrecondition precondition2;
-  @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
   private HeartbeatAgent heartbeatAgent;
@@ -162,9 +158,6 @@ public class KsqlRestApplicationTest {
 
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "/tmp/cat"));
-
-    when(precondition1.checkPrecondition(any(), any(), any())).thenReturn(Optional.empty());
-    when(precondition2.checkPrecondition(any(), any(), any())).thenReturn(Optional.empty());
 
     when(response.getStatus()).thenReturn(200);
     when(response.getEntity()).thenReturn(new KsqlEntityList(

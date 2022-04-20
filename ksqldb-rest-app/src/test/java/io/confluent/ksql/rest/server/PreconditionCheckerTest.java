@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -56,10 +57,11 @@ public class PreconditionCheckerTest {
   private KafkaTopicClient topicClient;
   @Mock
   private ServerState serverState;
+  @Mock
+  private Supplier<Map<String, String>> propertiesLoader;
 
   private PreconditionChecker checker;
 
-  private final Supplier<Map<String, String>> propertiesLoader = () -> PROPERTIES;
   private final KsqlRestConfig restConfig = new KsqlRestConfig(PROPERTIES);
 
   @Before
@@ -77,6 +79,7 @@ public class PreconditionCheckerTest {
     when(precondition1.checkPrecondition(any(), any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any(), any())).thenReturn(Optional.empty());
     when(server.started()).thenReturn(true);
+    when(propertiesLoader.get()).thenReturn(PROPERTIES);
   }
 
   @Test
@@ -156,9 +159,9 @@ public class PreconditionCheckerTest {
     final Map<String, String> properties2 = ImmutableMap.of("c", "d");
     final Map<String, String> properties3 = ImmutableMap.of("e", "f");
     when(propertiesLoader.get())
-        .thenReturn(properties1).thenReturn(properties1)
-        .thenReturn(properties2).thenReturn(properties2)
-        .thenReturn(properties3).thenReturn(properties3);
+        .thenReturn(properties1)
+        .thenReturn(properties2)
+        .thenReturn(properties3);
 
     // When:
     checker.startAsync();
@@ -189,7 +192,7 @@ public class PreconditionCheckerTest {
     checker.shutdown();
 
     // Then:
-    verifyNoInteractions(server);
+    verify(server, never()).stop();
   }
 
   void givenPreconditionFailures(final KsqlServerPrecondition precondition) {

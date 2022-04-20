@@ -36,12 +36,19 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Queue;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -53,6 +60,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryMetadataImpl implements QueryMetadata {
+  public static final String QUERY_RESTART_METRIC_NAME = "query-restart-total";
+  public static final String QUERY_RESTART_METRIC_GROUP_NAME = "query-restart-metrics";
+  public static final String QUERY_RESTART_METRIC_DESCRIPTION =
+      "The total number of times that a query thread has failed and then been restarted.";
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
 
@@ -71,6 +82,9 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final TimeBoundedQueue queryErrors;
   private final RetryEvent retryEvent;
   private final Listener listener;
+  private final Optional<Metrics> metrics;
+  private final Optional<Sensor> restartSensor;
+
   private volatile boolean everStarted = false;
   private volatile KafkaStreams kafkaStreams;
   // These fields don't need synchronization because they are initialized in initialize() before
@@ -103,7 +117,9 @@ public class QueryMetadataImpl implements QueryMetadata {
       final int maxQueryErrorsQueueSize,
       final long baseWaitingTimeMs,
       final long retryBackoffMaxMs,
-      final Listener listener
+      final Listener listener,
+      final Metrics metrics,
+      final Map<String, String> metricsTags
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -126,11 +142,26 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
+    this.metrics = Optional.of(metrics);
+
+    final Map<String, String> customMetricsTagsForQuery =
+        MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.toString(), metricsTags);
+    final MetricName restartMetricName = metrics.metricName(
+        QUERY_RESTART_METRIC_NAME,
+        QUERY_RESTART_METRIC_GROUP_NAME,
+        QUERY_RESTART_METRIC_DESCRIPTION,
+        customMetricsTagsForQuery
+    );
+    this.restartSensor = Optional.of(
+        metrics.sensor(QUERY_RESTART_METRIC_GROUP_NAME + "-" + queryId));
+    restartSensor.get().add(restartMetricName, new CumulativeSum());
+
     this.retryEvent = new RetryEvent(
         queryId,
         baseWaitingTimeMs,
         retryBackoffMaxMs,
-        CURRENT_TIME_MILLIS_TICKER
+        CURRENT_TIME_MILLIS_TICKER,
+        restartSensor
     );
   }
 
@@ -152,6 +183,8 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.errorClassifier = other.errorClassifier;
     this.everStarted = other.everStarted;
     this.queryErrors = new TimeBoundedQueue(Duration.ZERO, 0);
+    this.metrics = Optional.empty();
+    this.restartSensor = Optional.empty();
     this.retryEvent = new RetryEvent(
         other.getQueryId(),
         0,
@@ -161,7 +194,8 @@ public class QueryMetadataImpl implements QueryMetadata {
           public long read() {
             return 0;
           }
-        }
+        },
+        this.restartSensor
     );
     this.listener
         = Objects.requireNonNull(listener, "stopListeners");
@@ -204,7 +238,7 @@ public class QueryMetadataImpl implements QueryMetadata {
           e
       );
     }
-    retryEvent.backOff();
+    retryEvent.backOff(Thread.currentThread().getName());
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
   }
 
@@ -323,6 +357,11 @@ public class QueryMetadataImpl implements QueryMetadata {
     return listener;
   }
 
+  @VisibleForTesting
+  protected Optional<Sensor> getRestartSensor() {
+    return restartSensor;
+  }
+
   private void resetKafkaStreams(final KafkaStreams kafkaStreams) {
     this.kafkaStreams = kafkaStreams;
     setUncaughtExceptionHandler(this::uncaughtHandler);
@@ -352,6 +391,9 @@ public class QueryMetadataImpl implements QueryMetadata {
    * schemas, etc...).
    */
   public void close() {
+    if (metrics.isPresent() && restartSensor.isPresent()) {
+      metrics.get().removeSensor(restartSensor.get().name());
+    }
     doClose(true);
     listener.onClose(this);
   }
@@ -417,16 +459,18 @@ public class QueryMetadataImpl implements QueryMetadata {
     private final Ticker ticker;
     private final QueryId queryId;
 
-    private int numRetries = 0;
+    private Map<String, Integer> numRetries = new ConcurrentHashMap<>();
     private long waitingTimeMs;
     private long expiryTimeMs;
     private long retryBackoffMaxMs;
+    private Optional<Sensor> sensor;
 
     RetryEvent(
             final QueryId queryId,
             final long baseWaitingTimeMs,
             final long retryBackoffMaxMs,
-            final Ticker ticker
+            final Ticker ticker,
+            final Optional<Sensor> sensor
     ) {
       this.ticker = ticker;
       this.queryId = queryId;
@@ -436,19 +480,18 @@ public class QueryMetadataImpl implements QueryMetadata {
       this.waitingTimeMs = baseWaitingTimeMs;
       this.retryBackoffMaxMs = retryBackoffMaxMs;
       this.expiryTimeMs = now + baseWaitingTimeMs;
+      this.sensor = sensor;
     }
 
     public long nextRestartTimeMs() {
       return expiryTimeMs;
     }
 
-    public int getNumRetries() {
-      return numRetries;
+    public int getNumRetries(final String threadName) {
+      return numRetries.getOrDefault(threadName, 0);
     }
 
-    public void backOff() {
-      numRetries++;
-
+    public void backOff(final String threadName) {
       final long now = ticker.read();
 
       this.waitingTimeMs = getWaitingTimeMs();
@@ -459,7 +502,18 @@ public class QueryMetadataImpl implements QueryMetadata {
         Thread.currentThread().interrupt();
       }
 
-      LOG.info("Restarting query {} (attempt #{})", queryId, numRetries);
+      sensor.ifPresent(Sensor::record);
+      if (numRetries.containsKey(threadName)) {
+        numRetries.put(threadName, numRetries.get(threadName) + 1);
+      } else {
+        numRetries.put(threadName, 1);
+      }
+
+      LOG.info(
+          "Restarting query {} thread {} (attempt #{})",
+          queryId,
+          threadName,
+          numRetries.get(threadName));
 
       // Math.max() prevents overflow if now is Long.MAX_VALUE (found just in tests)
       this.expiryTimeMs = Math.max(now, now + waitingTimeMs);

@@ -37,6 +37,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
@@ -86,6 +88,8 @@ public class SandboxedPersistentQueryMetadataImplTest {
   private Listener listener;
   @Mock
   private Listener sandboxListener;
+  @Mock
+  private Metrics metrics;
 
   private SandboxedPersistentQueryMetadataImpl sandbox;
 
@@ -119,7 +123,9 @@ public class SandboxedPersistentQueryMetadataImplTest {
         0L,
         0L,
         listener,
-        Optional.empty()
+        Optional.empty(),
+        metrics,
+        Collections.emptyMap()
     );
 
     query.initialize();

@@ -44,6 +44,8 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -94,6 +96,8 @@ public class PersistentQueryMetadataTest {
   private Listener listener;
   @Mock
   private ScalablePushRegistry scalablePushRegistry;
+  @Mock
+  private Metrics metrics;
 
   private PersistentQueryMetadata query;
 
@@ -128,7 +132,9 @@ public class PersistentQueryMetadataTest {
         0L,
         0L,
         listener,
-        Optional.of(scalablePushRegistry)
+        Optional.of(scalablePushRegistry),
+        metrics,
+        Collections.emptyMap()
     );
 
     query.initialize();
@@ -160,7 +166,9 @@ public class PersistentQueryMetadataTest {
         0L,
         0L,
         listener,
-        Optional.empty()
+        Optional.empty(),
+        metrics,
+        Collections.emptyMap()
     );
 
     // When/Then
@@ -193,7 +201,9 @@ public class PersistentQueryMetadataTest {
         0L,
         0L,
         listener,
-        Optional.empty()
+        Optional.empty(),
+        metrics,
+        Collections.emptyMap()
     );
 
     // When/Then

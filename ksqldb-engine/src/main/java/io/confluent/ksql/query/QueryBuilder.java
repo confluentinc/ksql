@@ -224,7 +224,9 @@ final class QueryBuilder {
         resultType,
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
-        listener
+        listener,
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
   }
 
@@ -371,7 +373,9 @@ final class QueryBuilder {
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
-        scalablePushRegistry
+        scalablePushRegistry,
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
 
   }
@@ -618,7 +622,9 @@ final class QueryBuilder {
               metricCollectors,
               config.getConfig(true),
               processingLogContext
-          )
+          ),
+          metricCollectors.getMetrics(),
+          ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
       );
     } else {
       stream = new SandboxedSharedKafkaStreamsRuntimeImpl(

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -23,6 +24,7 @@ import io.confluent.ksql.query.QueryId;
 import java.util.Collections;
 import java.util.HashMap;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.TaskId;
@@ -39,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,6 +74,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private final QueryId queryId = new QueryId("query-1");
     private final QueryId queryId2= new QueryId("query-2");
     private Map<String, Object> streamProps = new HashMap();
+    private final Map<String, String> metricsTags = Collections.singletonMap("cluster-id", "cluster-1");
 
     private final StreamsException query1Exception =
         new StreamsException("query down!", new TaskId(0, 0, queryId.toString()));
@@ -82,9 +86,11 @@ public class SharedKafkaStreamsRuntimeImplTest {
         new StreamsException("query down!", new TaskId(0, 0, "not-a-real-query"));
 
     private SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl;
+    private MetricCollectors metricCollectors;
 
     @Before
     public void setUp() throws Exception {
+        metricCollectors = new MetricCollectors();
         when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
         streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "runtime");
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
@@ -92,7 +98,9 @@ public class SharedKafkaStreamsRuntimeImplTest {
             queryErrorClassifier,
             5,
             300_000L,
-            streamProps
+            streamProps,
+            metricCollectors.getMetrics(),
+            metricsTags
         );
 
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
@@ -249,5 +257,83 @@ public class SharedKafkaStreamsRuntimeImplTest {
         verify(binPackedPersistentQueryMetadata, never()).start();
         verify(kafkaStreamsNamedTopologyWrapper, never())
             .addNamedTopology(binPackedPersistentQueryMetadata2.getTopologyCopy(sharedKafkaStreamsRuntimeImpl));
+    }
+
+    @Test
+    public void shouldRegisterMetricForQueryRestarts() {
+        //Given:
+        assertThat(sharedKafkaStreamsRuntimeImpl.getQueryIdSensorMap().entrySet().size(), is(1));
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
+
+        //Then:
+        assertThat(sharedKafkaStreamsRuntimeImpl.getQueryIdSensorMap().entrySet().size(), is(2));
+    }
+
+    @Test
+    public void shouldRemoveSensorWhenStoppingQuery() {
+        //Given:
+        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.stop(queryId, false);
+        sharedKafkaStreamsRuntimeImpl.stop(queryId2, true);
+
+        //Then:
+        assertThat(sharedKafkaStreamsRuntimeImpl.getQueryIdSensorMap().entrySet().size(), is(1));
+        assertThat(sharedKafkaStreamsRuntimeImpl.getQueryIdSensorMap().containsKey(queryId2), is(true));
+    }
+
+    @Test
+    public void shouldRecordMetricForQuery1WhenError() {
+        //Given:
+        when(queryErrorClassifier.classify(query1Exception)).thenReturn(Type.USER);
+        sharedKafkaStreamsRuntimeImpl.register(
+            binPackedPersistentQueryMetadata2
+        );
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.start(queryId);
+        sharedKafkaStreamsRuntimeImpl.start(queryId2);
+        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(query1Exception);
+
+        //Then:
+        assertThat(getMetricValue(queryId.toString(), metricsTags), is(1.0));
+        assertThat(getMetricValue(queryId2.toString(), metricsTags), is(0.0));
+    }
+
+    @Test
+    public void shouldRecordMetricForAllQueriesWhenErrorWithNoTask() {
+        when(queryErrorClassifier.classify(runtimeExceptionWithNoTask)).thenReturn(Type.USER);
+
+        sharedKafkaStreamsRuntimeImpl.register(
+            binPackedPersistentQueryMetadata2
+        );
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.start(queryId);
+        sharedKafkaStreamsRuntimeImpl.start(queryId2);
+
+        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(runtimeExceptionWithNoTask);
+
+        //Then:
+        assertThat(getMetricValue(queryId.toString(), metricsTags), is(1.0));
+        assertThat(getMetricValue(queryId2.toString(), metricsTags), is(1.0));
+    }
+
+    private double getMetricValue(final String queryId, final Map<String, String> metricsTags) {
+        final Map<String, String> customMetricsTags = new HashMap<>(metricsTags);
+        customMetricsTags.put("query_id", queryId);
+        final Metrics metrics = metricCollectors.getMetrics();
+        return Double.parseDouble(
+            metrics.metric(
+                metrics.metricName(
+                    QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
+                    QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
+                    QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
+                    customMetricsTags)
+            ).metricValue().toString()
+        );
     }
 }

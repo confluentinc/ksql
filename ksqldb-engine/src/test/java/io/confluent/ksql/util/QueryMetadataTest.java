@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.same;
@@ -30,6 +31,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -43,7 +45,13 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -87,11 +95,16 @@ public class QueryMetadataTest {
   private ArgumentCaptor<KafkaStreams.StateListener> streamsListenerCaptor;
   @Mock
   private Ticker ticker;
+  @Mock
+  private Sensor mockSensor;
 
   private QueryMetadataImpl query;
+  private MetricCollectors metricCollectors;
+  private final Map<String, String> metricsTags = Collections.singletonMap("cluster-id", "cluster-1");
 
   @Before
   public void setup() {
+    metricCollectors = new MetricCollectors();
     when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
     when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
@@ -112,7 +125,9 @@ public class QueryMetadataTest {
         10,
         0L,
         0L,
-        listener
+        listener,
+        metricCollectors.getMetrics(),
+        metricsTags
     ){
     };
     query.initialize();
@@ -261,11 +276,12 @@ public class QueryMetadataTest {
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
-            ticker
+            ticker,
+            Optional.of(mockSensor)
     );
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(0));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(0));
     assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS));
   }
 
@@ -280,14 +296,19 @@ public class QueryMetadataTest {
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
-            ticker
+            ticker,
+            Optional.of(mockSensor)
     );
 
-    retryEvent.backOff();
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name-2");
+    final int numBackOff = 3;
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(1));
-    assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS * 2));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(2));
+    assertThat(retryEvent.getNumRetries("thread-name-2"), is(1));
+    assertThat(retryEvent.nextRestartTimeMs(), is(now + (RETRY_BACKOFF_INITIAL_MS * (int)(Math.pow(2, numBackOff)))));
   }
 
   @Test
@@ -301,14 +322,19 @@ public class QueryMetadataTest {
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
-            ticker
+            ticker,
+            Optional.of(mockSensor)
     );
-    retryEvent.backOff();
-    retryEvent.backOff();
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(2));
-    assertThat(retryEvent.nextRestartTimeMs(), lessThan(now + RETRY_BACKOFF_MAX_MS));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(6));
+    assertThat(retryEvent.nextRestartTimeMs(), lessThanOrEqualTo(now + RETRY_BACKOFF_MAX_MS));
   }
 
   @Test
@@ -321,4 +347,55 @@ public class QueryMetadataTest {
     assertThat(queue.toImmutableList().size(), is(0));
   }
 
+  @Test
+  public void shouldRecordMetricForEachStreamsThreadRestarted() {
+    // Given:
+    final long now = 20;
+    when(ticker.read()).thenReturn(now);
+
+    // When:
+    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
+        QUERY_ID,
+        RETRY_BACKOFF_INITIAL_MS,
+        RETRY_BACKOFF_MAX_MS,
+        ticker,
+        query.getRestartSensor()
+    );
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name-2");
+
+    // Then:
+    assertThat(getMetricValue(QUERY_ID.toString(), metricsTags), is(3.0));
+  }
+
+  @Test
+  public void shouldIncrementMetricWhenUncaughtExceptionAndRestart() {
+    // Given:
+    when(classifier.classify(any())).thenThrow(new RuntimeException("bar"));
+
+    // When:
+    query.uncaughtHandler(new RuntimeException("foo"));
+    query.uncaughtHandler(new RuntimeException("bar"));
+    query.uncaughtHandler(new RuntimeException("too"));
+
+
+    // Then:
+    assertThat(getMetricValue(QUERY_ID.toString(), metricsTags), is(3.0));
+  }
+
+  private double getMetricValue(final String queryId, final Map<String, String> metricsTags) {
+    final Map<String, String> customMetricsTags = new HashMap<>(metricsTags);
+    customMetricsTags.put("query_id", queryId);
+    final Metrics metrics = metricCollectors.getMetrics();
+    return Double.parseDouble(
+        metrics.metric(
+            metrics.metricName(
+                QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
+                QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
+                QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
+                customMetricsTags)
+        ).metricValue().toString()
+    );
+  }
 }

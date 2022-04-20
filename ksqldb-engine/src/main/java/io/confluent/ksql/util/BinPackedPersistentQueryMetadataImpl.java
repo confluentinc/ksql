@@ -46,6 +46,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -77,6 +80,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final Listener listener;
   private final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder;
   private final TimeBoundedQueue queryErrors;
+  private final Sensor sensor;
+  private final Metrics metrics;
 
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
@@ -385,6 +390,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     sharedKafkaStreamsRuntime.stop(queryId, false);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);
+    metrics.removeSensor(sensor.name());
   }
 
   @Override
@@ -404,6 +410,10 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   Listener getListener() {
     return listener;
+  }
+
+  Sensor getSensor() {
+    return sensor;
   }
 
 }

@@ -37,6 +37,8 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
@@ -676,5 +678,26 @@ public final class RestIntegrationTestUtil {
   private static String createBasicAuthHeader(final BasicCredentials credentials) {
     return "Basic " + Base64.getEncoder().encodeToString(
         (credentials.username() + ":" + credentials.password()).getBytes(StandardCharsets.UTF_8));
+  }
+
+  public static List<String> getQueryIds(final TestKsqlRestApp restApp) {
+    final List<KsqlEntity> results = RestIntegrationTestUtil.makeKsqlRequest(
+        restApp,
+        "Show Queries;"
+    );
+
+    if (results.size() != 1) {
+      return Collections.emptyList();
+    }
+
+    final KsqlEntity result = results.get(0);
+
+    if (!(result instanceof Queries)) {
+      return Collections.emptyList();
+    }
+
+    final List<RunningQuery> runningQueries = ((Queries) result)
+        .getQueries();
+    return runningQueries.stream().map(query -> query.getId().toString()).collect(Collectors.toList());
   }
 }

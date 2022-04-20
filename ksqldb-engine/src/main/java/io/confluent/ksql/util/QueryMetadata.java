@@ -81,9 +81,9 @@ public interface QueryMetadata {
 
     long nextRestartTimeMs();
 
-    int getNumRetries();
+    int getNumRetries(final String threadName);
 
-    void backOff();
+    void backOff(final String threadName);
   }
 
   interface Listener {

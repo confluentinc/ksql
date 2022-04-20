@@ -18,14 +18,17 @@ package io.confluent.ksql.logging.processing;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 
 public class MeteredProcessingLogger implements ProcessingLogger {
-  public static final String PROCESS_LOG_ERRORS = "processing-log-errors-sum";
+  public static final String PROCESSING_LOG_ERROR_METRIC_NAME = "processing-log-errors-sum";
   public static final String PROCESSING_LOG_METRICS_GROUP_NAME = "processing-log-metrics";
+  public static final String PROCESSING_LOG_METRIC_DESCRIPTION =
+      "The total number of errors emitted by the processing log.";
 
   private final ProcessingLogger logger;
   private final CumulativeSum sumOfErrors;
@@ -56,22 +59,19 @@ public class MeteredProcessingLogger implements ProcessingLogger {
       final Metrics metrics,
       final Map<String, String> metricsTags
   ) {
-    final String description = "The total number of errors emitted by the processing log.";
     CumulativeSum sum = new CumulativeSum();
-    final KafkaMetric metric = metrics.metric(metrics.metricName(
-          PROCESS_LOG_ERRORS,
-          PROCESSING_LOG_METRICS_GROUP_NAME,
-          description,
-          metricsTags));
+    final MetricName errorMetric = metrics.metricName(
+        PROCESSING_LOG_ERROR_METRIC_NAME,
+        PROCESSING_LOG_METRICS_GROUP_NAME,
+        PROCESSING_LOG_METRIC_DESCRIPTION,
+        metricsTags);
+
+    final KafkaMetric metric = metrics.metric(errorMetric);
 
     // If metric doesn't exist, add the metric. If it already exists, grab the CumulativeSum
     // measurable so that it can be used in this particular processing logger instance.
     if (metric == null) {
-      metrics.addMetric(metrics.metricName(
-          PROCESS_LOG_ERRORS,
-          PROCESSING_LOG_METRICS_GROUP_NAME,
-          description,
-          metricsTags), sum);
+      metrics.addMetric(errorMetric, sum);
     } else {
       sum = (CumulativeSum) metric.measurable();
     }

@@ -190,8 +190,7 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        streamsBuilder,
-        metricCollectors.getMetrics()
+        streamsBuilder
     );
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(
@@ -323,8 +322,7 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        streamsBuilder,
-        metricCollectors.getMetrics()
+        streamsBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final Topology topology = streamsBuilder
@@ -446,8 +444,7 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        namedTopologyBuilder,
-        metricCollectors.getMetrics()
+        namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final NamedTopology topology = namedTopologyBuilder.build();
@@ -530,8 +527,7 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        namedTopologyBuilder,
-        metrics
+        namedTopologyBuilder
     );
     buildQueryImplementation(physicalPlan, runtimeBuildContext);
     return namedTopologyBuilder.build();
@@ -721,8 +717,7 @@ final class QueryBuilder {
   private RuntimeBuildContext buildContext(
       final String applicationId,
       final QueryId queryId,
-      final StreamsBuilder streamsBuilder,
-      final Metrics metrics
+      final StreamsBuilder streamsBuilder
   ) {
     return RuntimeBuildContext.of(
         streamsBuilder,

@@ -94,14 +94,15 @@ public class GenericKeySerDeTest {
   @Mock
   private TrackedCallback callback;
 
+  private final String queryId = "query";
   private GenericKeySerDe factory;
 
   @Before
   public void setUp() {
-    factory = new GenericKeySerDe(innerFactory, Optional.empty());
+    factory = new GenericKeySerDe(innerFactory, Optional.of(queryId));
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
-    when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
 
     when(innerSerde.serializer()).thenReturn(innerSerializer);
@@ -136,7 +137,7 @@ public class GenericKeySerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)), eq(Optional.of(config)));
   }
 
   @Test
@@ -147,7 +148,7 @@ public class GenericKeySerDeTest {
             Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)), eq(Optional.of(config)));
   }
 
   @Test

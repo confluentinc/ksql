@@ -15,22 +15,23 @@
 
 package io.confluent.ksql.logging.processing;
 
+import static io.confluent.ksql.logging.processing.MeteredProcessingLogger.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
-import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaAndValue;
+
+import java.util.Collections;
+import java.util.Map;
+
+import io.confluent.ksql.metrics.MetricCollectors;
+import org.apache.kafka.common.metrics.Metrics;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -38,65 +39,73 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class MeteredProcessingLoggerTest {
 
   @Mock
-  private StructuredLogger innerLogger;
-  @Mock
-  private ProcessingLogConfig processingLogConfig;
-  @Mock
-  private SchemaAndValue msg;
+  private ProcessingLogger processingLogger;
   @Mock
   private ErrorMessage errorMsg;
-  @SuppressWarnings("unchecked")
-  private final ArgumentCaptor<Supplier<SchemaAndValue>> msgCaptor
-	  = ArgumentCaptor.forClass(Supplier.class);
 
-  private ProcessingLogger processingLogger;
+  private MeteredProcessingLogger meteredProcessingLogger;
+  private MetricCollectors metricCollectors;
+  private final Map<String, String> originalMetricsTags = Collections.singletonMap("tag1", "value1");
 
   @Before
   public void setup() {
-	when(errorMsg.get(any())).thenReturn(msg);
-	when(msg.schema()).thenReturn(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
-	processingLogger = new ProcessingLoggerImpl(processingLogConfig, innerLogger);
+	metricCollectors = new MetricCollectors();
+	meteredProcessingLogger = new MeteredProcessingLogger(processingLogger, metricCollectors.getMetrics(), originalMetricsTags);
   }
 
   @Test
-  public void shouldLogError() {
+  public void shouldIncrementTheSameMetric() {
 	// When:
-	processingLogger.error(errorMsg);
+
+	// this should not throw an exception because only one logger should register the metric
+	final MeteredProcessingLogger logger2 = new MeteredProcessingLogger(processingLogger, metricCollectors.getMetrics(), originalMetricsTags);
+	logger2.error(errorMsg);
 
 	// Then:
-	final SchemaAndValue msg = verifyErrorMessage();
-	assertThat(msg, is(msg));
+	assertThat(getMetricValue(originalMetricsTags), equalTo(1.0));
+	meteredProcessingLogger.error(errorMsg);
+	assertThat(getMetricValue(originalMetricsTags), equalTo(2.0));
+	logger2.error(errorMsg);
+	assertThat(getMetricValue(originalMetricsTags), equalTo(3.0));
+	meteredProcessingLogger.error(errorMsg);
+	assertThat(getMetricValue(originalMetricsTags), equalTo(4.0));
   }
 
   @Test
-  public void shouldBuildMessageUsingConfig() {
+  public void shouldIncrementSeparateMetrics() {
 	// When:
-	processingLogger.error(errorMsg);
+	final Map<String, String> otherMetricsTags = Collections.singletonMap("another-tag", "another-value");
+	final MeteredProcessingLogger differentLogger = new MeteredProcessingLogger(processingLogger, metricCollectors.getMetrics(), otherMetricsTags);
+	differentLogger.error(errorMsg);
 
 	// Then:
-	verifyErrorMessage();
-	verify(errorMsg).get(processingLogConfig);
+	assertThat(getMetricValue(otherMetricsTags), equalTo(1.0));
+	meteredProcessingLogger.error(errorMsg);
+	assertThat(getMetricValue(originalMetricsTags), equalTo(1.0));
+	differentLogger.error(errorMsg);
+
+	assertThat(getMetricValue(otherMetricsTags), equalTo(2.0));
+	meteredProcessingLogger.error(errorMsg);
+	assertThat(getMetricValue(originalMetricsTags), equalTo(2.0));
   }
 
   @Test
-  public void shouldThrowOnBadSchema() {
-	// Given:
-	when(msg.schema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
-
-	processingLogger.error(errorMsg);
-
-	verify(innerLogger).error(msgCaptor.capture());
-	final Supplier<SchemaAndValue> supplier = msgCaptor.getValue();
-
+  public void shouldRecordMetric() {
 	// When:
-	assertThrows(
-		RuntimeException.class,
-		supplier::get
+	meteredProcessingLogger.error(errorMsg);
+
+	// Then:
+	verify(processingLogger).error(errorMsg);
+	assertThat(getMetricValue(originalMetricsTags), equalTo(1.0));
+  }
+
+  private double getMetricValue(final Map<String, String> metricsTags) {
+	final Metrics metrics = metricCollectors.getMetrics();
+	return Double.parseDouble(
+		metrics.metric(
+			metrics.metricName(
+				PROCESSING_LOG_ERROR_METRIC_NAME, PROCESSING_LOG_METRICS_GROUP_NAME, metricsTags)
+		).metricValue().toString()
 	);
-  }
-
-  private SchemaAndValue verifyErrorMessage() {
-	verify(innerLogger).error(msgCaptor.capture());
-	return msgCaptor.getValue().get();
   }
 }

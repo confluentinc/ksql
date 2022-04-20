@@ -27,13 +27,16 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.SchemaNotSupportedException;
+import io.confluent.ksql.logging.processing.MeteredProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -72,6 +75,8 @@ public class GenericSerdeFactoryTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
+  private MeteredProcessingLogger meteredProcessingLogger;
+  @Mock
   private ProcessingLogger otherProcessingLogger;
   @Mock
   private Serializer<String> formatSerializer;
@@ -99,6 +104,7 @@ public class GenericSerdeFactoryTest {
 
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(otherProcessingLogger);
+    when(processingLoggerFactory.getLoggerWithMetrics(any(), any())).thenReturn(meteredProcessingLogger);
   }
 
   @Test
@@ -200,5 +206,23 @@ public class GenericSerdeFactoryTest {
     );
 
     verify(processingLogger).error(any());
+  }
+
+  @Test
+  public void shouldReturnProcessingLoggerWithMetric() {
+   // When:
+    final Serde<String> result = serdeFactory
+        .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext, Optional.of("query-id"), Optional.of(new KsqlConfig(Collections.emptyMap())));
+
+    // Then:
+    assertThrows(
+        RuntimeException.class,
+        () -> result.deserializer().deserialize(
+            "topicName",
+            "this call will cause error to be logged".getBytes(StandardCharsets.UTF_8)
+        )
+    );
+
+    verify(meteredProcessingLogger).error(any());
   }
 }

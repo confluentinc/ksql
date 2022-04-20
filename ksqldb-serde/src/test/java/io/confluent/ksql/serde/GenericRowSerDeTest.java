@@ -79,14 +79,16 @@ public class GenericRowSerDeTest {
   @Captor
   private ArgumentCaptor<Serde<GenericRow>> rowSerdeCaptor;
 
+  private final String queryId = "query";
+
   private ValueSerdeFactory factory;
 
   @Before
   public void setUp() {
-    factory = new GenericRowSerDe(innerFactory, Optional.empty());
+    factory = new GenericRowSerDe(innerFactory, Optional.of(queryId));
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
-    when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
     when(innerSerde.serializer()).thenReturn(innerSerializer);
     when(innerSerde.deserializer()).thenReturn(innerDeserializer);
@@ -109,7 +111,7 @@ public class GenericRowSerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)), eq(Optional.of(config)));
   }
 
   @Test
@@ -149,7 +151,7 @@ public class GenericRowSerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(rowSerdeCaptor.capture(), any(), any());
+    verify(innerFactory).wrapInLoggingSerde(rowSerdeCaptor.capture(), any(), any(), any(), any());
 
     assertThat(rowSerdeCaptor.getValue().serializer(), is(instanceOf(GenericSerializer.class)));
     assertThat(rowSerdeCaptor.getValue().deserializer(),

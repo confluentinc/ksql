@@ -75,13 +75,19 @@ public class ProcessingLoggerFactoryImplTest {
   public void shouldCreateLogger() {
     // When:
     final ProcessingLogger logger = factory.getLogger("foo.bar");
-    final ProcessingLogger loggerWithMetrics = factory.getLoggerWithMetrics("bar.food", customMetricsTags);
 
     // Then:
     assertThat(logger, is(this.logger));
     verify(innerFactory).getLogger("foo.bar");
     verify(loggerFactory).apply(config, innerLogger);
+  }
 
+  @Test
+  public void shouldCreateLoggerWithMEtrics() {
+    // When:
+    final ProcessingLogger loggerWithMetrics = factory.getLoggerWithMetrics("bar.food", customMetricsTags);
+
+    // Then:
     assertThat(loggerWithMetrics, is(this.loggerWithMetrics));
     verify(innerFactory).getLogger("bar.food");
     verify(loggerWithMetricsFactory).apply(logger, metrics, customMetricsTags);

@@ -25,7 +25,7 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 
 public class MeteredProcessingLogger implements ProcessingLogger {
-  public static final String PROCESSING_LOG_ERROR_METRIC_NAME = "processing-log-errors-sum";
+  public static final String PROCESSING_LOG_ERROR_METRIC_NAME = "processing-error-total";
   public static final String PROCESSING_LOG_METRICS_GROUP_NAME = "processing-log-metrics";
   public static final String PROCESSING_LOG_METRIC_DESCRIPTION =
       "The total number of errors emitted by the processing log.";

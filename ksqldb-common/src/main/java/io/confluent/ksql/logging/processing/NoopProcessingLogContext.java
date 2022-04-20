@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Map;
-import org.apache.kafka.common.metrics.Metrics;
 
 
 /**
@@ -40,7 +39,6 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
     @Override
     public ProcessingLogger getLoggerWithMetrics(
         final String name,
-        final Metrics metrics,
         final Map<String, String> customMetricsTags
     ) {
       return NOOP_LOGGER;

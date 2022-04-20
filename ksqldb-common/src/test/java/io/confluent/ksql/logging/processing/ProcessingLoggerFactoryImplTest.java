@@ -49,7 +49,7 @@ public class ProcessingLoggerFactoryImplTest {
   @Mock
   private BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory;
   @Mock
-  private Function<ProcessingLoggerWithMetricsInstantiator, ProcessingLogger> loggerWithMetricsFactory;
+  private ProcessingLoggerFactoryImpl.TriFunction<ProcessingLogger, Metrics, Map<String, String>, ProcessingLogger> loggerWithMetricsFactory;
   @Mock
   private ProcessingLogger logger;
   @Mock
@@ -67,15 +67,15 @@ public class ProcessingLoggerFactoryImplTest {
     when(innerFactory.getLogger(anyString())).thenReturn(innerLogger);
     when(innerFactory.getLoggers()).thenReturn(loggers);
     when(loggerFactory.apply(config, innerLogger)).thenReturn(logger);
-    when(loggerWithMetricsFactory.apply(new ProcessingLoggerWithMetricsInstantiator(config, innerLogger, customMetricsTags, metrics))).thenReturn(loggerWithMetrics);
-    factory = new ProcessingLoggerFactoryImpl(config, innerFactory, loggerFactory, loggerWithMetricsFactory);
+    when(loggerWithMetricsFactory.apply(logger, metrics, customMetricsTags)).thenReturn(loggerWithMetrics);
+    factory = new ProcessingLoggerFactoryImpl(config, innerFactory, metrics, loggerFactory, loggerWithMetricsFactory);
   }
 
   @Test
   public void shouldCreateLogger() {
     // When:
     final ProcessingLogger logger = factory.getLogger("foo.bar");
-    final ProcessingLogger loggerWithMetrics = factory.getLoggerWithMetrics("bar.food", metrics, customMetricsTags);
+    final ProcessingLogger loggerWithMetrics = factory.getLoggerWithMetrics("bar.food", customMetricsTags);
 
     // Then:
     assertThat(logger, is(this.logger));
@@ -84,7 +84,7 @@ public class ProcessingLoggerFactoryImplTest {
 
     assertThat(loggerWithMetrics, is(this.loggerWithMetrics));
     verify(innerFactory).getLogger("bar.food");
-    verify(loggerWithMetricsFactory).apply(new ProcessingLoggerWithMetricsInstantiator(config, innerLogger, customMetricsTags, metrics));
+    verify(loggerWithMetricsFactory).apply(logger, metrics, customMetricsTags);
   }
 
   @Test

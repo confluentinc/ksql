@@ -98,7 +98,7 @@ public class GenericKeySerDeTest {
 
   @Before
   public void setUp() {
-    factory = new GenericKeySerDe(innerFactory, Optional.empty(), Optional.empty());
+    factory = new GenericKeySerDe(innerFactory, Optional.empty());
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);

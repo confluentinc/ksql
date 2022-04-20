@@ -17,23 +17,31 @@ package io.confluent.ksql.logging.processing;
 
 import java.time.Instant;
 import java.util.Map;
-
-import org.apache.kafka.common.metrics.*;
+import java.util.Objects;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.MetricConfig;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 
-public class ProcessingLoggerImplWithMetrics extends ProcessingLoggerImpl {
+public class MeteredProcessingLogger implements ProcessingLogger {
   public static final String PROCESS_LOG_ERRORS = "processing-log-errors-sum";
   public static final String PROCESSING_LOG_METRICS_GROUP_NAME = "processing-log-metrics";
 
+  private final ProcessingLogger logger;
   private final CumulativeSum sumOfErrors;
 
-  public ProcessingLoggerImplWithMetrics(
-      final ProcessingLoggerWithMetricsInstantiator instantiator
+  public MeteredProcessingLogger(
+      final ProcessingLogger logger,
+      final Metrics metrics,
+      final Map<String, String> customMetricsTags
   ) {
-    super(instantiator.getConfig(), instantiator.getInner());
+    if (metrics == null) {
+      throw new RuntimeException("Expected metrics to be passed into metered processing logger");
+    }
+    this.logger = Objects.requireNonNull(logger, "logger");
     this.sumOfErrors = configureTotalProcessingErrors(
-        instantiator.getMetrics(),
-        instantiator.getCustomMetricsTags()
+        metrics,
+        customMetricsTags
     );
   }
 
@@ -41,7 +49,7 @@ public class ProcessingLoggerImplWithMetrics extends ProcessingLoggerImpl {
   public void error(final ErrorMessage msg) {
     final Instant instant = Instant.now();
     sumOfErrors.record(new MetricConfig(), 1.0, instant.getEpochSecond());
-    super.error(msg);
+    logger.error(msg);
   }
 
   private static CumulativeSum configureTotalProcessingErrors(
@@ -56,8 +64,8 @@ public class ProcessingLoggerImplWithMetrics extends ProcessingLoggerImpl {
           description,
           metricsTags));
 
-    // If metric doesn't exist, add the metric. If it already exists, grab the CumulativeSum measurable
-    // so that it can be used in this particular processing logger instance.
+    // If metric doesn't exist, add the metric. If it already exists, grab the CumulativeSum
+    // measurable so that it can be used in this particular processing logger instance.
     if (metric == null) {
       metrics.addMetric(metrics.metricName(
           PROCESS_LOG_ERRORS,

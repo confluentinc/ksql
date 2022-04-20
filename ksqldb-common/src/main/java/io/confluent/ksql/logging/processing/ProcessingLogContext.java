@@ -16,6 +16,8 @@
 package io.confluent.ksql.logging.processing;
 
 import java.util.Collections;
+import org.apache.kafka.common.metrics.Metrics;
+
 
 public interface ProcessingLogContext {
   /**
@@ -31,17 +33,18 @@ public interface ProcessingLogContext {
   /**
    * Creates a processing log context that uses the supplied config.
    * @param config the processing log config
-   * @return: A processing log context that uses the supplied config.
+   * @param metrics the object that emits metrics
+   * @return A processing log context that uses the supplied config and emits metrics
    */
-  static ProcessingLogContext create(final ProcessingLogConfig config) {
-    return new ProcessingLogContextImpl(config);
+  static ProcessingLogContext create(final ProcessingLogConfig config, final Metrics metrics) {
+    return new ProcessingLogContextImpl(config, metrics);
   }
 
   /**
    * Creates a processing log context that uses the default processing log config.
-   * @return A processing log context that uses the default config
+   * @return A processing log context that uses the default config and doesn't emit metrics
    */
   static ProcessingLogContext create() {
-    return new ProcessingLogContextImpl(new ProcessingLogConfig(Collections.emptyMap()));
+    return new ProcessingLogContextImpl(new ProcessingLogConfig(Collections.emptyMap()), null);
   }
 }

@@ -144,8 +144,7 @@ public class RuntimeBuildContextTest {
         "foo",
         QUERY_ID,
         keySerdeFactory,
-        valueSerdeFactory,
-        metrics
+        valueSerdeFactory
     );
   }
 

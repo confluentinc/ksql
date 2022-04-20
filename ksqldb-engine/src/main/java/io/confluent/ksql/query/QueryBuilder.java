@@ -560,7 +560,6 @@ final class QueryBuilder {
         processingLogContext
             .getLoggerFactory()
             .getLoggerWithMetrics(id,
-                metricCollectors.getMetrics(),
                 MetricsTagsUtil.getCustomMetricsTagsForQuery(id, config));
 
     newStreamsProperties.put(
@@ -678,7 +677,6 @@ final class QueryBuilder {
 
     return processingLogContext.getLoggerFactory().getLoggerWithMetrics(
         QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()),
-        collectors.getMetrics(),
         metricsTags);
   }
 
@@ -733,8 +731,7 @@ final class QueryBuilder {
         processingLogContext,
         functionRegistry,
         applicationId,
-        queryId,
-        metrics
+        queryId
     );
   }
 

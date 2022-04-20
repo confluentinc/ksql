@@ -124,7 +124,7 @@ public final class StandaloneExecutorFactory {
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(properties);
     final ProcessingLogContext processingLogContext
-        = ProcessingLogContext.create(processingLogConfig);
+        = ProcessingLogContext.create(processingLogConfig, metricCollectors.getMetrics());
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 

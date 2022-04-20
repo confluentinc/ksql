@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
@@ -41,7 +41,7 @@ import java.util.Optional;
 public class RequestHandler {
 
   private final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors;
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final DistributingExecutor distributor;
   private final CommandQueueSync commandQueueSync;
 
@@ -56,7 +56,7 @@ public class RequestHandler {
   public RequestHandler(
       final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors,
       final DistributingExecutor distributor,
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final CommandQueueSync commandQueueSync
   ) {
     this.customExecutors = Objects.requireNonNull(customExecutors, "customExecutors");

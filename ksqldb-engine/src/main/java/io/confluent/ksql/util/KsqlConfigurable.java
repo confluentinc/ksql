@@ -13,9 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.resources;
-
-import io.confluent.ksql.util.KsqlConfig;
+package io.confluent.ksql.util;
 
 public interface KsqlConfigurable {
 

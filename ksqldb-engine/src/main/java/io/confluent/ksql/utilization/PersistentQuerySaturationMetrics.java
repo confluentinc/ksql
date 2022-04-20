@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.MetricsReporter;
 import io.confluent.ksql.internal.MetricsReporter.DataPoint;
@@ -57,7 +58,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
   private static Map<String, String> customTags = new HashMap<>();
 
   private final Map<String, KafkaStreamsSaturation> perKafkaStreamsStats = new HashMap<>();
-  private final KsqlEngine engine;
+  private final KsqlExecutionContext engine;
   private final Supplier<Instant> time;
   private final MetricsReporter reporter;
   private final Duration window;
@@ -76,7 +77,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
   @VisibleForTesting
   PersistentQuerySaturationMetrics(
       final Supplier<Instant> time,
-      final KsqlEngine engine,
+      final KsqlExecutionContext engine,
       final MetricsReporter reporter,
       final Duration window,
       final Duration sampleMargin,

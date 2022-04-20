@@ -2293,6 +2293,25 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldThrowIfConfigureNotCalledWithAppServerConfig() {
+    // When/Then:
+    assertThrows(IllegalArgumentException.class, () -> ksqlEngine.configure(KsqlConfig.empty()));
+  }
+
+  @Test
+  public void shouldConfigure() {
+    // Given:
+    final KsqlConfig config
+        = new KsqlConfig(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "foo:bar//"));
+
+    // When:
+    ksqlEngine.configure(config);
+
+    // Then:
+    assertThat(ksqlEngine.getKsqlConfig(), is(config));
+  }
+
+  @Test
   public void shouldCheckStreamPullQueryEnabledFlag() {
     @SuppressWarnings("unchecked") final ConfiguredStatement<Query> statementOrig =
         mock(ConfiguredStatement.class);

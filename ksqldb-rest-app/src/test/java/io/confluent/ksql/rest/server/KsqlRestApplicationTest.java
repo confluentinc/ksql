@@ -472,7 +472,7 @@ public class KsqlRestApplicationTest {
         serverState,
         processingLogContext,
         ImmutableList.of(precondition1, precondition2),
-        ImmutableList.of(ksqlResource, streamedQueryResource),
+        ImmutableList.of(ksqlEngine, ksqlResource),
         rocksDBConfigSetterHandler,
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),

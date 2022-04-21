@@ -51,6 +51,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Select;
@@ -83,6 +84,18 @@ public class AstBuilderTest {
   @Before
   public void setup() {
     builder = new AstBuilder(META_STORE);
+  }
+
+  @Test
+  public void shouldParsePause() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("PAUSE ALL;");
+
+    // When:
+    final PauseQuery result = (PauseQuery) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getQueryId(), is(Optional.empty()));
   }
 
   @Test

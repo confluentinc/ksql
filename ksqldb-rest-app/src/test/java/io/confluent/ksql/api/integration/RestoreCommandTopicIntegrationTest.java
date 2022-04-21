@@ -100,6 +100,21 @@ public class RestoreCommandTopicIntegrationTest {
         .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
         .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat/")
         .build();
+
+//        .builder(TEST_HARNESS::kafkaBootstrapServers)
+//        .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+//        .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
+//        .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat/")
+//
+//        .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+//                .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
+//        .build();
+
+//        .builder(TEST_HARNESS::kafkaBootstrapServers)
+//        .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+//        .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
+//        .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat/")
+//        .build();
   }
 
   @Before

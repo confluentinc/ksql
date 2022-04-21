@@ -36,6 +36,18 @@ public final class SandboxedBinPackedPersistentQueryMetadataImpl
   }
 
   @Override
+  public void pause() {
+    System.out.println("In SandboxedBinPackedPersistentQueryMetadataImpl.java.   no-op /  calling a"
+        + " listener?");
+  }
+
+  @Override
+  public void resume() {
+    System.out.println("In SandboxedBinPackedPersistentQueryMetadataImpl.java.  no-op /  calling a "
+        + "listener?");
+  }
+
+  @Override
   public void stop() {
     //no-op
   }

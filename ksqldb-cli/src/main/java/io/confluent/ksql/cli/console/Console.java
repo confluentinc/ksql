@@ -37,8 +37,10 @@ import io.confluent.ksql.cli.console.table.builder.ExecutionPlanTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.FunctionNameListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.KafkaTopicsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ListVariablesTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.PauseQueryTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.PropertiesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.QueriesTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.ResumeQueryTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.StreamsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
@@ -69,6 +71,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.PauseQueryEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -77,6 +80,7 @@ import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.QueryHostStat;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
+import io.confluent.ksql.rest.entity.ResumeQueryEntity;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -189,6 +193,10 @@ public class Console implements Closeable {
               tablePrinter(WarningEntity.class, WarningEntityTableBuilder::new))
           .put(VariablesList.class,
               tablePrinter(VariablesList.class, ListVariablesTableBuilder::new))
+          .put(PauseQueryEntity.class,
+              tablePrinter(PauseQueryEntity.class, PauseQueryTableBuilder::new))
+          .put(ResumeQueryEntity.class,
+              tablePrinter(ResumeQueryEntity.class, ResumeQueryTableBuilder::new))
           .put(TerminateQueryEntity.class,
               tablePrinter(TerminateQueryEntity.class, TerminateQueryTableBuilder::new))
           .build();

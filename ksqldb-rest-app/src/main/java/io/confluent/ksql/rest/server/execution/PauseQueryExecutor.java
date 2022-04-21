@@ -17,18 +17,9 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.PauseQuery;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.PauseQueryEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import org.apache.kafka.streams.state.HostInfo;
 
 public final class PauseQueryExecutor {
 
@@ -54,45 +45,45 @@ public final class PauseQueryExecutor {
     }
 
     // PAUSE locally
-//    final QueryId queryId = pauseQuery.getQueryId().get();
-//    System.out.println("Pausing Query locally: " + queryId);
-//    boolean pausedLocally = false;
-//    if (executionContext.getQuery(queryId).isPresent()) {
-//      pausedLocally = true;
-//      // JNH - call:pause
-//      executionContext.getQuery(queryId).get().pause();
-//    }
-//
-//    // JNH: See how the RemoteHostExecutor works.
-//    // PAUSE Remotely
-//    final RemoteHostExecutor remoteHostExecutor = RemoteHostExecutor.create(
-//        statement,
-//        sessionProperties,
-//        executionContext,
-//        serviceContext.getKsqlClient()
-//    );
-//
-//    System.out.println("Pausing Query remotely: " + queryId);
-//    final Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> res =
-//        remoteHostExecutor.fetchAllRemoteResults();
-//    if (res.left.isEmpty()) {
-//      System.out.println("No remote servers were paused");
-//    }
-//    final boolean wasPausedRemotely = remoteHostExecutor.fetchAllRemoteResults().getLeft()
-//        .values()
-//        .stream()
-//        .map(PauseQueryEntity.class::cast)
-//        .map(PauseQueryEntity::getWasPaused)
-//        .anyMatch(b -> b.equals(true));
-//    if (!pausedLocally && !wasPausedRemotely) {
-//      throw new KsqlException(String.format(
-//          "Failed to pause query with query ID: '%s'",
-//          queryId));
-//    }
-//
-//    return StatementExecutorResponse.handled(Optional.of(
-//        new PauseQueryEntity(statement.getStatementText(), queryId.toString(), true)
-//    ));
+    //    final QueryId queryId = pauseQuery.getQueryId().get();
+    //    System.out.println("Pausing Query locally: " + queryId);
+    //    boolean pausedLocally = false;
+    //    if (executionContext.getQuery(queryId).isPresent()) {
+    //      pausedLocally = true;
+    //      // JNH - call:pause
+    //      executionContext.getQuery(queryId).get().pause();
+    //    }
+    //
+    //    // JNH: See how the RemoteHostExecutor works.
+    //    // PAUSE Remotely
+    //    final RemoteHostExecutor remoteHostExecutor = RemoteHostExecutor.create(
+    //        statement,
+    //        sessionProperties,
+    //        executionContext,
+    //        serviceContext.getKsqlClient()
+    //    );
+    //
+    //    System.out.println("Pausing Query remotely: " + queryId);
+    //    final Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> res =
+    //        remoteHostExecutor.fetchAllRemoteResults();
+    //    if (res.left.isEmpty()) {
+    //      System.out.println("No remote servers were paused");
+    //    }
+    //    final boolean wasPausedRemotely = remoteHostExecutor.fetchAllRemoteResults().getLeft()
+    //        .values()
+    //        .stream()
+    //        .map(PauseQueryEntity.class::cast)
+    //        .map(PauseQueryEntity::getWasPaused)
+    //        .anyMatch(b -> b.equals(true));
+    //    if (!pausedLocally && !wasPausedRemotely) {
+    //      throw new KsqlException(String.format(
+    //          "Failed to pause query with query ID: '%s'",
+    //          queryId));
+    //    }
+    //
+    //    return StatementExecutorResponse.handled(Optional.of(
+    //        new PauseQueryEntity(statement.getStatementText(), queryId.toString(), true)
+    //    ));
 
   }
 }

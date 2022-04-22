@@ -32,6 +32,9 @@ import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -72,6 +75,10 @@ public class TransientQueryMetadataTest {
   private Consumer<QueryMetadata> closeCallback;
   @Mock
   private Listener listener;
+  @Mock
+  private Metrics metrics;
+  @Mock
+  private Sensor sensor;
 
   private TransientQueryMetadata query;
 
@@ -98,7 +105,9 @@ public class TransientQueryMetadataTest {
         ResultType.STREAM,
         0L,
         0L,
-        listener
+        listener,
+        metrics,
+        sensor
     );
     query.initialize();
   }

@@ -40,6 +40,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
@@ -86,7 +88,9 @@ public class PersistentQueryMetadataImpl
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
       final QueryMetadata.Listener listener,
-      final Optional<ScalablePushRegistry> scalablePushRegistry
+      final Optional<ScalablePushRegistry> scalablePushRegistry,
+      final Metrics metrics,
+      final Sensor sensor
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -105,7 +109,9 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        new QueryListenerWrapper(listener, scalablePushRegistry)
+        new QueryListenerWrapper(listener, scalablePushRegistry),
+        metrics,
+        sensor
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");

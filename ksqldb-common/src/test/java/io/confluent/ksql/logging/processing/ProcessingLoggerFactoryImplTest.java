@@ -27,6 +27,7 @@ import io.confluent.common.logging.StructuredLogger;
 import io.confluent.common.logging.StructuredLoggerFactory;
 import java.util.Collection;
 import java.util.function.BiFunction;
+import org.apache.kafka.common.metrics.Sensor;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,10 +45,15 @@ public class ProcessingLoggerFactoryImplTest {
   @Mock
   private BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory;
   @Mock
+  private BiFunction<ProcessingLogger, Sensor, ProcessingLogger> loggerWithMetricsFactory;
+  @Mock
   private ProcessingLogger logger;
+  @Mock
+  private ProcessingLogger loggerWithMetrics;
+  @Mock
+  private Sensor sensor;
 
   private final Collection<String> loggers = ImmutableList.of("logger1", "logger2");
-
   private ProcessingLoggerFactoryImpl factory;
 
   @Before
@@ -55,7 +61,8 @@ public class ProcessingLoggerFactoryImplTest {
     when(innerFactory.getLogger(anyString())).thenReturn(innerLogger);
     when(innerFactory.getLoggers()).thenReturn(loggers);
     when(loggerFactory.apply(config, innerLogger)).thenReturn(logger);
-    factory = new ProcessingLoggerFactoryImpl(config, innerFactory, loggerFactory);
+    when(loggerWithMetricsFactory.apply(logger, sensor)).thenReturn(loggerWithMetrics);
+    factory = new ProcessingLoggerFactoryImpl(config, innerFactory, loggerFactory, loggerWithMetricsFactory);
   }
 
   @Test
@@ -67,6 +74,17 @@ public class ProcessingLoggerFactoryImplTest {
     assertThat(logger, is(this.logger));
     verify(innerFactory).getLogger("foo.bar");
     verify(loggerFactory).apply(config, innerLogger);
+  }
+
+  @Test
+  public void shouldCreateLoggerWithMetrics() {
+    // When:
+    final ProcessingLogger loggerWithMetrics = factory.getLoggerWithMetrics("bar.food", sensor);
+
+    // Then:
+    assertThat(loggerWithMetrics, is(this.loggerWithMetrics));
+    verify(innerFactory).getLogger("bar.food");
+    verify(loggerWithMetricsFactory).apply(logger, sensor);
   }
 
   @Test

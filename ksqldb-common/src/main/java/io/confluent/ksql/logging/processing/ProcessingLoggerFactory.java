@@ -16,6 +16,7 @@
 package io.confluent.ksql.logging.processing;
 
 import java.util.Collection;
+import org.apache.kafka.common.metrics.Sensor;
 
 public interface ProcessingLoggerFactory {
   /**
@@ -24,6 +25,14 @@ public interface ProcessingLoggerFactory {
    * @return The logger with the given name.
    */
   ProcessingLogger getLogger(String name);
+
+  /**
+   * Get a processing logger for writing record processing log messages and emits metrics
+   * @param name The name of the logger to get.
+   * @param sensor The metrics sensor to record the number of errors
+   * @return The metrics emitting logger with the given name.
+   */
+  ProcessingLogger getLoggerWithMetrics(String name, Sensor sensor);
 
   /**
    * @return A collection of all loggers that have been created by the factory

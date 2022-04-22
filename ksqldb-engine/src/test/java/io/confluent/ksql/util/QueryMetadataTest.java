@@ -44,6 +44,9 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -87,6 +90,10 @@ public class QueryMetadataTest {
   private ArgumentCaptor<KafkaStreams.StateListener> streamsListenerCaptor;
   @Mock
   private Ticker ticker;
+  @Mock
+  private Metrics metrics;
+  @Mock
+  private Sensor sensor;
 
   private QueryMetadataImpl query;
 
@@ -112,7 +119,9 @@ public class QueryMetadataTest {
         10,
         0L,
         0L,
-        listener
+        listener,
+        metrics,
+        sensor
     ){
     };
     query.initialize();

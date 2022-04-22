@@ -46,6 +46,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -77,6 +79,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final Listener listener;
   private final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder;
   private final TimeBoundedQueue queryErrors;
+  private final Optional<Metrics> metrics;
+  private final Optional<Sensor> processingLogErrorSensor;
 
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
@@ -108,7 +112,10 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final Listener listener,
       final Map<String, Object> streamsProperties,
       final Optional<ScalablePushRegistry> scalablePushRegistry,
-      final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder) {
+      final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder,
+      final Metrics metrics,
+      final Sensor sensor
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -138,6 +145,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
                     topology
             ));
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
+    this.metrics = Optional.of(metrics);
+    this.processingLogErrorSensor = Optional.of(sensor);
   }
 
   // for creating sandbox instances
@@ -166,6 +175,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.materializationProvider = original.materializationProvider;
     this.scalablePushRegistry = original.scalablePushRegistry;
     this.namedTopologyBuilder = original.namedTopologyBuilder;
+    this.metrics = Optional.empty();
+    this.processingLogErrorSensor = Optional.empty();
   }
 
   @Override

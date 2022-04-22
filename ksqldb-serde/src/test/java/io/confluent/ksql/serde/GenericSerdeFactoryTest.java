@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -167,7 +168,7 @@ public class GenericSerdeFactoryTest {
 
     // When:
     final Serde<String> result = serdeFactory
-        .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext);
+        .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext, Optional.empty());
 
     // Then:
     assertThrows(
@@ -188,7 +189,7 @@ public class GenericSerdeFactoryTest {
 
     // When:
     final Serde<String> result = serdeFactory
-        .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext);
+        .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext, Optional.empty());
 
     // Then:
     assertThrows(

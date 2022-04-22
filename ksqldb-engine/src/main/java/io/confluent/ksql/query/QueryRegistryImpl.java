@@ -435,7 +435,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         Optional.empty(),
         metricCollectors,
         config,
-        logContext
+        logContext,
+        Optional.empty()
     );
     stream.overrideStreamsProperties(newStreamsProperties);
   }

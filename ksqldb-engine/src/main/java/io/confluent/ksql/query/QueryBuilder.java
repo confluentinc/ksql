@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.query;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_CUSTOM_METRICS_TAGS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -66,6 +67,7 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryMetricsUtil;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
@@ -87,6 +89,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -185,10 +188,16 @@ final class QueryBuilder {
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
+    final Sensor processingLogErrorSensor = QueryMetricsUtil.getProcessingLogErrorMetricSensor(
+        queryId.toString(),
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KSQL_CUSTOM_METRICS_TAGS)
+    );
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        streamsBuilder
+        streamsBuilder,
+        processingLogErrorSensor
     );
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(
@@ -196,7 +205,8 @@ final class QueryBuilder {
         Optional.of(queryId),
         metricCollectors,
         config.getConfig(true),
-        processingLogContext
+        processingLogContext,
+        Optional.of(processingLogErrorSensor)
     );
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final TransientQueryQueue queue =
@@ -224,7 +234,9 @@ final class QueryBuilder {
         resultType,
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
-        listener
+        listener,
+        metricCollectors.getMetrics(),
+        processingLogErrorSensor
     );
   }
 
@@ -278,12 +290,18 @@ final class QueryBuilder {
       final MetricCollectors metricCollectors) {
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
+    final Sensor processingLogErrorSensor = QueryMetricsUtil.getProcessingLogErrorMetricSensor(
+        queryId.toString(),
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KSQL_CUSTOM_METRICS_TAGS)
+    );
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         Optional.of(queryId),
         metricCollectors,
         config.getConfig(true),
-        processingLogContext
+        processingLogContext,
+        Optional.of(processingLogErrorSensor)
     );
 
     final LogicalSchema logicalSchema;
@@ -320,7 +338,8 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        streamsBuilder
+        streamsBuilder,
+        processingLogErrorSensor
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final Topology topology = streamsBuilder
@@ -371,7 +390,9 @@ final class QueryBuilder {
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
-        scalablePushRegistry
+        scalablePushRegistry,
+        metricCollectors.getMetrics(),
+        processingLogErrorSensor
     );
 
   }
@@ -396,6 +417,11 @@ final class QueryBuilder {
         sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
         queryId,
         metricCollectors
+    );
+    final Sensor processingLogErrorSensor = QueryMetricsUtil.getProcessingLogErrorMetricSensor(
+        queryId.toString(),
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KSQL_CUSTOM_METRICS_TAGS)
     );
     final Map<String, Object> queryOverrides = sharedKafkaStreamsRuntime.getStreamProperties();
 
@@ -439,7 +465,8 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
             applicationId,
             queryId,
-            namedTopologyBuilder
+            namedTopologyBuilder,
+            processingLogErrorSensor
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final NamedTopology topology = namedTopologyBuilder.build();
@@ -491,8 +518,11 @@ final class QueryBuilder {
                 queryId,
                 applicationId,
                 queryOverrides,
-                physicalPlan
-            )
+                physicalPlan,
+                processingLogErrorSensor
+            ),
+            metricCollectors.getMetrics(),
+            processingLogErrorSensor
     );
     if (real) {
       return binPackedPersistentQueryMetadata;
@@ -507,7 +537,8 @@ final class QueryBuilder {
                                         final QueryId queryId,
                                         final String applicationId,
                                         final Map<String, Object>  queryOverrides,
-                                        final ExecutionStep<?> physicalPlan) {
+                                        final ExecutionStep<?> physicalPlan,
+                                        final Sensor processingLogErrorSensor) {
     final NamedTopologyBuilder namedTopologyBuilder =
         sharedRuntime.getKafkaStreams().newNamedTopologyBuilder(
             queryId.toString(),
@@ -517,7 +548,8 @@ final class QueryBuilder {
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,
-        namedTopologyBuilder
+        namedTopologyBuilder,
+        processingLogErrorSensor
     );
     buildQueryImplementation(physicalPlan, runtimeBuildContext);
     return namedTopologyBuilder.build();
@@ -528,7 +560,8 @@ final class QueryBuilder {
       final Optional<QueryId> queryId,
       final MetricCollectors metricCollectors,
       final KsqlConfig config,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<Sensor> processingLogSensor
   ) {
     final Map<String, Object> newStreamsProperties
         = new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
@@ -537,7 +570,13 @@ final class QueryBuilder {
     // get logger
     final ProcessingLogger logger;
     if (queryId.isPresent()) {
-      logger = processingLogContext.getLoggerFactory().getLogger(queryId.get().toString());
+      if (processingLogSensor.isPresent()) {
+        logger = processingLogContext.getLoggerFactory().getLoggerWithMetrics(
+            queryId.get().toString(),
+            processingLogSensor.get());
+      } else {
+        logger = processingLogContext.getLoggerFactory().getLogger(queryId.get().toString());
+      }
     } else {
       logger = processingLogContext.getLoggerFactory().getLogger(applicationId);
     }
@@ -617,7 +656,8 @@ final class QueryBuilder {
               Optional.empty(),
               metricCollectors,
               config.getConfig(true),
-              processingLogContext
+              processingLogContext,
+              Optional.empty()
           )
       );
     } else {
@@ -628,7 +668,8 @@ final class QueryBuilder {
               Optional.empty(),
               metricCollectors,
               config.getConfig(true),
-              processingLogContext
+              processingLogContext,
+              Optional.empty()
           )
       );
     }
@@ -698,7 +739,9 @@ final class QueryBuilder {
   private RuntimeBuildContext buildContext(
           final String applicationId,
           final QueryId queryId,
-          final StreamsBuilder streamsBuilder) {
+          final StreamsBuilder streamsBuilder,
+          final Sensor sensor
+  ) {
     return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),
@@ -706,7 +749,8 @@ final class QueryBuilder {
         processingLogContext,
         functionRegistry,
         applicationId,
-        queryId
+        queryId,
+        sensor
     );
   }
 

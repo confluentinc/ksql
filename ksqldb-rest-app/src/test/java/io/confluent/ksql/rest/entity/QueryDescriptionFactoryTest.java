@@ -56,6 +56,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
@@ -110,6 +113,10 @@ public class QueryDescriptionFactoryTest {
   private ProcessingLogger processingLogger;
   @Mock
   private QueryMetadata.Listener listener;
+  @Mock
+  private Metrics metrics;
+  @Mock
+  private Sensor sensor;
   
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -144,7 +151,9 @@ public class QueryDescriptionFactoryTest {
         ResultType.STREAM,
         0L,
         0L,
-        listener
+        listener,
+        metrics,
+        sensor
     );
     transientQuery.initialize();
 
@@ -173,7 +182,9 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L,
         listener,
-        Optional.empty()
+        Optional.empty(),
+        metrics,
+        sensor
     );
     persistentQuery.initialize();
 
@@ -287,7 +298,9 @@ public class QueryDescriptionFactoryTest {
         ResultType.STREAM,
         0L,
         0L,
-        listener
+        listener,
+        metrics,
+        sensor
     );
     transientQuery.initialize();
 
@@ -327,7 +340,9 @@ public class QueryDescriptionFactoryTest {
         ResultType.STREAM,
         0L,
         0L,
-        listener
+        listener,
+        metrics,
+        sensor
     );
     transientQuery.initialize();
 

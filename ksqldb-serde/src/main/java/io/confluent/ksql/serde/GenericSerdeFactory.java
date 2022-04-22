@@ -30,8 +30,10 @@ import io.confluent.ksql.serde.tracked.TrackedSerde;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 
@@ -86,12 +88,26 @@ final class GenericSerdeFactory {
   <T> Serde<T> wrapInLoggingSerde(
       final Serde<T> formatSerde,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<Sensor> processingLogSensor
   ) {
-    final ProcessingLogger serializerProcessingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, SERIALIZER_LOGGER_NAME));
-    final ProcessingLogger deserializerProcessingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
+    final ProcessingLogger serializerProcessingLogger;
+    final ProcessingLogger deserializerProcessingLogger;
+    if (processingLogSensor.isPresent()) {
+      serializerProcessingLogger = processingLogContext.getLoggerFactory()
+          .getLoggerWithMetrics(
+              join(loggerNamePrefix, SERIALIZER_LOGGER_NAME),
+              processingLogSensor.get());
+      deserializerProcessingLogger = processingLogContext.getLoggerFactory()
+          .getLoggerWithMetrics(
+              join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME),
+              processingLogSensor.get());
+    } else {
+      serializerProcessingLogger = processingLogContext.getLoggerFactory()
+          .getLogger(join(loggerNamePrefix, SERIALIZER_LOGGER_NAME));
+      deserializerProcessingLogger = processingLogContext.getLoggerFactory()
+          .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
+    }
 
     return Serdes.serdeFrom(
         new LoggingSerializer<>(formatSerde.serializer(), serializerProcessingLogger),

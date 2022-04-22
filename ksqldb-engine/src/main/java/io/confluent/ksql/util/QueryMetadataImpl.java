@@ -38,10 +38,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -71,6 +74,8 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final TimeBoundedQueue queryErrors;
   private final RetryEvent retryEvent;
   private final Listener listener;
+  private final Optional<Metrics> metrics;
+  private final Optional<Sensor> processingLogErrorSensor;
   private volatile boolean everStarted = false;
   private volatile KafkaStreams kafkaStreams;
   // These fields don't need synchronization because they are initialized in initialize() before
@@ -103,7 +108,9 @@ public class QueryMetadataImpl implements QueryMetadata {
       final int maxQueryErrorsQueueSize,
       final long baseWaitingTimeMs,
       final long retryBackoffMaxMs,
-      final Listener listener
+      final Listener listener,
+      final Metrics metrics,
+      final Sensor sensor
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -126,6 +133,8 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
+    this.metrics = Optional.of(metrics);
+    this.processingLogErrorSensor = Optional.of(sensor);
     this.retryEvent = new RetryEvent(
         queryId,
         baseWaitingTimeMs,
@@ -152,6 +161,8 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.errorClassifier = other.errorClassifier;
     this.everStarted = other.everStarted;
     this.queryErrors = new TimeBoundedQueue(Duration.ZERO, 0);
+    this.metrics = Optional.empty();
+    this.processingLogErrorSensor = Optional.empty();
     this.retryEvent = new RetryEvent(
         other.getQueryId(),
         0,
@@ -352,6 +363,9 @@ public class QueryMetadataImpl implements QueryMetadata {
    * schemas, etc...).
    */
   public void close() {
+    if (metrics.isPresent() && processingLogErrorSensor.isPresent()) {
+      metrics.get().removeSensor(processingLogErrorSensor.get().name());
+    }
     doClose(true);
     listener.onClose(this);
   }

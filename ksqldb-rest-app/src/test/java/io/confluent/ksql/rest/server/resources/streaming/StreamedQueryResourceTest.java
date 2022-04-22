@@ -119,6 +119,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
@@ -204,6 +206,10 @@ public class StreamedQueryResourceTest {
   private QueryExecutor queryExecutor;
   @Mock
   private QueryMetadataHolder queryMetadataHolder;
+  @Mock
+  private Metrics metrics;
+  @Mock
+  private Sensor sensor;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -562,7 +568,9 @@ public class StreamedQueryResourceTest {
             ResultType.STREAM,
             0L,
             0L,
-            listener
+            listener,
+            metrics,
+            sensor
         );
     transientQueryMetadata.initialize();
 

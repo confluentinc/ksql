@@ -56,6 +56,8 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -112,6 +114,8 @@ public class RuntimeBuildContextTest {
   private KeySerdeFactory keySerdeFactory;
   @Mock
   private ValueSerdeFactory valueSerdeFactory;
+  @Mock
+  private Sensor processingLogSensor;
   private QueryContext queryContext;
   private RuntimeBuildContext runtimeBuildContext;
 
@@ -140,7 +144,8 @@ public class RuntimeBuildContextTest {
         "foo",
         QUERY_ID,
         keySerdeFactory,
-        valueSerdeFactory
+        valueSerdeFactory,
+        processingLogSensor
     );
   }
 

@@ -31,6 +31,9 @@ import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
 import org.junit.Test;
@@ -68,6 +71,10 @@ public class BinPackedPersistentQueryMetadataImplTest {
     private Map<String, Object> streamsProperties;
     @Mock
     private Optional<ScalablePushRegistry> scalablePushRegistry;
+    @Mock
+    private Metrics metrics;
+    @Mock
+    private Sensor sensor;
 
     private PersistentQueryMetadata query;
 
@@ -92,7 +99,10 @@ public class BinPackedPersistentQueryMetadataImplTest {
             listener,
             streamsProperties,
             scalablePushRegistry,
-            (runtime) -> topology);
+            (runtime) -> topology,
+            metrics,
+            sensor
+        );
 
         query.initialize();
     }

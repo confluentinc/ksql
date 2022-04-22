@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -55,14 +56,25 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   private static final int ADDITIONAL_CAPACITY = 4;
 
   private final GenericSerdeFactory innerFactory;
+  private final Optional<Sensor> processingLoggerSensor;
 
   public GenericRowSerDe() {
-    this(new GenericSerdeFactory());
+    this(new GenericSerdeFactory(), Optional.empty());
+  }
+
+  public GenericRowSerDe(final Optional<Sensor> processingLoggerSensor) {
+    this(new GenericSerdeFactory(), processingLoggerSensor);
   }
 
   @VisibleForTesting
-  GenericRowSerDe(final GenericSerdeFactory innerFactory) {
-    this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
+  GenericRowSerDe(
+      final GenericSerdeFactory innerFactory,
+      final Optional<Sensor> processingLoggerSensor
+  ) {
+    this.innerFactory =
+        Objects.requireNonNull(innerFactory, "innerFactory");
+    this.processingLoggerSensor =
+        Objects.requireNonNull(processingLoggerSensor, "processingLoggerSensor");
   }
 
   public static Serde<GenericRow> from(
@@ -99,7 +111,12 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     final Serde<GenericRow> genericRowSerde = toGenericRowSerde(formatSerde, schema);
 
     final Serde<GenericRow> loggingSerde = innerFactory
-        .wrapInLoggingSerde(genericRowSerde, loggerNamePrefix, processingLogContext);
+        .wrapInLoggingSerde(
+            genericRowSerde,
+            loggerNamePrefix,
+            processingLogContext,
+            processingLoggerSensor
+        );
 
     final Serde<GenericRow> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

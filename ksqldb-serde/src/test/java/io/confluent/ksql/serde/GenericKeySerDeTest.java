@@ -47,6 +47,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
@@ -93,15 +95,17 @@ public class GenericKeySerDeTest {
   private Serde<Object> trackingSerde;
   @Mock
   private TrackedCallback callback;
+  @Mock
+  private Sensor sensor;
 
   private GenericKeySerDe factory;
 
   @Before
   public void setUp() {
-    factory = new GenericKeySerDe(innerFactory);
+    factory = new GenericKeySerDe(innerFactory, Optional.of(sensor));
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
-    when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
 
     when(innerSerde.serializer()).thenReturn(innerSerializer);
@@ -136,7 +140,7 @@ public class GenericKeySerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(sensor)));
   }
 
   @Test
@@ -147,7 +151,7 @@ public class GenericKeySerDeTest {
             Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(sensor)));
   }
 
   @Test

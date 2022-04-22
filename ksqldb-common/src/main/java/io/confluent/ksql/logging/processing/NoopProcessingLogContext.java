@@ -18,6 +18,7 @@ package io.confluent.ksql.logging.processing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
+import org.apache.kafka.common.metrics.Sensor;
 
 /**
  * An implementation of {@code ProcessingLogContext} that does nothing.
@@ -31,6 +32,11 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
   private static final ProcessingLoggerFactory NOOP_FACTORY = new ProcessingLoggerFactory() {
     @Override
     public ProcessingLogger getLogger(final String name) {
+      return NOOP_LOGGER;
+    }
+
+    @Override
+    public ProcessingLogger getLoggerWithMetrics(final String name, final Sensor sensor) {
       return NOOP_LOGGER;
     }
 

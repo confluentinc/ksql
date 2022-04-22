@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -47,14 +48,25 @@ import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 public final class GenericKeySerDe implements KeySerdeFactory {
 
   private final GenericSerdeFactory innerFactory;
+  private final Optional<Sensor> processingLoggerSensor;
 
   public GenericKeySerDe() {
-    this(new GenericSerdeFactory());
+    this(new GenericSerdeFactory(), Optional.empty());
+  }
+
+  public GenericKeySerDe(final Optional<Sensor> processingLoggerSensor) {
+    this(new GenericSerdeFactory(), processingLoggerSensor);
   }
 
   @VisibleForTesting
-  GenericKeySerDe(final GenericSerdeFactory innerFactory) {
-    this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
+  GenericKeySerDe(
+      final GenericSerdeFactory innerFactory,
+      final Optional<Sensor> processingLoggerSensor
+  ) {
+    this.innerFactory =
+        Objects.requireNonNull(innerFactory, "innerFactory");
+    this.processingLoggerSensor =
+        Objects.requireNonNull(processingLoggerSensor, "processingLoggerSensor");
   }
 
   @Override
@@ -122,7 +134,11 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     final Serde<GenericKey> genericKeySerde = toGenericKeySerde(formatSerde, schema);
 
     final Serde<GenericKey> loggingSerde = innerFactory
-        .wrapInLoggingSerde(genericKeySerde, loggerNamePrefix, processingLogContext);
+        .wrapInLoggingSerde(
+            genericKeySerde,
+            loggerNamePrefix,
+            processingLogContext,
+            processingLoggerSensor);
 
     final Serde<GenericKey> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

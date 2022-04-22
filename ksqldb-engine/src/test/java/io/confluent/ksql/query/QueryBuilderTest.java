@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.MeteredProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
@@ -56,6 +57,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryMetricsUtil;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
 
@@ -156,6 +158,8 @@ public class QueryBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
+  private ProcessingLogger meteredProcessingLogger;
+  @Mock
   private ServiceContext serviceContext;
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
@@ -200,11 +204,13 @@ public class QueryBuilderTest {
   private RuntimeAssignor runtimeAssignor;
 
   private QueryBuilder queryBuilder;
+  private MetricCollectors metricCollectors;
   private final Stacker stacker = new Stacker();
   private List<SharedKafkaStreamsRuntime> sharedKafkaStreamsRuntimes;
 
   @Before
   public void setup() {
+    metricCollectors = new MetricCollectors();
     when(sink.getSchema()).thenReturn(SINK_SCHEMA);
     when(sink.getKsqlTopic()).thenReturn(ksqlTopic);
     when(sink.getName()).thenReturn(SINK_NAME);
@@ -225,6 +231,7 @@ public class QueryBuilderTest {
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
+    when(processingLoggerFactory.getLoggerWithMetrics(any(), any())).thenReturn(meteredProcessingLogger);
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("");
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
@@ -275,7 +282,7 @@ public class QueryBuilderTest {
         queryListener,
         streamsBuilder,
         Optional.empty(),
-        new MetricCollectors()
+        metricCollectors
     );
     queryMetadata.initialize();
 
@@ -677,8 +684,11 @@ public class QueryBuilderTest {
 
   @Test
   public void shouldConfigureProducerErrorHandler() {
-    final ProcessingLogger logger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);
+    final ProcessingLogger newMeteredProcessingLogger = mock(MeteredProcessingLogger.class);
+    when(processingLoggerFactory.getLoggerWithMetrics(
+        QUERY_ID.toString(),
+        QueryMetricsUtil.getProcessingLogErrorMetricSensor(QUERY_ID.toString(), metricCollectors.getMetrics(), ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
+    ).thenReturn(newMeteredProcessingLogger);
 
     // When:
     buildPersistentQuery(
@@ -691,7 +701,7 @@ public class QueryBuilderTest {
     final Map<String, Object> streamsProps = capturedStreamsProperties();
     assertThat(
         streamsProps.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER),
-        is(logger));
+        is(newMeteredProcessingLogger));
   }
 
   @Test
@@ -796,7 +806,7 @@ public class QueryBuilderTest {
           runtimeAssignor.getRuntimeAndMaybeAddRuntime(queryId,
               sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
               config.getConfig(true)),
-          new MetricCollectors()
+          metricCollectors
       );
     } else {
       return queryBuilder.buildPersistentQueryInDedicatedRuntime(
@@ -811,7 +821,7 @@ public class QueryBuilderTest {
           queryListener,
           ArrayList::new,
           streamsBuilder,
-          new MetricCollectors()
+          metricCollectors
       );
     }
   }

@@ -1571,11 +1571,6 @@ Adds an interval to a `TIME`.
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
-!!!note
-
-   Only plural time units are supported, for example, `MINUTES`. Singular time
-   units, like `MINUTE`, will cause an error. `MILLISECOND` is supported.
-
 ---
 
 ### **`TIMESUB`**
@@ -1588,11 +1583,6 @@ Subtracts an interval from a `TIME`.
 
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
-
-!!!note
-
-   Only plural time units are supported, for example, `MINUTES`. Singular time
-   units, like `MINUTE`, will cause an error. `MILLISECOND` is supported.
 
 ---
 
@@ -1607,11 +1597,6 @@ Adds an interval to a `TIMESTAMP`.
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
-!!!note
-
-   Only plural time units are supported, for example, `MINUTES`. Singular time
-   units, like `MINUTE`, will cause an error. `MILLISECOND` is supported.
-
 ---
 
 ### **`TIMESTAMPSUB`**
@@ -1624,11 +1609,6 @@ Subtracts an interval from a `TIMESTAMP`.
 
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
-
-!!!note
-
-   Only plural time units are supported, for example, `MINUTES`. Singular time
-   units, like `MINUTE`, will cause an error. `MILLISECOND` is supported.
 
 ---
 

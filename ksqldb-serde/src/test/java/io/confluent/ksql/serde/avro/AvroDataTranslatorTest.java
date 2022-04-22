@@ -25,6 +25,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -35,7 +36,7 @@ import org.junit.Test;
 
 public class AvroDataTranslatorTest {
   @Test
-  public void shoudRenameSourceDereference() {
+  public void shouldRenameSourceDereference() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("STREAM_NAME.COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
@@ -187,7 +188,7 @@ public class AvroDataTranslatorTest {
   }
 
   @Test
-  public void shoudlReplacePrimitivesCorrectly() {
+  public void shouldReplacePrimitivesCorrectly() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
@@ -305,8 +306,8 @@ public class AvroDataTranslatorTest {
         new AvroDataTranslator(ksqlSchema, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
-    final ArithmeticException e = assertThrows(
-        ArithmeticException.class,
+    final KsqlFunctionException e = assertThrows(
+        KsqlFunctionException.class,
         () -> translator.toKsqlRow(topicSchema, new BigDecimal("123.456")));
     assertThat(
         e.getMessage(),

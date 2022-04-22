@@ -11,11 +11,11 @@ keywords: time, datetime, timestamp, format, window
 The following list shows valid time units for the `SIZE`, `ADVANCE BY`,
 `SESSION`, and `WITHIN` clauses, or to pass as time unit parameters in functions.
 
--   `DAY`, `DAYS`
--   `HOUR`, `HOURS`
--   `MINUTE`, `MINUTES`
--   `SECOND`, `SECONDS`
--   `MILLISECOND`, `MILLISECONDS`
+-   `DAYS`
+-   `HOURS`
+-   `MINUTES`
+-   `SECONDS`
+-   `MILLISECONDS`
 
 For more information, see
 [Windows in SQL Queries](/concepts/time-and-windows-in-ksqldb-queries#windows-in-sql-queries).

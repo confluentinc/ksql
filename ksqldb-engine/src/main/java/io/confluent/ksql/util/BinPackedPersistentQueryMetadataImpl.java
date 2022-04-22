@@ -47,8 +47,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -80,8 +82,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final Listener listener;
   private final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder;
   private final TimeBoundedQueue queryErrors;
-  private final Sensor sensor;
-  private final Metrics metrics;
+  private final Optional<Metrics> metrics;
+  private final Optional<Sensor> restartSensor;
 
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
@@ -113,7 +115,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final Listener listener,
       final Map<String, Object> streamsProperties,
       final Optional<ScalablePushRegistry> scalablePushRegistry,
-      final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder) {
+      final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder,
+      final Metrics metrics,
+      final Map<String, String> metricsTags) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -143,6 +147,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
                     topology
             ));
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
+    this.metrics = Optional.of(metrics);
+    this.restartSensor = Optional.of(
+        QueryMetricsUtil.createQueryRestartMetricSensor(queryId.toString(), metricsTags, metrics));
   }
 
   // for creating sandbox instances
@@ -171,6 +178,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.materializationProvider = original.materializationProvider;
     this.scalablePushRegistry = original.scalablePushRegistry;
     this.namedTopologyBuilder = original.namedTopologyBuilder;
+    this.metrics = Optional.empty();
+    this.restartSensor = Optional.empty();
   }
 
   @Override
@@ -390,7 +399,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     sharedKafkaStreamsRuntime.stop(queryId, false);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);
-    metrics.removeSensor(sensor.name());
+    if (metrics.isPresent() && restartSensor.isPresent()) {
+      metrics.get().removeSensor(restartSensor.get().name());
+    }
   }
 
   @Override
@@ -412,8 +423,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     return listener;
   }
 
-  Sensor getSensor() {
-    return sensor;
+  Optional<Sensor> getSensor() {
+    return restartSensor;
   }
-
 }

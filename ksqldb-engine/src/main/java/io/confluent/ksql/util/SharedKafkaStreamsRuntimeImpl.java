@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -26,16 +25,12 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -54,13 +49,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   private final QueryErrorClassifier errorClassifier;
   private final int maxQueryErrorsQueueSize;
   private final List<KafkaFuture<Void>> topolgogiesToAdd;
-  private final Metrics metrics;
-  private final Map<String, String> metricsTags;
-
-  // Since we have multiple queries registered to a runtime, we need to keep track of all the
-  // metrics sensor in order to record metrics for each individual query, and to clean up the sensor
-  // if the query is d
-  private final Map<QueryId, Sensor> queryIdSensorMap;
 
   public SharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                        final QueryErrorClassifier errorClassifier,
@@ -78,9 +66,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     shutdownTimeout = shutdownTimeoutConfig;
     setupAndStartKafkaStreams(kafkaStreams);
     topolgogiesToAdd = new ArrayList<>();
-    this.metrics = metrics;
-    this.metricsTags = metricsTags;
-    this.queryIdSensorMap = new HashMap<>();
   }
 
   @Override
@@ -89,7 +74,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   ) {
     final QueryId queryId = binpackedPersistentQueryMetadata.getQueryId();
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    queryIdSensorMap.put(queryId, createQueryRestartMetricSensor(queryId.toString()));
     log.info("Registered query: {}  in {} \n"
                  + "Runtime {} is executing these queries: {}",
         queryId,
@@ -143,7 +127,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
       if (queryInError != null) {
         queryInError.setQueryError(queryError);
-        queryIdSensorMap.get(queryInError.getQueryId()).record();
+        if (queryInError.getSensor().isPresent()) {
+          queryInError.getSensor().get().record();
+        }
         log.error(String.format(
             "Unhandled query exception caught in streams thread %s for query %s. (%s)",
             Thread.currentThread().getName(),
@@ -154,7 +140,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       } else {
         for (BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
           query.setQueryError(queryError);
-          queryIdSensorMap.get(query.getQueryId()).record();
+          if (query.getSensor().isPresent()) {
+            query.getSensor().get().record();
+          }
         }
         log.error(String.format(
             "Unhandled runtime exception caught in streams thread %s. (%s)",
@@ -238,7 +226,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     if (!isCreateOrReplace) {
       // we don't want to lose it from this runtime
       collocatedQueries.remove(queryId);
-      queryIdSensorMap.remove(queryId);
     }
     log.info("Query {} was stopped successfully", queryId);
   }
@@ -289,27 +276,5 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
     }
     setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);
-  }
-
-  @VisibleForTesting
-  protected Map<QueryId, Sensor> getQueryIdSensorMap() {
-    return queryIdSensorMap;
-  }
-
-  // returns a metrics sensor that tracks the number of times a query was restarted when hitting
-  // an uncaught exception
-  private Sensor createQueryRestartMetricSensor(final String queryId) {
-    final Map<String, String> customMetricsTagsForQuery =
-        MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId, metricsTags);
-    final MetricName restartMetricName = metrics.metricName(
-        QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
-        QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
-        QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
-        customMetricsTagsForQuery
-    );
-    final Sensor sensor =
-        metrics.sensor(QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME + "-" + queryId);
-    sensor.add(restartMetricName, new CumulativeSum());
-    return sensor;
   }
 }

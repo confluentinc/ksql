@@ -44,11 +44,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
-
-import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -143,19 +140,8 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.metrics = Optional.of(metrics);
-
-    final Map<String, String> customMetricsTagsForQuery =
-        MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.toString(), metricsTags);
-    final MetricName restartMetricName = metrics.metricName(
-        QUERY_RESTART_METRIC_NAME,
-        QUERY_RESTART_METRIC_GROUP_NAME,
-        QUERY_RESTART_METRIC_DESCRIPTION,
-        customMetricsTagsForQuery
-    );
     this.restartSensor = Optional.of(
-        metrics.sensor(QUERY_RESTART_METRIC_GROUP_NAME + "-" + queryId));
-    restartSensor.get().add(restartMetricName, new CumulativeSum());
-
+        QueryMetricsUtil.createQueryRestartMetricSensor(queryId.toString(), metricsTags, metrics));
     this.retryEvent = new RetryEvent(
         queryId,
         baseWaitingTimeMs,
@@ -391,11 +377,11 @@ public class QueryMetadataImpl implements QueryMetadata {
    * schemas, etc...).
    */
   public void close() {
+    doClose(true);
+    listener.onClose(this);
     if (metrics.isPresent() && restartSensor.isPresent()) {
       metrics.get().removeSensor(restartSensor.get().name());
     }
-    doClose(true);
-    listener.onClose(this);
   }
 
   void doClose(final boolean cleanUp) {

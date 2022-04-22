@@ -173,7 +173,6 @@ public class QueryRestartMetricFunctionalTest {
 	Thread.sleep(15000);
 	REST_APP_SHARED_RUNTIME.stop();
 	Thread.sleep(30000);
-	System.out.println("steven starting server up again");
 
 	// When:
 	REST_APP_SHARED_RUNTIME.start();

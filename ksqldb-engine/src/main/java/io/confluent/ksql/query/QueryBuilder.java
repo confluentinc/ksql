@@ -496,7 +496,9 @@ final class QueryBuilder {
                 applicationId,
                 queryOverrides,
                 physicalPlan
-            )
+            ),
+            metricCollectors.getMetrics(),
+            ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
     if (real) {
       return binPackedPersistentQueryMetadata;

@@ -109,6 +109,30 @@
       ]
     },
     {
+      "name": "sum decimal with overflow",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4,1)) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, sum(value) AS SUM FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"value": "5.4"}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "100.1"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "500.9"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "300.8"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "400.5"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": {"SUM": "005.4"}},
+        {"topic": "S2", "key": 0,"value": {"SUM": "105.5"}},
+        {"topic": "S2", "key": 100,"value": {"SUM": "500.9"}},
+        {"topic": "S2", "key": 100,"value": {"SUM": "801.7"}}
+      ],
+      "expectedException": {
+        "type": "org.apache.kafka.streams.errors.StreamsException",
+        "message": "Numeric field overflow"
+      }
+    },
+    {
       "name": "sum double map",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON');",

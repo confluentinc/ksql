@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import static io.confluent.ksql.schema.ksql.types.SqlDecimal.validateParameters;
 
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -258,7 +259,7 @@ public final class DecimalUtil {
     final int digits = precision - scale;
     final BigDecimal maxValue = BigDecimal.valueOf(Math.pow(10, digits));
     if (maxValue.compareTo(value.abs()) < 1) {
-      throw new ArithmeticException(
+      throw new KsqlFunctionException(
           String.format("Numeric field overflow: A field with precision %d and scale %d "
               + "must round to an absolute value less than 10^%d. Got %s",
               precision,

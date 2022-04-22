@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -439,7 +440,7 @@ public class DecimalUtilTest {
   public void shouldFailFitIfNotExactMatchMoreDigits() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> ensureFit(new BigDecimal("12"), DECIMAL_SCHEMA)
     );
 
@@ -464,7 +465,7 @@ public class DecimalUtilTest {
   public void shouldNotCastDecimalTooBig() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> cast(new BigDecimal(10), 2, 1)
     );
 
@@ -476,7 +477,7 @@ public class DecimalUtilTest {
   public void shouldNotCastDecimalTooNegative() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> cast(new BigDecimal(-10), 2, 1)
     );
 
@@ -488,7 +489,7 @@ public class DecimalUtilTest {
   public void shouldNotCastIntTooBig() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> cast(10, 2, 1)
     );
 
@@ -500,7 +501,7 @@ public class DecimalUtilTest {
   public void shouldNotCastIntTooNegative() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> cast(-10, 2, 1)
     );
 
@@ -512,7 +513,7 @@ public class DecimalUtilTest {
   public void shouldNotCastDoubleTooBig() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> cast(10.0, 2, 1)
     );
 
@@ -524,7 +525,7 @@ public class DecimalUtilTest {
   public void shouldNotCastDoubleTooNegative() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> cast(-10.0, 2, 1)
     );
 
@@ -536,7 +537,7 @@ public class DecimalUtilTest {
   public void shouldNotCastStringTooBig() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> cast("10", 2, 1)
     );
 
@@ -548,7 +549,7 @@ public class DecimalUtilTest {
   public void shouldNotCastStringTooNegative() {
     // When:
     final Exception e = assertThrows(
-        ArithmeticException.class,
+        KsqlFunctionException.class,
         () -> cast("-10", 2, 1)
     );
 

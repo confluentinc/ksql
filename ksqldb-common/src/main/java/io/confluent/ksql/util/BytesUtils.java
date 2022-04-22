@@ -15,6 +15,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
+import io.vertx.core.buffer.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -120,6 +121,24 @@ public final class BytesUtils {
 
   public static byte[] getByteArray(final ByteBuffer buffer, final int start, final int end) {
     return Arrays.copyOfRange(getByteArray(buffer), start, end);
+  }
+
+  public static Buffer toJsonMsg(final Buffer responseLine, final boolean stripArray) {
+
+    int start = 0;
+    int end = responseLine.length() - 1;
+    if (stripArray) {
+      if (responseLine.getByte(0) == (byte) '[') {
+        start = 1;
+      }
+      if (responseLine.getByte(end) == (byte) ']') {
+        end -= 1;
+      }
+    }
+    if (end > 0 && responseLine.getByte(end) == (byte) ',') {
+      end -= 1;
+    }
+    return responseLine.slice(start, end + 1);
   }
 
   public static List<byte[]> split(final byte[] b, final byte[] delim) {

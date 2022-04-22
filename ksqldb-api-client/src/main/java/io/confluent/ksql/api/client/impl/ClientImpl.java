@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client.impl;
 
 import static io.confluent.ksql.api.client.impl.DdlDmlRequestValidators.validateExecuteStatementRequest;
+import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -37,6 +38,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -613,6 +615,9 @@ public class ClientImpl implements Client {
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
     }
+    if (path.equals(QUERY_STREAM_ENDPOINT)) {
+      request = configureAcceptTypeToLatestMediaType(request);
+    }
     if (clientOptions.getRequestHeaders() != null) {
       for (final Entry<String, String> entry : clientOptions.getRequestHeaders().entrySet()) {
         request.putHeader(entry.getKey(), entry.getValue());
@@ -628,6 +633,10 @@ public class ClientImpl implements Client {
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
+  }
+
+  private HttpClientRequest configureAcceptTypeToLatestMediaType(final HttpClientRequest request) {
+    return request.putHeader(ACCEPT.toString(), KsqlMediaType.LATEST_FORMAT.mediaType());
   }
 
   private HttpClientRequest configureUserAgent(final HttpClientRequest request) {

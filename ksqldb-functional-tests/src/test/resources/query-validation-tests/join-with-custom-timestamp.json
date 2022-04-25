@@ -10,7 +10,7 @@
   "tests": [
    {
       "name": "stream stream inner join with ts",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM S1 (ID BIGINT KEY, NAME varchar, TS bigint) WITH (timestamp='TS', kafka_topic='s1', value_format='{FORMAT}');",
         "CREATE STREAM S2 (ID BIGINT KEY, F1 varchar, F2 varchar) WITH (kafka_topic='s2', value_format='{FORMAT}');",
@@ -31,7 +31,7 @@
     },
     {
       "name": "stream stream inner join with ts extractor both sides",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM S1 (ID BIGINT KEY, NAME varchar, TS bigint) WITH (timestamp='TS', kafka_topic='s1', value_format='{FORMAT}');",
         "CREATE STREAM S2 (ID BIGINT KEY, F1 varchar, F2 varchar, RTS bigint) WITH (timestamp='RTS', kafka_topic='s2', value_format='{FORMAT}');",
@@ -52,7 +52,7 @@
     },
     {
       "name": "stream table join with ts extractor both sides",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM S1 (ID BIGINT KEY, NAME varchar, TS bigint) WITH (timestamp='TS', kafka_topic='s1', value_format='{FORMAT}');",
         "CREATE TABLE  T1 (ID BIGINT PRIMARY KEY, F1 varchar, F2 varchar, RTS bigint) WITH (timestamp='RTS', kafka_topic='t1', value_format='{FORMAT}');",
@@ -94,7 +94,7 @@
     },
     {
       "name": "table table inner join with ts extractor both sides",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE TABLE S1 (ID BIGINT PRIMARY KEY, NAME varchar, TS bigint) WITH (timestamp='TS', kafka_topic='s1', value_format='{FORMAT}');",
         "CREATE TABLE S2 (ID BIGINT PRIMARY KEY, F1 varchar, F2 varchar, RTS bigint) WITH (timestamp='RTS', kafka_topic='s2', value_format='{FORMAT}');",

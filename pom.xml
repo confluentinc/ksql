@@ -156,7 +156,7 @@
         <netty-codec-http2-version>4.1.72.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
 
-        <maven.surefire.version>3.0.0-M5</maven.surefire.version>
+        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
     </properties>
 
     <dependencyManagement>

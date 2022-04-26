@@ -620,6 +620,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- Every child project uses slf4j/log4j for logging, might as well just include them here automatically -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>logredactor</artifactId>

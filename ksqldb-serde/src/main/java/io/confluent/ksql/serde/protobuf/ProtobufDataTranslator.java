@@ -35,7 +35,7 @@ public class ProtobufDataTranslator implements DataTranslator {
     this.innerTranslator = new ConnectDataTranslator(protoCompatibleSchema);
   }
 
-  Schema getProtoCompatibleSchema() {
+  Schema getSchema() {
     return protoCompatibleSchema;
   }
 

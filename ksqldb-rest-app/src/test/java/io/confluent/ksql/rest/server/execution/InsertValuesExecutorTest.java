@@ -1132,65 +1132,6 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldBuildSerdeWithSchemaFullName() throws Exception {
-    final String AVRO_SCHEMA_WITH_CUSTOM_NAME = "{\"type\":\"record\","
-        + "\"name\":\"TestSchema\","
-        + "\"namespace\":\"io.avro\","
-        + "\"fields\":["
-        + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}],"
-        + "\"connect.name\":\"io.avro.TestSchema\"}";
-
-    // Given:
-    when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, ""));
-    when(srClient.getSchemaById(1))
-        .thenReturn(new AvroSchema(AVRO_SCHEMA_WITH_CUSTOM_NAME));
-    givenDataSourceWithSchema(
-        TOPIC_NAME,
-        SCHEMA,
-        SerdeFeatures.of(SerdeFeature.WRAP_SINGLES),
-        SerdeFeatures.of(),
-        FormatInfo.of(FormatFactory.AVRO.name()),
-        FormatInfo.of(FormatFactory.AVRO.name()),
-        false,
-        false);
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allColumnNames(SCHEMA),
-        ImmutableList.of(
-            new StringLiteral("key"),
-            new StringLiteral("str"),
-            new LongLiteral(2L)
-        )
-    );
-
-    // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
-
-    // Then:
-    verify(keySerdeFactory).create(
-        FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap.of(
-            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema")),
-        PersistenceSchema.from(SCHEMA.key(), SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)),
-        new KsqlConfig(ImmutableMap.of()),
-        srClientFactory,
-        "",
-        NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
-
-    verify(valueSerdeFactory).create(
-        FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap.of(
-            AvroProperties.FULL_SCHEMA_NAME,"io.avro.TestSchema")),
-        PersistenceSchema.from(SCHEMA.value(), SerdeFeatures.of()),
-        new KsqlConfig(ImmutableMap.of()),
-        srClientFactory,
-        "",
-        NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
-  }
-
-  @Test
   public void shouldBuildCorrectSerde() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -1300,42 +1241,6 @@ public class InsertValuesExecutorTest {
     assertThat(e.getMessage(), containsString(
         "Authorization denied to Write on Schema Registry subject: ["
             + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
-  }
-
-  @Test
-  public void shouldThrowWhenNotAuthorizedToReadValSchemaFromSR() throws Exception {
-    // Given:
-    givenDataSourceWithSchema(
-        TOPIC_NAME,
-        SCHEMA,
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
-        SerdeFeatures.of(),
-        FormatInfo.of(FormatFactory.AVRO.name()),
-        FormatInfo.of(FormatFactory.AVRO.name()),
-        false,
-        false);
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        allColumnNames(SCHEMA),
-        ImmutableList.of(
-            new StringLiteral("key"),
-            new StringLiteral("str"),
-            new LongLiteral(2L)
-        )
-    );
-    when(srClient.getLatestSchemaMetadata(TOPIC_NAME + "-value")).thenThrow(
-        new RestClientException("User is denied operation Read on topic-value", 401, 1)
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Authorization denied to Read on Schema Registry subject: ["
-            + KsqlConstants.getSRSubject(TOPIC_NAME, false)));
   }
 
   @Test

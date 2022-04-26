@@ -175,6 +175,10 @@ final class EngineContext {
     return ksqlConfig;
   }
 
+  synchronized void configure(final KsqlConfig config) {
+    this.ksqlConfig = config;
+  }
+
   synchronized void alterSystemProperty(final Map<String, String> overrides) {
     this.ksqlConfig = this.ksqlConfig.cloneWithPropertyOverwrite(overrides);
   }

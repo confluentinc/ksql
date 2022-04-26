@@ -23,12 +23,21 @@ public final class ProtobufSchemas {
   private ProtobufSchemas() {
   }
 
+  /**
+   * Adds the {@code schemaName} to the provided {@code schema}. The name is only added to the
+   * parent schema name to allow Protobuf to extract the name later. Support for nested schema
+   * extractions are not supported.
+   */
   static Schema schemaWithName(final Schema schema, final String schemaName) {
     if (schemaName == null || schema.type() != Schema.Type.STRUCT) {
       return schema;
     }
 
-    final SchemaBuilder builder = buildSchemaStruct(schema);
+    final SchemaBuilder builder = SchemaBuilder.struct();
+
+    for (final Field f : schema.fields()) {
+      builder.field(f.name(), f.schema());
+    }
 
     if (schema.parameters() != null) {
       builder.parameters(schema.parameters());
@@ -46,15 +55,5 @@ public final class ProtobufSchemas {
     builder.version(schema.version());
 
     return builder.name(schemaName).build();
-  }
-
-  private static SchemaBuilder buildSchemaStruct(final Schema schema) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-
-    for (final Field f : schema.fields()) {
-      schemaBuilder.field(f.name(), f.schema());
-    }
-
-    return schemaBuilder;
   }
 }

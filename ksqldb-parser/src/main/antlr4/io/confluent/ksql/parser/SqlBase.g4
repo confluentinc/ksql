@@ -419,6 +419,7 @@ nonReserved
     | GRACE | PERIOD
     | DEFINE | UNDEFINE | VARIABLES
     | PLUGINS | SYSTEM
+    | TIMEOUT
     ;
 
 EMIT: 'EMIT';

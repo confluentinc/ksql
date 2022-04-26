@@ -992,7 +992,7 @@ public class AstBuilderTest {
     // Then:
     assertThat(assertTopic.getTopic(), is("X"));
     assertThat(assertTopic.getConfig().get("REPLICAS").getValue(), is(1));
-    assertThat(assertTopic.getConfig().get("partitions").getValue(), is(1));
+    assertThat(assertTopic.getConfig().get("PARTITIONS").getValue(), is(1));
     assertThat(assertTopic.getTimeout().get().getTimeUnit(), is(TimeUnit.SECONDS));
     assertThat(assertTopic.getTimeout().get().getValue(), is(10L));
   }

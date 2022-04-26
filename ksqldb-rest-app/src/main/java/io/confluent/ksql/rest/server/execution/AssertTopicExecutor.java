@@ -54,7 +54,7 @@ public final class AssertTopicExecutor {
         : executionContext.getKsqlConfig().getInt(KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS);
     try {
       RetryUtil.retryWithBackoff(
-          timeout/RETRY_MS,
+          timeout / RETRY_MS,
           RETRY_MS,
           RETRY_MS,
           () -> assertTopic(
@@ -72,14 +72,14 @@ public final class AssertTopicExecutor {
       final String topic,
       final Map<String, Literal> config
   ) {
-    boolean topicExists;
+    final boolean topicExists;
     try {
       topicExists = client.isTopicExists(topic);
     } catch (final Exception e) {
       throw new KsqlException("Cannot check that topic exists: " + e.getMessage());
     }
 
-    if(topicExists) {
+    if (topicExists) {
       final int partitions = client.describeTopic(topic).partitions().size();
       final int replicas = client.describeTopic(topic).partitions().get(0).replicas().size();
       final List<String> configErrors = new ArrayList<>();

@@ -89,6 +89,7 @@ statement
     | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
     | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
+    | ASSERT TOPIC identifier (WITH tableProperties)? timeout?              #assertTopic
     ;
 
 assertStatement
@@ -117,6 +118,10 @@ query
 resultMaterialization
     : CHANGES
     | FINAL
+    ;
+
+timeout
+    : TIMEOUT number windowUnit
     ;
 
 alterOption
@@ -553,6 +558,7 @@ PLUGINS: 'PLUGINS';
 HEADERS: 'HEADERS';
 HEADER: 'HEADER';
 SYSTEM: 'SYSTEM';
+TIMEOUT: 'TIMEOUT';
 
 IF: 'IF';
 

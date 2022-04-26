@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.integration;
 import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+import static io.netty.handler.codec.http.HttpHeaderNames.EXPIRES;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 
@@ -555,6 +556,7 @@ public final class RestIntegrationTestUtil {
 
       mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
       contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));
+      headers.add(EXPIRES.toString(), "Wed, 13 Apr 2022 07:28:00 GMT");
 
       CompletableFuture<List<String>> completableFuture = new CompletableFuture<>();
 

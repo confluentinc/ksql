@@ -57,7 +57,7 @@ public final class TopicNode {
       @JsonProperty("replicas") final Integer replicas
   ) {
     this.name = name == null ? "" : name;
-    this.avroSchema = buildAvroSchema(requireNonNull(schema, "schema"));
+    this.avroSchema = buildAvroSchema(schema == null ? NullNode.getInstance() : schema);
     this.format = format == null ? "" : format;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;

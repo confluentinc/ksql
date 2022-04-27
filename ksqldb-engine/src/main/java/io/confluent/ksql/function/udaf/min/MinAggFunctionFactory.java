@@ -51,6 +51,8 @@ public class MinAggFunctionFactory extends AggregateFunctionFactory {
       case DATE:
       case TIME:
       case TIMESTAMP:
+      case STRING:
+      case BYTES:
         return new MinKudaf(FUNCTION_NAME, initArgs.udafIndex(), argSchema);
       default:
         throw new KsqlException(

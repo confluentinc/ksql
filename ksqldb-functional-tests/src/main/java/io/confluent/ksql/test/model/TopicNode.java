@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -40,7 +41,7 @@ public final class TopicNode {
       @JsonProperty("replicas") final Integer replicas
   ) {
     this.name = name == null ? "" : name;
-    this.schema = SerdeUtil.buildSchema(requireNonNull(schema, "schema"), format);
+    this.schema = SerdeUtil.buildSchema(schema == null ? NullNode.getInstance() : schema, format);
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;
 

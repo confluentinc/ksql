@@ -88,7 +88,7 @@ public final class SerdeUtil {
   }
 
   public static Optional<ParsedSchema> buildSchema(final JsonNode schema, final String format) {
-    if (schema instanceof NullNode) {
+    if (schema == null || schema instanceof NullNode) {
       return Optional.empty();
     }
 

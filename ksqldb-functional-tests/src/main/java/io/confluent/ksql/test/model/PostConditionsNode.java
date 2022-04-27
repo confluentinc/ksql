@@ -215,6 +215,7 @@ public final class PostConditionsNode {
         }
 
         // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+        // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
         @Override
         public boolean matches(final Object item) {
           if (!(item instanceof PostTopicNode)) {
@@ -232,6 +233,7 @@ public final class PostConditionsNode {
               || valueSchema.equals(that.valueSchema));
         }
         // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+        // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       };
     }
 

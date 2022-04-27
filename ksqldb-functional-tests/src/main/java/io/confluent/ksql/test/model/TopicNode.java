@@ -54,8 +54,8 @@ public final class TopicNode {
   ) {
 
     this.name = name == null ? "" : name;
-    this.keySchema = keySchema == null ? NullNode.getInstance() : keySchema;
-    this.valueSchema = valueSchema ==  null ? NullNode.getInstance() : valueSchema;
+    this.keySchema = keySchema;
+    this.valueSchema = valueSchema;
     this.keyFormat = keyFormat;
     this.valueFormat = valueFormat;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
@@ -66,8 +66,8 @@ public final class TopicNode {
     }
 
     // Fail early:
-    SerdeUtil.buildSchema(this.keySchema, keyFormat);
-    SerdeUtil.buildSchema(this.valueSchema, valueFormat);
+    SerdeUtil.buildSchema(keySchema, keyFormat);
+    SerdeUtil.buildSchema(valueSchema, valueFormat);
   }
 
   public String getName() {

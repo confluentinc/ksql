@@ -805,6 +805,7 @@ final class EngineExecutor {
           metaStore,
           ksqlConfig,
           getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
+          getRowIdEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
           statement.getStatementText()
       );
 
@@ -1175,5 +1176,18 @@ final class EngineExecutor {
     }
 
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+  }
+
+  private static boolean getRowIdEnabled(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> configOverrides
+  ) {
+    final Object rowIdEnabled =
+        configOverrides.get(KsqlConfig.KSQL_ROWID_ENABLED);
+    if (rowIdEnabled != null) {
+      return "true".equalsIgnoreCase(rowIdEnabled.toString());
+    }
+
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWID_ENABLED);
   }
 }

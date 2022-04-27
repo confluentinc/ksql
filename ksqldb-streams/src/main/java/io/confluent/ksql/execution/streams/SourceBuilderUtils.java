@@ -37,6 +37,7 @@ import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -391,6 +392,12 @@ final class SourceBuilderUtils {
             final long offset = processorContext.offset();
             row.append(partition);
             row.append(offset);
+          }
+
+          // how do i get the key/ do i even need the real key??
+          if (pseudoColumnVersion >= SystemColumns.ROWID_PSEUDOCOLUMN_VERSION) {
+            final byte[] id = processorContext.applicationId().getBytes(StandardCharsets.UTF_8);
+            row.append(id);
           }
 
           row.appendAll(keyColumns);

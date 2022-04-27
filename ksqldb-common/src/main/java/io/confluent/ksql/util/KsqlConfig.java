@@ -538,6 +538,13 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag for ROWPARTITION and ROWOFFSET pseudocolumns. If enabled, new queries will be"
           + "built with ROWPARTITION and ROWOFFSET pseudocolumns. If off, they will not be.";
 
+  public static final String KSQL_ROWID_ENABLED =
+      "ksql.rowid..enabled";
+  public static final Boolean KSQL_ROWID_ENABLED_DEFAULT = false;
+  public static final String KSQL_ROWID_ENABLED_DOC =
+      "Feature flag for ROWID pseudocolumns. If enabled, new queries will be"
+          + "built with ROWID pseudocolumns. If off, they will not be.";
+
   public static final String KSQL_HEADERS_COLUMNS_ENABLED =
       "ksql.headers.columns.enabled";
   public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = true;

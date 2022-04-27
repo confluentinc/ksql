@@ -46,13 +46,17 @@ public class DataSourceExtractor {
   private final Set<ColumnName> allColumns = new HashSet<>();
   private final Set<ColumnName> clashingColumns = new HashSet<>();
   private final boolean rowpartitionRowoffsetEnabled;
+  private final boolean rowIdEnabled;
 
   private boolean isJoin = false;
 
-  public DataSourceExtractor(final MetaStore metaStore,
-                             final boolean rowpartitionRowoffsetEnabled) {
+  public DataSourceExtractor(
+      final MetaStore metaStore,
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
+    this.rowIdEnabled = rowIdEnabled;
   }
 
   public Set<Analysis.AliasedDataSource> extractDataSources(final AstNode node) {
@@ -73,7 +77,7 @@ public class DataSourceExtractor {
       return false;
     }
 
-    if (SystemColumns.isPseudoColumn(name, rowpartitionRowoffsetEnabled)) {
+    if (SystemColumns.isPseudoColumn(name, rowpartitionRowoffsetEnabled, rowIdEnabled)) {
       return true;
     }
 
@@ -82,7 +86,8 @@ public class DataSourceExtractor {
 
   public List<SourceName> getSourcesFor(final ColumnName columnName) {
     return allSources.stream()
-        .filter(aliased -> hasColumn(columnName, aliased, rowpartitionRowoffsetEnabled))
+        .filter(
+            aliased -> hasColumn(columnName, aliased, rowpartitionRowoffsetEnabled, rowIdEnabled))
         .map(AliasedDataSource::getAlias)
         .collect(Collectors.toList());
   }
@@ -90,9 +95,10 @@ public class DataSourceExtractor {
   private static boolean hasColumn(
       final ColumnName columnName,
       final AliasedDataSource aliased,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled
   ) {
-    if (SystemColumns.isPseudoColumn(columnName, rowpartitionRowoffsetEnabled)) {
+    if (SystemColumns.isPseudoColumn(columnName, rowpartitionRowoffsetEnabled, rowIdEnabled)) {
       return true;
     }
 

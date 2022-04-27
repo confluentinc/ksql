@@ -45,12 +45,13 @@ import org.junit.Test;
 public class QueryAnalyzerFunctionalTest {
 
   private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
+  private static final boolean ROW_ID_ENABLED = true;
   private static final boolean PULL_LIMIT_CLAUSE_ENABLED = true;
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final QueryAnalyzer queryAnalyzer =
-      new QueryAnalyzer(metaStore, "prefix-~", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+      new QueryAnalyzer(metaStore, "prefix-~", ROWPARTITION_ROWOFFSET_ENABLED, ROW_ID_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
   @Test
   public void shouldAnalyseTableFunctions() {
@@ -91,7 +92,7 @@ public class QueryAnalyzerFunctionalTest {
   public void shouldHandleValueFormat() {
     // Given:
     final PreparedStatement<CreateStreamAsSelect> statement = KsqlParserTestUtil.buildSingleAst(
-        "create stream s with(value_format='delimited') as select * from test1;", metaStore, ROWPARTITION_ROWOFFSET_ENABLED);
+        "create stream s with(value_format='delimited') as select * from test1;", metaStore, ROWPARTITION_ROWOFFSET_ENABLED, ROW_ID_ENABLED);
     final Query query = statement.getStatement().getQuery();
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
@@ -104,6 +105,6 @@ public class QueryAnalyzerFunctionalTest {
   }
 
   private Query givenQuery(final String sql) {
-    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore, ROWPARTITION_ROWOFFSET_ENABLED).getStatement();
+    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore, ROWPARTITION_ROWOFFSET_ENABLED, ROW_ID_ENABLED).getStatement();
   }
 }

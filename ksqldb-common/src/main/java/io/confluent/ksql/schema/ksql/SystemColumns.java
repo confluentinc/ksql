@@ -46,6 +46,9 @@ public final class SystemColumns {
   public static final ColumnName ROWOFFSET_NAME = ColumnName.of("ROWOFFSET");
   public static final SqlType ROWOFFSET_TYPE = SqlTypes.BIGINT;
 
+  public static final ColumnName ROWID_NAME = ColumnName.of("ROWID");
+  public static final SqlType ROWID_TYPE = SqlTypes.BYTES;
+
   public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
 
@@ -53,10 +56,11 @@ public final class SystemColumns {
 
   public static final int ROWTIME_PSEUDOCOLUMN_VERSION = 0;
   public static final int ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION = 1;
+  public static final int ROWID_PSEUDOCOLUMN_VERSION = 2;
 
   public static final int LEGACY_PSEUDOCOLUMN_VERSION_NUMBER = ROWTIME_PSEUDOCOLUMN_VERSION;
   public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER =
-      ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
+      ROWID_PSEUDOCOLUMN_VERSION;
 
   private static final Set<ColumnName> WINDOW_BOUNDS_COLUMN_NAMES = ImmutableSet.of(
       WINDOWSTART_NAME,
@@ -89,6 +93,14 @@ public final class SystemColumns {
           ROWOFFSET_NAME,
           ROWOFFSET_TYPE,
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+          true,
+          true,
+          true
+      ),
+      PseudoColumn.of(
+          ROWID_NAME,
+          ROWID_TYPE,
+          ROWID_PSEUDOCOLUMN_VERSION,
           true,
           true,
           true
@@ -129,10 +141,11 @@ public final class SystemColumns {
 
   public static boolean isPseudoColumn(
       final ColumnName columnName,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled
   ) {
     return isPseudoColumn(columnName,
-        getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled));
+        getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled, rowIdEnabled));
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
@@ -150,8 +163,12 @@ public final class SystemColumns {
     return pseudoColumnNames(getPseudoColumnVersionFromConfig(ksqlConfig));
   }
 
-  public static Set<ColumnName> pseudoColumnNames(final boolean rowpartitionRowoffsetEnabled) {
-    return pseudoColumnNames(getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled));
+  public static Set<ColumnName> pseudoColumnNames(
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled
+  ) {
+    return pseudoColumnNames(getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled,
+        rowIdEnabled));
   }
 
   public static boolean isSystemColumn(final ColumnName columnName, final int pseudoColumnVersion) {
@@ -209,24 +226,31 @@ public final class SystemColumns {
         .anyMatch(col -> col.name.equals(columnName));
   }
 
-  public static int getPseudoColumnVersionFromConfig(final boolean rowpartitionRowoffsetEnabled) {
-    return getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled, false);
+  public static int getPseudoColumnVersionFromConfig(final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled) {
+    return getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled, rowIdEnabled, false);
   }
 
   public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
     return getPseudoColumnVersionFromConfig(
         ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED),
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWID_ENABLED),
         false
     );
   }
 
   public static int getPseudoColumnVersionFromConfig(
       final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled,
       final boolean forPullOrScalablePushQuery
   ) {
-    return rowpartitionRowoffsetEnabled && !forPullOrScalablePushQuery
-        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
-        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
+    if (rowIdEnabled  && !forPullOrScalablePushQuery) {
+      return ROWID_PSEUDOCOLUMN_VERSION;
+    } else if (rowpartitionRowoffsetEnabled  && !forPullOrScalablePushQuery) {
+      return ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
+    } else {
+      return ROWTIME_PSEUDOCOLUMN_VERSION;
+    }
   }
 
   private static void validatePseudoColumnVersion(final int pseudoColumnVersionNumber) {

@@ -37,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SourceSchemasTest {
 
   private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
+  private static final boolean ROW_ID_ENABLED = true;
 
   private static final SourceName ALIAS_1 = SourceName.of("S1");
   private static final SourceName ALIAS_2 = SourceName.of("S2");
@@ -66,18 +67,18 @@ public class SourceSchemasTest {
 
   @Before
   public void setUp() {
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2), ROWPARTITION_ROWOFFSET_ENABLED);
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2), ROWPARTITION_ROWOFFSET_ENABLED, ROW_ID_ENABLED);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnNoSchemas() {
-    new SourceSchemas(ImmutableMap.of(), ROWPARTITION_ROWOFFSET_ENABLED);
+    new SourceSchemas(ImmutableMap.of(), ROWPARTITION_ROWOFFSET_ENABLED, ROW_ID_ENABLED);
   }
 
   @Test
   public void shouldNotBeJoinIfSingleSchema() {
     // When:
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1), ROWPARTITION_ROWOFFSET_ENABLED);
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1), ROWPARTITION_ROWOFFSET_ENABLED, ROW_ID_ENABLED);
 
     // Then:
     assertThat(sourceSchemas.isJoin(), is(false));
@@ -86,7 +87,7 @@ public class SourceSchemasTest {
   @Test
   public void shouldBeJoinIfMultipleSchemas() {
     // When:
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2), ROWPARTITION_ROWOFFSET_ENABLED);
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2), ROWPARTITION_ROWOFFSET_ENABLED, ROW_ID_ENABLED);
 
     // Then:
     assertThat(sourceSchemas.isJoin(), is(true));

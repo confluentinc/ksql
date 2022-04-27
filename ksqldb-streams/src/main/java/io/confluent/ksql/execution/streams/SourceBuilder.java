@@ -236,6 +236,11 @@ final class SourceBuilder extends SourceBuilderBase {
             row.append(offset);
           }
 
+          // how do i get the key/ do i even need the real key??
+          if (pseudoColumnVersion >= SystemColumns.ROWID_PSEUDOCOLUMN_VERSION) {
+            final byte[] id = (byte[]) key;
+            row.append(id);
+          }
           return row;
         }
 

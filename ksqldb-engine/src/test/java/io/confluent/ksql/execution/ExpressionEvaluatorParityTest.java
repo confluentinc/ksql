@@ -1,9 +1,7 @@
 package io.confluent.ksql.execution;
 
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -50,7 +48,6 @@ import java.util.concurrent.Callable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -442,7 +439,7 @@ public class ExpressionEvaluatorParityTest {
 
   private Expression getWhereExpression(final String table, String expression) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, true)
+        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, true, true)
         .getStatement();
 
     assertThat(statement.getWhere().isPresent(), is(true));

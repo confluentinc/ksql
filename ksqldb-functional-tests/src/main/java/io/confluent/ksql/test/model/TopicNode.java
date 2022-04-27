@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,9 +56,10 @@ public final class TopicNode {
       @JsonProperty("partitions") final Integer numPartitions,
       @JsonProperty("replicas") final Integer replicas
   ) {
+
     this.name = name == null ? "" : name;
-    this.keySchema = requireNonNull(keySchema, "keySchema");
-    this.valueSchema = requireNonNull(valueSchema, "valueSchema");
+    this.keySchema = keySchema == null ? NullNode.getInstance() : keySchema;
+    this.valueSchema = valueSchema ==  null ? NullNode.getInstance() : valueSchema;
     this.keyFormat = keyFormat;
     this.valueFormat = valueFormat;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
@@ -67,8 +70,8 @@ public final class TopicNode {
     }
 
     // Fail early:
-    SerdeUtil.buildSchema(keySchema, keyFormat);
-    SerdeUtil.buildSchema(valueSchema, valueFormat);
+    SerdeUtil.buildSchema(this.keySchema, keyFormat);
+    SerdeUtil.buildSchema(this.valueSchema, valueFormat);
   }
 
   public String getName() {

@@ -189,8 +189,8 @@ public final class PostConditionsNode {
       this.keyFormat = requireNonNull(keyFormat, "KeyFormat");
       this.valueFormat = requireNonNull(valueFormat, "valueFormat");
       this.partitions = requireNonNull(partitions, "partitions");
-      this.keySchema = requireNonNull(keySchema, "keySchema");
-      this.valueSchema = requireNonNull(valueSchema, "valueSchema");
+      this.keySchema = keySchema == null ? NullNode.getInstance() : keySchema;
+      this.valueSchema = valueSchema == null ? NullNode.getInstance() : valueSchema;
 
       if (this.name.isEmpty()) {
         throw new InvalidFieldException("name", "empty or missing");

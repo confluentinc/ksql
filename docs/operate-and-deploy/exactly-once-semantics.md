@@ -28,12 +28,14 @@ operation exactly one time. All of the processing happens exactly once,
 including the processing and the materialized state created by the processing
 job that is written back to {{ site.ak }}.
 
-To enable exactly-once semantics, set `processing.guarantee="exactly_once"` in
-your ksqlDB configuration.
+To enable exactly-once semantics, set `processing.guarantee="exactly_once_v2"` in
+your ksqlDB configuration. Your {{ site.ak }} broker version must be 2.5 or later.
+If you're using the {{ site.cp }} distribution of ksqlDB, you need {{ site.cp }}
+version 5.5 or later.
 
 !!! important
 
-    Use the `exactly_once` setting with care. To achieve a true exactly-once
+    Use the `exactly_once_v2` setting with care. To achieve a true exactly-once
     system, end consumers and producers must also implement exactly-once
     semantics.
 
@@ -73,7 +75,7 @@ Content-Type: application/vnd.ksql.v1+json
 {
 "ksql": "SELECT * FROM pageviews EMIT CHANGES;",
 "streamsProperties": {
-    "processing.guarantee": "exactly_once"
+    "processing.guarantee": "exactly_once_v2"
 }
 }
 ```

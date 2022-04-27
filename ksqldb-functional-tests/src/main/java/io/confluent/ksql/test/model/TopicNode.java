@@ -52,7 +52,7 @@ public final class TopicNode {
       @JsonProperty("replicas") final Integer replicas
   ) {
     this.name = name == null ? "" : name;
-    this.schema = requireNonNull(schema, "schema");
+    this.schema = schema == null ? NullNode.getInstance() : schema;
     this.format = format;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;

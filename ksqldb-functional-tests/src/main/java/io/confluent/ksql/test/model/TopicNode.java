@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.test.model;
 
-import static java.util.Objects.requireNonNull;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -52,7 +50,7 @@ public final class TopicNode {
       @JsonProperty("replicas") final Integer replicas
   ) {
     this.name = name == null ? "" : name;
-    this.schema = requireNonNull(schema, "schema");
+    this.schema = schema == null ? NullNode.getInstance() : schema;
     this.format = format;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;

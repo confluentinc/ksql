@@ -179,6 +179,8 @@ public class PauseResumeIntegrationTest {
     System.out.println("Pause response " + pauseResponse);
     assertThat(getPausedCount(), equalTo(1));
 
+    Thread.sleep(2000);
+
     // Produce more records
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON,
         System::currentTimeMillis);

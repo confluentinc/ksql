@@ -189,8 +189,8 @@ public final class PostConditionsNode {
       this.keyFormat = requireNonNull(keyFormat, "KeyFormat");
       this.valueFormat = requireNonNull(valueFormat, "valueFormat");
       this.partitions = requireNonNull(partitions, "partitions");
-      this.keySchema = keySchema == null ? NullNode.getInstance() : keySchema;
-      this.valueSchema = valueSchema == null ? NullNode.getInstance() : valueSchema;
+      this.keySchema = keySchema;
+      this.valueSchema = valueSchema;
 
       if (this.name.isEmpty()) {
         throw new InvalidFieldException("name", "empty or missing");
@@ -226,8 +226,9 @@ public final class PostConditionsNode {
               && Objects.equals(keyFormat, that.keyFormat)
               && Objects.equals(valueFormat, that.valueFormat)
               && (!partitions.isPresent() || partitions.equals(that.partitions))
-              && (keySchema instanceof NullNode || keySchema.equals(that.keySchema))
-              && (valueSchema instanceof NullNode
+              && (keySchema == null || keySchema instanceof NullNode
+              || keySchema.equals(that.keySchema))
+              && (valueSchema == null || valueSchema instanceof NullNode
               || valueSchema.equals(that.valueSchema));
         }
         // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity

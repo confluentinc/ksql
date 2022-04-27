@@ -641,7 +641,9 @@ final class QueryBuilder {
       final String applicationId
   ) {
     final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
-        .and(new AuthorizationClassifier(applicationId));
+        .and(new AuthorizationClassifier(applicationId))
+        .and(new MissingSubjectClassifier(applicationId))
+        .and(new SchemaAuthorizationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);

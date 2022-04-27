@@ -192,6 +192,11 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
+                  resource(TOPIC, "Z"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
                   resource(TOPIC, AGG_TABLE),
                   ops(ALL)
               )
@@ -1044,15 +1049,12 @@ public class RestApiTest {
 
   @Test
   public void shouldAssertTopicExists() {
-    // Given:
-    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
-
     // When:
-    List<KsqlEntity> response = makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS=1) TIMEOUT 2 SECONDS;");
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT TOPIC " + PAGE_VIEW_TOPIC + " WITH (PARTITIONS=1) TIMEOUT 2 SECONDS;");
 
     // Then:
     assertThat(response.size(), is(1));
-    assertThat(((AssertTopicEntity) response.get(0)).getTopicName(), is("X"));
+    assertThat(((AssertTopicEntity) response.get(0)).getTopicName(), is(PAGE_VIEW_TOPIC));
   }
 
   @Test
@@ -1069,43 +1071,33 @@ public class RestApiTest {
 
   @Test
   public void shouldFailToAssertTopicWithWrongConfigs() {
-    // Given:
-    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
-
-    // When:
-    // Then:
     assertThatEventually(() -> {
       try {
-        makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS='apples', REPLICAS=100, FAKE_CONFIG='Hello!') TIMEOUT 2 SECONDS;");
+        makeKsqlRequest("ASSERT TOPIC " + PAGE_VIEW_TOPIC + " WITH (PARTITIONS='apples', REPLICAS=100, FAKE_CONFIG='Hello!') TIMEOUT 2 SECONDS;");
         return "Should have thrown config mismatch error";
       } catch (final Throwable t) {
         return t.getMessage();
       }
     }, containsString(
-        "Mismatched configuration for topic X: For config partitions, expected apples got 1\n"
-            + "Mismatched configuration for topic X: For config replicas, expected 100 got 1\n"
+        "Mismatched configuration for topic PAGEVIEW_TOPIC: For config partitions, expected apples got 1\n"
+            + "Mismatched configuration for topic PAGEVIEW_TOPIC: For config replicas, expected 100 got 1\n"
             + "Cannot assert unknown topic property: FAKE_CONFIG"));
   }
 
   @Test
   public void shouldStopScriptOnFailedAssert() {
-    // Given:
-    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
-
     // When:
-    // Then:
     assertThatEventually(() -> {
       try {
-        makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS='apples', REPLICAS=100, FAKE_CONFIG='Hello!') TIMEOUT 2 SECONDS; CREATE STREAM Y AS SELECT * FROM X;");
-        return "Should have thrown config mismatch error";
+        makeKsqlRequest("ASSERT TOPIC X TIMEOUT 2 SECONDS; CREATE STREAM Z AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
+        return "Should have thrown 'Topic does not exist' error.";
       } catch (final Throwable t) {
         return t.getMessage();
       }
-    }, containsString(
-        "Mismatched configuration for topic X: For config partitions, expected apples got 1\n"
-            + "Mismatched configuration for topic X: For config replicas, expected 100 got 1\n"
-            + "Cannot assert unknown topic property: FAKE_CONFIG"));
-    assertThat(topicExists("Y"), is(false));
+    }, containsString("Topic X does not exist"));
+
+    // Then:
+    assertThat(topicExists("Z"), is(false));
   }
 
   @Test
@@ -1141,6 +1133,17 @@ public class RestApiTest {
     assertThat(end - start <= 2, is(true));
   }
 
+  @Test
+  public void shouldFailToAssertTopicWithNoAcls() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC ACLESS WITH (PARTITIONS=1);");
+        return "Should have thrown an error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Cannot check that topic exists: Authorization denied to Describe on topic(s): [ACLESS]"));
+  }
 
   private boolean topicExists(final String topicName) {
     return getServiceContext().getTopicClient().isTopicExists(topicName);

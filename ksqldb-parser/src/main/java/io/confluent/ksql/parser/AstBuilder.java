@@ -1403,7 +1403,7 @@ public class AstBuilder {
     public Node visitAssertTopic(final AssertTopicContext context) {
       return new AssertTopic(
           getLocation(context),
-          ParserUtil.getIdentifierText(context.identifier()),
+          ParserUtil.getIdentifierText(true, context.identifier()),
           context.WITH() == null
               ? ImmutableMap.of()
               : processTableProperties(context.tableProperties()),

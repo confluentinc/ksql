@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.test.model;
 
-import static java.util.Objects.requireNonNull;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,7 +55,7 @@ public final class TopicNode {
       @JsonProperty("replicas") final Integer replicas
   ) {
     this.name = name == null ? "" : name;
-    this.avroSchema = buildAvroSchema(requireNonNull(schema, "schema"));
+    this.avroSchema = buildAvroSchema(schema == null ? NullNode.getInstance() : schema);
     this.format = format == null ? "" : format;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;

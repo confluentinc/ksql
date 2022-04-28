@@ -556,7 +556,6 @@ public final class RestIntegrationTestUtil {
 
       mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
       contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));
-      headers.add(EXPIRES.toString(), "Wed, 13 Apr 2022 07:28:00 GMT");
 
       CompletableFuture<List<String>> completableFuture = new CompletableFuture<>();
 

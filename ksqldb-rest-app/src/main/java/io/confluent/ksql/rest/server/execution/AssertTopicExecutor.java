@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 public final class AssertTopicExecutor {
 
@@ -80,8 +81,9 @@ public final class AssertTopicExecutor {
     }
 
     if (topicExists) {
-      final int partitions = client.describeTopic(topic).partitions().size();
-      final int replicas = client.describeTopic(topic).partitions().get(0).replicas().size();
+      final List<TopicPartitionInfo> partitionList = client.describeTopic(topic).partitions();
+      final int partitions = partitionList.size();
+      final int replicas = partitionList.get(0).replicas().size();
       final List<String> configErrors = new ArrayList<>();
       config.forEach((k, v) -> {
         if (k.toLowerCase().equals("partitions")) {

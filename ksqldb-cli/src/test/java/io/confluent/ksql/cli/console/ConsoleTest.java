@@ -1096,7 +1096,7 @@ public class ConsoleTest {
   public void shouldPrintAssertTopicResult() {
     // Given:
     final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
-        new AssertTopicEntity("statement", "topic")
+        new AssertTopicEntity("statement", "name")
     ));
 
     // When:

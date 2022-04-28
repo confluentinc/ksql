@@ -1,6 +1,6 @@
 [ {
   "@type" : "assert_topic",
   "statementText" : "statement",
-  "topicName" : "topic",
+  "topicName" : "name",
   "warnings" : [ ]
 } ]

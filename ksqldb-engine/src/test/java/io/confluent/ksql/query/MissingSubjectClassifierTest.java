@@ -48,7 +48,7 @@ public class MissingSubjectClassifierTest {
   }
 
   @Test
-  public void shouldClassifyNoMissingSubjectAsUnknownException() {
+  public void shouldClassifyOtherExceptionAsUnknownException() {
     // Given:
     final Exception e = new Exception("foo");
 

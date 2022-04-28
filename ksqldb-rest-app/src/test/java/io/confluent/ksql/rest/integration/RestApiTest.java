@@ -35,6 +35,7 @@ package io.confluent.ksql.rest.integration;
   import static org.apache.kafka.common.resource.ResourceType.TOPIC;
   import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
   import static org.hamcrest.MatcherAssert.assertThat;
+  import static org.hamcrest.Matchers.containsString;
   import static org.hamcrest.Matchers.endsWith;
   import static org.hamcrest.Matchers.equalTo;
   import static org.hamcrest.Matchers.hasSize;
@@ -51,6 +52,7 @@ package io.confluent.ksql.rest.integration;
   import io.confluent.ksql.integration.IntegrationTestHarness;
   import io.confluent.ksql.integration.Retry;
   import io.confluent.ksql.rest.ApiJsonMapper;
+  import io.confluent.ksql.rest.entity.AssertTopicEntity;
   import io.confluent.ksql.rest.entity.CommandId;
   import io.confluent.ksql.rest.entity.CommandId.Action;
   import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -84,6 +86,7 @@ package io.confluent.ksql.rest.integration;
   import io.vertx.core.http.HttpMethod;
   import io.vertx.core.http.HttpVersion;
   import io.vertx.ext.web.client.HttpResponse;
+  import java.time.Instant;
   import java.util.ArrayList;
   import java.util.Arrays;
   import java.util.Collections;
@@ -185,6 +188,11 @@ public class RestApiTest {
               .withAcl(
                   NORMAL_USER,
                   resource(TOPIC, "Y"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, "Z"),
                   ops(ALL)
               )
               .withAcl(
@@ -1037,6 +1045,104 @@ public class RestApiTest {
         .filter(q -> q.contains("WHERE (PAGEVIEW_KSTREAM.USERID = 'USER_1')"))
         .collect(Collectors.toList());
     assertThat(query.size(), is(1));
+  }
+
+  @Test
+  public void shouldAssertTopicExists() {
+    // When:
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT TOPIC " + PAGE_VIEW_TOPIC + " WITH (PARTITIONS=1) TIMEOUT 2 SECONDS;");
+
+    // Then:
+    assertThat(response.size(), is(1));
+    assertThat(((AssertTopicEntity) response.get(0)).getTopicName(), is(PAGE_VIEW_TOPIC));
+  }
+
+  @Test
+  public void shouldFailToAssertNonExistantTopic() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS=1) TIMEOUT 1 SECONDS;");
+        return "Should have thrown 'Topic does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic X does not exist"));
+  }
+
+  @Test
+  public void shouldFailToAssertTopicWithWrongConfigs() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC " + PAGE_VIEW_TOPIC + " WITH (PARTITIONS='apples', REPLICAS=100, FAKE_CONFIG='Hello!') TIMEOUT 2 SECONDS;");
+        return "Should have thrown config mismatch error";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString(
+        "Mismatched configuration for topic PAGEVIEW_TOPIC: For config partitions, expected apples got 1\n"
+            + "Mismatched configuration for topic PAGEVIEW_TOPIC: For config replicas, expected 100 got 1\n"
+            + "Cannot assert unknown topic property: FAKE_CONFIG"));
+  }
+
+  @Test
+  public void shouldStopScriptOnFailedAssert() {
+    // When:
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC X TIMEOUT 2 SECONDS; CREATE STREAM Z AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
+        return "Should have thrown 'Topic does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic X does not exist"));
+
+    // Then:
+    assertThat(topicExists("Z"), is(false));
+  }
+
+  @Test
+  public void shouldTimeoutTheCorrectAmountOfTime() {
+    final long start = Instant.now().getEpochSecond();
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS=1) TIMEOUT 3 SECONDS;");
+        return "Should have thrown 'Topic does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic X does not exist"));
+    final long end = Instant.now().getEpochSecond();
+
+    assertThat(end - start >= 3, is(true));
+  }
+
+  @Test
+  public void shouldTimeoutTheDefaultAmountOfTime() {
+    final long start = Instant.now().getEpochSecond();
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS=1);");
+        return "Should have thrown 'Topic does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic X does not exist"));
+    final long end = Instant.now().getEpochSecond();
+
+    assertThat(end - start >= 1, is(true));
+    assertThat(end - start <= 2, is(true));
+  }
+
+  @Test
+  public void shouldFailToAssertTopicWithNoAcls() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC ACLESS WITH (PARTITIONS=1);");
+        return "Should have thrown an error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Cannot check that topic exists: Authorization denied to Describe on topic(s): [ACLESS]"));
   }
 
   private boolean topicExists(final String topicName) {

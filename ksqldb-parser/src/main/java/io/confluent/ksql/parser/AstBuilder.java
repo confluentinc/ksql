@@ -73,6 +73,7 @@ import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTombstoneContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
@@ -106,6 +107,7 @@ import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
+import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateConnector;
@@ -1394,6 +1396,21 @@ public class AstBuilder {
           ParserUtil.getIdentifierText(context.identifier()),
           typeParser.getType(context.type()),
           context.EXISTS() != null
+      );
+    }
+
+    @Override
+    public Node visitAssertTopic(final AssertTopicContext context) {
+      return new AssertTopic(
+          getLocation(context),
+          ParserUtil.getIdentifierText(true, context.identifier()),
+          context.WITH() == null
+              ? ImmutableMap.of()
+              : processTableProperties(context.tableProperties()),
+          context.timeout() == null
+              ? Optional.empty()
+              : Optional.of(getTimeClause(
+                  context.timeout().number(), context.timeout().windowUnit()))
       );
     }
 

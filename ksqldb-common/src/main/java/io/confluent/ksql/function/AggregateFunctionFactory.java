@@ -51,6 +51,13 @@ public abstract class AggregateFunctionFactory {
       .add(ImmutableList.of(ParamTypes.TIMESTAMP))
       .build();
 
+  protected static final ImmutableList<List<ParamType>> COMPARABLE_ARGS = ImmutableList
+      .<List<ParamType>>builder()
+      .addAll(NUMERICAL_TIME)
+      .add(ImmutableList.of(ParamTypes.STRING))
+      .add(ImmutableList.of(ParamTypes.BYTES))
+      .build();
+
   public AggregateFunctionFactory(final String functionName) {
     this(new UdfMetadata(
         functionName,

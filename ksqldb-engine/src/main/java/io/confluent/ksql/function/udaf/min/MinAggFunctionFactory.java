@@ -66,8 +66,8 @@ public class MinAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "NUMERICAL_TIME is ImmutableList")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "COMPARABLE_ARGS is ImmutableList")
   public List<List<ParamType>> supportedArgs() {
-    return NUMERICAL_TIME;
+    return COMPARABLE_ARGS;
   }
 }

@@ -1055,6 +1055,7 @@ public class RestApiTest {
     // Then:
     assertThat(response.size(), is(1));
     assertThat(((AssertTopicEntity) response.get(0)).getTopicName(), is(PAGE_VIEW_TOPIC));
+    assertThat(((AssertTopicEntity) response.get(0)).getExists(), is(true));
   }
 
   @Test
@@ -1101,6 +1102,29 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldAssertTopicDoesNotExists() {
+    // When:
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT NOT EXISTS TOPIC X WITH (PARTITIONS=1) TIMEOUT 2 SECONDS;");
+
+    // Then:
+    assertThat(response.size(), is(1));
+    assertThat(((AssertTopicEntity) response.get(0)).getTopicName(), is("X"));
+    assertThat(((AssertTopicEntity) response.get(0)).getExists(), is(false));
+  }
+
+  @Test
+  public void shouldFailToAssertTopicDoesntExist() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT NOT EXISTS TOPIC " + PAGE_VIEW_TOPIC + " WITH (PARTITIONS=1) TIMEOUT 1 SECONDS;");
+        return "Should have thrown 'Topioc exists' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic PAGEVIEW_TOPIC exists"));
+  }
+
+  @Test
   public void shouldTimeoutTheCorrectAmountOfTime() {
     final long start = Instant.now().getEpochSecond();
     assertThatEventually(() -> {
@@ -1142,7 +1166,7 @@ public class RestApiTest {
       } catch (final Throwable t) {
         return t.getMessage();
       }
-    }, containsString("Cannot check that topic exists: Authorization denied to Describe on topic(s): [ACLESS]"));
+    }, containsString("Cannot check topic existence: Authorization denied to Describe on topic(s): [ACLESS]"));
   }
 
   private boolean topicExists(final String topicName) {

@@ -89,7 +89,8 @@ statement
     | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
     | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
-    | ASSERT TOPIC identifier (WITH tableProperties)? timeout?              #assertTopic
+    | ASSERT (NOT EXISTS)? TOPIC identifier
+            (WITH tableProperties)? timeout?                                #assertTopic
     ;
 
 assertStatement

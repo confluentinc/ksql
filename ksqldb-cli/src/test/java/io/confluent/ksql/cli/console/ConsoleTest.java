@@ -1096,7 +1096,22 @@ public class ConsoleTest {
   public void shouldPrintAssertTopicResult() {
     // Given:
     final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
-        new AssertTopicEntity("statement", "name")
+        new AssertTopicEntity("statement", "name", true)
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void shouldPrintAssertNotExistsTopicResult() {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new AssertTopicEntity("statement", "name", false)
     ));
 
     // When:

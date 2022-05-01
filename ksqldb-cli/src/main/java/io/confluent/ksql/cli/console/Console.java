@@ -907,7 +907,8 @@ public class Console implements Closeable {
   }
 
   private void printAssertTopic(final AssertTopicEntity assertTopic) {
-    writer().printf("Topic " + assertTopic.getTopicName() + " exists.\n");
+    final String existence = assertTopic.getExists() ? " exists" : " does not exist";
+    writer().printf("Topic " + assertTopic.getTopicName() + existence + ".\n");
   }
 
   private static String argToString(final ArgumentInfo arg) {

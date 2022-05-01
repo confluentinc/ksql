@@ -22,23 +22,31 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssertTopicEntity extends KsqlEntity {
   private final String topicName;
+  private final boolean exists;
 
   public AssertTopicEntity(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("topicName") final String topicName
+      @JsonProperty("topicName") final String topicName,
+      @JsonProperty("exists") final boolean exists
   ) {
     super(statementText);
     this.topicName = Objects.requireNonNull(topicName, "topicName");
+    this.exists = exists;
   }
 
   public String getTopicName() {
     return topicName;
   }
 
+  public boolean getExists() {
+    return exists;
+  }
+
   @Override
   public String toString() {
     return "AssertTopicEntity{"
         + "topicName='" + topicName + '\''
+        + ", exists=" + exists
         + '}';
   }
 }

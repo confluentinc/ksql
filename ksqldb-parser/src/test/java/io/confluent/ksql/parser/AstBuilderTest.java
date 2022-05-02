@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -962,5 +963,39 @@ public class AstBuilderTest {
     String actualMessage = exception.getMessage();
 
     assertEquals(expectedMessage, actualMessage);
+  }
+
+  @Test
+  public void shouldBuildAssertTopic() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT TOPIC X;");
+
+    // When:
+    final AssertTopic assertTopic = (AssertTopic) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertTopic.getTopic(), is("X"));
+    assertThat(assertTopic.getConfig().size(), is(0));
+    assertThat(assertTopic.getTimeout(), is(Optional.empty()));
+    assertThat(assertTopic.checkExists(), is(true));
+  }
+
+  @Test
+  public void shouldBuildAssertNotExistsTopicWithConfigsAndTimeout() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT NOT EXISTS TOPIC X WITH (REPLICAS=1, partitions=1) TIMEOUT 10 SECONDS;");
+
+    // When:
+    final AssertTopic assertTopic = (AssertTopic) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertTopic.getTopic(), is("X"));
+    assertThat(assertTopic.getConfig().get("REPLICAS").getValue(), is(1));
+    assertThat(assertTopic.getConfig().get("PARTITIONS").getValue(), is(1));
+    assertThat(assertTopic.getTimeout().get().getTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(assertTopic.getTimeout().get().getValue(), is(10L));
+    assertThat(assertTopic.checkExists(), is(false));
   }
 }

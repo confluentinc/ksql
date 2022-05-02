@@ -51,6 +51,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
@@ -191,6 +192,7 @@ public class Console implements Closeable {
               tablePrinter(VariablesList.class, ListVariablesTableBuilder::new))
           .put(TerminateQueryEntity.class,
               tablePrinter(TerminateQueryEntity.class, TerminateQueryTableBuilder::new))
+          .put(AssertTopicEntity.class, Console::printAssertTopic)
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(
@@ -902,6 +904,11 @@ public class Console implements Closeable {
               .forEach(a -> printDescription(subFormat, a.getName(), a.getDescription()));
         }
     );
+  }
+
+  private void printAssertTopic(final AssertTopicEntity assertTopic) {
+    final String existence = assertTopic.getExists() ? " exists" : " does not exist";
+    writer().printf("Topic " + assertTopic.getTopicName() + existence + ".\n");
   }
 
   private static String argToString(final ArgumentInfo arg) {

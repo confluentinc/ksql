@@ -978,13 +978,14 @@ public class AstBuilderTest {
     assertThat(assertTopic.getTopic(), is("X"));
     assertThat(assertTopic.getConfig().size(), is(0));
     assertThat(assertTopic.getTimeout(), is(Optional.empty()));
+    assertThat(assertTopic.checkExists(), is(true));
   }
 
   @Test
-  public void shouldBuildAssertTopicWithConfigsAndTimeout() {
+  public void shouldBuildAssertNotExistsTopicWithConfigsAndTimeout() {
     // Given:
     final SingleStatementContext stmt
-        = givenQuery("ASSERT TOPIC X WITH (REPLICAS=1, partitions=1) TIMEOUT 10 SECONDS;");
+        = givenQuery("ASSERT NOT EXISTS TOPIC X WITH (REPLICAS=1, partitions=1) TIMEOUT 10 SECONDS;");
 
     // When:
     final AssertTopic assertTopic = (AssertTopic) builder.buildStatement(stmt);
@@ -995,5 +996,6 @@ public class AstBuilderTest {
     assertThat(assertTopic.getConfig().get("PARTITIONS").getValue(), is(1));
     assertThat(assertTopic.getTimeout().get().getTimeUnit(), is(TimeUnit.SECONDS));
     assertThat(assertTopic.getTimeout().get().getValue(), is(10L));
+    assertThat(assertTopic.checkExists(), is(false));
   }
 }

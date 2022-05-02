@@ -43,14 +43,16 @@ public class AssertTopicTest {
   public void shouldImplementHashCodeAndEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), SOME_TOPIC, SOME_CONFIG, Optional.of(SOME_TIMEOUT)),
-            new AssertTopic(Optional.of(new NodeLocation(1, 1)), SOME_TOPIC, SOME_CONFIG, Optional.of(SOME_TIMEOUT)))
+            new AssertTopic(Optional.empty(), SOME_TOPIC, SOME_CONFIG, Optional.of(SOME_TIMEOUT), true),
+            new AssertTopic(Optional.of(new NodeLocation(1, 1)), SOME_TOPIC, SOME_CONFIG, Optional.of(SOME_TIMEOUT), true))
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), "another topic", SOME_CONFIG, Optional.of(SOME_TIMEOUT)))
+            new AssertTopic(Optional.empty(), "another topic", SOME_CONFIG, Optional.of(SOME_TIMEOUT), true))
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), SOME_TOPIC, ImmutableMap.of(), Optional.of(SOME_TIMEOUT)))
+            new AssertTopic(Optional.empty(), SOME_TOPIC, ImmutableMap.of(), Optional.of(SOME_TIMEOUT), true))
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), SOME_TOPIC, SOME_CONFIG, Optional.empty()))
+            new AssertTopic(Optional.empty(), SOME_TOPIC, SOME_CONFIG, Optional.empty(), true))
+        .addEqualityGroup(
+            new AssertTopic(Optional.empty(), SOME_TOPIC, SOME_CONFIG, Optional.of(SOME_TIMEOUT), false))
         .testEquals();
   }
 

@@ -42,8 +42,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.connect.runtime.isolation.PluginType;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,12 +51,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class AssertTopicExecutorTest {
-  private static final PluginInfo INFO = new PluginInfo(
-      "org.apache.kafka.connect.file.FileStreamSinkConnector",
-      PluginType.SOURCE,
-      "2.1"
-  );
-
   @Mock
   private KsqlExecutionContext engine;
   @Mock
@@ -90,7 +82,7 @@ public class AssertTopicExecutorTest {
     // Given:
     final Map<String, Literal> configs = ImmutableMap.of(
         "partitions", new IntegerLiteral(1), "replicas", new IntegerLiteral(0));
-    final AssertTopic assertTopic = new AssertTopic(Optional.empty(), "topicName", configs, Optional.empty());
+    final AssertTopic assertTopic = new AssertTopic(Optional.empty(), "topicName", configs, Optional.empty(), true);
     final ConfiguredStatement<AssertTopic> statement = ConfiguredStatement
         .of(KsqlParser.PreparedStatement.of("", assertTopic),
             SessionConfig.of(ksqlConfig, ImmutableMap.of()));
@@ -102,6 +94,7 @@ public class AssertTopicExecutorTest {
     // Then:
     assertThat("expected response!", entity.isPresent());
     assertThat(((AssertTopicEntity) entity.get()).getTopicName(), is("topicName"));
+    assertThat(((AssertTopicEntity) entity.get()).getExists(), is(true));
   }
 
   @Test
@@ -109,7 +102,7 @@ public class AssertTopicExecutorTest {
     // Given:
     final Map<String, Literal> configs = ImmutableMap.of(
         "partitions", new IntegerLiteral(1), "replicas", new IntegerLiteral(0));
-    final AssertTopic assertTopic = new AssertTopic(Optional.empty(), "fakeTopic", configs, Optional.empty());
+    final AssertTopic assertTopic = new AssertTopic(Optional.empty(), "fakeTopic", configs, Optional.empty(), true);
     final ConfiguredStatement<AssertTopic> statement = ConfiguredStatement
         .of(KsqlParser.PreparedStatement.of("", assertTopic),
             SessionConfig.of(ksqlConfig, ImmutableMap.of()));
@@ -128,7 +121,7 @@ public class AssertTopicExecutorTest {
     // Given:
     final Map<String, Literal> configs = ImmutableMap.of(
         "partitions", new IntegerLiteral(10), "replicas", new IntegerLiteral(10), "abc", new IntegerLiteral(23));
-    final AssertTopic assertTopic = new AssertTopic(Optional.empty(), "topicName", configs, Optional.empty());
+    final AssertTopic assertTopic = new AssertTopic(Optional.empty(), "topicName", configs, Optional.empty(), true);
     final ConfiguredStatement<AssertTopic> statement = ConfiguredStatement
         .of(KsqlParser.PreparedStatement.of("", assertTopic),
             SessionConfig.of(ksqlConfig, ImmutableMap.of()));
@@ -142,5 +135,44 @@ public class AssertTopicExecutorTest {
     assertThat(((KsqlErrorMessage) e.getResponse().getEntity()).getMessage(), is("Mismatched configuration for topic topicName: For config partitions, expected 10 got 1\n"
         + "Mismatched configuration for topic topicName: For config replicas, expected 10 got 0\n"
         + "Cannot assert unknown topic property: abc"));
+  }
+
+  @Test
+  public void shouldAssertTopicNotExists() {
+    // Given:
+    final Map<String, Literal> configs = ImmutableMap.of(
+        "partitions", new IntegerLiteral(1), "replicas", new IntegerLiteral(0));
+    final AssertTopic assertTopic = new AssertTopic(Optional.empty(), "fakeTopic", configs, Optional.empty(), false);
+    final ConfiguredStatement<AssertTopic> statement = ConfiguredStatement
+        .of(KsqlParser.PreparedStatement.of("", assertTopic),
+            SessionConfig.of(ksqlConfig, ImmutableMap.of()));
+
+    // When:
+    final Optional<KsqlEntity> entity = AssertTopicExecutor
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext).getEntity();
+
+    // Then:
+    assertThat("expected response!", entity.isPresent());
+    assertThat(((AssertTopicEntity) entity.get()).getTopicName(), is("fakeTopic"));
+    assertThat(((AssertTopicEntity) entity.get()).getExists(), is(false));
+  }
+
+  @Test
+  public void shouldFailToAssertTopicNotExists() {
+    // Given:
+    final Map<String, Literal> configs = ImmutableMap.of(
+        "partitions", new IntegerLiteral(1), "replicas", new IntegerLiteral(0));
+    final AssertTopic assertTopic = new AssertTopic(Optional.empty(), "topicName", configs, Optional.empty(), false);
+    final ConfiguredStatement<AssertTopic> statement = ConfiguredStatement
+        .of(KsqlParser.PreparedStatement.of("", assertTopic),
+            SessionConfig.of(ksqlConfig, ImmutableMap.of()));
+
+    // When:
+    final KsqlRestException e = assertThrows(KsqlRestException.class,
+        () -> AssertTopicExecutor.execute(statement, mock(SessionProperties.class), engine, serviceContext));
+
+    // Then:
+    assertThat(e.getResponse().getStatus(), is(417));
+    assertThat(((KsqlErrorMessage) e.getResponse().getEntity()).getMessage(), is("Topic topicName exists"));
   }
 }

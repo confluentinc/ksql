@@ -1410,7 +1410,8 @@ public class AstBuilder {
           context.timeout() == null
               ? Optional.empty()
               : Optional.of(getTimeClause(
-                  context.timeout().number(), context.timeout().windowUnit()))
+                  context.timeout().number(), context.timeout().windowUnit())),
+          context.EXISTS() == null
       );
     }
 

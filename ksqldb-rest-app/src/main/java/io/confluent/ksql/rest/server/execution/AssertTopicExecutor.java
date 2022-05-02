@@ -34,10 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AssertTopicExecutor {
 
   private static final int RETRY_MS = 100;
+  private static final Logger LOG = LoggerFactory.getLogger(AssertTopicExecutor.class);
 
   private AssertTopicExecutor() {
 
@@ -59,52 +62,75 @@ public final class AssertTopicExecutor {
           RETRY_MS,
           RETRY_MS,
           () -> assertTopic(
-              client, statement.getStatement().getTopic(), statement.getStatement().getConfig())
+              client,
+              statement.getStatement().getTopic(),
+              statement.getStatement().getConfig(),
+              statement.getStatement().checkExists())
       );
     } catch (final KsqlException e) {
       throw new KsqlRestException(assertionFailedError(e.getMessage()));
     }
     return StatementExecutorResponse.handled(Optional.of(
-        new AssertTopicEntity(statement.getStatementText(), statement.getStatement().getTopic())));
+        new AssertTopicEntity(
+            statement.getStatementText(),
+            statement.getStatement().getTopic(),
+            statement.getStatement().checkExists())));
   }
 
   private static void assertTopic(
       final KafkaTopicClient client,
       final String topic,
-      final Map<String, Literal> config
+      final Map<String, Literal> config,
+      final boolean assertExists
   ) {
     final boolean topicExists;
     try {
       topicExists = client.isTopicExists(topic);
     } catch (final Exception e) {
-      throw new KsqlException("Cannot check that topic exists: " + e.getMessage());
+      throw new KsqlException("Cannot check topic existence: " + e.getMessage());
     }
 
-    if (topicExists) {
-      final List<TopicPartitionInfo> partitionList = client.describeTopic(topic).partitions();
-      final int partitions = partitionList.size();
-      final int replicas = partitionList.get(0).replicas().size();
-      final List<String> configErrors = new ArrayList<>();
-      config.forEach((k, v) -> {
-        if (k.toLowerCase().equals("partitions")) {
-          if (!configMatches(v.getValue(), partitions)) {
-            configErrors.add(
-                createConfigError(topic, "partitions", v.getValue().toString(), partitions));
-          }
-        } else if (k.toLowerCase().equals("replicas")) {
-          if (!configMatches(v.getValue(), replicas)) {
-            configErrors.add(
-                createConfigError(topic, "replicas", v.getValue().toString(), replicas));
-          }
-        } else {
-          configErrors.add("Cannot assert unknown topic property: " + k);
-        }
-      });
-      if (configErrors.size() > 0) {
-        throw new KsqlException(String.join("\n", configErrors));
+    if (!assertExists) {
+      if (config.size() > 0) {
+        LOG.warn("Will skip topic config check for topic non-existence assertion.");
+      }
+      if (topicExists) {
+        throw new KsqlException("Topic " + topic + " exists");
       }
     } else {
-      throw new KsqlException("Topic " + topic + " does not exist");
+      if (topicExists) {
+        final List<TopicPartitionInfo> partitionList = client.describeTopic(topic).partitions();
+        checkConfigs(topic, config, partitionList.size(), partitionList.get(0).replicas().size());
+      } else {
+        throw new KsqlException("Topic " + topic + " does not exist");
+      }
+    }
+  }
+
+  private static void checkConfigs(
+      final String topic,
+      final Map<String, Literal> config,
+      final int partitions,
+      final int replicas
+  ) {
+    final List<String> configErrors = new ArrayList<>();
+    config.forEach((k, v) -> {
+      if (k.toLowerCase().equals("partitions")) {
+        if (!configMatches(v.getValue(), partitions)) {
+          configErrors.add(
+              createConfigError(topic, "partitions", v.getValue().toString(), partitions));
+        }
+      } else if (k.toLowerCase().equals("replicas")) {
+        if (!configMatches(v.getValue(), replicas)) {
+          configErrors.add(
+              createConfigError(topic, "replicas", v.getValue().toString(), replicas));
+        }
+      } else {
+        configErrors.add("Cannot assert unknown topic property: " + k);
+      }
+    });
+    if (configErrors.size() > 0) {
+      throw new KsqlException(String.join("\n", configErrors));
     }
   }
 

@@ -2,6 +2,6 @@
   "@type" : "assert_topic",
   "statementText" : "statement",
   "topicName" : "name",
-  "exists" : true,
+  "exists" : false,
   "warnings" : [ ]
 } ]

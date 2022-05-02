@@ -30,17 +30,20 @@ public class AssertTopic extends Statement {
   private final String topic;
   private final ImmutableMap<String, Literal> config;
   private final Optional<WindowTimeClause> timeout;
+  private final boolean exists;
 
   public AssertTopic(
       final Optional<NodeLocation> location,
       final String topic,
       final Map<String, Literal> config,
-      final Optional<WindowTimeClause> timeout
+      final Optional<WindowTimeClause> timeout,
+      final boolean exists
   ) {
     super(location);
     this.topic = Objects.requireNonNull(topic, "topic");
     this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
     this.timeout = Objects.requireNonNull(timeout, "timeout");
+    this.exists = exists;
   }
 
   public String getTopic() {
@@ -55,6 +58,10 @@ public class AssertTopic extends Statement {
     return timeout;
   }
 
+  public boolean checkExists() {
+    return exists;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -66,7 +73,8 @@ public class AssertTopic extends Statement {
     final AssertTopic that = (AssertTopic) o;
     return topic.equals(that.topic)
         && Objects.equals(config, that.config)
-        && timeout.equals(that.timeout);
+        && timeout.equals(that.timeout)
+        && exists == that.exists;
   }
 
   @Override
@@ -80,6 +88,7 @@ public class AssertTopic extends Statement {
         + "topic=" + topic
         + ",config=" + config
         + ",timeout=" + timeout
+        + ",exists=" + exists
         + '}';
   }
 }

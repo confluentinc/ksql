@@ -26,13 +26,13 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code KsqlFunctionClassifier} classifies ksql function exceptions as user error
  */
-public class KSqlFunctionClassifier implements QueryErrorClassifier {
+public class KsqlFunctionClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KSqlFunctionClassifier.class);
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlFunctionClassifier.class);
 
   private final String queryId;
 
-  public KSqlFunctionClassifier(final String queryId) {
+  public KsqlFunctionClassifier(final String queryId) {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 

@@ -65,7 +65,7 @@ public class DecimalSumKudaf
       return aggregateValue;
     }
 
-    BigDecimal value = aggregateValue.add(currentValue, context);
+    final BigDecimal value = aggregateValue.add(currentValue, context);
 
     if (maxValue.compareTo(value.abs()) < 1) {
       throw new KsqlFunctionException(

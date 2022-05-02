@@ -34,7 +34,7 @@ public class KsqlFunctionClassifierTest {
     final Exception e = new StreamsException(new KsqlFunctionException("foo"));
 
     // When:
-    final Type type = new KSqlFunctionClassifier("").classify(e);
+    final Type type = new KsqlFunctionClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.USER));
@@ -46,7 +46,7 @@ public class KsqlFunctionClassifierTest {
     final Exception e = new KsqlFunctionException("foo");
 
     // When:
-    final Type type = new KSqlFunctionClassifier("").classify(e);
+    final Type type = new KsqlFunctionClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.USER));
@@ -58,7 +58,7 @@ public class KsqlFunctionClassifierTest {
     final Exception e = new StreamsException(new ArithmeticException());
 
     // When:
-    final Type type = new KSqlFunctionClassifier("").classify(e);
+    final Type type = new KsqlFunctionClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.UNKNOWN));
@@ -70,7 +70,7 @@ public class KsqlFunctionClassifierTest {
     final Exception e = new StreamsException("foo");
 
     // When:
-    final Type type = new KSqlFunctionClassifier("").classify(e);
+    final Type type = new KsqlFunctionClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.UNKNOWN));
@@ -82,7 +82,7 @@ public class KsqlFunctionClassifierTest {
     final Exception e = new Exception("foo");
 
     // When:
-    final Type type = new KSqlFunctionClassifier("").classify(e);
+    final Type type = new KsqlFunctionClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.UNKNOWN));

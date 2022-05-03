@@ -6,6 +6,12 @@ description: Lists changes to the ksqlDB codebase
 keywords: ksqldb, changelog
 ---
 
+Version 0.26.0
+--------------
+
+- [Announcing ksqlDB 0.26.0](https://www.confluent.io/blog/announcing-ksqldb-0-26-0/)
+- [ksqlDB v0.26.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0260-2022-04-07)
+
 Version 0.25.1
 --------------
 

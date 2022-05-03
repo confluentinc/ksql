@@ -47,10 +47,13 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -132,6 +135,9 @@ public class KsqlEngineTest {
   @Spy
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private KsqlExecutionContext sandbox;
+
+  private static final ParsedSchema schema = new JsonSchema(
+      "{\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]}");
 
   @Before
   public void setUp() {
@@ -1210,13 +1216,11 @@ public class KsqlEngineTest {
     final String internalTopic2Key = KsqlConstants.getSRSubject(
         query.getQueryApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
 
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(
-        Arrays.asList(
-            internalTopic1Val,
-            internalTopic1Key,
-            "subject2",
-            internalTopic2Val,
-            internalTopic2Key));
+    schemaRegistryClient.register(internalTopic1Val, schema);
+    schemaRegistryClient.register(internalTopic2Val, schema);
+    schemaRegistryClient.register(internalTopic1Key, schema);
+    schemaRegistryClient.register(internalTopic2Key, schema);
+    schemaRegistryClient.register("subject2", schema);
 
     query.start();
 
@@ -1252,13 +1256,18 @@ public class KsqlEngineTest {
     final String internalTopic2Key = KsqlConstants.getSRSubject(
         query.getQueryApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
 
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(
-        Arrays.asList(
-            internalTopic1Val,
-            internalTopic1Key,
-            "subject2",
-            internalTopic2Val,
-            internalTopic2Key));
+    when(schemaRegistryClient.deleteSubject(internalTopic1Val, true)).thenReturn(Collections.emptyList());
+    when(schemaRegistryClient.deleteSubject(internalTopic2Val, true)).thenReturn(Collections.emptyList());
+    when(schemaRegistryClient.deleteSubject(internalTopic1Key, true)).thenReturn(Collections.emptyList());
+    when(schemaRegistryClient.deleteSubject(internalTopic2Key, true)).thenReturn(Collections.emptyList());
+
+    schemaRegistryClient.register(internalTopic1Val, schema);
+    schemaRegistryClient.register(internalTopic2Val, schema);
+    schemaRegistryClient.register(internalTopic1Key, schema);
+    schemaRegistryClient.register(internalTopic2Key, schema);
+    schemaRegistryClient.register("subject2", schema);
+
+
 
     query.start();
 
@@ -1267,6 +1276,7 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
+
     verify(schemaRegistryClient, times(4)).deleteSubject(any());
     verify(schemaRegistryClient).deleteSubject(internalTopic1Val, true);
     verify(schemaRegistryClient).deleteSubject(internalTopic2Val, true);
@@ -1459,13 +1469,13 @@ public class KsqlEngineTest {
         applicationId + "-" + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
     final String internalTopic2Key = KsqlConstants.getSRSubject(
         applicationId  + "-" + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(
-        Arrays.asList(
-            internalTopic1Val,
-            internalTopic1Key,
-            "subject2",
-            internalTopic2Val,
-            internalTopic2Key));
+
+    schemaRegistryClient.register(internalTopic1Val, schema);
+    schemaRegistryClient.register(internalTopic2Val, schema);
+    schemaRegistryClient.register(internalTopic1Key, schema);
+    schemaRegistryClient.register(internalTopic2Key, schema);
+    schemaRegistryClient.register("subject2", schema);
+
     query.get(0).start();
 
     // When:
@@ -1500,13 +1510,13 @@ public class KsqlEngineTest {
         topicPrefix + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
     final String internalTopic2Key = KsqlConstants.getSRSubject(
         topicPrefix + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(
-        Arrays.asList(
-            internalTopic1Val,
-            internalTopic1Key,
-            "subject2",
-            internalTopic2Val,
-            internalTopic2Key));
+
+    schemaRegistryClient.register(internalTopic1Val, schema);
+    schemaRegistryClient.register(internalTopic2Val, schema);
+    schemaRegistryClient.register(internalTopic1Key, schema);
+    schemaRegistryClient.register(internalTopic2Key, schema);
+    schemaRegistryClient.register("subject2", schema);
+
     query.get(0).start();
 
     // When:

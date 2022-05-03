@@ -200,6 +200,7 @@ public final class SchemaRegistryUtil {
   }
 
   private static boolean isRetriableError(final Throwable error) {
+    error.printStackTrace();
     return !isSubjectNotFoundErrorCode(error) && !isAuthErrorCode(error);
   }
 
@@ -259,8 +260,10 @@ public final class SchemaRegistryUtil {
       final boolean isPermanent
   ) {
     try {
+      System.out.println("JNH: Deleting " + subjectName);
       deleteSubjectWithRetries(schemaRegistryClient, subjectName);
       if (isPermanent) {
+        System.out.println("JNH: Hard Deleting " + subjectName);
         hardDeleteSubjectWithRetries(schemaRegistryClient, subjectName);
       }
     } catch (final Exception e) {

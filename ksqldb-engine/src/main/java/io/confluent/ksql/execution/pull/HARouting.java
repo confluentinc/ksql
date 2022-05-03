@@ -132,7 +132,14 @@ public final class HARouting implements AutoCloseable {
         .collect(Collectors.toMap(
             KsqlPartitionLocation::getPartition,
             loc -> loc.getNodes().stream().map(KsqlNode::getHost).collect(Collectors.toList())));
-
+    if (allLocations.isEmpty()) {
+      final MaterializationException materializationException = new MaterializationException(
+          "Unable to execute pull query as the locations are not found."
+              + " ALTER SYSTEM may not have finished."
+              + " Please wait a few minutes and try again.");
+      LOG.debug(materializationException.getMessage());
+      throw materializationException;
+    }
     if (!emptyPartitions.isEmpty()) {
       final MaterializationException materializationException = new MaterializationException(
           "Unable to execute pull query. "

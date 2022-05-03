@@ -128,7 +128,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
     this.resultSchema = requireNonNull(schema, "schema");
-    this.materializationProviderBuilderFactory = requireNonNull(materializationProviderBuilderFactory, "materializationProviderBuilderFactory");
+    this.materializationProviderBuilderFactory = requireNonNull(
+        materializationProviderBuilderFactory, "materializationProviderBuilderFactory");
     this.materializationInfo = requireNonNull(materializationInfo, "materializationInfo");
     this.listener = new QueryListenerWrapper(listener, scalablePushRegistry);
     this.namedTopologyBuilder = requireNonNull(namedTopologyBuilder, "namedTopologyBuilder");

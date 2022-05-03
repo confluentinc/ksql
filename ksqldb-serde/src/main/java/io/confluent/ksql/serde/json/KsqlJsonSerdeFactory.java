@@ -155,9 +155,9 @@ class KsqlJsonSerdeFactory {
         JsonSchemaConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
+    config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
+
     if (schemaId.isPresent()) {
-      // Disable auto registering schema if schema id is used
-      config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       config.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
     }
     config.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name());

@@ -234,10 +234,9 @@ final class ProtobufSerdeFactory {
         ProtobufConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
+    protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
 
     if (schemaId.isPresent()) {
-      // Disable auto registering schema if schema id is used
-      protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       protobufConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
     }
 

@@ -165,14 +165,14 @@ class KsqlAvroSerdeFactory {
     final Map<String, Object> avroConfig = ksqlConfig
         .originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
 
-    avroConfig.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
-        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
-
+    avroConfig.put(
+        AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
+        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
+    );
+    avroConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
     avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
 
     if (schemaId.isPresent()) {
-      // Disable auto registering schema if schema id is used
-      avroConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       avroConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
     }
 

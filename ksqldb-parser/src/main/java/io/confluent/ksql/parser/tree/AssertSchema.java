@@ -15,39 +15,36 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.parser.NodeLocation;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class AssertTopic extends AssertResource {
+public class AssertSchema extends AssertResource {
 
-  private final String topic;
-  private final ImmutableMap<String, Literal> config;
+  private final Optional<String> subject;
+  private final Optional<Integer> id;
 
-  public AssertTopic(
+  public AssertSchema(
       final Optional<NodeLocation> location,
-      final String topic,
-      final Map<String, Literal> config,
+      final Optional<String> subject,
+      final Optional<Integer> id,
       final Optional<WindowTimeClause> timeout,
       final boolean exists
   ) {
     super(location, timeout, exists);
-    this.topic = Objects.requireNonNull(topic, "topic");
-    this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
+    this.subject = Objects.requireNonNull(subject, "subject");
+    this.id = Objects.requireNonNull(id, "id");
   }
 
-  public String getTopic() {
-    return topic;
+  public Optional<String> getSubject() {
+    return subject;
   }
 
-  public Map<String, Literal> getConfig() {
-    return config;
+  public Optional<Integer> getId() {
+    return id;
   }
 
   @Override
@@ -58,23 +55,23 @@ public class AssertTopic extends AssertResource {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final AssertTopic that = (AssertTopic) o;
-    return topic.equals(that.topic)
-        && Objects.equals(config, that.config)
+    final AssertSchema that = (AssertSchema) o;
+    return subject.equals(that.subject)
+        && id.equals(that.id)
         && timeout.equals(that.timeout)
         && exists == that.exists;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(topic, config, this.getTimeout(), this.checkExists());
+    return Objects.hash(subject, id, timeout, exists);
   }
 
   @Override
   public String toString() {
-    return "AssertTopic{"
-        + "topic=" + topic
-        + ",config=" + config
+    return "AssertSchema{"
+        + "subject=" + subject
+        + ",id=" + id
         + ",timeout=" + timeout
         + ",exists=" + exists
         + '}';

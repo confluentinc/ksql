@@ -15,31 +15,24 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static io.confluent.ksql.rest.Errors.assertionFailedError;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS;
-
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.AssertTopicEntity;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.RetryUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class AssertTopicExecutor {
 
-  private static final int RETRY_MS = 100;
   private static final Logger LOG = LoggerFactory.getLogger(AssertTopicExecutor.class);
 
   private AssertTopicExecutor() {
@@ -52,29 +45,20 @@ public final class AssertTopicExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final KafkaTopicClient client = serviceContext.getTopicClient();
-    final int timeout = statement.getStatement().getTimeout().isPresent()
-        ? (int) statement.getStatement().getTimeout().get().toDuration().toMillis()
-        : executionContext.getKsqlConfig().getInt(KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS);
-    try {
-      RetryUtil.retryWithBackoff(
-          timeout / RETRY_MS,
-          RETRY_MS,
-          RETRY_MS,
-          () -> assertTopic(
-              client,
-              statement.getStatement().getTopic(),
-              statement.getStatement().getConfig(),
-              statement.getStatement().checkExists())
-      );
-    } catch (final KsqlException e) {
-      throw new KsqlRestException(assertionFailedError(e.getMessage()));
-    }
-    return StatementExecutorResponse.handled(Optional.of(
-        new AssertTopicEntity(
-            statement.getStatementText(),
-            statement.getStatement().getTopic(),
-            statement.getStatement().checkExists())));
+    return AssertExecutor.execute(statement.getStatementText(),
+        statement.getStatement(),
+        executionContext,
+        serviceContext,
+        (stmt, sc) -> assertTopic(
+            sc.getTopicClient(),
+            ((AssertTopic) stmt).getTopic(),
+            ((AssertTopic) stmt).getConfig(),
+            stmt.checkExists()),
+        (str, stmt) -> new AssertTopicEntity(
+            str,
+            ((AssertTopic) stmt).getTopic(),
+            stmt.checkExists())
+    );
   }
 
   private static void assertTopic(

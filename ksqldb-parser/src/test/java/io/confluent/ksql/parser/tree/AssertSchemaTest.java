@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.parser.NodeLocation;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
@@ -28,29 +26,33 @@ import org.mockito.junit.MockitoJUnit;
 
 import org.mockito.junit.MockitoRule;
 
-public class AssertTopicTest {
+public class AssertSchemaTest {
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-  private final String SOME_TOPIC = "TOPIC";
-  private final Map SOME_CONFIG = ImmutableMap.of("partitions", 1);
-  private final WindowTimeClause SOME_TIMEOUT = new WindowTimeClause(5, TimeUnit.SECONDS);
+  private static final Optional<Integer> SOME_ID = Optional.of(25);
+  private static final Optional<String> SOME_SUBJECT = Optional.of("subject");
+  private static final WindowTimeClause SOME_TIMEOUT = new WindowTimeClause(5, TimeUnit.SECONDS);
 
   @Test
   public void shouldImplementHashCodeAndEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), SOME_TOPIC, SOME_CONFIG, Optional.of(SOME_TIMEOUT), true),
-            new AssertTopic(Optional.of(new NodeLocation(1, 1)), SOME_TOPIC, SOME_CONFIG, Optional.of(SOME_TIMEOUT), true))
+            new AssertSchema(Optional.empty(), SOME_SUBJECT, SOME_ID, Optional.of(SOME_TIMEOUT), true),
+            new AssertSchema(Optional.of(new NodeLocation(1, 1)), SOME_SUBJECT, SOME_ID, Optional.of(SOME_TIMEOUT), true))
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), "another topic", SOME_CONFIG, Optional.of(SOME_TIMEOUT), true))
+            new AssertSchema(Optional.empty(), Optional.empty(), SOME_ID, Optional.of(SOME_TIMEOUT), true))
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), SOME_TOPIC, ImmutableMap.of(), Optional.of(SOME_TIMEOUT), true))
+            new AssertSchema(Optional.empty(), Optional.of("another subject"), SOME_ID, Optional.of(SOME_TIMEOUT), true))
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), SOME_TOPIC, SOME_CONFIG, Optional.empty(), true))
+            new AssertSchema(Optional.empty(), SOME_SUBJECT, Optional.empty(), Optional.of(SOME_TIMEOUT), true))
         .addEqualityGroup(
-            new AssertTopic(Optional.empty(), SOME_TOPIC, SOME_CONFIG, Optional.of(SOME_TIMEOUT), false))
+            new AssertSchema(Optional.empty(), SOME_SUBJECT, Optional.of(33), Optional.of(SOME_TIMEOUT), true))
+        .addEqualityGroup(
+            new AssertSchema(Optional.empty(), SOME_SUBJECT, SOME_ID, Optional.empty(), true))
+        .addEqualityGroup(
+            new AssertSchema(Optional.empty(), SOME_SUBJECT, SOME_ID, Optional.of(SOME_TIMEOUT), false))
         .testEquals();
   }
 

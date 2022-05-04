@@ -91,6 +91,8 @@ statement
     | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
     | ASSERT (NOT EXISTS)? TOPIC identifier
             (WITH tableProperties)? timeout?                                #assertTopic
+    | ASSERT (NOT EXISTS)? SCHEMA
+            (SUBJECT identifier)? (ID literal)? timeout?                    #assertSchema
     ;
 
 assertStatement
@@ -420,7 +422,7 @@ nonReserved
     | GRACE | PERIOD
     | DEFINE | UNDEFINE | VARIABLES
     | PLUGINS | SYSTEM
-    | TIMEOUT
+    | TIMEOUT | SCHEMA| SUBJECT | ID
     ;
 
 EMIT: 'EMIT';
@@ -561,6 +563,9 @@ HEADERS: 'HEADERS';
 HEADER: 'HEADER';
 SYSTEM: 'SYSTEM';
 TIMEOUT: 'TIMEOUT';
+SCHEMA: 'SCHEMA';
+SUBJECT: 'SUBJECT';
+ID: 'ID';
 
 IF: 'IF';
 

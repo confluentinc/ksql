@@ -341,10 +341,10 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
-  public void shouldSerializeKeyAndRegisterKeySubject() throws IOException, RestClientException {
+  public void shouldSerializeKeyAndRegisterKeySubject() throws Exception {
     // Given;
     final Serializer<Boolean> serializer = givenJsonSerdeFactory()
-        .createSerde((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, config, () -> srClient, Boolean.class, true)
+        .createSerde((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, config, () -> srClient, Boolean.class, true, true)
         .serializer();
 
     // When:
@@ -905,7 +905,7 @@ public class KsqlJsonSerializerTest {
         new KsqlJsonSerdeFactory(new JsonSchemaProperties(builder.build())) :
         new KsqlJsonSerdeFactory();
     return factory
-        .createSerde((ConnectSchema) schema, config, () -> srClient, targetType, false)
+        .createSerde((ConnectSchema) schema, config, () -> srClient, targetType, false, true)
         .serializer();
   }
 

@@ -193,6 +193,7 @@ public class KsqlProtobufDeserializerTest {
         KSQL_CONFIG,
         () -> schemaRegistryClient,
         targetType,
+        false,
         false).deserializer();
 
     deserializer.configure(Collections.emptyMap(), false);

@@ -69,6 +69,16 @@ class KsqlJsonSerdeFactory {
       final Class<T> targetType,
       final boolean isKey
   ) {
+    return createSerde(schema, ksqlConfig, srFactory, targetType, isKey, false);
+  }
+  <T> Serde<T> createSerde(
+      final ConnectSchema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType,
+      final boolean isKey,
+      final boolean autoRegisterSchemas
+  ) {
     final Optional<Schema> physicalSchema;
     if (useSchemaRegistryFormat) {
       physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
@@ -84,7 +94,8 @@ class KsqlJsonSerdeFactory {
         srFactory,
         targetType,
         physicalSchema,
-        isKey
+        isKey,
+        autoRegisterSchemas
     );
 
     final Deserializer<T> deserializer = createDeserializer(schema, targetType);
@@ -104,10 +115,16 @@ class KsqlJsonSerdeFactory {
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
       final Optional<Schema> physicalSchema,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     final Converter converter = useSchemaRegistryFormat
-        ? getSchemaConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
+        ? getSchemaConverter(
+            srFactory.get(),
+            ksqlConfig,
+            properties.getSchemaId(),
+            isKey,
+            autoRegisterSchemas)
         : getConverter();
 
     final ConnectDataTranslator dataTranslator =
@@ -146,7 +163,8 @@ class KsqlJsonSerdeFactory {
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
       final Optional<Integer> schemaId,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     final Map<String, Object> config = ksqlConfig
         .originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
@@ -155,9 +173,11 @@ class KsqlJsonSerdeFactory {
         JsonSchemaConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
-    config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
+    config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegisterSchemas);
 
     if (schemaId.isPresent()) {
+      // Disable auto registering schema if schema id is used
+      config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       config.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
     }
     config.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name());

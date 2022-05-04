@@ -842,7 +842,8 @@ public class KsqlAvroSerializerTest {
                 ksqlConfig,
                 () -> schemaRegistryClient,
                 Map.class,
-                false)
+                false,
+                true)
     );
 
     // Then:
@@ -871,7 +872,8 @@ public class KsqlAvroSerializerTest {
                 ksqlConfig,
                 () -> schemaRegistryClient,
                 Struct.class,
-                false)
+                false,
+                true)
     );
 
     // Then:
@@ -1224,7 +1226,8 @@ public class KsqlAvroSerializerTest {
                 ksqlConfig,
                 () -> schemaRegistryClient,
                 Struct.class,
-                false).serializer();
+                false,
+                true).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -1300,7 +1303,7 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     final GenericRecord deserialized = deserialize(bytes);
-    assertThat(deserialized, is(avroOrderWithExtraDefaultField));
+    assertThat(deserialized, equalTo(avroOrderWithExtraDefaultField));
   }
 
   @Test
@@ -1449,7 +1452,8 @@ public class KsqlAvroSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             targetType,
-            false).serializer();
+            false,
+            true).serializer();
   }
 
   private int givenPhysicalSchema(

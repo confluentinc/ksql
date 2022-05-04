@@ -112,7 +112,19 @@ final class ProtobufSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
-      final boolean isKey) {
+      final boolean isKey
+  ) {
+    return createSerde(schema, ksqlConfig, srFactory,targetType, isKey, false);
+  }
+
+  <T> Serde<T> createSerde(
+      final ConnectSchema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType,
+      final boolean isKey,
+      final boolean autoRegisterSchemas
+  ) {
     validate(schema);
 
     // If a SR schema exists (physical schema), then fetch it and use it for the serializer.
@@ -139,7 +151,8 @@ final class ProtobufSerdeFactory {
         targetType,
         schemaId,
         physicalSchema,
-        isKey
+        isKey,
+        autoRegisterSchemas
     );
     final Supplier<Deserializer<T>> deserializer = () -> createDeserializer(
         schema,
@@ -147,7 +160,8 @@ final class ProtobufSerdeFactory {
         srFactory,
         targetType,
         physicalSchema,
-        isKey
+        isKey,
+        autoRegisterSchemas
     );
 
     // Sanity check:
@@ -171,9 +185,16 @@ final class ProtobufSerdeFactory {
       final Class<T> targetType,
       final Optional<Integer> schemaId,
       final Optional<Schema> physicalSchema,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
-    final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig, schemaId, isKey);
+    final ProtobufConverter converter = getConverter(
+        srFactory.get(),
+        ksqlConfig,
+        schemaId,
+        isKey,
+        autoRegisterSchemas
+    );
     final DataTranslator translator = getDataTranslator(schema, physicalSchema, false);
     final Schema compatibleSchema = translator instanceof ProtobufDataTranslator
         ? ((ProtobufDataTranslator) translator).getSchema()
@@ -193,10 +214,16 @@ final class ProtobufSerdeFactory {
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
       final Optional<Schema> physicalSchema,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
-    final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig, Optional.empty(),
-        isKey);
+    final ProtobufConverter converter = getConverter(
+        srFactory.get(),
+        ksqlConfig,
+        Optional.empty(),
+        isKey,
+        autoRegisterSchemas
+    );
 
     return new KsqlConnectDeserializer<>(
         converter,
@@ -225,7 +252,8 @@ final class ProtobufSerdeFactory {
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
       final Optional<Integer> schemaId,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     final Map<String, Object> protobufConfig = ksqlConfig
         .originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
@@ -234,9 +262,11 @@ final class ProtobufSerdeFactory {
         ProtobufConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
-    protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
+    protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegisterSchemas);
 
     if (schemaId.isPresent()) {
+      // Disable auto registering schema if schema id is used
+      protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       protobufConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
     }
 

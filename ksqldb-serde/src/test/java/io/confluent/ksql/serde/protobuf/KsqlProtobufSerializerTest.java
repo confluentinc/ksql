@@ -236,7 +236,8 @@ public class KsqlProtobufSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             Struct.class,
-            false).serializer();
+            false,
+            true).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -299,7 +300,8 @@ public class KsqlProtobufSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             Struct.class,
-            false).serializer();
+            false,
+            true).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -488,7 +490,8 @@ public class KsqlProtobufSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             targetType,
-            false).serializer();
+            false,
+            true).serializer();
   }
 
   private static ParsedSchema parseProtobufSchema(final String protobufSchema) {

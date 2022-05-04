@@ -67,6 +67,17 @@ class KsqlAvroSerdeFactory {
       final Class<T> targetType,
       final boolean isKey
   ) {
+    return createSerde(schema, ksqlConfig, srFactory, targetType, isKey, false);
+  }
+
+  <T> Serde<T> createSerde(
+      final ConnectSchema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType,
+      final boolean isKey,
+      final boolean autoRegisterSchemas
+  ) {
     AvroUtil.throwOnInvalidSchema(schema);
     final Optional<Schema> physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
         SerdeUtils.getAndTranslateSchemaById(srFactory, properties.getSchemaId()
@@ -78,7 +89,8 @@ class KsqlAvroSerdeFactory {
         srFactory,
         targetType,
         physicalSchema,
-        isKey
+        isKey,
+        autoRegisterSchemas
     );
 
     final Supplier<Deserializer<T>> deserializerSupplier = createConnectDeserializer(
@@ -87,7 +99,8 @@ class KsqlAvroSerdeFactory {
         srFactory,
         targetType,
         physicalSchema,
-        isKey
+        isKey,
+        autoRegisterSchemas
     );
 
     // Sanity check:
@@ -106,7 +119,8 @@ class KsqlAvroSerdeFactory {
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
       final Optional<Schema> physicalSchema,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     return () -> {
       final DataTranslator translator = createAvroTranslator(schema, physicalSchema, false);
@@ -114,8 +128,13 @@ class KsqlAvroSerdeFactory {
           ? ((AvroDataTranslator) translator).getAvroCompatibleSchema()
           : ((ConnectDataTranslator) translator).getSchema();
 
-      final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey);
+      final AvroConverter avroConverter = getAvroConverter(
+          srFactory.get(),
+          ksqlConfig,
+          properties.getSchemaId(),
+          isKey,
+          autoRegisterSchemas
+      );
 
       return new KsqlConnectSerializer<>(
           compatibleSchema,
@@ -132,20 +151,29 @@ class KsqlAvroSerdeFactory {
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
       final Optional<Schema> physicalSchema,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     return () -> {
       final DataTranslator translator = createAvroTranslator(schema, physicalSchema, true);
 
-      final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig, Optional.empty(), isKey);
+      final AvroConverter avroConverter = getAvroConverter(
+          srFactory.get(),
+          ksqlConfig,
+          Optional.empty(),
+          isKey,
+          autoRegisterSchemas
+      );
 
       return new KsqlConnectDeserializer<>(avroConverter, translator, targetType);
     };
   }
 
-  private DataTranslator createAvroTranslator(final Schema schema,
-      final Optional<Schema> physicalSchema, final boolean isDeserializer) {
+  private DataTranslator createAvroTranslator(
+      final Schema schema,
+      final Optional<Schema> physicalSchema,
+      final boolean isDeserializer
+  ) {
     // If physical schema exists, we use physical schema to translate to connect data. During
     // deserialization, if physical schema exists, we use original schema to translate to ksql data.
     return physicalSchema.<DataTranslator>map(
@@ -158,7 +186,8 @@ class KsqlAvroSerdeFactory {
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
       final Optional<Integer> schemaId,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
 
@@ -169,10 +198,12 @@ class KsqlAvroSerdeFactory {
         AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
-    avroConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
+    avroConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegisterSchemas);
     avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
 
     if (schemaId.isPresent()) {
+      // Disable auto registering schema if schema id is used
+      avroConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       avroConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
     }
 

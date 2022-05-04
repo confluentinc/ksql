@@ -56,7 +56,7 @@ public class ProtobufSerdeFactoryTest {
 
     // When:
     new ProtobufSerdeFactory(ImmutableMap.of()).createSerde(schema, config,
-        srClientFactory, Struct.class, false);
+        srClientFactory, Struct.class, false, true);
 
     // Then (did not throw)
   }
@@ -70,7 +70,7 @@ public class ProtobufSerdeFactoryTest {
 
     // When:
     new ProtobufSerdeFactory(ImmutableMap.of()).createSerde(schema, config, srClientFactory,
-        Struct.class, false);
+        Struct.class, false, true);
 
     // Then (did not throw)
   }

@@ -71,6 +71,7 @@ class KsqlJsonSerdeFactory {
   ) {
     return createSerde(schema, ksqlConfig, srFactory, targetType, isKey, false);
   }
+
   <T> Serde<T> createSerde(
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,

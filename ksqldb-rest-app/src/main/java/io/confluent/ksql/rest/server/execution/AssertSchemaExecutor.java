@@ -87,7 +87,7 @@ public final class AssertSchemaExecutor {
   ) {
     try {
       if (subject.isPresent() && id.isPresent()) {
-        client.getSchemaBySubjectAndId(subject.get(), id.get());
+        return client.getAllSubjectsById(id.get()).contains(subject.get());
       } else if (id.isPresent()) {
         client.getSchemaById(id.get());
       } else if (subject.isPresent()) {

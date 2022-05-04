@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -63,8 +64,9 @@ public class AssertSchemaExecutorTest {
     // These are the schemas that don't exist
     when(srClient.getSchemaById(100)).thenThrow(new RestClientException("", 404, 40403));
     when(srClient.getLatestSchemaMetadata("abc")).thenThrow(new RestClientException("", 404, 40403));
-    when(srClient.getSchemaBySubjectAndId("def", 500)).thenThrow(new RestClientException("", 404, 40403));
+    when(srClient.getAllSubjectsById(100)).thenThrow(new RestClientException("", 404, 40403));
 
+    when(srClient.getAllSubjectsById(500)).thenReturn(ImmutableList.of("abc"));
     when(srClient.getSchemaById(222)).thenThrow(new IOException("something happened!"));
   }
 
@@ -109,7 +111,7 @@ public class AssertSchemaExecutorTest {
   @Test
   public void shouldAssertSchemaBySubjectAndId() {
     // Given
-    final AssertSchema assertSchema = new AssertSchema(Optional.empty(), Optional.of("subjectName"), Optional.of(44), Optional.empty(), true);
+    final AssertSchema assertSchema = new AssertSchema(Optional.empty(), Optional.of("abc"), Optional.of(500), Optional.empty(), true);
     final ConfiguredStatement<AssertSchema> statement = ConfiguredStatement
         .of(KsqlParser.PreparedStatement.of("", assertSchema),
             SessionConfig.of(ksqlConfig, ImmutableMap.of()));
@@ -120,8 +122,8 @@ public class AssertSchemaExecutorTest {
 
     // Then:
     assertThat("expected response!", entity.isPresent());
-    assertThat(((AssertSchemaEntity) entity.get()).getSubject(), is(Optional.of("subjectName")));
-    assertThat(((AssertSchemaEntity) entity.get()).getId(), is(Optional.of(44)));
+    assertThat(((AssertSchemaEntity) entity.get()).getSubject(), is(Optional.of("abc")));
+    assertThat(((AssertSchemaEntity) entity.get()).getId(), is(Optional.of(500)));
     assertThat(((AssertSchemaEntity) entity.get()).getExists(), is(true));
   }
 
@@ -217,7 +219,7 @@ public class AssertSchemaExecutorTest {
   @Test
   public void shouldAssertNotExistSchemaBySubjectAndId() {
     // Given
-    final AssertSchema assertSchema = new AssertSchema(Optional.empty(), Optional.of("def"), Optional.of(500), Optional.empty(), false);
+    final AssertSchema assertSchema = new AssertSchema(Optional.empty(), Optional.of("def"), Optional.of(100), Optional.empty(), false);
     final ConfiguredStatement<AssertSchema> statement = ConfiguredStatement
         .of(KsqlParser.PreparedStatement.of("", assertSchema),
             SessionConfig.of(ksqlConfig, ImmutableMap.of()));
@@ -229,7 +231,7 @@ public class AssertSchemaExecutorTest {
     // Then:
     assertThat("expected response!", entity.isPresent());
     assertThat(((AssertSchemaEntity) entity.get()).getSubject(), is(Optional.of("def")));
-    assertThat(((AssertSchemaEntity) entity.get()).getId(), is(Optional.of(500)));
+    assertThat(((AssertSchemaEntity) entity.get()).getId(), is(Optional.of(100)));
     assertThat(((AssertSchemaEntity) entity.get()).getExists(), is(false));
   }
 
@@ -270,7 +272,7 @@ public class AssertSchemaExecutorTest {
   @Test
   public void shouldFailToAssertNotExistSchemaBySubjectAndId() {
     // Given
-    final AssertSchema assertSchema = new AssertSchema(Optional.empty(), Optional.of("subjectName"), Optional.of(3), Optional.empty(), false);
+    final AssertSchema assertSchema = new AssertSchema(Optional.empty(), Optional.of("abc"), Optional.of(500), Optional.empty(), false);
     final ConfiguredStatement<AssertSchema> statement = ConfiguredStatement
         .of(KsqlParser.PreparedStatement.of("", assertSchema),
             SessionConfig.of(ksqlConfig, ImmutableMap.of()));
@@ -281,7 +283,7 @@ public class AssertSchemaExecutorTest {
 
     // Then:
     assertThat(e.getResponse().getStatus(), is(417));
-    assertThat(((KsqlErrorMessage) e.getResponse().getEntity()).getMessage(), is("Schema with subject name subjectName id 3 exists"));
+    assertThat(((KsqlErrorMessage) e.getResponse().getEntity()).getMessage(), is("Schema with subject name abc id 500 exists"));
   }
 
   @Test

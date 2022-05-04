@@ -29,9 +29,13 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
-public class AssertExecutor {
+public final class AssertExecutor {
 
   private static final int RETRY_MS = 100;
+
+  private AssertExecutor() {
+
+  }
 
   static StatementExecutorResponse execute(
       final String statementText,
@@ -54,6 +58,7 @@ public class AssertExecutor {
     } catch (final KsqlException e) {
       throw new KsqlRestException(assertionFailedError(e.getMessage()));
     }
-    return StatementExecutorResponse.handled(Optional.of(createSuccessfulEntity.apply(statementText, statement)));
+    return StatementExecutorResponse.handled(
+        Optional.of(createSuccessfulEntity.apply(statementText, statement)));
   }
 }

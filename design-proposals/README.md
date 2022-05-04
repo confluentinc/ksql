@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **63**
+Next KLIP number: **64**
 
 | KLIP                                                                                                                             |  Status  | Community Release | CP Release | Discussion PR                                                |
 |----------------------------------------------------------------------------------------------------------------------------------|:--------:|:-----------------:|:----------:|--------------------------------------------------------------|
@@ -103,3 +103,4 @@ Next KLIP number: **63**
 | [KLIP-60: Support input topics with multiple message types](klip-60-multiple-message-types.md)                                                                             | Proposal |                   |            |  | 
 | [KLIP-61: Bootstrapped TABLE subscriptions](klip-61-bootstrapped-subscriptions.md)                                                     | Proposal |                   |            |  | 
 | [KLIP-62: ksqlDB Ruby Client](klip-62-ksqldb-ruby-client.md)                                                     | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/8865) | 
+| [KLIP-63: PAUSE and RESUME for persistent queries](klip-63-pause-resume-persistent-queries.md)                                                     | Proposal |                   |            | 	| 

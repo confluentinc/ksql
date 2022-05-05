@@ -248,8 +248,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void overrideStreamsProperties(final Map<String, Object> newProperties) {
-    newProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG,
-        streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+//    newProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG,
+//        streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+    //The application server should not be over
     streamsProperties = ImmutableMap.copyOf(newProperties);
   }
 

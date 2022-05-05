@@ -131,8 +131,8 @@ public final class KsLocator implements Locator {
     if (metadata.isEmpty()) {
       final MaterializationException materializationException = new MaterializationException(
           "Cannot determine which host contains the required partitions to serve the pull query. \n"
-              + "The underlying persistent query may be restarting (e.g. as a result of ALTER SYSTEM)"
-              + "view the status of your by issuing <DESCRIBE foo>.");
+              + "The underlying persistent query may be restarting (e.g. as a result of "
+              + "ALTER SYSTEM) view the status of your by issuing <DESCRIBE foo>.");
       LOG.debug(materializationException.getMessage());
       throw materializationException;
     }

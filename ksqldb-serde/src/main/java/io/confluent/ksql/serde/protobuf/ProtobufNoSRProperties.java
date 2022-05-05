@@ -31,7 +31,7 @@ public class ProtobufNoSRProperties extends ConnectProperties {
   );
 
   public ProtobufNoSRProperties(final Map<String, String> formatProps) {
-    super(ProtobufFormat.NAME, formatProps);
+    super(ProtobufNoSRFormat.NAME, formatProps);
   }
 
   @Override

@@ -914,6 +914,10 @@ public class Console implements Closeable {
   }
 
   private void printAssertSchema(final AssertSchemaEntity assertSchema) {
+    if (!assertSchema.getId().isPresent() && !assertSchema.getSubject().isPresent()) {
+      throw new RuntimeException("No subject or id found in AssertSchema response.");
+    }
+
     final String existence = assertSchema.getExists() ? " exists" : " does not exist";
     final String subject = assertSchema.getSubject().isPresent()
         ? " subject " + assertSchema.getSubject().get()

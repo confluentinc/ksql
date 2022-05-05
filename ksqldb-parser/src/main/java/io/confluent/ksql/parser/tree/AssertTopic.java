@@ -67,7 +67,7 @@ public class AssertTopic extends AssertResource {
 
   @Override
   public int hashCode() {
-    return Objects.hash(topic, config, this.getTimeout(), this.checkExists());
+    return Objects.hash(topic, config, timeout, exists);
   }
 
   @Override

@@ -35,6 +35,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.protobuf.type.Decimal;
 import io.confluent.protobuf.type.utils.DecimalUtils;
 import java.math.BigDecimal;
@@ -146,6 +147,8 @@ public class KsqlProtobufNoSRSerializerTest {
                 ConnectProperties.SUBJECT_NAME, SOME_TOPIC + "-value")
         ).createSerde(
             ksqlRecordSchema,
+            new KsqlConfig(ImmutableMap.of()),
+            () -> null,
             Struct.class,
             false).serializer();
 
@@ -194,6 +197,8 @@ public class KsqlProtobufNoSRSerializerTest {
                 ConnectProperties.SUBJECT_NAME, SOME_TOPIC + "-value")
         ).createSerde(
             ksqlRecordSchema,
+            new KsqlConfig(ImmutableMap.of()),
+            () -> null,
             Struct.class,
             false).serializer();
 
@@ -265,6 +270,8 @@ public class KsqlProtobufNoSRSerializerTest {
     final Deserializer<T> deserializer = new ProtobufNoSRSerdeFactory(ImmutableMap.of())
         .createSerde(
             schema,
+            new KsqlConfig(ImmutableMap.of()),
+            () -> null,
             targetType,
             false).deserializer();
 
@@ -319,6 +326,8 @@ public class KsqlProtobufNoSRSerializerTest {
     final Serializer<T> serializer = new ProtobufNoSRSerdeFactory(ImmutableMap.of())
         .createSerde(
             schema,
+            new KsqlConfig(ImmutableMap.of()),
+            () -> null,
             targetType,
             false).serializer();
 

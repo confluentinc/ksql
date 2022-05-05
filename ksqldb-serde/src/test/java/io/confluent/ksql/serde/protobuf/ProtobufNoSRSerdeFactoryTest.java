@@ -16,40 +16,15 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.util.DecimalUtil;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
-import org.junit.Test;
+import io.confluent.ksql.serde.SerdeFactory;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ProtobufNoSRSerdeFactoryTest {
+public class ProtobufNoSRSerdeFactoryTest extends AbstractProtobufSerdeFactoryTest {
 
-  @Test
-  public void shouldNotThrowOnDecimal() {
-    // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("f0", SchemaBuilder.array(DecimalUtil.builder(10, 2)))
-        .build();
-
-    // When:
-    new ProtobufNoSRSerdeFactory(ImmutableMap.of()).createSerde(schema, Struct.class, false);
-
-    // Then (did not throw)
-  }
-
-  @Test
-  public void shouldNotThrowOnNonDecimal() {
-    // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("f0", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA))
-        .build();
-
-    // When:
-    new ProtobufNoSRSerdeFactory(ImmutableMap.of()).createSerde(schema, Struct.class, false);
-
-    // Then (did not throw)
+  @Override
+  SerdeFactory getSerdeFactory() {
+    return new ProtobufSerdeFactory(ImmutableMap.of());
   }
 }

@@ -17,13 +17,16 @@ package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SchemaWalker;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,20 +40,23 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
-final class ProtobufNoSRSerdeFactory {
+final class ProtobufNoSRSerdeFactory implements SerdeFactory {
 
-  private final ProtobufProperties properties;
+  private final ProtobufNoSRProperties properties;
 
-  ProtobufNoSRSerdeFactory(final ProtobufProperties properties) {
+  ProtobufNoSRSerdeFactory(final ProtobufNoSRProperties properties) {
     this.properties = Objects.requireNonNull(properties, "properties");
   }
 
   ProtobufNoSRSerdeFactory(final ImmutableMap<String, String> formatProperties) {
-    this(new ProtobufProperties(formatProperties));
+    this(new ProtobufNoSRProperties(formatProperties));
   }
 
-  <T> Serde<T> createSerde(
+  @Override
+  public <T> Serde<T> createSerde(
       final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
       final boolean isKey) {
     validate(schema);

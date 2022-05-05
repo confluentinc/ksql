@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,18 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.protobuf;
+package io.confluent.ksql.serde;
 
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.serde.SerdeFactory;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Schema;
 
-@RunWith(MockitoJUnitRunner.class)
-public class ProtobufSerdeFactoryTest extends AbstractProtobufSerdeFactoryTest {
-
-  @Override
-  SerdeFactory getSerdeFactory() {
-    return new ProtobufSerdeFactory(ImmutableMap.of());
-  }
+public interface SerdeFactory {
+  <T> Serde<T> createSerde(
+      Schema schema,
+      KsqlConfig ksqlConfig,
+      Supplier<SchemaRegistryClient> srFactory,
+      Class<T> targetType,
+      boolean isKey);
 }

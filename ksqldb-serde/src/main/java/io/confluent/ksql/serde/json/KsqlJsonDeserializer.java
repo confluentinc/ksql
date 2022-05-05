@@ -50,7 +50,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -89,13 +88,13 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       .put(Type.BYTES, KsqlJsonDeserializer::enforceValidBytes)
       .build();
 
-  private final ConnectSchema schema;
+  private final Schema schema;
   private final boolean isJsonSchema;
   private final Class<T> targetType;
   private String target = "?";
 
   KsqlJsonDeserializer(
-      final ConnectSchema schema,
+      final Schema schema,
       final boolean isJsonSchema,
       final Class<T> targetType
   ) {
@@ -359,7 +358,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
     }
   }
 
-  private static ConnectSchema validateSchema(final ConnectSchema schema) {
+  private static Schema validateSchema(final Schema schema) {
 
     class SchemaValidator implements Visitor<Void, Void> {
 

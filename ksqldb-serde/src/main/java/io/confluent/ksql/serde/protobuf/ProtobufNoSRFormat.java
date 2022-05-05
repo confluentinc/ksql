@@ -15,26 +15,19 @@
 
 package io.confluent.ksql.serde.protobuf;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
 
-public class ProtobufNoSRFormat extends ConnectFormat {
+public class ProtobufNoSRFormat extends AbstractProtobufFormat {
   static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
       SerdeFeature.WRAP_SINGLES,
       SerdeFeature.UNWRAP_SINGLES
@@ -75,21 +68,7 @@ public class ProtobufNoSRFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    return new ProtobufNoSRSerdeFactory(new ProtobufProperties(formatProps))
-        .createSerde(connectSchema, targetType, isKey);
-  }
-
-  @Override
-  public List<String> schemaFullNames(final ParsedSchema schema) {
-    if (schema.rawSchema() instanceof ProtoFileElement) {
-      final ProtoFileElement protoFileElement = (ProtoFileElement) schema.rawSchema();
-      final String packageName = protoFileElement.getPackageName();
-
-      return protoFileElement.getTypes().stream()
-          .map(typeElement -> Joiner.on(".").skipNulls().join(packageName, typeElement.getName()))
-          .collect(Collectors.toList());
-    }
-
-    return ImmutableList.of();
+    return new ProtobufNoSRSerdeFactory(new ProtobufNoSRProperties(formatProps))
+        .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

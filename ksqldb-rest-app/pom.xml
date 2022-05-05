@@ -39,6 +39,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-main</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-rest-model</artifactId>
             <version>${io.confluent.ksql.version}</version>

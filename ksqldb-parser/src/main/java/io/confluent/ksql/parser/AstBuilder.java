@@ -70,6 +70,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertSchemaContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTombstoneContext;
@@ -104,6 +105,7 @@ import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.AlterSystemProperty;
+import io.confluent.ksql.parser.tree.AssertSchema;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
@@ -1407,6 +1409,38 @@ public class AstBuilder {
           context.WITH() == null
               ? ImmutableMap.of()
               : processTableProperties(context.tableProperties()),
+          context.timeout() == null
+              ? Optional.empty()
+              : Optional.of(getTimeClause(
+                  context.timeout().number(), context.timeout().windowUnit())),
+          context.EXISTS() == null
+      );
+    }
+
+    @Override
+    public Node visitAssertSchema(final AssertSchemaContext context) {
+      if (context.identifier() == null && context.literal() == null) {
+        throw new KsqlException("ASSERT SCHEMA statements much include a subject name or an id");
+      }
+
+      final Optional<Integer> id;
+      if (context.literal() == null) {
+        id = Optional.empty();
+      } else {
+        final Object value = ((Literal) visit(context.literal())).getValue();
+        if (value instanceof Integer) {
+          id = Optional.of((Integer) value);
+        } else {
+          throw new KsqlException("ID must be an integer");
+        }
+      }
+
+      return new AssertSchema(
+          getLocation(context),
+          context.identifier() == null
+              ? Optional.empty()
+              : Optional.of(ParserUtil.getIdentifierText(true, context.identifier())),
+          id,
           context.timeout() == null
               ? Optional.empty()
               : Optional.of(getTimeClause(

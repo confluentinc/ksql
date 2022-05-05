@@ -42,6 +42,7 @@ import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.AssertSchemaEntity;
 import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -1112,6 +1113,36 @@ public class ConsoleTest {
     // Given:
     final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
         new AssertTopicEntity("statement", "name", false)
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void shouldPrintAssertSchemaResult() {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new AssertSchemaEntity("statement", Optional.of("abc"), Optional.of(55), true)
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void shouldPrintAssertNotExistsSchemaResult() {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new AssertSchemaEntity("statement", Optional.of("abc"), Optional.of(55), false)
     ));
 
     // When:

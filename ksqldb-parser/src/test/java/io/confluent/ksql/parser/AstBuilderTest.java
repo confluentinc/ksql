@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AssertSchema;
 import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -997,5 +998,78 @@ public class AstBuilderTest {
     assertThat(assertTopic.getTimeout().get().getTimeUnit(), is(TimeUnit.SECONDS));
     assertThat(assertTopic.getTimeout().get().getValue(), is(10L));
     assertThat(assertTopic.checkExists(), is(false));
+  }
+
+  @Test
+  public void shouldBuildAssertSchemaWithSubject() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT SCHEMA SUBJECT X;");
+
+    // When:
+    final AssertSchema assertSchema = (AssertSchema) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertSchema.getSubject(), is(Optional.of("X")));
+    assertThat(assertSchema.getId(), is(Optional.empty()));
+    assertThat(assertSchema.getTimeout(), is(Optional.empty()));
+    assertThat(assertSchema.checkExists(), is(true));
+  }
+
+  @Test
+  public void shouldBuildAssertNotExistsSchemaWithIdAndTimeout() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT NOT EXISTS SCHEMA ID 24 TIMEOUT 10 SECONDS;");
+
+    // When:
+    final AssertSchema assertSchema = (AssertSchema) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertSchema.getSubject(), is(Optional.empty()));
+    assertThat(assertSchema.getId(), is(Optional.of(24)));
+    assertThat(assertSchema.getTimeout().get().getTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(assertSchema.checkExists(), is(false));
+  }
+
+  @Test
+  public void shouldBuildAssertNotExistsWithSubjectAndId() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT NOT EXISTS SCHEMA SUBJECT X ID 33;");
+
+    // When:
+    final AssertSchema assertSchema = (AssertSchema) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertSchema.getSubject(), is(Optional.of("X")));
+    assertThat(assertSchema.getId(), is(Optional.of(33)));
+    assertThat(assertSchema.getTimeout(), is(Optional.empty()));
+    assertThat(assertSchema.checkExists(), is(false));
+  }
+
+  @Test
+  public void shouldThrowOnNoSubjectOrId() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("ASSERT SCHEMA TIMEOUT 10 SECONDS;");
+
+    // When:
+    final Exception e = assertThrows(KsqlException.class, () -> builder.buildStatement(stmt));
+
+    // Then:
+    assertThat(e.getMessage(), is("ASSERT SCHEMA statements much include a subject name or an id"));
+  }
+
+  @Test
+  public void shouldThrowOnNonIntegerId() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("ASSERT SCHEMA ID FALSE TIMEOUT 10 SECONDS;");
+
+    // When:
+    final Exception e = assertThrows(KsqlException.class, () -> builder.buildStatement(stmt));
+
+    // Then:
+    assertThat(e.getMessage(), is("ID must be an integer"));
   }
 }

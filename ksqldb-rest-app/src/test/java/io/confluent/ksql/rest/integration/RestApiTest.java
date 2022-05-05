@@ -52,6 +52,7 @@ package io.confluent.ksql.rest.integration;
   import io.confluent.ksql.integration.IntegrationTestHarness;
   import io.confluent.ksql.integration.Retry;
   import io.confluent.ksql.rest.ApiJsonMapper;
+  import io.confluent.ksql.rest.entity.AssertSchemaEntity;
   import io.confluent.ksql.rest.entity.AssertTopicEntity;
   import io.confluent.ksql.rest.entity.CommandId;
   import io.confluent.ksql.rest.entity.CommandId.Action;
@@ -197,6 +198,11 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
+                  resource(TOPIC, "ABC"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
                   resource(TOPIC, AGG_TABLE),
                   ops(ALL)
               )
@@ -233,6 +239,8 @@ public class RestApiTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+      .withStaticServiceContext(TEST_HARNESS::getServiceContext)
+      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
       .build();
 
   @ClassRule
@@ -1098,7 +1106,11 @@ public class RestApiTest {
     }, containsString("Topic X does not exist"));
 
     // Then:
-    assertThat(topicExists("Z"), is(false));
+    final List<String> query = ((Queries) makeKsqlRequest("SHOW QUERIES;").get(0))
+        .getQueries().stream().map(RunningQuery::getQueryString)
+        .filter(q -> q.contains("Z AS SELECT *')"))
+        .collect(Collectors.toList());
+    assertThat(query.size(), is(0));
   }
 
   @Test
@@ -1167,6 +1179,56 @@ public class RestApiTest {
         return t.getMessage();
       }
     }, containsString("Cannot check topic existence: Authorization denied to Describe on topic(s): [ACLESS]"));
+  }
+
+  @Test
+  public void shouldAssertSchemaExists() {
+    // When:
+    makeKsqlRequest("CREATE STREAM ABC (COL INT) WITH (KAFKA_TOPIC='ABC', PARTITIONS=1, VALUE_FORMAT='AVRO');");
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT SCHEMA SUBJECT `ABC-value`;");
+
+    // Then:
+    assertThat(response.size(), is(1));
+    assertThat(((AssertSchemaEntity) response.get(0)).getSubject(), is(Optional.of("ABC-value")));
+    assertThat(((AssertSchemaEntity) response.get(0)).getId(), is(Optional.empty()));
+    assertThat(((AssertSchemaEntity) response.get(0)).getExists(), is(true));
+  }
+
+  @Test
+  public void shouldFailToAssertNonExistantSchema() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT SCHEMA SUBJECT blahblah TIMEOUT 2 SECONDS;");
+        return "Should have thrown 'Schema does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Schema with subject name blahblah does not exist"));
+  }
+
+  @Test
+  public void shouldAssertSchemaDoesNotExists() {
+    // When:
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT NOT EXISTS SCHEMA SUBJECT blahblah ID 4;");
+
+    // Then:
+    assertThat(response.size(), is(1));
+    assertThat(((AssertSchemaEntity) response.get(0)).getSubject(), is(Optional.of("blahblah")));
+    assertThat(((AssertSchemaEntity) response.get(0)).getId(), is(Optional.of(4)));
+    assertThat(((AssertSchemaEntity) response.get(0)).getExists(), is(false));
+  }
+
+  @Test
+  public void shouldFailToAssertSchemaDoesntExist() {
+    // Then:
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT NOT EXISTS SCHEMA SUBJECT `ABC-value` ID 1;");
+        return "Should have thrown 'schema exists' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Schema with subject name ABC-value id 1 exists"));
   }
 
   private boolean topicExists(final String topicName) {

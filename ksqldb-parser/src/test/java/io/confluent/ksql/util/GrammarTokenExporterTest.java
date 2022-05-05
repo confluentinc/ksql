@@ -41,9 +41,9 @@ public class GrammarTokenExporterTest {
       "CATALOG", "PROPERTIES", "BEGINNING", "UNSET", "RUN", "SCRIPT", "DECIMAL",
       "KEY", "CONNECTOR", "CONNECTORS", "SINK", "SOURCE", "NAMESPACE", "MATERIALIZED",
       "VIEW", "PRIMARY", "REPLACE", "ASSERT", "ADD", "ALTER", "VARIABLES", "PLUGINS", "HEADERS",
-      "HEADER", "SYSTEM", "TIMEOUT", "IF", "EQ", "NEQ", "LT", "LTE", "GT", "GTE", "PLUS", "MINUS", "ASTERISK",
-      "SLASH", "PERCENT", "CONCAT", "ASSIGN", "STRING", "IDENTIFIER", "VARIABLE", "EXPONENT",
-      "DIGIT", "LETTER", "WS"));
+      "HEADER", "SYSTEM", "TIMEOUT", "SCHEMA", "SUBJECT", "ID", "IF", "EQ", "NEQ", "LT",
+      "LTE", "GT", "GTE", "PLUS", "MINUS", "ASTERISK", "SLASH", "PERCENT", "CONCAT", "ASSIGN",
+      "STRING", "IDENTIFIER", "VARIABLE", "EXPONENT", "DIGIT", "LETTER", "WS"));
 
   @Test
   public void shouldNeedBackQuotes() {

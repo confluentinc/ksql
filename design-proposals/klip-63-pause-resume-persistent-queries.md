@@ -9,7 +9,9 @@
            
 ## Motivation and background
 
-Users may wish to pause a query for a number of reasons and then resume processing.  Presently, they would have to terminate a query and recreate it.  This approach means that any state would have to be restored; the goal of this work is to add the capability to pause processing temporarily while allowing Kafka consumers and state stores to be retained.
+Users may wish to pause a query for a number of reasons and then resume processing.  As examples, users may wish to modify data pipelines built from persistent queries or to manage computational resources.
+
+Presently to manage processing, they would have to terminate a query and recreate it.  This approach means that any state would have to be restored; the goal of this work is to add the capability to pause processing temporarily while allowing Kafka consumers and state stores to be retained.
 
 ## What is in scope
 
@@ -35,13 +37,15 @@ resume (respectively) the topology associated with the query.
 
 For `PAUSE ALL` and `RESUME ALL`, all persistent queries will be paused or resumed.
 
+The new commands will be written to the command topic.  During server restart, the commands will be considered for compaction, and queries will be able to be created in the PAUSED state. 
+
 ## Test plan
 
 Integration tests will show that 
 - Pausing a query moves it from the RUNNING state to the PAUSED state.
 - Queries in the PAUSED state do not process data.
-- Paused queries can be resumed.  Once resumed, they will be in the running state and process data.
-- Pausing a query does not impact other queries managed by the system.  (This will with and without shared runtimes enabled.)
+- Paused queries can be resumed.  Once resumed, they will be in the running state and process data from where it left off.  To show that data is not processed, a simple mathematical aggregation will be used.
+- Pausing a query does not impact other queries managed by the system.  Concretely, when multiple queris share a topic, pausing one of the queries will not stop the processing for the other queries.  This will be demonstrated with and without shared runtimes enabled.  
 - Queries can be paused when multiple ksqlDB servers are in use.  (This demonstrates that the PAUSE messages use the ksqlDB command topic.)
 - After a server restart, paused queries will remain in the PAUSED state.  No processing should happen during the server restart.
 

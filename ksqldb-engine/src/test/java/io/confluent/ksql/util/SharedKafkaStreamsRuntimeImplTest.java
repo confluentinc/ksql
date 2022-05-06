@@ -87,6 +87,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void setUp() throws Exception {
         when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
         streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "runtime");
+        streamProps.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "old");
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             queryErrorClassifier,
@@ -112,14 +113,14 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void overrideStreamsPropertiesShouldReplaceProperties() {
         // Given:
         final Map<String, Object> newProps = new HashMap<>();
-        newProps.put("Test", "Test");
+        newProps.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "notused");
 
         // When:
         sharedKafkaStreamsRuntimeImpl.overrideStreamsProperties(newProps);
 
         // Then:
         final Map<String, Object> properties = sharedKafkaStreamsRuntimeImpl.streamsProperties;
-        assertThat(properties.get("Test"), equalTo("Test"));
+        assertThat(properties.get(StreamsConfig.APPLICATION_SERVER_CONFIG), equalTo("old"));
         assertThat(properties.size(), equalTo(1));
     }
 
@@ -232,7 +233,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
         //Then:
         verify(kafkaStreamsNamedTopologyWrapper).close();
-        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(namedTopology);
+        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(any());
         verify(kafkaStreamsNamedTopologyWrapper2).start();
         verify(kafkaStreamsNamedTopologyWrapper2).setUncaughtExceptionHandler((StreamsUncaughtExceptionHandler) any());
     }

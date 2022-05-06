@@ -1125,6 +1125,11 @@ public class RestApiTest {
   }
 
   @Test
+  public void ddd() {
+    makeKsqlRequestWithVariables("ASSERT NOT EXISTS TOPIC ${name};", ImmutableMap.of("name", "foo-foo"));
+  }
+
+  @Test
   public void shouldFailToAssertTopicDoesntExist() {
     assertThatEventually(() -> {
       try {

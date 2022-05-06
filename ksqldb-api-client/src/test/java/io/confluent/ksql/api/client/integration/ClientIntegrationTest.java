@@ -103,6 +103,7 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -229,6 +230,8 @@ public class ClientIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .withStaticServiceContext(TEST_HARNESS::getServiceContext)
+      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
       .build();
 
   @ClassRule
@@ -248,6 +251,7 @@ public class ClientIntegrationTest {
     truncateTopic(TRUNCATED_TEST_TOPIC);
     RestIntegrationTestUtil.createStream(REST_APP, TRUNCATED_TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
+    TEST_HARNESS.ensureSchema("abc", AGG_SCHEMA, false);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT K, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY K;"
@@ -1123,6 +1127,192 @@ public class ClientIntegrationTest {
         },
         is("RUNNING")
     );
+  }
+
+  @Test
+  public void shouldThrowOnAssertNonexistentSchema() {
+    // When
+    final Exception e1 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema("NONEXISTENT", true).get()
+    );
+    final Exception e2 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema("NONEXISTENT", 3, true).get()
+    );
+    final Exception e3 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema(3, true).get()
+    );
+    final Exception e4 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema("NONEXISTENT", true, Duration.ofSeconds(3)).get()
+    );
+    final Exception e5 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema("NONEXISTENT", 3, true, Duration.ofSeconds(3)).get()
+    );
+    final Exception e6 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema(3, true, Duration.ofSeconds(3)).get()
+    );
+    final List<Exception> exceptions = ImmutableList.of(e1, e2, e3, e4, e5, e6);
+
+    // Then:
+    exceptions.forEach(e -> {
+      assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+      assertThat(e.getCause().getMessage(), containsString("Received 417 response from server"));
+      assertThat(e.getCause().getMessage(), containsString("Error code: 41700"));
+    });
+    assertThat(e1.getCause().getMessage(), containsString("Schema with subject name NONEXISTENT does not exist"));
+    assertThat(e2.getCause().getMessage(), containsString("Schema with subject name NONEXISTENT id 3 does not exist"));
+    assertThat(e3.getCause().getMessage(), containsString("Schema with id 3 does not exist"));
+    assertThat(e4.getCause().getMessage(), containsString("Schema with subject name NONEXISTENT does not exist"));
+    assertThat(e5.getCause().getMessage(), containsString("Schema with subject name NONEXISTENT id 3 does not exist"));
+    assertThat(e6.getCause().getMessage(), containsString("Schema with id 3 does not exist"));
+  }
+
+  @Test
+  public void shouldThrowOnAssertNotExistsNonExistingSchema() {
+    // When
+    final Exception e1 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema("abc-value", false).get()
+    );
+    final Exception e2 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema("abc-value", 1, false).get()
+    );
+    final Exception e3 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema(1, false).get()
+    );
+    final Exception e4 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema("abc-value", false, Duration.ofSeconds(3)).get()
+    );
+    final Exception e5 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema("abc-value", 1, false, Duration.ofSeconds(3)).get()
+    );
+    final Exception e6 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertSchema(1, false, Duration.ofSeconds(3)).get()
+    );
+    final List<Exception> exceptions = ImmutableList.of(e1, e2, e3, e4, e5, e6);
+
+    // Then:
+    exceptions.forEach(e -> {
+      assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+      assertThat(e.getCause().getMessage(), containsString("Received 417 response from server"));
+      assertThat(e.getCause().getMessage(), containsString("Error code: 41700"));
+    });
+    assertThat(e1.getCause().getMessage(), containsString("Schema with subject name abc-value exists."));
+    assertThat(e2.getCause().getMessage(), containsString("Schema with subject name abc-value id 1 exists."));
+    assertThat(e3.getCause().getMessage(), containsString("Schema with id 1 exists."));
+    assertThat(e4.getCause().getMessage(), containsString("Schema with subject name abc-value exists."));
+    assertThat(e5.getCause().getMessage(), containsString("Schema with subject name abc-value id 1 exists."));
+    assertThat(e6.getCause().getMessage(), containsString("Schema with id 1 exists."));
+  }
+
+  @Test
+  public void shouldAssertSchema() throws ExecutionException, InterruptedException {
+    client.assertSchema("abc-value", true).get();
+    client.assertSchema(1, true).get();
+    client.assertSchema("abc-value", 1, true).get();
+    client.assertSchema("abc-value", true, Duration.ofSeconds(3)).get();
+    client.assertSchema(1, true, Duration.ofSeconds(3)).get();
+    client.assertSchema("abc-value", 1, true, Duration.ofSeconds(3)).get();
+  }
+
+  @Test
+  public void shouldAssertNotExistsSchema() throws ExecutionException, InterruptedException {
+    client.assertSchema("NONEXISTENT", false).get();
+    client.assertSchema(34, false).get();
+    client.assertSchema("NONEXISTENT", 43, false).get();
+    client.assertSchema("NONEXISTENT", false, Duration.ofSeconds(3)).get();
+    client.assertSchema(34, false, Duration.ofSeconds(3)).get();
+    client.assertSchema("NONEXISTENT", 43, false, Duration.ofSeconds(3)).get();
+  }
+
+  @Test
+  public void shouldThrowOnAssertNonexistentTopic() {
+    // When
+    final Exception e1 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertTopic("NONEXISTENT", true).get()
+    );
+    final Exception e2 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertTopic("STRUCTURED_TYPES_TOPIC", ImmutableMap.of("partitions", 7, "foo", 3), true).get()
+    );
+    final Exception e3 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertTopic("NONEXISTENT", true, Duration.ofSeconds(3)).get()
+    );
+    final Exception e4 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertTopic("NONEXISTENT", ImmutableMap.of(), true, Duration.ofSeconds(3)).get()
+    );
+    final List<Exception> exceptions = ImmutableList.of(e1, e2, e3, e4);
+
+    // Then:
+    exceptions.forEach(e -> {
+      assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+      assertThat(e.getCause().getMessage(), containsString("Received 417 response from server"));
+      assertThat(e.getCause().getMessage(), containsString("Error code: 41700"));
+    });
+    assertThat(e1.getCause().getMessage(), containsString("Topic NONEXISTENT does not exist."));
+    assertThat(e2.getCause().getMessage(), containsString("Mismatched configuration for topic STRUCTURED_TYPES_TOPIC: For config partitions, expected 7 got 1"));
+    assertThat(e2.getCause().getMessage(), containsString("Cannot assert unknown topic property: FOO."));
+    assertThat(e3.getCause().getMessage(), containsString("Topic NONEXISTENT does not exist."));
+    assertThat(e4.getCause().getMessage(), containsString("Topic NONEXISTENT does not exist."));
+  }
+
+  @Test
+  public void shouldThrowOnAssertNotExistsNonExistingTopic() {
+    // When
+    final Exception e1 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertTopic("STRUCTURED_TYPES_TOPIC", false).get()
+    );
+    final Exception e2 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertTopic("STRUCTURED_TYPES_TOPIC", ImmutableMap.of(), false).get()
+    );
+    final Exception e3 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertTopic("STRUCTURED_TYPES_TOPIC", false, Duration.ofSeconds(3)).get()
+    );
+    final Exception e4 = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.assertTopic("STRUCTURED_TYPES_TOPIC", ImmutableMap.of("f", 3), false, Duration.ofSeconds(3)).get()
+    );
+    final List<Exception> exceptions = ImmutableList.of(e1, e2, e3, e4);
+
+    // Then:
+    exceptions.forEach(e -> {
+      assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+      assertThat(e.getCause().getMessage(), containsString("Received 417 response from server"));
+      assertThat(e.getCause().getMessage(), containsString("Topic STRUCTURED_TYPES_TOPIC exists"));
+      assertThat(e.getCause().getMessage(), containsString("Error code: 41700"));
+    });
+  }
+
+  @Test
+  public void shouldAssertTopic() throws ExecutionException, InterruptedException {
+    client.assertTopic("STRUCTURED_TYPES_TOPIC", true).get();
+    client.assertTopic("STRUCTURED_TYPES_TOPIC", ImmutableMap.of("replicas", 1, "partitions", 1), true).get();
+    client.assertTopic("STRUCTURED_TYPES_TOPIC", true, Duration.ofSeconds(3)).get();
+    client.assertTopic("STRUCTURED_TYPES_TOPIC", ImmutableMap.of("replicas", 1, "partitions", 1), true, Duration.ofSeconds(3)).get();
+  }
+
+  @Test
+  public void shouldAssertNotExistsTopic() throws ExecutionException, InterruptedException {
+    client.assertTopic("NONEXISTENT", false).get();
+    client.assertTopic("NONEXISTENT", ImmutableMap.of("replicas", 1, "partitions", 1), false).get();
+    client.assertTopic("NONEXISTENT", false, Duration.ofSeconds(3)).get();
+    client.assertTopic("NONEXISTENT", ImmutableMap.of("replicas", 1, "partitions", 1), false, Duration.ofSeconds(3)).get();
   }
 
   private Client createClient() {

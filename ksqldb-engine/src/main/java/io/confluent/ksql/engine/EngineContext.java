@@ -132,7 +132,7 @@ final class EngineContext {
     this.runtimeAssignor.rebuildAssignment(queryRegistry.getPersistentQueries().values());
     return new EngineContext(
         SandboxedServiceContext.create(serviceContext),
-        processingLogContext,
+        ProcessingLogContext.create(),
         metaStore.copy(),
         queryIdGenerator.createSandbox(),
         new DefaultKsqlParser(),

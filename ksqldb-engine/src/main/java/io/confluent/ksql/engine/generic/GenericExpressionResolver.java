@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerImpl;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -56,8 +57,16 @@ public class GenericExpressionResolver {
   private static final LogicalSchema NO_COLUMNS = LogicalSchema.builder().build();
 
   private static final Supplier<String> IGNORED_MSG = () -> "";
-  private static final ProcessingLogger THROWING_LOGGER = errorMessage -> {
-    throw new KsqlException(((RecordProcessingError) errorMessage).getMessage());
+  private static final ProcessingLogger THROWING_LOGGER = new ProcessingLogger() {
+    @Override
+    public void error(final ErrorMessage errorMessage) {
+      throw new KsqlException(((RecordProcessingError) errorMessage).getMessage());
+    }
+
+    @Override
+    public void close() {
+      // no-op
+    }
   };
 
   private final SqlType fieldType;

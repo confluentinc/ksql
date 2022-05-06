@@ -93,7 +93,6 @@ final class GenericSerdeFactory {
         formatSerde,
         loggerNamePrefix,
         processingLogContext,
-        Optional.empty(),
         Optional.empty()
     );
   }
@@ -103,25 +102,24 @@ final class GenericSerdeFactory {
       final Serde<T> formatSerde,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext,
-      final Optional<String> queryId,
-      final Optional<KsqlConfig> config
+      final Optional<String> queryId
   ) {
     final ProcessingLogger serializerProcessingLogger;
     final ProcessingLogger deserializerProcessingLogger;
-    if (queryId.isPresent() && config.isPresent()) {
+    if (queryId.isPresent()) {
       serializerProcessingLogger = processingLogContext.getLoggerFactory()
           .getLoggerWithMetrics(
               join(loggerNamePrefix, SERIALIZER_LOGGER_NAME),
-              MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.get(), config.get()));
+              queryId.get());
       deserializerProcessingLogger = processingLogContext.getLoggerFactory()
           .getLoggerWithMetrics(
               join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME),
-              MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.get(), config.get()));
+              queryId.get());
     } else {
       serializerProcessingLogger = processingLogContext.getLoggerFactory()
-          .getLogger(join(loggerNamePrefix, SERIALIZER_LOGGER_NAME));
+          .getLoggerWithMetrics(join(loggerNamePrefix, SERIALIZER_LOGGER_NAME));
       deserializerProcessingLogger = processingLogContext.getLoggerFactory()
-          .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
+          .getLoggerWithMetrics(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
     }
 
     return Serdes.serdeFrom(

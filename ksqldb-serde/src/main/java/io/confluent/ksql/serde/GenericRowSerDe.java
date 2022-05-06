@@ -114,8 +114,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
         genericRowSerde,
         loggerNamePrefix,
         processingLogContext,
-        queryId,
-        Optional.of(ksqlConfig));
+        queryId);
 
     final Serde<GenericRow> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

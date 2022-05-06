@@ -331,7 +331,7 @@ public class RuntimeBuildContextTest {
   public void shouldReturnProcessingLogger() {
     // When:
     when(processingLogFactory.getLoggerWithMetrics(
-        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext), Collections.singletonMap("query-id", QUERY_ID.toString())))
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext), QUERY_ID.toString()))
         .thenReturn(processingLogger);
     final ProcessingLogger logger = runtimeBuildContext.getProcessingLogger(queryContext);
 

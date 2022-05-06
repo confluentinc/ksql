@@ -73,7 +73,7 @@ public class PushExecutionPlanBuilderTest {
   @Before
   public void setUp() {
     when(logContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
+    when(processingLoggerFactory.getLoggerWithMetrics(any())).thenReturn(processingLogger);
     when(logicalPlanNode.getNode()).thenReturn(Optional.of(ksqlBareOutputNode));
     when(ksqlBareOutputNode.getSource()).thenReturn(projectNode);
     when(projectNode.getSources()).thenReturn(ImmutableList.of(filterNode));

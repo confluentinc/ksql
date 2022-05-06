@@ -120,7 +120,7 @@ public final class RuntimeBuildContext {
         .getLoggerFactory()
         .getLoggerWithMetrics(
             QueryLoggerUtil.queryLoggerName(queryId, queryContext),
-            MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.toString(), ksqlConfig));
+            queryId.toString());
   }
 
   public ServiceContext getServiceContext() {

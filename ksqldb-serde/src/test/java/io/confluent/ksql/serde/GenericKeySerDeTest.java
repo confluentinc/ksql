@@ -102,7 +102,7 @@ public class GenericKeySerDeTest {
     factory = new GenericKeySerDe(innerFactory, Optional.of(queryId));
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
-    when(innerFactory.wrapInLoggingSerde(any(), any(), any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
 
     when(innerSerde.serializer()).thenReturn(innerSerializer);
@@ -137,7 +137,7 @@ public class GenericKeySerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)), eq(Optional.of(config)));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)));
   }
 
   @Test
@@ -148,7 +148,7 @@ public class GenericKeySerDeTest {
             Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)), eq(Optional.of(config)));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)));
   }
 
   @Test

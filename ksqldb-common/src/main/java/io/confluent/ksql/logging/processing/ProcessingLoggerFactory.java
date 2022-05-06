@@ -16,24 +16,24 @@
 package io.confluent.ksql.logging.processing;
 
 import java.util.Collection;
-import java.util.Map;
 
 public interface ProcessingLoggerFactory {
   /**
-   * Get a processing logger for writing record processing log messages
+   * Get a processing logger for writing record processing log messages. This processing logger
+   * also emits metrics
    * @param name The name of the logger to get.
-   * @return The logger with the given name.
+   * @return The logger with the given name that emits metrics.
    */
-  ProcessingLogger getLogger(String name);
+  ProcessingLogger getLoggerWithMetrics(String name);
 
   /**
    * Get a processing logger for writing record processing log messages. This processing logger
    * also emits metrics
    * @param name The name of the logger to get.
-   * @param customMetricsTags A map of metrics tags.
+   * @param queryId The queryId to tag the metrics with
    * @return The logger with the given name that emits metrics.
    */
-  ProcessingLogger getLoggerWithMetrics(String name, Map<String, String> customMetricsTags);
+  ProcessingLogger getLoggerWithMetrics(String name, String queryId);
 
   /**
    * @return A collection of all loggers that have been created by the factory

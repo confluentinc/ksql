@@ -369,10 +369,7 @@ final class QueryBuilder {
         getConfiguredQueryErrorClassifier(ksqlConfig, applicationId),
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        getUncaughtExceptionProcessingLogger(
-            queryId,
-            metricCollectors,
-            MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.toString(), ksqlConfig)),
+        getUncaughtExceptionProcessingLogger(queryId),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
@@ -486,10 +483,7 @@ final class QueryBuilder {
             queryId,
             materializationProviderBuilder,
             physicalPlan,
-            getUncaughtExceptionProcessingLogger(
-                queryId,
-                metricCollectors,
-                MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId.toString(), ksqlConfig)),
+            getUncaughtExceptionProcessingLogger(queryId),
             sinkDataSource,
             listener,
             queryOverrides,
@@ -555,8 +549,7 @@ final class QueryBuilder {
     final ProcessingLogger logger =
         processingLogContext
             .getLoggerFactory()
-            .getLoggerWithMetrics(id,
-                MetricsTagsUtil.getCustomMetricsTagsForQuery(id, config));
+            .getLoggerWithMetrics(id, id);
 
     newStreamsProperties.put(
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
@@ -665,15 +658,14 @@ final class QueryBuilder {
   }
 
   private ProcessingLogger getUncaughtExceptionProcessingLogger(
-      final QueryId queryId,
-      final MetricCollectors collectors,
-      final Map<String, String> metricsTags) {
+      final QueryId queryId
+  ) {
     final QueryContext.Stacker stacker = new QueryContext.Stacker()
         .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
 
     return processingLogContext.getLoggerFactory().getLoggerWithMetrics(
         QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()),
-        metricsTags);
+        queryId.toString());
   }
 
   private static TransientQueryQueue buildTransientQueryQueue(

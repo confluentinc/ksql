@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.equalTo;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactoryImpl;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -93,15 +94,18 @@ public class ProcessingLogErrorMetricFunctionalTest {
   public void shouldVerifyMetrics() {
 
 	// Given:
-	final Map<String, String> metricsTagsForQuery1 = new HashMap<>(METRICS_TAGS);
-	final Map<String, String> metricsTagsForQuery2 = new HashMap<>(METRICS_TAGS);
+	final Map<String, String> metricsTagsForQuery1DeserializerLog = new HashMap<>(METRICS_TAGS);
+	final Map<String, String> metricsTagsForQuery2ProjectLog = new HashMap<>(METRICS_TAGS);
+
 	final List<String> listOfQueryId = getQueryNames(REST_APP);
 	assertThat(listOfQueryId.size(), equalTo(2));
 	for (final String queryId:listOfQueryId) {
 	  if (queryId.toLowerCase().contains("test_addition_10")) {
-		metricsTagsForQuery1.put("query-id", queryId);
+		metricsTagsForQuery1DeserializerLog.put("query-id", queryId);
+		metricsTagsForQuery1DeserializerLog.put("logger-id", queryId + ".KsqlTopic.Source.deserializer");
 	  } else if (queryId.toLowerCase().contains("test_addition_20")) {
-		metricsTagsForQuery2.put("query-id", queryId);
+		metricsTagsForQuery2ProjectLog.put("query-id", queryId);
+		metricsTagsForQuery2ProjectLog.put("logger-id", queryId + ".Project");
 	  }
 	}
 
@@ -109,27 +113,35 @@ public class ProcessingLogErrorMetricFunctionalTest {
 		"show queries;"
 	);
 	final MetricName processingLogErrorMetricName1 = new MetricName(
-		"processing-error-total",
-		"processing-log-metrics",
-		"The total number of errors emitted by the processing log.",
-		metricsTagsForQuery1
+		ProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
+		ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
+		ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
+		metricsTagsForQuery1DeserializerLog
 	);
 	final KafkaMetric processingLogErrorMetric1 = metrics.metric(processingLogErrorMetricName1);
 
 	final MetricName processingLogErrorMetricName2 = new MetricName(
-		"processing-error-total",
-		"processing-log-metrics",
-		"The total number of errors emitted by the processing log.",
-		metricsTagsForQuery2
+		ProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
+		ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
+		ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
+		metricsTagsForQuery2ProjectLog
 	);
 	final KafkaMetric processingLogErrorMetric2 = metrics.metric(processingLogErrorMetricName2);
 
 	// When:
-	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "{\"f\":\"string_value\"");
-	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "{\"f\": null");
-	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME2, null, "{\"f\":\"string_value\"");
+
+	// Bad records
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "{\"f\":\"string_value\"}");
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "{\"f\":5");
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME2, null, "{\"f\": null}");
 
 	// Then:
+	assertThatEventually(() -> (Double) processingLogErrorMetric1.metricValue(), equalTo(2.0));
+	assertThatEventually(() -> (Double) processingLogErrorMetric2.metricValue(), equalTo(1.0));
+
+	// Good records shouldn't change metrics
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "{\"f\":5}");
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME2, null, "{\"f\":5}");
 	assertThatEventually(() -> (Double) processingLogErrorMetric1.metricValue(), equalTo(2.0));
 	assertThatEventually(() -> (Double) processingLogErrorMetric2.metricValue(), equalTo(1.0));
   }

@@ -28,18 +28,32 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
 
   private static final ProcessingLogConfig NOOP_CONFIG = new ProcessingLogConfig(ImmutableMap.of());
 
-  public static final ProcessingLogger NOOP_LOGGER = msgFactory -> { };
+  public static final ProcessingLogger NOOP_LOGGER = new ProcessingLogger() {
+    @Override
+    public void error (
+        final ErrorMessage errorMessage
+    ) {
+      // no-op
+    }
+
+    @Override
+    public void close() {
+      // no-op
+    }
+  };
 
   private static final ProcessingLoggerFactory NOOP_FACTORY = new ProcessingLoggerFactory() {
     @Override
-    public ProcessingLogger getLogger(final String name) {
+    public ProcessingLogger getLoggerWithMetrics(
+        final String name,
+        final String queryId
+    ) {
       return NOOP_LOGGER;
     }
 
     @Override
     public ProcessingLogger getLoggerWithMetrics(
-        final String name,
-        final Map<String, String> customMetricsTags
+        final String name
     ) {
       return NOOP_LOGGER;
     }

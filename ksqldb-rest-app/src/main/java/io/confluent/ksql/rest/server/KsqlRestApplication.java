@@ -703,8 +703,11 @@ public final class KsqlRestApplication implements Executable {
 
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(restConfig.getOriginals());
-    final ProcessingLogContext processingLogContext
-        = ProcessingLogContext.create(processingLogConfig, metricCollectors.getMetrics());
+    final ProcessingLogContext processingLogContext = ProcessingLogContext.create(
+        processingLogConfig,
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+    );
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 

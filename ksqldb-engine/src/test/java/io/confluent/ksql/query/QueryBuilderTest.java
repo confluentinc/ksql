@@ -221,7 +221,7 @@ public class QueryBuilderTest {
         .thenReturn(Optional.of(ksMaterialization));
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLoggerWithMetrics(any(), anyMap())).thenReturn(processingLogger);
+    when(processingLoggerFactory.getLoggerWithMetrics(any(), anyString())).thenReturn(processingLogger);
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("");
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
@@ -293,8 +293,9 @@ public class QueryBuilderTest {
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLoggerWithMetrics(
         QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
-            .push("ksql.logger.thread.exception.uncaught").getQueryContext())
-    , Collections.singletonMap("query-id", QUERY_ID.toString()))).thenReturn(uncaughtProcessingLogger);
+            .push("ksql.logger.thread.exception.uncaught").getQueryContext()),
+        QUERY_ID.toString())
+    ).thenReturn(uncaughtProcessingLogger);
 
     // When:
     final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
@@ -328,8 +329,9 @@ public class QueryBuilderTest {
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLoggerWithMetrics(
         QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
-            .push("ksql.logger.thread.exception.uncaught").getQueryContext())
-    , Collections.singletonMap("query-id", QUERY_ID.toString()))).thenReturn(uncaughtProcessingLogger);
+            .push("ksql.logger.thread.exception.uncaught").getQueryContext()),
+        QUERY_ID.toString())
+    ).thenReturn(uncaughtProcessingLogger);
 
     // When:
     final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
@@ -675,7 +677,7 @@ public class QueryBuilderTest {
   @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLoggerWithMetrics(QUERY_ID.toString(), Collections.singletonMap("query-id", QUERY_ID.toString()))).thenReturn(logger);
+    when(processingLoggerFactory.getLoggerWithMetrics(QUERY_ID.toString(), QUERY_ID.toString())).thenReturn(logger);
 
     // When:
     buildPersistentQuery(

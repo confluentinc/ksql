@@ -180,7 +180,7 @@ public class PullPhysicalPlanBuilder {
   private ProjectOperator translateProjectNode(final QueryProjectNode logicalNode) {
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
-        .getLogger(
+        .getLoggerWithMetrics(
             QueryLoggerUtil.queryLoggerName(
                 QueryType.PULL_QUERY, contextStacker.push("PROJECT").getQueryContext())
         );
@@ -196,7 +196,7 @@ public class PullPhysicalPlanBuilder {
 
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
-        .getLogger(
+        .getLoggerWithMetrics(
             QueryLoggerUtil.queryLoggerName(
                 QueryType.PULL_QUERY, contextStacker.push("SELECT").getQueryContext())
         );

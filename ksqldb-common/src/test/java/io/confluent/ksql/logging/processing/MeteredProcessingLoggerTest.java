@@ -15,25 +15,18 @@
 
 package io.confluent.ksql.logging.processing;
 
-import static io.confluent.ksql.logging.processing.MeteredProcessingLogger.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.*;
-
-import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
-
-import java.util.Collections;
-import java.util.Map;
-
-import io.confluent.ksql.metrics.MetricCollectors;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MeteredProcessingLoggerTest {
@@ -41,71 +34,53 @@ public class MeteredProcessingLoggerTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private ErrorMessage errorMsg;
+  private ProcessingLogger.ErrorMessage errMessage;
+  @Mock
+  private Sensor sensor;
+  @Mock
+  private Metrics metrics;
 
   private MeteredProcessingLogger meteredProcessingLogger;
-  private MetricCollectors metricCollectors;
-  private final Map<String, String> originalMetricsTags = Collections.singletonMap("tag1", "value1");
+  private final String sensorName = "sensorName";
 
   @Before
   public void setup() {
-	metricCollectors = new MetricCollectors();
-	meteredProcessingLogger = new MeteredProcessingLogger(processingLogger, metricCollectors.getMetrics(), originalMetricsTags);
-  }
-
-  @Test
-  public void shouldIncrementTheSameMetric() {
-	// When:
-
-	// this should not throw an exception because only one logger should register the metric
-	final MeteredProcessingLogger logger2 = new MeteredProcessingLogger(processingLogger, metricCollectors.getMetrics(), originalMetricsTags);
-	logger2.error(errorMsg);
-
-	// Then:
-	assertThat(getMetricValue(originalMetricsTags), equalTo(1.0));
-	meteredProcessingLogger.error(errorMsg);
-	assertThat(getMetricValue(originalMetricsTags), equalTo(2.0));
-	logger2.error(errorMsg);
-	assertThat(getMetricValue(originalMetricsTags), equalTo(3.0));
-	meteredProcessingLogger.error(errorMsg);
-	assertThat(getMetricValue(originalMetricsTags), equalTo(4.0));
-  }
-
-  @Test
-  public void shouldIncrementSeparateMetrics() {
-	// When:
-	final Map<String, String> otherMetricsTags = Collections.singletonMap("another-tag", "another-value");
-	final MeteredProcessingLogger differentLogger = new MeteredProcessingLogger(processingLogger, metricCollectors.getMetrics(), otherMetricsTags);
-	differentLogger.error(errorMsg);
-
-	// Then:
-	assertThat(getMetricValue(otherMetricsTags), equalTo(1.0));
-	meteredProcessingLogger.error(errorMsg);
-	assertThat(getMetricValue(originalMetricsTags), equalTo(1.0));
-	differentLogger.error(errorMsg);
-
-	assertThat(getMetricValue(otherMetricsTags), equalTo(2.0));
-	meteredProcessingLogger.error(errorMsg);
-	assertThat(getMetricValue(originalMetricsTags), equalTo(2.0));
+	when(sensor.name()).thenReturn(sensorName);
+	meteredProcessingLogger = new MeteredProcessingLogger(processingLogger, metrics, sensor);
   }
 
   @Test
   public void shouldRecordMetric() {
 	// When:
-	meteredProcessingLogger.error(errorMsg);
+	meteredProcessingLogger.error(errMessage);
+	meteredProcessingLogger.error(errMessage);
 
 	// Then:
-	verify(processingLogger).error(errorMsg);
-	assertThat(getMetricValue(originalMetricsTags), equalTo(1.0));
+	verify(processingLogger, times(2)).error(errMessage);
+	verify(sensor, times(2)).record();
   }
 
-  private double getMetricValue(final Map<String, String> metricsTags) {
-	final Metrics metrics = metricCollectors.getMetrics();
-	return Double.parseDouble(
-		metrics.metric(
-			metrics.metricName(
-				PROCESSING_LOG_ERROR_METRIC_NAME, PROCESSING_LOG_METRICS_GROUP_NAME, metricsTags)
-		).metricValue().toString()
-	);
+  @Test
+  public void shouldRemoveSensorOnClose() {
+	// When:
+	meteredProcessingLogger.close();
+
+	// Then:
+	verify(metrics).removeSensor(sensorName);
+  }
+
+  @Test
+  public void shouldHandleNullMetricsAndSensor() {
+	// Given:
+	meteredProcessingLogger = new MeteredProcessingLogger(processingLogger, null, null);
+
+	// When:
+	meteredProcessingLogger.error(errMessage);
+	meteredProcessingLogger.close();
+
+	// Then:
+	verify(processingLogger, times(1)).error(errMessage);
+	verify(sensor, never()).record();
+	verify(metrics, never()).removeSensor(sensorName);
   }
 }

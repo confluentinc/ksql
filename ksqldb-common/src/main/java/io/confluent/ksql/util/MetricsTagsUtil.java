@@ -22,13 +22,26 @@ public final class MetricsTagsUtil {
 
   private MetricsTagsUtil() {}
 
-  public static Map<String, String> getCustomMetricsTagsForQuery(
-      final String id,
-      final KsqlConfig config
+  public static Map<String, String> getMetricsTagsWithQueryId(
+      final String queryId,
+      final Map<String, String> tags
   ) {
-    final Map<String, String> customMetricsTags =
-        new HashMap<>(config.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
-    customMetricsTags.put("query-id", id);
-    return customMetricsTags;
+    if (queryId.equals("")) {
+      return tags;
+    }
+    final Map<String, String> newMetricsTags =
+        new HashMap<>(tags);
+    newMetricsTags.put("query-id", queryId);
+    return newMetricsTags;
+  }
+
+  public static Map<String, String> getMetricsTagsWithLoggerId(
+      final String loggerId,
+      final Map<String, String> tags
+  ) {
+    final Map<String, String> newMetricsTags =
+        new HashMap<>(tags);
+    newMetricsTags.put("logger-id", loggerId);
+    return newMetricsTags;
   }
 }

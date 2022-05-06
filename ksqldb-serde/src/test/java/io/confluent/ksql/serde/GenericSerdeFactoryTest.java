@@ -73,11 +73,9 @@ public class GenericSerdeFactoryTest {
   @Mock
   private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
-  private ProcessingLogger processingLogger;
+  private ProcessingLogger processingLoggerWithoutQueryId;
   @Mock
-  private MeteredProcessingLogger meteredProcessingLogger;
-  @Mock
-  private ProcessingLogger otherProcessingLogger;
+  private ProcessingLogger processingLoggerWithQueryId;
   @Mock
   private Serializer<String> formatSerializer;
   @Mock
@@ -103,8 +101,8 @@ public class GenericSerdeFactoryTest {
         .thenThrow(new RuntimeException("deserializer error"));
 
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(any())).thenReturn(otherProcessingLogger);
-    when(processingLoggerFactory.getLoggerWithMetrics(any(), any())).thenReturn(meteredProcessingLogger);
+    when(processingLoggerFactory.getLoggerWithMetrics(any())).thenReturn(processingLoggerWithoutQueryId);
+    when(processingLoggerFactory.getLoggerWithMetrics(any(), any())).thenReturn(processingLoggerWithQueryId);
   }
 
   @Test
@@ -169,9 +167,6 @@ public class GenericSerdeFactoryTest {
   @Test
   public void shouldWrapSerializerWithLoggingSerializer() {
     // Given:
-    when(processingLoggerFactory.getLogger("prefix.serializer")).thenReturn(processingLogger);
-
-    // When:
     final Serde<String> result = serdeFactory
         .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext);
 
@@ -184,13 +179,13 @@ public class GenericSerdeFactoryTest {
         )
     );
 
-    verify(processingLogger).error(any());
+    verify(processingLoggerWithoutQueryId).error(any());
   }
 
   @Test
   public void shouldWrapDeserializerWithLoggingSerializer() {
     // Given:
-    when(processingLoggerFactory.getLogger("prefix.deserializer")).thenReturn(processingLogger);
+    when(processingLoggerFactory.getLoggerWithMetrics("prefix.deserializer")).thenReturn(processingLoggerWithoutQueryId);
 
     // When:
     final Serde<String> result = serdeFactory
@@ -205,14 +200,14 @@ public class GenericSerdeFactoryTest {
         )
     );
 
-    verify(processingLogger).error(any());
+    verify(processingLoggerWithoutQueryId).error(any());
   }
 
   @Test
-  public void shouldReturnProcessingLoggerWithMetric() {
+  public void shouldReturnProcessingLoggerWithQueryId() {
    // When:
     final Serde<String> result = serdeFactory
-        .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext, Optional.of("query-id"), Optional.of(new KsqlConfig(Collections.emptyMap())));
+        .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext, Optional.of("query-id"));
 
     // Then:
     assertThrows(
@@ -223,6 +218,6 @@ public class GenericSerdeFactoryTest {
         )
     );
 
-    verify(meteredProcessingLogger).error(any());
+    verify(processingLoggerWithQueryId).error(any());
   }
 }

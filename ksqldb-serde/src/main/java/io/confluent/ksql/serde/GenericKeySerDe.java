@@ -137,8 +137,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         genericKeySerde,
         loggerNamePrefix,
         processingLogContext,
-        queryId,
-        Optional.of(ksqlConfig));
+        queryId);
 
     final Serde<GenericKey> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

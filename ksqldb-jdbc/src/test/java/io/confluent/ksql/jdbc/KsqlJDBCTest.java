@@ -23,9 +23,9 @@ public class KsqlJDBCTest {
 
   @Test
   public void testSomething() throws Exception {
-    //Class.forName("org.postgresql.Driver");
+    Class.forName("io.confluent.ksql.jdbc.KsqlDriver"); // JNH What do I need to do to skip this?
 
-    String url = "jdbc:postgresql://localhost/postgres";
+    String url = "jdbc:ksqldb://localhost/postgres";
     Properties props = new Properties();
     props.setProperty("user","jhughes");
     // props.setProperty("password","secret");
@@ -34,7 +34,7 @@ public class KsqlJDBCTest {
 
 
     Statement st = conn.createStatement();
-    ResultSet rs = st.executeQuery("SELECT * FROM actor");
+    ResultSet rs = st.executeQuery("SELECT * FROM riderLocations;");
     while (rs.next())
     {
       System.out.print("Column 1 returned ");

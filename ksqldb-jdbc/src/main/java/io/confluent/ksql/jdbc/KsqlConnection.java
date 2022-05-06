@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.jdbc;
 
+import io.confluent.ksql.api.client.Client;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -35,10 +36,16 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 
 public class KsqlConnection implements Connection {
-  
+  private Client client;
+
+  public KsqlConnection(final Client client) {
+    this.client = client;
+  }
+
   @Override
   public Statement createStatement() throws SQLException {
-    return null;
+
+    return new KsqlStatement(client);
   }
 
   @Override

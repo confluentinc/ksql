@@ -15,12 +15,19 @@
 
 package io.confluent.ksql.jdbc;
 
+import io.confluent.ksql.api.client.BatchedQueryResult;
+import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.StreamInfo;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 public class KsqlDriver implements Driver {
@@ -37,8 +44,38 @@ public class KsqlDriver implements Driver {
 
   @Override
   public Connection connect(final String url, final Properties info) throws SQLException {
+    // Build ksql api client here?
+    System.out.println("In connect with " + url + " " + info);
 
-    return null;
+    final ClientOptions options = ClientOptions.create();
+    //.setHost("127.0.0.1")
+    //.setPort(8088);
+    final Client client = Client.create(options);
+
+    final BatchedQueryResult res = client.executeQuery("select * from riderLocations;");
+    try {
+      final List<Row> rows = res.get();
+      rows.forEach(System.out::println);
+      System.out.println("Here");
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } catch (ExecutionException e) {
+      e.printStackTrace();
+    }
+    try {
+      for (StreamInfo streamInfo : client.listStreams().get()) {
+        System.out.println("Got stream: " + streamInfo);
+
+      }
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } catch (ExecutionException e) {
+      e.printStackTrace();
+    }
+
+
+
+    return new KsqlConnection(client);
   }
 
   @Override

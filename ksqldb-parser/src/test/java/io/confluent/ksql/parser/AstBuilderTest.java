@@ -986,13 +986,13 @@ public class AstBuilderTest {
   public void shouldBuildAssertNotExistsTopicWithConfigsAndTimeout() {
     // Given:
     final SingleStatementContext stmt
-        = givenQuery("ASSERT NOT EXISTS TOPIC X WITH (REPLICAS=1, partitions=1) TIMEOUT 10 SECONDS;");
+        = givenQuery("ASSERT NOT EXISTS TOPIC 'a-b-c' WITH (REPLICAS=1, partitions=1) TIMEOUT 10 SECONDS;");
 
     // When:
     final AssertTopic assertTopic = (AssertTopic) builder.buildStatement(stmt);
 
     // Then:
-    assertThat(assertTopic.getTopic(), is("X"));
+    assertThat(assertTopic.getTopic(), is("a-b-c"));
     assertThat(assertTopic.getConfig().get("REPLICAS").getValue(), is(1));
     assertThat(assertTopic.getConfig().get("PARTITIONS").getValue(), is(1));
     assertThat(assertTopic.getTimeout().get().getTimeUnit(), is(TimeUnit.SECONDS));
@@ -1036,13 +1036,13 @@ public class AstBuilderTest {
   public void shouldBuildAssertNotExistsWithSubjectAndId() {
     // Given:
     final SingleStatementContext stmt
-        = givenQuery("ASSERT NOT EXISTS SCHEMA SUBJECT X ID 33;");
+        = givenQuery("ASSERT NOT EXISTS SCHEMA SUBJECT 'a-b-c' ID 33;");
 
     // When:
     final AssertSchema assertSchema = (AssertSchema) builder.buildStatement(stmt);
 
     // Then:
-    assertThat(assertSchema.getSubject(), is(Optional.of("X")));
+    assertThat(assertSchema.getSubject(), is(Optional.of("a-b-c")));
     assertThat(assertSchema.getId(), is(Optional.of(33)));
     assertThat(assertSchema.getTimeout(), is(Optional.empty()));
     assertThat(assertSchema.checkExists(), is(false));

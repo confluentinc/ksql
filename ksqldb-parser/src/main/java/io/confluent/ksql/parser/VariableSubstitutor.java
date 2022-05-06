@@ -22,6 +22,7 @@ import static io.confluent.ksql.util.ParserUtil.unquote;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.util.ParserUtil;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -107,6 +108,15 @@ public final class VariableSubstitutor {
           sanitizedValueMap.putIfAbsent(variableName, sanitize(valueMap.get(variableName)));
         }
       }
+    }
+
+    @Override
+    public Void visitResourceName(final SqlBaseParser.ResourceNameContext context) {
+      if (context.STRING() != null) {
+        final String text = unquote(context.STRING().getText(), "'");
+        lookupVariables(text);
+      }
+      return null;
     }
 
     @Override

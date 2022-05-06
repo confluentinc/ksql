@@ -114,6 +114,8 @@ public final class VariableSubstitutor {
       if (context.STRING() != null) {
         final String text = unquote(context.STRING().getText(), "'");
         lookupVariables(text);
+      } else {
+        visit(context.identifier());
       }
       return null;
     }

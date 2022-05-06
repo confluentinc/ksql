@@ -444,16 +444,7 @@ final class QueryBuilder {
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final NamedTopology topology = namedTopologyBuilder.build();
 
-    final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-            materializationProviderBuilder = getMaterializationInfo(result).map(info ->
-            materializationProviderBuilderFactory.materializationProviderBuilder(
-                    info,
-                    querySchema,
-                    keyFormat,
-                    queryOverrides,
-                    applicationId,
-                    queryId.toString()
-            ));
+    final Optional<MaterializationInfo> materializationInfo = getMaterializationInfo(result);
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
         querySchema.logicalSchema(),
@@ -479,20 +470,21 @@ final class QueryBuilder {
             runtimeBuildContext.getSchemas(),
             config.getOverrides(),
             queryId,
-            materializationProviderBuilder,
+            materializationInfo,
+            materializationProviderBuilderFactory,
             physicalPlan,
             getUncaughtExceptionProcessingLogger(queryId),
             sinkDataSource,
             listener,
-            queryOverrides,
-            scalablePushRegistry,
+        scalablePushRegistry,
             (streamsRuntime) -> getNamedTopology(
                 streamsRuntime,
                 queryId,
                 applicationId,
                 queryOverrides,
                 physicalPlan
-            )
+            ),
+            keyFormat
     );
     if (real) {
       return binPackedPersistentQueryMetadata;

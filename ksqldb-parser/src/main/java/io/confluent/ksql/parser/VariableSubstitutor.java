@@ -22,7 +22,6 @@ import static io.confluent.ksql.util.ParserUtil.unquote;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.util.ParserUtil;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;

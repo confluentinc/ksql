@@ -1810,7 +1810,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.assertSchema("name", 3, true).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("assert schema subject `name` id 3;"));
+    assertThat(testEndpoints.getLastSql(), is("assert schema subject 'name' id 3;"));
   }
 
   @Test
@@ -1823,7 +1823,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.assertSchema("name", false).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("assert not exists schema subject `name`;"));
+    assertThat(testEndpoints.getLastSql(), is("assert not exists schema subject 'name';"));
   }
 
   @Test
@@ -1833,10 +1833,10 @@ public class ClientTest extends BaseApiTest {
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
-    javaClient.assertSchema("name", true, Duration.ofSeconds(10)).get();
+    javaClient.assertSchema(3, true, Duration.ofSeconds(10)).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("assert schema subject `name` timeout 10 seconds;"));
+    assertThat(testEndpoints.getLastSql(), is("assert schema id 3 timeout 10 seconds;"));
   }
 
   @Test
@@ -1849,7 +1849,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.assertTopic("name", true).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("assert topic `name`;"));
+    assertThat(testEndpoints.getLastSql(), is("assert topic 'name';"));
   }
 
   @Test
@@ -1862,7 +1862,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.assertTopic("name", ImmutableMap.of("foo", 3, "bar", 5),true).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("assert topic `name` with (foo=3,bar=5);"));
+    assertThat(testEndpoints.getLastSql(), is("assert topic 'name' with (foo=3,bar=5);"));
   }
 
   @Test
@@ -1875,7 +1875,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.assertTopic("name",false, Duration.ofSeconds(10)).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("assert not exists topic `name` timeout 10 seconds;"));
+    assertThat(testEndpoints.getLastSql(), is("assert not exists topic 'name' timeout 10 seconds;"));
   }
 
   protected Client createJavaClient() {

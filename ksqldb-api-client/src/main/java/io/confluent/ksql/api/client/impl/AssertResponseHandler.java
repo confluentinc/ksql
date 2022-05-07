@@ -18,7 +18,7 @@ package io.confluent.ksql.api.client.impl;
 import io.vertx.core.json.JsonObject;
 import java.util.concurrent.CompletableFuture;
 
-public class AssertResponseHandler {
+public final class AssertResponseHandler {
 
   private AssertResponseHandler() {
 

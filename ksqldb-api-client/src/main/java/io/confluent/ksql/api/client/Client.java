@@ -449,7 +449,8 @@ public interface Client extends Closeable {
    * @param timeout the amount of time to wait for a successful assertion
    * @return a future that completes once the server response is received
    */
-  CompletableFuture<Void> assertTopic(String topic, Map<String, Integer> configs, boolean exists, Duration timeout);
+  CompletableFuture<Void> assertTopic(
+      String topic, Map<String, Integer> configs, boolean exists, Duration timeout);
 
   /**
    * A factory to construct {@link HttpRequest} objects. Instances of {@link HttpRequest} are

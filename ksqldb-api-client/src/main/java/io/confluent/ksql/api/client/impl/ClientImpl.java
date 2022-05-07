@@ -525,14 +525,16 @@ public class ClientImpl implements Client {
   ) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
     final String existClause = exists ? "" : " not exists";
-    final String subjectClause = subject.isPresent() ? " subject `" + subject.get() + "`" : "";
+    final String subjectClause = subject.isPresent() ? " subject '" + subject.get() + "'" : "";
     final String idClause = id.isPresent() ? " id " + id.get() : "";
     final String timeoutClause =
         timeout.isPresent() ? " timeout " + timeout.get().getSeconds() + " seconds" : "";
+    final String command =
+        "assert" + existClause + " schema" + subjectClause + idClause + timeoutClause + ";";
     makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject()
-            .put("ksql", "assert" + existClause + " schema" + subjectClause + idClause + timeoutClause + ";")
+            .put("ksql", command)
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
@@ -579,10 +581,12 @@ public class ClientImpl implements Client {
     final String configString = configs.size() > 0 ? createConfigString(configs) : "";
     final String timeoutClause =
         timeout.isPresent() ? " timeout " + timeout.get().getSeconds() + " seconds" : "";
+    final String command =
+        "assert" + existClause + " topic '" + topic + "'" + configString + timeoutClause + ";";
     makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject()
-            .put("ksql", "assert" + existClause + " topic `" + topic + "`" + configString + timeoutClause + ";")
+            .put("ksql", command)
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(

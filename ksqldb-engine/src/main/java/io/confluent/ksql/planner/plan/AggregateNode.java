@@ -27,6 +27,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -49,6 +50,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -172,8 +174,11 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
     selectExpressions.stream()
         .map(SelectExpression::getExpression)
         .forEach(missing::remove);
-
     if (!missing.isEmpty()) {
+      if (missing.contains(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))) {
+        throw new KsqlException("CREATE TABLE AS SELECT statement does not support "
+            + "aggregate function " + functionList +  " without a GROUP BY clause.");
+      }
       throwKeysNotIncludedError(sinkName, "grouping expression", missing);
     }
   }

@@ -227,6 +227,29 @@ public class KsLocatorTest {
   }
 
   @Test
+  public void shouldThrowIfMetadataIsEmpty() {
+    // Given:
+    getActiveAndStandbyMetadata();
+    when(topology.describe()).thenReturn(description);
+    when(description.subtopologies()).thenReturn(ImmutableSet.of(sub1));
+    when(sub1.nodes()).thenReturn(ImmutableSet.of(source, processor));
+    when(source.topicSet()).thenReturn(ImmutableSet.of(TOPIC_NAME));
+    when(processor.stores()).thenReturn(ImmutableSet.of(STORE_NAME));
+
+    // When:
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> locator.locate(Collections.emptyList(), routingOptions, routingFilterFactoryActive, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is(
+        "Cannot determine which host contains the required partitions to serve the pull query. \n" +
+            "The underlying persistent query may be restarting (e.g. as a result of" +
+            " ALTER SYSTEM) view the status of your by issuing <DESCRIBE foo>."));
+  }
+
+  @Test
   public void shouldThrowIfRangeScanAndKeysEmpty() {
     // Given:
     getEmtpyMetadata();

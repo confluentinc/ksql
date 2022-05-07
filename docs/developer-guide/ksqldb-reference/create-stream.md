@@ -37,9 +37,9 @@ with the same name already exists. Instead, ksqlDB returns a warning,
 For more information, see [Stream Processing](/concepts/stream-processing).
 
 !!! Tip "See CREATE STREAM in action"
-    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
-    - [Handle corrupted data from Salesforce](https://developer.confluent.io/tutorials/salesforce/confluent.html#ksqldb-code)
-    - [Match Users for Online Dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
+    - [Handle corrupted data from Salesforce](https://developer.confluent.io/tutorials/salesforce/confluent.html#execute-ksqldb-code)
+    - [Match Users for Online Dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
 
 ### Columns
 

@@ -1,0 +1,7 @@
+[ {
+  "@type" : "assert_topic",
+  "statementText" : "statement",
+  "topicName" : "name",
+  "exists" : false,
+  "warnings" : [ ]
+} ]

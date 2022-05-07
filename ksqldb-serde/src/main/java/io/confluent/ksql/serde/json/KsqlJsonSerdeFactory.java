@@ -21,6 +21,7 @@ import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.json.JsonSchemaConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
@@ -35,7 +36,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.json.DecimalFormat;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -44,7 +44,7 @@ import org.apache.kafka.connect.storage.Converter;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 @Immutable
-class KsqlJsonSerdeFactory {
+class KsqlJsonSerdeFactory implements SerdeFactory {
 
   private final boolean useSchemaRegistryFormat;
   private final JsonSchemaProperties properties;
@@ -62,8 +62,9 @@ class KsqlJsonSerdeFactory {
     this.properties = Objects.requireNonNull(properties, "properties");
   }
 
-  <T> Serde<T> createSerde(
-      final ConnectSchema schema,
+  @Override
+  public <T> Serde<T> createSerde(
+      final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
@@ -72,7 +73,7 @@ class KsqlJsonSerdeFactory {
     final Optional<Schema> physicalSchema;
     if (useSchemaRegistryFormat) {
       physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
-          SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
+          SerdeUtils.getAndTranslateSchemaById(srFactory, properties.getSchemaId()
               .get(), new JsonSchemaTranslator())) : Optional.empty();
     } else {
       physicalSchema = Optional.empty();
@@ -99,7 +100,7 @@ class KsqlJsonSerdeFactory {
   }
 
   private <T> Serializer<T> createSerializer(
-      final ConnectSchema schema,
+      final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
@@ -123,7 +124,7 @@ class KsqlJsonSerdeFactory {
   }
 
   private <T> Deserializer<T> createDeserializer(
-      final ConnectSchema schema,
+      final Schema schema,
       final Class<T> targetType
   ) {
     return new KsqlJsonDeserializer<>(

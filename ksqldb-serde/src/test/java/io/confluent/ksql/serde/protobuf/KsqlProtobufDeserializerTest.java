@@ -16,37 +16,23 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
-import java.nio.ByteBuffer;
-import java.util.Optional;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Date;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.data.Time;
-import org.apache.kafka.connect.data.Timestamp;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
-
-import java.math.BigDecimal;
-import java.util.Collections;
-
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import java.util.Collections;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.storage.Converter;
+import org.junit.Before;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
-public class KsqlProtobufDeserializerTest {
+public class KsqlProtobufDeserializerTest extends AbstractKsqlProtobufDeserializerTest {
 
   private static final String SOME_TOPIC = "bob";
 
@@ -69,107 +55,14 @@ public class KsqlProtobufDeserializerTest {
     converter.configure(configs, false);
   }
 
-  @Test
-  public void shouldDeserializeDecimalField() {
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-            .field("f0", DecimalUtil.builder(10, 2))
-            .build();
-
-    // Given:
-    final Deserializer<Struct> deserializer =
-        givenDeserializerForSchema(schema,
-            Struct.class);
-    final Struct value = new Struct(schema).put("f0", new BigDecimal("12.34"));
-    final byte[] bytes = givenConnectSerialized(value, schema);
-
-    // When:
-    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
-
-    // Then:
-    assertThat(result, is(value));
+  @Override
+  Converter getConverter(final ConnectSchema schema) {
+    return converter;
   }
 
-  @Test
-  public void shouldDeserializeTimeField() {
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("f0", Time.SCHEMA)
-        .build();
-
-    // Given:
-    final Deserializer<Struct> deserializer =
-        givenDeserializerForSchema(schema,
-            Struct.class);
-    final Struct value = new Struct(schema).put("f0", new java.sql.Time(2000));
-    final byte[] bytes = givenConnectSerialized(value, schema);
-
-    // When:
-    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
-
-    // Then:
-    assertThat(result, is(value));
-  }
-
-  @Test
-  public void shouldDeserializeDateField() {
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("f0", Date.SCHEMA)
-        .build();
-
-    // Given:
-    final Deserializer<Struct> deserializer =
-        givenDeserializerForSchema(schema,
-            Struct.class);
-    final Struct value = new Struct(schema).put("f0", new java.sql.Date(864000000L));
-    final byte[] bytes = givenConnectSerialized(value, schema);
-
-    // When:
-    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
-
-    // Then:
-    assertThat(result, is(value));
-  }
-
-  @Test
-  public void shouldDeserializeTimestampField() {
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("f0", Timestamp.SCHEMA)
-        .build();
-
-    // Given:
-    final Deserializer<Struct> deserializer =
-        givenDeserializerForSchema(schema,
-            Struct.class);
-    final Struct value = new Struct(schema).put("f0", new java.sql.Timestamp(2000));
-    final byte[] bytes = givenConnectSerialized(value, schema);
-
-    // When:
-    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
-
-    // Then:
-    assertThat(result, is(value));
-  }
-
-  @Test
-  public void shouldDeserializeBytesField() {
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("f0", Schema.BYTES_SCHEMA)
-        .build();
-
-    // Given:
-    final Deserializer<Struct> deserializer =
-        givenDeserializerForSchema(schema,
-            Struct.class);
-    final Struct value = new Struct(schema).put("f0", ByteBuffer.wrap(new byte[] {123}));
-    final byte[] bytes = givenConnectSerialized(value, schema);
-
-    // When:
-    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
-
-    // Then:
-    assertThat(((Struct) result).getBytes("f0"), is(value.getBytes("f0")));
-  }
-
-  private byte[] givenConnectSerialized(
+  @Override
+  byte[] givenConnectSerialized(
+          final Converter converter,
           final Object value,
           final Schema connectSchema
   ) {
@@ -184,7 +77,8 @@ public class KsqlProtobufDeserializerTest {
     return converter.fromConnectData(topicName, schema, value);
   }
 
-  private <T> Deserializer<T> givenDeserializerForSchema(
+  @Override
+  <T> Deserializer<T> givenDeserializerForSchema(
       final ConnectSchema schema,
       final Class<T> targetType
   ) {

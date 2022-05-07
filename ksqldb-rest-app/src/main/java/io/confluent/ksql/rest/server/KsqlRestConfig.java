@@ -214,7 +214,7 @@ public class KsqlRestConfig extends AbstractConfig {
   private static final String KSQL_WEBSOCKETS_NUM_THREADS_DOC =
       "The number of websocket threads to handle query results";
 
-  static final String KSQL_SERVER_PRECONDITIONS =
+  public static final String KSQL_SERVER_PRECONDITIONS =
       KSQL_CONFIG_PREFIX + "server.preconditions";
   private static final String KSQL_SERVER_PRECONDITIONS_DOC =
       "A comma separated list of classes implementing KsqlServerPrecondition. The KSQL server "

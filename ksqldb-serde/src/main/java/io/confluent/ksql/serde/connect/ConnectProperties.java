@@ -29,6 +29,7 @@ import java.util.Optional;
 public abstract class ConnectProperties {
   public static final String FULL_SCHEMA_NAME = "fullSchemaName";
   public static final String SCHEMA_ID = "schemaId";
+  public static final String SUBJECT_NAME = "subjectName";
 
   protected final ImmutableMap<String, String> properties;
 
@@ -49,5 +50,9 @@ public abstract class ConnectProperties {
   public Optional<Integer> getSchemaId() {
     final String schemaId = properties.get(SCHEMA_ID);
     return schemaId == null ? Optional.empty() : Optional.of(Integer.parseInt(schemaId));
+  }
+
+  public Optional<String> getSubjectName() {
+    return Optional.ofNullable(properties.get(SUBJECT_NAME));
   }
 }

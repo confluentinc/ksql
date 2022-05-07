@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.integration;
 import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+import static io.netty.handler.codec.http.HttpHeaderNames.EXPIRES;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 
@@ -299,12 +300,34 @@ public final class RestIntegrationTestUtil {
       final Optional<WriteStream<Buffer>> writeStream,
       final Optional<BasicCredentials> credentials
   ) {
+    return rawRestRequest(
+        restApp.getHttpListener(),
+        httpVersion,
+        method,
+        uri,
+        requestBody,
+        mediaType,
+        writeStream,
+        credentials
+    );
+  }
+
+  static HttpResponse<Buffer> rawRestRequest(
+      final URI listener,
+      final HttpVersion httpVersion,
+      final HttpMethod method,
+      final String uri,
+      final Object requestBody,
+      final String mediaType,
+      final Optional<WriteStream<Buffer>> writeStream,
+      final Optional<BasicCredentials> credentials
+  ) {
     Vertx vertx = Vertx.vertx();
     WebClient webClient = null;
     try {
       WebClientOptions webClientOptions = new WebClientOptions()
-          .setDefaultHost(restApp.getHttpListener().getHost())
-          .setDefaultPort(restApp.getHttpListener().getPort())
+          .setDefaultHost(listener.getHost())
+          .setDefaultPort(listener.getPort())
           .setFollowRedirects(false);
 
       if (httpVersion == HttpVersion.HTTP_2) {
@@ -313,10 +336,7 @@ public final class RestIntegrationTestUtil {
 
       webClient = WebClient.create(vertx, webClientOptions);
       return rawRestRequest(
-          vertx,
           webClient,
-          restApp,
-          httpVersion,
           method,
           uri,
           requestBody,
@@ -333,10 +353,7 @@ public final class RestIntegrationTestUtil {
   }
 
   static HttpResponse<Buffer> rawRestRequest(
-      final Vertx vertx,
       final WebClient webClient,
-      final TestKsqlRestApp restApp,
-      final HttpVersion httpVersion,
       final HttpMethod method,
       final String uri,
       final Object requestBody,

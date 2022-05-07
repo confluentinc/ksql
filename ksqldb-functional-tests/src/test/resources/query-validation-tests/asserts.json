@@ -7,7 +7,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'ASSERT'"
+        "message": "no viable alternative at input 'ASSERT VALUES'"
       }
     },
     {

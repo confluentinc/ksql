@@ -384,7 +384,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Use of aggregate function COUNT requires a GROUP BY clause."
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY"
       }
     },
     {

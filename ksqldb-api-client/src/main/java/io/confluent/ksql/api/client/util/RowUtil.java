@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client.util;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.impl.ColumnTypeImpl;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,5 +50,70 @@ public final class RowUtil {
         parenInd == -1 ? columnType.length() : parenInd
     ));
     return new ColumnTypeImpl(primaryType);
+  }
+
+  public static List<String> colNamesFromSchema(final String schema) {
+    return splitAcrossOneLevelDeepComma(schema).stream()
+            .map(RowUtil::removeBackTickAndKeyTrim)
+            .map(RowUtil::splitAndGetFirst)
+            .collect(Collectors.toList());
+  }
+
+  public static List<String> colTypesFromSchema(final String schema) {
+    return splitAcrossOneLevelDeepComma(schema).stream()
+            .map(RowUtil::removeBackTickAndKeyTrim)
+            .map(RowUtil::splitAndGetSecond)
+            .collect(Collectors.toList());
+  }
+
+  private static List<String> splitAcrossOneLevelDeepComma(final String stringWithCommas) {
+    final List<String> listCols = new LinkedList<>();
+    final StringBuilder sb = new StringBuilder();
+    int nestRound = 0;
+    int nestChevron = 0;
+    for (int i = 0; i < stringWithCommas.length(); ++i) {
+      final char ch = stringWithCommas.charAt(i);
+      if (i == stringWithCommas.length() - 1) {
+        sb.append(ch);
+        listCols.add(sb.toString());
+        break;
+      }
+      switch (ch) {
+        case ',':
+          if (nestRound == 0 && nestChevron == 0) {
+            listCols.add(sb.toString());
+            sb.setLength(0);
+            continue;
+          }
+          break;
+        case '(':
+          ++nestRound;
+          break;
+        case ')':
+          --nestRound;
+          break;
+        case '<':
+          ++nestChevron;
+          break;
+        case '>':
+          --nestChevron;
+          break;
+        default:
+      }
+      sb.append(ch);
+    }
+    return listCols;
+  }
+
+  private static String removeBackTickAndKeyTrim(final String dirtyString) {
+    return dirtyString.replace(" KEY", "").replace("`", "").trim();
+  }
+
+  private static String splitAndGetFirst(final String stringToSplit) {
+    return stringToSplit.split(" ", 2)[0];
+  }
+
+  private static String splitAndGetSecond(final String stringToSplit) {
+    return stringToSplit.split(" ", 2)[1];
   }
 }

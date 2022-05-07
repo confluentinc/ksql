@@ -89,6 +89,10 @@ statement
     | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
     | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
+    | ASSERT (NOT EXISTS)? TOPIC identifier
+            (WITH tableProperties)? timeout?                                #assertTopic
+    | ASSERT (NOT EXISTS)? SCHEMA
+            (SUBJECT identifier)? (ID literal)? timeout?                    #assertSchema
     ;
 
 assertStatement
@@ -117,6 +121,10 @@ query
 resultMaterialization
     : CHANGES
     | FINAL
+    ;
+
+timeout
+    : TIMEOUT number windowUnit
     ;
 
 alterOption
@@ -414,6 +422,7 @@ nonReserved
     | GRACE | PERIOD
     | DEFINE | UNDEFINE | VARIABLES
     | PLUGINS | SYSTEM
+    | TIMEOUT | SCHEMA| SUBJECT | ID
     ;
 
 EMIT: 'EMIT';
@@ -553,6 +562,10 @@ PLUGINS: 'PLUGINS';
 HEADERS: 'HEADERS';
 HEADER: 'HEADER';
 SYSTEM: 'SYSTEM';
+TIMEOUT: 'TIMEOUT';
+SCHEMA: 'SCHEMA';
+SUBJECT: 'SUBJECT';
+ID: 'ID';
 
 IF: 'IF';
 

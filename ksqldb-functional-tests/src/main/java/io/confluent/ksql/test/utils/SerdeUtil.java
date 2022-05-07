@@ -38,12 +38,14 @@ import io.confluent.ksql.serde.json.JsonSchemaFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
 import io.confluent.ksql.test.serde.none.NoneSerdeSupplier;
+import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufNoSRSerdeSupplier;
 import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -76,7 +78,9 @@ public final class SerdeUtil {
       case AvroFormat.NAME:       return new ValueSpecAvroSerdeSupplier();
       case ProtobufFormat.NAME:
         return new ValueSpecProtobufSerdeSupplier(
-            new ProtobufProperties(formatInfo.getProperties()).getUnwrapPrimitives());
+            new ProtobufProperties(formatInfo.getProperties()));
+      case ProtobufNoSRFormat.NAME:
+        return new ValueSpecProtobufNoSRSerdeSupplier(schema, formatInfo.getProperties());
       case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(false, properties);
       case JsonSchemaFormat.NAME: return new ValueSpecJsonSerdeSupplier(true, properties);
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();
@@ -88,7 +92,7 @@ public final class SerdeUtil {
   }
 
   public static Optional<ParsedSchema> buildSchema(final JsonNode schema, final String format) {
-    if (schema instanceof NullNode) {
+    if (schema == null || schema instanceof NullNode) {
       return Optional.empty();
     }
 

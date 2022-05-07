@@ -52,6 +52,8 @@ public class MaxAggFunctionFactory extends AggregateFunctionFactory {
       case DATE:
       case TIME:
       case TIMESTAMP:
+      case STRING:
+      case BYTES:
         return new MaxKudaf(FUNCTION_NAME, initArgs.udafIndex(), argSchema);
       default:
         throw new KsqlException(
@@ -65,8 +67,8 @@ public class MaxAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "NUMERICAL_TIME is ImmutableList")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "COMPARABLE_ARGS is ImmutableList")
   public List<List<ParamType>> supportedArgs() {
-    return NUMERICAL_TIME;
+    return COMPARABLE_ARGS;
   }
 }

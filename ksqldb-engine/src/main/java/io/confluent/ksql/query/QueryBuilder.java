@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -446,16 +446,7 @@ final class QueryBuilder {
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final NamedTopology topology = namedTopologyBuilder.build();
 
-    final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-            materializationProviderBuilder = getMaterializationInfo(result).map(info ->
-            materializationProviderBuilderFactory.materializationProviderBuilder(
-                    info,
-                    querySchema,
-                    keyFormat,
-                    queryOverrides,
-                    applicationId,
-                    queryId.toString()
-            ));
+    final Optional<MaterializationInfo> materializationInfo = getMaterializationInfo(result);
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
         querySchema.logicalSchema(),
@@ -481,21 +472,21 @@ final class QueryBuilder {
             runtimeBuildContext.getSchemas(),
             config.getOverrides(),
             queryId,
-            materializationProviderBuilder,
+            materializationInfo,
+            materializationProviderBuilderFactory,
             physicalPlan,
             getUncaughtExceptionProcessingLogger(queryId),
             sinkDataSource,
             listener,
-            queryOverrides,
-            scalablePushRegistry,
+        scalablePushRegistry,
             (streamsRuntime) -> getNamedTopology(
                 streamsRuntime,
                 queryId,
                 applicationId,
                 queryOverrides,
-                physicalPlan,
-                metricCollectors.getMetrics()
-            )
+                physicalPlan
+            ),
+            keyFormat
     );
     if (real) {
       return binPackedPersistentQueryMetadata;
@@ -510,8 +501,7 @@ final class QueryBuilder {
                                         final QueryId queryId,
                                         final String applicationId,
                                         final Map<String, Object>  queryOverrides,
-                                        final ExecutionStep<?> physicalPlan,
-                                        final Metrics metrics) {
+                                        final ExecutionStep<?> physicalPlan) {
     final NamedTopologyBuilder namedTopologyBuilder =
         sharedRuntime.getKafkaStreams().newNamedTopologyBuilder(
             queryId.toString(),
@@ -651,7 +641,10 @@ final class QueryBuilder {
       final String applicationId
   ) {
     final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
-        .and(new AuthorizationClassifier(applicationId));
+        .and(new AuthorizationClassifier(applicationId))
+        .and(new KsqlFunctionClassifier(applicationId))
+        .and(new MissingSubjectClassifier(applicationId))
+        .and(new SchemaAuthorizationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);

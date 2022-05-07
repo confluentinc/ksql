@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -251,7 +252,7 @@ public class BaseApiTest {
     client
         .post(uri)
         .sendBuffer(requestBody, requestFuture);
-    return requestFuture.get();
+    return requestFuture.get(10_000L, TimeUnit.MILLISECONDS);
   }
 
   protected void sendPostRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {

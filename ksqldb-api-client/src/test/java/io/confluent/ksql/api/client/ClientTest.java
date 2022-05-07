@@ -59,7 +59,6 @@ import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -1188,25 +1187,6 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
         containsString("Use the dropConnector() method instead"));
-  }
-
-  @Test
-  public void shouldFailOnErrorEntityFromExecuteStatement() {
-    // Given
-    final ErrorEntity entity = new ErrorEntity("create connector;", "error msg");
-    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
-
-    // When
-    final Exception e = assertThrows(
-        ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> javaClient.executeStatement("create connector;").get()
-    );
-
-    // Then
-    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
-    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
-    assertThat(e.getCause().getMessage(),
-        containsString("Use the createConnector, dropConnector, describeConnector or listConnectors methods instead"));
   }
 
   @Test

@@ -51,6 +51,9 @@ import java.util.UUID;
 public class PushPhysicalPlanBuilder {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private static final String REGISTRY_NOT_FOUND_ERROR_MESSAGE =
+      "Scalable push registry cannot be found. "
+          + "Make sure that ksql.query.push.v2.registry.installed is set to true.";
   private final ProcessingLogContext processingLogContext;
   private final PersistentQueryMetadata persistentQueryMetadata;
   private final Stacker contextStacker;
@@ -172,7 +175,7 @@ public class PushPhysicalPlanBuilder {
   ) {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
-        .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
+        .orElseThrow(() -> new IllegalStateException(REGISTRY_NOT_FOUND_ERROR_MESSAGE));
     querySourceType = logicalNode.isWindowed()
         ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
     final Optional<CatchupMetadata> catchupMetadata = offsetRange.map(or ->
@@ -183,7 +186,7 @@ public class PushPhysicalPlanBuilder {
   private String getConsumerGroupId(final Optional<String> catchupConsumerGroupFromSource) {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
-            .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
+            .orElseThrow(() -> new IllegalStateException(REGISTRY_NOT_FOUND_ERROR_MESSAGE));
     return catchupConsumerGroupFromSource.orElse(
         scalablePushRegistry.getCatchupConsumerId(UUID.randomUUID().toString()));
   }

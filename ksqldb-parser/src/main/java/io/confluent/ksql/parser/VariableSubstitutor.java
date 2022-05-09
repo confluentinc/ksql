@@ -110,6 +110,17 @@ public final class VariableSubstitutor {
     }
 
     @Override
+    public Void visitResourceName(final SqlBaseParser.ResourceNameContext context) {
+      if (context.STRING() != null) {
+        final String text = unquote(context.STRING().getText(), "'");
+        lookupVariables(text);
+      } else {
+        visit(context.identifier());
+      }
+      return null;
+    }
+
+    @Override
     public Void visitStringLiteral(final SqlBaseParser.StringLiteralContext context) {
       final String text = unquote(context.getText(), "\'");
       lookupVariables(text);

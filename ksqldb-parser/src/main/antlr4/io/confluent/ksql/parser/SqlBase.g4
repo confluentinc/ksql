@@ -59,7 +59,7 @@ statement
     | DESCRIBE STREAMS EXTENDED?                                            #describeStreams
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
-    | PRINT (identifier| STRING) printClause                                #printTopic
+    | PRINT resourceName printClause                                        #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE identifier                                                  #terminateQuery
     | TERMINATE ALL                                                         #terminateQuery
@@ -89,10 +89,10 @@ statement
     | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
     | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
-    | ASSERT (NOT EXISTS)? TOPIC identifier
+    | ASSERT (NOT EXISTS)? TOPIC resourceName
             (WITH tableProperties)? timeout?                                #assertTopic
     | ASSERT (NOT EXISTS)? SCHEMA
-            (SUBJECT identifier)? (ID literal)? timeout?                    #assertSchema
+            (SUBJECT resourceName)? (ID literal)? timeout?                  #assertSchema
     ;
 
 assertStatement
@@ -104,6 +104,11 @@ assertStatement
 
 runScript
     : RUN SCRIPT STRING
+    ;
+
+resourceName
+    : identifier
+    | STRING
     ;
 
 query

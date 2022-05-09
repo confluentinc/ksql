@@ -833,12 +833,7 @@ public class AstBuilder {
     public Node visitPrintTopic(final SqlBaseParser.PrintTopicContext context) {
       final boolean fromBeginning = context.printClause().FROM() != null;
 
-      final String topicName;
-      if (context.STRING() != null) {
-        topicName = ParserUtil.unquote(context.STRING().getText(), "'");
-      } else {
-        topicName = ParserUtil.getIdentifierText(true, context.identifier());
-      }
+      final String topicName = getResourceName(context.resourceName());
 
       final IntervalClauseContext intervalContext = context.printClause().intervalClause();
       final OptionalInt interval = intervalContext == null
@@ -854,6 +849,16 @@ public class AstBuilder {
           interval,
           limit
       );
+    }
+
+    private String getResourceName(
+        final SqlBaseParser.ResourceNameContext context
+    ) {
+      if (context.STRING() != null) {
+        return ParserUtil.unquote(context.STRING().getText(), "'");
+      } else {
+        return ParserUtil.getIdentifierText(true, context.identifier());
+      }
     }
 
     @Override
@@ -1405,7 +1410,7 @@ public class AstBuilder {
     public Node visitAssertTopic(final AssertTopicContext context) {
       return new AssertTopic(
           getLocation(context),
-          ParserUtil.getIdentifierText(true, context.identifier()),
+          getResourceName(context.resourceName()),
           context.WITH() == null
               ? ImmutableMap.of()
               : processTableProperties(context.tableProperties()),
@@ -1419,7 +1424,7 @@ public class AstBuilder {
 
     @Override
     public Node visitAssertSchema(final AssertSchemaContext context) {
-      if (context.identifier() == null && context.literal() == null) {
+      if (context.resourceName() == null && context.literal() == null) {
         throw new KsqlException("ASSERT SCHEMA statements much include a subject name or an id");
       }
 
@@ -1437,9 +1442,9 @@ public class AstBuilder {
 
       return new AssertSchema(
           getLocation(context),
-          context.identifier() == null
+          context.resourceName() == null
               ? Optional.empty()
-              : Optional.of(ParserUtil.getIdentifierText(true, context.identifier())),
+              : Optional.of(getResourceName(context.resourceName())),
           id,
           context.timeout() == null
               ? Optional.empty()

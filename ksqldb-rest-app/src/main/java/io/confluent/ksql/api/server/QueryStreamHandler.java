@@ -120,7 +120,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       final boolean bufferOutput
   ) {
     final String contentType = routingContext.getAcceptableContentType();
-    if (DELIMITED_CONTENT_TYPE.equals(contentType)
+    if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)) {
+      return new ProtobufQueryStreamResponseWriter(routingContext.response());
+    } else if (DELIMITED_CONTENT_TYPE.equals(contentType)
         || (contentType == null && !queryCompatibilityMode)) {
       // Default
       return new DelimitedQueryStreamResponseWriter(routingContext.response());

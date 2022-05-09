@@ -40,7 +40,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
-final class ProtobufNoSRSerdeFactory implements SerdeFactory {
+public final class ProtobufNoSRSerdeFactory implements SerdeFactory {
 
   private final ProtobufNoSRProperties properties;
 
@@ -48,7 +48,7 @@ final class ProtobufNoSRSerdeFactory implements SerdeFactory {
     this.properties = Objects.requireNonNull(properties, "properties");
   }
 
-  ProtobufNoSRSerdeFactory(final ImmutableMap<String, String> formatProperties) {
+  public ProtobufNoSRSerdeFactory(final ImmutableMap<String, String> formatProperties) {
     this(new ProtobufNoSRProperties(formatProperties));
   }
 
@@ -86,10 +86,10 @@ final class ProtobufNoSRSerdeFactory implements SerdeFactory {
     SchemaWalker.visit(schema, new SchemaValidator());
   }
 
-  private <T> KsqlConnectSerializer<T> createSerializer(
-      final Schema schema,
-      final Class<T> targetType,
-      final boolean isKey
+  public <T> KsqlConnectSerializer<T> createSerializer(
+          final Schema schema,
+          final Class<T> targetType,
+          final boolean isKey
   ) {
     final ProtobufNoSRConverter converter = getConverter(schema, isKey);
     final DataTranslator translator = getDataTranslator(schema);

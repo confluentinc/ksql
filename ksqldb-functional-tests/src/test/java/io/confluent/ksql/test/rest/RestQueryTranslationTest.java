@@ -76,7 +76,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class RestQueryTranslationTest {
 
-  private static final Path TEST_DIR = Paths.get("rest-query-validation-tests");
+  private static final Path TEST_DIR = Paths.get("rest-query-validation-tests/meme");
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 

@@ -142,6 +142,7 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())
         .handler(BodyHandler.create(false))
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
     router.route(HttpMethod.POST, "/inserts-stream")

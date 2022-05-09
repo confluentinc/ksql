@@ -1162,7 +1162,6 @@ public class ClientIntegrationTest {
   @Test
   public void shouldAssertSchema() throws ExecutionException, InterruptedException {
     // These should run without throwing errors
-    client.assertSchema(1, true).get();
     client.assertSchema("abc-value", true, Duration.ofSeconds(3)).get();
     client.assertSchema("abc-value", 1, true, Duration.ofSeconds(3)).get();
   }
@@ -1171,7 +1170,6 @@ public class ClientIntegrationTest {
   public void shouldAssertNotExistsSchema() throws ExecutionException, InterruptedException {
     // These should run without throwing errors
     client.assertSchema(34, false).get();
-    client.assertSchema("NONEXISTENT", false, Duration.ofSeconds(3)).get();
     client.assertSchema("NONEXISTENT", 43, false, Duration.ofSeconds(3)).get();
   }
 
@@ -1226,11 +1224,7 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldAssertNotExistsTopic() throws ExecutionException, InterruptedException {
-    // Given:
-    client.define("name", "NONEXISTENT");
-
-    // These should run without throwing errors
-    client.assertTopic("${name}", false).get();
+    // This should run without throwing errors
     client.assertTopic("NONEXISTENT", false, Duration.ofSeconds(3)).get();
   }
 

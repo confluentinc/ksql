@@ -1801,7 +1801,7 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldSendAssertSchema() throws Exception {
+  public void shouldSendAssertSchemaWithSubjectAndId() throws Exception {
     // Given
     final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.of("name"), Optional.of(3), true);
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
@@ -1811,6 +1811,32 @@ public class ClientTest extends BaseApiTest {
 
     // Then:
     assertThat(testEndpoints.getLastSql(), is("assert schema subject 'name' id 3;"));
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithSubject() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.of("name"), Optional.empty(), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema("name", true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema subject 'name';"));
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithId() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.empty(), Optional.of(3), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema(3, true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema id 3;"));
   }
 
   @Test

@@ -103,7 +103,6 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -230,8 +229,6 @@ public class ClientIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
-      .withStaticServiceContext(TEST_HARNESS::getServiceContext)
-      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
       .build();
 
   @ClassRule
@@ -251,7 +248,6 @@ public class ClientIntegrationTest {
     truncateTopic(TRUNCATED_TEST_TOPIC);
     RestIntegrationTestUtil.createStream(REST_APP, TRUNCATED_TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
-    TEST_HARNESS.ensureSchema("abc", AGG_SCHEMA, false);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT K, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY K;"

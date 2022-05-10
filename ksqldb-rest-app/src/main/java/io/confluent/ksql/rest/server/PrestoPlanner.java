@@ -19,7 +19,6 @@ import static com.facebook.presto.spi.ConnectorId.createInformationSchemaConnect
 import static com.facebook.presto.spi.ConnectorId.createSystemTablesConnectorId;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cost.ComposableStatsCalculator;
 import com.facebook.presto.cost.CostCalculator;
@@ -37,7 +36,6 @@ import com.facebook.presto.matching.Pattern;
 import com.facebook.presto.metadata.Catalog;
 import com.facebook.presto.metadata.CatalogManager;
 import com.facebook.presto.metadata.FunctionAndTypeManager;
-import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.security.AccessControl;
@@ -78,9 +76,7 @@ import com.facebook.presto.sql.planner.PartitioningProviderManager;
 import com.facebook.presto.sql.planner.Plan;
 import com.facebook.presto.sql.planner.PlanOptimizers;
 import com.facebook.presto.sql.planner.RuleStatsRecorder;
-import com.facebook.presto.sql.planner.iterative.IterativeOptimizer;
 import com.facebook.presto.sql.planner.iterative.Rule;
-import com.facebook.presto.sql.planner.iterative.rule.TranslateExpressions;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.planner.planPrinter.PlanPrinter;
 import com.facebook.presto.sql.planner.sanity.PlanChecker;
@@ -96,6 +92,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.weakref.jmx.MBeanExporter;
 
@@ -115,9 +112,50 @@ public class PrestoPlanner {
 
   public static void main(final String[] args) {
 
+    final String schemaName = "schema";
+    final Connector connector = new ProtoConnector(
+        ImmutableList.of(
+            new Table(
+                "pantalones",
+                schemaName,
+                ImmutableList.of(
+                    ColumnMetadata
+                        .builder()
+                        .setName("id")
+                        .setType(VarcharType.createUnboundedVarcharType())
+                        .setNullable(false)
+                        .build()
+                )
+            ), new Table(
+                "abrigos",
+                schemaName,
+                ImmutableList.of(
+                    ColumnMetadata
+                        .builder()
+                        .setName("id")
+                        .setType(VarcharType.createUnboundedVarcharType())
+                        .setNullable(false)
+                        .build()
+                )
+            )
+        )
+    );
+
+    logicalPlan(
+        "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID",
+        schemaName,
+        connector
+    );
+  }
+
+  private static Plan logicalPlan(
+      final String sql,
+      final String schemaName,
+      final Connector connector) {
+
     final SqlParser sqlParser = new SqlParser();
     final Statement statement = sqlParser.createStatement(
-        "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID",
+        sql,
         ParsingOptions.builder().build()
     );
 
@@ -127,36 +165,9 @@ public class PrestoPlanner {
     final QueryPreparer queryPreparer = new QueryPreparer(sqlParser);
     final QueryIdGenerator queryIdGenerator = new QueryIdGenerator();
     final String catalogName = "catalog";
-    final String schemaName = "schema";
-
-    final Table pantalonesTable = new Table(
-        "pantalones",
-        schemaName,
-        ImmutableList.of(
-            ColumnMetadata
-                .builder()
-                .setName("id")
-                .setType(VarcharType.createUnboundedVarcharType())
-                .setNullable(false)
-                .build()
-        )
-    );
-    final Table abrigosTable = new Table(
-        "abrigos",
-        schemaName,
-        ImmutableList.of(
-            ColumnMetadata
-                .builder()
-                .setName("id")
-                .setType(VarcharType.createUnboundedVarcharType())
-                .setNullable(false)
-                .build()
-        )
-    );
 
     final CatalogManager catalogManager = new CatalogManager();
     final ConnectorId connectorId = new ConnectorId(catalogName);
-    final Connector connector = new ProtoConnector(ImmutableList.of(pantalonesTable, abrigosTable));
     final ConnectorId systemConnectorId = new ConnectorId("systemCatalog");
     final Connector systemConnector = new ProtoConnector(ImmutableList.of());
     final Catalog catalog = new Catalog(
@@ -182,6 +193,7 @@ public class PrestoPlanner {
             catalogManager
         );
 
+    final AtomicReference<Plan> logicalPlan = new AtomicReference<>();
     TransactionBuilder.transaction(transactionManager, accessControl)
         .singleStatement()
         .execute(session, transactionSession -> {
@@ -252,7 +264,7 @@ public class PrestoPlanner {
 
           final List<PlanOptimizer> planningTimeOptimizers = po.getPlanningTimeOptimizers();
 
-          // Hack. The goal here was to avoid running any optimizations,
+/*          // Hack. The goal here was to avoid running any optimizations,
           // but these two are required rewrite rules to produce a valid plan.
           final List<PlanOptimizer> optimizers = ImmutableList.of(
               new IterativeOptimizer(
@@ -267,7 +279,7 @@ public class PrestoPlanner {
                   costCalculator,
                   Collections.singleton(new ProjectLocalityRewrite())
               )
-          );
+          );*/
 
           final PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
 
@@ -284,22 +296,25 @@ public class PrestoPlanner {
               warningCollector
           );
 
-          final Plan logicalPlan = logicalPlanner.plan(analysis);
+          final Plan plan = logicalPlanner.plan(analysis);
 
-          System.out.println(logicalPlan);
+          System.out.println(plan);
 
           System.out.println(
               PlanPrinter.textLogicalPlan(
-                  logicalPlan.getRoot(),
-                  logicalPlan.getTypes(),
+                  plan.getRoot(),
+                  plan.getTypes(),
                   FunctionAndTypeManager.createTestFunctionAndTypeManager(),
-                  logicalPlan.getStatsAndCosts(),
+                  plan.getStatsAndCosts(),
                   transactionSession,
                   0
               )
           );
 
+          logicalPlan.set(plan);
         });
+
+    return logicalPlan.get();
   }
 
 

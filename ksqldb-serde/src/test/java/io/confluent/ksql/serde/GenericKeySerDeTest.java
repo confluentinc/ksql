@@ -63,6 +63,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class GenericKeySerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
+  private static final String queryId = "query";
   private static final WindowInfo TIMED_WND = WindowInfo
       .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)));
   private static final WindowInfo SESSION_WND = WindowInfo
@@ -94,7 +95,6 @@ public class GenericKeySerDeTest {
   @Mock
   private TrackedCallback callback;
 
-  private final String queryId = "query";
   private GenericKeySerDe factory;
 
   @Before

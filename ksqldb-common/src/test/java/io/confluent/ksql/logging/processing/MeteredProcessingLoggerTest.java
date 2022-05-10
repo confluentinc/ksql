@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MeteredProcessingLoggerTest {
-
+  private final static String sensorName = "sensorName";
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -41,7 +41,6 @@ public class MeteredProcessingLoggerTest {
   private Metrics metrics;
 
   private MeteredProcessingLogger meteredProcessingLogger;
-  private final String sensorName = "sensorName";
 
   @Before
   public void setup() {
@@ -67,6 +66,7 @@ public class MeteredProcessingLoggerTest {
 
 	// Then:
 	verify(metrics).removeSensor(sensorName);
+	verify(processingLogger).close();
   }
 
   @Test
@@ -82,5 +82,6 @@ public class MeteredProcessingLoggerTest {
 	verify(processingLogger, times(1)).error(errMessage);
 	verify(sensor, never()).record();
 	verify(metrics, never()).removeSensor(sensorName);
+	verify(processingLogger).close();
   }
 }

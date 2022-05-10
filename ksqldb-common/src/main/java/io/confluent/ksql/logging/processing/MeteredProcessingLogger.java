@@ -49,5 +49,6 @@ public class MeteredProcessingLogger implements ProcessingLogger {
     if (metrics != null) {
       metrics.removeSensor(errorSensor.name());
     }
+    logger.close();
   }
 }

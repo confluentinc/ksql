@@ -51,6 +51,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
+  private static final String queryId = "query";
 
   @Mock
   private GenericSerdeFactory innerFactory;
@@ -78,8 +79,6 @@ public class GenericRowSerDeTest {
   private TrackedCallback callback;
   @Captor
   private ArgumentCaptor<Serde<GenericRow>> rowSerdeCaptor;
-
-  private final String queryId = "query";
 
   private ValueSerdeFactory factory;
 

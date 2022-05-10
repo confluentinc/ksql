@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ServerUtils.serializeObject;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.connect.protobuf.ProtobufData;
@@ -74,13 +75,10 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
     serializer = new ProtobufNoSRSerdeFactory(ImmutableMap.of())
             .createSerializer(connectSchema, Struct.class, false);
 
-    final ProtobufSchema protobufSchema = new ProtobufData(
-            new ProtobufDataConfig(ImmutableMap.of())).fromConnectSchema(connectSchema);
-
     final StreamedRow header = StreamedRow.headerProtobuf(
-            new QueryId(queryId), protobufSchema.canonicalString());
+            new QueryId(queryId), logicalToProtoSchema(schema));
 
-    response.write("[").write(serializeObject(header)).write(",\n");
+    response.write("[").write(serializeObject(header));
     return this;
   }
 
@@ -103,7 +101,7 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
       final byte[] protoMessage = serializer.serialize("", ksqlRecord);
       final Optional<DataRowProtobuf> protoRow =
               StreamedRow.pullRowProtobuf(protoMessage).getRowProtobuf();
-      response.write(serializeObject(protoRow)).write(",\n");
+      response.write(",\n").write(serializeObject(protoRow));
     }
     return this;
   }
@@ -113,14 +111,14 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
           final PushContinuationToken pushContinuationToken
   ) {
     final StreamedRow streamedRow = StreamedRow.continuationToken(pushContinuationToken);
-    response.write(serializeObject(streamedRow));
+    response.write(",\n").write(serializeObject(streamedRow));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
     final StreamedRow streamedRow = StreamedRow.error(error);
-    response.write(serializeObject(streamedRow));
+    response.write(",\n").write(serializeObject(streamedRow));
     return this;
   }
 
@@ -129,7 +127,7 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
           final ConsistencyToken consistencyToken
   ) {
     final StreamedRow streamedRow = StreamedRow.consistencyToken(consistencyToken);
-    response.write(serializeObject(streamedRow));
+    response.write(",\n").write(serializeObject(streamedRow));
     return this;
   }
 
@@ -137,7 +135,7 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
   public QueryStreamResponseWriter writeCompletionMessage() {
     if (completionMessage.isPresent()) {
       final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage.get());
-      response.write(serializeObject(streamedRow));
+      response.write(",\n").write(serializeObject(streamedRow));
     }
     return this;
   }
@@ -146,7 +144,7 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
   public QueryStreamResponseWriter writeLimitMessage() {
     if (limitMessage.isPresent()) {
       final StreamedRow streamedRow = StreamedRow.finalMessage(limitMessage.get());
-      response.write(serializeObject(streamedRow));
+      response.write(",\n").write(serializeObject(streamedRow));
     }
     return this;
   }
@@ -155,5 +153,14 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
   public void end() {
     response.write("]");
     response.end();
+  }
+
+  @VisibleForTesting
+  static String logicalToProtoSchema(final LogicalSchema schema) {
+    final ConnectSchema connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+
+    final ProtobufSchema protobufSchema = new ProtobufData(
+            new ProtobufDataConfig(ImmutableMap.of())).fromConnectSchema(connectSchema);
+    return protobufSchema.canonicalString();
   }
 }

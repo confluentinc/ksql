@@ -23,6 +23,7 @@ package io.confluent.ksql.rest.integration;
   import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
   import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
   import static io.vertx.core.http.HttpMethod.POST;
+  import static io.vertx.core.http.HttpVersion.HTTP_1_0;
   import static io.vertx.core.http.HttpVersion.HTTP_1_1;
   import static io.vertx.core.http.HttpVersion.HTTP_2;
   import static org.apache.kafka.common.acl.AclOperation.ALL;
@@ -42,6 +43,7 @@ package io.confluent.ksql.rest.integration;
   import static org.hamcrest.Matchers.is;
   import static org.hamcrest.Matchers.notNullValue;
   import static org.hamcrest.Matchers.startsWith;
+  import static org.junit.Assert.assertTrue;
   import static org.junit.Assert.fail;
 
   import com.fasterxml.jackson.core.type.TypeReference;
@@ -894,7 +896,7 @@ public class RestApiTest {
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 
-    @Test
+  @Test
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
@@ -914,6 +916,48 @@ public class RestApiTest {
         }
       }, is(1));
       assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
+  }
+
+  @Test
+  public void shouldExecutePullQueryOverHttp2QueryStreamProto() {
+    QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
+            "SELECT COUNT, USERID from " + AGG_TABLE + ";",
+            Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+
+    final String expectedResponsePart1
+            = "[{\"headerProtobuf\":{\"queryId\":\"";
+
+    final String expectedResponsePart2 = "\"schema\":" +
+            "\"syntax = \\\"proto3\\\";\\n" +
+            "\\n" +
+            "message ConnectDefault1 {\\n" +
+            "  int64 COUNT = 1;\\n" +
+            "  string USERID = 2;\\n" +
+            "}\\n" +
+            "\"}},\n" +
+            "{\"row\":\"CAESBlVTRVJfMA==\"},\n" +
+            "{\"row\":\"CAESBlVTRVJfMQ==\"},\n" +
+            "{\"row\":\"CAISBlVTRVJfMg==\"},\n" +
+            "{\"row\":\"CAISBlVTRVJfMw==\"},\n" +
+            "{\"row\":\"CAESBlVTRVJfNA==\"}" +
+            "]";
+
+    final HttpResponse[] resp = new HttpResponse[1];
+    assertThatEventually(() -> {
+      try {
+        resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                HTTP_2, POST,
+                "/query-stream", queryStreamArgs, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
+                Optional.empty(), Optional.empty());
+        int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
+        return respSize;
+      } catch (Throwable t) {
+        return Integer.MAX_VALUE;
+      }
+    }, is(6));
+
+    assertTrue(resp[0].body().toString().contains(expectedResponsePart1));
+    assertTrue(resp[0].body().toString().contains(expectedResponsePart2));
   }
 
   @Test

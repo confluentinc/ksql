@@ -63,6 +63,30 @@ public class StreamedRowTest {
   }
 
   @Test
+  public void shouldRoundTripPullProtoHeader() throws Exception {
+    final String protoSchema =
+            "syntax = \"proto3\";\n" +
+            "\n" +
+            "message ConnectDefault1 {\n" +
+            "  int64 ID = 1;\n" +
+            "  string VAL = 2;\n" +
+            "}\n";
+    final StreamedRow row = StreamedRow.headerProtobuf(QUERY_ID, protoSchema);
+
+    final String expectedJson = "{\"headerProtobuf\":{\"queryId\":\"theQueryId\"," +
+            "\"schema\":\"" +
+            "syntax = \\\"proto3\\\";\\n" +
+            "\\n" +
+            "message ConnectDefault1 {\\n" +
+            "  int64 ID = 1;\\n" +
+            "  string VAL = 2;\\n" +
+            "}\\n" +
+            "\"}}";
+
+    testRoundTrip(row, expectedJson);
+  }
+
+  @Test
   public void shouldRoundTripPushHeader() throws Exception {
     final StreamedRow row = StreamedRow.header(
         QUERY_ID,
@@ -116,6 +140,15 @@ public class StreamedRowTest {
         + "\"columns\":[\"v0\",1.2,4]},"
         + "\"sourceHost\":\"host:80\""
         + "}";
+
+    testRoundTrip(row, expectedJson);
+  }
+
+  @Test
+  public void shouldRoundTripPullProtoRow() throws Exception {
+    final StreamedRow row = StreamedRow.pullRowProtobuf("hello".getBytes());
+
+    final String expectedJson = "{\"rowProtobuf\":{\"row\":\"aGVsbG8=\"}}";
 
     testRoundTrip(row, expectedJson);
   }

@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class KsqlStatement implements Statement {
@@ -37,9 +38,11 @@ public class KsqlStatement implements Statement {
     System.out.println("Executing sql: " + sql);
     final BatchedQueryResult result = client.executeQuery(sql);
     try {
+      final List<Row> rows = result.get();
       for (Row row : result.get()) {
         System.out.println("Got row " + row);
       }
+      return new KsqlResultSet(rows);
     } catch (InterruptedException e) {
       e.printStackTrace();
     } catch (ExecutionException e) {

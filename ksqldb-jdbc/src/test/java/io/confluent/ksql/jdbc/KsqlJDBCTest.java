@@ -27,7 +27,7 @@ public class KsqlJDBCTest {
 
     String url = "jdbc:ksqldb://localhost/postgres";
     Properties props = new Properties();
-    props.setProperty("user","jhughes");
+    //props.setProperty("user","jhughes");
     // props.setProperty("password","secret");
     // props.setProperty("ssl","true");
     Connection conn = DriverManager.getConnection(url, props);
@@ -38,7 +38,7 @@ public class KsqlJDBCTest {
     while (rs.next())
     {
       System.out.print("Column 1 returned ");
-      System.out.println(rs.getString(1) + " " + rs.getString(2));
+      System.out.println(rs.getString(1) + " " + rs.getDouble(2) + " " + rs.getDouble(3));
     }
     rs.close();
     st.close();

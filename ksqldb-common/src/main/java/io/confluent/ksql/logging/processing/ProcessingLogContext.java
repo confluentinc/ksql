@@ -29,7 +29,7 @@ public interface ProcessingLogContext {
   /**
    * @return A factory for creating structured loggers for logging processing log records.
    */
-  MeteredProcessingLoggerFactory getLoggerFactory();
+  ProcessingLoggerFactory getLoggerFactory();
 
   /**
    * Creates a processing log context that uses the supplied config.

@@ -29,7 +29,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
@@ -69,7 +69,7 @@ public class GenericSerdeFactoryTest {
   @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
-  private MeteredProcessingLoggerFactory meteredProcessingLoggerFactory;
+  private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
   private ProcessingLogger processingLoggerWithoutQueryId;
   @Mock
@@ -98,9 +98,9 @@ public class GenericSerdeFactoryTest {
     when(formatDeserializer.deserialize(any(), any()))
         .thenThrow(new RuntimeException("deserializer error"));
 
-    when(processingLogContext.getLoggerFactory()).thenReturn(meteredProcessingLoggerFactory);
-    when(meteredProcessingLoggerFactory.getLogger(any())).thenReturn(processingLoggerWithoutQueryId);
-    when(meteredProcessingLoggerFactory.getLogger(any(), any())).thenReturn(processingLoggerWithQueryId);
+    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
+    when(processingLoggerFactory.getLogger(any())).thenReturn(processingLoggerWithoutQueryId);
+    when(processingLoggerFactory.getLogger(any(), any())).thenReturn(processingLoggerWithQueryId);
   }
 
   @Test
@@ -183,7 +183,7 @@ public class GenericSerdeFactoryTest {
   @Test
   public void shouldWrapDeserializerWithLoggingSerializer() {
     // Given:
-    when(meteredProcessingLoggerFactory.getLogger("prefix.deserializer")).thenReturn(processingLoggerWithoutQueryId);
+    when(processingLoggerFactory.getLogger("prefix.deserializer")).thenReturn(processingLoggerWithoutQueryId);
 
     // When:
     final Serde<String> result = serdeFactory

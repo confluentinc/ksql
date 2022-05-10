@@ -16,6 +16,7 @@
 package io.confluent.ksql.logging.processing;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,7 +25,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.common.logging.StructuredLoggerFactory;
 import java.util.Collection;
@@ -44,7 +44,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MeteredProcessingLoggerFactoryImplTest {
+public class MeteredProcessingLoggerFactoryTest {
   @Mock
   private StructuredLoggerFactory innerFactory;
   @Mock
@@ -62,25 +62,22 @@ public class MeteredProcessingLoggerFactoryImplTest {
   @Mock
   private ProcessingLogger loggerWithMetrics;
 
-  private final Collection<String> loggers = ImmutableList.of("logger1", "logger2");
-
   private final Map<String, String> customMetricsTags = Collections.singletonMap("tag1", "value1");
-  private MeteredProcessingLoggerFactoryImpl factory;
+  private MeteredProcessingLoggerFactory factory;
   private MetricCollectors metricCollectors;
 
   @Before
   public void setup() {
     metricCollectors = new MetricCollectors();
     when(innerFactory.getLogger(anyString())).thenReturn(innerLogger);
-    when(innerFactory.getLoggers()).thenReturn(loggers);
     when(loggerFactory.apply(config, innerLogger)).thenReturn(logger);
     when(loggerWithMetricsFactory.apply(any())).thenReturn(loggerWithMetricsFactoryHelper);
     when(loggerWithMetricsFactoryHelper.apply(any(), any())).thenReturn(loggerWithMetrics);
-    factory = new MeteredProcessingLoggerFactoryImpl(config, innerFactory, metricCollectors.getMetrics(), loggerFactory, loggerWithMetricsFactory, customMetricsTags);
+    factory = new MeteredProcessingLoggerFactory(config, innerFactory, metricCollectors.getMetrics(), loggerFactory, loggerWithMetricsFactory, customMetricsTags);
   }
 
   @Test
-  public void shouldCreateLoggerWithoutPassingInQueryId() {
+  public void shouldCreateLoggerWithoutPassingInTags() {
     // Given:
     final ProcessingLogger testLogger = factory.getLogger("foo.bar");
     final Sensor sensor = metricCollectors.getMetrics().getSensor("foo.bar");
@@ -108,9 +105,9 @@ public class MeteredProcessingLoggerFactoryImplTest {
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
     metricsTags.put("query-id", "some-id");
     final ProcessingLogger testLogger = factory.getLogger("boo.far", metricsTags);
-    final Sensor sensor = metricCollectors.getMetrics().getSensor("boo.far");
 
     // When:
+    final Sensor sensor = metricCollectors.getMetrics().getSensor("boo.far");
     sensor.record();
     metricsTags.put("logger-id", "boo.far");
 
@@ -142,17 +139,22 @@ public class MeteredProcessingLoggerFactoryImplTest {
 
   @Test
   public void shouldGetLoggers() {
+    // Given:
+    factory.getLogger("foo.bar");
+    factory.getLogger("foo.bar", Collections.singletonMap("tag-value", "some-id-2"));
+    factory.getLogger("boo.far", Collections.singletonMap("tag-value", "some-id-2"));
+
     // When:
-    final Collection<String> loggers = factory.getLoggers();
+    final Collection<ProcessingLogger> loggers = factory.getLoggers();
 
     // Then:
-    assertThat(loggers, equalTo(this.loggers));
+    assertThat(loggers.size(), equalTo(2));
   }
 
   @Test
   public void shouldHandleNullMetrics() {
     // Given:
-    final MeteredProcessingLoggerFactory nullMetricsFactory = new MeteredProcessingLoggerFactoryImpl(config, innerFactory, null, loggerFactory, loggerWithMetricsFactory, customMetricsTags);
+    final ProcessingLoggerFactory nullMetricsFactory = new MeteredProcessingLoggerFactory(config, innerFactory, null, loggerFactory, loggerWithMetricsFactory, customMetricsTags);
 
     // When:
     final ProcessingLogger logger1 = nullMetricsFactory.getLogger("boo.far");
@@ -162,6 +164,7 @@ public class MeteredProcessingLoggerFactoryImplTest {
     assertThat(logger1, is(loggerWithMetrics));
     assertThat(logger2, is(loggerWithMetrics));
     verify(loggerWithMetricsFactory).apply(null);
+    // no sensor created because metrics object is null
     verify(loggerWithMetricsFactoryHelper).apply(logger, null);
   }
 
@@ -170,9 +173,9 @@ public class MeteredProcessingLoggerFactoryImplTest {
 	return Double.parseDouble(
 		metrics.metric(
 			metrics.metricName(
-				MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
-                MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
-                MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
+				MeteredProcessingLoggerFactory.PROCESSING_LOG_ERROR_METRIC_NAME,
+                MeteredProcessingLoggerFactory.PROCESSING_LOG_METRICS_GROUP_NAME,
+                MeteredProcessingLoggerFactory.PROCESSING_LOG_METRIC_DESCRIPTION,
                 metricsTags)
 		).metricValue().toString()
 	);

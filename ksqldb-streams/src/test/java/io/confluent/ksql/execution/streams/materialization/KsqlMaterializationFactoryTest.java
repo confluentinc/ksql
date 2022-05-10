@@ -38,7 +38,7 @@ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -75,7 +75,7 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private ProcessingLogger mapProcessingLogger;
   @Mock
-  private MeteredProcessingLoggerFactory meteredProcessingLoggerFactory;
+  private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
   private KsqlTransformer<Object, GenericRow> mapper;
   @Mock
@@ -111,9 +111,9 @@ public class KsqlMaterializationFactoryTest {
         materializationFactory
     );
 
-    when(processingLogContext.getLoggerFactory()).thenReturn(meteredProcessingLoggerFactory);
-    when(meteredProcessingLoggerFactory.getLogger("pull_query.filter")).thenReturn(filterProcessingLogger);
-    when(meteredProcessingLoggerFactory.getLogger("pull_query.project")).thenReturn(mapProcessingLogger);
+    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
+    when(processingLoggerFactory.getLogger("pull_query.filter")).thenReturn(filterProcessingLogger);
+    when(processingLoggerFactory.getLogger("pull_query.project")).thenReturn(mapProcessingLogger);
 
     when(mapperInfo.visit(any())).thenCallRealMethod();
     when(predicateInfo.visit(any())).thenCallRealMethod();

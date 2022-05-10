@@ -32,7 +32,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
@@ -102,7 +102,7 @@ public class RuntimeBuildContextTest {
   @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
-  private MeteredProcessingLoggerFactory processingLogFactory;
+  private ProcessingLoggerFactory processingLogFactory;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock

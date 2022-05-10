@@ -21,14 +21,14 @@ import org.apache.kafka.common.metrics.Metrics;
 
 public final class ProcessingLogContextImpl implements ProcessingLogContext {
   private final ProcessingLogConfig config;
-  private final MeteredProcessingLoggerFactory loggerFactory;
+  private final ProcessingLoggerFactory loggerFactory;
 
   ProcessingLogContextImpl(
       final ProcessingLogConfig config,
       final Metrics metrics,
       final Map<String, String> metricsTags) {
     this.config = config;
-    this.loggerFactory = new MeteredProcessingLoggerFactoryImpl(
+    this.loggerFactory = new MeteredProcessingLoggerFactory(
         config,
         new StructuredLoggerFactory(ProcessingLogConstants.PREFIX),
         metrics,
@@ -41,7 +41,7 @@ public final class ProcessingLogContextImpl implements ProcessingLogContext {
   }
 
   @Override
-  public MeteredProcessingLoggerFactory getLoggerFactory() {
+  public ProcessingLoggerFactory getLoggerFactory() {
     return loggerFactory;
   }
 }

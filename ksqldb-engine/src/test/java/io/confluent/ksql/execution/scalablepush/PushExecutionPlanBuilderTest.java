@@ -14,7 +14,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.execution.common.operators.ProjectOperator;
 import io.confluent.ksql.execution.common.operators.SelectOperator;
 import io.confluent.ksql.execution.scalablepush.operators.PeekStreamOperator;
@@ -44,7 +44,7 @@ public class PushExecutionPlanBuilderTest {
   @Mock
   private ProcessingLogContext logContext;
   @Mock
-  private MeteredProcessingLoggerFactory meteredProcessingLoggerFactory;
+  private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -72,8 +72,8 @@ public class PushExecutionPlanBuilderTest {
 
   @Before
   public void setUp() {
-    when(logContext.getLoggerFactory()).thenReturn(meteredProcessingLoggerFactory);
-    when(meteredProcessingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
+    when(logContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
+    when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(logicalPlanNode.getNode()).thenReturn(Optional.of(ksqlBareOutputNode));
     when(ksqlBareOutputNode.getSource()).thenReturn(projectNode);
     when(projectNode.getSources()).thenReturn(ImmutableList.of(filterNode));

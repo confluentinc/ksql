@@ -140,17 +140,18 @@ public class RestTestExecutor implements Closeable {
   void buildAndExecuteQuery(final RestTestCase testCase) {
     topicInfoCache.clear();
 
-//    if (testCase.getStatements().size() < testCase.getExpectedResponses().size()) {
-//      throw new AssertionError("Invalid test case: more expected responses than statements. "
-//          + System.lineSeparator()
-//          + "statementCount: " + testCase.getStatements().size()
-//          + System.lineSeparator()
-//          + "responsesCount: " + testCase.getExpectedResponses().size());
-//    }
+    final StatementSplit statements = splitStatements(testCase);
+    final int expectedResponseSize = (int) testCase.getExpectedResponses().stream().filter(resp -> !resp.getContent().containsKey("queryProto")).count();
+
+    if (testCase.getStatements().size() < expectedResponseSize) {
+      throw new AssertionError("Invalid test case: more expected responses than statements. "
+          + System.lineSeparator()
+          + "statementCount: " + testCase.getStatements().size()
+          + System.lineSeparator()
+          + "responsesCount: " + testCase.getExpectedResponses().size());
+    }
 
     initializeTopics(testCase);
-
-    final StatementSplit statements = splitStatements(testCase);
 
     testCase.getProperties().forEach(restClient::setProperty);
 
@@ -1032,6 +1033,8 @@ public class RestTestExecutor implements Closeable {
             };
 
     private static final String INDENT = System.lineSeparator() + "\t";
+    private static final String HEADER_PROTOBUF = "headerProtobuf";
+    private static final String SCHEMA = "schema";
 
     private final List<StreamedRow> rows;
 
@@ -1070,9 +1073,6 @@ public class RestTestExecutor implements Closeable {
               hasSize(expectedRows.size())
       );
 
-      final LinkedHashMap<Object, Integer> actualRecords = new LinkedHashMap<>();
-      final LinkedHashMap<Object, Integer> expectedRecords = new LinkedHashMap<>();
-      final HashMap<Object, String> pathIndex = new HashMap<>();
       ProtobufSchema schema = null;
       ProtobufNoSRConverter.Deserializer deserializer = new ProtobufNoSRConverter.Deserializer();
       final JsonMapper mapper = new JsonMapper();
@@ -1085,11 +1085,15 @@ public class RestTestExecutor implements Closeable {
 
         final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
         final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
-        if (actual.containsKey("headerProtobuf") && ((HashMap<String, Object>) actual.get("headerProtobuf")).containsKey("schema")) {
-          schema = new ProtobufSchema((String) ((Map)actual.get("headerProtobuf")).get("schema"));
-          String s1 = (String) ((Map)actual.get("headerProtobuf")).get("schema");
-          String s2 = (String) ((Map)expected.get("headerProtobuf")).get("schema");
-          assert(s1.equals(s2));
+
+        if (actual.containsKey(HEADER_PROTOBUF)
+                && ((HashMap<String, Object>) actual.get(HEADER_PROTOBUF)).containsKey(SCHEMA)) {
+
+          schema = new ProtobufSchema((String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA));
+          final String actualSchema = (String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA);
+          final String expectedSchema = (String) ((Map<?, ?>)expected.get(HEADER_PROTOBUF)).get(SCHEMA);
+
+          assert(actualSchema.equals(expectedSchema));
         } else if (actual.containsKey("finalMessage")) {
           assert(expected.equals(actual));
         } else {
@@ -1101,10 +1105,12 @@ public class RestTestExecutor implements Closeable {
           } catch (IOException e) {
             e.printStackTrace();
           }
-          Object message = deserializer.deserialize(bytes, schema);
-          String s1 = message.toString();
-          String s2 = expected.get("row").toString();
-          assert(s1.equals(s2));
+
+          final Object message = deserializer.deserialize(bytes, schema);
+          final String actualMessage = message.toString();
+          final String expectedMessage = expected.get("row").toString();
+
+          assert(actualMessage.equals(expectedMessage));
         }
       }
     }

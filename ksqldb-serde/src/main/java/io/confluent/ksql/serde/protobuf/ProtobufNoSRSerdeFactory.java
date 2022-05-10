@@ -87,9 +87,9 @@ public final class ProtobufNoSRSerdeFactory implements SerdeFactory {
   }
 
   public <T> KsqlConnectSerializer<T> createSerializer(
-          final Schema schema,
-          final Class<T> targetType,
-          final boolean isKey
+      final Schema schema,
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     final ProtobufNoSRConverter converter = getConverter(schema, isKey);
     final DataTranslator translator = getDataTranslator(schema);

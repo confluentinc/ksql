@@ -81,8 +81,8 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-            Optional.empty(),
-            Optional.empty()
+        Optional.empty(),
+        Optional.empty()
     );
   }
 
@@ -109,9 +109,9 @@ public final class StreamedRow {
   public static StreamedRow pushRow(final GenericRow value) {
     return new StreamedRow(
         Optional.empty(),
-            Optional.empty(),
+        Optional.empty(),
         Optional.of(DataRow.row(value.values())),
-            Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -127,8 +127,8 @@ public final class StreamedRow {
     return new StreamedRow(
         Optional.empty(),
         Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -146,9 +146,9 @@ public final class StreamedRow {
   ) {
     return new StreamedRow(
         Optional.empty(),
-            Optional.empty(),
+        Optional.empty(),
         Optional.of(DataRow.row(value.values())),
-            Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         sourceHost,
@@ -176,9 +176,9 @@ public final class StreamedRow {
   public static StreamedRow tombstone(final GenericRow columns) {
     return new StreamedRow(
         Optional.empty(),
-            Optional.empty(),
+        Optional.empty(),
         Optional.of(DataRow.tombstone(columns.values())),
-            Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -189,8 +189,8 @@ public final class StreamedRow {
 
   public static StreamedRow error(final Throwable exception, final int errorCode) {
     return new StreamedRow(
-            Optional.empty(),
-            Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.of(new KsqlErrorMessage(errorCode, exception)),
@@ -203,8 +203,8 @@ public final class StreamedRow {
 
   public static StreamedRow error(final KsqlErrorMessage errorMessage) {
     return new StreamedRow(
-            Optional.empty(),
-            Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.of(errorMessage),
@@ -217,8 +217,8 @@ public final class StreamedRow {
 
   public static StreamedRow finalMessage(final String finalMessage) {
     return new StreamedRow(
-            Optional.empty(),
-            Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -234,8 +234,8 @@ public final class StreamedRow {
    */
   public static StreamedRow consistencyToken(final ConsistencyToken consistencyToken) {
     return new StreamedRow(
-            Optional.empty(),
-            Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),

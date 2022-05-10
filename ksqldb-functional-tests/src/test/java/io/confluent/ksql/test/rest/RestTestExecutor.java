@@ -181,6 +181,11 @@ public class RestTestExecutor implements Closeable {
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
           postInputConditionRunnable);
 
+
+      if (!queryResults.isEmpty()) {
+        failIfExpectingError(testCase);
+      }
+
       final List<RqttResponse> protoResponses =
               statements.queries.stream()
                       .map(this::sendQueryStreamProtoStatement)
@@ -189,15 +194,10 @@ public class RestTestExecutor implements Closeable {
                       .map(RqttResponse::queryProto)
                       .collect(Collectors.toList());
 
-
-      if (!queryResults.isEmpty()) {
-        failIfExpectingError(testCase);
-      }
-
       final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
           .addAll(adminResults.get())
           .addAll(queryResults)
-              .addAll(protoResponses)
+          .addAll(protoResponses)
           .build();
 
       verifyOutput(testCase);
@@ -394,6 +394,11 @@ public class RestTestExecutor implements Closeable {
           final String sql
   ) {
     final RestResponse<List<StreamedRow>> resp = restClient.makeQueryStreamRequestProto(sql, ImmutableMap.of());
+
+    if (resp.isErroneous()) {
+      return Optional.empty();
+    }
+
     return Optional.of(resp.getResponse());
   }
 

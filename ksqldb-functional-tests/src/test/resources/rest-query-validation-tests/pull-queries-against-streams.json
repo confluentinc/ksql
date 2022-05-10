@@ -14,6 +14,10 @@
         {"query": [
           {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}},
           {"finalMessage":"Query Completed"}
+        ]},
+        {"queryProto": [
+          {"headerProtobuf":{"schema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 MYKEY = 1;\n  int32 MYVALUE = 2;\n}\n"}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },

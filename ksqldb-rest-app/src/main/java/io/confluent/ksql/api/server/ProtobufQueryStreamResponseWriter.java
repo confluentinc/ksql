@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.protobuf.ProtobufNoSRSerdeFactory;
+import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
@@ -41,8 +42,14 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWriter {
+
+  private static final Logger LOG
+          = LoggerFactory.getLogger(ProtobufQueryStreamResponseWriter.class);
+
   private final HttpServerResponse response;
   private final Optional<String> completionMessage;
   private final Optional<String> limitMessage;
@@ -81,18 +88,23 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
   public QueryStreamResponseWriter writeRow(
           final KeyValueMetadata<List<?>, GenericRow> row
   ) {
-    final Struct ksqlRecord = new Struct(connectSchema);
-    int i = 0;
-    for (Field field: connectSchema.fields()) {
-      ksqlRecord.put(
-              field,
-              row.getKeyValue().value().get(i));
-      i += 1;
+    final KeyValue<List<?>, GenericRow> keyValue = row.getKeyValue();
+    if (keyValue.value() == null) {
+      LOG.warn("Dropped tombstone. Not currently supported");
+    } else {
+      final Struct ksqlRecord = new Struct(connectSchema);
+      int i = 0;
+      for (Field field : connectSchema.fields()) {
+        ksqlRecord.put(
+                field,
+                keyValue.value().get(i));
+        i += 1;
+      }
+      final byte[] protoMessage = serializer.serialize("", ksqlRecord);
+      final Optional<DataRowProtobuf> protoRow =
+              StreamedRow.pullRowProtobuf(protoMessage).getRowProtobuf();
+      response.write(serializeObject(protoRow)).write(",\n");
     }
-    final byte[] protoMessage = serializer.serialize("", ksqlRecord);
-    final Optional<DataRowProtobuf> protoRow =
-            StreamedRow.pullRowProtobuf(protoMessage).getRowProtobuf();
-    response.write(serializeObject(protoRow)).write(",\n");
     return this;
   }
 
@@ -100,6 +112,8 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
   public QueryStreamResponseWriter writeContinuationToken(
           final PushContinuationToken pushContinuationToken
   ) {
+    final StreamedRow streamedRow = StreamedRow.continuationToken(pushContinuationToken);
+    response.write(serializeObject(streamedRow));
     return this;
   }
 
@@ -114,6 +128,8 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
   public QueryStreamResponseWriter writeConsistencyToken(
           final ConsistencyToken consistencyToken
   ) {
+    final StreamedRow streamedRow = StreamedRow.consistencyToken(consistencyToken);
+    response.write(serializeObject(streamedRow));
     return this;
   }
 

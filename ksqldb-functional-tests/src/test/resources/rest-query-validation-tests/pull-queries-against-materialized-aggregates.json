@@ -178,6 +178,13 @@
         ]},
         {"query": [
           {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}}
+        ]},
+        {"queryProto": [
+          {"headerProtobuf":{"schema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string ID = 1;\n  int64 WINDOWSTART = 2;\n  int64 WINDOWEND = 3;\n  int64 COUNT = 4;\n  int64 ROWTIME = 5;\n}\n"}},
+          {"row": "ID: \"10\"\nWINDOWSTART: 12000\nWINDOWEND: 13000\nCOUNT: 1\nROWTIME: 12345\n"}
+        ]},
+        {"queryProto": [
+          {"headerProtobuf":{"schema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string ID = 1;\n  int64 WINDOWSTART = 2;\n  int64 WINDOWEND = 3;\n  int64 COUNT = 4;\n  int64 ROWTIME = 5;\n}\n"}}
         ]}
       ]
     },

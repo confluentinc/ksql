@@ -19,6 +19,10 @@ import static com.facebook.presto.spi.ConnectorId.createInformationSchemaConnect
 import static com.facebook.presto.spi.ConnectorId.createSystemTablesConnectorId;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.common.block.BlockEncodingManager;
+import com.facebook.presto.common.type.IntegerType;
+import com.facebook.presto.common.type.VarcharEnumType;
+import com.facebook.presto.common.type.VarcharEnumType.VarcharEnumMap;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cost.ComposableStatsCalculator;
 import com.facebook.presto.cost.CostCalculator;
@@ -33,11 +37,16 @@ import com.facebook.presto.execution.QueryPreparer.PreparedQuery;
 import com.facebook.presto.execution.scheduler.NodeSchedulerConfig;
 import com.facebook.presto.matching.Captures;
 import com.facebook.presto.matching.Pattern;
+import com.facebook.presto.metadata.AnalyzePropertyManager;
 import com.facebook.presto.metadata.Catalog;
 import com.facebook.presto.metadata.CatalogManager;
+import com.facebook.presto.metadata.ColumnPropertyManager;
 import com.facebook.presto.metadata.FunctionAndTypeManager;
+import com.facebook.presto.metadata.HandleResolver;
 import com.facebook.presto.metadata.MetadataManager;
+import com.facebook.presto.metadata.SchemaPropertyManager;
 import com.facebook.presto.metadata.SessionPropertyManager;
+import com.facebook.presto.metadata.TablePropertyManager;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.security.AllowAllAccessControl;
 import com.facebook.presto.spi.ColumnHandle;
@@ -86,6 +95,8 @@ import com.facebook.presto.transaction.TransactionBuilder;
 import com.facebook.presto.transaction.TransactionId;
 import com.facebook.presto.transaction.TransactionManager;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.List;
@@ -124,6 +135,27 @@ public class PrestoPlanner {
                         .setName("id")
                         .setType(VarcharType.createUnboundedVarcharType())
                         .setNullable(false)
+                        .build(),
+                    ColumnMetadata
+                        .builder()
+                        .setName("size")
+                        .setType(
+                            new VarcharEnumType(
+                                new VarcharEnumMap(
+                                    "sizes",
+                                    ImmutableMap.of(
+                                        "S", "S",
+                                        "L", "L")
+                                )
+                            )
+                        )
+                        .setNullable(false)
+                        .build(),
+                    ColumnMetadata
+                        .builder()
+                        .setName("waist")
+                        .setType(IntegerType.INTEGER)
+                        .setNullable(false)
                         .build()
                 )
             ), new Table(
@@ -135,6 +167,12 @@ public class PrestoPlanner {
                         .setName("id")
                         .setType(VarcharType.createUnboundedVarcharType())
                         .setNullable(false)
+                        .build(),
+                    ColumnMetadata
+                        .builder()
+                        .setName("sleeve")
+                        .setType(IntegerType.INTEGER)
+                        .setNullable(false)
                         .build()
                 )
             )
@@ -142,7 +180,73 @@ public class PrestoPlanner {
     );
 
     logicalPlan(
+        "SELECT * FROM Pantalones",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "SELECT ID, Size FROM Pantalones",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "SELECT * FROM Pantalones WHERE ID = '5'",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "SELECT * FROM Pantalones WHERE ID IN ('5', 'XYZ')",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "SELECT * FROM Pantalones WHERE Waist > 32",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
         "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "SELECT Pantalones.ID, Waist, Size, Sleeve FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID > A.ID",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "CREATE TABLE asdf AS SELECT * FROM Pantalones",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "SELECT ID, CONCAT(ID, '+'), Waist * 2 FROM Pantalones",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "(SELECT ID, Waist AS Num FROM Pantalones) UNION (SELECT ID, Sleeve as Num FROM Abrigos)",
+        schemaName,
+        connector
+    );
+
+    logicalPlan(
+        "SELECT ID1, Waist, Size FROM (SELECT ID AS ID1, Waist FROM Pantalones) JOIN (SELECT ID AS ID2, Size FROM Pantalones) ON ID1 =",
         schemaName,
         connector
     );
@@ -152,6 +256,7 @@ public class PrestoPlanner {
       final String sql,
       final String schemaName,
       final Connector connector) {
+    System.out.println(sql);
 
     final SqlParser sqlParser = new SqlParser();
     final Statement statement = sqlParser.createStatement(
@@ -208,10 +313,19 @@ public class PrestoPlanner {
           );
           System.out.println(preparedQuery);
 
-          final MetadataManager metadata = MetadataManager.createTestMetadataManager(
-              transactionManager,
-              new FeaturesConfig()
-          );
+          BlockEncodingManager blockEncodingManager = new BlockEncodingManager();
+          final TablePropertyManager tablePropertyManager = new TablePropertyManager();
+          tablePropertyManager.addProperties(connectorId, ImmutableList.of());
+          final MetadataManager metadata = new MetadataManager(
+              new FunctionAndTypeManager(transactionManager, blockEncodingManager,
+                  new FeaturesConfig(), new HandleResolver(), ImmutableSet.of()),
+              blockEncodingManager,
+              new SessionPropertyManager(),
+              new SchemaPropertyManager(),
+              tablePropertyManager,
+              new ColumnPropertyManager(),
+              new AnalyzePropertyManager(),
+              transactionManager);
 
           final Analyzer analyzer = new Analyzer(
               transactionSession,

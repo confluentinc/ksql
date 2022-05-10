@@ -28,15 +28,13 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.serde.tracked.TrackedSerde;
 import io.confluent.ksql.util.KsqlConfig;
-
+import io.confluent.ksql.util.MetricsTagsUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import io.confluent.ksql.util.MetricsTagsUtil;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 

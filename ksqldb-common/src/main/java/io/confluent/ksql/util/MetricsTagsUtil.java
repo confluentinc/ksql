@@ -16,7 +16,6 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
-
 import java.util.HashMap;
 import java.util.Map;
 

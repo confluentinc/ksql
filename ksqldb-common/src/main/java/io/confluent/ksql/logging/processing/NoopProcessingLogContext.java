@@ -39,27 +39,28 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
     }
   };
 
-  private static final MeteredProcessingLoggerFactory NOOP_FACTORY = new MeteredProcessingLoggerFactory() {
-    @Override
-    public ProcessingLogger getLogger(
-        final String name,
-        final Map<String, String> additionalMetricsTags
-    ) {
-      return NOOP_LOGGER;
-    }
+  private static final MeteredProcessingLoggerFactory NOOP_FACTORY =
+      new MeteredProcessingLoggerFactory() {
+        @Override
+        public ProcessingLogger getLogger(
+            final String name,
+            final Map<String, String> additionalMetricsTags
+        ) {
+          return NOOP_LOGGER;
+        }
 
-    @Override
-    public ProcessingLogger getLogger(
-        final String name
-    ) {
-      return NOOP_LOGGER;
-    }
+        @Override
+        public ProcessingLogger getLogger(
+            final String name
+        ) {
+          return NOOP_LOGGER;
+        }
 
-    @Override
-    public Collection<String> getLoggers() {
-      return ImmutableList.of();
-    }
-  };
+        @Override
+        public Collection<String> getLoggers() {
+          return ImmutableList.of();
+        }
+      };
 
   public static final ProcessingLogContext INSTANCE = new NoopProcessingLogContext();
 

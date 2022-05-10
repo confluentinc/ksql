@@ -187,13 +187,16 @@ public class RestTestExecutor implements Closeable {
         failIfExpectingError(testCase);
       }
 
-      final List<RqttResponse> protoResponses =
-              statements.queries.stream()
-                      .map(this::sendQueryStreamProtoStatement)
-                      .filter(Optional::isPresent)
-                      .map(Optional::get)
-                      .map(RqttResponse::queryProto)
-                      .collect(Collectors.toList());
+      List<RqttResponse> protoResponses = ImmutableList.of();
+
+      if (!testCase.getTestLocation().toString().contains("scalable-push-queries")) {
+        protoResponses = statements.queries.stream()
+                        .map(this::sendQueryStreamProtoStatement)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .map(RqttResponse::queryProto)
+                        .collect(Collectors.toList());
+      }
 
       final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
           .addAll(adminResults.get())

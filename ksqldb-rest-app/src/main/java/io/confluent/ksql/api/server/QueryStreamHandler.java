@@ -120,7 +120,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       final boolean bufferOutput
   ) {
     final String contentType = routingContext.getAcceptableContentType();
-    if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)) {
+    if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)
+            && !queryPublisher.isScalablePushQuery()) {
       return new ProtobufQueryStreamResponseWriter(
               routingContext.response(), completionMessage, limitMessage);
     } else if (DELIMITED_CONTENT_TYPE.equals(contentType)

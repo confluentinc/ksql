@@ -26,10 +26,12 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -40,6 +42,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRConverter;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
@@ -59,6 +62,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
@@ -90,6 +94,7 @@ import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,6 +180,16 @@ public class RestTestExecutor implements Closeable {
 
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
           postInputConditionRunnable);
+
+      final List<RqttResponse> protoResponses =
+              statements.queries.stream()
+                      .map(this::sendQueryStreamProtoStatement)
+                      .filter(Optional::isPresent)
+                      .map(Optional::get)
+                      .map(RqttResponse::queryProto)
+                      .collect(Collectors.toList());
+
+
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);
       }
@@ -182,6 +197,7 @@ public class RestTestExecutor implements Closeable {
       final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
           .addAll(adminResults.get())
           .addAll(queryResults)
+              .addAll(protoResponses)
           .build();
 
       verifyOutput(testCase);
@@ -371,6 +387,13 @@ public class RestTestExecutor implements Closeable {
       return Optional.empty();
     }
 
+    return Optional.of(resp.getResponse());
+  }
+
+  private Optional<List<StreamedRow>> sendQueryStreamProtoStatement(
+          final String sql
+  ) {
+    final RestResponse<List<StreamedRow>> resp = restClient.makeQueryStreamRequestProto(sql, ImmutableMap.of());
     return Optional.of(resp.getResponse());
   }
 
@@ -881,6 +904,9 @@ public class RestTestExecutor implements Closeable {
       return new RqttQueryResponse(rows);
     }
 
+    static RqttResponse queryProto(final List<StreamedRow> rows) {
+      return new RqttQueryProtoResponse(rows);
+    }
     void verify(
         String expectedType,
         Object expectedPayload,
@@ -990,6 +1016,92 @@ public class RestTestExecutor implements Closeable {
       }
 
       verifyResponseFields(actualRecords, expectedRecords, pathIndex);
+    }
+  }
+
+  @VisibleForTesting
+  static class RqttQueryProtoResponse implements RqttResponse {
+
+    private static final TypeReference<Map<String, Object>> PAYLOAD_TYPE =
+            new TypeReference<Map<String, Object>>() {
+            };
+
+    private static final String INDENT = System.lineSeparator() + "\t";
+
+    private final List<StreamedRow> rows;
+
+    RqttQueryProtoResponse(final List<StreamedRow> rows) {
+      this.rows = requireNonNull(rows, "rows");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void verify(
+            final String expectedType,
+            final Object expectedPayload,
+            final List<String> statements,
+            final int idx,
+            final boolean verifyOrder
+    ) {
+      assertThat("Expected query response", expectedType, is("queryProto"));
+      assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
+
+      final List<?> expectedRows = (List<?>) expectedPayload;
+
+      assertThat(
+              "row count mismatch."
+                      + System.lineSeparator()
+                      + "Expected: "
+                      + expectedRows.stream()
+                      .map(Object::toString)
+                      .collect(Collectors.joining(INDENT, INDENT, ""))
+                      + System.lineSeparator()
+                      + "Got: "
+                      + rows.stream()
+                      .map(Object::toString)
+                      .collect(Collectors.joining(INDENT, INDENT, ""))
+                      + System.lineSeparator(),
+              rows,
+              hasSize(expectedRows.size())
+      );
+
+      final LinkedHashMap<Object, Integer> actualRecords = new LinkedHashMap<>();
+      final LinkedHashMap<Object, Integer> expectedRecords = new LinkedHashMap<>();
+      final HashMap<Object, String> pathIndex = new HashMap<>();
+      ProtobufSchema schema = null;
+      ProtobufNoSRConverter.Deserializer deserializer = new ProtobufNoSRConverter.Deserializer();
+      final JsonMapper mapper = new JsonMapper();
+      for (int i = 0; i != rows.size(); ++i) {
+        assertThat(
+                "Each row should be JSON object",
+                expectedRows.get(i),
+                is(instanceOf(Map.class))
+        );
+
+        final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
+        final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
+        if (actual.containsKey("headerProtobuf") && ((HashMap<String, Object>) actual.get("headerProtobuf")).containsKey("schema")) {
+          schema = new ProtobufSchema((String) ((Map)actual.get("headerProtobuf")).get("schema"));
+          String s1 = (String) ((Map)actual.get("headerProtobuf")).get("schema");
+          String s2 = (String) ((Map)expected.get("headerProtobuf")).get("schema");
+          assert(s1.equals(s2));
+        } else if (actual.containsKey("finalMessage")) {
+          assert(expected.equals(actual));
+        } else {
+          JSONObject row = new JSONObject(actual);
+
+          byte[] bytes = new byte[0];
+          try {
+            bytes = mapper.readTree(row.toString()).get("rowProtobuf").get("row").binaryValue();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+          Object message = deserializer.deserialize(bytes, schema);
+          String s1 = message.toString();
+          String s2 = expected.get("row").toString();
+          assert(s1.equals(s2));
+        }
+      }
     }
   }
 

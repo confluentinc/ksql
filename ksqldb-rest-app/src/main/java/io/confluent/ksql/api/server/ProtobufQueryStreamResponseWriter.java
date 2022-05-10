@@ -44,12 +44,18 @@ import org.apache.kafka.connect.data.Struct;
 
 public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWriter {
   private final HttpServerResponse response;
+  private final Optional<String> completionMessage;
+  private final Optional<String> limitMessage;
   private ConnectSchema connectSchema;
   private KsqlConnectSerializer<Struct> serializer;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public ProtobufQueryStreamResponseWriter(final HttpServerResponse response) {
+  public ProtobufQueryStreamResponseWriter(final HttpServerResponse response,
+                                           final Optional<String> completionMessage,
+                                           final Optional<String> limitMessage) {
     this.response = response;
+    this.completionMessage = completionMessage;
+    this.limitMessage = limitMessage;
   }
 
   @Override
@@ -99,6 +105,8 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
 
   @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
+    final StreamedRow streamedRow = StreamedRow.error(error);
+    response.write(serializeObject(streamedRow));
     return this;
   }
 
@@ -111,11 +119,19 @@ public class ProtobufQueryStreamResponseWriter implements QueryStreamResponseWri
 
   @Override
   public QueryStreamResponseWriter writeCompletionMessage() {
+    if (completionMessage.isPresent()) {
+      final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage.get());
+      response.write(serializeObject(streamedRow));
+    }
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeLimitMessage() {
+    if (limitMessage.isPresent()) {
+      final StreamedRow streamedRow = StreamedRow.finalMessage(limitMessage.get());
+      response.write(serializeObject(streamedRow));
+    }
     return this;
   }
 

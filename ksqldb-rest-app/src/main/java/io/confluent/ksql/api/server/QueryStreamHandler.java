@@ -121,7 +121,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   ) {
     final String contentType = routingContext.getAcceptableContentType();
     if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)) {
-      return new ProtobufQueryStreamResponseWriter(routingContext.response());
+      return new ProtobufQueryStreamResponseWriter(
+              routingContext.response(), completionMessage, limitMessage);
     } else if (DELIMITED_CONTENT_TYPE.equals(contentType)
         || (contentType == null && !queryCompatibilityMode)) {
       // Default

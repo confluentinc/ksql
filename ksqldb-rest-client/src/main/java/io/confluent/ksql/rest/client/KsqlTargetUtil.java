@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRowProtobuf;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
@@ -60,6 +61,41 @@ public final class KsqlTargetUtil {
           if (tidied.length() > 0) {
             final StreamedRow row = deserialize(tidied, StreamedRow.class);
             rows.add(row);
+          }
+        }
+
+        begin = i + 1;
+      }
+    }
+    return rows;
+  }
+
+  public static List<StreamedRow> toRowsFromProto(final Buffer buff) {
+    final List<StreamedRow> rows = new ArrayList<>();
+    boolean headerRead = false;
+    int begin = 0;
+
+    for (int i = 0; i <= buff.length(); i++) {
+      if ((i == buff.length() && (i - begin > 1))
+              || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
+        if (begin != i) { // Ignore random newlines - the server can send these
+          final Buffer sliced = buff.slice(begin, i);
+          final Buffer tidied = toJsonMsg(sliced, true);
+          if (tidied.length() > 0) {
+            if (!headerRead) {
+              final StreamedRow row = deserialize(tidied, StreamedRow.class);
+              rows.add(row);
+              headerRead = true;
+            } else {
+              try {
+                rows.add(deserialize(tidied, StreamedRow.class));
+              } catch (Exception e) {
+                final DataRowProtobuf protoBytes =
+                        deserialize(tidied, DataRowProtobuf.class);
+                final byte[] bytes = protoBytes.getRow();
+                rows.add(StreamedRow.pullRowProtobuf(bytes));
+              }
+            }
           }
         }
 

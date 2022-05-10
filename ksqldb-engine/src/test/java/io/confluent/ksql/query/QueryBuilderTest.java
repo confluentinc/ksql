@@ -31,7 +31,7 @@ import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationF
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metrics.ConsumerCollector;
@@ -149,7 +149,7 @@ public class QueryBuilderTest {
   @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
-  private ProcessingLoggerFactory processingLoggerFactory;
+  private MeteredProcessingLoggerFactory meteredProcessingLoggerFactory;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -220,8 +220,8 @@ public class QueryBuilderTest {
         any(), any()))
         .thenReturn(Optional.of(ksMaterialization));
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
-    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLoggerWithMetrics(any(), anyString())).thenReturn(processingLogger);
+    when(processingLogContext.getLoggerFactory()).thenReturn(meteredProcessingLoggerFactory);
+    when(meteredProcessingLoggerFactory.getLogger(any(), anyMap())).thenReturn(processingLogger);
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("");
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
@@ -291,10 +291,10 @@ public class QueryBuilderTest {
   public void shouldBuildCreateAsPersistentQueryCorrectly() {
     // Given:
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLoggerWithMetrics(
+    when(meteredProcessingLoggerFactory.getLogger(
         QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
             .push("ksql.logger.thread.exception.uncaught").getQueryContext()),
-        QUERY_ID.toString())
+        Collections.singletonMap("query-id", QUERY_ID.toString()))
     ).thenReturn(uncaughtProcessingLogger);
 
     // When:
@@ -327,10 +327,10 @@ public class QueryBuilderTest {
   public void shouldBuildInsertPersistentQueryCorrectly() {
     // Given:
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLoggerWithMetrics(
+    when(meteredProcessingLoggerFactory.getLogger(
         QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
             .push("ksql.logger.thread.exception.uncaught").getQueryContext()),
-        QUERY_ID.toString())
+        Collections.singletonMap("query-id", QUERY_ID.toString()))
     ).thenReturn(uncaughtProcessingLogger);
 
     // When:
@@ -677,7 +677,7 @@ public class QueryBuilderTest {
   @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLoggerWithMetrics(QUERY_ID.toString(), QUERY_ID.toString())).thenReturn(logger);
+    when(meteredProcessingLoggerFactory.getLogger(QUERY_ID.toString(), Collections.singletonMap("query-id", QUERY_ID.toString()))).thenReturn(logger);
 
     // When:
     buildPersistentQuery(

@@ -40,8 +40,11 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetricsTagsUtil;
+
+import java.util.Collections;
 import java.util.Optional;
+
+import io.confluent.ksql.util.MetricsTagsUtil;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -118,9 +121,9 @@ public final class RuntimeBuildContext {
   public ProcessingLogger getProcessingLogger(final QueryContext queryContext) {
     return processingLogContext
         .getLoggerFactory()
-        .getLoggerWithMetrics(
+        .getLogger(
             QueryLoggerUtil.queryLoggerName(queryId, queryContext),
-            queryId.toString());
+            MetricsTagsUtil.getMetricsTagsWithQueryId(queryId.toString(), Collections.emptyMap()));
   }
 
   public ServiceContext getServiceContext() {

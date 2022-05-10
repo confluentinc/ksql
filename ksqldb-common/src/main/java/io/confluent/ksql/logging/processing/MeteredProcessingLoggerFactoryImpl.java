@@ -17,19 +17,20 @@ package io.confluent.ksql.logging.processing;
 
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.common.logging.StructuredLoggerFactory;
+import io.confluent.ksql.util.MetricsTagsUtil;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
-import io.confluent.ksql.util.MetricsTagsUtil;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 
-public class ProcessingLoggerFactoryImpl implements ProcessingLoggerFactory {
+public class MeteredProcessingLoggerFactoryImpl implements MeteredProcessingLoggerFactory {
   public static final String PROCESSING_LOG_ERROR_METRIC_NAME = "processing-error-total";
   public static final String PROCESSING_LOG_METRICS_GROUP_NAME = "processing-diagnostic-metrics";
   public static final String PROCESSING_LOG_METRIC_DESCRIPTION =
@@ -44,7 +45,7 @@ public class ProcessingLoggerFactoryImpl implements ProcessingLoggerFactory {
       loggerWithMetricsFactory;
   private final Map<String, ProcessingLogger> processingLoggers;
 
-  ProcessingLoggerFactoryImpl(
+  MeteredProcessingLoggerFactoryImpl(
       final ProcessingLogConfig config,
       final StructuredLoggerFactory innerFactory,
       final Metrics metrics,
@@ -61,7 +62,7 @@ public class ProcessingLoggerFactoryImpl implements ProcessingLoggerFactory {
     );
   }
 
-  ProcessingLoggerFactoryImpl(
+  MeteredProcessingLoggerFactoryImpl(
       final ProcessingLogConfig config,
       final StructuredLoggerFactory innerFactory,
       final Metrics metrics,
@@ -80,16 +81,16 @@ public class ProcessingLoggerFactoryImpl implements ProcessingLoggerFactory {
   }
 
   @Override
-  public ProcessingLogger getLoggerWithMetrics(
+  public ProcessingLogger getLogger(
       final String name
   ) {
-    return getLoggerWithMetrics(name, "");
+    return getLogger(name, Collections.emptyMap());
   }
 
   @Override
-  public ProcessingLogger getLoggerWithMetrics(
+  public synchronized ProcessingLogger getLogger(
       final String name,
-      final String queryId
+      final Map<String, String> additionalMetricTags
   ) {
     if (processingLoggers.containsKey(name)) {
       return processingLoggers.get(name);
@@ -98,10 +99,12 @@ public class ProcessingLoggerFactoryImpl implements ProcessingLoggerFactory {
     // the metrics may be null if this is factory is created from a SandboxedExecutionContext
     Sensor errorSensor = null;
     if (metrics != null) {
-      errorSensor = configureProcessingErrorSensor(metrics, metricsTags, name, queryId);
+      final Map<String, String> combinedMetricsTags = new HashMap<>(additionalMetricTags);
+      combinedMetricsTags.putAll(metricsTags);
+      errorSensor = configureProcessingErrorSensor(metrics, combinedMetricsTags, name);
     }
     final ProcessingLogger meteredProcessingLogger = loggerWithMetricsFactory.apply(metrics).apply(
-        getLogger(name),
+        getProcessLogger(name),
         errorSensor
     );
     processingLoggers.put(name, meteredProcessingLogger);
@@ -116,25 +119,24 @@ public class ProcessingLoggerFactoryImpl implements ProcessingLoggerFactory {
   private static Sensor configureProcessingErrorSensor(
       final Metrics metrics,
       final Map<String, String> metricsTags,
-      final String loggerName,
-      final String queryId
+      final String loggerName
   ) {
-    final Map<String, String> metricsTagsWithLoggerAndQueryId =
-        MetricsTagsUtil.getMetricsTagsWithLoggerId(
-            loggerName,
-            MetricsTagsUtil.getMetricsTagsWithQueryId(queryId, metricsTags));
+    final Map<String, String> metricsTagsWithLoggerId = MetricsTagsUtil.getMetricsTagsWithLoggerId(
+        loggerName,
+        metricsTags
+    );
     final MetricName errorMetric = metrics.metricName(
         PROCESSING_LOG_ERROR_METRIC_NAME,
         PROCESSING_LOG_METRICS_GROUP_NAME,
         PROCESSING_LOG_METRIC_DESCRIPTION,
-        metricsTagsWithLoggerAndQueryId
+        metricsTagsWithLoggerId
     );
     final Sensor sensor = metrics.sensor(loggerName);
     sensor.add(errorMetric, new CumulativeSum());
     return sensor;
   }
 
-  private ProcessingLogger getLogger(final String name) {
+  private ProcessingLogger getProcessLogger(final String name) {
     return loggerFactory.apply(config, innerFactory.getLogger(name));
   }
 }

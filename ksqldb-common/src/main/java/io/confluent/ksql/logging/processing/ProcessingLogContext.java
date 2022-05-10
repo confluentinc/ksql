@@ -17,7 +17,6 @@ package io.confluent.ksql.logging.processing;
 
 import java.util.Collections;
 import java.util.Map;
-
 import org.apache.kafka.common.metrics.Metrics;
 
 
@@ -30,7 +29,7 @@ public interface ProcessingLogContext {
   /**
    * @return A factory for creating structured loggers for logging processing log records.
    */
-  ProcessingLoggerFactory getLoggerFactory();
+  MeteredProcessingLoggerFactory getLoggerFactory();
 
   /**
    * Creates a processing log context that uses the supplied config.

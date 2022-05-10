@@ -44,7 +44,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ProcessingLoggerFactoryImplTest {
+public class MeteredProcessingLoggerFactoryImplTest {
   @Mock
   private StructuredLoggerFactory innerFactory;
   @Mock
@@ -65,7 +65,7 @@ public class ProcessingLoggerFactoryImplTest {
   private final Collection<String> loggers = ImmutableList.of("logger1", "logger2");
 
   private final Map<String, String> customMetricsTags = Collections.singletonMap("tag1", "value1");
-  private ProcessingLoggerFactoryImpl factory;
+  private MeteredProcessingLoggerFactoryImpl factory;
   private MetricCollectors metricCollectors;
 
   @Before
@@ -76,13 +76,13 @@ public class ProcessingLoggerFactoryImplTest {
     when(loggerFactory.apply(config, innerLogger)).thenReturn(logger);
     when(loggerWithMetricsFactory.apply(any())).thenReturn(loggerWithMetricsFactoryHelper);
     when(loggerWithMetricsFactoryHelper.apply(any(), any())).thenReturn(loggerWithMetrics);
-    factory = new ProcessingLoggerFactoryImpl(config, innerFactory, metricCollectors.getMetrics(), loggerFactory, loggerWithMetricsFactory, customMetricsTags);
+    factory = new MeteredProcessingLoggerFactoryImpl(config, innerFactory, metricCollectors.getMetrics(), loggerFactory, loggerWithMetricsFactory, customMetricsTags);
   }
 
   @Test
   public void shouldCreateLoggerWithoutPassingInQueryId() {
     // Given:
-    final ProcessingLogger testLogger = factory.getLoggerWithMetrics("foo.bar");
+    final ProcessingLogger testLogger = factory.getLogger("foo.bar");
     final Sensor sensor = metricCollectors.getMetrics().getSensor("foo.bar");
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
     metricsTags.put("logger-id", "foo.bar");
@@ -103,16 +103,16 @@ public class ProcessingLoggerFactoryImplTest {
   }
 
   @Test
-  public void shouldCreateLoggerWithPassingInQueryId() {
+  public void shouldCreateLoggerWithPassingInAdditionalMetricsTags() {
     // Given:
-    final ProcessingLogger testLogger = factory.getLoggerWithMetrics("boo.far", "some-id");
-    final Sensor sensor = metricCollectors.getMetrics().getSensor("boo.far");
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
-    metricsTags.put("logger-id", "boo.far");
     metricsTags.put("query-id", "some-id");
+    final ProcessingLogger testLogger = factory.getLogger("boo.far", metricsTags);
+    final Sensor sensor = metricCollectors.getMetrics().getSensor("boo.far");
 
     // When:
     sensor.record();
+    metricsTags.put("logger-id", "boo.far");
 
     // Then:
     assertThat(testLogger, is(this.loggerWithMetrics));
@@ -128,9 +128,9 @@ public class ProcessingLoggerFactoryImplTest {
   @Test
   public void shouldReturnExistingLogger() {
     // When:
-    factory.getLoggerWithMetrics("boo.far", "some-id");
-    factory.getLoggerWithMetrics("boo.far", "some-id-2");
-    factory.getLoggerWithMetrics("boo.far", "some-id-3");
+    factory.getLogger("boo.far", Collections.singletonMap("tag-value", "some-id-1"));
+    factory.getLogger("boo.far", Collections.singletonMap("tag-value", "some-id-2"));
+    factory.getLogger("boo.far", Collections.singletonMap("tag-value", "some-id-3"));
     final Sensor sensor = metricCollectors.getMetrics().getSensor("boo.far");
 
     // Then:
@@ -152,11 +152,11 @@ public class ProcessingLoggerFactoryImplTest {
   @Test
   public void shouldHandleNullMetrics() {
     // Given:
-    final ProcessingLoggerFactory nullMetricsFactory = new ProcessingLoggerFactoryImpl(config, innerFactory, null, loggerFactory, loggerWithMetricsFactory, customMetricsTags);
+    final MeteredProcessingLoggerFactory nullMetricsFactory = new MeteredProcessingLoggerFactoryImpl(config, innerFactory, null, loggerFactory, loggerWithMetricsFactory, customMetricsTags);
 
     // When:
-    final ProcessingLogger logger1 = nullMetricsFactory.getLoggerWithMetrics("boo.far");
-    final ProcessingLogger logger2 = nullMetricsFactory.getLoggerWithMetrics("boo.far", "some-id-2");
+    final ProcessingLogger logger1 = nullMetricsFactory.getLogger("boo.far");
+    final ProcessingLogger logger2 = nullMetricsFactory.getLogger("boo.far", Collections.singletonMap("tag1", "some-id-2"));
 
     // Then:
     assertThat(logger1, is(loggerWithMetrics));
@@ -170,9 +170,9 @@ public class ProcessingLoggerFactoryImplTest {
 	return Double.parseDouble(
 		metrics.metric(
 			metrics.metricName(
-				ProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
-                ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
-                ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
+				MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
+                MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
+                MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
                 metricsTags)
 		).metricValue().toString()
 	);

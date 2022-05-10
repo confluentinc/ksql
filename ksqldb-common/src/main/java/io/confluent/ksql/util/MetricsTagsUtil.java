@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,19 +31,24 @@ public final class MetricsTagsUtil {
     if (queryId.equals("")) {
       return tags;
     }
-    final Map<String, String> newMetricsTags =
-        new HashMap<>(tags);
-    newMetricsTags.put("query-id", queryId);
-    return newMetricsTags;
+    return addMetricTagToMap("query-id", queryId, tags);
   }
 
   public static Map<String, String> getMetricsTagsWithLoggerId(
       final String loggerId,
       final Map<String, String> tags
   ) {
+    return addMetricTagToMap("logger-id", loggerId, tags);
+  }
+
+  private static Map<String, String> addMetricTagToMap(
+      final String tagName,
+      final String tagValue,
+      final Map<String, String> tags
+  ) {
     final Map<String, String> newMetricsTags =
         new HashMap<>(tags);
-    newMetricsTags.put("logger-id", loggerId);
-    return newMetricsTags;
+    newMetricsTags.put(tagName, tagValue);
+    return ImmutableMap.copyOf(newMetricsTags);
   }
 }

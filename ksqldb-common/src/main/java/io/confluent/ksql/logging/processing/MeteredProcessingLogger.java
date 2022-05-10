@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.logging.processing;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Objects;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -24,6 +25,7 @@ public class MeteredProcessingLogger implements ProcessingLogger {
   private final Metrics metrics;
   private final Sensor errorSensor;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public MeteredProcessingLogger(
       final ProcessingLogger logger,
       final Metrics metrics,
@@ -44,7 +46,7 @@ public class MeteredProcessingLogger implements ProcessingLogger {
 
   @Override
   public void close() {
-    if (metrics != null ) {
+    if (metrics != null) {
       metrics.removeSensor(errorSensor.name());
     }
   }

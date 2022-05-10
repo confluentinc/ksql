@@ -32,7 +32,6 @@ import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerImpl;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;

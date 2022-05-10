@@ -75,6 +75,7 @@ import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,7 +89,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -539,7 +539,7 @@ final class QueryBuilder {
     final ProcessingLogger logger =
         processingLogContext
             .getLoggerFactory()
-            .getLoggerWithMetrics(id, id);
+            .getLogger(id, MetricsTagsUtil.getMetricsTagsWithQueryId(id, Collections.emptyMap()));
 
     newStreamsProperties.put(
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
@@ -656,9 +656,9 @@ final class QueryBuilder {
     final QueryContext.Stacker stacker = new QueryContext.Stacker()
         .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
 
-    return processingLogContext.getLoggerFactory().getLoggerWithMetrics(
+    return processingLogContext.getLoggerFactory().getLogger(
         QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()),
-        queryId.toString());
+        MetricsTagsUtil.getMetricsTagsWithQueryId(queryId.toString(), Collections.emptyMap()));
   }
 
   private static TransientQueryQueue buildTransientQueryQueue(

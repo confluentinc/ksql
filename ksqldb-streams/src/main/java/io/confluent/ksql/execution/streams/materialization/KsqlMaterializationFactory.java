@@ -126,7 +126,7 @@ public final class KsqlMaterializationFactory {
       for (final String ctx : queryContext.getContext()) {
         stacker = stacker.push(ctx);
       }
-      return processingLogContext.getLoggerFactory().getLoggerWithMetrics(
+      return processingLogContext.getLoggerFactory().getLogger(
           QueryLoggerUtil.queryLoggerName(QueryType.PULL_QUERY, stacker.getQueryContext())
       );
     }

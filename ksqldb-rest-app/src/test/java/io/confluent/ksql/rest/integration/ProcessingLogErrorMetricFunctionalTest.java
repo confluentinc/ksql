@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.equalTo;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactoryImpl;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactoryImpl;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -113,17 +113,17 @@ public class ProcessingLogErrorMetricFunctionalTest {
 		"show queries;"
 	);
 	final MetricName processingLogErrorMetricName1 = new MetricName(
-		ProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
-		ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
-		ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
+		MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
+		MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
+		MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
 		metricsTagsForQuery1DeserializerLog
 	);
 	final KafkaMetric processingLogErrorMetric1 = metrics.metric(processingLogErrorMetricName1);
 
 	final MetricName processingLogErrorMetricName2 = new MetricName(
-		ProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
-		ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
-		ProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
+		MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_ERROR_METRIC_NAME,
+		MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_METRICS_GROUP_NAME,
+		MeteredProcessingLoggerFactoryImpl.PROCESSING_LOG_METRIC_DESCRIPTION,
 		metricsTagsForQuery2ProjectLog
 	);
 	final KafkaMetric processingLogErrorMetric2 = metrics.metric(processingLogErrorMetricName2);

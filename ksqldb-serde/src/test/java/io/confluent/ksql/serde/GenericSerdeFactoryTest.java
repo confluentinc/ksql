@@ -27,14 +27,12 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.SchemaNotSupportedException;
-import io.confluent.ksql.logging.processing.MeteredProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -71,7 +69,7 @@ public class GenericSerdeFactoryTest {
   @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
-  private ProcessingLoggerFactory processingLoggerFactory;
+  private MeteredProcessingLoggerFactory meteredProcessingLoggerFactory;
   @Mock
   private ProcessingLogger processingLoggerWithoutQueryId;
   @Mock
@@ -100,9 +98,9 @@ public class GenericSerdeFactoryTest {
     when(formatDeserializer.deserialize(any(), any()))
         .thenThrow(new RuntimeException("deserializer error"));
 
-    when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLoggerWithMetrics(any())).thenReturn(processingLoggerWithoutQueryId);
-    when(processingLoggerFactory.getLoggerWithMetrics(any(), any())).thenReturn(processingLoggerWithQueryId);
+    when(processingLogContext.getLoggerFactory()).thenReturn(meteredProcessingLoggerFactory);
+    when(meteredProcessingLoggerFactory.getLogger(any())).thenReturn(processingLoggerWithoutQueryId);
+    when(meteredProcessingLoggerFactory.getLogger(any(), any())).thenReturn(processingLoggerWithQueryId);
   }
 
   @Test
@@ -185,7 +183,7 @@ public class GenericSerdeFactoryTest {
   @Test
   public void shouldWrapDeserializerWithLoggingSerializer() {
     // Given:
-    when(processingLoggerFactory.getLoggerWithMetrics("prefix.deserializer")).thenReturn(processingLoggerWithoutQueryId);
+    when(meteredProcessingLoggerFactory.getLogger("prefix.deserializer")).thenReturn(processingLoggerWithoutQueryId);
 
     // When:
     final Serde<String> result = serdeFactory

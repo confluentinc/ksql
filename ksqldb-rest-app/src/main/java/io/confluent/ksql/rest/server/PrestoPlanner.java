@@ -19,15 +19,19 @@ import static com.facebook.presto.spi.ConnectorId.createInformationSchemaConnect
 import static com.facebook.presto.spi.ConnectorId.createSystemTablesConnectorId;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cost.ComposableStatsCalculator;
 import com.facebook.presto.cost.CostCalculator;
 import com.facebook.presto.cost.CostCalculatorUsingExchanges;
+import com.facebook.presto.cost.CostComparator;
 import com.facebook.presto.cost.StatsCalculator;
 import com.facebook.presto.cost.TaskCountEstimator;
 import com.facebook.presto.execution.QueryIdGenerator;
+import com.facebook.presto.execution.QueryManagerConfig;
 import com.facebook.presto.execution.QueryPreparer;
 import com.facebook.presto.execution.QueryPreparer.PreparedQuery;
+import com.facebook.presto.execution.scheduler.NodeSchedulerConfig;
 import com.facebook.presto.matching.Captures;
 import com.facebook.presto.matching.Pattern;
 import com.facebook.presto.metadata.Catalog;
@@ -60,14 +64,19 @@ import com.facebook.presto.spi.plan.ProjectNode;
 import com.facebook.presto.spi.plan.ProjectNode.Locality;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.transaction.IsolationLevel;
+import com.facebook.presto.split.PageSourceManager;
+import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.sql.ParameterUtils;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.ParsingOptions;
 import com.facebook.presto.sql.parser.SqlParser;
+import com.facebook.presto.sql.planner.ConnectorPlanOptimizerManager;
 import com.facebook.presto.sql.planner.LogicalPlanner;
+import com.facebook.presto.sql.planner.PartitioningProviderManager;
 import com.facebook.presto.sql.planner.Plan;
+import com.facebook.presto.sql.planner.PlanOptimizers;
 import com.facebook.presto.sql.planner.RuleStatsRecorder;
 import com.facebook.presto.sql.planner.iterative.IterativeOptimizer;
 import com.facebook.presto.sql.planner.iterative.Rule;
@@ -88,6 +97,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.weakref.jmx.MBeanExporter;
 
 @SuppressWarnings({
     "checkstyle:ClassDataAbstractionCoupling",
@@ -147,14 +157,16 @@ public class PrestoPlanner {
     final CatalogManager catalogManager = new CatalogManager();
     final ConnectorId connectorId = new ConnectorId(catalogName);
     final Connector connector = new ProtoConnector(ImmutableList.of(pantalonesTable, abrigosTable));
+    final ConnectorId systemConnectorId = new ConnectorId("systemCatalog");
+    final Connector systemConnector = new ProtoConnector(ImmutableList.of());
     final Catalog catalog = new Catalog(
         catalogName,
         connectorId,
         connector,
         createInformationSchemaConnectorId(connectorId),
         connector,
-        createSystemTablesConnectorId(connectorId),
-        connector);
+        createSystemTablesConnectorId(systemConnectorId),
+        systemConnector);
     catalogManager.registerCatalog(catalog);
 
     final Session session = Session.builder(new SessionPropertyManager())
@@ -184,7 +196,7 @@ public class PrestoPlanner {
           );
           System.out.println(preparedQuery);
 
-          final Metadata metadata = MetadataManager.createTestMetadataManager(
+          final MetadataManager metadata = MetadataManager.createTestMetadataManager(
               transactionManager,
               new FeaturesConfig()
           );
@@ -213,6 +225,33 @@ public class PrestoPlanner {
               new TaskCountEstimator(() -> 42));
           final RuleStatsRecorder ruleStats = new RuleStatsRecorder();
 
+          final boolean forceSingleNode = true;
+          final MBeanExporter exporter = null;
+          final SplitManager splitManager = new SplitManager(metadata, new QueryManagerConfig(),
+              new NodeSchedulerConfig());
+          final ConnectorPlanOptimizerManager connectorPlanOptimizerManager = new ConnectorPlanOptimizerManager();
+          final PageSourceManager pageSourceManager = new PageSourceManager();
+          final CostComparator costComparator = new CostComparator(1.0, 1.0, 1.0);
+          final TaskCountEstimator taskCountEstimator = null;
+          final PartitioningProviderManager partitioningProviderManager = null;
+          PlanOptimizers po = new PlanOptimizers(
+              metadata,
+              sqlParser,
+              forceSingleNode,
+              exporter,
+              splitManager,
+              connectorPlanOptimizerManager,
+              pageSourceManager,
+              statsCalculator,
+              costCalculator,
+              costCalculator,
+              costComparator,
+              taskCountEstimator,
+              partitioningProviderManager
+          );
+
+          final List<PlanOptimizer> planningTimeOptimizers = po.getPlanningTimeOptimizers();
+
           // Hack. The goal here was to avoid running any optimizations,
           // but these two are required rewrite rules to produce a valid plan.
           final List<PlanOptimizer> optimizers = ImmutableList.of(
@@ -234,8 +273,8 @@ public class PrestoPlanner {
 
           final LogicalPlanner logicalPlanner = new LogicalPlanner(
               false,
-              session,
-              optimizers,
+              transactionSession,
+              planningTimeOptimizers,
               new PlanChecker(new FeaturesConfig()),
               idAllocator,
               metadata,
@@ -283,6 +322,10 @@ public class PrestoPlanner {
       this.schemaName = schemaName;
       this.schemaTableName = new SchemaTableName(schemaName, tableName);
       this.connectorTableHandle = new ConnectorTableHandle() {
+        @Override
+        public String toString() {
+          return super.toString() + ":" + schemaTableName;
+        }
       };
       this.connectorTableMetadata = new ConnectorTableMetadata(schemaTableName, columnMetadata);
       this.columnHandles = columnMetadata.stream().map(ColumnMetadata::getName).collect(
@@ -354,16 +397,31 @@ public class PrestoPlanner {
         }
 
         @Override
-        public List<ConnectorTableLayoutResult> getTableLayouts(final ConnectorSession session,
-            final ConnectorTableHandle table, final Constraint<ColumnHandle> constraint,
+        public List<ConnectorTableLayoutResult> getTableLayouts(
+            final ConnectorSession session,
+            final ConnectorTableHandle table,
+            final Constraint<ColumnHandle> constraint,
             final Optional<Set<ColumnHandle>> desiredColumns) {
-          return null;
+          final ConnectorTableLayoutHandle handle = new ConnectorTableLayoutHandle() {
+            @Override
+            public String toString() {
+              return super.toString() + ":" + table.toString();
+            }
+          };
+          final ConnectorTableLayout layout = new ConnectorTableLayout(handle);
+          final ConnectorTableLayoutResult connectorTableLayoutResult =
+              new ConnectorTableLayoutResult(
+                  layout,
+                  constraint.getSummary()
+              );
+          return ImmutableList.of(connectorTableLayoutResult);
         }
 
         @Override
-        public ConnectorTableLayout getTableLayout(final ConnectorSession session,
+        public ConnectorTableLayout getTableLayout(
+            final ConnectorSession session,
             final ConnectorTableLayoutHandle handle) {
-          return null;
+          return new ConnectorTableLayout(handle);
         }
 
         @Override
@@ -399,9 +457,8 @@ public class PrestoPlanner {
   }
 
   /**
-   * Hack. Presto's logical planner requires all projection nodes to have a
-   * locality specified. I'm not sure what that means, but I don't want to worry
-   * about it right now.
+   * Hack. Presto's logical planner requires all projection nodes to have a locality specified. I'm
+   * not sure what that means, but I don't want to worry about it right now.
    *
    * <p>In the full set of optimizers that Presto runs, it winds up writing that locality,
    * but I didn't want to pull in a bunch of optimizers we don't understand.

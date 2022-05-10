@@ -60,6 +60,11 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
         public Collection<ProcessingLogger> getLoggers() {
           return ImmutableList.of();
         }
+
+        @Override
+        public Collection<ProcessingLogger> getLoggersWithSubstring(final String substr) {
+          return ImmutableList.of();
+        }
       };
 
   public static final ProcessingLogContext INSTANCE = new NoopProcessingLogContext();

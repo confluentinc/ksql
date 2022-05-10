@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -86,8 +87,9 @@ public class PersistentQueryMetadataImpl
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
       final QueryMetadata.Listener listener,
-      final Optional<ScalablePushRegistry> scalablePushRegistry
-  ) {
+      final Optional<ScalablePushRegistry> scalablePushRegistry,
+      final MeteredProcessingLoggerFactory loggerFactory
+      ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
@@ -105,7 +107,8 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        new QueryListenerWrapper(listener, scalablePushRegistry)
+        new QueryListenerWrapper(listener, scalablePushRegistry),
+        loggerFactory
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");

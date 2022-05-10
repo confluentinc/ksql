@@ -226,7 +226,8 @@ final class QueryBuilder {
         resultType,
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
-        listener
+        listener,
+        processingLogContext.getLoggerFactory()
     );
   }
 
@@ -373,7 +374,8 @@ final class QueryBuilder {
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
-        scalablePushRegistry
+        scalablePushRegistry,
+        processingLogContext.getLoggerFactory()
     );
 
   }
@@ -478,7 +480,7 @@ final class QueryBuilder {
             getUncaughtExceptionProcessingLogger(queryId),
             sinkDataSource,
             listener,
-        scalablePushRegistry,
+            scalablePushRegistry,
             (streamsRuntime) -> getNamedTopology(
                 streamsRuntime,
                 queryId,
@@ -486,7 +488,8 @@ final class QueryBuilder {
                 queryOverrides,
                 physicalPlan
             ),
-            keyFormat
+            keyFormat,
+            processingLogContext.getLoggerFactory()
     );
     if (real) {
       return binPackedPersistentQueryMetadata;

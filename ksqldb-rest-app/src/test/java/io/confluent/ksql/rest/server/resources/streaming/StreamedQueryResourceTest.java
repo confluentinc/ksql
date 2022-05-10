@@ -53,6 +53,7 @@ import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -204,6 +205,8 @@ public class StreamedQueryResourceTest {
   private QueryExecutor queryExecutor;
   @Mock
   private QueryMetadataHolder queryMetadataHolder;
+  @Mock
+  private MeteredProcessingLoggerFactory loggerFactory;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -562,7 +565,8 @@ public class StreamedQueryResourceTest {
             ResultType.STREAM,
             0L,
             0L,
-            listener
+            listener,
+            loggerFactory
         );
     transientQueryMetadata.initialize();
 

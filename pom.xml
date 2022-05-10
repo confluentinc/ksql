@@ -630,7 +630,6 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>logredactor</artifactId>
-            <version>1.0.10</version>
         </dependency>
 
     </dependencies>

@@ -56,11 +56,11 @@ public final class AnalysisTestUtil {
     return logicalPlanner.buildPersistentLogicalPlan();
   }
 
-  private static class Analyzer {
+  public static class Analyzer {
 
-    private final Analysis analysis;
+    public final Analysis analysis;
 
-    private Analyzer(
+    public Analyzer(
         final String queryStr,
         final MetaStore metaStore,
         final boolean rowpartitionRowoffsetEnabled,

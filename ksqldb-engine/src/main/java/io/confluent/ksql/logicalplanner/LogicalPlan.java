@@ -32,7 +32,7 @@ public class LogicalPlan {
   private final Node<?> root;
   private final ImmutableSet<SourceName> sourceNames;
 
-  LogicalPlan(final Node<?> root, final ImmutableSet<SourceName> sourceNames) {
+  public LogicalPlan(final Node<?> root, final ImmutableSet<SourceName> sourceNames) {
     this.root = Objects.requireNonNull(root, "root");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
   }

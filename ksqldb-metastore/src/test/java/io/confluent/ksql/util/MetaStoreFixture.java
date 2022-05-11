@@ -32,6 +32,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
+import javax.xml.transform.Source;
 
 public final class MetaStoreFixture {
 
@@ -307,6 +308,30 @@ public final class MetaStoreFixture {
         false
     );
     metaStore.putSource(ksqlTable5, false);
+
+    final LogicalSchema pantalonesSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("ID"),SqlTypes.STRING)
+        .valueColumn(ColumnName.of("size"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("waist"), SqlTypes.INTEGER)
+        .build();
+
+    final KsqlTopic pantalonesTopic = new KsqlTopic(
+        "pantalones-topic",
+        keyFormat,
+        valueFormat
+    );
+
+    final KsqlTable<String> pantalonesTable = new KsqlTable<>(
+        "sqlexpression",
+        SourceName.of("PANTALONES"),
+        pantalonesSchema,
+        Optional.empty(),
+        false,
+        pantalonesTopic,
+        false
+    );
+
+    metaStore.putSource(pantalonesTable, false);
 
     return metaStore;
   }

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server;
+package io.confluent.ksql.test.tools;
 
 import static com.facebook.presto.spi.ConnectorId.createInformationSchemaConnectorId;
 import static com.facebook.presto.spi.ConnectorId.createSystemTablesConnectorId;
@@ -61,14 +61,18 @@ import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.Constraint;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
+import com.facebook.presto.spi.TableHandle;
 import com.facebook.presto.spi.WarningCollector;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.facebook.presto.spi.plan.PlanNode;
 import com.facebook.presto.spi.plan.PlanNodeIdAllocator;
 import com.facebook.presto.spi.plan.ProjectNode;
 import com.facebook.presto.spi.plan.ProjectNode.Locality;
+import com.facebook.presto.spi.plan.TableScanNode;
+import com.facebook.presto.spi.relation.VariableReferenceExpression;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.transaction.IsolationLevel;
 import com.facebook.presto.split.PageSourceManager;
@@ -87,6 +91,7 @@ import com.facebook.presto.sql.planner.PlanOptimizers;
 import com.facebook.presto.sql.planner.RuleStatsRecorder;
 import com.facebook.presto.sql.planner.iterative.Rule;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
+import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.planPrinter.PlanPrinter;
 import com.facebook.presto.sql.planner.sanity.PlanChecker;
 import com.facebook.presto.sql.tree.Statement;
@@ -95,9 +100,38 @@ import com.facebook.presto.transaction.TransactionBuilder;
 import com.facebook.presto.transaction.TransactionId;
 import com.facebook.presto.transaction.TransactionManager;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.execution.streams.KSPlanBuilder;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.structured.SchemaKSourceFactory;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.test.model.PathLocation;
+import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.util.KsqlConfig;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -105,6 +139,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.weakref.jmx.MBeanExporter;
 
 @SuppressWarnings({
@@ -121,7 +158,7 @@ public class PrestoPlanner {
   public PrestoPlanner() {
   }
 
-  public static void main(final String[] args) {
+  public static void main(final String[] args) throws IOException {
 
     final String schemaName = "schema";
     final Connector connector = new ProtoConnector(
@@ -179,12 +216,115 @@ public class PrestoPlanner {
         )
     );
 
-    logicalPlan(
+    final Plan prestoPlan = logicalPlan(
         "SELECT * FROM Pantalones",
         schemaName,
         connector
     );
+    final PlanBuildContext planBuildContext = PlanBuildContext.of(
+        new KsqlConfig(Collections.emptyMap()),
+        new DefaultServiceContext(
+            new DefaultKafkaClientSupplier(),
+            () -> null,
+            () -> null,
+            () -> null,
+            () -> null
+        ),
+        new InternalFunctionRegistry(),
+        Optional.empty()
+    );
 
+//    planKsql();
+
+    final LogicalSchema.Builder logicalSchema = LogicalSchema.builder();
+    logicalSchema.keyColumn(ColumnName.of("id"), SqlPrimitiveType.of(SqlBaseType.STRING));
+    logicalSchema.valueColumn(ColumnName.of("size"), SqlPrimitiveType.of(SqlBaseType.STRING));
+    logicalSchema.valueColumn(ColumnName.of("waist"), SqlPrimitiveType.of(SqlBaseType.INTEGER));
+    final KsqlTable<?> dataSource = new KsqlTable<>(
+        "asdf",
+        SourceName.of("asdf"),
+        logicalSchema.build(),
+        Optional.empty(),
+        false,
+        new KsqlTopic(
+            "asdf",
+            KeyFormat.nonWindowed(FormatInfo.of("JSON"), SerdeFeatures.of()),
+            ValueFormat.of(FormatInfo.of("JSON"), SerdeFeatures.of())
+        ),
+        true
+    );
+
+    final OutputNode outputNode = (OutputNode) prestoPlan.getRoot();
+    final TableScanNode tableScanNode = (TableScanNode) outputNode.getSource();
+
+    // DataSourceNode
+    final TableHandle table = tableScanNode.getTable();
+    final MyConnectorTableHandle connectorHandle = (MyConnectorTableHandle) table.getConnectorHandle();
+    final String context = connectorHandle.schemaTableName().toString();
+    final SchemaKStream<?> dataSourceStream = SchemaKSourceFactory.buildSource(
+        planBuildContext,
+        dataSource,
+        planBuildContext.buildNodeContext(context).push("Source")
+    );
+
+    // ProjectNode
+    final Builder<ColumnName> columnNames = ImmutableList.builder();
+    for (final String columnName : outputNode.getColumnNames()) {
+      columnNames.add(ColumnName.of(columnName));
+    }
+    final Builder<SelectExpression> selectExpressions = ImmutableList.builder();
+    for (final VariableReferenceExpression outputVariable : outputNode.getOutputVariables()) {
+//      prestoPlan.get
+      final ColumnName columnName = ColumnName.of(outputVariable.getName());
+      final SelectExpression selectExpression = SelectExpression.of(
+          columnName,
+          new UnqualifiedColumnReferenceExp(
+              columnName
+          )
+      );
+      selectExpressions.add(selectExpression);
+    }
+    final SchemaKStream<?> projectNodeStream = dataSourceStream.select(
+        columnNames.build(),
+        selectExpressions.build(),
+        planBuildContext.buildNodeContext("Output"),
+        planBuildContext,
+        FormatInfo.of("JSON")
+    );
+
+    // Data Output Node
+    final SchemaKStream<?> dataOutputNodeStream = projectNodeStream.into(
+        new KsqlTopic(
+            "result",
+            KeyFormat.nonWindowed(FormatInfo.of("JSON"), SerdeFeatures.of()),
+            ValueFormat.of(FormatInfo.of("JSON"), SerdeFeatures.of())
+        ),
+        planBuildContext.buildNodeContext(outputNode.toString() + ":out"),
+        Optional.empty()
+    );
+
+//    final ExecutionPlan executionPlan = new ExecutionPlan(new QueryId("asdf"),
+//        dataOutputNodeStream.getSourceStep());
+//
+//    System.out.println(executionPlan);
+
+//    planKsql();
+
+    final StreamsBuilder streamsBuilder = new StreamsBuilder();
+    final RuntimeBuildContext buildContext = RuntimeBuildContext.of(
+        streamsBuilder,
+        new KsqlConfig(Collections.emptyMap()),
+        planBuildContext.getServiceContext(),
+        ProcessingLogContext.create(),
+        planBuildContext.getFunctionRegistry(),
+        "asfd",
+        new QueryId("asfd")
+    );
+    final KSPlanBuilder ksPlanBuilder = new KSPlanBuilder(buildContext);
+    final ExecutionStep<?> executionStep = dataOutputNodeStream.getSourceStep();
+    executionStep.build(ksPlanBuilder);
+    final Topology topology = streamsBuilder.build();
+    System.out.println(topology.describe());
     logicalPlan(
         "SELECT ID, Size FROM Pantalones",
         schemaName,
@@ -246,11 +386,84 @@ public class PrestoPlanner {
     );
 
     logicalPlan(
-        "SELECT ID1, Waist, Size FROM (SELECT ID AS ID1, Waist FROM Pantalones) JOIN (SELECT ID AS ID2, Size FROM Pantalones) ON ID1 =",
+        "SELECT ID1, Waist, Size FROM (SELECT ID AS ID1, Waist FROM Pantalones) JOIN (SELECT ID AS ID2, Size FROM Pantalones) ON ID1 = ID2",
         schemaName,
         connector
     );
   }
+
+  private static void planKsql() throws IOException {
+    final TestExecutor testExecutor = TestExecutor.create(false, Optional.empty());
+    final TestCase testCase = new TestCase(
+        new PathLocation(Files.createTempFile("", "")),
+        Files.createTempFile("", ""),
+        "asdf",
+        VersionBounds.allVersions(),
+        Collections.emptyMap(),
+        ImmutableList.of(new Topic("asdf",Optional.empty(), Optional.empty())),
+        Collections.emptyList(),
+        Collections.emptyList(),
+        ImmutableList.of(
+            "CREATE TABLE Pantalones (ID STRING PRIMARY KEY, Waist INT, PantSize STRING) WITH (kafka_topic='asdf', value_format='JSON');",
+            "CREATE TABLE Out AS SELECT * FROM Pantalones;"
+        ),
+        Optional.empty(),
+        PostConditions.NONE
+        );
+    testExecutor.buildAndExecuteQuery(testCase,TestExecutionListener.noOp());
+  }
+
+  private static SchemaKStream<?> buildStream(
+      final PlanBuildContext planBuildContext,
+      final Plan prestoPlan) {
+    final PlanNode prestoPlanNode = prestoPlan.getRoot();
+    return buildStream(planBuildContext, prestoPlanNode);
+  }
+
+  private static SchemaKStream<?> buildStream(
+      final PlanBuildContext planBuildContext,
+      final PlanNode prestoPlanNode) {
+    if (prestoPlanNode instanceof OutputNode) {
+      final OutputNode outputNode = (OutputNode) prestoPlanNode;
+      final PlanNode prestoSourceNode = outputNode.getSource();
+      return null;
+    } else {
+      throw new IllegalArgumentException(prestoPlanNode.toString());
+    }
+  }
+
+  /*private static LogicalPlanNode toKsql(final Plan logicalPlan) {
+    final PlanNode root = logicalPlan.getRoot();
+    final io.confluent.ksql.planner.plan.OutputNode outputNode =
+        (io.confluent.ksql.planner.plan.OutputNode) toKsql(root);
+    final ImmutableSet<SourceName> sourceNames = ImmutableSet.of();
+    final LogicalPlanNode logicalPlan1 =
+        new LogicalPlanNode("asdf",Optional.of(outputNode));
+    return logicalPlan1;
+  }
+
+  private static io.confluent.ksql.planner.plan.PlanNode toKsql(final PlanNode node) {
+    if (node instanceof OutputNode) {
+      final OutputNode outputNode = (OutputNode) node;
+      final PlanNode source = outputNode.getSource();
+      final io.confluent.ksql.planner.plan.PlanNode sourceKsql = toKsql(source);
+      final io.confluent.ksql.planner.plan.PlanNode project = new FinalProjectNode(
+          new PlanNodeId("Project"),
+          sourceKsql,
+          outputNode.getColumnNames()
+      );
+      return new KsqlBareOutputNode(
+          new PlanNodeId("Output"),
+          project,
+          project.getSchema(),
+          OptionalInt.empty(),
+          Optional.empty(),
+          Optional.empty()
+      );
+    } else {
+      throw new IllegalArgumentException(node.toString());
+    }
+  }*/
 
   private static Plan logicalPlan(
       final String sql,
@@ -450,12 +663,7 @@ public class PrestoPlanner {
       this.tableName = tableName;
       this.schemaName = schemaName;
       this.schemaTableName = new SchemaTableName(schemaName, tableName);
-      this.connectorTableHandle = new ConnectorTableHandle() {
-        @Override
-        public String toString() {
-          return super.toString() + ":" + schemaTableName;
-        }
-      };
+      this.connectorTableHandle = new MyConnectorTableHandle(schemaTableName);
       this.connectorTableMetadata = new ConnectorTableMetadata(schemaTableName, columnMetadata);
       this.columnHandles = columnMetadata.stream().map(ColumnMetadata::getName).collect(
           Collectors.toMap(name -> name, name -> new ColumnHandle() {
@@ -481,6 +689,24 @@ public class PrestoPlanner {
 
     public Map<String, ColumnHandle> getColumnHandles() {
       return this.columnHandles;
+    }
+
+
+  }
+  public static class MyConnectorTableHandle implements ConnectorTableHandle {
+    private final SchemaTableName schemaTableName;
+
+    public MyConnectorTableHandle(final SchemaTableName schemaTableName) {
+      this.schemaTableName = schemaTableName;
+    }
+
+    public SchemaTableName schemaTableName() {
+      return schemaTableName;
+    }
+
+    @Override
+    public String toString() {
+      return super.toString() + ":" + schemaTableName;
     }
   }
 

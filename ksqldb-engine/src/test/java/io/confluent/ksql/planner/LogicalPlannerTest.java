@@ -47,6 +47,7 @@ import io.confluent.ksql.planner.plan.QueryLimitNode;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
+import io.confluent.ksql.testutils.AnalysisTestUtil.Analyzer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -66,6 +67,35 @@ public class LogicalPlannerTest {
     metaStore = MetaStoreFixture.getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
     ksqlConfig = new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_SUPPRESS_ENABLED, true));
 
+  }
+
+
+  @Test
+  public void john1() {
+    final boolean rowpartitionRowoffsetEnabled =
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+    final boolean pullLimitClauseEnabled =
+            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
+
+    final Analyzer analyzer = new Analyzer("SELECT * FROM Pantalones;", metaStore, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
+
+    final LogicalPlanner logicalPlanner =
+        new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
+
+    final PlanNode planNode = logicalPlanner.buildPersistentLogicalPlan();
+    assertThat(planNode.getSources().size(), equalTo(1));
+    final DataSource dataSource = ((DataSourceNode) planNode
+        .getSources()
+        .get(0)
+        .getSources()
+        .get(0)
+        .getSources()
+        .get(0))
+        .getDataSource();
+    assertThat(dataSource
+            .getDataSourceType(),
+        equalTo(DataSourceType.KTABLE));
+    assertThat(dataSource.getName(), equalTo(SourceName.of("TEST2")));
   }
 
 

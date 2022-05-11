@@ -17,12 +17,14 @@ package io.confluent.ksql.jdbc;
 
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.StreamInfo;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 public class KsqlDriver implements Driver {
@@ -58,6 +60,7 @@ public class KsqlDriver implements Driver {
     } catch (ExecutionException e) {
       e.printStackTrace();
     }
+    */
     try {
       for (StreamInfo streamInfo : client.listStreams().get()) {
         System.out.println("Got stream: " + streamInfo);
@@ -68,7 +71,7 @@ public class KsqlDriver implements Driver {
     } catch (ExecutionException e) {
       e.printStackTrace();
     }
-    */
+
 
     return new KsqlConnection(client);
   }

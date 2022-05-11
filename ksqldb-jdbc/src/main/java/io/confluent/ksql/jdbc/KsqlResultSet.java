@@ -72,7 +72,12 @@ public class KsqlResultSet implements ResultSet {
 
   @Override
   public String getString(final int columnIndex) throws SQLException {
-    return currentRow.getString(columnIndex);
+    // JNH: Guess who is dealing with off-by-one errors...
+    if (columnIndex > currentRow.columnTypes().size()) {
+      return currentRow.getString(columnIndex - 1);
+    } else {
+      return currentRow.getString(columnIndex);
+    }
   }
 
   @Override
@@ -273,6 +278,11 @@ public class KsqlResultSet implements ResultSet {
   @Override
   public SQLWarning getWarnings() throws SQLException {
     return null;
+  }
+
+  @Override
+  public String toString() {
+    return currentRow.values().toString();
   }
 
   @Override

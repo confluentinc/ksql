@@ -38,6 +38,7 @@ public class KsqlJDBCTest {
     while (rs.next())
     {
       System.out.print("Column 1 returned ");
+      System.out.println("Row " + rs.toString());
       System.out.println(rs.getString(1) + " " + rs.getDouble(2) + " " + rs.getDouble(3));
     }
     rs.close();

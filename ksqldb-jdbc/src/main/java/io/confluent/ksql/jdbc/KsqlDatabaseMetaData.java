@@ -42,7 +42,8 @@ public class KsqlDatabaseMetaData implements DatabaseMetaData {
   private final Client client;
 
   public KsqlDatabaseMetaData(final Client client) {
-    System.out.println("\t In KsqlDatabaseMetaData" + " KsqlDatabaseMetaData(final Client client) {");
+    System.out.println("\t In KsqlDatabaseMetaData"
+        + " KsqlDatabaseMetaData(final Client client) {");
     this.client = client;
   }
 
@@ -55,7 +56,7 @@ public class KsqlDatabaseMetaData implements DatabaseMetaData {
   @Override
   public boolean allTablesAreSelectable() throws SQLException {
     System.out.println("\t In KsqlDatabaseMetaData" + " allTablesAreSelectable()");
-    return false;
+    return true;
   }
 
   @Override
@@ -741,7 +742,8 @@ public class KsqlDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public boolean supportsDataManipulationTransactionsOnly() throws SQLException {
-    System.out.println("\t In KsqlDatabaseMetaData" + " supportsDataManipulationTransactionsOnly()");
+    System.out.println("\t In KsqlDatabaseMetaData"
+        + " supportsDataManipulationTransactionsOnly()");
     return false;
   }
 
@@ -780,6 +782,40 @@ public class KsqlDatabaseMetaData implements DatabaseMetaData {
       final String[] types) throws SQLException {
     System.out.println("\t In KsqlDatabaseMetaData"
         + " ResultSet getTables(final String catalog, final String schemaPattern,");
+    final List<String> columnNames = Arrays.asList("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME",
+        "TABLE_TYPE", "REMARKS", "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME ",
+        "SELF_REFERENCING_COL_NAME", "REF_GENERATION");
+
+    final List<ColumnType> columnTypes = Arrays.asList(new ColumnTypeImpl("STRING"),
+        new ColumnTypeImpl("STRING"));
+    final Map<String, Integer> columnNameToIndex = new HashMap<>();
+    // JNH: I'm not sure about the indexing here.
+    for (int i = 0; i < columnNames.size(); i++) {
+      columnNameToIndex.put(columnNames.get(i), i + 1);
+    }
+
+    try {
+      final List<String> streamNames =
+          client.listStreams().get().stream().map(StreamInfo::getName).collect(
+          Collectors.toList());
+      final List<String> tableNames =
+          client.listTables().get().stream().map(TableInfo::getName).collect(
+              Collectors.toList());
+      final List<Row> rows = Stream.concat(streamNames.stream(), tableNames.stream()).map(s ->
+              new RowImpl(columnNames, columnTypes,
+                  new JsonArray(Arrays.asList(s, s, s, "TABLE", "empty remarks",
+                      s, s, s, s, "USER")),
+                  columnNameToIndex))
+          .collect(Collectors.toList());
+      for (Row row : rows) {
+        System.out.println("\tGet schema returning schema named: " + row.getString(2));
+      }
+      return new KsqlResultSet(rows);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } catch (ExecutionException e) {
+      e.printStackTrace();
+    }
     return null;
   }
 
@@ -843,7 +879,14 @@ public class KsqlDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getTableTypes() throws SQLException {
     System.out.println("\t In KsqlDatabaseMetaData" + " ResultSet getTableTypes()");
-    return null;
+    final Map<String, Integer> columnNameToIndex = new HashMap<>();
+    columnNameToIndex.put("TABLE_TYPE", 1);
+    final Row row = new RowImpl(Collections.singletonList("TABLE_TYPE"),
+        Collections.singletonList(new ColumnTypeImpl("STRING")),
+        new JsonArray(Collections.singletonList("TABLE")),
+        columnNameToIndex
+    );
+    return new KsqlResultSet(Collections.singletonList(row));
   }
 
   @Override

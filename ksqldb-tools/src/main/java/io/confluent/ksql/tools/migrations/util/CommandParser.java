@@ -36,10 +36,13 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.AssertSchema;
+import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -69,6 +72,11 @@ public final class CommandParser {
   private static final Pattern UNDEFINE_VARIABLE = Pattern.compile(
       "\\s*UNDEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*;\\s*", Pattern.CASE_INSENSITIVE);
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
+  private static final String ASSERT = "ASSERT";
+  private static final String TOPIC = "TOPIC";
+  private static final String SCHEMA = "SCHEMA";
+  private static final String NOT = "NOT";
+  private static final String EXISTS = "EXISTS";
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
   private static final String VALUES = "VALUES";
@@ -107,7 +115,9 @@ public final class CommandParser {
     SET_PROPERTY,
     UNSET_PROPERTY,
     DEFINE_VARIABLE,
-    UNDEFINE_VARIABLE
+    UNDEFINE_VARIABLE,
+    ASSERT_TOPIC,
+    ASSERT_SCHEMA
   }
 
   private CommandParser() {
@@ -209,7 +219,9 @@ public final class CommandParser {
   /**
   * Determines the type of command a sql string is and returns a SqlCommand.
   */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static SqlCommand transformToSqlCommand(
+      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       final String sql, final Map<String, String> variables) {
 
     // Splits the sql string into tokens(uppercased keyowords, identifiers and strings)
@@ -234,6 +246,10 @@ public final class CommandParser {
         return getDefineVariableCommand(sql, variables);
       case UNDEFINE_VARIABLE:
         return getUndefineVariableCommand(sql);
+      case ASSERT_SCHEMA:
+        return getAssertSchemaCommand(sql, variables);
+      case ASSERT_TOPIC:
+        return getAssertTopicCommand(sql, variables);
       default:
         throw new IllegalStateException();
     }
@@ -349,6 +365,61 @@ public final class CommandParser {
     return new SqlUndefineVariableCommand(sql, undefineVariableMatcher.group(1));
   }
 
+  private static SqlAssertSchemaCommand getAssertSchemaCommand(
+      final String sql, final Map<String, String> variables) {
+    final AssertSchema assertSchema;
+    try {
+      final String substituted = VariableSubstitutor.substitute(
+          KSQL_PARSER.parse(sql).get(0),
+          variables
+      );
+      assertSchema = (AssertSchema) new AstBuilder(TypeRegistry.EMPTY)
+          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
+    } catch (ParseFailedException e) {
+      throw new MigrationException(String.format(
+          "Failed to parse ASSERT SCHEMA statement. Statement: %s. Reason: %s",
+          sql, e.getMessage()));
+    }
+    return new SqlAssertSchemaCommand(
+        sql,
+        assertSchema.getSubject(),
+        assertSchema.getId(),
+        assertSchema.checkExists(),
+        assertSchema.getTimeout().isPresent()
+            ? Optional.of(assertSchema.getTimeout().get().toDuration())
+            : Optional.empty()
+    );
+  }
+
+  private static SqlAssertTopicCommand getAssertTopicCommand(
+      final String sql, final Map<String, String> variables) {
+    final AssertTopic assertTopic;
+    final Map<String, Integer> configs;
+    try {
+      final String substituted = VariableSubstitutor.substitute(
+          KSQL_PARSER.parse(sql).get(0),
+          variables
+      );
+      assertTopic = (AssertTopic) new AstBuilder(TypeRegistry.EMPTY)
+          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
+      configs = assertTopic.getConfig().entrySet().stream()
+          .collect(Collectors.toMap(e -> e.getKey(), e -> (Integer) e.getValue().getValue()));
+    } catch (ParseFailedException e) {
+      throw new MigrationException(String.format(
+          "Failed to parse ASSERT TOPIC statement. Statement: %s. Reason: %s",
+          sql, e.getMessage()));
+    }
+    return new SqlAssertTopicCommand(
+        sql,
+        assertTopic.getTopic(),
+        configs,
+        assertTopic.checkExists(),
+        assertTopic.getTimeout().isPresent()
+            ? Optional.of(assertTopic.getTimeout().get().toDuration())
+            : Optional.empty()
+    );
+  }
+
   /**
    * Determines if a statement is supported and the type of command it is based on a list of tokens.
    */
@@ -367,10 +438,35 @@ public final class CommandParser {
       return StatementType.DEFINE_VARIABLE;
     } else if (isUndefineStatement(tokens)) {
       return StatementType.UNDEFINE_VARIABLE;
+    } else if (isAssertSchema(tokens)) {
+      return StatementType.ASSERT_SCHEMA;
+    } else if (isAssertTopic(tokens)) {
+      return StatementType.ASSERT_TOPIC;
     } else {
       validateSupportedStatementType(tokens);
       return StatementType.STATEMENT;
     }
+  }
+
+  private static boolean isAssertTopic(final List<String> tokens) {
+    return checkAssert(tokens, TOPIC);
+  }
+
+  private static boolean isAssertSchema(final List<String> tokens) {
+    return checkAssert(tokens, SCHEMA);
+  }
+
+  private static boolean checkAssert(final List<String> tokens, final String assertType) {
+    if (tokens.size() >= 1 && tokens.get(0).equals(ASSERT)) {
+      final boolean notExists =
+          tokens.size() >= 4 && tokens.get(1).equals(NOT) && tokens.get(2).equals(EXISTS);
+      if (notExists) {
+        return tokens.get(3).equals(assertType);
+      } else {
+        return tokens.get(1).equals(assertType);
+      }
+    }
+    return false;
   }
 
   private static boolean isInsertValuesStatement(final List<String> tokens) {
@@ -634,6 +730,86 @@ public final class CommandParser {
 
     public String getVariable() {
       return variable;
+    }
+  }
+
+  /**
+   * Represents ksqlDB ASSERT TOPIC commands.
+   */
+  public static class SqlAssertTopicCommand extends SqlCommand {
+    private final String topic;
+    private final Map<String, Integer> configs;
+    private final boolean exists;
+    private final Optional<Duration> timeout;
+
+    SqlAssertTopicCommand(
+        final String command,
+        final String topic,
+        final Map<String, Integer> configs,
+        final boolean exists,
+        final Optional<Duration> timeout
+    ) {
+      super(command);
+      this.topic = Objects.requireNonNull(topic);
+      this.configs = Objects.requireNonNull(configs);
+      this.exists = exists;
+      this.timeout = Objects.requireNonNull(timeout);
+    }
+
+    public String getTopic() {
+      return topic;
+    }
+
+    public Map<String, Integer> getConfigs() {
+      return configs;
+    }
+
+    public boolean getExists() {
+      return exists;
+    }
+
+    public Optional<Duration> getTimeout() {
+      return timeout;
+    }
+  }
+
+  /**
+   * Represents ksqlDB ASSERT SCHEMA commands.
+   */
+  public static class SqlAssertSchemaCommand extends SqlCommand {
+    private final Optional<String> subject;
+    private final Optional<Integer> id;
+    private final boolean exists;
+    private final Optional<Duration> timeout;
+
+    SqlAssertSchemaCommand(
+        final String command,
+        Optional<String> subject,
+        Optional<Integer> id,
+        final boolean exists,
+        final Optional<Duration> timeout
+    ) {
+      super(command);
+      this.subject = Objects.requireNonNull(subject);
+      this.id = Objects.requireNonNull(id);
+      this.exists = exists;
+      this.timeout = Objects.requireNonNull(timeout);
+    }
+
+    public Optional<String> getSubject() {
+      return subject;
+    }
+
+    public Optional<Integer> getId() {
+      return id;
+    }
+
+    public boolean getExists() {
+      return exists;
+    }
+
+    public Optional<Duration> getTimeout() {
+      return timeout;
     }
   }
 }

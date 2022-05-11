@@ -123,6 +123,8 @@ public class MigrationsTest {
       .withProperty(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
           KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .withStaticServiceContext(TEST_HARNESS::getServiceContext)
+      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
       .build();
 
   @ClassRule
@@ -266,6 +268,8 @@ public class MigrationsTest {
         configFilePath,
         migrationsDir,
         "CREATE STREAM ${streamName} (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
+            "ASSERT TOPIC FOO WITH (PARTITIONS=1) TIMEOUT 5 SECONDS;\n" +
+            "ASSERT NOT EXISTS SCHEMA ID 3 TIMEOUT 5 SECONDS;\n" +
             "DROP CONNECTOR IF EXISTS nonExistant;\n" +
             "-- let's create some connectors!!!\n" +
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +

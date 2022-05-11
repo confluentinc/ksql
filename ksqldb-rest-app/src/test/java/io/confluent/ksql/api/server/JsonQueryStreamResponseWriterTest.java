@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -27,7 +28,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,7 +42,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ProtobufQueryStreamResponseWriterTest {
+public class JsonQueryStreamResponseWriterTest {
   private static final String QUERY_ID = "queryId";
   private static final List<String> COL_NAMES = ImmutableList.of(
           "A", "B", "C"
@@ -59,10 +59,10 @@ public class ProtobufQueryStreamResponseWriterTest {
   @Mock
   private HttpServerResponse response;
 
-  private ProtobufQueryStreamResponseWriter writer;
+  private JsonQueryStreamResponseWriter writer;
   private final StringBuilder stringBuilder = new StringBuilder();
 
-  public ProtobufQueryStreamResponseWriterTest() {
+  public JsonQueryStreamResponseWriterTest() {
   }
 
   @Before
@@ -78,12 +78,7 @@ public class ProtobufQueryStreamResponseWriterTest {
       return response;
     });
 
-    writer = new ProtobufQueryStreamResponseWriter(response, Optional.empty(), Optional.empty());
-  }
-
-  private void setupWithMessages(String completionMessage, String limitMessage) {
-    writer = new ProtobufQueryStreamResponseWriter(
-            response, Optional.of(completionMessage), Optional.of(limitMessage));
+    writer = new JsonQueryStreamResponseWriter(response, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType());
   }
 
   @Test
@@ -98,74 +93,10 @@ public class ProtobufQueryStreamResponseWriterTest {
             "}\n";
 
     // When:
-    final String protoSchema = ProtobufQueryStreamResponseWriter
-            .logicalToProtoSchema(SCHEMA);
+    final String protoSchema = JsonQueryStreamResponseWriter.logicalToProtoSchema(SCHEMA);
 
     // Then:
     assertThat(protoSchema, is(expectedProtoSchemaString));
-  }
-
-  @Test
-  public void shouldSucceedWithLimitMessage() {
-    // Given:
-    setupWithMessages("complete!", "limit hit!");
-
-    // When:
-    writer.writeMetadata(new QueryResponseMetadata(QUERY_ID, COL_NAMES, COL_TYPES, SCHEMA));
-    writer.writeRow(new KeyValueMetadata<>(
-            KeyValue.keyValue(null, GenericRow.genericRow(123, 234.0d, ImmutableList.of("hello")))));
-    writer.writeRow(new KeyValueMetadata<>(
-            KeyValue.keyValue(null, GenericRow.genericRow(456, 789.0d, ImmutableList.of("bye")))));
-    writer.writeLimitMessage().end();
-
-    // Then:
-    assertThat(stringBuilder.toString(),
-            is("[{\"header\":{\"queryId\":\"queryId\"," +
-                    "\"protoSchema\":" +
-                    "\"syntax = \\\"proto3\\\";\\n" +
-                    "\\n" +
-                    "message ConnectDefault1 {\\n" +
-                    "  int32 A = 1;\\n" +
-                    "  double B = 2;\\n" +
-                    "  repeated string C = 3;\\n" +
-                    "}\\n" +
-                    "\"}},\n" +
-                    "{\"row\":\"CHsRAAAAAABAbUAaBWhlbGxv\"},\n" +
-                    "{\"row\":\"CMgDEQAAAAAAqIhAGgNieWU=\"},\n" +
-                    "{\"finalMessage\":\"limit hit!\"}]"));
-
-    verify(response, times(4)).write((Buffer) any());
-  }
-
-  @Test
-  public void shouldSucceedWithCompletionMessage() {
-    // Given:
-    setupWithMessages("complete!", "limit hit!");
-
-    // When:
-    writer.writeMetadata(new QueryResponseMetadata(QUERY_ID, COL_NAMES, COL_TYPES, SCHEMA));
-    writer.writeRow(new KeyValueMetadata<>(
-            KeyValue.keyValue(null, GenericRow.genericRow(123, 234.0d, ImmutableList.of("hello")))));
-    writer.writeRow(new KeyValueMetadata<>(
-            KeyValue.keyValue(null, GenericRow.genericRow(456, 789.0d, ImmutableList.of("bye")))));
-    writer.writeCompletionMessage().end();
-
-    // Then:
-    assertThat(stringBuilder.toString(),
-            is("[{\"header\":{\"queryId\":\"queryId\"," +
-                    "\"protoSchema\":" +
-                    "\"syntax = \\\"proto3\\\";\\n" +
-                    "\\n" +
-                    "message ConnectDefault1 {\\n" +
-                    "  int32 A = 1;\\n" +
-                    "  double B = 2;\\n" +
-                    "  repeated string C = 3;\\n" +
-                    "}\\n" +
-                    "\"}},\n" +
-                    "{\"row\":\"CHsRAAAAAABAbUAaBWhlbGxv\"},\n" +
-                    "{\"row\":\"CMgDEQAAAAAAqIhAGgNieWU=\"},\n" +
-                    "{\"finalMessage\":\"complete!\"}]"));
-    verify(response, times(4)).write((Buffer) any());
   }
 
   @Test
@@ -213,8 +144,8 @@ public class ProtobufQueryStreamResponseWriterTest {
                     "  double B = 2;\\n" +
                     "  repeated string C = 3;\\n" +
                     "}\\n" +
-                    "\"}},\n" +
-                    "{\"row\":\"CHsRAAAAAABAbUAaBWhlbGxv\"},\n" +
+                    "\"}}," +
+                    "{\"row\":\"CHsRAAAAAABAbUAaBWhlbGxv\"}," +
                     "{\"row\":\"CMgDEQAAAAAAqIhAGgNieWU=\"}" +
                     "]"));
     verify(response, times(3)).write((Buffer) any());

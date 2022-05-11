@@ -933,11 +933,11 @@ public class RestApiTest {
             "  int64 COUNT = 1;\\n" +
             "  string USERID = 2;\\n" +
             "}\\n" +
-            "\"}},\n" +
-            "{\"row\":\"CAESBlVTRVJfMA==\"},\n" +
-            "{\"row\":\"CAESBlVTRVJfMQ==\"},\n" +
-            "{\"row\":\"CAISBlVTRVJfMg==\"},\n" +
-            "{\"row\":\"CAISBlVTRVJfMw==\"},\n" +
+            "\"}}," +
+            "{\"row\":\"CAESBlVTRVJfMA==\"}," +
+            "{\"row\":\"CAESBlVTRVJfMQ==\"}," +
+            "{\"row\":\"CAISBlVTRVJfMg==\"}," +
+            "{\"row\":\"CAISBlVTRVJfMw==\"}," +
             "{\"row\":\"CAESBlVTRVJfNA==\"}" +
             "]";
 

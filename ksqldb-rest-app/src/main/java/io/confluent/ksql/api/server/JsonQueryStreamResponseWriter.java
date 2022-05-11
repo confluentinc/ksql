@@ -15,18 +15,36 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.api.server.ServerUtils.serializeObject;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.connect.protobuf.ProtobufData;
+import io.confluent.connect.protobuf.ProtobufDataConfig;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
+import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRSerdeFactory;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,16 +72,34 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
       = LoggerFactory.getLogger(JsonQueryStreamResponseWriter.class);
 
   private final HttpServerResponse response;
+  private final String mediaType;
+  private ConnectSchema connectSchema;
+  private KsqlConnectSerializer<Struct> serializer;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public JsonQueryStreamResponseWriter(final HttpServerResponse response) {
+  public JsonQueryStreamResponseWriter(final HttpServerResponse response, final String mediaType) {
     this.response = Objects.requireNonNull(response);
+    this.mediaType = Objects.requireNonNull(mediaType);
   }
 
   @Override
   public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
-    buff.appendBuffer(ServerUtils.serializeObject(metaData));
+    if (mediaType.equals(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())) {
+      final LogicalSchema schema = metaData.schema;
+      final String queryId = metaData.queryId;
+
+      connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+      serializer = new ProtobufNoSRSerdeFactory(ImmutableMap.of())
+              .createSerializer(connectSchema, Struct.class, false);
+
+      final StreamedRow header = StreamedRow.headerProtobuf(
+              new QueryId(queryId), logicalToProtoSchema(schema));
+
+      buff.appendBuffer(serializeObject(header));
+    } else {
+      buff.appendBuffer(ServerUtils.serializeObject(metaData));
+    }
     response.write(buff);
     return this;
   }
@@ -76,7 +112,23 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
     if (keyValue.value() == null) {
       LOG.warn("Dropped tombstone. Not currently supported");
     } else {
-      writeBuffer(ServerUtils.serializeObject(keyValue.value().values()));
+      if (mediaType.equals(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())) {
+        final Struct ksqlRecord = new Struct(connectSchema);
+        int i = 0;
+        for (Field field : connectSchema.fields()) {
+          ksqlRecord.put(
+                  field,
+                  keyValue.value().get(i));
+          i += 1;
+        }
+        final byte[] protoMessage = serializer.serialize("", ksqlRecord);
+        final Optional<StreamedRow.DataRowProtobuf> protoRow =
+                StreamedRow.pullRowProtobuf(protoMessage).getRowProtobuf();
+        writeBuffer(serializeObject(protoRow));
+      } else {
+        writeBuffer(ServerUtils.serializeObject(keyValue.value().values()));
+      }
+
     }
     return this;
   }
@@ -119,5 +171,14 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   @Override
   public void end() {
     response.write("]").end();
+  }
+
+  @VisibleForTesting
+  static String logicalToProtoSchema(final LogicalSchema schema) {
+    final ConnectSchema connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+
+    final ProtobufSchema protobufSchema = new ProtobufData(
+            new ProtobufDataConfig(ImmutableMap.of())).fromConnectSchema(connectSchema);
+    return protobufSchema.canonicalString();
   }
 }

@@ -152,17 +152,14 @@ public class RestTestExecutor implements Closeable {
     }
 
     initializeTopics(testCase);
-
     testCase.getProperties().forEach(restClient::setProperty);
 
     try {
       final Optional<List<RqttResponse>> adminResults =
           sendAdminStatements(testCase, statements.admin);
-
       if (!adminResults.isPresent()) {
         return;
       }
-
       final boolean waitForActivePushQueryToProduceInput = testCase.getInputConditions().isPresent()
           && testCase.getInputConditions().get().getWaitForActivePushQuery();
       final Optional<InputConditionsParameters> postInputConditionRunnable;
@@ -181,7 +178,6 @@ public class RestTestExecutor implements Closeable {
 
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
           postInputConditionRunnable);
-
 
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);
@@ -212,7 +208,6 @@ public class RestTestExecutor implements Closeable {
       // Give a few seconds for the transient queries to complete, otherwise, we'll go into teardown
       // and leave the queries stuck.
       waitForTransientQueriesToComplete();
-
     } finally {
       testCase.getProperties().keySet().forEach(restClient::unsetProperty);
     }
@@ -1096,7 +1091,7 @@ public class RestTestExecutor implements Closeable {
           final String actualSchema = (String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA);
           final String expectedSchema = (String) ((Map<?, ?>)expected.get(HEADER_PROTOBUF)).get(SCHEMA);
 
-          assert(actualSchema.equals(expectedSchema));
+          assertThat(actualSchema, is(expectedSchema));
         } else if (actual.containsKey("finalMessage")) {
           assert(expected.equals(actual));
         } else {
@@ -1113,7 +1108,7 @@ public class RestTestExecutor implements Closeable {
           final String actualMessage = message.toString();
           final String expectedMessage = expected.get("row").toString();
 
-          assert(actualMessage.equals(expectedMessage));
+          assertThat(actualMessage, is(expectedMessage));
         }
       }
     }

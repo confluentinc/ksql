@@ -120,11 +120,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       final boolean bufferOutput
   ) {
     final String contentType = routingContext.getAcceptableContentType();
-    if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)
-            && !queryPublisher.isScalablePushQuery()) {
-      return new ProtobufQueryStreamResponseWriter(
-              routingContext.response(), completionMessage, limitMessage);
-    } else if (DELIMITED_CONTENT_TYPE.equals(contentType)
+    if (DELIMITED_CONTENT_TYPE.equals(contentType)
         || (contentType == null && !queryCompatibilityMode)) {
       // Default
       return new DelimitedQueryStreamResponseWriter(routingContext.response());
@@ -134,7 +130,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       return new JsonStreamedRowResponseWriter(routingContext.response(), queryPublisher,
           completionMessage, limitMessage, Clock.systemUTC(), bufferOutput, context);
     } else {
-      return new JsonQueryStreamResponseWriter(routingContext.response());
+      return new JsonQueryStreamResponseWriter(
+              routingContext.response(), routingContext.getAcceptableContentType());
     }
   }
 

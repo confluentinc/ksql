@@ -59,7 +59,7 @@ public class ProtobufProperties extends ConnectProperties {
   }
 
   public ProtobufProperties withFullSchemaName(final String name) {
-    final ImmutableMap.Builder builder = ImmutableMap.builder();
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     builder.putAll(properties);
     builder.put(FULL_SCHEMA_NAME, name);
     return new ProtobufProperties(builder.build());

@@ -62,6 +62,7 @@ import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
@@ -87,8 +88,11 @@ public class KsqlRestoreCommandTopic {
       final RestoreOptions restoreOptions,
       final KsqlConfig ksqlConfig
   ) throws IOException {
-    final BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file);
-    List<Pair<byte[], byte[]>> records = commandTopicBackupFile.readRecords();
+
+    List<Pair<byte[], byte[]>> records;
+    try (BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file)) {
+      records = commandTopicBackupFile.readRecords();
+    }
 
     records = checkValidCommands(
         records,
@@ -122,9 +126,10 @@ public class KsqlRestoreCommandTopic {
     for (final Pair<byte[], byte[]> record : records) {
       n++;
 
-      try {
-        InternalTopicSerdes.deserializer(CommandId.class)
-            .deserialize(null, record.getLeft());
+      try (Deserializer<CommandId> deserializer =
+          InternalTopicSerdes.deserializer(CommandId.class)
+      ) {
+        deserializer.deserialize(null, record.getLeft());
       } catch (final Exception e) {
         throw new KsqlException(String.format(
             "Invalid CommandId string (line %d): %s (%s)",
@@ -132,9 +137,10 @@ public class KsqlRestoreCommandTopic {
         ));
       }
 
-      try {
-        InternalTopicSerdes.deserializer(Command.class)
-            .deserialize(null, record.getRight());
+      try (Deserializer<Command> deserializer =
+          InternalTopicSerdes.deserializer(Command.class)
+      ) {
+        deserializer.deserialize(null, record.getRight());
       } catch (final SerializationException | IncompatibleKsqlCommandVersionException e) {
         if (skipIncompatibleCommands) {
           incompatibleCommands.add(record.getRight());
@@ -156,10 +162,10 @@ public class KsqlRestoreCommandTopic {
     }
 
     if (skipIncompatibleCommands) {
-      System.out.println(
-          String.format(
-              "%s incompatible command(s) skipped from backup file.",
-              numFilteredCommands));
+      System.out.printf(
+          "%s incompatible command(s) skipped from backup file.%n",
+          numFilteredCommands
+      );
       incompatibleCommands.forEach(command -> maybeCleanUpQuery(command, ksqlConfig));
     }
     return filteredRecords;
@@ -196,7 +202,7 @@ public class KsqlRestoreCommandTopic {
     final Console console = System.console();
     final String decision = console.readLine();
 
-    return "yes".equals(decision.toLowerCase());
+    return "yes".equalsIgnoreCase(decision);
   }
 
   /**
@@ -242,13 +248,15 @@ public class KsqlRestoreCommandTopic {
     try {
       backupCommands = loadBackup(backupFile, restoreOptions, serverConfig);
     } catch (final Exception e) {
-      System.err.println(String.format(
-          "Failed loading backup file.%nError = %s", e.getMessage()));
+      System.err.printf("Failed loading backup file.%nError = %s%n", e.getMessage());
       systemExit.exit(1);
     }
 
-    System.out.println(String.format(
-        "Backup (%d records) loaded in memory in %s ms.", backupCommands.size(), currentTimer()));
+    System.out.printf(
+        "Backup (%d records) loaded in memory in %s ms.%n",
+        backupCommands.size(),
+        currentTimer()
+    );
     System.out.println();
 
     System.out.println("Restoring command topic ...");
@@ -257,13 +265,11 @@ public class KsqlRestoreCommandTopic {
     try {
       restoreMetadata.restore(backupCommands);
     } catch (final Exception e) {
-      System.err.println(String.format(
-          "Failed restoring command topic.%nError = %s", e.getMessage()));
+      System.err.printf("Failed restoring command topic.%nError = %s%n", e.getMessage());
       systemExit.exit(1);
     }
 
-    System.out.println(String.format(
-        "Restore process completed in %d ms.", currentTimer()));
+    System.out.printf("Restore process completed in %d ms.%n", currentTimer());
     System.out.println();
 
     System.out.println("You need to restart the ksqlDB server to re-load the command topic.");
@@ -404,6 +410,7 @@ public class KsqlRestoreCommandTopic {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static void maybeCleanUpQuery(final byte[] command, final KsqlConfig ksqlConfig) {
     boolean queryIdFound = false;
     final Map<String, Object> streamsProperties =
@@ -449,12 +456,12 @@ public class KsqlRestoreCommandTopic {
             Time.SYSTEM,
             true,
             ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).clean();
-        System.out.println(
-            String.format(
-                "Cleaned up internal state store and internal topics for query %s",
-                topicPrefix));
+        System.out.printf(
+            "Cleaned up internal state store and internal topics for query %s%n",
+            topicPrefix
+        );
       } catch (final Exception e) {
-        System.out.println(String.format("Failed to clean up query %s ", topicPrefix));
+        System.out.printf("Failed to clean up query %s %n", topicPrefix);
       }
     }
   }

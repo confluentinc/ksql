@@ -26,7 +26,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -66,7 +65,6 @@ public class HealthCheckAgent {
   public HealthCheckAgent(
       final SimpleKsqlClient ksqlClient,
       final KsqlRestConfig restConfig,
-      final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final CommandRunner commandRunner,
       final Admin adminClient
@@ -146,7 +144,7 @@ public class HealthCheckAgent {
         healthCheckAgent.adminClient
             .describeTopics(Collections.singletonList(commandTopic),
                 new DescribeTopicsOptions().timeoutMs(DESCRIBE_TOPICS_TIMEOUT_MS))
-            .all()
+            .allTopicNames()
             .get();
 
         isHealthy = true;

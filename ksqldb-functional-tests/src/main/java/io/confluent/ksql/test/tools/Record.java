@@ -19,11 +19,10 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.model.WindowData;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.streams.kstream.Window;
@@ -40,7 +39,7 @@ public class Record {
   private final WindowData window;
   private final Optional<JsonNode> jsonValue;
   private final Optional<JsonNode> jsonKey;
-  private final Optional<List<TestHeader>> headers;
+  private final Optional<List<Header>> headers;
 
   public Record(
       final String topicName,
@@ -50,7 +49,7 @@ public class Record {
       final JsonNode jsonValue,
       final Optional<Long> timestamp,
       final WindowData window,
-      final Optional<List<TestHeader>> headers
+      final Optional<List<Header>> headers
   ) {
     this.topicName = requireNonNull(topicName, "topicName");
     this.key = key;
@@ -116,7 +115,7 @@ public class Record {
   /**
    * @return expected headers, or {@link Optional#empty()} if headers can be anything.
    */
-  public Optional<List<TestHeader>> headers() {
+  public Optional<List<Header>> headers() {
     return headers;
   }
 
@@ -124,11 +123,7 @@ public class Record {
    * @return expected headers, or {@link Optional#empty()} if headers can be anything.
    */
   public Optional<List<Header>> headersAsHeaders() {
-    return headers
-        .map(heads ->
-            heads.stream()
-                .map(testHeader -> (Header) testHeader)
-                .collect(Collectors.toList()));
+    return headers.map(ArrayList::new);
   }
 
   public Record withKeyValue(final Object key, final Object value) {
@@ -144,8 +139,8 @@ public class Record {
     );
   }
 
-  public ProducerRecord asProducerRecord() {
-    return new ProducerRecord(
+  public ProducerRecord<Object, Object> asProducerRecord() {
+    return new ProducerRecord<>(
         topicName,
         0,
         timestamp.orElse(0L),

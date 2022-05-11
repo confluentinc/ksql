@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.common.header.Header;
 
 @JsonDeserialize(using = RecordNode.Deserializer.class)
 @JsonSerialize(using = RecordNode.Serializer.class)
@@ -69,7 +70,7 @@ public final class RecordNode {
   private final JsonNode value;
   private final Optional<Long> timestamp;
   private final Optional<WindowData> window;
-  private final Optional<List<TestHeader>> headers;
+  private final Optional<List<Header>> headers;
 
   @VisibleForTesting
   RecordNode(
@@ -78,7 +79,7 @@ public final class RecordNode {
       final JsonNode value,
       final Optional<Long> timestamp,
       final Optional<WindowData> window,
-      final Optional<List<TestHeader>> headers
+      final Optional<List<Header>> headers
   ) {
     this.topicName = topicName == null ? "" : topicName;
     this.key = requireNonNull(key, "key");
@@ -153,6 +154,7 @@ public final class RecordNode {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private Object coerceRecord(
       final Object record,
       final ParsedSchema schema,
@@ -177,7 +179,7 @@ public final class RecordNode {
         return record;
     }
 
-    columns.stream().forEach(c -> coerceColumn(recordMap, c));
+    columns.forEach(c -> coerceColumn(recordMap, c));
     return recordMap;
   }
 
@@ -223,8 +225,8 @@ public final class RecordNode {
       final Optional<WindowData> window = JsonParsingUtil
           .getOptional("window", node, jp, WindowData.class);
 
-      final Optional<List<TestHeader>> headers = JsonParsingUtil
-          .getOptional("headers", node, jp, new TypeReference<List<TestHeader>>() {});
+      final Optional<List<Header>> headers = JsonParsingUtil
+          .getOptional("headers", node, jp, new TypeReference<List<Header>>() {});
 
       return new RecordNode(
           topic, key.orElse(NullNode.getInstance()), value, timestamp, window, headers);

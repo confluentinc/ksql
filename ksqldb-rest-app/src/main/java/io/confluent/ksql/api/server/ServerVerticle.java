@@ -30,6 +30,8 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -354,9 +356,29 @@ public class ServerVerticle extends AbstractVerticle {
         .setStatusCode(TEMPORARY_REDIRECT.code()).end();
   }
 
+  private static final class VertexHandler implements Handler<AsyncResult<ServerWebSocket>> {
+    ServerWebSocket serverWebSocket;
+
+    @Override
+    public void handle(final AsyncResult<ServerWebSocket> event) {
+      serverWebSocket = event.result();
+    }
+
+    ServerWebSocket getServerWebSocket() {
+      if (serverWebSocket == null) {
+        throw new IllegalStateException();
+      }
+      return serverWebSocket;
+    }
+  }
+
   private void handleWebsocket(final RoutingContext routingContext) {
     final ApiSecurityContext apiSecurityContext = DefaultApiSecurityContext.create(routingContext);
-    final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
+
+    final VertexHandler handler = new VertexHandler();
+    routingContext.request().toWebSocket(handler);
+    final ServerWebSocket serverWebSocket = handler.getServerWebSocket();
+
     endpoints
         .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
             server.getWorkerExecutor(), apiSecurityContext, context);

@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.test.model.TestHeader;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -52,7 +51,7 @@ public final class ExpectedRecordComparator {
   }
 
   public static boolean matches(
-      final Header[] actualHeaders, final List<TestHeader> expectedHeaders) {
+      final Header[] actualHeaders, final List<Header> expectedHeaders) {
     if (actualHeaders.length != expectedHeaders.size()) {
       return false;
     }

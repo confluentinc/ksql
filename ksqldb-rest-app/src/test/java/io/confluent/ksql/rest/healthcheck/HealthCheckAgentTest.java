@@ -106,7 +106,7 @@ public class HealthCheckAgentTest {
         "default_"
     ));
 
-    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, serviceContext, ksqlConfig, commandRunner, internalAdminClient);
+    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, ksqlConfig, commandRunner, internalAdminClient);
   }
 
   @Test

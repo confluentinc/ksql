@@ -56,7 +56,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.model.SourceNode;
-import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
@@ -525,8 +524,7 @@ public class TestExecutor implements Closeable {
     testDriver.getSourceTopic(producedRecord.topic())
         .pipeInput(new TestRecord<>(producedRecord));
 
-    testDriver.getSinkTopicName().ifPresent(topicName -> {
-      final String sinkTopicName = topicName;
+    testDriver.getSinkTopicName().ifPresent(sinkTopicName -> {
       final TestOutputTopic<byte[], byte[]> sinkTopic = testDriver.getSinkTopic(sinkTopicName);
 
       processRecordsForTopic(sinkTopic, sinkTopicName);
@@ -585,8 +583,10 @@ public class TestExecutor implements Closeable {
     );
   }
 
-  static KsqlEngine getKsqlEngine(final ServiceContext serviceContext,
-      final Optional<String> extensionDir) {
+  static KsqlEngine getKsqlEngine(
+      final ServiceContext serviceContext,
+      final Optional<String> extensionDir
+  ) {
     final FunctionRegistry functionRegistry;
     if (extensionDir.isPresent()) {
       final MutableFunctionRegistry mutable = new InternalFunctionRegistry();
@@ -632,6 +632,7 @@ public class TestExecutor implements Closeable {
         .forEach(kafka::writeRecord);
   }
 
+  @SuppressWarnings("unchecked")
   private static Object coerceRecordFields(final Object record) {
     if (!(record instanceof Map)) {
       return record;
@@ -668,7 +669,7 @@ public class TestExecutor implements Closeable {
         .orElseThrow(() -> new KsqlServerException(
             "could not get expected value from test record: " + expectedRecord));
     final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
-    final List<TestHeader> expectedHeaders = expectedRecord.headers().orElse(ImmutableList.of());
+    final List<Header> expectedHeaders = expectedRecord.headers().orElse(ImmutableList.of());
 
     final AssertionError error = new AssertionError(
         "Topic '" + topicName + "', message " + messageIndex

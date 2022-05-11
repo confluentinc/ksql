@@ -11,7 +11,7 @@
 
 Users may wish to pause a query for a number of reasons and then resume processing.  As examples, users may wish to modify data pipelines built from persistent queries or to manage computational resources.
 
-Presently to manage processing, they would have to terminate a query and recreate it.  This approach means that any state would have to be restored; the goal of this work is to add the capability to pause processing temporarily while allowing Kafka consumers and state stores to be retained.
+Presently to manage processing, they would have to terminate a query and recreate it.  This approach means that any state would have to be recomputed; the goal of this work is to add the capability to pause processing temporarily while allowing Kafka consumers and state stores to be retained.
 
 ## What is in scope
 

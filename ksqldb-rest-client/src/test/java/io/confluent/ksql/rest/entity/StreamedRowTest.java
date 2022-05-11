@@ -28,6 +28,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -146,9 +147,11 @@ public class StreamedRowTest {
 
   @Test
   public void shouldRoundTripPullProtoRow() throws Exception {
-    final StreamedRow row = StreamedRow.pullRowProtobuf("hello".getBytes());
+    final byte[] message = new byte[]{64};
 
-    final String expectedJson = "{\"rowProtobuf\":{\"row\":\"aGVsbG8=\"}}";
+    final StreamedRow row = StreamedRow.pullRowProtobuf(message);
+
+    final String expectedJson = "{\"rowProtobuf\":{\"row\":\"QA==\"}}";
 
     testRoundTrip(row, expectedJson);
   }

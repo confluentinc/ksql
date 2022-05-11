@@ -17,7 +17,6 @@ package io.confluent.ksql.jdbc;
 
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ColumnType;
-import io.confluent.ksql.api.client.ColumnType.Type;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.TableInfo;
@@ -29,7 +28,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -680,7 +678,7 @@ public class KsqlDatabaseMetaData implements DatabaseMetaData {
               columnNameToIndex))
           .collect(Collectors.toList());
       for (Row row : rows) {
-        System.out.println("\tGet schema returning schema named: " + row.getString(0));
+        System.out.println("\tGet schema returning schema named: " + row.getString(1));
       }
       return new KsqlResultSet(rows);
     } catch (InterruptedException e) {

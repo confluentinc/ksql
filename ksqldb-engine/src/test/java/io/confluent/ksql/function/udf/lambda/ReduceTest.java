@@ -23,8 +23,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.codegen.helpers.TriFunction;
-import io.confluent.ksql.function.GenericsUtil;
-import io.confluent.ksql.util.KsqlException;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;

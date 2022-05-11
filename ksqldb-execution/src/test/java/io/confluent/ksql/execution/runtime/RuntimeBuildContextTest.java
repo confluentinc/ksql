@@ -16,8 +16,7 @@
 package io.confluent.ksql.execution.runtime;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -32,6 +31,8 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
@@ -53,9 +54,11 @@ import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -99,6 +102,10 @@ public class RuntimeBuildContextTest {
   @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
+  private ProcessingLoggerFactory processingLogFactory;
+  @Mock
+  private ProcessingLogger processingLogger;
+  @Mock
   private FunctionRegistry functionRegistry;
   @Mock
   private Serde<GenericKey> keySerde;
@@ -115,7 +122,6 @@ public class RuntimeBuildContextTest {
   private QueryContext queryContext;
   private RuntimeBuildContext runtimeBuildContext;
 
-
   @Before
   public void setUp() {
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
@@ -130,6 +136,8 @@ public class RuntimeBuildContextTest {
 
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(valueSerde);
+
+    when(processingLogContext.getLoggerFactory()).thenReturn(processingLogFactory);
 
     runtimeBuildContext = new RuntimeBuildContext(
         streamsBuilder,
@@ -317,5 +325,17 @@ public class RuntimeBuildContextTest {
             differentSchema,
             queryContext
         ));
+  }
+
+  @Test
+  public void shouldReturnProcessingLogger() {
+    // When:
+    when(processingLogFactory.getLogger(
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext), Collections.singletonMap("query-id", QUERY_ID.toString())))
+        .thenReturn(processingLogger);
+    final ProcessingLogger logger = runtimeBuildContext.getProcessingLogger(queryContext);
+
+    // Then:
+    assertThat(processingLogger, equalTo(logger));
   }
 }

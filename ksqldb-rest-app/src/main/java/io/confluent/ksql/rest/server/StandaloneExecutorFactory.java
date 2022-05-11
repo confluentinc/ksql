@@ -124,7 +124,11 @@ public final class StandaloneExecutorFactory {
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(properties);
     final ProcessingLogContext processingLogContext
-        = ProcessingLogContext.create(processingLogConfig);
+        = ProcessingLogContext.create(
+            processingLogConfig,
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+    );
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 

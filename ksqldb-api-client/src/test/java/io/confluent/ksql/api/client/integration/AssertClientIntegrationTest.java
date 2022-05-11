@@ -80,10 +80,10 @@ public class AssertClientIntegrationTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics("abc");
+    // registers a schema under the subject name "abc-value"
     TEST_HARNESS.ensureSchema("abc", SCHEMA, false);
   }
 

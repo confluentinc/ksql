@@ -16,7 +16,11 @@
 package io.confluent.ksql.jdbc;
 
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.ColumnType.Type;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.StreamInfo;
+import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.impl.ColumnTypeImpl;
 import io.confluent.ksql.api.client.impl.RowImpl;
 import io.vertx.core.json.JsonArray;
@@ -25,9 +29,15 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class KsqlDatabaseMetaData implements DatabaseMetaData {
   private final Client client;
@@ -648,6 +658,36 @@ public class KsqlDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public ResultSet getSchemas() throws SQLException {
+
+
+    try {
+      final List<String> columnNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
+      final List<ColumnType> columnTypes = Arrays.asList(new ColumnTypeImpl("STRING"),
+          new ColumnTypeImpl("STRING"));
+      final Map<String, Integer> columnNameToIndex = new HashMap<>();
+      // JNH: I'm not sure about the indexing here.
+      columnNameToIndex.put(columnNames.get(0), 1);
+      columnNameToIndex.put(columnNames.get(1), 2);
+
+      final List<String> streamNames =
+          client.listStreams().get().stream().map(StreamInfo::getName).collect(
+          Collectors.toList());
+      final List<String> tableNames =
+          client.listTables().get().stream().map(TableInfo::getName).collect(
+              Collectors.toList());
+      final List<Row> rows = Stream.concat(streamNames.stream(), tableNames.stream()).map(s ->
+          new RowImpl(columnNames, columnTypes, new JsonArray(Arrays.asList(s, "default")),
+              columnNameToIndex))
+          .collect(Collectors.toList());
+      for (Row row : rows) {
+        System.out.println("\tGet schema returning schema named: " + row.getString(0));
+      }
+      return new KsqlResultSet(rows);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } catch (ExecutionException e) {
+      e.printStackTrace();
+    }
     return null;
   }
 

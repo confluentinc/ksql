@@ -165,6 +165,7 @@ public class DistributingExecutor {
       final KsqlExecutionContext executionContext,
       final KsqlSecurityContext securityContext
   ) {
+    System.out.println("JNH: executing statement " + statement);
     final String commandRunnerWarningString = commandRunnerWarning.get();
     if (!commandRunnerWarningString.equals("")) {
       throw new KsqlServerException("Failed to handle Ksql Statement."
@@ -223,6 +224,7 @@ public class DistributingExecutor {
           injected,
           executionContext.createSandbox(executionContext.getServiceContext())
       );
+      System.out.println("JNH: Distributed executor: " + command);
       final QueuedCommandStatus queuedCommandStatus =
           commandQueue.enqueueCommand(commandId, command, transactionalProducer);
 

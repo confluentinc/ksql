@@ -139,6 +139,16 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
   }
 
   @Override
+  public void pause() {
+    System.out.println("In TransientQueryMetadata.java.  pause() is a no-op");
+  }
+
+  @Override
+  public void resume() {
+    System.out.println("In TransientQueryMetadata.java.  resume() is a no-op");
+  }
+
+  @Override
   public void close() {
     // Push queries can be closed by both terminate commands and the client ending the request, so
     // we ensure that there's no race and that close is called just once.

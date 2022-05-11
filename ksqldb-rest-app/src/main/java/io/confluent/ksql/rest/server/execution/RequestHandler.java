@@ -107,6 +107,7 @@ public class RequestHandler {
       final SessionProperties sessionProperties,
       final KsqlEntityList entities
   ) {
+    System.out.println("JNH: RequestHandler: " + prepared);
     final Class<? extends Statement> statementClass = prepared.getStatement().getClass();
     
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);

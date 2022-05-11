@@ -439,8 +439,7 @@ public final class ListSourceExecutor {
                 ? ImmutableSet.of(q.getResultTopic().get().getKafkaTopicName())
                 : ImmutableSet.of(),
             q.getQueryId(),
-            QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(q.getState(), 1)),
+            new QueryStatusCount(Collections.singletonMap(q.getQueryStatus(), 1)),
             KsqlConstants.KsqlQueryType.PERSISTENT)).collect(Collectors.toList());
   }
 

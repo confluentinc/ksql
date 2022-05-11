@@ -228,6 +228,17 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   }
 
   @Override
+  public void pause(final QueryId queryId) {
+    System.out.println("In shared runtime calling pause for " + queryId);
+    //kafkaStreams.getTopologyByName(queryId.toString()).get()
+  }
+
+  @Override
+  public void resume(final QueryId queryId) {
+    System.out.println("In shared runtime calling resume for " + queryId);
+  }
+
+  @Override
   public void start(final QueryId queryId) {
     log.info("Attempting to start query {} in runtime {}", queryId, getApplicationId());
     if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {

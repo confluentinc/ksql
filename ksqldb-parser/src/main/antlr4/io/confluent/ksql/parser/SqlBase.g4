@@ -63,6 +63,10 @@ statement
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE identifier                                                  #terminateQuery
     | TERMINATE ALL                                                         #terminateQuery
+    | PAUSE identifier                                                      #pauseQuery
+    | PAUSE ALL                                                             #pauseQuery
+    | RESUME identifier                                                     #resumeQuery
+    | RESUME ALL                                                            #resumeQuery
     | SET STRING EQ STRING                                                  #setProperty
     | ALTER SYSTEM STRING EQ STRING                                         #alterSystemProperty
     | UNSET STRING                                                          #unsetProperty
@@ -524,6 +528,8 @@ TOPICS: 'TOPICS';
 QUERY: 'QUERY';
 QUERIES: 'QUERIES';
 TERMINATE: 'TERMINATE';
+PAUSE: 'PAUSE';
+RESUME: 'RESUME';
 LOAD: 'LOAD';
 COLUMNS: 'COLUMNS';
 COLUMN: 'COLUMN';

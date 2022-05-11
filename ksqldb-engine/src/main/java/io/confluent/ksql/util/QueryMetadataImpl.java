@@ -36,10 +36,10 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
-import java.util.Queue;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -271,6 +271,11 @@ public class QueryMetadataImpl implements QueryMetadata {
     return topology;
   }
 
+  @Override
+  public Optional<Sensor> getRestartMetricsSensor() {
+    return restartSensor;
+  }
+
   public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
     try {
       return kafkaStreams.allLocalStorePartitionLags();
@@ -341,11 +346,6 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   Listener getListener() {
     return listener;
-  }
-
-  @VisibleForTesting
-  protected Optional<Sensor> getRestartSensor() {
-    return restartSensor;
   }
 
   private void resetKafkaStreams(final KafkaStreams kafkaStreams) {
@@ -489,17 +489,13 @@ public class QueryMetadataImpl implements QueryMetadata {
       }
 
       sensor.ifPresent(Sensor::record);
-      if (numRetries.containsKey(threadName)) {
-        numRetries.put(threadName, numRetries.get(threadName) + 1);
-      } else {
-        numRetries.put(threadName, 1);
-      }
+      final int retries = numRetries.merge(threadName, 1, Integer::sum);
 
       LOG.info(
           "Restarting query {} thread {} (attempt #{})",
           queryId,
           threadName,
-          numRetries.get(threadName));
+          retries);
 
       // Math.max() prevents overflow if now is Long.MAX_VALUE (found just in tests)
       this.expiryTimeMs = Math.max(now, now + waitingTimeMs);

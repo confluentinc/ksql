@@ -23,7 +23,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
@@ -73,6 +75,8 @@ public interface QueryMetadata {
 
   KafkaStreams getKafkaStreams();
 
+  Optional<Sensor> getRestartMetricsSensor();
+
   void close();
 
   void start();
@@ -81,9 +85,9 @@ public interface QueryMetadata {
 
     long nextRestartTimeMs();
 
-    int getNumRetries(final String threadName);
+    int getNumRetries(String threadName);
 
-    void backOff(final String threadName);
+    void backOff(String threadName);
   }
 
   interface Listener {

@@ -17,7 +17,6 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -359,7 +358,7 @@ public class QueryMetadataTest {
         RETRY_BACKOFF_INITIAL_MS,
         RETRY_BACKOFF_MAX_MS,
         ticker,
-        query.getRestartSensor()
+        query.getRestartMetricsSensor()
     );
     retryEvent.backOff("thread-name");
     retryEvent.backOff("thread-name");
@@ -386,7 +385,7 @@ public class QueryMetadataTest {
 
   private double getMetricValue(final String queryId, final Map<String, String> metricsTags) {
     final Map<String, String> customMetricsTags = new HashMap<>(metricsTags);
-    customMetricsTags.put("query_id", queryId);
+    customMetricsTags.put("query-id", queryId);
     final Metrics metrics = metricCollectors.getMetrics();
     return Double.parseDouble(
         metrics.metric(

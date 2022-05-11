@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,22 +23,31 @@ public final class MetricsTagsUtil {
 
   private MetricsTagsUtil() {}
 
-  public static Map<String, String> getCustomMetricsTagsForQuery(
-      final String id,
-      final KsqlConfig config
+  public static Map<String, String> getMetricsTagsWithQueryId(
+      final String queryId,
+      final Map<String, String> tags
   ) {
-    return getCustomMetricsTagsForQuery(
-        id,
-        config.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
+    if (queryId.equals("")) {
+      return tags;
+    }
+    return addMetricTagToMap("query-id", queryId, tags);
   }
 
-  public static Map<String, String> getCustomMetricsTagsForQuery(
-      final String id,
-      final Map<String, String> metricsTags
+  public static Map<String, String> getMetricsTagsWithLoggerId(
+      final String loggerId,
+      final Map<String, String> tags
   ) {
-    final Map<String, String> customMetricsTags =
-        new HashMap<>(metricsTags);
-    customMetricsTags.put("query_id", id);
-    return customMetricsTags;
+    return addMetricTagToMap("logger-id", loggerId, tags);
+  }
+
+  private static Map<String, String> addMetricTagToMap(
+      final String tagName,
+      final String tagValue,
+      final Map<String, String> tags
+  ) {
+    final Map<String, String> newMetricsTags =
+        new HashMap<>(tags);
+    newMetricsTags.put(tagName, tagValue);
+    return ImmutableMap.copyOf(newMetricsTags);
   }
 }

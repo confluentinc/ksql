@@ -10,7 +10,7 @@
   "tests": [
     {
       "name": "topk integer",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}');",
         "CREATE TABLE S2 as SELECT ID, topk(value, 3) as topk FROM test group by id;"
@@ -32,7 +32,7 @@
     },
     {
       "name": "topk long",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE S2 as SELECT ID, topk(value, 3) as topk FROM test group by id;"
@@ -54,7 +54,7 @@
     },
     {
       "name": "topk double",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE S2 as SELECT ID, topk(value, 3) as topk FROM test group by id;"
@@ -76,7 +76,7 @@
     },
     {
       "name": "topk string",
-      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE string) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE S2 as SELECT ID, topk(value, 3) as topk FROM test group by id;"

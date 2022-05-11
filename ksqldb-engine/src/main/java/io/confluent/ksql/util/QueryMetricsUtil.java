@@ -15,12 +15,11 @@
 
 package io.confluent.ksql.util;
 
+import java.util.Map;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
-
-import java.util.Map;
 
 public final class QueryMetricsUtil {
 
@@ -29,21 +28,21 @@ public final class QueryMetricsUtil {
   // an uncaught exception
 
   public static Sensor createQueryRestartMetricSensor(
-	final String queryId,
-	final Map<String, String> metricsTags,
-	final Metrics metrics
+      final String queryId,
+      final Map<String, String> metricsTags,
+      final Metrics metrics
   ) {
-	final Map<String, String> customMetricsTagsForQuery =
-		MetricsTagsUtil.getCustomMetricsTagsForQuery(queryId, metricsTags);
-	final MetricName restartMetricName = metrics.metricName(
-		QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
-		QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
-		QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
-		customMetricsTagsForQuery
-	);
-	final Sensor sensor = metrics.sensor(
-		QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME + "-" + queryId);
-	sensor.add(restartMetricName, new CumulativeSum());
-	return sensor;
+    final Map<String, String> customMetricsTagsForQuery =
+        MetricsTagsUtil.getMetricsTagsWithQueryId(queryId, metricsTags);
+    final MetricName restartMetricName = metrics.metricName(
+        QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
+        QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
+        QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
+        customMetricsTagsForQuery
+    );
+    final Sensor sensor = metrics.sensor(
+        QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME + "-" + queryId);
+    sensor.add(restartMetricName, new CumulativeSum());
+    return sensor;
   }
 }

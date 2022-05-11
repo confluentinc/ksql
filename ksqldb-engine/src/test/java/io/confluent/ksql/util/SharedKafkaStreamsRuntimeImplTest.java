@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.TaskId;
@@ -70,6 +71,8 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private AddNamedTopologyResult addNamedTopologyResult;
     @Mock
     private KafkaFuture<Void> future;
+    @Mock
+    private Sensor sensor;
 
     private final QueryId queryId = new QueryId("query-1");
     private final QueryId queryId2= new QueryId("query-2");
@@ -93,6 +96,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         metricCollectors = new MetricCollectors();
         when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
         streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "runtime");
+        streamProps.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "old");
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             queryErrorClassifier,
@@ -120,14 +124,14 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void overrideStreamsPropertiesShouldReplaceProperties() {
         // Given:
         final Map<String, Object> newProps = new HashMap<>();
-        newProps.put("Test", "Test");
+        newProps.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "notused");
 
         // When:
         sharedKafkaStreamsRuntimeImpl.overrideStreamsProperties(newProps);
 
         // Then:
         final Map<String, Object> properties = sharedKafkaStreamsRuntimeImpl.streamsProperties;
-        assertThat(properties.get("Test"), equalTo("Test"));
+        assertThat(properties.get(StreamsConfig.APPLICATION_SERVER_CONFIG), equalTo("old"));
         assertThat(properties.size(), equalTo(1));
     }
 
@@ -240,7 +244,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
         //Then:
         verify(kafkaStreamsNamedTopologyWrapper).close();
-        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(namedTopology);
+        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(any());
         verify(kafkaStreamsNamedTopologyWrapper2).start();
         verify(kafkaStreamsNamedTopologyWrapper2).setUncaughtExceptionHandler((StreamsUncaughtExceptionHandler) any());
     }
@@ -259,81 +263,55 @@ public class SharedKafkaStreamsRuntimeImplTest {
             .addNamedTopology(binPackedPersistentQueryMetadata2.getTopologyCopy(sharedKafkaStreamsRuntimeImpl));
     }
 
-//    @Test
-//    public void shouldRegisterMetricForQueryRestarts() {
-//        //Given:
-//        assertThat(sharedKafkaStreamsRuntimeImpl.getQueryIdSensorMap().entrySet().size(), is(1));
-//
-//        //When:
-//        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
-//
-//        //Then:
-//        assertThat(sharedKafkaStreamsRuntimeImpl.getQueryIdSensorMap().entrySet().size(), is(2));
-//    }
-//
-//    @Test
-//    public void shouldRemoveSensorWhenStoppingQuery() {
-//        //Given:
-//        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
-//
-//        //When:
-//        sharedKafkaStreamsRuntimeImpl.stop(queryId, false);
-//        sharedKafkaStreamsRuntimeImpl.stop(queryId2, true);
-//
-//        //Then:
-//        assertThat(sharedKafkaStreamsRuntimeImpl.getQueryIdSensorMap().entrySet().size(), is(1));
-//        assertThat(sharedKafkaStreamsRuntimeImpl.getQueryIdSensorMap().containsKey(queryId2), is(true));
-//    }
-//
-//    @Test
-//    public void shouldRecordMetricForQuery1WhenError() {
-//        //Given:
-//        when(queryErrorClassifier.classify(query1Exception)).thenReturn(Type.USER);
-//        sharedKafkaStreamsRuntimeImpl.register(
-//            binPackedPersistentQueryMetadata2
-//        );
-//
-//        //When:
-//        sharedKafkaStreamsRuntimeImpl.start(queryId);
-//        sharedKafkaStreamsRuntimeImpl.start(queryId2);
-//        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(query1Exception);
-//
-//        //Then:
-//        assertThat(getMetricValue(queryId.toString(), metricsTags), is(1.0));
-//        assertThat(getMetricValue(queryId2.toString(), metricsTags), is(0.0));
-//    }
-//
-//    @Test
-//    public void shouldRecordMetricForAllQueriesWhenErrorWithNoTask() {
-//        when(queryErrorClassifier.classify(runtimeExceptionWithNoTask)).thenReturn(Type.USER);
-//
-//        sharedKafkaStreamsRuntimeImpl.register(
-//            binPackedPersistentQueryMetadata2
-//        );
-//
-//        //When:
-//        sharedKafkaStreamsRuntimeImpl.start(queryId);
-//        sharedKafkaStreamsRuntimeImpl.start(queryId2);
-//
-//        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(runtimeExceptionWithNoTask);
-//
-//        //Then:
-//        assertThat(getMetricValue(queryId.toString(), metricsTags), is(1.0));
-//        assertThat(getMetricValue(queryId2.toString(), metricsTags), is(1.0));
-//    }
-//
-//    private double getMetricValue(final String queryId, final Map<String, String> metricsTags) {
-//        final Map<String, String> customMetricsTags = new HashMap<>(metricsTags);
-//        customMetricsTags.put("query_id", queryId);
-//        final Metrics metrics = metricCollectors.getMetrics();
-//        return Double.parseDouble(
-//            metrics.metric(
-//                metrics.metricName(
-//                    QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
-//                    QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
-//                    QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
-//                    customMetricsTags)
-//            ).metricValue().toString()
-//        );
-//    }
+    @Test
+    public void shouldRecordMetricForQuery1WhenError() {
+        //Given:
+        when(queryErrorClassifier.classify(query1Exception)).thenReturn(Type.USER);
+        sharedKafkaStreamsRuntimeImpl.register(
+            binPackedPersistentQueryMetadata2
+        );
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.start(queryId);
+        sharedKafkaStreamsRuntimeImpl.start(queryId2);
+        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(query1Exception);
+
+        //Then:
+        assertThat(getMetricValue(queryId.toString(), metricsTags), is(1.0));
+        assertThat(getMetricValue(queryId2.toString(), metricsTags), is(0.0));
+    }
+
+    @Test
+    public void shouldRecordMetricForAllQueriesWhenErrorWithNoTask() {
+        when(queryErrorClassifier.classify(runtimeExceptionWithNoTask)).thenReturn(Type.USER);
+
+        sharedKafkaStreamsRuntimeImpl.register(
+            binPackedPersistentQueryMetadata2
+        );
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.start(queryId);
+        sharedKafkaStreamsRuntimeImpl.start(queryId2);
+
+        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(runtimeExceptionWithNoTask);
+
+        //Then:
+        assertThat(getMetricValue(queryId.toString(), metricsTags), is(1.0));
+        assertThat(getMetricValue(queryId2.toString(), metricsTags), is(1.0));
+    }
+
+    private double getMetricValue(final String queryId, final Map<String, String> metricsTags) {
+        final Map<String, String> customMetricsTags = new HashMap<>(metricsTags);
+        customMetricsTags.put("query-id", queryId);
+        final Metrics metrics = metricCollectors.getMetrics();
+        return Double.parseDouble(
+            metrics.metric(
+                metrics.metricName(
+                    QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
+                    QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
+                    QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
+                    customMetricsTags)
+            ).metricValue().toString()
+        );
+    }
 }

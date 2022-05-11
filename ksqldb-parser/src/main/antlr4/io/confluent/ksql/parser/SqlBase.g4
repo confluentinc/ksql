@@ -59,7 +59,7 @@ statement
     | DESCRIBE STREAMS EXTENDED?                                            #describeStreams
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
-    | PRINT (identifier| STRING) printClause                                #printTopic
+    | PRINT resourceName printClause                                        #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE identifier                                                  #terminateQuery
     | TERMINATE ALL                                                         #terminateQuery
@@ -89,6 +89,10 @@ statement
     | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
     | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
+    | ASSERT (NOT EXISTS)? TOPIC resourceName
+            (WITH tableProperties)? timeout?                                #assertTopic
+    | ASSERT (NOT EXISTS)? SCHEMA
+            (SUBJECT resourceName)? (ID literal)? timeout?                  #assertSchema
     ;
 
 assertStatement
@@ -100,6 +104,11 @@ assertStatement
 
 runScript
     : RUN SCRIPT STRING
+    ;
+
+resourceName
+    : identifier
+    | STRING
     ;
 
 query
@@ -117,6 +126,10 @@ query
 resultMaterialization
     : CHANGES
     | FINAL
+    ;
+
+timeout
+    : TIMEOUT number windowUnit
     ;
 
 alterOption
@@ -414,6 +427,7 @@ nonReserved
     | GRACE | PERIOD
     | DEFINE | UNDEFINE | VARIABLES
     | PLUGINS | SYSTEM
+    | TIMEOUT | SCHEMA| SUBJECT | ID
     ;
 
 EMIT: 'EMIT';
@@ -553,6 +567,10 @@ PLUGINS: 'PLUGINS';
 HEADERS: 'HEADERS';
 HEADER: 'HEADER';
 SYSTEM: 'SYSTEM';
+TIMEOUT: 'TIMEOUT';
+SCHEMA: 'SCHEMA';
+SUBJECT: 'SUBJECT';
+ID: 'ID';
 
 IF: 'IF';
 

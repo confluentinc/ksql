@@ -17,6 +17,8 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.parser.tree.AssertSchema;
+import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
@@ -72,6 +74,8 @@ public enum CustomExecutors {
   LIST_CONNECTOR_PLUGINS(ListConnectorPlugins.class, ListConnectorPluginsExecutor::execute),
   LIST_TYPES(ListTypes.class, ListTypesExecutor::execute),
   LIST_VARIABLES(ListVariables.class, ListVariablesExecutor::execute),
+  ASSERT_TOPIC(AssertTopic.class, AssertTopicExecutor::execute),
+  ASSERT_SCHEMA(AssertSchema.class, AssertSchemaExecutor::execute),
 
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),

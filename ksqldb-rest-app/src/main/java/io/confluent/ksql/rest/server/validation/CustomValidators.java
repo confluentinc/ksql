@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.server.validation;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.AlterSystemProperty;
+import io.confluent.ksql.parser.tree.AssertSchema;
+import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
@@ -93,6 +95,8 @@ public enum CustomValidators {
   LIST_TYPES(ListTypes.class, StatementValidator.NO_VALIDATION),
   CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::validate),
   DROP_CONNECTOR(DropConnector.class, StatementValidator.NO_VALIDATION),
+  ASSERT_TOPIC(AssertTopic.class, StatementValidator.NO_VALIDATION),
+  ASSERT_SCHEMA(AssertSchema.class, StatementValidator.NO_VALIDATION),
   LIST_VARIABLES(ListVariables.class, ListVariablesExecutor::execute),
 
   INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute),

@@ -51,6 +51,8 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.AssertSchemaEntity;
+import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
@@ -191,6 +193,8 @@ public class Console implements Closeable {
               tablePrinter(VariablesList.class, ListVariablesTableBuilder::new))
           .put(TerminateQueryEntity.class,
               tablePrinter(TerminateQueryEntity.class, TerminateQueryTableBuilder::new))
+          .put(AssertTopicEntity.class, Console::printAssertTopic)
+          .put(AssertSchemaEntity.class, Console::printAssertSchema)
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(
@@ -902,6 +906,26 @@ public class Console implements Closeable {
               .forEach(a -> printDescription(subFormat, a.getName(), a.getDescription()));
         }
     );
+  }
+
+  private void printAssertTopic(final AssertTopicEntity assertTopic) {
+    final String existence = assertTopic.getExists() ? " exists" : " does not exist";
+    writer().printf("Topic " + assertTopic.getTopicName() + existence + ".\n");
+  }
+
+  private void printAssertSchema(final AssertSchemaEntity assertSchema) {
+    if (!assertSchema.getId().isPresent() && !assertSchema.getSubject().isPresent()) {
+      throw new RuntimeException("No subject or id found in AssertSchema response.");
+    }
+
+    final String existence = assertSchema.getExists() ? " exists" : " does not exist";
+    final String subject = assertSchema.getSubject().isPresent()
+        ? " subject " + assertSchema.getSubject().get()
+        : "";
+    final String id = assertSchema.getId().isPresent()
+        ? " id " + assertSchema.getId().get()
+        : "";
+    writer().printf("Schema with" + subject + id + existence + ".\n");
   }
 
   private static String argToString(final ArgumentInfo arg) {

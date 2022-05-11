@@ -514,11 +514,13 @@ public class DefaultSchemaInjector implements Injector {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static CreateSource addSchemaFields(
       final ConfiguredStatement<CreateSource> preparedStatement,
       final Optional<SchemaAndId> keySchema,
       final Optional<SchemaAndId> valueSchema
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema);
 
     final CreateSource statement = preparedStatement.getStatement();
@@ -541,13 +543,20 @@ public class DefaultSchemaInjector implements Injector {
       throwOnMultiSchemaDefinitions(valueSchema.get().rawSchema, valueFormat, false);
     }
 
-    // Only populate key and value schema names when schema ids are explicitly provided
-    if (properties.getKeySchemaId().isPresent() && keySchema.isPresent()) {
+    // Only populate key and value schema names when schema ids or full schema names are
+    // explicitly provided
+
+    if (properties.getKeySchemaFullName().isPresent()) {
+      keySchemaName = properties.getKeySchemaFullName();
+    } else if (properties.getKeySchemaId().isPresent() && keySchema.isPresent()) {
       keySchemaName = Optional.ofNullable(keySchema.get().rawSchema.name());
     } else {
       keySchemaName = Optional.empty();
     }
-    if (properties.getValueSchemaId().isPresent() && valueSchema.isPresent()) {
+
+    if (properties.getValueSchemaFullName().isPresent()) {
+      valueSchemaName = properties.getValueSchemaFullName();
+    } else if (properties.getValueSchemaId().isPresent() && valueSchema.isPresent()) {
       valueSchemaName = Optional.ofNullable(valueSchema.get().rawSchema.name());
     } else {
       valueSchemaName = Optional.empty();

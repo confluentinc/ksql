@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -61,6 +61,7 @@ import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetricsTagsUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
@@ -74,6 +75,7 @@ import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -441,23 +443,14 @@ final class QueryBuilder {
             );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
-            applicationId,
-            queryId,
-            namedTopologyBuilder
+        applicationId,
+        queryId,
+        namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final NamedTopology topology = namedTopologyBuilder.build();
 
-    final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-            materializationProviderBuilder = getMaterializationInfo(result).map(info ->
-            materializationProviderBuilderFactory.materializationProviderBuilder(
-                    info,
-                    querySchema,
-                    keyFormat,
-                    queryOverrides,
-                    applicationId,
-                    queryId.toString()
-            ));
+    final Optional<MaterializationInfo> materializationInfo = getMaterializationInfo(result);
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
         querySchema.logicalSchema(),
@@ -483,13 +476,13 @@ final class QueryBuilder {
             runtimeBuildContext.getSchemas(),
             config.getOverrides(),
             queryId,
-            materializationProviderBuilder,
+            materializationInfo,
+            materializationProviderBuilderFactory,
             physicalPlan,
             getUncaughtExceptionProcessingLogger(queryId),
             sinkDataSource,
             listener,
-            queryOverrides,
-            scalablePushRegistry,
+        scalablePushRegistry,
             (streamsRuntime) -> getNamedTopology(
                 streamsRuntime,
                 queryId,
@@ -497,6 +490,7 @@ final class QueryBuilder {
                 queryOverrides,
                 physicalPlan
             ),
+            keyFormat,
             metricCollectors.getMetrics(),
             ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
@@ -541,12 +535,18 @@ final class QueryBuilder {
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
 
     // get logger
-    final ProcessingLogger logger;
+    final String id;
     if (queryId.isPresent()) {
-      logger = processingLogContext.getLoggerFactory().getLogger(queryId.get().toString());
+      id = queryId.get().toString();
     } else {
-      logger = processingLogContext.getLoggerFactory().getLogger(applicationId);
+      id = applicationId;
     }
+
+    final ProcessingLogger logger =
+        processingLogContext
+            .getLoggerFactory()
+            .getLogger(id, MetricsTagsUtil.getMetricsTagsWithQueryId(id, Collections.emptyMap()));
+
     newStreamsProperties.put(
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
         logger);
@@ -649,18 +649,24 @@ final class QueryBuilder {
       final String applicationId
   ) {
     final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
-        .and(new AuthorizationClassifier(applicationId));
+        .and(new AuthorizationClassifier(applicationId))
+        .and(new KsqlFunctionClassifier(applicationId))
+        .and(new MissingSubjectClassifier(applicationId))
+        .and(new SchemaAuthorizationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);
   }
 
-  private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
+  private ProcessingLogger getUncaughtExceptionProcessingLogger(
+      final QueryId queryId
+  ) {
     final QueryContext.Stacker stacker = new QueryContext.Stacker()
         .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
 
     return processingLogContext.getLoggerFactory().getLogger(
-        QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
+        QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()),
+        MetricsTagsUtil.getMetricsTagsWithQueryId(queryId.toString(), Collections.emptyMap()));
   }
 
   private static TransientQueryQueue buildTransientQueryQueue(
@@ -702,9 +708,10 @@ final class QueryBuilder {
   }
 
   private RuntimeBuildContext buildContext(
-          final String applicationId,
-          final QueryId queryId,
-          final StreamsBuilder streamsBuilder) {
+      final String applicationId,
+      final QueryId queryId,
+      final StreamsBuilder streamsBuilder
+  ) {
     return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),

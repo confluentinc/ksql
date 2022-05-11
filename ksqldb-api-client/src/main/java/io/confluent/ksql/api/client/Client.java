@@ -19,6 +19,7 @@ import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
 import java.io.Closeable;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -310,6 +311,146 @@ public interface Client extends Closeable {
    * @return metadata about connector
    */
   CompletableFuture<ConnectorDescription> describeConnector(String connectorName);
+
+  /**
+   * Asserts the existence of a schema with the given subject name. If the assertion fails,
+   * then the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param subject subject name
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertSchema(String subject, boolean exists);
+
+  /**
+   * Asserts the existence of a schema with the given id. If the assertion fails,
+   * then the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param id schema id
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertSchema(int id, boolean exists);
+
+  /**
+   * Asserts the existence of a schema with the given subject name and id. If the assertion fails,
+   * then the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param subject subject name
+   * @param id schema id
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertSchema(String subject, int id, boolean exists);
+
+  /**
+   * Asserts the existence of a schema with the given subject name within the specified timeout.
+   * If the assertion fails, then the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param subject subject name
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @param timeout the amount of time to wait for a successful assertion
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertSchema(String subject, boolean exists, Duration timeout);
+
+  /**
+   * Asserts the existence of a schema with the given id within the specified timeout.
+   * If the assertion fails, then the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param id schema id
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @param timeout the amount of time to wait for a successful assertion
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertSchema(int id, boolean exists, Duration timeout);
+
+  /**
+   * Asserts the existence of a schema with the given subject name and id within the specified
+   * timeout. If the assertion fails, then the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param subject subject name
+   * @param id schema id
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @param timeout the amount of time to wait for a successful assertion
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertSchema(String subject, int id, boolean exists, Duration timeout);
+
+  /**
+   * Asserts the existence of a topic. If the assertion fails, then the {@code CompletableFuture}
+   * will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param topic topic name
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertTopic(String topic, boolean exists);
+
+  /**
+   * Asserts the existence of a topic within the specified timeout. If the assertion fails, then
+   * the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param topic topic name
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @param timeout the amount of time to wait for a successful assertion
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertTopic(String topic, boolean exists, Duration timeout);
+
+  /**
+   * Asserts the existence of a topic with the given configurations. If the assertion fails, then
+   * the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param topic topic name
+   * @param configs map of topic configurations to check
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertTopic(String topic, Map<String, Integer> configs, boolean exists);
+
+  /**
+   * Asserts the existence of a topic with the given configurations within the specified
+   * timeout. If the assertion fails, then the {@code CompletableFuture} will complete exceptionally
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param topic topic name
+   * @param configs map of topic configurations to check
+   * @param exists true to check that a schema exists, false to check that a schema does not exist
+   * @param timeout the amount of time to wait for a successful assertion
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> assertTopic(
+      String topic, Map<String, Integer> configs, boolean exists, Duration timeout);
 
   /**
    * A factory to construct {@link HttpRequest} objects. Instances of {@link HttpRequest} are

@@ -35,6 +35,11 @@ public class ProcessingLoggerImpl implements ProcessingLogger {
     inner.error(() -> throwIfNotRightSchema(msg.get(config)));
   }
 
+  @Override
+  public void close() {
+    // no-op for now
+  }
+
   private static SchemaAndValue throwIfNotRightSchema(final SchemaAndValue schemaAndValue) {
     if (!schemaAndValue.schema().equals(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA)) {
       throw new RuntimeException("Received message with invalid schema");

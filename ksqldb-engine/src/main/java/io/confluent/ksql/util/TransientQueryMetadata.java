@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.Topology;
 

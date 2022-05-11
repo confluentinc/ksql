@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -19,6 +19,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -34,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.confluent.ksql.util.QueryMetadataImpl;
+import io.confluent.ksql.util.QueryMetricsUtil;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -52,8 +55,6 @@ public class QueryRestartMetricFunctionalTest {
 
   private static final String TEST_TOPIC_NAME = "test";
   private static final String TEST_TOPIC_NAME2 = "test-topic";
-  private static final String TEST_TOPIC_NAME3 = "test-topic-3";
-  private static final String TEST_TOPIC_NAME4 = "test-topic-4";
   private static final ImmutableMap<String, String> METRICS_TAGS = ImmutableMap.of(
 	  "cluster.id", "cluster-1"
   );
@@ -67,7 +68,7 @@ public class QueryRestartMetricFunctionalTest {
 	  .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 	  .withProperty(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false)
 	  .withProperty(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L)
-	  .withProperty(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 3000L)
+	  .withProperty(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 300L)
 	  .build();
 
   private static final TestKsqlRestApp REST_APP_SHARED_RUNTIME = TestKsqlRestApp
@@ -76,6 +77,8 @@ public class QueryRestartMetricFunctionalTest {
 	  .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 	  .withProperty(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)
 	  .withProperty(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "another-id")
+	  .withProperty(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L)
+	  .withProperty(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 300L)
 	  .build();
 
   @ClassRule
@@ -88,22 +91,16 @@ public class QueryRestartMetricFunctionalTest {
   public static void setUpClass() throws InterruptedException {
 	TEST_HARNESS.ensureTopics(TEST_TOPIC_NAME);
 	TEST_HARNESS.ensureTopics(TEST_TOPIC_NAME2);
-	TEST_HARNESS.ensureTopics(TEST_TOPIC_NAME3);
-	TEST_HARNESS.ensureTopics(TEST_TOPIC_NAME4);
 
 	RestIntegrationTestUtil.makeKsqlRequest(REST_APP_NO_SHARED_RUNTIME,
-		"CREATE STREAM test_stream (f BIGINT) with (KAFKA_TOPIC='" + TEST_TOPIC_NAME + "', VALUE_FORMAT='json');"
-			+ "CREATE STREAM test_stream2 (f BIGINT) with (KAFKA_TOPIC='" + TEST_TOPIC_NAME2 + "', VALUE_FORMAT='json');"
-	);
-	RestIntegrationTestUtil.makeKsqlRequest(REST_APP_NO_SHARED_RUNTIME,
-		"create stream test_addition_5 as select f+5 from test_stream;"
-			+ "create stream test_addition_10 as select f+10 from test_stream;"
-			+ "create stream test_addition_20 as select f+20 from test_stream2;"
+	"CREATE STREAM TEST (ID BIGINT, VALUE decimal(4,1)) WITH (kafka_topic=' " + TEST_TOPIC_NAME + "', value_format='DELIMITED');"
+		+ "CREATE TABLE S1 as SELECT ID, sum(value) AS SUM FROM test group by id;"
 	);
 
 	RestIntegrationTestUtil.makeKsqlRequest(REST_APP_SHARED_RUNTIME,
-		"CREATE STREAM test_stream (f BIGINT) with (KAFKA_TOPIC='" + TEST_TOPIC_NAME3 + "', VALUE_FORMAT='json');"
-			+ "CREATE STREAM test_stream2 (f BIGINT) with (KAFKA_TOPIC='" + TEST_TOPIC_NAME4 + "', VALUE_FORMAT='json');"
+	"CREATE STREAM TEST (ID BIGINT, VALUE decimal(4,1)) WITH (kafka_topic=' " + TEST_TOPIC_NAME2 + "', value_format='DELIMITED');"
+		+ "CREATE TABLE S2 as SELECT ID, sum(value) AS SUM FROM test group by id;"
+		+ "CREATE TABLE S3 as SELECT ID, sum(value) AS SUM FROM test group by id;"
 	);
   }
 
@@ -114,88 +111,59 @@ public class QueryRestartMetricFunctionalTest {
   }
 
   @Test
-  public void shouldVerifyMetricsOnNonSharedRuntimeServer() throws InterruptedException {
+  public void shouldVerifyMetricsOnNonSharedRuntimeServer() {
+	// Given:
+	final Map<String, String> metricsTagsForQuery = new HashMap<>(METRICS_TAGS);
+	final List<String> listOfQueryId = RestIntegrationTestUtil.getQueryIds(REST_APP_NO_SHARED_RUNTIME);
+	assertThat(listOfQueryId.size(), equalTo(1));
+	metricsTagsForQuery.put("query-id", listOfQueryId.get(0));
+
+	// When:
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "5,900.1");
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "5,900.1");
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "5,900.1");
+	System.out.println("records done");
+
+	metricsNoSharedRuntime = ((KsqlEngine)REST_APP_NO_SHARED_RUNTIME.getEngine()).getEngineMetrics().getMetrics();
+	final KafkaMetric restartMetric1 = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery);
+
+	// Then:
+	assertThatEventually(() -> (Double) restartMetric1.metricValue(), greaterThan(8.0));
+  }
+
+  @Test
+  public void shouldVerifyMetricsOnSharedRuntimeServer() throws InterruptedException {
 	// Given:
 	final Map<String, String> metricsTagsForQuery1 = new HashMap<>(METRICS_TAGS);
 	final Map<String, String> metricsTagsForQuery2 = new HashMap<>(METRICS_TAGS);
-	final Map<String, String> metricsTagsForQuery3 = new HashMap<>(METRICS_TAGS);
-	final List<String> listOfQueryId = RestIntegrationTestUtil.getQueryIds(REST_APP_NO_SHARED_RUNTIME);
-	assertThat(listOfQueryId.size(), equalTo(3));
-	for (final String queryId:listOfQueryId) {
-	  if (queryId.toLowerCase().contains("test_addition_5")) {
-		metricsTagsForQuery1.put("query_id", queryId);
-	  } else if (queryId.toLowerCase().contains("test_addition_10")) {
-		metricsTagsForQuery2.put("query_id", queryId);
-	  } else if (queryId.toLowerCase().contains("test_addition_20")) {
-		metricsTagsForQuery3.put("query_id", queryId);
-	  }
-	}
-
-	TEST_HARNESS.deleteTopics(Collections.singletonList(TEST_TOPIC_NAME));
-	Thread.sleep(10000);
-	REST_APP_NO_SHARED_RUNTIME.stop();
-
-	// When:
-	REST_APP_NO_SHARED_RUNTIME.start();
-	Thread.sleep(15000);
-
-	metricsNoSharedRuntime = ((KsqlEngine)REST_APP_NO_SHARED_RUNTIME.getEngine()).getEngineMetrics().getMetrics();
-	final KafkaMetric restartMetric1 = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery1);
-	final KafkaMetric restartMetric2 = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery2);
-	final KafkaMetric restartMetric3 = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery3);
-
-	// Then:
-	assertThatEventually(() -> (Double) restartMetric1.metricValue(), greaterThan(12.0));
-	assertThatEventually(() -> (Double) restartMetric2.metricValue(), greaterThan(12.0));
-	assertThat(restartMetric3.metricValue(), equalTo(0.0));
-  }
-
-  @Ignore
-  @Test
-  public void shouldVerifyMetricsOnSharedRuntimeServer() throws InterruptedException {
-// Given:
-	final Map<String, String> metricsTagsForQuery1 = new HashMap<>(METRICS_TAGS);
-	final Map<String, String> metricsTagsForQuery2 = new HashMap<>(METRICS_TAGS);
-	final Map<String, String> metricsTagsForQuery3 = new HashMap<>(METRICS_TAGS);
 	final List<String> listOfQueryId = RestIntegrationTestUtil.getQueryIds(REST_APP_SHARED_RUNTIME);
-	assertThat(listOfQueryId.size(), equalTo(3));
+	assertThat(listOfQueryId.size(), equalTo(2));
 	for (final String queryId:listOfQueryId) {
-	  if (queryId.toLowerCase().contains("test_addition_5")) {
-		metricsTagsForQuery1.put("query_id", queryId);
-	  } else if (queryId.toLowerCase().contains("test_addition_10")) {
-		metricsTagsForQuery2.put("query_id", queryId);
-	  } else if (queryId.toLowerCase().contains("test_addition_20")) {
-		metricsTagsForQuery3.put("query_id", queryId);
+	  if (queryId.toLowerCase().contains("s2")) {
+		metricsTagsForQuery1.put("query-id", queryId);
+	  } else if (queryId.toLowerCase().contains("s3")) {
+		metricsTagsForQuery2.put("query-id", queryId);
 	  }
 	}
 
-	TEST_HARNESS.deleteTopics(Collections.singletonList(TEST_TOPIC_NAME3));
-	Thread.sleep(15000);
-	REST_APP_SHARED_RUNTIME.stop();
-	Thread.sleep(30000);
-
 	// When:
-	REST_APP_SHARED_RUNTIME.start();
-	Thread.sleep(20000);
-
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME2, null, "5,900.1");
+	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME2, null, "5,900.1");
 	metricsSharedRuntime = ((KsqlEngine)REST_APP_SHARED_RUNTIME.getEngine()).getEngineMetrics().getMetrics();
 	final KafkaMetric restartMetric1 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery1);
 	final KafkaMetric restartMetric2 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery2);
-	final KafkaMetric restartMetric3 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery3);
 
 	// Then:
-	assertThatEventually(() -> (Double) restartMetric1.metricValue(), greaterThan(12.0));
-	assertThatEventually(() -> (Double) restartMetric2.metricValue(), greaterThan(12.0));
-	assertThat(restartMetric3.metricValue(), equalTo(0.0));
+	assertThatEventually(() -> (Double) restartMetric1.metricValue(), greaterThanOrEqualTo(1.0));
+	assertThatEventually(() -> (Double) restartMetric2.metricValue(), greaterThanOrEqualTo(1.0));
   }
 
   private KafkaMetric getKafkaMetric(final Metrics metrics, final Map<String, String> metricsTags) {
-	final MetricName restartMetricName3 = new MetricName(
-		"query-restart-total",
-		"query-restart-metrics",
-		"The total number of times that a query thread has failed and then been restarted.",
+	return metrics.metric(new MetricName(
+		QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
+		QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
+		QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
 		metricsTags
-	);
-	return metrics.metric(restartMetricName3);
+	));
   }
 }

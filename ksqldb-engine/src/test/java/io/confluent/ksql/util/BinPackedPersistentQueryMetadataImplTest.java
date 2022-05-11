@@ -15,26 +15,39 @@
 
 package io.confluent.ksql.util;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
+import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,13 +85,32 @@ public class BinPackedPersistentQueryMetadataImplTest {
     private Map<String, Object> streamsProperties;
     @Mock
     private Optional<ScalablePushRegistry> scalablePushRegistry;
-
+    @Mock
+    private MaterializationProviderBuilderFactory
+        materializationProviderBuilderFactory;
+    @Mock
+    private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
+    @Mock
+    private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
+    @Mock
+    private QueryContext.Stacker stacker;
+    @Mock
+    private KeyFormat keyFormat;
+    @Mock
+    private MaterializationInfo materializationInfo;
+    @Mock
+    private MaterializationProviderBuilderFactory.MaterializationProviderBuilder materializationProviderBuilder;
+    @Mock
     private Metrics metrics;
+    @Mock
+    private Sensor sensor;
+
     private Map<String, String> metricsTags = Collections.singletonMap("tag1", "value1");
     private PersistentQueryMetadata query;
 
     @Before
     public void setUp()  {
+        when(metrics.sensor(anyString())).thenReturn(sensor);
         query = new BinPackedPersistentQueryMetadataImpl(
             KsqlConstants.PersistentQueryType.CREATE_AS,
             SQL,
@@ -91,18 +123,35 @@ public class BinPackedPersistentQueryMetadataImplTest {
             schemas,
             overrides,
             QUERY_ID,
-            Optional.empty(),
+            Optional.of(materializationInfo),
+            materializationProviderBuilderFactory,
             physicalPlan,
             processingLogger,
             Optional.of(sinkDataSource),
             listener,
-            streamsProperties,
             scalablePushRegistry,
             (runtime) -> topology,
+            keyFormat,
             metrics,
             metricsTags);
 
         query.initialize();
+        when(materializationProviderBuilderFactory.materializationProviderBuilder(
+            any(), any(), any(), any(), any(), any()))
+            .thenReturn(materializationProviderBuilder);
+    }
+
+    @Test
+    public void shouldGetStreamsFreshForMaterialization() {
+        when(sharedKafkaStreamsRuntimeImpl.getKafkaStreams())
+            .thenReturn(kafkaStreamsNamedTopologyWrapper)
+            .thenReturn(kafkaStreamsNamedTopologyWrapper2);
+        when(materializationProviderBuilder.apply(any(KafkaStreams.class), any())).thenReturn(Optional.empty());
+        query.getMaterialization(query.getQueryId(), stacker);
+        query.getMaterialization(query.getQueryId(), stacker);
+
+        verify(materializationProviderBuilder).apply(eq(kafkaStreamsNamedTopologyWrapper), any());
+        verify(materializationProviderBuilder).apply(eq(kafkaStreamsNamedTopologyWrapper2), any());
     }
 
     @Test
@@ -133,5 +182,17 @@ public class BinPackedPersistentQueryMetadataImplTest {
 
         // Then:
         verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, false);
+    }
+
+    @Test
+    public void shouldRemoveMetricWhenClose() {
+        // Given:
+        final Sensor restartSensor = query.getRestartMetricsSensor().orElseGet(() -> mock(Sensor.class));
+
+        // When:
+        query.close();
+
+        // Then:
+        verify(metrics).removeSensor(restartSensor.name());
     }
 }

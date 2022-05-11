@@ -33,6 +33,7 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
@@ -127,8 +128,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
       if (queryInError != null) {
         queryInError.setQueryError(queryError);
-        if (queryInError.getSensor().isPresent()) {
-          queryInError.getSensor().get().record();
+        if (queryInError.getRestartMetricsSensor().isPresent()) {
+          queryInError.getRestartMetricsSensor().get().record();
         }
         log.error(String.format(
             "Unhandled query exception caught in streams thread %s for query %s. (%s)",
@@ -140,10 +141,11 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       } else {
         for (BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
           query.setQueryError(queryError);
-          if (query.getSensor().isPresent()) {
-            query.getSensor().get().record();
+          if (query.getRestartMetricsSensor().isPresent()) {
+            query.getRestartMetricsSensor().get().record();
           }
         }
+
         log.error(String.format(
             "Unhandled runtime exception caught in streams thread %s. (%s)",
             Thread.currentThread().getName(),
@@ -258,6 +260,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void overrideStreamsProperties(final Map<String, Object> newProperties) {
+    newProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG,
+        streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+    //The application server should not be overwritten
     streamsProperties = ImmutableMap.copyOf(newProperties);
   }
 
@@ -273,7 +278,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     for (final NamedTopology topology : liveTopologies) {
       final BinPackedPersistentQueryMetadataImpl query = collocatedQueries
           .get(new QueryId(topology.name()));
-      kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
+      query.updateTopology(query.getTopologyCopy(this));
+      kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopology());
     }
     setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);
   }

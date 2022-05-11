@@ -784,8 +784,8 @@ public final class CommandParser {
 
     SqlAssertSchemaCommand(
         final String command,
-        Optional<String> subject,
-        Optional<Integer> id,
+        final Optional<String> subject,
+        final Optional<Integer> id,
         final boolean exists,
         final Optional<Duration> timeout
     ) {

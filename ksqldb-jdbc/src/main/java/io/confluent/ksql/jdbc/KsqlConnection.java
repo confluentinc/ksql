@@ -44,20 +44,19 @@ public class KsqlConnection implements Connection {
 
   @Override
   public Statement createStatement() throws SQLException {
-
     return new KsqlStatement(client);
   }
 
   @Override
   public Statement createStatement(final int resultSetType, final int resultSetConcurrency)
       throws SQLException {
-    return null;
+    return new KsqlStatement(client);
   }
 
   @Override
   public Statement createStatement(final int resultSetType, final int resultSetConcurrency,
       final int resultSetHoldability) throws SQLException {
-    return null;
+    return new KsqlStatement(client);
   }
 
   @Override
@@ -158,7 +157,8 @@ public class KsqlConnection implements Connection {
 
   @Override
   public DatabaseMetaData getMetaData() throws SQLException {
-    return null;
+    System.out.println("Returning new ksqlDB Metadata");
+    return new KsqlDatabaseMetaData(client);
   }
 
   @Override
@@ -178,7 +178,7 @@ public class KsqlConnection implements Connection {
 
   @Override
   public String getCatalog() throws SQLException {
-    return null;
+    return "catalog";
   }
 
   @Override

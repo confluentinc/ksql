@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutionException;
 
 public class KsqlStatement implements Statement {
   private Client client;
+  private ResultSet rs;
 
   public KsqlStatement(final Client client) {
     this.client = client;
@@ -35,8 +36,11 @@ public class KsqlStatement implements Statement {
 
   @Override
   public ResultSet executeQuery(final String sql) throws SQLException {
-    System.out.println("Executing sql: " + sql);
-    final BatchedQueryResult result = client.executeQuery(sql);
+
+    final String query =  (sql.charAt(sql.length() - 1) == ';') ? sql : sql + ";";
+    System.out.println("Executing sql: " + query);
+
+    final BatchedQueryResult result = client.executeQuery(query);
     try {
       final List<Row> rows = result.get();
       for (Row row : result.get()) {
@@ -133,7 +137,8 @@ public class KsqlStatement implements Statement {
 
   @Override
   public boolean execute(final String sql) throws SQLException {
-    return false;
+    rs = executeQuery(sql);
+    return true;  // JNH
   }
 
   @Override
@@ -153,7 +158,7 @@ public class KsqlStatement implements Statement {
 
   @Override
   public ResultSet getResultSet() throws SQLException {
-    return null;
+    return rs;
   }
 
   @Override

@@ -287,7 +287,11 @@ public class KsqlResultSet implements ResultSet {
 
   @Override
   public ResultSetMetaData getMetaData() throws SQLException {
-    return null;
+    if (rows.size() == 0) {
+      return null;
+    } else {
+      return new KsqlResultSetMetaData(rows.get(0));
+    }
   }
 
   @Override

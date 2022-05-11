@@ -296,6 +296,7 @@ public final class StreamedRow {
     return finalMessage.isPresent() || errorMessage.isPresent();
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -307,6 +308,7 @@ public final class StreamedRow {
     final StreamedRow that = (StreamedRow) o;
     return Objects.equals(header, that.header)
         && Objects.equals(row, that.row)
+        && Objects.equals(rowProtobuf, that.rowProtobuf)
         && Objects.equals(errorMessage, that.errorMessage)
         && Objects.equals(finalMessage, that.finalMessage)
         && Objects.equals(sourceHost, that.sourceHost)
@@ -316,8 +318,8 @@ public final class StreamedRow {
 
   @Override
   public int hashCode() {
-    return Objects.hash(header, row, errorMessage, finalMessage, sourceHost, continuationToken,
-                        consistencyToken);
+    return Objects.hash(header, row, rowProtobuf, errorMessage, finalMessage,
+            sourceHost, continuationToken, consistencyToken);
   }
 
   @Override
@@ -413,12 +415,13 @@ public final class StreamedRow {
       }
       final Header header = (Header) o;
       return Objects.equals(queryId, header.queryId)
-          && Objects.equals(columnsSchema, header.columnsSchema);
+          && Objects.equals(columnsSchema, header.columnsSchema)
+              && Objects.equals(protoSchema, header.protoSchema);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(queryId, columnsSchema);
+      return Objects.hash(queryId, columnsSchema, protoSchema);
     }
   }
 

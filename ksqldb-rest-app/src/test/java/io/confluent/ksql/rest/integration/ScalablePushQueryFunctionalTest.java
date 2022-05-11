@@ -421,7 +421,7 @@ public class ScalablePushQueryFunctionalTest {
   }
 
   private void assertFirstBatchOfRows(final List<StreamedRow> orderedRows) {
-    assertThat(orderedRows.get(0).getHeader().get().getSchema(),
+    assertThat(orderedRows.get(0).getHeader().get().getSchema().get(),
         is(LOGICAL_SCHEMA));
     assertThat(orderedRows.get(1),
         is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_1", "PAGE_1", 1)))));

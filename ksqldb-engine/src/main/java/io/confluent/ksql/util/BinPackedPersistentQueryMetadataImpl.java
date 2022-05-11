@@ -402,7 +402,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void close() {
-    loggerFactory.getLoggersWithSubstring(queryId.toString()).forEach(ProcessingLogger::close);
+    loggerFactory.getLoggersWithPrefix(queryId.toString()).forEach(ProcessingLogger::close);
     sharedKafkaStreamsRuntime.stop(queryId, false);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);

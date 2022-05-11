@@ -169,14 +169,14 @@ public class MeteredProcessingLoggerFactoryTest {
   }
 
   @Test
-  public void shouldReturnLoggersWithSubstring() {
+  public void shouldReturnLoggersWithPrefix() {
     // Given:
-    final ProcessingLogger logger1 = factory.getLogger("query.boo.far.deserializer");
-    final ProcessingLogger logger2 = factory.getLogger("boo.far.serializer", Collections.singletonMap("tag1", "some-id-2"));
+    factory.getLogger("boo.far.deserializer");
+    factory.getLogger("boo.far.serializer", Collections.singletonMap("tag1", "some-id-2"));
     factory.getLogger("far.boo", Collections.singletonMap("tag3", "some-id-2"));
 
     // Then:
-    assertThat(factory.getLoggersWithSubstring("boo.far").size(), is(2));
+    assertThat(factory.getLoggersWithPrefix("boo.far").size(), is(2));
   }
 
   private double getMetricValue( final Map<String, String> metricsTags) {

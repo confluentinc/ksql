@@ -181,7 +181,7 @@ public class BinPackedPersistentQueryMetadataImplTest {
         // Given:
         final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);
         final ProcessingLogger processingLogger2 = mock(ProcessingLogger.class);
-        when(loggerFactory.getLoggersWithSubstring(QUERY_ID.toString())).thenReturn(Arrays.asList(processingLogger1, processingLogger2));
+        when(loggerFactory.getLoggersWithPrefix(QUERY_ID.toString())).thenReturn(Arrays.asList(processingLogger1, processingLogger2));
 
         // When:
         query.close();

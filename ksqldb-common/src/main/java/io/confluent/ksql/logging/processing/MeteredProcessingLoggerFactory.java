@@ -117,9 +117,9 @@ public class MeteredProcessingLoggerFactory implements ProcessingLoggerFactory {
   }
 
   @Override
-  public synchronized Collection<ProcessingLogger> getLoggersWithSubstring(final String substr) {
+  public synchronized Collection<ProcessingLogger> getLoggersWithPrefix(final String prefix) {
     return processingLoggers.keySet().stream()
-        .filter(loggerName -> loggerName.contains(substr))
+        .filter(loggerName -> loggerName.startsWith(prefix))
         .map(processingLoggers::get)
         .collect(Collectors.toList());
   }

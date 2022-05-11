@@ -43,5 +43,5 @@ public interface ProcessingLoggerFactory {
   /**
    * @return A collection of loggers which have the substring in their names
    */
-  Collection<ProcessingLogger> getLoggersWithSubstring(String substr);
+  Collection<ProcessingLogger> getLoggersWithPrefix(String substr);
 }

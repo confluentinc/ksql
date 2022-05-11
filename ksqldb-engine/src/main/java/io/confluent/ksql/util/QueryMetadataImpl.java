@@ -358,7 +358,7 @@ public class QueryMetadataImpl implements QueryMetadata {
    * schemas, etc...).
    */
   public void close() {
-    loggerFactory.getLoggersWithSubstring(queryId.toString()).forEach(ProcessingLogger::close);
+    loggerFactory.getLoggersWithPrefix(queryId.toString()).forEach(ProcessingLogger::close);
     doClose(true);
     listener.onClose(this);
   }

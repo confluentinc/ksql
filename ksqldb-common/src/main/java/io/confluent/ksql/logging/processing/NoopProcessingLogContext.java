@@ -62,7 +62,7 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
         }
 
         @Override
-        public Collection<ProcessingLogger> getLoggersWithSubstring(final String substr) {
+        public Collection<ProcessingLogger> getLoggersWithPrefix(final String substr) {
           return ImmutableList.of();
         }
       };

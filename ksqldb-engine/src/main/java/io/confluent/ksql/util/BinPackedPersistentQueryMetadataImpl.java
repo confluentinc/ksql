@@ -28,8 +28,8 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
-import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
@@ -84,7 +84,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final MaterializationProviderBuilderFactory
       materializationProviderBuilderFactory;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
-  private final MeteredProcessingLoggerFactory loggerFactory;
+  private final ProcessingLoggerFactory loggerFactory;
   public boolean everStarted = false;
   private boolean corruptionCommandTopic = false;
 
@@ -112,7 +112,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final Optional<ScalablePushRegistry> scalablePushRegistry,
       final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder,
       final KeyFormat keyFormat,
-      final MeteredProcessingLoggerFactory loggerFactory) {
+      final ProcessingLoggerFactory loggerFactory) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");

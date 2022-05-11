@@ -23,8 +23,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -73,7 +73,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final TimeBoundedQueue queryErrors;
   private final RetryEvent retryEvent;
   private final Listener listener;
-  private final MeteredProcessingLoggerFactory loggerFactory;
+  private final ProcessingLoggerFactory loggerFactory;
   private volatile boolean everStarted = false;
   private volatile KafkaStreams kafkaStreams;
   // These fields don't need synchronization because they are initialized in initialize() before
@@ -107,7 +107,7 @@ public class QueryMetadataImpl implements QueryMetadata {
       final long baseWaitingTimeMs,
       final long retryBackoffMaxMs,
       final Listener listener,
-      final MeteredProcessingLoggerFactory loggerFactory
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");

@@ -16,7 +16,7 @@
 package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.CompletionHandler;
@@ -60,8 +60,8 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
       final Listener listener,
-      final MeteredProcessingLoggerFactory loggerFactory
-      ) {
+      final ProcessingLoggerFactory loggerFactory
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,

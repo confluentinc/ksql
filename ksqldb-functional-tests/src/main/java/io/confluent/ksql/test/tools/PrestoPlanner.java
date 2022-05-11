@@ -21,8 +21,6 @@ import static com.facebook.presto.spi.ConnectorId.createSystemTablesConnectorId;
 import com.facebook.presto.Session;
 import com.facebook.presto.common.block.BlockEncodingManager;
 import com.facebook.presto.common.type.IntegerType;
-import com.facebook.presto.common.type.VarcharEnumType;
-import com.facebook.presto.common.type.VarcharEnumType.VarcharEnumMap;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cost.ComposableStatsCalculator;
 import com.facebook.presto.cost.CostCalculator;
@@ -142,6 +140,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.jetbrains.annotations.NotNull;
 import org.weakref.jmx.MBeanExporter;
 
 @SuppressWarnings({
@@ -158,44 +157,58 @@ public class PrestoPlanner {
   public PrestoPlanner() {
   }
 
-  public static void main(final String[] args) throws IOException {
+  public static void main(final String[] args) {
+    final LogicalSchema.Builder pantalonesKsqlSchema = LogicalSchema.builder();
+    pantalonesKsqlSchema.keyColumn(ColumnName.of("id"), SqlPrimitiveType.of(SqlBaseType.STRING));
+    pantalonesKsqlSchema.valueColumn(ColumnName.of("size"),
+        SqlPrimitiveType.of(SqlBaseType.STRING));
+    pantalonesKsqlSchema.valueColumn(ColumnName.of("waist"),
+        SqlPrimitiveType.of(SqlBaseType.INTEGER));
+    final KsqlTable<?> pantalonesKsqlTable = new KsqlTable<>(
+        "is this the table definition?",
+        SourceName.of("pantalones"),
+        pantalonesKsqlSchema.build(),
+        Optional.empty(),
+        false,
+        new KsqlTopic(
+            "pantalones-topic",
+            KeyFormat.nonWindowed(FormatInfo.of("JSON"), SerdeFeatures.of()),
+            ValueFormat.of(FormatInfo.of("JSON"), SerdeFeatures.of())
+        ),
+        true
+    );
+    final ImmutableMap<SchemaTableName, ? extends KsqlTable<?>> ksqlTables = ImmutableMap.of(
+        new SchemaTableName("schema", "pantalones"), pantalonesKsqlTable
+    );
 
     final String schemaName = "schema";
+    final Table pantalonesPrestoTable = new Table(
+        "pantalones",
+        schemaName,
+        ImmutableList.of(
+            ColumnMetadata
+                .builder()
+                .setName("id")
+                .setType(VarcharType.createUnboundedVarcharType())
+                .setNullable(false)
+                .build(),
+            ColumnMetadata
+                .builder()
+                .setName("size")
+                .setType(VarcharType.createUnboundedVarcharType())
+                .setNullable(false)
+                .build(),
+            ColumnMetadata
+                .builder()
+                .setName("waist")
+                .setType(IntegerType.INTEGER)
+                .setNullable(false)
+                .build()
+        )
+    );
     final Connector connector = new ProtoConnector(
         ImmutableList.of(
-            new Table(
-                "pantalones",
-                schemaName,
-                ImmutableList.of(
-                    ColumnMetadata
-                        .builder()
-                        .setName("id")
-                        .setType(VarcharType.createUnboundedVarcharType())
-                        .setNullable(false)
-                        .build(),
-                    ColumnMetadata
-                        .builder()
-                        .setName("size")
-                        .setType(
-                            new VarcharEnumType(
-                                new VarcharEnumMap(
-                                    "sizes",
-                                    ImmutableMap.of(
-                                        "S", "S",
-                                        "L", "L")
-                                )
-                            )
-                        )
-                        .setNullable(false)
-                        .build(),
-                    ColumnMetadata
-                        .builder()
-                        .setName("waist")
-                        .setType(IntegerType.INTEGER)
-                        .setNullable(false)
-                        .build()
-                )
-            ), new Table(
+            pantalonesPrestoTable, new Table(
                 "abrigos",
                 schemaName,
                 ImmutableList.of(
@@ -216,126 +229,43 @@ public class PrestoPlanner {
         )
     );
 
-    final Plan prestoPlan = logicalPlan(
-        "SELECT * FROM Pantalones",
-        schemaName,
-        connector
-    );
-    final PlanBuildContext planBuildContext = PlanBuildContext.of(
-        new KsqlConfig(Collections.emptyMap()),
-        new DefaultServiceContext(
-            new DefaultKafkaClientSupplier(),
-            () -> null,
-            () -> null,
-            () -> null,
-            () -> null
-        ),
-        new InternalFunctionRegistry(),
-        Optional.empty()
-    );
-
-//    planKsql();
-
-    final LogicalSchema.Builder logicalSchema = LogicalSchema.builder();
-    logicalSchema.keyColumn(ColumnName.of("id"), SqlPrimitiveType.of(SqlBaseType.STRING));
-    logicalSchema.valueColumn(ColumnName.of("size"), SqlPrimitiveType.of(SqlBaseType.STRING));
-    logicalSchema.valueColumn(ColumnName.of("waist"), SqlPrimitiveType.of(SqlBaseType.INTEGER));
-    final KsqlTable<?> dataSource = new KsqlTable<>(
-        "asdf",
-        SourceName.of("asdf"),
-        logicalSchema.build(),
-        Optional.empty(),
-        false,
-        new KsqlTopic(
-            "asdf",
-            KeyFormat.nonWindowed(FormatInfo.of("JSON"), SerdeFeatures.of()),
-            ValueFormat.of(FormatInfo.of("JSON"), SerdeFeatures.of())
-        ),
-        true
-    );
-
-    final OutputNode outputNode = (OutputNode) prestoPlan.getRoot();
-    final TableScanNode tableScanNode = (TableScanNode) outputNode.getSource();
-
-    // DataSourceNode
-    final TableHandle table = tableScanNode.getTable();
-    final MyConnectorTableHandle connectorHandle = (MyConnectorTableHandle) table.getConnectorHandle();
-    final String context = connectorHandle.schemaTableName().toString();
-    final SchemaKStream<?> dataSourceStream = SchemaKSourceFactory.buildSource(
-        planBuildContext,
-        dataSource,
-        planBuildContext.buildNodeContext(context).push("Source")
-    );
-
-    // ProjectNode
-    final Builder<ColumnName> columnNames = ImmutableList.builder();
-    for (final String columnName : outputNode.getColumnNames()) {
-      columnNames.add(ColumnName.of(columnName));
-    }
-    final Builder<SelectExpression> selectExpressions = ImmutableList.builder();
-    for (final VariableReferenceExpression outputVariable : outputNode.getOutputVariables()) {
-//      prestoPlan.get
-      final ColumnName columnName = ColumnName.of(outputVariable.getName());
-      final SelectExpression selectExpression = SelectExpression.of(
-          columnName,
-          new UnqualifiedColumnReferenceExp(
-              columnName
-          )
+    {
+      final Plan prestoPlan = logicalPlan(
+          "SELECT * FROM Pantalones",
+          schemaName,
+          connector
       );
-      selectExpressions.add(selectExpression);
+
+      final PlanBuildContext planBuildContext = getPlanBuildContext();
+      final SchemaKStream<?> physicalPlan = physicalPlan(prestoPlan, ksqlTables, planBuildContext);
+      final Topology topology = getTopology(planBuildContext, physicalPlan);
+      System.out.println(topology.describe());
     }
-    final SchemaKStream<?> projectNodeStream = dataSourceStream.select(
-        columnNames.build(),
-        selectExpressions.build(),
-        planBuildContext.buildNodeContext("Output"),
-        planBuildContext,
-        FormatInfo.of("JSON")
-    );
 
-    // Data Output Node
-    final SchemaKStream<?> dataOutputNodeStream = projectNodeStream.into(
-        new KsqlTopic(
-            "result",
-            KeyFormat.nonWindowed(FormatInfo.of("JSON"), SerdeFeatures.of()),
-            ValueFormat.of(FormatInfo.of("JSON"), SerdeFeatures.of())
-        ),
-        planBuildContext.buildNodeContext(outputNode.toString() + ":out"),
-        Optional.empty()
-    );
+    {
+      final Plan prestoPlan = logicalPlan(
+          "SELECT ID, Size FROM Pantalones",
+          schemaName,
+          connector
+      );
 
-//    final ExecutionPlan executionPlan = new ExecutionPlan(new QueryId("asdf"),
-//        dataOutputNodeStream.getSourceStep());
-//
-//    System.out.println(executionPlan);
+      final PlanBuildContext planBuildContext = getPlanBuildContext();
+      final SchemaKStream<?> physicalPlan = physicalPlan(prestoPlan, ksqlTables, planBuildContext);
+      final Topology topology = getTopology(planBuildContext, physicalPlan);
+      System.out.println(topology.describe());
+    }
 
-//    planKsql();
-
-    final StreamsBuilder streamsBuilder = new StreamsBuilder();
-    final RuntimeBuildContext buildContext = RuntimeBuildContext.of(
-        streamsBuilder,
-        new KsqlConfig(Collections.emptyMap()),
-        planBuildContext.getServiceContext(),
-        ProcessingLogContext.create(),
-        planBuildContext.getFunctionRegistry(),
-        "asfd",
-        new QueryId("asfd")
-    );
-    final KSPlanBuilder ksPlanBuilder = new KSPlanBuilder(buildContext);
-    final ExecutionStep<?> executionStep = dataOutputNodeStream.getSourceStep();
-    executionStep.build(ksPlanBuilder);
-    final Topology topology = streamsBuilder.build();
-    System.out.println(topology.describe());
-    logicalPlan(
-        "SELECT ID, Size FROM Pantalones",
-        schemaName,
-        connector
-    );
-
-    logicalPlan(
-        "SELECT * FROM Pantalones WHERE ID = '5'",
-        schemaName,
-        connector
-    );
+    {
+      final Plan prestoPlan = logicalPlan(
+          "SELECT * FROM Pantalones WHERE ID = '5'",
+          schemaName,
+          connector
+      );
+      final PlanBuildContext planBuildContext = getPlanBuildContext();
+      final SchemaKStream<?> physicalPlan = physicalPlan(prestoPlan, ksqlTables, planBuildContext);
+      final Topology topology = getTopology(planBuildContext, physicalPlan);
+      System.out.println(topology.describe());
+    }
 
     logicalPlan(
         "SELECT * FROM Pantalones WHERE ID IN ('5', 'XYZ')",
@@ -392,6 +322,116 @@ public class PrestoPlanner {
     );
   }
 
+  @NotNull
+  private static PlanBuildContext getPlanBuildContext() {
+    return PlanBuildContext.of(
+        new KsqlConfig(Collections.emptyMap()),
+        new DefaultServiceContext(
+            new DefaultKafkaClientSupplier(),
+            () -> null,
+            () -> null,
+            () -> null,
+            () -> null
+        ),
+        new InternalFunctionRegistry(),
+        Optional.empty()
+    );
+  }
+
+  private static Topology getTopology(final PlanBuildContext planBuildContext,
+      final SchemaKStream<?> dataOutputNodeStream) {
+    final StreamsBuilder streamsBuilder = new StreamsBuilder();
+    final RuntimeBuildContext buildContext = RuntimeBuildContext.of(
+        streamsBuilder,
+        new KsqlConfig(Collections.emptyMap()),
+        planBuildContext.getServiceContext(),
+        ProcessingLogContext.create(),
+        planBuildContext.getFunctionRegistry(),
+        "asfd",
+        new QueryId("asfd")
+    );
+    final KSPlanBuilder ksPlanBuilder = new KSPlanBuilder(buildContext);
+    final ExecutionStep<?> executionStep = dataOutputNodeStream.getSourceStep();
+    executionStep.build(ksPlanBuilder);
+    final Topology topology = streamsBuilder.build();
+    return topology;
+  }
+
+  private static SchemaKStream<?> physicalPlan(
+      final Plan prestoPlan,
+      final ImmutableMap<SchemaTableName, ? extends KsqlTable<?>> ksqlTables,
+      final PlanBuildContext planBuildContext) {
+
+    return physicalPlan(ksqlTables, planBuildContext, prestoPlan.getRoot());
+  }
+
+  private static SchemaKStream<?> physicalPlan(
+      final ImmutableMap<SchemaTableName, ? extends KsqlTable<?>> ksqlTables,
+      final PlanBuildContext planBuildContext,
+      final PlanNode node) {
+    if (node instanceof TableScanNode) {
+      final TableScanNode tableScanNode = (TableScanNode) node;
+
+      // DataSourceNode
+      final TableHandle table = tableScanNode.getTable();
+      final MyConnectorTableHandle connectorHandle = (MyConnectorTableHandle) table.getConnectorHandle();
+
+      final SchemaTableName schemaTableName = connectorHandle.schemaTableName();
+      final KsqlTable<?> dataSource = ksqlTables.get(schemaTableName);
+
+      final SchemaKStream<?> dataSourceStream = SchemaKSourceFactory.buildSource(
+          planBuildContext,
+          dataSource,
+          planBuildContext.buildNodeContext(schemaTableName.toString())
+              .push("Source")
+      );
+      return dataSourceStream;
+    } else if (node instanceof OutputNode) {
+      final OutputNode outputNode = (OutputNode) node;
+      final PlanNode source = outputNode.getSource();
+      final SchemaKStream<?> dataSourceStream = physicalPlan(ksqlTables, planBuildContext, source);
+
+      // ProjectNode
+      final Builder<ColumnName> columnNames = ImmutableList.builder();
+      for (final String columnName : outputNode.getColumnNames()) {
+        columnNames.add(ColumnName.of(columnName));
+      }
+      final Builder<SelectExpression> selectExpressions = ImmutableList.builder();
+      for (final VariableReferenceExpression outputVariable : outputNode.getOutputVariables()) {
+//      prestoPlan.get
+        final ColumnName columnName = ColumnName.of(outputVariable.getName());
+        final SelectExpression selectExpression = SelectExpression.of(
+            columnName,
+            new UnqualifiedColumnReferenceExp(
+                columnName
+            )
+        );
+        selectExpressions.add(selectExpression);
+      }
+      final SchemaKStream<?> projectNodeStream = dataSourceStream.select(
+          columnNames.build(),
+          selectExpressions.build(),
+          planBuildContext.buildNodeContext("Output"),
+          planBuildContext,
+          FormatInfo.of("JSON")
+      );
+
+      // Data Output Node
+      final SchemaKStream<?> dataOutputNodeStream = projectNodeStream.into(
+          new KsqlTopic(
+              "result",
+              KeyFormat.nonWindowed(FormatInfo.of("JSON"), SerdeFeatures.of()),
+              ValueFormat.of(FormatInfo.of("JSON"), SerdeFeatures.of())
+          ),
+          planBuildContext.buildNodeContext(outputNode.toString() + ":out"),
+          Optional.empty()
+      );
+      return dataOutputNodeStream;
+    } else {
+      throw new IllegalArgumentException();
+    }
+  }
+
   private static void planKsql() throws IOException {
     final TestExecutor testExecutor = TestExecutor.create(false, Optional.empty());
     final TestCase testCase = new TestCase(
@@ -400,7 +440,7 @@ public class PrestoPlanner {
         "asdf",
         VersionBounds.allVersions(),
         Collections.emptyMap(),
-        ImmutableList.of(new Topic("asdf",Optional.empty(), Optional.empty())),
+        ImmutableList.of(new Topic("asdf", Optional.empty(), Optional.empty())),
         Collections.emptyList(),
         Collections.emptyList(),
         ImmutableList.of(
@@ -409,8 +449,8 @@ public class PrestoPlanner {
         ),
         Optional.empty(),
         PostConditions.NONE
-        );
-    testExecutor.buildAndExecuteQuery(testCase,TestExecutionListener.noOp());
+    );
+    testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
   }
 
   private static SchemaKStream<?> buildStream(
@@ -693,7 +733,9 @@ public class PrestoPlanner {
 
 
   }
+
   public static class MyConnectorTableHandle implements ConnectorTableHandle {
+
     private final SchemaTableName schemaTableName;
 
     public MyConnectorTableHandle(final SchemaTableName schemaTableName) {

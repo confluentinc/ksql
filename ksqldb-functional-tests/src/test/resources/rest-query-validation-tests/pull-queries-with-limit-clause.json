@@ -40,17 +40,17 @@
           {"finalMessage":"Query Completed"}
         ]},
         {"queryProto": [
-          {"headerProtobuf":{"schema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
           {"row": "PROFILEID: \"which\"\nLATITUDE: 37.7877\nLONGITUDE: -122.4205\n"},
           {"row": "PROFILEID: \"there\"\nLATITUDE: 37.3903\nLONGITUDE: -122.0643\n"},
           {"finalMessage":"Limit Reached"}
         ]},
         {"queryProto": [
-          {"headerProtobuf":{"schema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
           {"finalMessage":"Limit Reached"}
         ]},
         {"queryProto": [
-          {"headerProtobuf":{"schema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
           {"row": "PROFILEID: \"which\"\nLATITUDE: 37.7877\nLONGITUDE: -122.4205\n"},
           {"row": "PROFILEID: \"there\"\nLATITUDE: 37.3903\nLONGITUDE: -122.0643\n"},
           {"row": "PROFILEID: \"their\"\nLATITUDE: 37.3952\nLONGITUDE: -122.0813\n"},

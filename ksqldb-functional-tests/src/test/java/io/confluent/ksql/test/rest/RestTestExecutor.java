@@ -1036,8 +1036,8 @@ public class RestTestExecutor implements Closeable {
             };
 
     private static final String INDENT = System.lineSeparator() + "\t";
-    private static final String HEADER_PROTOBUF = "headerProtobuf";
-    private static final String SCHEMA = "schema";
+    private static final String HEADER_PROTOBUF = "header";
+    private static final String SCHEMA = "protoSchema";
 
     private final List<StreamedRow> rows;
 

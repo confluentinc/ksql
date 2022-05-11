@@ -53,11 +53,11 @@ public class KsqlTargetUtilTest {
     // Then:
     assertThat(row.getHeader().isPresent(), is(true));
     assertThat(row.getHeader().get().getQueryId().toString(), is("query_id_10"));
-    assertThat(row.getHeader().get().getSchema().key(), is(Collections.emptyList()));
-    assertThat(row.getHeader().get().getSchema().value().size(), is(2));
-    assertThat(row.getHeader().get().getSchema().value().get(0),
+    assertThat(row.getHeader().get().getSchema().get().key(), is(Collections.emptyList()));
+    assertThat(row.getHeader().get().getSchema().get().value().size(), is(2));
+    assertThat(row.getHeader().get().getSchema().get().value().get(0),
         is (Column.of(ColumnName.of("col1"), SqlTypes.BIGINT, Namespace.VALUE, 0)));
-    assertThat(row.getHeader().get().getSchema().value().get(1),
+    assertThat(row.getHeader().get().getSchema().get().value().get(1),
         is (Column.of(ColumnName.of("col2"), SqlTypes.DOUBLE, Namespace.VALUE, 1)));
   }
 
@@ -111,9 +111,9 @@ public class KsqlTargetUtilTest {
     final StreamedRow row = rows.get(0);
     assertThat(row.getHeader().isPresent(), is(true));
     assertThat(row.getHeader().get().getQueryId().toString(), is("query_id_10"));
-    assertThat(row.getHeader().get().getSchema().key(), is(Collections.emptyList()));
-    assertThat(row.getHeader().get().getSchema().value().size(), is(1));
-    assertThat(row.getHeader().get().getSchema().value().get(0),
+    assertThat(row.getHeader().get().getSchema().get().key(), is(Collections.emptyList()));
+    assertThat(row.getHeader().get().getSchema().get().value().size(), is(1));
+    assertThat(row.getHeader().get().getSchema().get().value().get(0),
         is (Column.of(ColumnName.of("col1"), SqlTypes.STRING, Namespace.VALUE, 0)));
     final StreamedRow row2 = rows.get(1);
     assertThat(row2.getRow().isPresent(), is(true));

@@ -28,7 +28,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -74,8 +73,8 @@ public class StreamedRowTest {
             "}\n";
     final StreamedRow row = StreamedRow.headerProtobuf(QUERY_ID, protoSchema);
 
-    final String expectedJson = "{\"headerProtobuf\":{\"queryId\":\"theQueryId\"," +
-            "\"schema\":\"" +
+    final String expectedJson = "{\"header\":{\"queryId\":\"theQueryId\"," +
+            "\"protoSchema\":\"" +
             "syntax = \\\"proto3\\\";\\n" +
             "\\n" +
             "message ConnectDefault1 {\\n" +

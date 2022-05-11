@@ -442,7 +442,7 @@ public final class HARouting implements AutoCloseable {
           final StreamedRow row = streamedRows.get(i);
           if (i == 0 && previousProcessedRows == 0) {
             final Optional<Header> optionalHeader = row.getHeader();
-            optionalHeader.ifPresent(h -> validateSchema(outputSchema, h.getSchema(), owner));
+            optionalHeader.ifPresent(h -> validateSchema(outputSchema, h.getSchema().get(), owner));
             optionalHeader.ifPresent(header::set);
             continue;
           }
@@ -459,7 +459,7 @@ public final class HARouting implements AutoCloseable {
 
           final List<?> r = row.getRow().get().getColumns();
           Preconditions.checkNotNull(header.get());
-          rows.add(rowFactory.apply(r, header.get().getSchema()));
+          rows.add(rowFactory.apply(r, header.get().getSchema().get()));
         }
 
         if (!pullQueryQueue.acceptRows(rows)) {

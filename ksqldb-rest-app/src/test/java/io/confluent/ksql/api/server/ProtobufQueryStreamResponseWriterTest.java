@@ -120,8 +120,8 @@ public class ProtobufQueryStreamResponseWriterTest {
 
     // Then:
     assertThat(stringBuilder.toString(),
-            is("[{\"headerProtobuf\":{\"queryId\":\"queryId\"," +
-                    "\"schema\":" +
+            is("[{\"header\":{\"queryId\":\"queryId\"," +
+                    "\"protoSchema\":" +
                     "\"syntax = \\\"proto3\\\";\\n" +
                     "\\n" +
                     "message ConnectDefault1 {\\n" +
@@ -152,8 +152,8 @@ public class ProtobufQueryStreamResponseWriterTest {
 
     // Then:
     assertThat(stringBuilder.toString(),
-            is("[{\"headerProtobuf\":{\"queryId\":\"queryId\"," +
-                    "\"schema\":" +
+            is("[{\"header\":{\"queryId\":\"queryId\"," +
+                    "\"protoSchema\":" +
                     "\"syntax = \\\"proto3\\\";\\n" +
                     "\\n" +
                     "message ConnectDefault1 {\\n" +
@@ -176,8 +176,8 @@ public class ProtobufQueryStreamResponseWriterTest {
 
     // Then:
     assertThat(stringBuilder.toString(),
-            is("[{\"headerProtobuf\":{\"queryId\":\"queryId\"," +
-                    "\"schema\":" +
+            is("[{\"header\":{\"queryId\":\"queryId\"," +
+                    "\"protoSchema\":" +
                     "\"syntax = \\\"proto3\\\";\\n" +
                     "\\n" +
                     "message ConnectDefault1 {\\n" +
@@ -204,8 +204,8 @@ public class ProtobufQueryStreamResponseWriterTest {
 
     // Then:
     assertThat(stringBuilder.toString(),
-            is("[{\"headerProtobuf\":{\"queryId\":\"queryId\"," +
-                    "\"schema\":" +
+            is("[{\"header\":{\"queryId\":\"queryId\"," +
+                    "\"protoSchema\":" +
                     "\"syntax = \\\"proto3\\\";\\n" +
                     "\\n" +
                     "message ConnectDefault1 {\\n" +

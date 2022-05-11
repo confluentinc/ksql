@@ -69,7 +69,7 @@ public final class StreamedRowMatchers {
           (expectedSchema, "header with schema", "schema") {
         @Override
         protected LogicalSchema featureValueOf(final Header actual) {
-          return actual.getSchema();
+          return actual.getSchema().get();
         }
       };
     }

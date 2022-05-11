@@ -23,7 +23,6 @@ package io.confluent.ksql.rest.integration;
   import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
   import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
   import static io.vertx.core.http.HttpMethod.POST;
-  import static io.vertx.core.http.HttpVersion.HTTP_1_0;
   import static io.vertx.core.http.HttpVersion.HTTP_1_1;
   import static io.vertx.core.http.HttpVersion.HTTP_2;
   import static org.apache.kafka.common.acl.AclOperation.ALL;
@@ -925,9 +924,9 @@ public class RestApiTest {
             Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
 
     final String expectedResponsePart1
-            = "[{\"headerProtobuf\":{\"queryId\":\"";
+            = "[{\"header\":{\"queryId\":\"";
 
-    final String expectedResponsePart2 = "\"schema\":" +
+    final String expectedResponsePart2 = "\"protoSchema\":" +
             "\"syntax = \\\"proto3\\\";\\n" +
             "\\n" +
             "message ConnectDefault1 {\\n" +

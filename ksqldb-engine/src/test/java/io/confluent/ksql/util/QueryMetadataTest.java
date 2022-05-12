@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,6 +30,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -42,6 +45,7 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaStreams;
@@ -87,6 +91,8 @@ public class QueryMetadataTest {
   private ArgumentCaptor<KafkaStreams.StateListener> streamsListenerCaptor;
   @Mock
   private Ticker ticker;
+  @Mock
+  private MeteredProcessingLoggerFactory loggerFactory;
 
   private QueryMetadataImpl query;
 
@@ -112,7 +118,8 @@ public class QueryMetadataTest {
         10,
         0L,
         0L,
-        listener
+        listener,
+        loggerFactory
     ){
     };
     query.initialize();
@@ -321,4 +328,18 @@ public class QueryMetadataTest {
     assertThat(queue.toImmutableList().size(), is(0));
   }
 
+  @Test
+  public void shouldCloseProcessingLoggers() {
+    // Given:
+    final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);
+    final ProcessingLogger processingLogger2 = mock(ProcessingLogger.class);
+    when(loggerFactory.getLoggersWithPrefix(QUERY_ID.toString())).thenReturn(Arrays.asList(processingLogger1, processingLogger2));
+
+    // When:
+    query.close();
+
+    // Then:
+    verify(processingLogger1).close();
+    verify(processingLogger2).close();
+  }
 }

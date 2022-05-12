@@ -28,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
@@ -37,6 +38,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.QueryMetadata.Listener;
+
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 
@@ -94,6 +97,8 @@ public class BinPackedPersistentQueryMetadataImplTest {
     private MaterializationInfo materializationInfo;
     @Mock
     private MaterializationProviderBuilderFactory.MaterializationProviderBuilder materializationProviderBuilder;
+    @Mock
+    private MeteredProcessingLoggerFactory loggerFactory;
 
     private PersistentQueryMetadata query;
 
@@ -119,7 +124,8 @@ public class BinPackedPersistentQueryMetadataImplTest {
             listener,
             scalablePushRegistry,
             (runtime) -> topology,
-            keyFormat);
+            keyFormat,
+            loggerFactory);
 
         query.initialize();
         when(materializationProviderBuilderFactory.materializationProviderBuilder(
@@ -168,5 +174,20 @@ public class BinPackedPersistentQueryMetadataImplTest {
 
         // Then:
         verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, false);
+    }
+
+    @Test
+    public void shouldCloseProcessingLoggers() {
+        // Given:
+        final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);
+        final ProcessingLogger processingLogger2 = mock(ProcessingLogger.class);
+        when(loggerFactory.getLoggersWithPrefix(QUERY_ID.toString())).thenReturn(Arrays.asList(processingLogger1, processingLogger2));
+
+        // When:
+        query.close();
+
+        // Then:
+        verify(processingLogger1).close();
+        verify(processingLogger2).close();
     }
 }

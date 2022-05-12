@@ -67,12 +67,16 @@ the order was placed, and shipped within 2 hours of the payment being received.
 Joins and Windows
 -----------------
 
-ksqlDB enables grouping records that have the same key for stateful
-operations, like joins, into *windows*. At the moment, ksqlDB uses a fixed grace period of 24 hours,
-which means that a record can arrive out-of-order for up to 24 hours, and it's still joined correctly
-based on its timestamp.
-If a record arrives after the window's grace period has passed, the record is discarded and
-isn't processed.
+ksqlDB enables grouping records that have the same key for stateful operations,
+like joins, into *windows*. A window has a _grace period_, which means that a
+record can arrive out-of-order for a specified period of time, and it's still
+joined correctly based on its timestamp.
+
+If a record arrives after the window's grace period has passed, the record is
+discarded and isn't processed.
+
+For more information on grace periods, see
+[Out-of-order events](../../concepts/time-and-windows-in-ksqldb-queries.md#out-of-order-events).
 
 !!! note
     Only stream-stream joins are windowed.

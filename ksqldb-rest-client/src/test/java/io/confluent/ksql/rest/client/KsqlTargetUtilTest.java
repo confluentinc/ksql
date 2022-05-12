@@ -19,6 +19,7 @@ import io.vertx.core.buffer.Buffer;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -133,6 +134,101 @@ public class KsqlTargetUtilTest {
             "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
                 + "{\"row\":{\"columns\"\n"
                 + "{\"row\":{\"columns\":[\"Row2\"]}},\n"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is(("Failed to deserialise object")));
+  }
+
+  @Test
+  public void shouldParseHeaderProto() {
+    // When:
+    final List<StreamedRow> rows = KsqlTargetUtil.toRowsFromProto(Buffer.buffer(
+            "[{\"header\":{" +
+                    "\"queryId\":\"query_1652327621826\"," +
+                    "\"protoSchema\":" +
+                    "\"syntax = \\\"proto3\\\";\\n\\nmessage ConnectDefault1 {\\n  int64 COUNT = 1;\\n  string USERID = 2;\\n}\\n\"}}"));
+
+    StreamedRow row = rows.get(0);
+
+    // Then:
+    assertThat(row.getHeader().isPresent(), is(true));
+    assertThat(row.getHeader().get().getQueryId().toString(), is("query_1652327621826"));
+
+    assertThat(row.getHeader().get().getSchema(), is(Optional.empty()));
+    assertThat(row.getHeader().get().getProtoSchema().get(), is("syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 COUNT = 1;\n  string USERID = 2;\n}\n"));
+  }
+
+  @Test
+  public void shouldError_badJSONProto() {
+    // When:
+    final Exception e = assertThrows(
+            KsqlRestClientException.class,
+            () -> KsqlTargetUtil.toRowsFromProto(Buffer.buffer("[34"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to deserialise object"));
+  }
+
+  @Test
+  public void toRowsProto() {
+    // When:
+    final List<StreamedRow> rows =  KsqlTargetUtil.toRowsFromProto(Buffer.buffer(
+            "[{\"header\":{" +
+                    "\"queryId\":\"query_1652329281296\"," +
+                    "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n\\nmessage ConnectDefault1 {\\n  int64 COUNT = 1;\\n  string USERID = 2;\\n}\\n\"}}," +
+                    "{\"row\":\"CAESBlVTRVJfMA==\"}," +
+                    "{\"row\":\"CAESBlVTRVJfMQ==\"}," +
+                    "{\"row\":\"CAISBlVTRVJfMg==\"}," +
+                    "{\"row\":\"CAISBlVTRVJfMw==\"}," +
+                    "{\"row\":\"CAESBlVTRVJfNA==\"}]"));
+
+    // Then:
+    assertThat(rows.size(), is(6));
+    final StreamedRow row = rows.get(0);
+    assertThat(row.getHeader().isPresent(), is(true));
+    assertThat(row.getHeader().get().getQueryId().toString(), is("query_1652329281296"));
+    assertThat(row.getHeader().get().getSchema(), is(Optional.empty()));
+    assertThat(row.getHeader().get().getProtoSchema().get(), is("syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 COUNT = 1;\n  string USERID = 2;\n}\n"));
+
+    final StreamedRow row2 = rows.get(1);
+    assertThat(row2.getRow().isPresent(), is(false));
+    assertThat(row2.getRowProtobuf().isPresent(), is(true));
+    assertThat(row2.getRowProtobuf().get().toString(), is("{\"row\":\"CAESBlVTRVJfMA==\"}"));
+
+    final StreamedRow row3 = rows.get(2);
+    assertThat(row3.getRow().isPresent(), is(false));
+    assertThat(row3.getRowProtobuf().isPresent(), is(true));
+    assertThat(row3.getRowProtobuf().get().toString(), is("{\"row\":\"CAESBlVTRVJfMQ==\"}"));
+
+    final StreamedRow row4 = rows.get(3);
+    assertThat(row4.getRow().isPresent(), is(false));
+    assertThat(row4.getRowProtobuf().isPresent(), is(true));
+    assertThat(row4.getRowProtobuf().get().toString(), is("{\"row\":\"CAISBlVTRVJfMg==\"}"));
+
+    final StreamedRow row5 = rows.get(4);
+    assertThat(row5.getRow().isPresent(), is(false));
+    assertThat(row5.getRowProtobuf().isPresent(), is(true));
+    assertThat(row5.getRowProtobuf().get().toString(), is("{\"row\":\"CAISBlVTRVJfMw==\"}"));
+
+    final StreamedRow row6 = rows.get(5);
+    assertThat(row6.getRow().isPresent(), is(false));
+    assertThat(row6.getRowProtobuf().isPresent(), is(true));
+    assertThat(row6.getRowProtobuf().get().toString(), is("{\"row\":\"CAESBlVTRVJfNA==\"}"));
+  }
+
+  @Test
+  public void toRows_errorParsingNotAtEndProto() {
+    // When:
+    final Exception e = assertThrows(
+            KsqlRestClientException.class,
+            () -> KsqlTargetUtil.toRowsFromProto(Buffer.buffer(
+                    "[{\"header\":{" +
+                            "\"queryId\":\"query_1652329281296\"," +
+                            "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n\\nmessage ConnectDefault1 {\\n  int64 COUNT = 1;\\n  string USERID = 2;\\n}\\n\"}}," +
+                            "{\"row\":\"CAESBlVTRVJfMA==\"}," +
+                            "{\"row\":\"CAESB"))
     );
 
     // Then:

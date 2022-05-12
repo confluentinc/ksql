@@ -661,11 +661,11 @@ public class KsqlConfig extends AbstractConfig {
   private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
   private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
       = "Migrates the /query endpoint to use the same handler as /query-stream.";
-  public static final String KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS
-      = "ksql.assert.topic.default.timeout.ms";
-  private static final int KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DEFAULT = 1000;
-  private static final String KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DOC
-      = "The default timeout for ASSERT TOPIC statements if not timeout is specified "
+  public static final String KSQL_ASSERT_DEFAULT_TIMEOUT_MS
+      = "ksql.assert.default.timeout.ms";
+  private static final int KSQL_ASSERT_DEFAULT_TIMEOUT_MS_DEFAULT = 1000;
+  private static final String KSQL_ASSERT_DEFAULT_TIMEOUT_MS_DOC
+      = "The default timeout for ASSERT TOPIC/SCHEMA statements if no timeout is specified "
       + "in the statement.";
 
   private enum ConfigGeneration {
@@ -1435,11 +1435,11 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
         )
         .define(
-            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS,
+            KSQL_ASSERT_DEFAULT_TIMEOUT_MS,
             Type.INT,
-            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DEFAULT,
+            KSQL_ASSERT_DEFAULT_TIMEOUT_MS_DEFAULT,
             Importance.LOW,
-            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DOC
+            KSQL_ASSERT_DEFAULT_TIMEOUT_MS_DOC
         )
         .withClientSslSupport();
 

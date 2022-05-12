@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static io.confluent.ksql.rest.Errors.assertionFailedError;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_ASSERT_DEFAULT_TIMEOUT_MS;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.AssertResource;
@@ -47,7 +47,7 @@ public final class AssertExecutor {
   ) {
     final int timeout = statement.getTimeout().isPresent()
         ? (int) statement.getTimeout().get().toDuration().toMillis()
-        : executionContext.getKsqlConfig().getInt(KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS);
+        : executionContext.getKsqlConfig().getInt(KSQL_ASSERT_DEFAULT_TIMEOUT_MS);
     try {
       RetryUtil.retryWithBackoff(
           timeout / RETRY_MS,

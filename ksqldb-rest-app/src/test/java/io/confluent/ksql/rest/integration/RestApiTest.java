@@ -42,6 +42,7 @@ package io.confluent.ksql.rest.integration;
   import static org.hamcrest.Matchers.is;
   import static org.hamcrest.Matchers.notNullValue;
   import static org.hamcrest.Matchers.startsWith;
+  import static org.junit.Assert.assertThrows;
   import static org.junit.Assert.assertTrue;
   import static org.junit.Assert.fail;
 
@@ -49,6 +50,7 @@ package io.confluent.ksql.rest.integration;
   import com.google.common.collect.ImmutableList;
   import com.google.common.collect.ImmutableMap;
   import io.confluent.common.utils.IntegrationTest;
+  import io.confluent.ksql.api.server.JsonQueryStreamResponseWriter;
   import io.confluent.ksql.api.utils.QueryResponse;
   import io.confluent.ksql.integration.IntegrationTestHarness;
   import io.confluent.ksql.integration.Retry;
@@ -957,6 +959,22 @@ public class RestApiTest {
 
     assertTrue(resp[0].body().toString().contains(expectedResponsePart1));
     assertTrue(resp[0].body().toString().contains(expectedResponsePart2));
+  }
+
+  @Test
+  public void shouldNotExecutePullQueryOverHttp2QueryProto() {
+    final QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
+            "SELECT COUNT, USERID from " + AGG_TABLE + ";",
+            Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+
+    final HttpResponse<Buffer> bufferHttpResponse = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+            HTTP_2, POST,
+            "/query", queryStreamArgs, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
+            Optional.empty(), Optional.empty());
+
+    // Then:
+    assertThat(bufferHttpResponse.statusCode(), is(406));
+    assertThat(bufferHttpResponse.statusMessage(), is("Not Acceptable"));
   }
 
   @Test

@@ -71,10 +71,20 @@ public final class KsqlTargetUtil {
     return rows;
   }
 
+  /**
+   * @param buff the buffer response that we get from the /query-stream endpoint
+   *             for KsqlMediaType.KSQL_V1_PROTOBUF
+   * @return a List of StreamedRow that includes the header row as its fist element,
+   *     and every subsequent element is a result row in the protobuf format
+   */
   public static List<StreamedRow> toRowsFromProto(final Buffer buff) {
     final List<StreamedRow> rows = new ArrayList<>();
     boolean headerRead = false;
 
+    // split the buffer across the commas delimiting the individual rows
+    // Since, there would be commas in the header we are replacing
+    // },{"row": with },\n\t\n{"row": and then splitting on \n\t\n to avoid
+    // splitting on commas that might be more that 1 level deep
     final List<Buffer> buffRows = Arrays
             .stream(buff
                     .toString()
@@ -86,14 +96,28 @@ public final class KsqlTargetUtil {
             .collect(Collectors.toList());
 
     for (Buffer tidied: buffRows) {
+      // deserialize the first row (header) into a StreamedRow and add it to
+      // the list to return.
       if (!headerRead) {
         final StreamedRow row = deserialize(tidied, StreamedRow.class);
         rows.add(row);
         headerRead = true;
       } else {
         try {
+          // try to deserialize  every subsequent buffer row into a StreamedRow
+          // and add it to the list to return. These can be continuation tokens,
+          // consistency tokens, error messages, final messages or limit messages.
+          // We expect it to fail for the rowProtobuf objects which is handled below.
           rows.add(deserialize(tidied, StreamedRow.class));
         } catch (Exception e) {
+          // if it is none of the above, then deserialize it to a
+          // StreamedRow.DataRowProtobuf object.
+          // We can't directly deserialize into a StreamedRow like we did above
+          // because DataRowProtobuf's serialization is {"row":"CAESBlVTRVJfMA=="}
+          // whereas the serialization of a StreamedRow containing a DataRowProtobuf
+          // looks like {"rowProtobuf":{"row":"CAESBlVTRVJfMA=="}}. The Rest API
+          // produces {"row":"CAESBlVTRVJfMA=="}, so we have to do a bit of extra conversion
+          // here.
           final DataRowProtobuf protoBytes =
                   deserialize(tidied, DataRowProtobuf.class);
           final byte[] bytes = protoBytes.getRow();

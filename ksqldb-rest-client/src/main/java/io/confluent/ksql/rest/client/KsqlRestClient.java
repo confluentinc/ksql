@@ -310,7 +310,7 @@ public final class KsqlRestClient implements Closeable {
 
   public RestResponse<List<StreamedRow>> makeQueryStreamRequestProto(
           final String ksql,
-          final Map<String, ?> requestProperties
+          final Map<String, Object> requestProperties
   ) {
     final KsqlTarget target = target();
     return target.postQueryStreamRequestProto(ksql, requestProperties);

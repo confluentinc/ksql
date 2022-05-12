@@ -224,12 +224,10 @@ public final class KsqlTarget {
 
   public RestResponse<List<StreamedRow>> postQueryStreamRequestProto(
           final String ksql,
-          final Map<String, ?> requestProperties
+          final Map<String, Object> requestProperties
   ) {
-    final Map<String, Object> requestPropertiesObject = requestProperties.entrySet().stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     final QueryStreamArgs queryStreamArgs = new QueryStreamArgs(ksql, localProperties.toMap(),
-            Collections.emptyMap(), requestPropertiesObject);
+            Collections.emptyMap(), requestProperties);
     return executeRequestSync(HttpMethod.POST,
             QUERY_STREAM_PATH,
             queryStreamArgs,

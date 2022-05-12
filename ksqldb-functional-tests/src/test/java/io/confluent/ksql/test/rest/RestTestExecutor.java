@@ -141,14 +141,17 @@ public class RestTestExecutor implements Closeable {
     topicInfoCache.clear();
 
     final StatementSplit statements = splitStatements(testCase);
-    final int expectedResponseSize = (int) testCase.getExpectedResponses().stream().filter(resp -> !resp.getContent().containsKey("queryProto")).count();
+    final int expectedResponseSize = (int) testCase.getExpectedResponses()
+            .stream()
+            .filter(resp -> !resp.getContent().containsKey("queryProto"))
+            .count();
 
     if (testCase.getStatements().size() < expectedResponseSize) {
       throw new AssertionError("Invalid test case: more expected responses than statements. "
           + System.lineSeparator()
           + "statementCount: " + testCase.getStatements().size()
           + System.lineSeparator()
-          + "responsesCount: " + testCase.getExpectedResponses().size());
+          + "responsesCount: " + expectedResponseSize);
     }
 
     initializeTopics(testCase);
@@ -1087,6 +1090,8 @@ public class RestTestExecutor implements Closeable {
         if (actual.containsKey(HEADER_PROTOBUF)
                 && ((HashMap<String, Object>) actual.get(HEADER_PROTOBUF)).containsKey(SCHEMA)) {
 
+          assertThat(i, is(0));
+
           schema = new ProtobufSchema((String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA));
           final String actualSchema = (String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA);
           final String expectedSchema = (String) ((Map<?, ?>)expected.get(HEADER_PROTOBUF)).get(SCHEMA);
@@ -1097,11 +1102,12 @@ public class RestTestExecutor implements Closeable {
         } else {
           JSONObject row = new JSONObject(actual);
 
-          byte[] bytes = new byte[0];
+          byte[] bytes;
           try {
             bytes = mapper.readTree(row.toString()).get("rowProtobuf").get("row").binaryValue();
           } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to deserialize the ProtoBuf bytes from the " +
+                    "RQTT JSON response row: " + row);
           }
 
           final Object message = deserializer.deserialize(bytes, schema);

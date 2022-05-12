@@ -28,6 +28,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -97,6 +99,170 @@ public class JsonQueryStreamResponseWriterTest {
 
     // Then:
     assertThat(protoSchema, is(expectedProtoSchemaString));
+  }
+
+  @Test
+  public void shouldConvertComplexLogicalSchemaToProtobufSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K"), SqlTypes.struct()
+                    .field("F1", SqlTypes.array(SqlTypes.STRING))
+                    .build())
+            .valueColumn(ColumnName.of("STR"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("DEC"), SqlTypes.decimal(4, 2))
+            .valueColumn(ColumnName.of("BYTES_"), SqlTypes.BYTES)
+            .valueColumn(ColumnName.of("ARRAY"), SqlTypes.array(SqlTypes.STRING))
+            .valueColumn(ColumnName.of("MAP"), SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
+            .valueColumn(ColumnName.of("STRUCT"), SqlTypes.struct().field("F1", SqlTypes.INTEGER).build())
+            .valueColumn(ColumnName.of("COMPLEX"), SqlTypes.struct()
+                    .field("DECIMAL", SqlTypes.decimal(2, 1))
+                    .field("STRUCT", SqlTypes.struct()
+                            .field("F1", SqlTypes.STRING)
+                            .field("F2", SqlTypes.INTEGER)
+                            .build())
+                    .field("ARRAY_STRUCT", SqlTypes.array(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
+                    .field("ARRAY_MAP", SqlTypes.array(SqlTypes.map(SqlTypes.STRING, SqlTypes.INTEGER)))
+                    .field("MAP_ARRAY", SqlTypes.map(SqlTypes.STRING, SqlTypes.array(SqlTypes.STRING)))
+                    .field("MAP_MAP", SqlTypes.map(SqlTypes.STRING,
+                            SqlTypes.map(SqlTypes.STRING, SqlTypes.INTEGER)
+                    ))
+                    .field("MAP_STRUCT", SqlTypes.map(SqlTypes.STRING,
+                            SqlTypes.struct().field("F1", SqlTypes.STRING).build()
+                    ))
+                    .build()
+            )
+            .valueColumn(ColumnName.of("TIMESTAMP"), SqlTypes.TIMESTAMP)
+            .valueColumn(ColumnName.of("DATE"), SqlTypes.DATE)
+            .valueColumn(ColumnName.of("TIME"), SqlTypes.TIME)
+            .headerColumn(ColumnName.of("HEAD"), Optional.of("h0"))
+            .build();
+
+    final String expectedProtoSchemaString = "syntax = \"proto3\";\n" +
+            "\n" +
+            "import \"confluent/type/decimal.proto\";\n" +
+            "import \"google/protobuf/timestamp.proto\";\n" +
+            "import \"google/type/date.proto\";\n" +
+            "import \"google/type/timeofday.proto\";\n" +
+            "\n" +
+            "message ConnectDefault1 {\n" +
+            "  ConnectDefault2 K = 1;\n" +
+            "  string STR = 2;\n" +
+            "  int64 LONG = 3;\n" +
+            "  confluent.type.Decimal DEC = 4 [(confluent.field_meta) = {\n" +
+            "    params: [\n" +
+            "      {\n" +
+            "        value: \"4\",\n" +
+            "        key: \"precision\"\n" +
+            "      },\n" +
+            "      {\n" +
+            "        value: \"2\",\n" +
+            "        key: \"scale\"\n" +
+            "      }\n" +
+            "    ]\n" +
+            "  }];\n" +
+            "  bytes BYTES_ = 5;\n" +
+            "  repeated string ARRAY = 6;\n" +
+            "  repeated ConnectDefault3Entry MAP = 7;\n" +
+            "  ConnectDefault4 STRUCT = 8;\n" +
+            "  ConnectDefault5 COMPLEX = 9;\n" +
+            "  google.protobuf.Timestamp TIMESTAMP = 10;\n" +
+            "  google.type.Date DATE = 11;\n" +
+            "  google.type.TimeOfDay TIME = 12;\n" +
+            "  bytes HEAD = 13;\n" +
+            "\n" +
+            "  message ConnectDefault2 {\n" +
+            "    repeated string F1 = 1;\n" +
+            "  }\n" +
+            "  message ConnectDefault3Entry {\n" +
+            "    string key = 1;\n" +
+            "    string value = 2;\n" +
+            "  }\n" +
+            "  message ConnectDefault4 {\n" +
+            "    int32 F1 = 1;\n" +
+            "  }\n" +
+            "  message ConnectDefault5 {\n" +
+            "    confluent.type.Decimal DECIMAL = 1 [(confluent.field_meta) = {\n" +
+            "      params: [\n" +
+            "        {\n" +
+            "          value: \"2\",\n" +
+            "          key: \"precision\"\n" +
+            "        },\n" +
+            "        {\n" +
+            "          value: \"1\",\n" +
+            "          key: \"scale\"\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    }];\n" +
+            "    ConnectDefault6 STRUCT = 2;\n" +
+            "    repeated ConnectDefault7 ARRAY_STRUCT = 3;\n" +
+            "    repeated ConnectDefault8Entry ARRAY_MAP = 4;\n" +
+            "    repeated ConnectDefault9Entry MAP_ARRAY = 5;\n" +
+            "    repeated ConnectDefault10Entry MAP_MAP = 6;\n" +
+            "    repeated ConnectDefault12Entry MAP_STRUCT = 7;\n" +
+            "  \n" +
+            "    message ConnectDefault6 {\n" +
+            "      string F1 = 1;\n" +
+            "      int32 F2 = 2;\n" +
+            "    }\n" +
+            "    message ConnectDefault7 {\n" +
+            "      string F1 = 1;\n" +
+            "    }\n" +
+            "    message ConnectDefault8Entry {\n" +
+            "      string key = 1;\n" +
+            "      int32 value = 2;\n" +
+            "    }\n" +
+            "    message ConnectDefault9Entry {\n" +
+            "      string key = 1;\n" +
+            "      repeated string value = 2;\n" +
+            "    }\n" +
+            "    message ConnectDefault10Entry {\n" +
+            "      string key = 1;\n" +
+            "      repeated ConnectDefault11Entry value = 2;\n" +
+            "    \n" +
+            "      message ConnectDefault11Entry {\n" +
+            "        string key = 1;\n" +
+            "        int32 value = 2;\n" +
+            "      }\n" +
+            "    }\n" +
+            "    message ConnectDefault12Entry {\n" +
+            "      string key = 1;\n" +
+            "      ConnectDefault13 value = 2;\n" +
+            "    \n" +
+            "      message ConnectDefault13 {\n" +
+            "        string F1 = 1;\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}\n";
+
+    // When:
+    final String protoSchema = JsonQueryStreamResponseWriter.logicalToProtoSchema(schema);
+
+    // Then:
+    assertThat(protoSchema, is(expectedProtoSchemaString));
+  }
+
+  @Test
+  public void shouldFailNestedArraysConvertLogicalSchemaToProtobufSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+            .valueColumn(ColumnName.of("COMPLEX"), SqlTypes.struct()
+                    .field("ARRAY_ARRAY", SqlTypes.array(SqlTypes.array(SqlTypes.STRING)))
+                    .build()
+            )
+            .build();
+
+    // When:
+    Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+      JsonQueryStreamResponseWriter.logicalToProtoSchema(schema);
+    });
+
+    String expectedMessage = "Array cannot be nested";
+    String actualMessage = exception.getMessage();
+
+    // Then:
+    assertThat(actualMessage.contains(expectedMessage), is(true));
   }
 
   @Test

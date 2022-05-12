@@ -71,7 +71,7 @@ The amount of time an `ASSERT SCHEMA` statement will wait for the assertion to s
 
 ## `ksql.assert.topic.default.timeout.ms`
 
-The amount of time an `ASSERT SCHEMA` assertion will wait for the assertion to succeed if no timeout is specified.
+The amount of time an `ASSERT TOPIC` assertion will wait for the assertion to succeed if no timeout is specified.
 
 ## `ksql.connect.url`
 

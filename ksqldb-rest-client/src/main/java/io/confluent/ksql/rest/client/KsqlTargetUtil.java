@@ -37,6 +37,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.Pair;
 import io.vertx.core.buffer.Buffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -73,33 +74,31 @@ public final class KsqlTargetUtil {
   public static List<StreamedRow> toRowsFromProto(final Buffer buff) {
     final List<StreamedRow> rows = new ArrayList<>();
     boolean headerRead = false;
-    int begin = 0;
 
-    for (int i = 0; i <= buff.length(); i++) {
-      if ((i == buff.length() && (i - begin > 1))
-              || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
-        if (begin != i) { // Ignore random newlines - the server can send these
-          final Buffer sliced = buff.slice(begin, i);
-          final Buffer tidied = toJsonMsg(sliced, true);
-          if (tidied.length() > 0) {
-            if (!headerRead) {
-              final StreamedRow row = deserialize(tidied, StreamedRow.class);
-              rows.add(row);
-              headerRead = true;
-            } else {
-              try {
-                rows.add(deserialize(tidied, StreamedRow.class));
-              } catch (Exception e) {
-                final DataRowProtobuf protoBytes =
-                        deserialize(tidied, DataRowProtobuf.class);
-                final byte[] bytes = protoBytes.getRow();
-                rows.add(StreamedRow.pullRowProtobuf(bytes));
-              }
-            }
-          }
+    final List<Buffer> buffRows = Arrays
+            .stream(buff
+                    .toString()
+                    .replace("},{\"row\":", "},\n\t\n{\"row\":")
+                    .split("\n\t\n"))
+            .collect(Collectors.toList())
+            .stream()
+            .map(row -> toJsonMsg(Buffer.buffer(row), true))
+            .collect(Collectors.toList());
+
+    for (Buffer tidied: buffRows) {
+      if (!headerRead) {
+        final StreamedRow row = deserialize(tidied, StreamedRow.class);
+        rows.add(row);
+        headerRead = true;
+      } else {
+        try {
+          rows.add(deserialize(tidied, StreamedRow.class));
+        } catch (Exception e) {
+          final DataRowProtobuf protoBytes =
+                  deserialize(tidied, DataRowProtobuf.class);
+          final byte[] bytes = protoBytes.getRow();
+          rows.add(StreamedRow.pullRowProtobuf(bytes));
         }
-
-        begin = i + 1;
       }
     }
     return rows;

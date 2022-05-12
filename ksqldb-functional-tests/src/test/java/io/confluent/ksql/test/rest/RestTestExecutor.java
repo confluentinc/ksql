@@ -185,7 +185,7 @@ public class RestTestExecutor implements Closeable {
 
       List<RqttResponse> protoResponses = ImmutableList.of();
 
-      if (!testCase.getTestLocation().toString().contains("scalable-push-queries")) {
+      if (testCase.isTestPullWithProtoFormat()) {
         protoResponses = statements.queries.stream()
                         .map(this::sendQueryStreamProtoStatement)
                         .filter(Optional::isPresent)

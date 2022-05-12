@@ -23,12 +23,6 @@
           {"row":{"columns":[1, {"C": -1, "T":  3}]}},
           {"row":{"columns":[2, {"D": 4, "Q": 0}]}},
           {"row":{"columns":[0, {"A": 4, "B": -1}]}}
-        ]},
-        {"queryProto": [
-          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  repeated ConnectDefault2Entry FILTERED_TRANSFORMED = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    int32 value = 2;\n  }\n}\n"}},
-          {"row": "ID: 1\nFILTERED_TRANSFORMED {\n  key: \"C\"\n  value: -1\n}\nFILTERED_TRANSFORMED {\n  key: \"T\"\n  value: 3\n}\n"},
-          {"row": "ID: 2\nFILTERED_TRANSFORMED {\n  key: \"Q\"\n}\nFILTERED_TRANSFORMED {\n  key: \"D\"\n  value: 4\n}\n"},
-          {"row": "FILTERED_TRANSFORMED {\n  key: \"A\"\n  value: 4\n}\nFILTERED_TRANSFORMED {\n  key: \"B\"\n  value: -1\n}\n"}
         ]}
       ]
     },

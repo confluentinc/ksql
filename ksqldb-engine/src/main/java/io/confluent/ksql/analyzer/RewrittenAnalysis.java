@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
@@ -90,16 +91,22 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   public List<SelectItem> getSelectItems() {
     return original.getSelectItems().stream()
         .map(si -> {
-              if (!(si instanceof SingleColumn)) {
-                return si;
+              if (si instanceof SingleColumn) {
+                final SingleColumn singleColumn = (SingleColumn) si;
+                return new SingleColumn(
+                    singleColumn.getLocation(),
+                    rewrite(singleColumn.getExpression()),
+                    singleColumn.getAlias()
+                );
+              } else if (si instanceof StructAll) {
+                final StructAll structAll = (StructAll) si;
+                return new StructAll(
+                    structAll.getLocation(),
+                    rewrite(structAll.getBaseStruct())
+                );
               }
 
-              final SingleColumn singleColumn = (SingleColumn) si;
-              return new SingleColumn(
-                  singleColumn.getLocation(),
-                  rewrite(singleColumn.getExpression()),
-                  singleColumn.getAlias()
-              );
+              return si;
             }
         )
         .collect(Collectors.toList());

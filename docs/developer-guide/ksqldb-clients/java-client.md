@@ -35,6 +35,7 @@ Use the Java client to:
 - [Manage, list and describe connectors](#connector-operations)
 - [Define variables for substitution](#variable-substitution)
 - [Execute Direct HTTP Requests](#direct-http-requests)
+- [Assert the existence of a topic or schema](#assert-topics-schemas)
 
 Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
 
@@ -851,7 +852,7 @@ assert response.status() == 200;
 The `send()` method adds authentication headers as specified in 
 [ClientOptions](api/io/confluent/ksql/api/client/ClientOptions.html).
 
-Assert the existence of a topic or schema<a name="direct-http-requests"></a>
+Assert the existence of a topic or schema<a name="assert-topics-schemas"></a>
 ----------------------------------------------------------------------------
 
 Starting with ksqlDB 0.27, users can use the `assertSchema` and `assertTopic` methods to assert the

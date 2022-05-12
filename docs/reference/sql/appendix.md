@@ -115,6 +115,7 @@ The following table shows all keywords in the language.
 | `TERMINATE`    | end a persistent query                  | `TERMINATE query_id;`                                                |
 | `THEN`         | return expression in a CASE block       | `CASE WHEN units<2 THEN 'sm' WHEN units<4 THEN 'med' ELSE 'large' …` |
 | `TIME`         | time data type                          |                                                                      |
+| `TIMEOUT`      | specify the amount of time to wait for an assertion to succeed | `ASSERT SCHEMA ID 4 TIMEOUT 10 SECONDS;`      |
 | `TIMESTAMP`    | timestamp data type                     |                                                                      |
 | `TIMESTAMP`    | specify a timestamp column              | `CREATE STREAM pageviews WITH (TIMESTAMP='viewtime', …`              |
 | `TOPIC`        | specify a {{site.ak}} topic             | `DROP TABLE <table-name> DELETE TOPIC;`                              |

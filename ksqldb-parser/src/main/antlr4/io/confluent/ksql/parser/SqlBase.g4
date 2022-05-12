@@ -223,9 +223,10 @@ values
     ;
 
 selectItem
-    : expression (AS? identifier)?  #selectSingle
-    | identifier '.' ASTERISK       #selectAll
-    | ASTERISK                      #selectAll
+    : expression (AS? identifier)?                       #selectSingle
+    | base=primaryExpression STRUCT_FIELD_REF ASTERISK   #selectStructAll
+    | identifier '.' ASTERISK                            #selectAll
+    | ASTERISK                                           #selectAll
     ;
 
 relation

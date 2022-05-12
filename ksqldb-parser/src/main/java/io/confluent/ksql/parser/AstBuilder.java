@@ -157,6 +157,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -1195,6 +1196,12 @@ public class AstBuilder {
       final String fieldName = ParserUtil.getIdentifierText(context.identifier());
       final Expression baseExpression = (Expression) visit(context.base);
       return new DereferenceExpression(getLocation(context), baseExpression, fieldName);
+    }
+
+    @Override
+    public Node visitSelectStructAll(final SqlBaseParser.SelectStructAllContext context) {
+      final Expression baseExpression = (Expression) visit(context.base);
+      return new StructAll(getLocation(context), baseExpression);
     }
 
     @Override

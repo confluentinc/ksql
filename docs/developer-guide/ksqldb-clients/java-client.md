@@ -851,6 +851,30 @@ assert response.status() == 200;
 The `send()` method adds authentication headers as specified in 
 [ClientOptions](api/io/confluent/ksql/api/client/ClientOptions.html).
 
+Assert the existence of a topic or schema<a name="direct-http-requests"></a>
+----------------------------------------------------------------------------
+
+Starting with ksqlDB 0.27, users can use the `assertSchema` and `assertTopic` methods to assert the
+existence of resources. If the assertion fails, then the method will return a failed `CompletableFuture`.
+
+### Example Usage ###
+Assert that a topic and schema exist before creating a stream:
+
+```java
+client.assertTopic("foo", ImmutableMap.of("partitions", 1, "replicas", 3), true)
+        .thenCompose((a) -> client.assertSchema("foo-key", 3, true))
+        .thenAccept((a) -> client.executeStatement("CREATE STREAM..."))
+        .exceptionally(...);
+```
+
+Assert that a topic doesn't exist:
+
+```java
+client.assertTopic("foo", false)
+        .thenAccept(() -> client.executeStatement("CREATE STREAM..."))
+        .exceptionally(...);
+```
+
 Tutorial Examples<a name="tutorial-examples"></a>
 -------------------------------------------------
 

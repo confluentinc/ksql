@@ -738,7 +738,7 @@ public final class CommandParser {
    */
   public static class SqlAssertTopicCommand extends SqlCommand {
     private final String topic;
-    private final Map<String, Integer> configs;
+    private final ImmutableMap<String, Integer> configs;
     private final boolean exists;
     private final Optional<Duration> timeout;
 
@@ -751,7 +751,7 @@ public final class CommandParser {
     ) {
       super(command);
       this.topic = Objects.requireNonNull(topic);
-      this.configs = Objects.requireNonNull(configs);
+      this.configs = ImmutableMap.copyOf(Objects.requireNonNull(configs));
       this.exists = exists;
       this.timeout = Objects.requireNonNull(timeout);
     }

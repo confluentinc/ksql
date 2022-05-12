@@ -228,9 +228,12 @@ SELECT ROWTIME, * FROM s1 EMIT CHANGES;
 
 The following table lists all pseudocolumns.
 
-| pseudocolumn | meaning                        |
-|--------------|--------------------------------|
-| `ROWTIME`    | Row timestamp, inferred from the underlying Kafka record if not overridden. |
+| Pseudocolumn   | Meaning                        |
+|----------------|--------------------------------|
+| `HEADERS`      | Columns that are populated by the {{ site.ak }} record's header. |
+| `ROWOFFSET`    | The offset of the source record. |
+| `ROWPARTITION` | The partition of the source record. |
+| `ROWTIME`      | Row timestamp, inferred from the underlying {{ site.ak }} record if not overridden. |
 
 You can't create additional pseudocolumns beyond these.
 

@@ -27,6 +27,8 @@ import static org.junit.Assert.assertTrue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertSchemaCommand;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertTopicCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDefineVariableCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
@@ -36,9 +38,11 @@ import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlUndefineVariableCommand;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
@@ -623,6 +627,76 @@ public class CommandParserTest {
 
     // Then:
     assertThat(e.getMessage(), is("'RUN SCRIPT' statements are not supported."));
+  }
+
+  @Test
+  public void shouldParseAssertTopic() {
+    // Given:
+    final String assertTopics = "assert topic abc; assert not exists topic 'abcd' with (foo=2, bar=3) timeout 4 minutes;"
+        + "assert topic ${topic} with (replicas=${replicas}, partitions=${partitions}) timeout 10 seconds;";
+
+    // When:
+    List<SqlCommand> commands = parse(assertTopics, ImmutableMap.of("replicas", "3", "partitions", "5", "topic", "name"));
+
+    // Then:
+    assertThat(commands.size(), is(3));
+    assertThat(commands.get(0).getCommand(), is("assert topic abc;"));
+    assertThat(commands.get(0), instanceOf(SqlAssertTopicCommand.class));
+    assertThat(((SqlAssertTopicCommand) commands.get(0)).getTopic(), is("abc"));
+    assertThat(((SqlAssertTopicCommand) commands.get(0)).getConfigs().size(), is(0));
+    assertThat(((SqlAssertTopicCommand) commands.get(0)).getExists(), is(true));
+    assertThat(((SqlAssertTopicCommand) commands.get(0)).getTimeout(), is(Optional.empty()));
+
+    assertThat(commands.get(1).getCommand(), is( " assert not exists topic 'abcd' with (foo=2, bar=3) timeout 4 minutes;"));
+    assertThat(commands.get(1), instanceOf(SqlAssertTopicCommand.class));
+    assertThat(((SqlAssertTopicCommand) commands.get(1)).getTopic(), is("abcd"));
+    assertThat(((SqlAssertTopicCommand) commands.get(1)).getConfigs().size(), is(2));
+    assertThat(((SqlAssertTopicCommand) commands.get(1)).getConfigs().get("FOO"), is(2));
+    assertThat(((SqlAssertTopicCommand) commands.get(1)).getConfigs().get("BAR"), is(3));
+    assertThat(((SqlAssertTopicCommand) commands.get(1)).getExists(), is(false));
+    assertThat(((SqlAssertTopicCommand) commands.get(1)).getTimeout().get(), is(Duration.ofMinutes(4)));
+
+    assertThat(commands.get(2).getCommand(), is( "assert topic ${topic} with (replicas=${replicas}, partitions=${partitions}) timeout 10 seconds;"));
+    assertThat(commands.get(2), instanceOf(SqlAssertTopicCommand.class));
+    assertThat(((SqlAssertTopicCommand) commands.get(2)).getTopic(), is("name"));
+    assertThat(((SqlAssertTopicCommand) commands.get(2)).getConfigs().size(), is(2));
+    assertThat(((SqlAssertTopicCommand) commands.get(2)).getConfigs().get("REPLICAS"), is(3));
+    assertThat(((SqlAssertTopicCommand) commands.get(2)).getConfigs().get("PARTITIONS"), is(5));
+    assertThat(((SqlAssertTopicCommand) commands.get(2)).getExists(), is(true));
+    assertThat(((SqlAssertTopicCommand) commands.get(2)).getTimeout().get(), is(Duration.ofSeconds(10)));
+  }
+
+  @Test
+  public void shouldParseAssertSchema() {
+    // Given:
+    final String assertTopics = "assert schema id 3; assert not exists schema subject 'abcd' timeout 4 minutes;"
+        + "assert schema subject ${subject} id ${id} timeout 10 seconds;";
+
+    // When:
+    List<SqlCommand> commands = parse(assertTopics, ImmutableMap.of("subject", "name", "id", "4"));
+
+    // Then:
+    assertThat(commands.size(), is(3));
+    assertThat(commands.get(0).getCommand(), is("assert schema id 3;"));
+    assertThat(commands.get(0), instanceOf(SqlAssertSchemaCommand.class));
+    assertThat(((SqlAssertSchemaCommand) commands.get(0)).getSubject(), is(Optional.empty()));
+    assertThat(((SqlAssertSchemaCommand) commands.get(0)).getId().get(), is(3));
+    assertThat(((SqlAssertSchemaCommand) commands.get(0)).getExists(), is(true));
+    assertThat(((SqlAssertSchemaCommand) commands.get(0)).getTimeout(), is(Optional.empty()));
+
+    assertThat(commands.get(1).getCommand(), is( " assert not exists schema subject 'abcd' timeout 4 minutes;"));
+    assertThat(commands.get(1), instanceOf(SqlAssertSchemaCommand.class));
+    assertThat(((SqlAssertSchemaCommand) commands.get(1)).getSubject().get(), is("abcd"));
+    assertThat(((SqlAssertSchemaCommand) commands.get(1)).getId(), is(Optional.empty()));
+    assertThat(((SqlAssertSchemaCommand) commands.get(1)).getExists(), is(false));
+    assertThat(((SqlAssertSchemaCommand) commands.get(1)).getTimeout().get(), is(Duration.ofMinutes(4)));
+
+    assertThat(commands.get(2).getCommand(), is( "assert schema subject ${subject} id ${id} timeout 10 seconds;"));
+    assertThat(commands.get(2), instanceOf(SqlAssertSchemaCommand.class));
+    assertThat(((SqlAssertSchemaCommand) commands.get(2)).getSubject().get(), is("name"));
+    assertThat(((SqlAssertSchemaCommand) commands.get(2)).getId().get(), is(4));
+    assertThat(((SqlAssertSchemaCommand) commands.get(2)).getExists(), is(true));
+    assertThat(((SqlAssertSchemaCommand) commands.get(2)).getTimeout().get(), is(Duration.ofSeconds(10)));
   }
 
   private List<SqlCommand> parse(final String sql, Map<String, String> variables) {

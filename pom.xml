@@ -155,8 +155,8 @@
         <netty.version>4.1.72.Final</netty.version>
         <netty-codec-http2-version>4.1.72.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
-
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
+        <kafka.version>3.3.0-SNAPSHOT</kafka.version>
     </properties>
 
     <dependencyManagement>

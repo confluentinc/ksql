@@ -38,6 +38,8 @@ import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.ListVariables;
+import io.confluent.ksql.parser.tree.PauseQuery;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
@@ -88,6 +90,8 @@ public enum CustomExecutors {
   CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
   DROP_CONNECTOR(DropConnector.class, DropConnectorExecutor::execute),
   DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute),
+  PAUSE_QUERY(PauseQuery.class, PauseQueryExecutor::execute),
+  RESUME_QUERY(ResumeQuery.class, ResumeQueryExecutor::execute),
   TERMINATE_QUERY(TerminateQuery.class, TerminateQueryExecutor::execute)
   ;
 

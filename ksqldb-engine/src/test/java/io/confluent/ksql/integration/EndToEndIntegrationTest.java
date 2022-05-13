@@ -21,6 +21,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
@@ -40,7 +41,9 @@ import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -51,6 +54,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -253,6 +257,94 @@ public class EndToEndIntegrationTest {
     assertThat(columns.get(0).toString(), startsWith("USER_"));
     assertThat(columns.get(1).toString(), startsWith("PAGE_"));
     assertThat(columns.get(2).toString(), either(is("FEMALE")).or(is("MALE")));
+  }
+
+  // JNH: Refactor this test.
+  @Test
+  public void shouldSupportPauseAndResume() throws Exception {
+    // Create query
+    final String createStreamStatement = format(
+        "create stream cart_event_product as "
+            + "select pv.userid, pv.pageid, u.gender "
+            + "from %s pv left join %s u on pv.userid=u.userid;",
+        PAGE_VIEW_STREAM, USER_TABLE);
+    PersistentQueryMetadata joinQueryMetadata = executeStatement(createStreamStatement);
+
+    // Create second query against PAGEVIEW
+    final String createStreamStatement2 = format(
+        "create stream page_view_projected as "
+            + "select userid, pageid "
+            + "from %s where viewtime > 6;",
+        PAGE_VIEW_STREAM, USER_TABLE);
+    executeStatement(createStreamStatement2);
+
+    // Verify query1, query2 are in a shared runtime
+    if (sharedRuntimes) {
+      // Do something to verify that the two queries are in a shared runtime.
+    }
+
+    // Observe results
+    final TransientQueryMetadata queryMetadata = executeStatement(
+        "SELECT * from cart_event_product EMIT CHANGES;");
+    List<GenericRow> rows = verifyAvailableRows(queryMetadata, 7);
+    //final List<Object> columns = waitForFirstRow(queryMetadata);
+    System.out.println("Rows " + rows.size());
+    assertThat(rows.size(), equalTo(7));
+
+    // Observe results for query1, query2
+    final TransientQueryMetadata queryMetadataQuery2 = executeStatement(
+        "SELECT * from page_view_projected EMIT CHANGES;");
+    List<GenericRow> rowsProjected = verifyAvailableRows(queryMetadataQuery2, 1);
+    //final List<Object> columns = waitForFirstRow(queryMetadata);
+    System.out.println("Rows " + rowsProjected.size());
+    assertThat(rowsProjected.size(), equalTo(1));
+
+    // PAUSE query
+    ksqlContext.pauseQuery(joinQueryMetadata.getQueryId());
+
+    Optional<PersistentQueryMetadata> metadata = ksqlContext.getPersistentQuery(new QueryId(
+        "CSAS_CART_EVENT_PRODUCT_0"));
+    assertThat(metadata.get().getQueryStatus(), equalTo(KsqlQueryStatus.PAUSED));
+
+    // Add records
+    TEST_HARNESS.produceRows(
+        PAGE_VIEW_TOPIC,
+        new PageViewDataProvider("PAGEVIEW", Batch.BATCH2),
+        KEY_FORMAT,
+        VALUE_FORMAT,
+        System::currentTimeMillis
+    );
+
+    // Observe results are same as previous state
+    final TransientQueryMetadata queryMetadataPaused = executeStatement(
+        "SELECT * from cart_event_product EMIT CHANGES;");
+    List<GenericRow> rowsPaused = verifyAvailableRows(queryMetadataPaused, 7);
+    //final List<Object> columns = waitForFirstRow(queryMetadata);
+    assertThat(rowsPaused.size(), equalTo(7));
+    System.out.println("Rows after pause" + rowsPaused.size());
+
+    // Observe updates to query2
+    final TransientQueryMetadata queryMetadataQuery3 = executeStatement(
+        "SELECT * from page_view_projected EMIT CHANGES;");
+    List<GenericRow> rowsProjected2 = verifyAvailableRows(queryMetadataQuery3, 6);
+    //final List<Object> columns = waitForFirstRow(queryMetadata);
+    System.out.println("Rows " + rowsProjected2.size());
+    assertThat(rowsProjected2.size(), equalTo(6));
+
+
+    // RESUME query
+    ksqlContext.resumeQuery(new QueryId("CSAS_CART_EVENT_PRODUCT_0"));
+
+    // Observe results are in the new state
+    final TransientQueryMetadata queryMetadata2 = executeStatement(
+        "SELECT * from cart_event_product EMIT CHANGES;");
+    List<GenericRow> rows2 = verifyAvailableRows(queryMetadata2, 12);
+    //final List<Object> columns = waitForFirstRow(queryMetadata);
+    System.out.println("Rows " + rows2.size());
+    assertThat(rows2.size(), equalTo(12));
+
+    assertThat(CONSUMED_COUNT.get(), greaterThan(0));
+    assertThat(PRODUCED_COUNT.get(), greaterThan(0));
   }
 
   @Test

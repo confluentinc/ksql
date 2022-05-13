@@ -52,6 +52,8 @@ import java.util.List;
     @JsonSubTypes.Type(value = WarningEntity.class, name = "warning_entity"),
     @JsonSubTypes.Type(value = VariablesList.class, name = "variables"),
     @JsonSubTypes.Type(value = TerminateQueryEntity.class, name = "terminate_query"),
+    @JsonSubTypes.Type(value = PauseQueryEntity.class, name = "pause_query"),
+    @JsonSubTypes.Type(value = ResumeQueryEntity.class, name = "resume_query"),
     @JsonSubTypes.Type(value = AssertTopicEntity.class, name = "assert_topic"),
     @JsonSubTypes.Type(value = AssertSchemaEntity.class, name = "assert_schema")
 })

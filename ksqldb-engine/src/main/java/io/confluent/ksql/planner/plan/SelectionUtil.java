@@ -251,7 +251,7 @@ public final class SelectionUtil {
             new DereferenceExpression(
                 Optional.empty(),
                 expression,
-                f.name().toUpperCase()
+                f.name()
             )));
   }
 

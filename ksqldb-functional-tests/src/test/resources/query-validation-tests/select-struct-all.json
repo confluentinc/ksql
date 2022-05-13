@@ -70,6 +70,24 @@
       }
     },
     {
+      "name": "struct fields with back quoted strings",
+      "statements": [
+        "CREATE STREAM INPUT (v1 STRUCT<`f 1` INT, f2 INT, `f 3` INT>) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT v1->* FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": null, "value": {"V1":  {"f 1": 1, "f2": 2, "f 3": 3}}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": null, "value": {"f 1": 1, "F2": 2, "f 3": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`f 1` INT, F2 INT, `f 3` INT"}
+        ]
+      }
+    },
+    {
       "name": "read all struct fields and insert into another stream",
       "statements": [
         "CREATE STREAM INPUT (v1 STRUCT<a INT, b INT>) WITH (kafka_topic='test_topic', format='JSON');",

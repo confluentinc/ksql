@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -45,7 +47,7 @@ public final class AssertSchemaExecutor {
     return AssertExecutor.execute(
         statement.getStatementText(),
         statement.getStatement(),
-        executionContext,
+        executionContext.getKsqlConfig().getInt(KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS),
         serviceContext,
         (stmt, sc) -> assertSchema(
             sc.getSchemaRegistryClient(),

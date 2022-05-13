@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS;
+
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.parser.tree.AssertTopic;
@@ -47,7 +49,7 @@ public final class AssertTopicExecutor {
   ) {
     return AssertExecutor.execute(statement.getStatementText(),
         statement.getStatement(),
-        executionContext,
+        executionContext.getKsqlConfig().getInt(KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS),
         serviceContext,
         (stmt, sc) -> assertTopic(
             sc.getTopicClient(),

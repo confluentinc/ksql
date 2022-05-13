@@ -36,7 +36,8 @@ public abstract class ProjectNode extends SingleSourcePlanNode {
 
   @Override
   public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
-    final SchemaKStream<?> stream = getSource().buildStream(buildContext);
+    final PlanNode source = getSource();
+    final SchemaKStream<?> stream = source.buildStream(buildContext);
 
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)

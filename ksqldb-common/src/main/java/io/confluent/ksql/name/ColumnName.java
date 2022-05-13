@@ -29,7 +29,7 @@ public class ColumnName extends Name<ColumnName> {
     return new ColumnName(name);
   }
 
-  protected ColumnName(final String name) {
+  public ColumnName(final String name) {
     super(name);
   }
 }

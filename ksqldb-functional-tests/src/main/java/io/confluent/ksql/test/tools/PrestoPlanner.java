@@ -65,11 +65,18 @@ import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.facebook.presto.spi.plan.FilterNode;
 import com.facebook.presto.spi.plan.PlanNode;
+import com.facebook.presto.spi.plan.PlanNodeId;
 import com.facebook.presto.spi.plan.PlanNodeIdAllocator;
 import com.facebook.presto.spi.plan.ProjectNode;
 import com.facebook.presto.spi.plan.ProjectNode.Locality;
 import com.facebook.presto.spi.plan.TableScanNode;
+import com.facebook.presto.spi.relation.CallExpression;
+import com.facebook.presto.spi.relation.ConstantExpression;
+import com.facebook.presto.spi.relation.RowExpression;
+import com.facebook.presto.spi.relation.SpecialFormExpression;
+import com.facebook.presto.spi.relation.SpecialFormExpression.Form;
 import com.facebook.presto.spi.relation.VariableReferenceExpression;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.transaction.IsolationLevel;
@@ -102,7 +109,16 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.airlift.slice.Slice;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.InListExpression;
+import io.confluent.ksql.execution.expression.tree.InPredicate;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -129,6 +145,7 @@ import io.confluent.ksql.test.model.PathLocation;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
@@ -229,49 +246,7 @@ public class PrestoPlanner {
         )
     );
 
-    {
-      final Plan prestoPlan = logicalPlan(
-          "SELECT * FROM Pantalones",
-          schemaName,
-          connector
-      );
-
-      final PlanBuildContext planBuildContext = getPlanBuildContext();
-      final SchemaKStream<?> physicalPlan = physicalPlan(prestoPlan, ksqlTables, planBuildContext);
-      final Topology topology = getTopology(planBuildContext, physicalPlan);
-      System.out.println(topology.describe());
-    }
-
-    {
-      final Plan prestoPlan = logicalPlan(
-          "SELECT ID, Size FROM Pantalones",
-          schemaName,
-          connector
-      );
-
-      final PlanBuildContext planBuildContext = getPlanBuildContext();
-      final SchemaKStream<?> physicalPlan = physicalPlan(prestoPlan, ksqlTables, planBuildContext);
-      final Topology topology = getTopology(planBuildContext, physicalPlan);
-      System.out.println(topology.describe());
-    }
-
-    {
-      final Plan prestoPlan = logicalPlan(
-          "SELECT * FROM Pantalones WHERE ID = '5'",
-          schemaName,
-          connector
-      );
-      final PlanBuildContext planBuildContext = getPlanBuildContext();
-      final SchemaKStream<?> physicalPlan = physicalPlan(prestoPlan, ksqlTables, planBuildContext);
-      final Topology topology = getTopology(planBuildContext, physicalPlan);
-      System.out.println(topology.describe());
-    }
-
-    logicalPlan(
-        "SELECT * FROM Pantalones WHERE ID IN ('5', 'XYZ')",
-        schemaName,
-        connector
-    );
+    planKsql();
 
     logicalPlan(
         "SELECT * FROM Pantalones WHERE Waist > 32",
@@ -323,7 +298,7 @@ public class PrestoPlanner {
   }
 
   @NotNull
-  private static PlanBuildContext getPlanBuildContext() {
+  public static PlanBuildContext getPlanBuildContext() {
     return PlanBuildContext.of(
         new KsqlConfig(Collections.emptyMap()),
         new DefaultServiceContext(
@@ -338,7 +313,7 @@ public class PrestoPlanner {
     );
   }
 
-  private static Topology getTopology(final PlanBuildContext planBuildContext,
+  public static Topology getTopology(final PlanBuildContext planBuildContext,
       final SchemaKStream<?> dataOutputNodeStream) {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final RuntimeBuildContext buildContext = RuntimeBuildContext.of(
@@ -357,7 +332,7 @@ public class PrestoPlanner {
     return topology;
   }
 
-  private static SchemaKStream<?> physicalPlan(
+  public static SchemaKStream<?> physicalPlan(
       final Plan prestoPlan,
       final ImmutableMap<SchemaTableName, ? extends KsqlTable<?>> ksqlTables,
       final PlanBuildContext planBuildContext) {
@@ -427,30 +402,122 @@ public class PrestoPlanner {
           Optional.empty()
       );
       return dataOutputNodeStream;
+    } else if (node instanceof FilterNode) {
+      final FilterNode filterNode = (FilterNode) node;
+      final PlanNode source = filterNode.getSource();
+      final SchemaKStream<?> dataSourceStream = physicalPlan(ksqlTables, planBuildContext, source);
+      final RowExpression predicate = filterNode.getPredicate();
+      final Expression expression = getExpression(predicate);
+      final PlanNodeId id = filterNode.getId();
+      final String context = id.toString();
+      final SchemaKStream<?> filterNodeOutputStream = dataSourceStream.filter(
+          expression,
+          planBuildContext.buildNodeContext(context)
+      );
+      return filterNodeOutputStream;
+    }
+    throw new IllegalArgumentException();
+  }
+
+  private static Expression getExpression(final RowExpression predicate) {
+    if (predicate instanceof CallExpression) {
+      final CallExpression callExpression = (CallExpression) predicate;
+      final List<RowExpression> arguments = callExpression.getArguments();
+      if (arguments.size() == 2) {
+        // boolean expressions implemented here.
+        final VariableReferenceExpression leftPresto = (VariableReferenceExpression) arguments
+            .get(0);
+        final UnqualifiedColumnReferenceExp left =
+            new UnqualifiedColumnReferenceExp(
+                new ColumnName(leftPresto.getName())
+            );
+        final ConstantExpression rightPresto =
+            (ConstantExpression) arguments.get(1);
+        final Literal rightKsql = getLiteralFromConstantExpression(rightPresto);
+
+        if (callExpression.getDisplayName().equals("EQUAL")) {
+          return new ComparisonExpression(
+              Type.EQUAL,
+              left,
+              rightKsql
+          );
+        } else if (callExpression.getDisplayName().equals("GREATER_THAN")) {
+          return new ComparisonExpression(
+              Type.GREATER_THAN,
+              left,
+              rightKsql
+          );
+        } else {
+          throw new IllegalArgumentException();
+        }
+      } else {
+        throw new IllegalArgumentException();
+      }
+    } else if (predicate instanceof SpecialFormExpression) {
+      final SpecialFormExpression specialFormExpression = (SpecialFormExpression) predicate;
+      final Form form = specialFormExpression.getForm();
+      if (form == Form.IN) {
+        final List<RowExpression> arguments = specialFormExpression.getArguments();
+        final VariableReferenceExpression variableReferenceExpression =
+            (VariableReferenceExpression) arguments.get(0);
+        final UnqualifiedColumnReferenceExp inColumn = new UnqualifiedColumnReferenceExp(
+            new ColumnName(variableReferenceExpression.getName())
+        );
+        final Builder<Expression> expressions = ImmutableList.builder();
+        for (int i = 1; i < arguments.size(); i++) {
+          final Literal stringLiteral = getLiteralFromConstantExpression(
+              (ConstantExpression) arguments.get(i)
+          );
+          expressions.add(stringLiteral);
+        }
+        final InListExpression inListExpression = new InListExpression(expressions.build());
+        return new InPredicate(inColumn, inListExpression);
+      } else {
+        throw new IllegalArgumentException();
+      }
     } else {
       throw new IllegalArgumentException();
     }
   }
 
-  private static void planKsql() throws IOException {
-    final TestExecutor testExecutor = TestExecutor.create(false, Optional.empty());
-    final TestCase testCase = new TestCase(
-        new PathLocation(Files.createTempFile("", "")),
-        Files.createTempFile("", ""),
-        "asdf",
-        VersionBounds.allVersions(),
-        Collections.emptyMap(),
-        ImmutableList.of(new Topic("asdf", Optional.empty(), Optional.empty())),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        ImmutableList.of(
-            "CREATE TABLE Pantalones (ID STRING PRIMARY KEY, Waist INT, PantSize STRING) WITH (kafka_topic='asdf', value_format='JSON');",
-            "CREATE TABLE Out AS SELECT * FROM Pantalones;"
-        ),
-        Optional.empty(),
-        PostConditions.NONE
-    );
-    testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
+  @NotNull
+  private static Literal getLiteralFromConstantExpression(final ConstantExpression rightPresto) {
+    if (rightPresto.getType() instanceof VarcharType) {
+      final Slice value = (Slice) rightPresto.getValue();
+      final byte[] bytes = value.getBytes();
+      final String string = new String(bytes, StandardCharsets.UTF_8);
+      return new StringLiteral(string);
+    } else if (rightPresto.getType() instanceof IntegerType) {
+      final Long value = (Long) rightPresto.getValue();
+      return new LongLiteral(value);
+    } else {
+      throw new IllegalArgumentException();
+    }
+  }
+
+  private static void planKsql() {
+    try {
+      final TestExecutor testExecutor = TestExecutor.create(false, Optional.empty());
+      final TestCase testCase = new TestCase(
+          new PathLocation(Files.createTempFile("", "")),
+          Files.createTempFile("", ""),
+          "asdf",
+          VersionBounds.allVersions(),
+          Collections.emptyMap(),
+          ImmutableList.of(new Topic("asdf", Optional.empty(), Optional.empty())),
+          Collections.emptyList(),
+          Collections.emptyList(),
+          ImmutableList.of(
+              "CREATE TABLE Pantalones (ID STRING PRIMARY KEY, Waist INT, PantSize STRING) WITH (kafka_topic='asdf', value_format='JSON');",
+              "CREATE TABLE Out AS SELECT * FROM Pantalones WHERE ID IN ('5', 'XYZ');"
+          ),
+          Optional.empty(),
+          PostConditions.NONE
+      );
+      testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
+    } catch (final IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static SchemaKStream<?> buildStream(
@@ -505,7 +572,7 @@ public class PrestoPlanner {
     }
   }*/
 
-  private static Plan logicalPlan(
+  public static Plan logicalPlan(
       final String sql,
       final String schemaName,
       final Connector connector) {

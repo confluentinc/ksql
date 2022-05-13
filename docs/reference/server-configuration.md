@@ -65,6 +65,14 @@ to, set `ksql.advertised.listener` to a URL that ksqlDB nodes can resolve.
 
 For more information, see [Configuring Listeners of a ksqlDB Cluster](/operate-and-deploy/installation/server-config/#configuring-listeners-of-a-ksqldb-cluster)
 
+## `ksql.assert.schema.default.timeout.ms`
+
+The amount of time an `ASSERT SCHEMA` statement will wait for the assertion to succeed if no timeout is specified.
+
+## `ksql.assert.topic.default.timeout.ms`
+
+The amount of time an `ASSERT TOPIC` assertion will wait for the assertion to succeed if no timeout is specified.
+
 ## `ksql.connect.url`
 
 The {{ site.kconnect }} cluster URL to integrate with. If the

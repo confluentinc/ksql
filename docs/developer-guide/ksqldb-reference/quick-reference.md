@@ -76,6 +76,20 @@ Assert values, stream, table, or tombstones.
 ASSERT NULL VALUES sourceName (columns)? KEY values            
 ```
 
+## ASSERT SCHEMA
+Assert the existence or non-existence of a schema.
+
+```sql
+ASSERT (NOT EXISTS)? SCHEMA (SUBJECT subjectName)? (ID id)? (TIMEOUT timeout)?;     
+```
+
+## ASSERT TOPIC
+Assert the existence or non-existence of a topic.
+
+```sql
+ASSERT (NOT EXISTS)? TOPIC topicName (WITH properties)? (TIMEOUT timeout)?;         
+```
+
 ## BETWEEN
 Constrain a value to a specified range in a WHERE clause.
 

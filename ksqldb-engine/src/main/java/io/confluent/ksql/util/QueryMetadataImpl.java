@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -79,6 +81,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final TimeBoundedQueue queryErrors;
   private final RetryEvent retryEvent;
   private final Listener listener;
+  private final ProcessingLoggerFactory loggerFactory;
   private final Optional<Metrics> metrics;
   private final Optional<Sensor> restartSensor;
 
@@ -115,6 +118,7 @@ public class QueryMetadataImpl implements QueryMetadata {
       final long baseWaitingTimeMs,
       final long retryBackoffMaxMs,
       final Listener listener,
+      final ProcessingLoggerFactory loggerFactory,
       final Metrics metrics,
       final Map<String, String> metricsTags
   ) {
@@ -149,6 +153,7 @@ public class QueryMetadataImpl implements QueryMetadata {
         CURRENT_TIME_MILLIS_TICKER,
         restartSensor
     );
+    this.loggerFactory = Objects.requireNonNull(loggerFactory, "loggerFactory");
   }
 
   // Used for sandboxing
@@ -185,6 +190,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     );
     this.listener
         = Objects.requireNonNull(listener, "stopListeners");
+    this.loggerFactory = other.loggerFactory;
   }
 
   public void initialize() {
@@ -377,6 +383,7 @@ public class QueryMetadataImpl implements QueryMetadata {
    * schemas, etc...).
    */
   public void close() {
+    loggerFactory.getLoggersWithPrefix(queryId.toString()).forEach(ProcessingLogger::close);
     doClose(true);
     listener.onClose(this);
     if (metrics.isPresent() && restartSensor.isPresent()) {

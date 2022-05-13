@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
@@ -88,6 +89,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final MaterializationProviderBuilderFactory
       materializationProviderBuilderFactory;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
+  private final ProcessingLoggerFactory loggerFactory;
   public boolean everStarted = false;
   private boolean corruptionCommandTopic = false;
 
@@ -115,8 +117,10 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final Optional<ScalablePushRegistry> scalablePushRegistry,
       final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder,
       final KeyFormat keyFormat,
+      final ProcessingLoggerFactory loggerFactory,
       final Metrics metrics,
-      final Map<String, String> metricsTags) {
+      final Map<String, String> metricsTags
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -146,6 +150,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.restartSensor = Optional.of(
         QueryMetricsUtil.createQueryRestartMetricSensor(queryId.toString(), metricsTags, metrics));
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+    this.loggerFactory = requireNonNull(loggerFactory, "loggerFactory");
   }
 
   // for creating sandbox instances
@@ -177,6 +182,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.metrics = Optional.empty();
     this.restartSensor = Optional.empty();
     this.keyFormat = original.keyFormat;
+    this.loggerFactory = original.loggerFactory;
   }
 
   @Override
@@ -409,6 +415,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void close() {
+    loggerFactory.getLoggersWithPrefix(queryId.toString()).forEach(ProcessingLogger::close);
     sharedKafkaStreamsRuntime.stop(queryId, false);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);

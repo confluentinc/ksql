@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -113,6 +114,14 @@ public class MeteredProcessingLoggerFactory implements ProcessingLoggerFactory {
   @Override
   public synchronized Collection<ProcessingLogger> getLoggers() {
     return processingLoggers.values();
+  }
+
+  @Override
+  public synchronized Collection<ProcessingLogger> getLoggersWithPrefix(final String prefix) {
+    return processingLoggers.keySet().stream()
+        .filter(loggerName -> loggerName.startsWith(prefix))
+        .map(processingLoggers::get)
+        .collect(Collectors.toList());
   }
 
   private static Sensor configureProcessingErrorSensor(

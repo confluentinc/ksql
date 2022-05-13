@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
@@ -113,6 +114,8 @@ public class QueryDescriptionFactoryTest {
   @Mock
   private QueryMetadata.Listener listener;
   @Mock
+  private MeteredProcessingLoggerFactory processingLoggerFactory;
+  @Mock
   private Metrics metrics;
   
   private QueryMetadata transientQuery;
@@ -149,6 +152,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L,
         listener,
+        processingLoggerFactory,
         metrics,
         Collections.emptyMap()
     );
@@ -180,6 +184,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         listener,
         Optional.empty(),
+        processingLoggerFactory,
         metrics,
         Collections.emptyMap()
     );
@@ -296,6 +301,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L,
         listener,
+        processingLoggerFactory,
         metrics,
         Collections.emptyMap()
     );
@@ -338,6 +344,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L,
         listener,
+        processingLoggerFactory,
         metrics,
         Collections.emptyMap()
     );

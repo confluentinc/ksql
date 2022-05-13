@@ -29,6 +29,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
@@ -39,6 +40,7 @@ import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -101,6 +103,8 @@ public class BinPackedPersistentQueryMetadataImplTest {
     @Mock
     private MaterializationProviderBuilderFactory.MaterializationProviderBuilder materializationProviderBuilder;
     @Mock
+    private MeteredProcessingLoggerFactory loggerFactory;
+    @Mock
     private Metrics metrics;
     @Mock
     private Sensor sensor;
@@ -132,6 +136,7 @@ public class BinPackedPersistentQueryMetadataImplTest {
             scalablePushRegistry,
             (runtime) -> topology,
             keyFormat,
+            loggerFactory,
             metrics,
             metricsTags);
 
@@ -188,11 +193,16 @@ public class BinPackedPersistentQueryMetadataImplTest {
     public void shouldRemoveMetricWhenClose() {
         // Given:
         final Sensor restartSensor = query.getRestartMetricsSensor().orElseGet(() -> mock(Sensor.class));
+        final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);
+        final ProcessingLogger processingLogger2 = mock(ProcessingLogger.class);
+        when(loggerFactory.getLoggersWithPrefix(QUERY_ID.toString())).thenReturn(Arrays.asList(processingLogger1, processingLogger2));
 
         // When:
         query.close();
 
         // Then:
         verify(metrics).removeSensor(restartSensor.name());
+        verify(processingLogger1).close();
+        verify(processingLogger2).close();
     }
 }

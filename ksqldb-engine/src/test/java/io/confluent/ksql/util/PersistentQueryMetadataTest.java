@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
@@ -98,6 +99,8 @@ public class PersistentQueryMetadataTest {
   private ScalablePushRegistry scalablePushRegistry;
   @Mock
   private Metrics metrics;
+  @Mock
+  private MeteredProcessingLoggerFactory processingLoggerFactory;
 
   private PersistentQueryMetadata query;
 
@@ -133,6 +136,7 @@ public class PersistentQueryMetadataTest {
         0L,
         listener,
         Optional.of(scalablePushRegistry),
+        processingLoggerFactory,
         metrics,
         Collections.emptyMap()
     );
@@ -167,6 +171,7 @@ public class PersistentQueryMetadataTest {
         0L,
         listener,
         Optional.empty(),
+        processingLoggerFactory,
         metrics,
         Collections.emptyMap()
     );
@@ -202,6 +207,7 @@ public class PersistentQueryMetadataTest {
         0L,
         listener,
         Optional.empty(),
+        processingLoggerFactory,
         metrics,
         Collections.emptyMap()
     );

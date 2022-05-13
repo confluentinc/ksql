@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
@@ -88,6 +89,7 @@ public class PersistentQueryMetadataImpl
       final long retryBackoffMaxMs,
       final QueryMetadata.Listener listener,
       final Optional<ScalablePushRegistry> scalablePushRegistry,
+      final ProcessingLoggerFactory loggerFactory,
       final Metrics metrics,
       final Map<String, String> metricsTags
   ) {
@@ -109,6 +111,7 @@ public class PersistentQueryMetadataImpl
         retryBackoffInitialMs,
         retryBackoffMaxMs,
         new QueryListenerWrapper(listener, scalablePushRegistry),
+        loggerFactory,
         metrics,
         metricsTags
     );

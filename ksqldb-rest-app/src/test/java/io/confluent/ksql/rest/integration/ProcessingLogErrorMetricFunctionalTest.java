@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.integration;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -144,5 +145,15 @@ public class ProcessingLogErrorMetricFunctionalTest {
 	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME2, null, "{\"f\":5}");
 	assertThatEventually(() -> (Double) processingLogErrorMetric1.metricValue(), equalTo(2.0));
 	assertThatEventually(() -> (Double) processingLogErrorMetric2.metricValue(), equalTo(1.0));
+
+	// should clean up metrics when queries are terminated
+	for (final String queryId:listOfQueryId) {
+	  RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "terminate " + queryId + ";");
+	}
+
+	final KafkaMetric cleanedUpMetric1 = metrics.metric(processingLogErrorMetricName1);
+	final KafkaMetric cleanedUpMetric2 = metrics.metric(processingLogErrorMetricName2);
+	assertThat(cleanedUpMetric1, nullValue());
+	assertThat(cleanedUpMetric2, nullValue());
   }
 }

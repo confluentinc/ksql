@@ -227,6 +227,7 @@ final class QueryBuilder {
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
+        processingLogContext.getLoggerFactory(),
         metricCollectors.getMetrics(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
@@ -376,6 +377,7 @@ final class QueryBuilder {
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
         scalablePushRegistry,
+        processingLogContext.getLoggerFactory(),
         metricCollectors.getMetrics(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
@@ -482,7 +484,7 @@ final class QueryBuilder {
             getUncaughtExceptionProcessingLogger(queryId),
             sinkDataSource,
             listener,
-        scalablePushRegistry,
+            scalablePushRegistry,
             (streamsRuntime) -> getNamedTopology(
                 streamsRuntime,
                 queryId,
@@ -491,6 +493,7 @@ final class QueryBuilder {
                 physicalPlan
             ),
             keyFormat,
+            processingLogContext.getLoggerFactory(),
             metricCollectors.getMetrics(),
             ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );

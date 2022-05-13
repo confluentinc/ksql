@@ -47,6 +47,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,7 +73,9 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Mock
     private KafkaFuture<Void> future;
     @Mock
-    private Sensor sensor;
+    private Sensor restartErrorSensorQuery1;
+    @Mock
+    private Sensor restartErrorSensorQuery2;
 
     private final QueryId queryId = new QueryId("query-1");
     private final QueryId queryId2= new QueryId("query-2");
@@ -89,11 +92,9 @@ public class SharedKafkaStreamsRuntimeImplTest {
         new StreamsException("query down!", new TaskId(0, 0, "not-a-real-query"));
 
     private SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl;
-    private MetricCollectors metricCollectors;
 
     @Before
     public void setUp() throws Exception {
-        metricCollectors = new MetricCollectors();
         when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
         streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "runtime");
         streamProps.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "old");
@@ -102,9 +103,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
             queryErrorClassifier,
             5,
             300_000L,
-            streamProps,
-            metricCollectors.getMetrics(),
-            metricsTags
+            streamProps
         );
 
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
@@ -114,6 +113,8 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(binPackedPersistentQueryMetadata.getTopologyCopy(any())).thenReturn(namedTopology);
         when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(queryId);
         when(binPackedPersistentQueryMetadata2.getQueryId()).thenReturn(queryId2);
+        when(binPackedPersistentQueryMetadata.getRestartMetricsSensor()).thenReturn(Optional.of(restartErrorSensorQuery1));
+        when(binPackedPersistentQueryMetadata2.getRestartMetricsSensor()).thenReturn(Optional.of(restartErrorSensorQuery2));
 
         sharedKafkaStreamsRuntimeImpl.register(
             binPackedPersistentQueryMetadata
@@ -277,8 +278,8 @@ public class SharedKafkaStreamsRuntimeImplTest {
         sharedKafkaStreamsRuntimeImpl.uncaughtHandler(query1Exception);
 
         //Then:
-        assertThat(getMetricValue(queryId.toString(), metricsTags), is(1.0));
-        assertThat(getMetricValue(queryId2.toString(), metricsTags), is(0.0));
+        verify(restartErrorSensorQuery1, times(1)).record();
+        verify(restartErrorSensorQuery2, never()).record();
     }
 
     @Test
@@ -294,24 +295,10 @@ public class SharedKafkaStreamsRuntimeImplTest {
         sharedKafkaStreamsRuntimeImpl.start(queryId2);
 
         sharedKafkaStreamsRuntimeImpl.uncaughtHandler(runtimeExceptionWithNoTask);
+        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(runtimeExceptionWithNoTask);
 
         //Then:
-        assertThat(getMetricValue(queryId.toString(), metricsTags), is(1.0));
-        assertThat(getMetricValue(queryId2.toString(), metricsTags), is(1.0));
-    }
-
-    private double getMetricValue(final String queryId, final Map<String, String> metricsTags) {
-        final Map<String, String> customMetricsTags = new HashMap<>(metricsTags);
-        customMetricsTags.put("query-id", queryId);
-        final Metrics metrics = metricCollectors.getMetrics();
-        return Double.parseDouble(
-            metrics.metric(
-                metrics.metricName(
-                    QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
-                    QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
-                    QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
-                    customMetricsTags)
-            ).metricValue().toString()
-        );
+        verify(restartErrorSensorQuery1, times(2)).record();
+        verify(restartErrorSensorQuery2, times(2)).record();
     }
 }

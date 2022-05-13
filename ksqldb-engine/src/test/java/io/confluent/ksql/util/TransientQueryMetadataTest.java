@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -81,6 +82,8 @@ public class TransientQueryMetadataTest {
   private MeteredProcessingLoggerFactory loggerFactory;
   @Mock
   private Metrics metrics;
+  @Mock
+  private Sensor sensor;
 
   private TransientQueryMetadata query;
 
@@ -89,6 +92,7 @@ public class TransientQueryMetadataTest {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
     when(sourceNames.toArray()).thenReturn(new SourceName[0]);
+    when(metrics.sensor(any())).thenReturn(sensor);
 
     query = new TransientQueryMetadata(
         SQL,

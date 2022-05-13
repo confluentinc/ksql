@@ -627,9 +627,7 @@ final class QueryBuilder {
               metricCollectors,
               config.getConfig(true),
               processingLogContext
-          ),
-          metricCollectors.getMetrics(),
-          ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+          )
       );
     } else {
       stream = new SandboxedSharedKafkaStreamsRuntimeImpl(

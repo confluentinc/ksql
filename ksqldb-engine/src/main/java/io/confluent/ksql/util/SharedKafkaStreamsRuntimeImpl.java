@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.StreamsConfig;
@@ -55,9 +54,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
                                        final QueryErrorClassifier errorClassifier,
                                        final int maxQueryErrorsQueueSize,
                                        final long shutdownTimeoutConfig,
-                                       final Map<String, Object> streamsProperties,
-                                       final Metrics metrics,
-                                       final Map<String, String> metricsTags)  {
+                                       final Map<String, Object> streamsProperties)  {
     super(
         kafkaStreamsBuilder,
         streamsProperties

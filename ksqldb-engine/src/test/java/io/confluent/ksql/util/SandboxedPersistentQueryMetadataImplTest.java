@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -40,6 +41,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
@@ -93,6 +95,8 @@ public class SandboxedPersistentQueryMetadataImplTest {
   private MeteredProcessingLoggerFactory processingLoggerFactory;
   @Mock
   private Metrics metrics;
+  @Mock
+  private Sensor sensor;
 
   private SandboxedPersistentQueryMetadataImpl sandbox;
 
@@ -102,6 +106,7 @@ public class SandboxedPersistentQueryMetadataImplTest {
     when(physicalSchema.logicalSchema()).thenReturn(mock(LogicalSchema.class));
     when(materializationProviderBuilder.apply(kafkaStreams, topology))
         .thenReturn(Optional.of(materializationProvider));
+    when(metrics.sensor(anyString())).thenReturn(sensor);
 
     final PersistentQueryMetadataImpl query = new PersistentQueryMetadataImpl(
         KsqlConstants.PersistentQueryType.CREATE_AS,

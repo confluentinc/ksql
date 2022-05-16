@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
@@ -1078,11 +1079,15 @@ public class LogicalPlanner {
         new ExpressionTypeManager(sourceSchema, metaStore);
 
     for (final Expression expression : groupByExps) {
+      if (expression.equals(new IntegerLiteral(1))) {
+        continue;
+      }
       final SqlType keyType = typeManager.getExpressionSqlType(expression);
       final ColumnName keyName = selectResolver.apply(expression)
           .orElseGet(() -> expression instanceof ColumnReferenceExp
               ? ((ColumnReferenceExp) expression).getColumnName()
               : ColumnNames.uniqueAliasFor(expression, sourceSchema)
+              // change to projection schema?
           );
 
       builder.keyColumn(keyName, keyType);

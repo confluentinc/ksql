@@ -236,9 +236,17 @@ final class SourceBuilder extends SourceBuilderBase {
             row.append(offset);
           }
 
-          // how do i get the key/ do i even need the real key??
           if (pseudoColumnVersion >= SystemColumns.ROWID_PSEUDOCOLUMN_VERSION) {
-            final byte[] id = (byte[]) key;
+//            processorContext.appConfigs().put(
+//                StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Bytes().getClass().getName());
+//            if (key instanceof GenericKey) {
+//              final Serde<GenericKey> serde = getKeySerde();
+//            }
+//            final byte[] id = Serdes.Long().serializer().serialize(processorContext.topic(), (Long) key);
+//            Serdes.serdeFrom().serializer().serialize(processorContext.topic(), key);
+//            final byte[] id = processorContext.keySerde().serializer().serialize(processorContext.topic(), key);
+            final byte[] id = key.toString().getBytes();
+            final int hash = key.hashCode();
             row.append(id);
           }
           return row;

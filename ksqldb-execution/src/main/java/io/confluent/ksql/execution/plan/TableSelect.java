@@ -34,6 +34,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final ImmutableList<ColumnName> keyColumnNames;
+//  private final Optional<ImmutableList<ColumnName>> selectedKeys;
   private final ImmutableList<SelectExpression> selectExpressions;
   private final Optional<Formats> internalFormats;
 
@@ -41,12 +42,14 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
       final ExecutionStepPropertiesV1 props,
       final ExecutionStep<KTableHolder<K>> source,
       final List<ColumnName> keyColumnNames,
+//      final Optional<List<ColumnName>> selectedKeys,
       final List<SelectExpression> selectExpressions,
       final Optional<Formats> internalFormats
   ) {
     this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
+//    this.selectedKeys = selectedKeys.map((ImmutableList::copyOf));
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
     this.internalFormats = internalFormats;
 
@@ -71,6 +74,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "keyColumnNames") final Optional<List<ColumnName>> keyColumnNames,
+//      @JsonProperty(value = "selectdKeys") final Optional<List<ColumnName>> selectedKeys,
       @JsonProperty(value = "selectExpressions", required = true) final
       List<SelectExpression> selectExpressions,
       @JsonProperty(value = "internalFormats") final Optional<Formats> internalFormats
@@ -78,6 +82,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     this(props,
         source,
         keyColumnNames.orElseGet(ImmutableList::of),
+//        selectedKeys,
         selectExpressions,
         internalFormats);
   }
@@ -97,6 +102,11 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
   public List<ColumnName> getKeyColumnNames() {
     return keyColumnNames;
   }
+
+//  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "selectedKeys is ImmutableList")
+//  public Optional<ImmutableList<ColumnName>> getSelectedKeys() {
+//    return selectedKeys;
+//  }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "selectExpressions is ImmutableList")
   public List<SelectExpression> getSelectExpressions() {
@@ -140,7 +150,8 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, keyColumnNames, selectExpressions, internalFormats);
+    return Objects.hash(
+        properties, source, keyColumnNames, selectExpressions, internalFormats);
   }
 
   public Optional<Formats> getInternalFormats() {

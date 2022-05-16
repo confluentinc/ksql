@@ -54,6 +54,7 @@ public final class TableSelectBuilder {
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext = step.getProperties().getQueryContext();
+//    final Optional<ImmutableList<ColumnName>> selectedKeys = step.getSelectedKeys();
 
     final Selection<K> selection = Selection.of(
         sourceSchema,
@@ -63,6 +64,18 @@ public final class TableSelectBuilder {
         buildContext.getKsqlConfig(),
         buildContext.getFunctionRegistry()
     );
+
+//    final ImmutableList.Builder<Integer> keyIndexBuilder = ImmutableList.builder();
+//    if (selectedKeys.isPresent()) {
+//      final ImmutableList<ColumnName> keyNames = sourceSchema.key().stream()
+//          .map(Column::name)
+//          .collect(ImmutableList.toImmutableList());
+//
+//      for (final ColumnName keyName : selectedKeys.get()) {
+//        keyIndexBuilder.add(keyNames.indexOf(keyName));
+//      }
+//    }
+//    final ImmutableList<Integer> keyIndices = keyIndexBuilder.build();
 
     final SelectValueMapper<K> selectMapper = selection.getMapper();
 
@@ -127,7 +140,53 @@ public final class TableSelectBuilder {
       keySerde = null;
       valSerde = null;
     }
-
+//    if (selectedKeys.isPresent() && !selectedKeys.get().containsAll(
+//        sourceSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList())
+//    )) {
+//      return table.withTable(
+//          table.getTable().transform(
+//              () -> new KsTransformer<>(
+//                  (readOnlyKey, value, ctx) -> {
+//                    if (keyIndices.isEmpty()) {
+//                      return null;
+//                    }
+//
+//                    if (readOnlyKey instanceof GenericKey) {
+//                      final GenericKey keys = (GenericKey) readOnlyKey;
+//                      final Builder resultKeys = GenericKey.builder(keyIndices.size());
+//
+//                      for (final int keyIndex : keyIndices) {
+//                        resultKeys.append(keys.get(keyIndex));
+//                      }
+//
+//                      return (K) resultKeys.build();
+//                    } else {
+//                      throw new UnsupportedOperationException();
+//                    }
+//                  },
+//                  selectMapper.getTransformer(logger)
+//              ),
+//              selectName
+//          ),
+//          selection.getSchema()
+//      );
+//    } else {
+//      final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
+//          () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
+//          Materialized.with(keySerde, valSerde),
+//          selectName
+//      );
+//
+//      final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
+//          pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+//              selection.getSchema(),
+//              queryContext)
+//      );
+//
+//      return table
+//              .withTable(transFormedTable, selection.getSchema())
+//              .withMaterialization(materialization);
+//    }
     final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
         () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
         Materialized.with(keySerde, valSerde),

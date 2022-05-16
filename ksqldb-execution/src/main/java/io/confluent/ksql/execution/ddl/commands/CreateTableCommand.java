@@ -51,9 +51,9 @@ public class CreateTableCommand extends CreateSourceCommand {
         isSource.orElse(false)
     );
 
-    if (schema.key().isEmpty()) {
-      throw new UnsupportedOperationException("Tables require key columns");
-    }
+//    if (schema.key().isEmpty()) {
+//      throw new UnsupportedOperationException("Tables require key columns");
+//    }
   }
 
   @Override

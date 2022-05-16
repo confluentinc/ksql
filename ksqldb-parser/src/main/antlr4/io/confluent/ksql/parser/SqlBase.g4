@@ -224,6 +224,7 @@ values
 
 selectItem
     : expression (AS? identifier)?                       #selectSingle
+    | base=primaryExpression STRUCT_FIELD_REF ASTERISK   #selectStructAll
     | identifier '.' ASTERISK                            #selectAll
     | ASTERISK                                           #selectAll
     ;
@@ -323,7 +324,7 @@ primaryExpression
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference
-    | base=primaryExpression STRUCT_FIELD_REF (ASTERISK | fieldName=identifier)           #dereference
+    | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                        #dereference
     | '(' expression ')'                                                                  #parenthesizedExpression
     ;
 

@@ -651,20 +651,16 @@ public class AstBuilder {
 
     @Override
     public Node visitSelectSingle(final SqlBaseParser.SelectSingleContext context) {
-      final Object selectItem = visit(context.expression());
-
-      if (selectItem instanceof StructAll) {
-        return (StructAll) selectItem;
-      }
+      final Expression selectItem = (Expression) visit(context.expression());
 
       if (context.identifier() != null) {
         return new SingleColumn(
             getLocation(context),
-            (Expression) selectItem,
+            selectItem,
             Optional.of(ColumnName.of(ParserUtil.getIdentifierText(context.identifier())))
         );
       } else {
-        return new SingleColumn(getLocation(context), (Expression) selectItem, Optional.empty());
+        return new SingleColumn(getLocation(context), selectItem, Optional.empty());
       }
     }
 
@@ -1197,14 +1193,15 @@ public class AstBuilder {
 
     @Override
     public Node visitDereference(final SqlBaseParser.DereferenceContext context) {
+      final String fieldName = ParserUtil.getIdentifierText(context.identifier());
       final Expression baseExpression = (Expression) visit(context.base);
+      return new DereferenceExpression(getLocation(context), baseExpression, fieldName);
+    }
 
-      if (context.ASTERISK() != null) {
-        return new StructAll(getLocation(context), baseExpression);
-      } else {
-        final String fieldName = ParserUtil.getIdentifierText(context.identifier());
-        return new DereferenceExpression(getLocation(context), baseExpression, fieldName);
-      }
+    @Override
+    public Node visitSelectStructAll(final SqlBaseParser.SelectStructAllContext context) {
+      final Expression baseExpression = (Expression) visit(context.base);
+      return new StructAll(getLocation(context), baseExpression);
     }
 
     @Override

@@ -440,7 +440,7 @@ public class AstBuilderTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("no viable alternative at input 'TRANSFORM_ARRAY(X =>"));
+    assertThat(e.getMessage(), containsString("mismatched input '=>' expecting {',', ')'}"));
   }
 
   @Test

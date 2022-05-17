@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.Topology;
 
 /**
@@ -61,9 +60,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
       final Listener listener,
-      final ProcessingLoggerFactory loggerFactory,
-      final Metrics metrics,
-      final Map<String, String> metricsTags
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -83,9 +80,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
         retryBackoffInitialMs,
         retryBackoffMaxMs,
         listener,
-        loggerFactory,
-        metrics,
-        metricsTags
+        loggerFactory
     );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     this.resultType = Objects.requireNonNull(resultType, "resultType");

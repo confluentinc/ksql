@@ -30,14 +30,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryMetadata.Listener;
-
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -80,10 +75,6 @@ public class TransientQueryMetadataTest {
   private Listener listener;
   @Mock
   private MeteredProcessingLoggerFactory loggerFactory;
-  @Mock
-  private Metrics metrics;
-  @Mock
-  private Sensor sensor;
 
   private TransientQueryMetadata query;
 
@@ -92,7 +83,6 @@ public class TransientQueryMetadataTest {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
     when(sourceNames.toArray()).thenReturn(new SourceName[0]);
-    when(metrics.sensor(any())).thenReturn(sensor);
 
     query = new TransientQueryMetadata(
         SQL,
@@ -112,9 +102,7 @@ public class TransientQueryMetadataTest {
         0L,
         0L,
         listener,
-        loggerFactory,
-        metrics,
-        Collections.emptyMap()
+        loggerFactory
     );
     query.initialize();
   }

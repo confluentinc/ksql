@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -24,8 +23,6 @@ import io.confluent.ksql.query.QueryId;
 import java.util.Collections;
 import java.util.HashMap;
 import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.TaskId;
@@ -42,12 +39,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,15 +67,10 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private AddNamedTopologyResult addNamedTopologyResult;
     @Mock
     private KafkaFuture<Void> future;
-    @Mock
-    private Sensor restartErrorSensorQuery1;
-    @Mock
-    private Sensor restartErrorSensorQuery2;
 
     private final QueryId queryId = new QueryId("query-1");
     private final QueryId queryId2= new QueryId("query-2");
     private Map<String, Object> streamProps = new HashMap();
-    private final Map<String, String> metricsTags = Collections.singletonMap("cluster-id", "cluster-1");
 
     private final StreamsException query1Exception =
         new StreamsException("query down!", new TaskId(0, 0, queryId.toString()));
@@ -113,8 +103,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(binPackedPersistentQueryMetadata.getTopologyCopy(any())).thenReturn(namedTopology);
         when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(queryId);
         when(binPackedPersistentQueryMetadata2.getQueryId()).thenReturn(queryId2);
-        when(binPackedPersistentQueryMetadata.getRestartMetricsSensor()).thenReturn(Optional.of(restartErrorSensorQuery1));
-        when(binPackedPersistentQueryMetadata2.getRestartMetricsSensor()).thenReturn(Optional.of(restartErrorSensorQuery2));
 
         sharedKafkaStreamsRuntimeImpl.register(
             binPackedPersistentQueryMetadata
@@ -262,43 +250,5 @@ public class SharedKafkaStreamsRuntimeImplTest {
         verify(binPackedPersistentQueryMetadata, never()).start();
         verify(kafkaStreamsNamedTopologyWrapper, never())
             .addNamedTopology(binPackedPersistentQueryMetadata2.getTopologyCopy(sharedKafkaStreamsRuntimeImpl));
-    }
-
-    @Test
-    public void shouldRecordMetricForQuery1WhenError() {
-        //Given:
-        when(queryErrorClassifier.classify(query1Exception)).thenReturn(Type.USER);
-        sharedKafkaStreamsRuntimeImpl.register(
-            binPackedPersistentQueryMetadata2
-        );
-
-        //When:
-        sharedKafkaStreamsRuntimeImpl.start(queryId);
-        sharedKafkaStreamsRuntimeImpl.start(queryId2);
-        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(query1Exception);
-
-        //Then:
-        verify(restartErrorSensorQuery1, times(1)).record();
-        verify(restartErrorSensorQuery2, never()).record();
-    }
-
-    @Test
-    public void shouldRecordMetricForAllQueriesWhenErrorWithNoTask() {
-        when(queryErrorClassifier.classify(runtimeExceptionWithNoTask)).thenReturn(Type.USER);
-
-        sharedKafkaStreamsRuntimeImpl.register(
-            binPackedPersistentQueryMetadata2
-        );
-
-        //When:
-        sharedKafkaStreamsRuntimeImpl.start(queryId);
-        sharedKafkaStreamsRuntimeImpl.start(queryId2);
-
-        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(runtimeExceptionWithNoTask);
-        sharedKafkaStreamsRuntimeImpl.uncaughtHandler(runtimeExceptionWithNoTask);
-
-        //Then:
-        verify(restartErrorSensorQuery1, times(2)).record();
-        verify(restartErrorSensorQuery2, times(2)).record();
     }
 }

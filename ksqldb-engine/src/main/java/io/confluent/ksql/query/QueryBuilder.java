@@ -227,9 +227,7 @@ final class QueryBuilder {
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
-        processingLogContext.getLoggerFactory(),
-        metricCollectors.getMetrics(),
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+        processingLogContext.getLoggerFactory()
     );
   }
 
@@ -377,9 +375,7 @@ final class QueryBuilder {
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
         scalablePushRegistry,
-        processingLogContext.getLoggerFactory(),
-        metricCollectors.getMetrics(),
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+        processingLogContext.getLoggerFactory()
     );
 
   }
@@ -493,9 +489,7 @@ final class QueryBuilder {
                 physicalPlan
             ),
             keyFormat,
-            processingLogContext.getLoggerFactory(),
-            metricCollectors.getMetrics(),
-            ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+            processingLogContext.getLoggerFactory()
     );
     if (real) {
       return binPackedPersistentQueryMetadata;

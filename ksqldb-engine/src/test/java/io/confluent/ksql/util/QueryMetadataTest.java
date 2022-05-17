@@ -100,16 +100,11 @@ public class QueryMetadataTest {
   private Ticker ticker;
   @Mock
   private MeteredProcessingLoggerFactory loggerFactory;
-  @Mock
-  private Sensor mockSensor;
 
   private QueryMetadataImpl query;
-  private MetricCollectors metricCollectors;
-  private final Map<String, String> metricsTags = Collections.singletonMap("cluster-id", "cluster-1");
 
   @Before
   public void setup() {
-    metricCollectors = new MetricCollectors();
     when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
     when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
@@ -131,9 +126,7 @@ public class QueryMetadataTest {
         0L,
         0L,
         listener,
-        loggerFactory,
-        metricCollectors.getMetrics(),
-        metricsTags
+        loggerFactory
     ){
     };
     query.initialize();
@@ -282,8 +275,7 @@ public class QueryMetadataTest {
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
-            ticker,
-            Optional.of(mockSensor)
+            ticker
     );
 
     // Then:
@@ -302,8 +294,7 @@ public class QueryMetadataTest {
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
-            ticker,
-            Optional.of(mockSensor)
+            ticker
     );
 
     retryEvent.backOff("thread-name");
@@ -328,8 +319,7 @@ public class QueryMetadataTest {
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
-            ticker,
-            Optional.of(mockSensor)
+            ticker
     );
     retryEvent.backOff("thread-name");
     retryEvent.backOff("thread-name");
@@ -366,57 +356,5 @@ public class QueryMetadataTest {
     // Then:
     verify(processingLogger1).close();
     verify(processingLogger2).close();
-  }
-
-  @Test
-  public void shouldRecordMetricForEachStreamsThreadRestarted() {
-    // Given:
-    final long now = 20;
-    when(ticker.read()).thenReturn(now);
-
-    // When:
-    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
-        QUERY_ID,
-        RETRY_BACKOFF_INITIAL_MS,
-        RETRY_BACKOFF_MAX_MS,
-        ticker,
-        query.getRestartMetricsSensor()
-    );
-    retryEvent.backOff("thread-name");
-    retryEvent.backOff("thread-name");
-    retryEvent.backOff("thread-name-2");
-
-    // Then:
-    assertThat(getMetricValue(QUERY_ID.toString(), metricsTags), is(3.0));
-  }
-
-  @Test
-  public void shouldIncrementMetricWhenUncaughtExceptionAndRestart() {
-    // Given:
-    when(classifier.classify(any())).thenThrow(new RuntimeException("bar"));
-
-    // When:
-    query.uncaughtHandler(new RuntimeException("foo"));
-    query.uncaughtHandler(new RuntimeException("bar"));
-    query.uncaughtHandler(new RuntimeException("too"));
-
-
-    // Then:
-    assertThat(getMetricValue(QUERY_ID.toString(), metricsTags), is(3.0));
-  }
-
-  private double getMetricValue(final String queryId, final Map<String, String> metricsTags) {
-    final Map<String, String> customMetricsTags = new HashMap<>(metricsTags);
-    customMetricsTags.put("query-id", queryId);
-    final Metrics metrics = metricCollectors.getMetrics();
-    return Double.parseDouble(
-        metrics.metric(
-            metrics.metricName(
-                QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
-                QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
-                QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
-                customMetricsTags)
-        ).metricValue().toString()
-    );
   }
 }

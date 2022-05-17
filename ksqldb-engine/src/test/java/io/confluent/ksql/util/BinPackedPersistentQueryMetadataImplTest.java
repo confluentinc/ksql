@@ -16,7 +16,6 @@
 package io.confluent.ksql.util;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -41,13 +40,9 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
@@ -104,17 +99,11 @@ public class BinPackedPersistentQueryMetadataImplTest {
     private MaterializationProviderBuilderFactory.MaterializationProviderBuilder materializationProviderBuilder;
     @Mock
     private MeteredProcessingLoggerFactory loggerFactory;
-    @Mock
-    private Metrics metrics;
-    @Mock
-    private Sensor sensor;
 
-    private Map<String, String> metricsTags = Collections.singletonMap("tag1", "value1");
     private PersistentQueryMetadata query;
 
     @Before
     public void setUp()  {
-        when(metrics.sensor(anyString())).thenReturn(sensor);
         query = new BinPackedPersistentQueryMetadataImpl(
             KsqlConstants.PersistentQueryType.CREATE_AS,
             SQL,
@@ -136,9 +125,7 @@ public class BinPackedPersistentQueryMetadataImplTest {
             scalablePushRegistry,
             (runtime) -> topology,
             keyFormat,
-            loggerFactory,
-            metrics,
-            metricsTags);
+            loggerFactory);
 
         query.initialize();
         when(materializationProviderBuilderFactory.materializationProviderBuilder(
@@ -190,9 +177,8 @@ public class BinPackedPersistentQueryMetadataImplTest {
     }
 
     @Test
-    public void shouldRemoveMetricWhenClose() {
+    public void shouldCloseProcessingLoggers() {
         // Given:
-        final Sensor restartSensor = query.getRestartMetricsSensor().orElseGet(() -> mock(Sensor.class));
         final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);
         final ProcessingLogger processingLogger2 = mock(ProcessingLogger.class);
         when(loggerFactory.getLoggersWithPrefix(QUERY_ID.toString())).thenReturn(Arrays.asList(processingLogger1, processingLogger2));
@@ -201,7 +187,6 @@ public class BinPackedPersistentQueryMetadataImplTest {
         query.close();
 
         // Then:
-        verify(metrics).removeSensor(restartSensor.name());
         verify(processingLogger1).close();
         verify(processingLogger2).close();
     }

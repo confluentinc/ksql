@@ -57,9 +57,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
@@ -116,10 +113,6 @@ public class QueryDescriptionFactoryTest {
   private QueryMetadata.Listener listener;
   @Mock
   private MeteredProcessingLoggerFactory processingLoggerFactory;
-  @Mock
-  private Metrics metrics;
-  @Mock
-  private Sensor sensor;
   
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -128,7 +121,6 @@ public class QueryDescriptionFactoryTest {
 
   @Before
   public void setUp() {
-    when(metrics.sensor(any())).thenReturn(sensor);
     when(topology.describe()).thenReturn(topologyDescription);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(queryStreams);
     when(queryStreams.metadataForLocalThreads()).thenReturn(Collections.emptySet());
@@ -156,9 +148,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L,
         listener,
-        processingLoggerFactory,
-        metrics,
-        Collections.emptyMap()
+        processingLoggerFactory
     );
     transientQuery.initialize();
 
@@ -188,9 +178,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         listener,
         Optional.empty(),
-        processingLoggerFactory,
-        metrics,
-        Collections.emptyMap()
+        processingLoggerFactory
     );
     persistentQuery.initialize();
 
@@ -305,9 +293,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L,
         listener,
-        processingLoggerFactory,
-        metrics,
-        Collections.emptyMap()
+        processingLoggerFactory
     );
     transientQuery.initialize();
 
@@ -348,9 +334,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L,
         listener,
-        processingLoggerFactory,
-        metrics,
-        Collections.emptyMap()
+        processingLoggerFactory
     );
     transientQuery.initialize();
 

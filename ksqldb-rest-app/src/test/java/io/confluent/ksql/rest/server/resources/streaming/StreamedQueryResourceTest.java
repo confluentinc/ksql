@@ -120,8 +120,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
@@ -209,10 +207,6 @@ public class StreamedQueryResourceTest {
   private QueryMetadataHolder queryMetadataHolder;
   @Mock
   private MeteredProcessingLoggerFactory loggerFactory;
-  @Mock
-  private Metrics metrics;
-  @Mock
-  private Sensor sensor;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -223,7 +217,6 @@ public class StreamedQueryResourceTest {
   @Before
   public void setup() {
     when(serviceContext.getTopicClient()).thenReturn(mockKafkaTopicClient);
-    when(metrics.sensor(any())).thenReturn(sensor);
     query = PreparedStatement.of(PUSH_QUERY_STRING, mock(Query.class));
     invalid = PreparedStatement.of("sql", mock(Statement.class));
     when(mockStatementParser.parseSingleStatement(PUSH_QUERY_STRING)).thenReturn(invalid);
@@ -573,9 +566,7 @@ public class StreamedQueryResourceTest {
             0L,
             0L,
             listener,
-            loggerFactory,
-            metrics,
-            Collections.emptyMap()
+            loggerFactory
         );
     transientQueryMetadata.initialize();
 

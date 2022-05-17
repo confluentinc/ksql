@@ -54,7 +54,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
                                        final QueryErrorClassifier errorClassifier,
                                        final int maxQueryErrorsQueueSize,
                                        final long shutdownTimeoutConfig,
-                                       final Map<String, Object> streamsProperties)  {
+                                       final Map<String, Object> streamsProperties) {
     super(
         kafkaStreamsBuilder,
         streamsProperties
@@ -125,9 +125,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
       if (queryInError != null) {
         queryInError.setQueryError(queryError);
-        if (queryInError.getRestartMetricsSensor().isPresent()) {
-          queryInError.getRestartMetricsSensor().get().record();
-        }
         log.error(String.format(
             "Unhandled query exception caught in streams thread %s for query %s. (%s)",
             Thread.currentThread().getName(),
@@ -138,11 +135,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       } else {
         for (BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
           query.setQueryError(queryError);
-          if (query.getRestartMetricsSensor().isPresent()) {
-            query.getRestartMetricsSensor().get().record();
-          }
         }
-
         log.error(String.format(
             "Unhandled runtime exception caught in streams thread %s. (%s)",
             Thread.currentThread().getName(),
@@ -151,7 +144,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         );
       }
     }
-
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
   }
 
@@ -251,7 +243,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       throw new IllegalArgumentException("Cannot start because query " + queryId + " was not "
                                              + "registered to runtime " + getApplicationId());
     }
-
     log.info("Query {} was started successfully", queryId);
   }
 

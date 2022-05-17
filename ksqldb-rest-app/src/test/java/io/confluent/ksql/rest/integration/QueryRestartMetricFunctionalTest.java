@@ -20,23 +20,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.Queries;
-import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.internal.QueryStateMetricsReportingListener;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import io.confluent.ksql.util.QueryMetadataImpl;
-import io.confluent.ksql.util.QueryMetricsUtil;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -45,10 +42,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
-import org.junit.rules.Timeout;
 
 @Ignore
 public class QueryRestartMetricFunctionalTest {
@@ -117,22 +112,30 @@ public class QueryRestartMetricFunctionalTest {
 	final List<String> listOfQueryId = RestIntegrationTestUtil.getQueryIds(REST_APP_NO_SHARED_RUNTIME);
 	assertThat(listOfQueryId.size(), equalTo(1));
 	metricsTagsForQuery.put("query-id", listOfQueryId.get(0));
+	metricsTagsForQuery.put("ksql_service_id", KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
 	// When:
 	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "5,900.1");
 	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "5,900.1");
 	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "5,900.1");
-	System.out.println("records done");
 
 	metricsNoSharedRuntime = ((KsqlEngine)REST_APP_NO_SHARED_RUNTIME.getEngine()).getEngineMetrics().getMetrics();
-	final KafkaMetric restartMetric1 = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery);
+	final KafkaMetric restartMetric = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery, "app-0-");
 
 	// Then:
-	assertThatEventually(() -> (Double) restartMetric1.metricValue(), greaterThan(8.0));
+	assertThatEventually(() -> (Double) restartMetric.metricValue(), greaterThan(8.0));
+
+	// should clean up metrics when queries are terminated
+	for (final String queryId:listOfQueryId) {
+	  RestIntegrationTestUtil.makeKsqlRequest(REST_APP_NO_SHARED_RUNTIME, "terminate " + queryId + ";");
+	}
+
+	final KafkaMetric restartMetricAfterTerminate = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery, "app-0-");
+	assertThat(restartMetricAfterTerminate, nullValue());
   }
 
   @Test
-  public void shouldVerifyMetricsOnSharedRuntimeServer() throws InterruptedException {
+  public void shouldVerifyMetricsOnSharedRuntimeServer() {
 	// Given:
 	final Map<String, String> metricsTagsForQuery1 = new HashMap<>(METRICS_TAGS);
 	final Map<String, String> metricsTagsForQuery2 = new HashMap<>(METRICS_TAGS);
@@ -141,8 +144,10 @@ public class QueryRestartMetricFunctionalTest {
 	for (final String queryId:listOfQueryId) {
 	  if (queryId.toLowerCase().contains("s2")) {
 		metricsTagsForQuery1.put("query-id", queryId);
+		metricsTagsForQuery1.put("ksql_service_id", "another-id");
 	  } else if (queryId.toLowerCase().contains("s3")) {
 		metricsTagsForQuery2.put("query-id", queryId);
+		metricsTagsForQuery2.put("ksql_service_id", "another-id");
 	  }
 	}
 
@@ -150,19 +155,30 @@ public class QueryRestartMetricFunctionalTest {
 	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME2, null, "5,900.1");
 	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME2, null, "5,900.1");
 	metricsSharedRuntime = ((KsqlEngine)REST_APP_SHARED_RUNTIME.getEngine()).getEngineMetrics().getMetrics();
-	final KafkaMetric restartMetric1 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery1);
-	final KafkaMetric restartMetric2 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery2);
+	final KafkaMetric restartMetric1 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery1, "app-1-");
+	final KafkaMetric restartMetric2 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery2, "app-1-");
 
 	// Then:
 	assertThatEventually(() -> (Double) restartMetric1.metricValue(), greaterThanOrEqualTo(1.0));
 	assertThatEventually(() -> (Double) restartMetric2.metricValue(), greaterThanOrEqualTo(1.0));
+
+
+	// should clean up metrics when queries are terminated
+	for (final String queryId:listOfQueryId) {
+	  RestIntegrationTestUtil.makeKsqlRequest(REST_APP_SHARED_RUNTIME, "terminate " + queryId + ";");
+	}
+
+	final KafkaMetric restartMetricAfterTerminate1 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery1, "app-1-");
+	final KafkaMetric restartMetricAfterTerminate2 = getKafkaMetric(metricsSharedRuntime, metricsTagsForQuery2, "app-1-");
+	assertThat(restartMetricAfterTerminate1, nullValue());
+	assertThat(restartMetricAfterTerminate2, nullValue());
   }
 
-  private KafkaMetric getKafkaMetric(final Metrics metrics, final Map<String, String> metricsTags) {
+  private KafkaMetric getKafkaMetric(final Metrics metrics, final Map<String, String> metricsTags, final String metricPrefix) {
 	return metrics.metric(new MetricName(
-		QueryMetadataImpl.QUERY_RESTART_METRIC_NAME,
-		QueryMetadataImpl.QUERY_RESTART_METRIC_GROUP_NAME,
-		QueryMetadataImpl.QUERY_RESTART_METRIC_DESCRIPTION,
+		QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_NAME,
+		metricPrefix + "ksql-queries",
+		QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_DESCRIPTION,
 		metricsTags
 	));
   }

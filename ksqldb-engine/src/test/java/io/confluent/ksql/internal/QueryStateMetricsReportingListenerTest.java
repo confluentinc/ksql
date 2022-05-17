@@ -37,6 +37,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,12 +47,18 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 @RunWith(MockitoJUnitRunner.class)
 public class QueryStateMetricsReportingListenerTest {
   private static final MetricName METRIC_NAME_1 =
       new MetricName("bob", "g1", "d1", ImmutableMap.of());
   private static final MetricName METRIC_NAME_2 =
       new MetricName("dylan", "g1", "d1", ImmutableMap.of());
+  private static final MetricName METRIC_NAME_3 =
+      new MetricName("steven", "g1", "d1", ImmutableMap.of());
   private static final QueryId QUERY_ID = new QueryId("foo");
   private static final String TAG = "_confluent-ksql-" + "some-prefix-" + "query_" + QUERY_ID.toString();
 
@@ -67,14 +74,17 @@ public class QueryStateMetricsReportingListenerTest {
   private ArgumentCaptor<Gauge<String>> gaugeCaptor;
   private QueryStateMetricsReportingListener listener;
 
+  private final Map<String, String> metricsTags = Collections.singletonMap("tag1", "value1");
+
   @Before
   public void setUp() {
     when(metrics.metricName(any(), any(), any(), anyMap()))
         .thenReturn(METRIC_NAME_1)
-        .thenReturn(METRIC_NAME_2);
+        .thenReturn(METRIC_NAME_2)
+        .thenReturn(METRIC_NAME_3);
     when(query.getQueryId()).thenReturn(QUERY_ID);
 
-    listener = new QueryStateMetricsReportingListener(metrics, "some-prefix-");
+    listener = new QueryStateMetricsReportingListener(metrics, "some-prefix-", metricsTags);
   }
 
   @Test
@@ -86,17 +96,24 @@ public class QueryStateMetricsReportingListenerTest {
   public void shouldAddMetricOnCreation() {
     // When:
     listener.onCreate(serviceContext, metaStore, query);
+    final Map<String, String> tags = new HashMap<>(metricsTags);
+    tags.put("status", TAG);
 
     // Then:
     verify(metrics).metricName("query-status", "some-prefix-ksql-queries",
         "The current status of the given query.",
-        ImmutableMap.of("status", TAG));
+        tags);
     verify(metrics).metricName("error-status", "some-prefix-ksql-queries",
         "The current error status of the given query, if the state is in ERROR state",
-        ImmutableMap.of("status", TAG));
+        tags);
+    tags.put("query-id", QUERY_ID.toString());
+    verify(metrics).metricName(QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_NAME, "some-prefix-ksql-queries",
+        QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_DESCRIPTION,
+        tags);
 
     verify(metrics).addMetric(eq(METRIC_NAME_1), isA(Gauge.class));
     verify(metrics).addMetric(eq(METRIC_NAME_2), isA(Gauge.class));
+    verify(metrics).addMetric(eq(METRIC_NAME_3), isA(CumulativeSum.class));
   }
 
   @Test
@@ -123,20 +140,26 @@ public class QueryStateMetricsReportingListenerTest {
   public void shouldAddMetricWithSuppliedPrefix() {
     // Given:
     final String groupPrefix = "some-prefix-";
+    final Map<String, String> tags = new HashMap<>(metricsTags);
+    tags.put("status", TAG);
 
     clearInvocations(metrics);
 
     // When:
-    listener = new QueryStateMetricsReportingListener(metrics, groupPrefix);
+    listener = new QueryStateMetricsReportingListener(metrics, groupPrefix, metricsTags);
     listener.onCreate(serviceContext, metaStore, query);
 
     // Then:
     verify(metrics).metricName("query-status", groupPrefix + "ksql-queries",
         "The current status of the given query.",
-        ImmutableMap.of("status", TAG));
+        tags);
     verify(metrics).metricName("error-status", groupPrefix + "ksql-queries",
         "The current error status of the given query, if the state is in ERROR state",
-        ImmutableMap.of("status", TAG));
+        tags);
+    tags.put("query-id", QUERY_ID.toString());
+    verify(metrics).metricName(QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_NAME, "some-prefix-ksql-queries",
+        QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_DESCRIPTION,
+        tags);
   }
 
   @Test
@@ -178,6 +201,7 @@ public class QueryStateMetricsReportingListenerTest {
     // Then:
     verify(metrics).removeMetric(METRIC_NAME_1);
     verify(metrics).removeMetric(METRIC_NAME_2);
+    verify(metrics).removeMetric(METRIC_NAME_3);
   }
 
   private String currentGaugeValue(final MetricName name) {

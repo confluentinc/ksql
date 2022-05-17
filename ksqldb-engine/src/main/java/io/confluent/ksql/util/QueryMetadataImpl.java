@@ -40,14 +40,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -59,11 +56,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryMetadataImpl implements QueryMetadata {
-  public static final String QUERY_RESTART_METRIC_NAME = "query-restart-total";
-  public static final String QUERY_RESTART_METRIC_GROUP_NAME = "query-restart-metrics";
-  public static final String QUERY_RESTART_METRIC_DESCRIPTION =
-      "The total number of times that a query thread has failed and then been restarted.";
-
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
 
   private final String statementString;
@@ -82,8 +74,6 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final RetryEvent retryEvent;
   private final Listener listener;
   private final ProcessingLoggerFactory loggerFactory;
-  private final Optional<Metrics> metrics;
-  private final Optional<Sensor> restartSensor;
 
   private volatile boolean everStarted = false;
   private volatile KafkaStreams kafkaStreams;
@@ -118,9 +108,7 @@ public class QueryMetadataImpl implements QueryMetadata {
       final long baseWaitingTimeMs,
       final long retryBackoffMaxMs,
       final Listener listener,
-      final ProcessingLoggerFactory loggerFactory,
-      final Metrics metrics,
-      final Map<String, String> metricsTags
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -143,15 +131,11 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
-    this.metrics = Optional.of(metrics);
-    this.restartSensor = Optional.of(
-        QueryMetricsUtil.createQueryRestartMetricSensor(queryId.toString(), metricsTags, metrics));
     this.retryEvent = new RetryEvent(
         queryId,
         baseWaitingTimeMs,
         retryBackoffMaxMs,
-        CURRENT_TIME_MILLIS_TICKER,
-        restartSensor
+        CURRENT_TIME_MILLIS_TICKER
     );
     this.loggerFactory = Objects.requireNonNull(loggerFactory, "loggerFactory");
   }
@@ -174,8 +158,6 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.errorClassifier = other.errorClassifier;
     this.everStarted = other.everStarted;
     this.queryErrors = new TimeBoundedQueue(Duration.ZERO, 0);
-    this.metrics = Optional.empty();
-    this.restartSensor = Optional.empty();
     this.retryEvent = new RetryEvent(
         other.getQueryId(),
         0,
@@ -185,8 +167,7 @@ public class QueryMetadataImpl implements QueryMetadata {
           public long read() {
             return 0;
           }
-        },
-        this.restartSensor
+        }
     );
     this.listener
         = Objects.requireNonNull(listener, "stopListeners");
@@ -275,11 +256,6 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   public Topology getTopology() {
     return topology;
-  }
-
-  @Override
-  public Optional<Sensor> getRestartMetricsSensor() {
-    return restartSensor;
   }
 
   public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
@@ -386,9 +362,6 @@ public class QueryMetadataImpl implements QueryMetadata {
     loggerFactory.getLoggersWithPrefix(queryId.toString()).forEach(ProcessingLogger::close);
     doClose(true);
     listener.onClose(this);
-    if (metrics.isPresent() && restartSensor.isPresent()) {
-      metrics.get().removeSensor(restartSensor.get().name());
-    }
   }
 
   void doClose(final boolean cleanUp) {
@@ -456,14 +429,12 @@ public class QueryMetadataImpl implements QueryMetadata {
     private long waitingTimeMs;
     private long expiryTimeMs;
     private long retryBackoffMaxMs;
-    private Optional<Sensor> sensor;
 
     RetryEvent(
             final QueryId queryId,
             final long baseWaitingTimeMs,
             final long retryBackoffMaxMs,
-            final Ticker ticker,
-            final Optional<Sensor> sensor
+            final Ticker ticker
     ) {
       this.ticker = ticker;
       this.queryId = queryId;
@@ -473,7 +444,6 @@ public class QueryMetadataImpl implements QueryMetadata {
       this.waitingTimeMs = baseWaitingTimeMs;
       this.retryBackoffMaxMs = retryBackoffMaxMs;
       this.expiryTimeMs = now + baseWaitingTimeMs;
-      this.sensor = sensor;
     }
 
     public long nextRestartTimeMs() {
@@ -495,7 +465,6 @@ public class QueryMetadataImpl implements QueryMetadata {
         Thread.currentThread().interrupt();
       }
 
-      sensor.ifPresent(Sensor::record);
       final int retries = numRetries.merge(threadName, 1, Integer::sum);
 
       LOG.info(

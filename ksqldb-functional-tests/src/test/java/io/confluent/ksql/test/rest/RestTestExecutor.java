@@ -1098,7 +1098,7 @@ public class RestTestExecutor implements Closeable {
 
           assertThat(actualSchema, is(expectedSchema));
         } else if (actual.containsKey("finalMessage")) {
-          assert(expected.equals(actual));
+          assertThat(actual, is(expected));
         } else {
           JSONObject row = new JSONObject(actual);
 

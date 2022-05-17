@@ -61,9 +61,10 @@ public class DoubleMaxKudafTest {
     currentMax = doubleMaxKudaf.aggregate(null, currentMax);
     assertThat(8.0, equalTo(currentMax));
   }
+
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf doubleMaxKudaf = getMaxComparableKudaf();
+    final MaxKudaf<Double> doubleMaxKudaf = getMaxComparableKudaf();
     final Merger<GenericKey, Double> merger = doubleMaxKudaf.getMerger();
     final Double mergeResult1 = merger.apply(null, 10.0, 12.0);
     assertThat(mergeResult1, equalTo(12.0));
@@ -71,15 +72,15 @@ public class DoubleMaxKudafTest {
     assertThat(mergeResult2, equalTo(10.0));
     final Double mergeResult3 = merger.apply(null, -10.0, 0.0);
     assertThat(mergeResult3, equalTo(0.0));
-
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MaxKudaf<Double> getMaxComparableKudaf() {
+    final KsqlAggregateFunction<Double, Double, Double> aggregateFunction =
+        (KsqlAggregateFunction<Double, Double, Double>) new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Double>) aggregateFunction;
   }
-
 }

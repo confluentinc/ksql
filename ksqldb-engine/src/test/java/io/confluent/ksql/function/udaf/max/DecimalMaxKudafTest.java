@@ -68,7 +68,7 @@ public class DecimalMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf decimalMaxKudaf = getMaxComparableKudaf(3);
+    final MaxKudaf<BigDecimal> decimalMaxKudaf = getMaxComparableKudaf(3);
     final Merger<GenericKey, BigDecimal> merger = decimalMaxKudaf.getMerger();
     final BigDecimal mergeResult1 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(12.0));
     assertThat(mergeResult1, equalTo(new BigDecimal(12.0, new MathContext(3))));
@@ -78,13 +78,13 @@ public class DecimalMaxKudafTest {
     assertThat(mergeResult3, equalTo(new BigDecimal(0.0, new MathContext(3))));
   }
 
-
-  private MaxKudaf getMaxComparableKudaf(final int precision) {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MaxKudaf<BigDecimal> getMaxComparableKudaf(final int precision) {
+    final KsqlAggregateFunction<BigDecimal, BigDecimal, BigDecimal> aggregateFunction =
+        (KsqlAggregateFunction<BigDecimal, BigDecimal, BigDecimal>) new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1)))
             , AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<BigDecimal>) aggregateFunction;
   }
-
 }

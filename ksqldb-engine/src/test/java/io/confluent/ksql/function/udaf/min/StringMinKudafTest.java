@@ -64,7 +64,7 @@ public class StringMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf stringMinKudaf = getStringMinKudaf();
+    final MinKudaf<String> stringMinKudaf = getStringMinKudaf();
     final Merger<GenericKey, String> merger = stringMinKudaf.getMerger();
     final String mergeResult1 = merger.apply(null, "B", "D");
     assertThat(mergeResult1, equalTo("B"));
@@ -74,12 +74,13 @@ public class StringMinKudafTest {
     assertThat(mergeResult3, equalTo("A"));
   }
 
-  private MinKudaf getStringMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MinKudaf<String> getStringMinKudaf() {
+    final KsqlAggregateFunction<String, String , String> aggregateFunction =
+        (KsqlAggregateFunction<String, String , String>) new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return  (MinKudaf<String>) aggregateFunction;
   }
-
 }

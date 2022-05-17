@@ -64,7 +64,7 @@ public class DoubleMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf doubleMinKudaf = getDoubleMinKudaf();
+    final MinKudaf<Double> doubleMinKudaf = getDoubleMinKudaf();
     final Merger<GenericKey, Double> merger = doubleMinKudaf.getMerger();
     final Double mergeResult1 = merger.apply(null, 10.0, 12.0);
     assertThat(mergeResult1, equalTo(10.0));
@@ -72,15 +72,17 @@ public class DoubleMinKudafTest {
     assertThat(mergeResult2, equalTo(-12.0));
     final Double mergeResult3 = merger.apply(null, -10.0, 0.0);
     assertThat(mergeResult3, equalTo(-10.0));
-
   }
 
-
-  private MinKudaf getDoubleMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+  @SuppressWarnings("unchecked")
+  private MinKudaf<Double> getDoubleMinKudaf() {
+    final KsqlAggregateFunction<Double, Double, Double> aggregateFunction =
+        (KsqlAggregateFunction<Double, Double, Double>) new MinAggFunctionFactory()
+        .createAggregateFunction(
+            Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)),
+            AggregateFunctionInitArguments.EMPTY_ARGS
+        );
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return (MinKudaf<Double>) aggregateFunction;
   }
 }

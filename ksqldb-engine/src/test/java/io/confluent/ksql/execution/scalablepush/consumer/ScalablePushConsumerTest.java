@@ -271,6 +271,7 @@ public class ScalablePushConsumerTest {
   }
 
   @Test
+  @SuppressWarnings("resource")
   public void shouldRunConsumer_closeAsync() {
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     AtomicReference<TestScalablePushConsumer> ref = new AtomicReference<>();

@@ -67,7 +67,7 @@ public class TimestampMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf tsMinKudaf = getTimestampMinKudaf();
+    final MinKudaf<Timestamp> tsMinKudaf = getTimestampMinKudaf();
     final Merger<GenericKey, Timestamp> merger = tsMinKudaf.getMerger();
     final Timestamp mergeResult1 = merger.apply(null, new Timestamp(10), new Timestamp(12));
     assertThat(mergeResult1, equalTo(new Timestamp(10L)));
@@ -75,15 +75,15 @@ public class TimestampMinKudafTest {
     assertThat(mergeResult2, equalTo(new Timestamp(-12L)));
     final Timestamp mergeResult3 = merger.apply(null, new Timestamp(-10), new Timestamp(0));
     assertThat(mergeResult3, equalTo(new Timestamp(-10)));
-
   }
 
-
-  private MinKudaf getTimestampMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MinKudaf<Timestamp> getTimestampMinKudaf() {
+    final KsqlAggregateFunction<Timestamp, Timestamp, Timestamp> aggregateFunction =
+        (KsqlAggregateFunction<Timestamp, Timestamp, Timestamp>) new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.TIMESTAMP)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return  (MinKudaf<Timestamp>) aggregateFunction;
   }
 }

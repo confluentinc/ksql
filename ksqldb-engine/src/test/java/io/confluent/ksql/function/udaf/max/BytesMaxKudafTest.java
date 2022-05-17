@@ -94,7 +94,7 @@ public class BytesMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf bytesMaxKudaf = getMaxComparableKudaf();
+    final MaxKudaf<ByteBuffer> bytesMaxKudaf = getMaxComparableKudaf();
     final Merger<GenericKey, ByteBuffer> merger = bytesMaxKudaf.getMerger();
     final String mergeResult1 = fromBytesUDF.fromBytes(
         merger.apply(
@@ -119,12 +119,13 @@ public class BytesMaxKudafTest {
     assertThat(mergeResult3, equalTo("K"));
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MaxKudaf<ByteBuffer> getMaxComparableKudaf() {
+    final KsqlAggregateFunction<ByteBuffer, ByteBuffer, ByteBuffer> aggregateFunction =
+        (KsqlAggregateFunction<ByteBuffer, ByteBuffer, ByteBuffer>) new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BYTES)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<ByteBuffer>) aggregateFunction;
   }
-
 }

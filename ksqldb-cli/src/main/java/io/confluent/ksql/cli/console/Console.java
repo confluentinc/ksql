@@ -406,7 +406,7 @@ public class Console implements Closeable {
         writer().println(
             TabularRow.createHeader(
                 getWidth(),
-                header.getSchema().get().columns(),
+                header.getSchema().columns(),
                 config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString()),
                 config.getInt(CliConfig.COLUMN_WIDTH_CONFIG)
             )

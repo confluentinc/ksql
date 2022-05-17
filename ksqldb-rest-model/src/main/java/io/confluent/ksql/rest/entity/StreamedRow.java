@@ -73,7 +73,7 @@ public final class StreamedRow {
       final LogicalSchema schema
   ) {
     return new StreamedRow(
-        Optional.of(Header.of(queryId, Optional.of(schema), Optional.empty())),
+        Optional.of(Header.of(queryId, schema, Optional.empty())),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -86,10 +86,11 @@ public final class StreamedRow {
 
   public static StreamedRow headerProtobuf(
           final QueryId queryId,
+          final LogicalSchema columnsSchema,
           final String protoSchema
   ) {
     return new StreamedRow(
-            Optional.of(Header.of(queryId, Optional.empty(), Optional.of(protoSchema))),
+            Optional.of(Header.of(queryId, columnsSchema, Optional.of(protoSchema))),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -359,12 +360,12 @@ public final class StreamedRow {
   public static final class Header extends BaseRow {
 
     private final QueryId queryId;
-    private final Optional<LogicalSchema> columnsSchema;
+    private final LogicalSchema columnsSchema;
     private final Optional<String> protoSchema;
 
     public static Header of(
         final QueryId queryId,
-        final Optional<LogicalSchema> columnsSchema,
+        final LogicalSchema columnsSchema,
         final Optional<String> protoSchema
     ) {
       return new Header(queryId, columnsSchema, protoSchema);
@@ -377,7 +378,7 @@ public final class StreamedRow {
     /**
      * @return The schema of the columns being returned by the query.
      */
-    public Optional<LogicalSchema> getSchema() {
+    public LogicalSchema getSchema() {
       return columnsSchema;
     }
 
@@ -389,7 +390,7 @@ public final class StreamedRow {
     @SuppressWarnings("unused") // Invoked by reflection by Jackson.
     private static Header jsonCreator(
         @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-        @JsonProperty(value = "schema") final Optional<LogicalSchema> columnsSchema,
+        @JsonProperty(value = "schema") final LogicalSchema columnsSchema,
         @JsonProperty(value = "protobufSchema") final Optional<String> protoSchema
     ) {
       return new Header(queryId, columnsSchema, protoSchema);
@@ -397,11 +398,11 @@ public final class StreamedRow {
 
     private Header(
         final QueryId queryId,
-        final Optional<LogicalSchema> columnsSchema,
+        final LogicalSchema columnsSchema,
         final Optional<String> protoSchema
     ) {
       this.queryId = requireNonNull(queryId, "queryId");
-      this.columnsSchema = columnsSchema;
+      this.columnsSchema = requireNonNull(columnsSchema, "columnsSchema");
       this.protoSchema = protoSchema;
     }
 

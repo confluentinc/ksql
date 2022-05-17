@@ -71,11 +71,12 @@ public class StreamedRowTest {
             "  int64 ID = 1;\n" +
             "  string VAL = 2;\n" +
             "}\n";
-    final StreamedRow row = StreamedRow.headerProtobuf(QUERY_ID, protoSchema);
+    final StreamedRow row = StreamedRow.headerProtobuf(QUERY_ID, PULL_SCHEMA, protoSchema);
 
-    final String expectedJson = "{\"header\":{\"queryId\":\"theQueryId\"," +
-            "\"protoSchema\":\"" +
-            "syntax = \\\"proto3\\\";\\n" +
+    final String expectedJson = "{\"header\":" +
+            "{\"queryId\":\"theQueryId\"," +
+            "\"schema\":\"`ID` BIGINT KEY, `VAL` STRING\"," +
+            "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n" +
             "\\n" +
             "message ConnectDefault1 {\\n" +
             "  int64 ID = 1;\\n" +

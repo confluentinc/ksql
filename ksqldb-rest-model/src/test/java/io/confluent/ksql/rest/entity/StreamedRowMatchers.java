@@ -43,7 +43,7 @@ public final class StreamedRowMatchers {
 
     public static Matcher<? super Header> header(
         final Matcher<? super QueryId> expectedQueryId,
-        final Matcher<? super Optional<LogicalSchema>> expectedSchema,
+        final Matcher<? super LogicalSchema> expectedSchema,
         final Matcher<? super Optional<String>> expectedProtoSchema
 
     ) {
@@ -67,12 +67,12 @@ public final class StreamedRowMatchers {
     }
 
     private static Matcher<? super Header> withSchema(
-        final Matcher<? super Optional<LogicalSchema>> expectedSchema
+        final Matcher<? super LogicalSchema> expectedSchema
     ) {
-      return new FeatureMatcher<Header, Optional<LogicalSchema>>
+      return new FeatureMatcher<Header, LogicalSchema>
           (expectedSchema, "header with schema", "schema") {
         @Override
-        protected Optional<LogicalSchema> featureValueOf(final Header actual) {
+        protected LogicalSchema featureValueOf(final Header actual) {
           return actual.getSchema();
         }
       };

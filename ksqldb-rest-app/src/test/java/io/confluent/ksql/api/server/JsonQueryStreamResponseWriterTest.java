@@ -274,16 +274,15 @@ public class JsonQueryStreamResponseWriterTest {
     // Then:
     assertThat(stringBuilder.toString(),
             is("[{\"header\":{\"queryId\":\"queryId\"," +
-                    "\"protoSchema\":" +
-                    "\"syntax = \\\"proto3\\\";\\n" +
+                    "\"schema\":\"`A` INTEGER KEY, `B` DOUBLE, `C` ARRAY<STRING>\"," +
+                    "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n" +
                     "\\n" +
                     "message ConnectDefault1 {\\n" +
                     "  int32 A = 1;\\n" +
                     "  double B = 2;\\n" +
                     "  repeated string C = 3;\\n" +
                     "}\\n" +
-                    "\"}}" +
-                    "]"));
+                    "\"}}]"));
     verify(response, times(1)).write((Buffer) any());
   }
 
@@ -302,8 +301,8 @@ public class JsonQueryStreamResponseWriterTest {
     // Then:
     assertThat(stringBuilder.toString(),
             is("[{\"header\":{\"queryId\":\"queryId\"," +
-                    "\"protoSchema\":" +
-                    "\"syntax = \\\"proto3\\\";\\n" +
+                    "\"schema\":\"`A` INTEGER KEY, `B` DOUBLE, `C` ARRAY<STRING>\"," +
+                    "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n" +
                     "\\n" +
                     "message ConnectDefault1 {\\n" +
                     "  int32 A = 1;\\n" +
@@ -312,8 +311,8 @@ public class JsonQueryStreamResponseWriterTest {
                     "}\\n" +
                     "\"}}," +
                     "{\"row\":\"CHsRAAAAAABAbUAaBWhlbGxv\"}," +
-                    "{\"row\":\"CMgDEQAAAAAAqIhAGgNieWU=\"}" +
-                    "]"));
+                    "{\"row\":\"CMgDEQAAAAAAqIhAGgNieWU=\"}]"));
+
     verify(response, times(3)).write((Buffer) any());
   }
 }

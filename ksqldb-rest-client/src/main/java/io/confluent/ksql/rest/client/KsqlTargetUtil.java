@@ -79,7 +79,6 @@ public final class KsqlTargetUtil {
    */
   public static List<StreamedRow> toRowsFromProto(final Buffer buff) {
     final List<StreamedRow> rows = new ArrayList<>();
-    boolean headerRead = false;
 
     // split the buffer across the commas delimiting the individual rows
     // Since, there would be commas in the header we are replacing
@@ -95,34 +94,30 @@ public final class KsqlTargetUtil {
             .map(row -> toJsonMsg(Buffer.buffer(row), true))
             .collect(Collectors.toList());
 
-    for (Buffer tidied: buffRows) {
-      // deserialize the first row (header) into a StreamedRow and add it to
-      // the list to return.
-      if (!headerRead) {
-        final StreamedRow row = deserialize(tidied, StreamedRow.class);
-        rows.add(row);
-        headerRead = true;
-      } else {
-        try {
-          // try to deserialize  every subsequent buffer row into a StreamedRow
-          // and add it to the list to return. These can be continuation tokens,
-          // consistency tokens, error messages, final messages or limit messages.
-          // We expect it to fail for the rowProtobuf objects which is handled below.
-          rows.add(deserialize(tidied, StreamedRow.class));
-        } catch (Exception e) {
-          // if it is none of the above, then deserialize it to a
-          // StreamedRow.DataRowProtobuf object.
-          // We can't directly deserialize into a StreamedRow like we did above
-          // because DataRowProtobuf's serialization is {"row":"CAESBlVTRVJfMA=="}
-          // whereas the serialization of a StreamedRow containing a DataRowProtobuf
-          // looks like {"rowProtobuf":{"row":"CAESBlVTRVJfMA=="}}. The Rest API
-          // produces {"row":"CAESBlVTRVJfMA=="}, so we have to do a bit of extra conversion
-          // here.
-          final DataRowProtobuf protoBytes =
-                  deserialize(tidied, DataRowProtobuf.class);
-          final byte[] bytes = protoBytes.getRow();
-          rows.add(StreamedRow.pullRowProtobuf(bytes));
-        }
+    // deserialize the first row (header) into a StreamedRow and add it to
+    // the list to return.
+    rows.add(deserialize(buffRows.get(0), StreamedRow.class));
+    for (int i = 1; i < buffRows.size(); i++) {
+      final Buffer tidied = buffRows.get(i);
+      try {
+        // try to deserialize every subsequent buffer row into a StreamedRow
+        // and add it to the list to return. These can be continuation tokens,
+        // consistency tokens, error messages, final messages or limit messages.
+        // We expect it to fail for the rowProtobuf objects which is handled below.
+        rows.add(deserialize(tidied, StreamedRow.class));
+      } catch (Exception e) {
+        // if it is none of the above, then deserialize it to a
+        // StreamedRow.DataRowProtobuf object.
+        // We can't directly deserialize into a StreamedRow like we did above
+        // because DataRowProtobuf's serialization is {"row":"CAESBlVTRVJfMA=="}
+        // whereas the serialization of a StreamedRow containing a DataRowProtobuf
+        // looks like {"rowProtobuf":{"row":"CAESBlVTRVJfMA=="}}. The Rest API
+        // produces {"row":"CAESBlVTRVJfMA=="}, so we have to do a bit of extra conversion
+        // here.
+        final DataRowProtobuf protoBytes =
+                deserialize(tidied, DataRowProtobuf.class);
+        final byte[] bytes = protoBytes.getRow();
+        rows.add(StreamedRow.pullRowProtobuf(bytes));
       }
     }
     return rows;

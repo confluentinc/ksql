@@ -42,7 +42,6 @@ package io.confluent.ksql.rest.integration;
   import static org.hamcrest.Matchers.is;
   import static org.hamcrest.Matchers.notNullValue;
   import static org.hamcrest.Matchers.startsWith;
-  import static org.junit.Assert.assertThrows;
   import static org.junit.Assert.assertTrue;
   import static org.junit.Assert.fail;
 
@@ -50,7 +49,6 @@ package io.confluent.ksql.rest.integration;
   import com.google.common.collect.ImmutableList;
   import com.google.common.collect.ImmutableMap;
   import io.confluent.common.utils.IntegrationTest;
-  import io.confluent.ksql.api.server.JsonQueryStreamResponseWriter;
   import io.confluent.ksql.api.utils.QueryResponse;
   import io.confluent.ksql.integration.IntegrationTestHarness;
   import io.confluent.ksql.integration.Retry;
@@ -928,8 +926,8 @@ public class RestApiTest {
     final String expectedResponsePart1
             = "[{\"header\":{\"queryId\":\"";
 
-    final String expectedResponsePart2 = "\"protoSchema\":" +
-            "\"syntax = \\\"proto3\\\";\\n" +
+    final String expectedResponsePart2 = ",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
+            "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n" +
             "\\n" +
             "message ConnectDefault1 {\\n" +
             "  int64 COUNT = 1;\\n" +
@@ -940,8 +938,7 @@ public class RestApiTest {
             "{\"row\":\"CAESBlVTRVJfMQ==\"}," +
             "{\"row\":\"CAISBlVTRVJfMg==\"}," +
             "{\"row\":\"CAISBlVTRVJfMw==\"}," +
-            "{\"row\":\"CAESBlVTRVJfNA==\"}" +
-            "]";
+            "{\"row\":\"CAESBlVTRVJfNA==\"}]";
 
     final HttpResponse[] resp = new HttpResponse[1];
     assertThatEventually(() -> {

@@ -19,7 +19,6 @@ import io.vertx.core.buffer.Buffer;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -54,11 +53,11 @@ public class KsqlTargetUtilTest {
     // Then:
     assertThat(row.getHeader().isPresent(), is(true));
     assertThat(row.getHeader().get().getQueryId().toString(), is("query_id_10"));
-    assertThat(row.getHeader().get().getSchema().get().key(), is(Collections.emptyList()));
-    assertThat(row.getHeader().get().getSchema().get().value().size(), is(2));
-    assertThat(row.getHeader().get().getSchema().get().value().get(0),
+    assertThat(row.getHeader().get().getSchema().key(), is(Collections.emptyList()));
+    assertThat(row.getHeader().get().getSchema().value().size(), is(2));
+    assertThat(row.getHeader().get().getSchema().value().get(0),
         is (Column.of(ColumnName.of("col1"), SqlTypes.BIGINT, Namespace.VALUE, 0)));
-    assertThat(row.getHeader().get().getSchema().get().value().get(1),
+    assertThat(row.getHeader().get().getSchema().value().get(1),
         is (Column.of(ColumnName.of("col2"), SqlTypes.DOUBLE, Namespace.VALUE, 1)));
   }
 
@@ -112,9 +111,9 @@ public class KsqlTargetUtilTest {
     final StreamedRow row = rows.get(0);
     assertThat(row.getHeader().isPresent(), is(true));
     assertThat(row.getHeader().get().getQueryId().toString(), is("query_id_10"));
-    assertThat(row.getHeader().get().getSchema().get().key(), is(Collections.emptyList()));
-    assertThat(row.getHeader().get().getSchema().get().value().size(), is(1));
-    assertThat(row.getHeader().get().getSchema().get().value().get(0),
+    assertThat(row.getHeader().get().getSchema().key(), is(Collections.emptyList()));
+    assertThat(row.getHeader().get().getSchema().value().size(), is(1));
+    assertThat(row.getHeader().get().getSchema().value().get(0),
         is (Column.of(ColumnName.of("col1"), SqlTypes.STRING, Namespace.VALUE, 0)));
     final StreamedRow row2 = rows.get(1);
     assertThat(row2.getRow().isPresent(), is(true));
@@ -146,6 +145,7 @@ public class KsqlTargetUtilTest {
     final List<StreamedRow> rows = KsqlTargetUtil.toRowsFromProto(Buffer.buffer(
             "[{\"header\":{" +
                     "\"queryId\":\"query_1652327621826\"," +
+                    "\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
                     "\"protoSchema\":" +
                     "\"syntax = \\\"proto3\\\";\\n\\nmessage ConnectDefault1 {\\n  int64 COUNT = 1;\\n  string USERID = 2;\\n}\\n\"}}"));
 
@@ -155,7 +155,7 @@ public class KsqlTargetUtilTest {
     assertThat(row.getHeader().isPresent(), is(true));
     assertThat(row.getHeader().get().getQueryId().toString(), is("query_1652327621826"));
 
-    assertThat(row.getHeader().get().getSchema(), is(Optional.empty()));
+    assertThat(row.getHeader().get().getSchema().toString(), is("`COUNT` BIGINT, `USERID` STRING KEY"));
     assertThat(row.getHeader().get().getProtoSchema().get(), is("syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 COUNT = 1;\n  string USERID = 2;\n}\n"));
   }
 
@@ -177,6 +177,7 @@ public class KsqlTargetUtilTest {
     final List<StreamedRow> rows =  KsqlTargetUtil.toRowsFromProto(Buffer.buffer(
             "[{\"header\":{" +
                     "\"queryId\":\"query_1652329281296\"," +
+                    "\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
                     "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n\\nmessage ConnectDefault1 {\\n  int64 COUNT = 1;\\n  string USERID = 2;\\n}\\n\"}}," +
                     "{\"row\":\"CAESBlVTRVJfMA==\"}," +
                     "{\"row\":\"CAESBlVTRVJfMQ==\"}," +
@@ -189,7 +190,7 @@ public class KsqlTargetUtilTest {
     final StreamedRow row = rows.get(0);
     assertThat(row.getHeader().isPresent(), is(true));
     assertThat(row.getHeader().get().getQueryId().toString(), is("query_1652329281296"));
-    assertThat(row.getHeader().get().getSchema(), is(Optional.empty()));
+    assertThat(row.getHeader().get().getSchema().toString(), is("`COUNT` BIGINT, `USERID` STRING KEY"));
     assertThat(row.getHeader().get().getProtoSchema().get(), is("syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 COUNT = 1;\n  string USERID = 2;\n}\n"));
 
     final StreamedRow row2 = rows.get(1);
@@ -226,6 +227,7 @@ public class KsqlTargetUtilTest {
             () -> KsqlTargetUtil.toRowsFromProto(Buffer.buffer(
                     "[{\"header\":{" +
                             "\"queryId\":\"query_1652329281296\"," +
+                            "\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
                             "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n\\nmessage ConnectDefault1 {\\n  int64 COUNT = 1;\\n  string USERID = 2;\\n}\\n\"}}," +
                             "{\"row\":\"CAESBlVTRVJfMA==\"}," +
                             "{\"row\":\"CAESB"))

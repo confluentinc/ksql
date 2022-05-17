@@ -94,7 +94,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
               .createSerializer(connectSchema, Struct.class, false);
 
       final StreamedRow header = StreamedRow.headerProtobuf(
-              new QueryId(queryId), logicalToProtoSchema(schema));
+              new QueryId(queryId), schema, logicalToProtoSchema(schema));
 
       buff.appendBuffer(serializeObject(header));
     } else {

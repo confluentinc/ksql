@@ -85,26 +85,27 @@ public class PrestoPlannerTest {
                 .build()
         )
     );
+    final Table abrigosTable = new Table(
+        "abrigos",
+        schemaName,
+        ImmutableList.of(
+            ColumnMetadata
+                .builder()
+                .setName("id")
+                .setType(VarcharType.createUnboundedVarcharType())
+                .setNullable(false)
+                .build(),
+            ColumnMetadata
+                .builder()
+                .setName("sleeve")
+                .setType(IntegerType.INTEGER)
+                .setNullable(false)
+                .build()
+        )
+    );
     connector = new ProtoConnector(
         ImmutableList.of(
-            pantalonesPrestoTable, new Table(
-                "abrigos",
-                schemaName,
-                ImmutableList.of(
-                    ColumnMetadata
-                        .builder()
-                        .setName("id")
-                        .setType(VarcharType.createUnboundedVarcharType())
-                        .setNullable(false)
-                        .build(),
-                    ColumnMetadata
-                        .builder()
-                        .setName("sleeve")
-                        .setType(IntegerType.INTEGER)
-                        .setNullable(false)
-                        .build()
-                )
-            )
+            pantalonesPrestoTable, abrigosTable
         )
     );
   }

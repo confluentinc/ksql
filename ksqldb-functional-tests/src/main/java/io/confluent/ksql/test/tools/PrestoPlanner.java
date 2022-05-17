@@ -249,12 +249,6 @@ public class PrestoPlanner {
     planKsql();
 
     logicalPlan(
-        "SELECT * FROM Pantalones WHERE Waist > 32",
-        schemaName,
-        connector
-    );
-
-    logicalPlan(
         "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID",
         schemaName,
         connector

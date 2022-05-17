@@ -98,7 +98,7 @@ public class ProcessingLogErrorMetricFunctionalTest {
 	final Map<String, String> metricsTagsForQuery1DeserializerLog = new HashMap<>(METRICS_TAGS);
 	final Map<String, String> metricsTagsForQuery2ProjectLog = new HashMap<>(METRICS_TAGS);
 
-	final List<String> listOfQueryId = getQueryNames(REST_APP);
+	final List<String> listOfQueryId = RestIntegrationTestUtil.getQueryIds(REST_APP);
 	assertThat(listOfQueryId.size(), equalTo(2));
 	for (final String queryId:listOfQueryId) {
 	  if (queryId.toLowerCase().contains("test_addition_10")) {
@@ -155,31 +155,5 @@ public class ProcessingLogErrorMetricFunctionalTest {
 	final KafkaMetric cleanedUpMetric2 = metrics.metric(processingLogErrorMetricName2);
 	assertThat(cleanedUpMetric1, nullValue());
 	assertThat(cleanedUpMetric2, nullValue());
-  }
-
-  private static List<String> getQueryNames(final TestKsqlRestApp restApp) {
-	final List<KsqlEntity> results = RestIntegrationTestUtil.makeKsqlRequest(
-		restApp,
-		"Show Queries;"
-	);
-
-	if (results.size() != 1) {
-	  return Collections.emptyList();
-	}
-
-	final KsqlEntity result = results.get(0);
-
-	if (!(result instanceof Queries)) {
-	  return Collections.emptyList();
-	}
-
-	final List<RunningQuery> runningQueries = ((Queries) result)
-		.getQueries();
-
-	if (runningQueries.size() != 2) {
-	  return Collections.emptyList();
-	}
-
-	return runningQueries.stream().map(query -> query.getId().toString()).collect(Collectors.toList());
   }
 }

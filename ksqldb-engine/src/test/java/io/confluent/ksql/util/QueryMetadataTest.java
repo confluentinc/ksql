@@ -17,7 +17,7 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.same;
@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -47,7 +48,13 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -272,7 +279,7 @@ public class QueryMetadataTest {
     );
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(0));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(0));
     assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS));
   }
 
@@ -290,11 +297,15 @@ public class QueryMetadataTest {
             ticker
     );
 
-    retryEvent.backOff();
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name-2");
+    final int numBackOff = 3;
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(1));
-    assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS * 2));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(2));
+    assertThat(retryEvent.getNumRetries("thread-name-2"), is(1));
+    assertThat(retryEvent.nextRestartTimeMs(), is(now + (RETRY_BACKOFF_INITIAL_MS * (int)(Math.pow(2, numBackOff)))));
   }
 
   @Test
@@ -310,12 +321,16 @@ public class QueryMetadataTest {
             RETRY_BACKOFF_MAX_MS,
             ticker
     );
-    retryEvent.backOff();
-    retryEvent.backOff();
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(2));
-    assertThat(retryEvent.nextRestartTimeMs(), lessThan(now + RETRY_BACKOFF_MAX_MS));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(6));
+    assertThat(retryEvent.nextRestartTimeMs(), lessThanOrEqualTo(now + RETRY_BACKOFF_MAX_MS));
   }
 
   @Test

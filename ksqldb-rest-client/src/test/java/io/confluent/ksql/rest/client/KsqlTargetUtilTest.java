@@ -147,7 +147,7 @@ public class KsqlTargetUtilTest {
                     "\"queryId\":\"query_1652327621826\"," +
                     "\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
                     "\"protoSchema\":" +
-                    "\"syntax = \\\"proto3\\\";\\n\\nmessage ConnectDefault1 {\\n  int64 COUNT = 1;\\n  string USERID = 2;\\n}\\n\"}}"));
+                    "\"syntax = \\\"proto3\\\";\\n\\nmessage ConnectDefault1 {\\n  int64 COUNT = 1;\\n  string USERID = 2;\\n}\\n\"}}]"));
 
     StreamedRow row = rows.get(0);
 
@@ -168,7 +168,7 @@ public class KsqlTargetUtilTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Failed to deserialise object"));
+    assertThat(e.getMessage(), containsString("Failed to deserialize object"));
   }
 
   @Test
@@ -234,6 +234,6 @@ public class KsqlTargetUtilTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), is(("Failed to deserialise object")));
+    assertThat(e.getMessage(), is(("Failed to deserialize object")));
   }
 }

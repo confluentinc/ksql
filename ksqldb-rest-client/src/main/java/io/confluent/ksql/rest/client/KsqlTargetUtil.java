@@ -18,6 +18,9 @@ package io.confluent.ksql.rest.client;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.util.BytesUtils.toJsonMsg;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
@@ -37,11 +40,11 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.Pair;
 import io.vertx.core.buffer.Buffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public final class KsqlTargetUtil {
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private KsqlTargetUtil() {
 
@@ -79,26 +82,18 @@ public final class KsqlTargetUtil {
    */
   public static List<StreamedRow> toRowsFromProto(final Buffer buff) {
     final List<StreamedRow> rows = new ArrayList<>();
-
-    // split the buffer across the commas delimiting the individual rows
-    // Since, there would be commas in the header we are replacing
-    // },{"row": with },\n\t\n{"row": and then splitting on \n\t\n to avoid
-    // splitting on commas that might be more that 1 level deep
-    final List<Buffer> buffRows = Arrays
-            .stream(buff
-                    .toString()
-                    .replace("},{\"row\":", "},\n\t\n{\"row\":")
-                    .split("\n\t\n"))
-            .collect(Collectors.toList())
-            .stream()
-            .map(row -> toJsonMsg(Buffer.buffer(row), true))
-            .collect(Collectors.toList());
+    final JsonNode buffRows;
+    try {
+      buffRows = MAPPER.readTree(buff.toString());
+    } catch (JsonProcessingException e) {
+      throw new KsqlRestClientException("Failed to deserialize object", e);
+    }
 
     // deserialize the first row (header) into a StreamedRow and add it to
     // the list to return.
-    rows.add(deserialize(buffRows.get(0), StreamedRow.class));
+    rows.add(deserialize(Buffer.buffer(buffRows.get(0).toString()), StreamedRow.class));
     for (int i = 1; i < buffRows.size(); i++) {
-      final Buffer tidied = buffRows.get(i);
+      final Buffer tidied = Buffer.buffer(buffRows.get(i).toString());
       try {
         // try to deserialize every subsequent buffer row into a StreamedRow
         // and add it to the list to return. These can be continuation tokens,

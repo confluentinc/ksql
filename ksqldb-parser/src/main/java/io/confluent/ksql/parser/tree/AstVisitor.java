@@ -82,6 +82,10 @@ public abstract class AstVisitor<R, C> {
     return visitSelectItem(node, context);
   }
 
+  protected R visitStructAll(final StructAll node, final C context) {
+    return visitSelectItem(node, context);
+  }
+
   protected R visitTable(final Table node, final C context) {
     return visitRelation(node, context);
   }

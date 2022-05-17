@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IntervalUnit;
@@ -57,6 +58,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.Operator;
@@ -204,6 +206,41 @@ public class AstBuilderTest {
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
     assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, SourceName.of("T1"))));
     assertThat((Join) result.getFrom(), hasRights(new AliasedRelation(TEST2, SourceName.of("T2"))));
+  }
+
+  @Test
+  public void shouldHandleSelectStructAll() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT NESTED_ORDER_COL->* FROM NESTED_STREAM;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new StructAll(column("NESTED_ORDER_COL"))
+    ))));
+  }
+
+  @Test
+  public void shouldHandleSelectStructAllOnNestedStruct() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT NESTED_ORDER_COL->ITEMINFO->* FROM NESTED_STREAM;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new StructAll(
+            new DereferenceExpression(
+                Optional.empty(),
+                new UnqualifiedColumnReferenceExp(ColumnName.of("NESTED_ORDER_COL")),
+                "ITEMINFO"
+            ))
+    ))));
   }
 
   @Test
@@ -403,7 +440,7 @@ public class AstBuilderTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("mismatched input '=>' expecting {',', ')'}"));
+    assertThat(e.getMessage(), containsString("no viable alternative at input 'TRANSFORM_ARRAY(X =>"));
   }
 
   @Test

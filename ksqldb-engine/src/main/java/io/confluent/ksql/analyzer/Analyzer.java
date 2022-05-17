@@ -58,6 +58,7 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -594,6 +595,9 @@ class Analyzer {
           validateSelect(column);
           captureReferencedSourceColumns(column.getExpression());
           visitTableFunctions(column.getExpression());
+        } else if (selectItem instanceof StructAll) {
+          final StructAll structAll = (StructAll) selectItem;
+          captureReferencedSourceColumns(structAll.getBaseStruct());
         } else if (!(selectItem instanceof AllColumns)) {
           throw new IllegalArgumentException(
               "Unsupported SelectItem type: " + selectItem.getClass().getName());

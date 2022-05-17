@@ -669,6 +669,15 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatSelectStructAllCorrectly() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT a.address->* FROM address a;";
+    final Statement statement = parseSingle(statementString);
+    assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT A.ADDRESS->*\n"
+        + "FROM ADDRESS A\nEMIT CHANGES"));
+  }
+
+  @Test
   public void shouldFormatSelectQueryCorrectly() {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";

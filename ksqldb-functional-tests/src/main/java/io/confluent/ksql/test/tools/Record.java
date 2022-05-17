@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,7 @@ public class Record {
   private final WindowData window;
   private final Optional<JsonNode> jsonValue;
   private final Optional<JsonNode> jsonKey;
-  private final Optional<List<Header>> headers;
+  private final Optional<List<TestHeader>> headers;
 
   public Record(
       final String topicName,
@@ -49,7 +50,7 @@ public class Record {
       final JsonNode jsonValue,
       final Optional<Long> timestamp,
       final WindowData window,
-      final Optional<List<Header>> headers
+      final Optional<List<TestHeader>> headers
   ) {
     this.topicName = requireNonNull(topicName, "topicName");
     this.key = key;
@@ -115,7 +116,7 @@ public class Record {
   /**
    * @return expected headers, or {@link Optional#empty()} if headers can be anything.
    */
-  public Optional<List<Header>> headers() {
+  public Optional<List<TestHeader>> headers() {
     return headers;
   }
 
@@ -139,8 +140,9 @@ public class Record {
     );
   }
 
+  @SuppressWarnings("unchecked")
   public ProducerRecord<Object, Object> asProducerRecord() {
-    return new ProducerRecord<>(
+    return new ProducerRecord(
         topicName,
         0,
         timestamp.orElse(0L),

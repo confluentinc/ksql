@@ -24,7 +24,6 @@ import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.common.header.Header;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
@@ -120,7 +119,7 @@ public class RecordTest {
     );
 
     // When:
-    final List<Header> headers = record.headers().get();
+    final List<TestHeader> headers = record.headers().get();
 
     // Then:
     assertThat(headers.size(), equalTo(1));

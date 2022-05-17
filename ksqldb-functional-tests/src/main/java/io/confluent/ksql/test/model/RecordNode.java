@@ -70,7 +70,7 @@ public final class RecordNode {
   private final JsonNode value;
   private final Optional<Long> timestamp;
   private final Optional<WindowData> window;
-  private final Optional<List<Header>> headers;
+  private final Optional<List<TestHeader>> headers;
 
   @VisibleForTesting
   RecordNode(
@@ -79,7 +79,7 @@ public final class RecordNode {
       final JsonNode value,
       final Optional<Long> timestamp,
       final Optional<WindowData> window,
-      final Optional<List<Header>> headers
+      final Optional<List<TestHeader>> headers
   ) {
     this.topicName = topicName == null ? "" : topicName;
     this.key = requireNonNull(key, "key");
@@ -225,8 +225,8 @@ public final class RecordNode {
       final Optional<WindowData> window = JsonParsingUtil
           .getOptional("window", node, jp, WindowData.class);
 
-      final Optional<List<Header>> headers = JsonParsingUtil
-          .getOptional("headers", node, jp, new TypeReference<List<Header>>() {});
+      final Optional<List<TestHeader>> headers = JsonParsingUtil
+          .getOptional("headers", node, jp, new TypeReference<List<TestHeader>>() {});
 
       return new RecordNode(
           topic, key.orElse(NullNode.getInstance()), value, timestamp, window, headers);

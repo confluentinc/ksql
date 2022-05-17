@@ -56,6 +56,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.model.SourceNode;
+import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
@@ -669,7 +670,7 @@ public class TestExecutor implements Closeable {
         .orElseThrow(() -> new KsqlServerException(
             "could not get expected value from test record: " + expectedRecord));
     final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
-    final List<Header> expectedHeaders = expectedRecord.headers().orElse(ImmutableList.of());
+    final List<TestHeader> expectedHeaders = expectedRecord.headers().orElse(ImmutableList.of());
 
     final AssertionError error = new AssertionError(
         "Topic '" + topicName + "', message " + messageIndex

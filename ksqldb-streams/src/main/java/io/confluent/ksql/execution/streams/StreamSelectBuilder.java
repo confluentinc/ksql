@@ -84,6 +84,7 @@ public final class StreamSelectBuilder {
                 (readOnlyKey, value, ctx) -> {
                   if (keyIndices.isEmpty()) {
                     return null;
+                    // figure out what the index of rowid is, and get(i)
                   }
 
                   if (readOnlyKey instanceof GenericKey) {

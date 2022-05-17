@@ -412,6 +412,7 @@ final class SourceBuilderUtils {
             final ByteBuffer id = ByteBuffer.wrap(key.toString().getBytes(StandardCharsets.UTF_8));
             final int hash = key.hashCode();
             row.append(id);
+
           }
 
           row.appendAll(keyColumns);

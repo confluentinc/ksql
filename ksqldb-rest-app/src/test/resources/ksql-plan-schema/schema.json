@@ -993,6 +993,12 @@
             "type" : "string"
           }
         },
+        "selectedKeys" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
         }

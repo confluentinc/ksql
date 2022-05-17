@@ -129,7 +129,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         contextStacker,
         sourceTableStep,
         keyColumnNames,
-//        Optional.empty(),
+        Optional.empty(),
         selectExpressions,
         InternalFormats.of(keyFormat, valueFormat)
     );

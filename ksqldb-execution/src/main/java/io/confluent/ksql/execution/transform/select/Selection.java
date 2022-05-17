@@ -66,10 +66,10 @@ public final class Selection<K> {
     final List<Column> keyCols = sourceSchema.key();
 
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-//    final ImmutableList<ColumnName> selectedKeyColumns = selectedKeys.orElse(keyCols.stream()
-//        .map(Column::name)
-//        .collect(ImmutableList.toImmutableList()));
-    final ImmutableList<ColumnName> selectedKeyColumns = selectedKeys.orElse(null);
+    final ImmutableList<ColumnName> selectedKeyColumns = selectedKeys.orElse(keyCols.stream()
+        .map(Column::name)
+        .collect(ImmutableList.toImmutableList()));
+//    final ImmutableList<ColumnName> selectedKeyColumns = selectedKeys.orElse(null);
 
     for (int i = 0; i != keyCols.size(); ++i) {
       if (selectedKeyColumns != null && selectedKeyColumns.contains(keyCols.get(i).name())) {

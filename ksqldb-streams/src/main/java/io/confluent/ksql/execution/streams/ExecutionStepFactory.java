@@ -330,7 +330,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
       final List<ColumnName> keyColumnNames,
-//      final Optional<List<ColumnName>> selectedKeys,
+      final Optional<List<ColumnName>> selectedKeys,
       final List<SelectExpression> selectExpressions,
       final Formats format
   ) {
@@ -341,7 +341,7 @@ public final class ExecutionStepFactory {
         properties,
         source,
         keyColumnNames,
-//        selectedKeys,
+        selectedKeys,
         selectExpressions,
         Optional.ofNullable(format)
     );

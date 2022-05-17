@@ -28,9 +28,6 @@ COLLECT_LIST(col1) => ARRAY
 Returns an array containing all the values of `col1` from each
 input row (for the specified grouping and time window, if any).
 
-The `COLLECT_LIST` function works only for simple types and doesn't support
-complex types like MAP, ARRAY, and STRUCT.
-
 The size of the result ARRAY can be limited to a maximum of
 `ksql.functions.collect_list.limit` entries, and any values beyond this
 limit are ignored silently.
@@ -55,9 +52,6 @@ COLLECT_SET(col1) => ARRAY
 
 Returns an array containing the distinct values of `col1` from
 each input row (for the specified grouping and time window, if any).
-
-The `COLLECT_SET` function works only for simple types and doesn't support
-complex types like MAP, ARRAY, and STRUCT.
 
 The size of the result ARRAY can be limited to a maximum of
 `ksql.functions.collect_set.limit` entries, and any values beyond this

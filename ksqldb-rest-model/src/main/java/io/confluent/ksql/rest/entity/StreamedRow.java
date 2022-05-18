@@ -413,6 +413,7 @@ public final class StreamedRow {
 
     @EffectivelyImmutable
     private final Optional<List<?>> columns;
+    @EffectivelyImmutable
     private final Optional<byte[]> protobufBytes;
     private final boolean tombstone;
 

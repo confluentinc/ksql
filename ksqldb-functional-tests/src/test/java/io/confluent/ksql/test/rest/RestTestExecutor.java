@@ -1104,7 +1104,7 @@ public class RestTestExecutor implements Closeable {
 
           byte[] bytes;
           try {
-            bytes = mapper.readTree(row.toString()).get("rowProtobuf").get("row").binaryValue();
+            bytes = mapper.readTree(row.toString()).get("row").get("protobufBytes").binaryValue();
           } catch (IOException e) {
             throw new RuntimeException("Failed to deserialize the ProtoBuf bytes from the " +
                     "RQTT JSON response row: " + row);

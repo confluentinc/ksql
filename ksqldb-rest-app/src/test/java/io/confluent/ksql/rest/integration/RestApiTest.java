@@ -923,22 +923,22 @@ public class RestApiTest {
             "SELECT COUNT, USERID from " + AGG_TABLE + ";",
             Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
 
-    final String expectedResponsePart1
-            = "[{\"header\":{\"queryId\":\"";
-
-    final String expectedResponsePart2 = ",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
-            "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n" +
+    final String expectedResponse
+            = "[{\"header\":{\"queryId\":\"XYZ\"," +
+            "\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
+            "\"protoSchema\":" +
+            "\"syntax = \\\"proto3\\\";\\n" +
             "\\n" +
             "message ConnectDefault1 {\\n" +
             "  int64 COUNT = 1;\\n" +
             "  string USERID = 2;\\n" +
             "}\\n" +
-            "\"}}," +
-            "{\"row\":\"CAESBlVTRVJfMA==\"}," +
-            "{\"row\":\"CAESBlVTRVJfMQ==\"}," +
-            "{\"row\":\"CAISBlVTRVJfMg==\"}," +
-            "{\"row\":\"CAISBlVTRVJfMw==\"}," +
-            "{\"row\":\"CAESBlVTRVJfNA==\"}]";
+            "\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfMA==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfMQ==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAISBlVTRVJfMg==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAISBlVTRVJfMw==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfNA==\"}}]";
 
     final HttpResponse[] resp = new HttpResponse[1];
     assertThatEventually(() -> {
@@ -954,8 +954,9 @@ public class RestApiTest {
       }
     }, is(6));
 
-    assertTrue(resp[0].body().toString().contains(expectedResponsePart1));
-    assertTrue(resp[0].body().toString().contains(expectedResponsePart2));
+    assertThat(
+            resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\""),
+            equalTo(expectedResponse));
   }
 
   @Test

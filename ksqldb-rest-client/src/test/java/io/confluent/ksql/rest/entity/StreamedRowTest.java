@@ -151,7 +151,7 @@ public class StreamedRowTest {
 
     final StreamedRow row = StreamedRow.pullRowProtobuf(message);
 
-    final String expectedJson = "{\"rowProtobuf\":{\"row\":\"QA==\"}}";
+    final String expectedJson = "{\"row\":{\"protobufBytes\":\"QA==\"}}";
 
     testRoundTrip(row, expectedJson);
   }

@@ -18,8 +18,6 @@ package io.confluent.ksql.rest.client;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.util.BytesUtils.toJsonMsg;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Streams;
@@ -32,7 +30,6 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.StreamedRow.DataRowProtobuf;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
@@ -69,50 +66,6 @@ public final class KsqlTargetUtil {
         }
 
         begin = i + 1;
-      }
-    }
-    return rows;
-  }
-
-  /**
-   * @param buff the buffer response that we get from the /query-stream endpoint
-   *             for KsqlMediaType.KSQL_V1_PROTOBUF
-   * @return a List of StreamedRow that includes the header row as its fist element,
-   *     and every subsequent element is a result row in the protobuf format
-   */
-  public static List<StreamedRow> toRowsFromProto(final Buffer buff) {
-    final List<StreamedRow> rows = new ArrayList<>();
-    final JsonNode buffRows;
-    try {
-      buffRows = MAPPER.readTree(buff.toString());
-    } catch (JsonProcessingException e) {
-      throw new KsqlRestClientException("Failed to deserialize object", e);
-    }
-
-    // deserialize the first row (header) into a StreamedRow and add it to
-    // the list to return.
-    rows.add(deserialize(Buffer.buffer(buffRows.get(0).toString()), StreamedRow.class));
-    for (int i = 1; i < buffRows.size(); i++) {
-      final Buffer tidied = Buffer.buffer(buffRows.get(i).toString());
-      try {
-        // try to deserialize every subsequent buffer row into a StreamedRow
-        // and add it to the list to return. These can be continuation tokens,
-        // consistency tokens, error messages, final messages or limit messages.
-        // We expect it to fail for the rowProtobuf objects which is handled below.
-        rows.add(deserialize(tidied, StreamedRow.class));
-      } catch (Exception e) {
-        // if it is none of the above, then deserialize it to a
-        // StreamedRow.DataRowProtobuf object.
-        // We can't directly deserialize into a StreamedRow like we did above
-        // because DataRowProtobuf's serialization is {"row":"CAESBlVTRVJfMA=="}
-        // whereas the serialization of a StreamedRow containing a DataRowProtobuf
-        // looks like {"rowProtobuf":{"row":"CAESBlVTRVJfMA=="}}. The Rest API
-        // produces {"row":"CAESBlVTRVJfMA=="}, so we have to do a bit of extra conversion
-        // here.
-        final DataRowProtobuf protoBytes =
-                deserialize(tidied, DataRowProtobuf.class);
-        final byte[] bytes = protoBytes.getRow();
-        rows.add(StreamedRow.pullRowProtobuf(bytes));
       }
     }
     return rows;

@@ -49,7 +49,6 @@ public final class StreamedRow {
 
   private final Optional<Header> header;
   private final Optional<DataRow> row;
-  private final Optional<DataRowProtobuf> rowProtobuf;
   private final Optional<KsqlErrorMessage> errorMessage;
   private final Optional<String> finalMessage;
   private final Optional<KsqlHostInfoEntity> sourceHost;
@@ -79,7 +78,6 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         Optional.empty()
     );
   }
@@ -91,7 +89,6 @@ public final class StreamedRow {
   ) {
     return new StreamedRow(
             Optional.of(Header.of(queryId, columnsSchema, Optional.of(protoSchema))),
-            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -112,7 +109,6 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         Optional.empty()
     );
   }
@@ -122,7 +118,6 @@ public final class StreamedRow {
    */
   public static StreamedRow continuationToken(final PushContinuationToken pushContinuationToken) {
     return new StreamedRow(
-        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -145,20 +140,18 @@ public final class StreamedRow {
         Optional.of(DataRow.row(value.values())),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         sourceHost,
         Optional.empty(),
         Optional.empty()
     );
   }
 
-  public static  StreamedRow pullRowProtobuf(
+  public static StreamedRow pullRowProtobuf(
           final byte[] rowBytes
   ) {
     return new StreamedRow(
             Optional.empty(),
-            Optional.empty(),
-            Optional.of(DataRowProtobuf.rowProtobuf(rowBytes)),
+            Optional.of(DataRow.rowProtobuf(rowBytes)),
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
@@ -175,14 +168,12 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         Optional.empty()
     );
   }
 
   public static StreamedRow error(final Throwable exception, final int errorCode) {
     return new StreamedRow(
-        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.of(new KsqlErrorMessage(errorCode, exception)),
@@ -197,7 +188,6 @@ public final class StreamedRow {
     return new StreamedRow(
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         Optional.of(errorMessage),
         Optional.empty(),
         Optional.empty(),
@@ -208,7 +198,6 @@ public final class StreamedRow {
 
   public static StreamedRow finalMessage(final String finalMessage) {
     return new StreamedRow(
-        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -230,7 +219,6 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         Optional.of(consistencyToken)
     );
   }
@@ -240,7 +228,6 @@ public final class StreamedRow {
   private StreamedRow(
       @JsonProperty("header") final Optional<Header> header,
       @JsonProperty("row") final Optional<DataRow> row,
-      @JsonProperty("rowProtobuf") final Optional<DataRowProtobuf> rowProtobuf,
       @JsonProperty("errorMessage") final Optional<KsqlErrorMessage> errorMessage,
       @JsonProperty("finalMessage") final Optional<String> finalMessage,
       @JsonProperty("sourceHost") final Optional<KsqlHostInfoEntity> sourceHost,
@@ -249,14 +236,13 @@ public final class StreamedRow {
   ) {
     this.header = requireNonNull(header, "header");
     this.row = requireNonNull(row, "row");
-    this.rowProtobuf = requireNonNull(rowProtobuf, "rowProtobuf");
     this.errorMessage = requireNonNull(errorMessage, "errorMessage");
     this.finalMessage = requireNonNull(finalMessage, "finalMessage");
     this.sourceHost = requireNonNull(sourceHost, "sourceHost");
     this.continuationToken = requireNonNull(continuationToken, "continuationToken");
     this.consistencyToken = requireNonNull(
         consistencyToken, "consistencyToken");
-    checkUnion(header, row, rowProtobuf, errorMessage, finalMessage,
+    checkUnion(header, row, errorMessage, finalMessage,
             continuationToken, consistencyToken);
   }
 
@@ -266,10 +252,6 @@ public final class StreamedRow {
 
   public Optional<DataRow> getRow() {
     return row;
-  }
-
-  public Optional<DataRowProtobuf> getRowProtobuf() {
-    return rowProtobuf;
   }
 
   public Optional<KsqlErrorMessage> getErrorMessage() {
@@ -309,7 +291,6 @@ public final class StreamedRow {
     final StreamedRow that = (StreamedRow) o;
     return Objects.equals(header, that.header)
         && Objects.equals(row, that.row)
-        && Objects.equals(rowProtobuf, that.rowProtobuf)
         && Objects.equals(errorMessage, that.errorMessage)
         && Objects.equals(finalMessage, that.finalMessage)
         && Objects.equals(sourceHost, that.sourceHost)
@@ -319,7 +300,7 @@ public final class StreamedRow {
 
   @Override
   public int hashCode() {
-    return Objects.hash(header, row, rowProtobuf, errorMessage, finalMessage,
+    return Objects.hash(header, row, errorMessage, finalMessage,
             sourceHost, continuationToken, consistencyToken);
   }
 
@@ -431,24 +412,35 @@ public final class StreamedRow {
   public static final class DataRow extends BaseRow {
 
     @EffectivelyImmutable
-    private final List<?> columns;
+    private final Optional<List<?>> columns;
+    private final Optional<byte[]> protobufBytes;
     private final boolean tombstone;
 
     public static DataRow row(
         final List<?> columns
     ) {
-      return new DataRow(columns, Optional.empty());
+      return new DataRow(Optional.of(columns), Optional.empty(), Optional.empty());
+    }
+
+    public static DataRow rowProtobuf(
+        final byte[] bytes
+    ) {
+      return new DataRow(Optional.empty(), Optional.of(bytes), Optional.empty());
     }
 
     public static DataRow tombstone(
         final List<?> columns
     ) {
-      return new DataRow(columns, Optional.of(true));
+      return new DataRow(Optional.of(columns), Optional.empty(), Optional.of(true));
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is unmodifiableList()")
     public List<?> getColumns() {
-      return columns;
+      return columns.orElse(Collections.emptyList());
+    }
+
+    public Optional<byte[]> getProtobufBytes() {
+      return protobufBytes;
     }
 
     public Optional<Boolean> getTombstone() {
@@ -457,14 +449,15 @@ public final class StreamedRow {
 
     @JsonCreator
     private DataRow(
-        @JsonProperty(value = "columns") final List<?> columns,
+        @JsonProperty(value = "columns") final Optional<List<?>> columns,
+        @JsonProperty(value = "protobufBytes") final Optional<byte[]> protobufBytes,
         @JsonProperty(value = "tombstone") final Optional<Boolean> tombstone
     ) {
       this.tombstone = tombstone.orElse(false);
       // cannot use ImmutableList, as we need to handle `null`
-      this.columns = Collections.unmodifiableList(
-          new ArrayList<>(requireNonNull(columns, "columns"))
-      );
+      this.columns = columns.map(objects -> Collections.unmodifiableList(
+              new ArrayList<>(requireNonNull(objects, "columns"))));
+      this.protobufBytes = protobufBytes;
     }
 
     @Override
@@ -477,69 +470,16 @@ public final class StreamedRow {
       }
       final DataRow row = (DataRow) o;
       return tombstone == row.tombstone
-          && Objects.equals(columns, row.columns);
+          && Objects.equals(columns, row.columns)
+          && protobufBytes.isPresent() == row.protobufBytes.isPresent()
+          //byte[] should be compared using Arrays.equals()
+          && protobufBytes.isPresent()
+              ? Arrays.equals(protobufBytes.get(), row.protobufBytes.get()) : true;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(tombstone, columns);
-    }
-  }
-
-  @JsonInclude(Include.NON_EMPTY)
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  public static final class DataRowProtobuf extends BaseRow {
-
-    @EffectivelyImmutable
-    private final byte[] row;
-    private final boolean tombstone;
-
-    public static DataRowProtobuf rowProtobuf(
-            final byte[] rowBytes
-    ) {
-      return new DataRowProtobuf(rowBytes, Optional.empty());
-    }
-
-    public static DataRowProtobuf tombstone(
-            final byte[] rowBytes
-    ) {
-      return new DataRowProtobuf(rowBytes, Optional.of(true));
-    }
-
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
-    public byte[] getRow() {
-      return row;
-    }
-
-    public Optional<Boolean> getTombstone() {
-      return tombstone ? Optional.of(true) : Optional.empty();
-    }
-
-    @JsonCreator
-    private DataRowProtobuf(
-            @JsonProperty(value = "row") final byte[] rowBytes,
-            @JsonProperty(value = "tombstone") final Optional<Boolean> tombstone
-    ) {
-      this.tombstone = tombstone.orElse(false);
-      this.row = rowBytes;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      final DataRowProtobuf row = (DataRowProtobuf) o;
-      return tombstone == row.tombstone
-              && Arrays.equals(this.row, row.row);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(tombstone, row);
+      return Objects.hash(tombstone, columns, protobufBytes);
     }
   }
 }

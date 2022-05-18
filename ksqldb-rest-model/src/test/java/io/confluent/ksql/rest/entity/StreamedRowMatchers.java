@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
-import io.confluent.ksql.rest.entity.StreamedRow.DataRowProtobuf;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
@@ -43,14 +42,11 @@ public final class StreamedRowMatchers {
 
     public static Matcher<? super Header> header(
         final Matcher<? super QueryId> expectedQueryId,
-        final Matcher<? super LogicalSchema> expectedSchema,
-        final Matcher<? super Optional<String>> expectedProtoSchema
-
+        final Matcher<? super LogicalSchema> expectedSchema
     ) {
       return allOf(
           withQueryId(expectedQueryId),
-          withSchema(expectedSchema),
-          withProtoSchema(expectedProtoSchema)
+          withSchema(expectedSchema)
       );
     }
 
@@ -77,18 +73,6 @@ public final class StreamedRowMatchers {
         }
       };
     }
-
-    private static Matcher<? super Header> withProtoSchema(
-            final Matcher<? super Optional<String>> expectedProtoSchema
-    ) {
-      return new FeatureMatcher<Header, Optional<String>>
-              (expectedProtoSchema, "header with schema", "schema") {
-        @Override
-        protected Optional<String> featureValueOf(final Header actual) {
-          return actual.getProtoSchema();
-        }
-      };
-    }
   }
 
   private StreamedRowMatchers() {
@@ -99,7 +83,6 @@ public final class StreamedRowMatchers {
   ) {
     return streamedRow(
         expectedHeader,
-        is(Optional.empty()),
         is(Optional.empty()),
         is(Optional.empty()),
         is(Optional.empty())
@@ -113,7 +96,6 @@ public final class StreamedRowMatchers {
         is(Optional.empty()),
         expectedRow,
         is(Optional.empty()),
-        is(Optional.empty()),
         is(Optional.empty())
     );
   }
@@ -122,7 +104,6 @@ public final class StreamedRowMatchers {
       final Matcher<? super Optional<KsqlErrorMessage>> expectedError
   ) {
     return streamedRow(
-        is(Optional.empty()),
         is(Optional.empty()),
         is(Optional.empty()),
         expectedError,
@@ -134,7 +115,6 @@ public final class StreamedRowMatchers {
       final Matcher<? super Optional<String>> expectedMsg
   ) {
     return streamedRow(
-        is(Optional.empty()),
         is(Optional.empty()),
         is(Optional.empty()),
         is(Optional.empty()),
@@ -155,15 +135,13 @@ public final class StreamedRowMatchers {
     final Matcher<? super Optional<Header>> headerMatcher = expected.getHeader()
         .<Matcher<Optional<Header>>>map(header -> OptionalMatchers.of(HeaderMatchers.header(
             any(QueryId.class),
-            is(header.getSchema()),
-            is(header.getProtoSchema())
+            is(header.getSchema())
         )))
         .orElse(is(Optional.empty()));
 
     return streamedRow(
         headerMatcher,
         is(expected.getRow()),
-        is(expected.getRowProtobuf()),
         is(expected.getErrorMessage()),
         is(expected.getFinalMessage())
     );
@@ -192,14 +170,12 @@ public final class StreamedRowMatchers {
   private static Matcher<? super StreamedRow> streamedRow(
       final Matcher<? super Optional<Header>> expectedHeader,
       final Matcher<? super Optional<DataRow>> expectedRow,
-      final Matcher<? super Optional<DataRowProtobuf>> expectedRowProto,
       final Matcher<? super Optional<KsqlErrorMessage>> expectedError,
       final Matcher<? super Optional<String>> expectedFinalMsg
   ) {
     return allOf(
         withHeader(expectedHeader),
         withValue(expectedRow),
-        withValueProto(expectedRowProto),
         withErrorMessage(expectedError),
         withFinalMessage(expectedFinalMsg)
     );
@@ -225,18 +201,6 @@ public final class StreamedRowMatchers {
       @Override
       protected Optional<DataRow> featureValueOf(final StreamedRow actual) {
         return actual.getRow();
-      }
-    };
-  }
-
-  private static Matcher<? super StreamedRow> withValueProto(
-          final Matcher<? super Optional<DataRowProtobuf>> expectedRow
-  ) {
-    return new FeatureMatcher<StreamedRow, Optional<DataRowProtobuf>>
-            (expectedRow, "value", "value") {
-      @Override
-      protected Optional<DataRowProtobuf> featureValueOf(final StreamedRow actual) {
-        return actual.getRowProtobuf();
       }
     };
   }

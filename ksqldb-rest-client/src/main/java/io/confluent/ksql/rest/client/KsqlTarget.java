@@ -497,6 +497,6 @@ public final class KsqlTarget {
   }
 
   private static List<StreamedRow> toRowsFromProto(final ResponseWithBody resp) {
-    return KsqlTargetUtil.toRowsFromProto(resp.getBody());
+    return KsqlTargetUtil.toRows(resp.getBody());
   }
 }

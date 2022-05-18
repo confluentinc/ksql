@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -49,12 +50,10 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -64,15 +63,15 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
+import org.apache.kafka.connect.json.JsonConverter;
+import org.apache.kafka.connect.storage.Converter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("rawtypes")
-@RunWith(Parameterized.class)
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlJsonDeserializerTest {
 
   private static final String SOME_TOPIC = "bob";
@@ -131,22 +130,16 @@ public class KsqlJsonDeserializerTest {
           .addSerializer(java.sql.Date.class, new EpochDaySerializer())
       );
 
-  @Parameters(name = "{0}")
-  public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{{"Plain JSON", false}, {"Magic byte prefixed", true}});
-  }
-
-  @Parameter
-  public String suiteName;
-
-  @Parameter(1)
-  public boolean useSchemas;
-
   private Struct expectedOrder;
   private KsqlJsonDeserializer<Struct> deserializer;
+  private Converter converter;
+  private ConnectDataTranslator dataTranslator;
 
   @Before
-  public void before() {
+  public void before() throws Exception {
+    converter = new JsonConverter();
+    dataTranslator = new ConnectDataTranslator(ORDER_SCHEMA);
+
     expectedOrder = new Struct(ORDER_SCHEMA)
         .put(ORDERTIME, 1511897796092L)
         .put(ORDERID, 1L)
@@ -226,7 +219,7 @@ public class KsqlJsonDeserializerTest {
   public void shouldThrowIfFieldCanNotBeCoerced() {
     // Given:
     final Map<String, Object> value = new HashMap<>(AN_ORDER);
-    value.put("ordertime", true);
+    value.put(ORDERTIME, true);
 
     final byte[] bytes = serializeJson(value);
 
@@ -925,7 +918,13 @@ public class KsqlJsonDeserializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlJsonDeserializer<>(schema, false, Struct.class)
+        () -> new KsqlJsonDeserializer<>(
+            schema,
+            false,
+            Struct.class,
+            converter,
+            dataTranslator
+        )
     );
 
     // Then:
@@ -950,7 +949,13 @@ public class KsqlJsonDeserializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlJsonDeserializer<>(schema, false, Struct.class)
+        () -> new KsqlJsonDeserializer<>(
+            schema,
+            false,
+            Struct.class,
+            converter,
+            dataTranslator
+        )
     );
 
     // Then:
@@ -1103,7 +1108,13 @@ public class KsqlJsonDeserializerTest {
       final Schema schema, 
       final Class<T> type
   ) {
-    return new KsqlJsonDeserializer<>((ConnectSchema) schema, useSchemas, type);
+    return new KsqlJsonDeserializer<>(
+        (ConnectSchema) schema,
+        false,
+        type,
+        converter,
+        dataTranslator
+    );
   }
 
   private byte[] serializeJson(final Object expected) {
@@ -1115,11 +1126,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   private byte[] addMagic(final byte[] json) {
-    if (useSchemas) {
-      return ArrayUtils.addAll(new byte[]{/*magic*/ 0x00, /*schema*/ 0x00, 0x00, 0x00, 0x01}, json);
-    } else {
-      return json;
-    }
+    return json;
   }
 
   public static class EpochDaySerializer extends JsonSerializer<java.sql.Date> {

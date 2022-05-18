@@ -39,12 +39,15 @@ public class KsqlJsonSerdeFactoryTest {
   @Mock
   private KsqlConfig config;
   @Mock
-  private Supplier<SchemaRegistryClient> srFactory;
-  @Mock
   private KsqlJsonSerdeFactory jsonFactory;
+  @Mock
+  private SchemaRegistryClient schemaRegistryClient;
+
+  private Supplier<SchemaRegistryClient> srFactory;
 
   @Before
   public void setUp() {
+    srFactory = () -> schemaRegistryClient;
     jsonFactory = new KsqlJsonSerdeFactory(new JsonSchemaProperties(ImmutableMap.of()));
   }
 

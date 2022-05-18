@@ -42,7 +42,6 @@ package io.confluent.ksql.rest.integration;
   import static org.hamcrest.Matchers.is;
   import static org.hamcrest.Matchers.notNullValue;
   import static org.hamcrest.Matchers.startsWith;
-  import static org.junit.Assert.assertTrue;
   import static org.junit.Assert.fail;
 
   import com.fasterxml.jackson.core.type.TypeReference;
@@ -918,7 +917,7 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldExecutePullQueryOverHttp2QueryStreamProto() {
+  public void shouldExecutePullQueryOverQueryStreamProto() {
     QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
             "SELECT COUNT, USERID from " + AGG_TABLE + ";",
             Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
@@ -941,22 +940,24 @@ public class RestApiTest {
             "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfNA==\"}}]";
 
     final HttpResponse[] resp = new HttpResponse[1];
-    assertThatEventually(() -> {
-      try {
-        resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
-                HTTP_2, POST,
-                "/query-stream", queryStreamArgs, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
-                Optional.empty(), Optional.empty());
-        int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
-        return respSize;
-      } catch (Throwable t) {
-        return Integer.MAX_VALUE;
-      }
-    }, is(6));
+    Arrays.stream(HttpVersion.values()).forEach(httpVersion -> {
+      assertThatEventually(() -> {
+        try {
+          resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                  httpVersion, POST,
+                  "/query-stream", queryStreamArgs, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
+                  Optional.empty(), Optional.empty());
+          int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
+          return respSize;
+        } catch (Throwable t) {
+          return Integer.MAX_VALUE;
+        }
+      }, is(6));
 
-    assertThat(
-            resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\""),
-            equalTo(expectedResponse));
+      assertThat(
+              resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\""),
+              equalTo(expectedResponse));
+    });
   }
 
   @Test

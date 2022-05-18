@@ -894,7 +894,7 @@ public class RestApiTest {
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 
-    @Test
+  @Test
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
@@ -914,6 +914,66 @@ public class RestApiTest {
         }
       }, is(1));
       assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
+  }
+
+  @Test
+  public void shouldExecutePullQueryOverQueryStreamProto() {
+    QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
+            "SELECT COUNT, USERID from " + AGG_TABLE + ";",
+            Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+
+    final String expectedResponse
+            = "[{\"header\":{\"queryId\":\"XYZ\"," +
+            "\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
+            "\"protoSchema\":" +
+            "\"syntax = \\\"proto3\\\";\\n" +
+            "\\n" +
+            "message ConnectDefault1 {\\n" +
+            "  int64 COUNT = 1;\\n" +
+            "  string USERID = 2;\\n" +
+            "}\\n" +
+            "\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfMA==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfMQ==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAISBlVTRVJfMg==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAISBlVTRVJfMw==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfNA==\"}}]";
+
+    final HttpResponse[] resp = new HttpResponse[1];
+    Arrays.stream(HttpVersion.values()).forEach(httpVersion -> {
+      assertThatEventually(() -> {
+        try {
+          resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                  httpVersion, POST,
+                  "/query-stream", queryStreamArgs, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
+                  Optional.empty(), Optional.empty());
+          int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
+          return respSize;
+        } catch (Throwable t) {
+          return Integer.MAX_VALUE;
+        }
+      }, is(6));
+
+      assertThat(
+              resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\""),
+              equalTo(expectedResponse));
+    });
+  }
+
+  @Test
+  public void shouldNotExecutePullQueryOverHttp2QueryProto() {
+    final QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
+            "SELECT COUNT, USERID from " + AGG_TABLE + ";",
+            Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+
+    final HttpResponse<Buffer> bufferHttpResponse = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+            HTTP_2, POST,
+            "/query", queryStreamArgs, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
+            Optional.empty(), Optional.empty());
+
+    // Then:
+    assertThat(bufferHttpResponse.statusCode(), is(406));
+    assertThat(bufferHttpResponse.statusMessage(), is("Not Acceptable"));
   }
 
   @Test

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.client;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.util.BytesUtils.toJsonMsg;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public final class KsqlTargetUtil {
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private KsqlTargetUtil() {
 

@@ -105,7 +105,8 @@ final class RestTestCaseBuilder {
           test.getResponses(),
           ee,
           test.getInputConditions(),
-          test.getOutputConditions()
+          test.getOutputConditions(),
+          test.isTestPullWithProtoFormat()
       );
     } catch (final Exception e) {
       throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);

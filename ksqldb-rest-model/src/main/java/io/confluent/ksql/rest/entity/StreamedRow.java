@@ -472,10 +472,7 @@ public final class StreamedRow {
       final DataRow row = (DataRow) o;
       return tombstone == row.tombstone
           && Objects.equals(columns, row.columns)
-          && protobufBytes.isPresent() == row.protobufBytes.isPresent()
-          //byte[] should be compared using Arrays.equals()
-          && protobufBytes.isPresent()
-              ? Arrays.equals(protobufBytes.get(), row.protobufBytes.get()) : true;
+          && Objects.equals(protobufBytes, row.protobufBytes);
     }
 
     @Override

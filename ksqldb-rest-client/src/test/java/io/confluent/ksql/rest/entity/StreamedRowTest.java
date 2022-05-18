@@ -146,17 +146,6 @@ public class StreamedRowTest {
   }
 
   @Test
-  public void shouldRoundTripPullProtoRow() throws Exception {
-    final byte[] message = new byte[]{64};
-
-    final StreamedRow row = StreamedRow.pullRowProtobuf(message);
-
-    final String expectedJson = "{\"row\":{\"protobufBytes\":\"QA==\"}}";
-
-    testRoundTrip(row, expectedJson);
-  }
-
-  @Test
   public void shouldRoundTripPullRowNoHost() throws Exception {
     final StreamedRow row = StreamedRow.pullRow(
         genericRow("v0", new BigDecimal("1.2"), 4),

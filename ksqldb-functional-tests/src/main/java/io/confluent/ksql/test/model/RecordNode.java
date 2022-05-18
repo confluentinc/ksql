@@ -49,7 +49,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.common.header.Header;
 
 @JsonDeserialize(using = RecordNode.Deserializer.class)
 @JsonSerialize(using = RecordNode.Serializer.class)

@@ -29,7 +29,7 @@ import org.apache.kafka.connect.json.JsonConverterConfig;
 /**
  * Translates between Connect and JSON Schema Registry schema types.
  */
-class JsonSchemaTranslator implements ConnectSchemaTranslator {
+public class JsonSchemaTranslator implements ConnectSchemaTranslator {
 
   private final JsonSchemaData jsonData = new JsonSchemaData(new JsonSchemaDataConfig(
       ImmutableMap.of(

@@ -83,7 +83,7 @@ public final class SerdeUtil {
       case ProtobufNoSRFormat.NAME:
         return new ValueSpecProtobufNoSRSerdeSupplier(schema, formatInfo.getProperties());
       case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(false, properties);
-      case JsonSchemaFormat.NAME: return new ValueSpecJsonSchemaSerdeSupplier();
+      case JsonSchemaFormat.NAME: return new ValueSpecJsonSchemaSerdeSupplier(schema);
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();
       case KafkaFormat.NAME:      return new KafkaSerdeSupplier(schema);
       case NoneFormat.NAME:       return new NoneSerdeSupplier();

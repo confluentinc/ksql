@@ -150,14 +150,26 @@ public final class TableSelectBuilder {
     if (!selectedKeys.isPresent() || (selectedKeys.isPresent() && !selectedKeys.get().containsAll(
         sourceSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList())
     ))) {
-      return table.withTable(
-          table.getTable().toStream().transform(
+
+
+      final KTable<K, GenericRow> transFormedTable =
+          table
+              .getTable()
+              .toStream()
+//              .toTable()
+//              .toStream()
+              .transform(
               () -> new KsTransformer<>(
+//                  (r, v, c) -> {
+//                    return r;
+//                  },
                   (readOnlyKey, value, ctx) -> {
                     if (keyIndices.isEmpty()) {
+//                         figure out what the index of rowid is, and get(i)
+                      // schema.findColumn(Column.of("ROWID")
 //                      System.out.println(value.get(value.values().indexOf("ROWID")));
 //                      return  (K) value.get(value.values().indexOf("ROWID"));
-                      return null;
+//                      return null;
                     }
 
                     if (readOnlyKey instanceof GenericKey) {
@@ -175,9 +187,31 @@ public final class TableSelectBuilder {
                   selectMapper.getTransformer(logger)
               ),
               selectName
-          ).toTable(),
-          selection.getSchema()
+          ).toTable(Named.as("materialize-keyserde"), Materialized.with(keySerde, valSerde)
+              )
+//              .transformValues(
+//          () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
+//          Materialized.with(keySerde, valSerde),
+//              Named.as("materialize-keyserde")
+//      )
+          ;
+
+//      final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
+//          () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
+//          Materialized.with(keySerde, valSerde),
+//          selectName
+//      );
+
+      final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
+          pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+          selection.getSchema(),
+          queryContext)
       );
+
+      return table
+          .withTable(transFormedTable, selection.getSchema())
+          .withMaterialization(materialization);
+
     } else {
       final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
           () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
@@ -201,11 +235,11 @@ public final class TableSelectBuilder {
 //        selectName
 //    );
 //
-//    final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
-//        pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
-//            selection.getSchema(),
-//            queryContext)
-//    );
+//      final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
+//          pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+//              selection.getSchema(),
+//              queryContext)
+//      );
 //
 //    return table
 //            .withTable(transFormedTable, selection.getSchema())

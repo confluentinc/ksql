@@ -86,6 +86,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -1060,6 +1061,10 @@ public class LogicalPlanner {
           .map(Optional::get)
           .collect(Collectors.toSet());
 
+      if (groupBy.getGroupingExpressions().contains(new IntegerLiteral(1))) {
+        keyColumnNames.add(ColumnName.of("ROWID"));
+      }
+
       valueColumns = projectionSchema.value().stream()
           .filter(col -> !keyColumnNames.contains(col.name()))
           .collect(Collectors.toList());
@@ -1080,6 +1085,7 @@ public class LogicalPlanner {
 
     for (final Expression expression : groupByExps) {
       if (expression.equals(new IntegerLiteral(1))) {
+        builder.keyColumn(ColumnName.of("ROWID"), SqlTypes.BYTES);
         continue;
       }
       final SqlType keyType = typeManager.getExpressionSqlType(expression);

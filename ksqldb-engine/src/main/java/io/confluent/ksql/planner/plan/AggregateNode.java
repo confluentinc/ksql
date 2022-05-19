@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
@@ -240,6 +241,10 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)
         .collect(Collectors.toList());
+
+    if (this.groupBy.getGroupingExpressions().contains(new IntegerLiteral(1))) {
+      keyColumnNames.add(ColumnName.of("ROWID"));
+    }
 
     return aggregated.select(
         keyColumnNames,

@@ -45,12 +45,12 @@ import org.apache.kafka.connect.storage.Converter;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 @Immutable
-public class KsqlJsonSerdeFactory implements SerdeFactory {
+class KsqlJsonSerdeFactory implements SerdeFactory {
 
   private final boolean useSchemaRegistryFormat;
   private final JsonSchemaProperties properties;
 
-  public KsqlJsonSerdeFactory() {
+  KsqlJsonSerdeFactory() {
     useSchemaRegistryFormat = false;
     properties = null;
   }
@@ -58,7 +58,7 @@ public class KsqlJsonSerdeFactory implements SerdeFactory {
   /**
    * @param properties JsonSchemaFormat properties
    */
-  public KsqlJsonSerdeFactory(final JsonSchemaProperties properties) {
+  KsqlJsonSerdeFactory(final JsonSchemaProperties properties) {
     this.useSchemaRegistryFormat = true;
     this.properties = Objects.requireNonNull(properties, "properties");
   }

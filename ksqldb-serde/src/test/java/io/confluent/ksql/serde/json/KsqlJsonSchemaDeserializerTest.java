@@ -14,9 +14,7 @@ import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.json.JsonSchemaDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
-import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.ByteBuffer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -87,7 +85,6 @@ public class KsqlJsonSchemaDeserializerTest {
   private Serializer<Struct> serializer;
   private Deserializer<Struct> deserializer;
   private Converter converter;
-  private ConnectDataTranslator dataTranslator;
   private SchemaRegistryClient schemaRegistryClient;
   private ParsedSchema schema;
 
@@ -104,8 +101,6 @@ public class KsqlJsonSchemaDeserializerTest {
         JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name(),
         JsonSchemaDataConfig.GENERALIZED_SUM_TYPE_SUPPORT_CONFIG, true
     ), false);
-
-    dataTranslator = new ConnectSRSchemaDataTranslator(ORDER_SCHEMA);
 
     expectedOrder = new Struct(ORDER_SCHEMA)
         .put(ORDERTIME, 1511897796092L)

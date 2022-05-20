@@ -18,6 +18,7 @@ package io.confluent.ksql.test.serde;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -87,12 +88,28 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
       }
 
       final T schema;
+      final int id;
       try {
         final String subject = KsqlConstants.getSRSubject(topic, isKey);
-        final int id = srClient.getLatestSchemaMetadata(subject).getId();
+        id = srClient.getLatestSchemaMetadata(subject).getId();
         schema = (T) srClient.getSchemaBySubjectAndId(subject, id);
       } catch (Exception e) {
         throw new KsqlException(e);
+      }
+
+      // Do not let the serializer to auto register a new schema on JSON_SR formats.
+      // QTT tests with JSON_SR started failing on historic plans after supporting the
+      // JsonSchemaConverter because the converter was auto registering a schema with extra
+      // properties. These new props are not required, but was causing noise on the historic plans.
+      if (schema instanceof JsonSchema) {
+        converter.configure(
+            ImmutableMap.of(
+                AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo",
+                AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false,
+                AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, id
+            ),
+            isKey
+        );
       }
 
       final Schema connectSchema = fromParsedSchema(schema);

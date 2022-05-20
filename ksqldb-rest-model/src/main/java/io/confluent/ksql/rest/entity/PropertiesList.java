@@ -169,7 +169,6 @@ public class PropertiesList extends KsqlEntity {
       POLL_MS_CONFIG,
       PROBING_REBALANCE_INTERVAL_MS_CONFIG,
       PROCESSING_GUARANTEE_CONFIG,
-      STATE_DIR_CONFIG,
       WINDOW_SIZE_MS_CONFIG
   );
 

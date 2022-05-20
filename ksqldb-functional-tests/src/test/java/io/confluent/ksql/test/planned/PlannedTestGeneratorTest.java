@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.planned;
 
+import static io.confluent.ksql.test.loader.TestLoader.KSQL_TEST_FILES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;

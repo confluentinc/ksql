@@ -160,7 +160,8 @@ public class ExpressionEvaluatorParityTest {
     assertOrders("ITEMINFO->NAME", ITEM_NAME);
     assertOrders("ITEMINFO->CATEGORY->NAME", CATEGORY_NAME);
     assertOrders("'a-' + ITEMINFO->CATEGORY->NAME + '-b'", "a-cat-b");
-    assertOrdersError("ADDRESS->STREET + 'foo'", evalLogger(null));
+    // Due to https://github.com/confluentinc/ksql/issues/9136 the next assert cannot be updated.
+    // assertOrders("ADDRESS->STREET + 'foo'", null);
   }
 
   @Test

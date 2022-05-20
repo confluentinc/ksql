@@ -19,7 +19,6 @@ import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
@@ -32,11 +31,16 @@ import org.apache.kafka.connect.data.Schema;
 public class ValueSpecJsonSchemaSerdeSupplier extends ConnectSerdeSupplier<JsonSchema> {
   private final JsonSchemaTranslator schemaTranslator;
   private final LogicalSchema logicalSpecSchema;
+  private final SerdeFeatures serdeFeatures;
 
-  public ValueSpecJsonSchemaSerdeSupplier(final LogicalSchema logicalSpecSchema) {
+  public ValueSpecJsonSchemaSerdeSupplier(
+      final LogicalSchema logicalSpecSchema,
+      final SerdeFeatures serdeFeatures
+  ) {
     super(JsonSchemaConverter::new);
     this.schemaTranslator = new JsonSchemaTranslator();
     this.logicalSpecSchema = logicalSpecSchema;
+    this.serdeFeatures = serdeFeatures;
   }
 
   @Override
@@ -52,13 +56,7 @@ public class ValueSpecJsonSchemaSerdeSupplier extends ConnectSerdeSupplier<JsonS
     final Schema outerSchema = ConnectSchemas.columnsToConnectSchema(
         isKey ? logicalSpecSchema.key() : logicalSpecSchema.value());
 
-    // Keys are unwrapped
-    final Schema innerSchema = SerdeUtils.applySinglesUnwrapping(
-        outerSchema,
-        isKey
-            ? SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
-            : SerdeFeatures.of()
-    );
+    final Schema innerSchema = SerdeUtils.applySinglesUnwrapping(outerSchema, serdeFeatures);
 
     return new SpecJsonSchemaDeserializer(
         super.getDeserializer(schemaRegistryClient, isKey),

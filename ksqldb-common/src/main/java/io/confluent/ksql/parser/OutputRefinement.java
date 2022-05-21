@@ -31,13 +31,26 @@ public enum OutputRefinement {
   CHANGES,
 
   /**
-   * Only final results should be materialized.
+   * Only final results should be materialized, using suppress(), ie, in-memory store.
    *
    * <p>For a table, this would mean output only the finalized result per-key.
    *
    * <p>For a stream, all events are final, so all are output.
    */
-  FINAL;
+  FINAL,
+
+  /**
+   * Only final results should be materialized, using emitStrategy(), ie, RocksDB.
+   *
+   * <p>For a table, this would mean output only the finalized result per-key.
+   *
+   * <p>For a stream, all events are final, so all are output.
+   */
+  FINAL_PERSISTENT {
+    public String toString() {
+      return "FINAL";
+    }
+  }
 }
 
 

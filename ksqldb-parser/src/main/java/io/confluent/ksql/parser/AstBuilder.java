@@ -456,14 +456,14 @@ public class AstBuilder {
             .ofNullable(context.resultMaterialization())
             .map(rm -> rm.FINAL() == null
                 ? OutputRefinement.CHANGES
-                : OutputRefinement.FINAL
+                : OutputRefinement.FINAL_PERSISTENT
             )
             .orElse(OutputRefinement.CHANGES));
         // Else must be a push query, which must specify a materialization
       } else {
         outputRefinement = Optional
             .of(context.resultMaterialization().CHANGES() == null
-                ? OutputRefinement.FINAL
+                ? OutputRefinement.FINAL_PERSISTENT
                 : OutputRefinement.CHANGES
             );
       }
@@ -544,7 +544,8 @@ public class AstBuilder {
 
     @Override
     public Node visitHoppingWindowExpression(
-        final SqlBaseParser.HoppingWindowExpressionContext ctx) {
+        final SqlBaseParser.HoppingWindowExpressionContext ctx
+    ) {
 
       final List<SqlBaseParser.NumberContext> numberList = ctx.number();
       final List<SqlBaseParser.WindowUnitContext> windowUnits = ctx.windowUnit();

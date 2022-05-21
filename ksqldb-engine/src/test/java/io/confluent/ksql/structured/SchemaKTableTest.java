@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -33,28 +32,28 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.TableFilter;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory;
 import io.confluent.ksql.execution.streams.ConsumedFactory;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.streams.KsqlValueJoiner;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
@@ -72,6 +71,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.Column;
@@ -788,7 +788,6 @@ public class SchemaKTableTest {
       );
     }
   }
-
   @Test
   public void shouldThrowOnIntoIfKeyFormatWindowInfoIsDifferent() {
     // Given:
@@ -797,7 +796,7 @@ public class SchemaKTableTest {
     when(topic.getKeyFormat()).thenReturn(KeyFormat.windowed(
         keyFormat.getFormatInfo(),
         SerdeFeatures.of(),
-        WindowInfo.of(WindowType.SESSION, Optional.empty())
+        WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty())
     ));
 
     // When:

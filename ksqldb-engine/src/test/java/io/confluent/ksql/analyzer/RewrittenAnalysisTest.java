@@ -33,15 +33,22 @@ import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+@RunWith(Parameterized.class)
 public class RewrittenAnalysisTest {
 
   @Mock
@@ -83,6 +90,14 @@ public class RewrittenAnalysisTest {
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+  @Parameters
+  public static Collection<OutputRefinement> finalStrategy() {
+    return Arrays.asList(OutputRefinement.FINAL, OutputRefinement.FINAL_PERSISTENT);
+  }
+
+  @Parameter
+  public OutputRefinement finalParameter;
+
   @Before
   public void setUp() {
     rewrittenAnalysis = new RewrittenAnalysis(analysis, rewriter);
@@ -90,7 +105,8 @@ public class RewrittenAnalysisTest {
     when(analysis.getRefinementInfo()).thenReturn(refinementInfoOptional);
     when(refinementInfoOptional.isPresent()).thenReturn(true);
     when(refinementInfoOptional.get()).thenReturn(refinementInfo);
-    when(refinementInfo.getOutputRefinement()).thenReturn(OutputRefinement.FINAL);
+    when(refinementInfo.getOutputRefinement()).thenReturn(finalParameter);
+    when(refinementInfo.isFinal()).thenReturn(true);
     when(analysis.getWindowExpression()).thenReturn(windowExpressionOptional);
     when(windowExpressionOptional.isPresent()).thenReturn(true);
     when(windowExpressionOptional.get()).thenReturn(windowExpression);

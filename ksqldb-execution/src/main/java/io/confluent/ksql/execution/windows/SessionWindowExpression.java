@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,7 +40,17 @@ public class SessionWindowExpression extends KsqlWindowExpression {
       final Optional<WindowTimeClause> retention,
       final Optional<WindowTimeClause> gracePeriod
   ) {
-    super(location, retention, gracePeriod);
+    this(location, gap, retention, gracePeriod, Optional.empty());
+  }
+
+  public SessionWindowExpression(
+      final Optional<NodeLocation> location,
+      final WindowTimeClause gap,
+      final Optional<WindowTimeClause> retention,
+      final Optional<WindowTimeClause> gracePeriod,
+      final Optional<OutputRefinement> emitStrategy
+  ) {
+    super(location, retention, gracePeriod, emitStrategy);
     this.gap = requireNonNull(gap, "gap");
   }
 
@@ -49,7 +60,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
 
   @Override
   public WindowInfo getWindowInfo() {
-    return WindowInfo.of(WindowType.SESSION, Optional.empty());
+    return WindowInfo.of(WindowType.SESSION, Optional.empty(), emitStrategy);
   }
 
   @Override
@@ -62,7 +73,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     return " SESSION ( " + gap
         + retention.map(w -> " , RETENTION " + w).orElse("")
         + gracePeriod.map(g -> " , GRACE PERIOD " + g).orElse("")
-        + " ) ";
+        + " ) " + emitStrategy.map(Enum::toString).orElse("");
   }
 
   @Override

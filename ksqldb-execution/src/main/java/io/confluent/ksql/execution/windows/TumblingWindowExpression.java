@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,16 +40,23 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
       final Optional<WindowTimeClause> retention,
       final Optional<WindowTimeClause> gracePeriod
   ) {
-    super(location, retention, gracePeriod);
+    this(location, size, retention, gracePeriod, Optional.empty());
+  }
+
+  public TumblingWindowExpression(
+      final Optional<NodeLocation> location,
+      final WindowTimeClause size,
+      final Optional<WindowTimeClause> retention,
+      final Optional<WindowTimeClause> gracePeriod,
+      final Optional<OutputRefinement> emitStrategy
+  ) {
+    super(location, retention, gracePeriod, emitStrategy);
     this.size = requireNonNull(size, "size");
   }
 
   @Override
   public WindowInfo getWindowInfo() {
-    return WindowInfo.of(
-        WindowType.TUMBLING,
-        Optional.of(size.toDuration())
-    );
+    return WindowInfo.of(WindowType.TUMBLING, Optional.of(size.toDuration()), emitStrategy);
   }
 
   public WindowTimeClause getSize() {
@@ -65,7 +73,7 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     return " TUMBLING ( SIZE " + size
         + retention.map(w -> " , RETENTION " + w).orElse("")
         + gracePeriod.map(g -> " , GRACE PERIOD " + g).orElse("")
-        + " ) ";
+        + " ) " + emitStrategy.map(Enum::toString).orElse("");
   }
 
   @Override

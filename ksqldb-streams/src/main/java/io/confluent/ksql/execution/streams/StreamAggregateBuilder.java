@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.execution.windows.WindowVisitor;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.List;
@@ -47,7 +48,9 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.SessionWindowedKStream;
 import org.apache.kafka.streams.kstream.SessionWindows;
+import org.apache.kafka.streams.kstream.TimeWindowedKStream;
 import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -261,7 +264,7 @@ public final class StreamAggregateBuilder {
 
     @Override
     @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
-    public KTable<Windowed<GenericKey>, GenericRow>  visitHoppingWindowExpression(
+    public KTable<Windowed<GenericKey>, GenericRow> visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
       TimeWindows windows = TimeWindows
@@ -271,9 +274,18 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      return groupedStream
-          .windowedBy(windows)
-          .aggregate(
+      final TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
+          groupedStream.windowedBy(windows);
+
+      //refinementInfo.getOutputRefinement()
+      if (window.getEmitStrategy().isPresent()
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
+        // to-do: need to wait for KS PR to get merged
+        //timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.ON_WINDOW_CLOSE);
+        System.out.println("TODO");
+      }
+
+      return timeWindowedKStream.aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
               materializedFactory.create(keySerde,
@@ -285,7 +297,7 @@ public final class StreamAggregateBuilder {
 
     @Override
     @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
-    public KTable<Windowed<GenericKey>, GenericRow>  visitSessionWindowExpression(
+    public KTable<Windowed<GenericKey>, GenericRow> visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
       SessionWindows windows = SessionWindows.with(window.getGap().toDuration());
@@ -293,9 +305,17 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      return groupedStream
-          .windowedBy(windows)
-          .aggregate(
+      final SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
+          groupedStream.windowedBy(windows);
+
+      if (window.getEmitStrategy().isPresent()
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
+        // to-do: need to wait for KS PR to get merged
+        //sessionWindowedKStream=sessionWindowedKStream.emitStrategy(EmitStrategy.ON_WINDOW_CLOSE);
+        System.out.println("TODO");
+      }
+
+      return sessionWindowedKStream.aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
               aggregateParams.getAggregator().getMerger(),
@@ -316,9 +336,17 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      return groupedStream
-          .windowedBy(windows)
-          .aggregate(
+      final TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
+          groupedStream.windowedBy(windows);
+
+      if (window.getEmitStrategy().isPresent()
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
+        // to-do: need to wait for KS PR to get merged
+        //timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.ON_WINDOW_CLOSE);
+        System.out.println("TODO");
+      }
+
+      return timeWindowedKStream.aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
               materializedFactory.create(keySerde,

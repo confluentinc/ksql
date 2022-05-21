@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.parser.ExpressionParser;
+import io.confluent.ksql.parser.OutputRefinement;
 import java.io.IOException;
 
 class WindowExpressionDeserializer<T extends KsqlWindowExpression> extends JsonDeserializer<T> {
@@ -27,6 +28,18 @@ class WindowExpressionDeserializer<T extends KsqlWindowExpression> extends JsonD
   @SuppressWarnings("unchecked")
   public T deserialize(final JsonParser parser, final DeserializationContext ctx)
       throws IOException {
-    return (T) ExpressionParser.parseWindowExpression(parser.readValueAs(String.class));
+    final String extendedWindowExpression = parser.readValueAs(String.class);
+
+    final KsqlWindowExpression windowExpression;
+
+    if (extendedWindowExpression.endsWith("FINAL")) {
+      windowExpression = ExpressionParser.parseWindowExpression(
+          extendedWindowExpression.substring(0, extendedWindowExpression.length() - 5));
+      windowExpression.setEmitStrategy(OutputRefinement.FINAL_PERSISTENT);
+    } else {
+      windowExpression = ExpressionParser.parseWindowExpression(extendedWindowExpression);
+    }
+
+    return (T) windowExpression;
   }
 }

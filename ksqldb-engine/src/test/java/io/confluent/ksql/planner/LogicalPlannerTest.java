@@ -65,9 +65,7 @@ public class LogicalPlannerTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
     ksqlConfig = new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_SUPPRESS_ENABLED, true));
-
   }
-
 
   @Test
   public void shouldCreatePlanWithTableAsSource() {

@@ -10,10 +10,16 @@ keywords: ksqldb, configure, server, setup, install
 
 These configuration parameters control the general behavior of ksqlDB server.
 Many parameters can only be set once for the entire server, and must be
-specified using the `ksql-server.properties` file. Some parameters, however,
-can be set on a per-persistent query basis using `SET`. This is indicated in each parameter
-section below.
-Retrieve the current list of configuration settings by using the [SHOW PROPERTIES](/developer-guide/ksqldb-reference/show-properties/) command.
+specified using the `ksql-server.properties` file.
+
+You can assign the value of some parameters on a per-persistent query basis
+by using the `SET` statement. This is indicated in the following parameter
+sections with the **Per query** block. For ksqlDB in {{ site.ccloud }}, some 
+parameters can be set only by using the ALTER SYSTEM statement, and this is
+indicated in the corresponding **Per query** block.
+
+Retrieve the current list of configuration settings by using the
+[SHOW PROPERTIES](/developer-guide/ksqldb-reference/show-properties/) command.
 
 For more information on setting properties, see
 [Configure ksqlDB Server](/operate-and-deploy/installation/server-config).
@@ -626,6 +632,12 @@ For more information, see
 and 
 [BOOTSTRAP_SERVERS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#BOOTSTRAP_SERVERS_CONFIG).
 
+## `ksql.streams.buffered.records.per.partition`
+
+**Per query:** yes
+
+The maximum number of records to buffer per partition. The default is `1000`.
+
 ## `ksql.streams.commit.interval.ms`
 
 **Per query:** no
@@ -725,6 +737,16 @@ joins, to a durable location. By default, state is stored in the
 !!! note
     The state storage directory must be unique for every server running on the
     machine. Otherwise, servers may appear to be stuck and not doing any work.
+
+## `ksql.streams.task.timeout.ms`
+
+**Per query:** yes
+
+The maximum amount of time, in milliseconds, a task might stall due to internal
+errors and retries until an error is raised. For a timeout of 0ms, a task would
+raise an error for the first internal error. For any timeout larger than 0ms, a
+task will retry at least once before an error is raised. The default is 300000
+(5 minutes).
 
 ## `ksql.queries.file`
 

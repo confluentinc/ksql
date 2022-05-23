@@ -42,6 +42,8 @@ For more information on setting properties, see
 
 ## `compression.type`
 
+**Per query:** no
+
 Sets the compression type used by {{ site.ak }} producers, like the
 INSERT VALUES statement. The default is `snappy`.
 
@@ -51,6 +53,8 @@ compression used by streams producers for topics created by CREATE TABLE AS
 SELECT, CREATE STREAM AS SELECT, and INSERT INTO statements.
 
 ## `ksql.advertised.listener`
+
+**Per query:** no
 
 This is the URL used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`,
 this configuration doesn't create a listener. Instead, it is used to set an externally routable
@@ -67,6 +71,8 @@ For more information, see [Configuring Listeners of a ksqlDB Cluster](/operate-a
 
 ## `ksql.connect.url`
 
+**Per query:** no
+
 The {{ site.kconnect }} cluster URL to integrate with. If the
 {{ site.kconnect }} cluster is running locally to the ksqlDB Server,
 use `localhost` and the configuration port specified in the
@@ -74,11 +80,15 @@ use `localhost` and the configuration port specified in the
 
 ## `ksql.connect.worker.config`
 
+**Per query:** no
+
 The connect worker configuration file, if spinning up {{ site.kconnect }}
 alongside the ksqlDB server. Don't set this property if you're using
 an external `ksql.connect.url`.
 
 ## `ksql.extension.dir`
+
+**Per query:** no
 
 The directory in which ksqlDB looks for UDFs. The default value
 is the `ext` directory relative to ksqlDB's current working directory.
@@ -120,6 +130,8 @@ ksql.fail.on.production.error=false
 
 ## `ksql.functions.<UDF Name>.<UDF Config>`
 
+**Per query:** no
+
 Makes custom configuration values available to the UDF specified by name.
 For example, if a UDF is named "formula", you can pass a config
 to that UDF by specifying the `ksql.functions.formula.base.value` property.
@@ -129,6 +141,8 @@ is explored in detail [here](/how-to-guides/create-a-user-defined-function/).
 
 ## `ksql.functions.collect_list.limit`
 
+**Per query:** no
+
 Limit the size of the resultant Array to N entries, beyond which
 any further values are silently ignored, by setting this configuration to N.
 
@@ -136,6 +150,8 @@ For more information, see
 [aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_list).
 
 ## `ksql.functions.collect_set.limit`
+
+**Per query:** no
 
 Limits the size of the resultant Set to N entries, beyond which
 any further values are silently ignored, by setting this configuration to N.
@@ -145,7 +161,7 @@ For more information, see
 
 ## `ksql.functions.substring.legacy.args`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
 documentation in the [function](/developer-guide/ksqldb-reference/scalar-functions)
@@ -153,10 +169,14 @@ guide for details.
 
 ## `ksql.endpoint.logging.log.queries`
 
+**Per query:** no
+
 Whether or not to log the query portion of the URI when logging endpoints. Note that enabling 
 this may log sensitive information.
 
 ## `ksql.endpoint.logging.ignored.paths.regex`
+
+**Per query:** no
 
 A regex that allows users to filter out logging from certain endpoints. Without this filter, 
 all endpoints are logged. An example usage of this configuration would be to disable heartbeat 
@@ -165,6 +185,8 @@ verbose. Note that this works on the entire URI, respecting the ksql.endpoint.lo
 configuration)
 
 ## `ksql.heartbeat.enable`
+
+**Per query:** no
 
 If enabled, ksqlDB servers in the same ksqlDB cluster send heartbeats to each
 other, to aid in faster failure detection for improved pull query routing.
@@ -180,6 +202,8 @@ The default is `false`.
 
 ## `ksql.heartbeat.send.interval.ms`
 
+**Per query:** no
+
 If heartbeats are enabled, this config controls the interval, in milliseconds, at which 
 heartbeats are sent between nodes. The default value is `100`.
 
@@ -192,11 +216,15 @@ and deciding whether a node is up or down.
 
 ## `ksql.heartbeat.check.interval.ms`
 
+**Per query:** no
+
 If heartbeats are enabled, this config controls the interval, in milliseconds,
 at which a ksqlDB node processes its received heartbeats to determine whether
 other nodes in the cluster are down. The default value is `200`. 
 
 ## `ksql.heartbeat.window.ms`
+
+**Per query:** no
 
 If heartbeats are enabled, this config controls the size of the window,
 in milliseconds, at which heartbeats are processed to determine how many
@@ -204,10 +232,14 @@ have been missed. The default value is `2000`.
 
 ## `ksql.heartbeat.missed.threshold.ms`
 
+**Per query:** no
+
 If heartbeats are enabled, this config determines how many consecutive missed
 heartbeats flag a ksqlDB node as down. The default value is `3`. 
 
 ## `ksql.heartbeat.discover.interval.ms`
+
+**Per query:** no
 
 If heartbeats are enabled, this config controls the interval, in milliseconds,
 at which a ksqlDB node checks for changes in the cluster, like newly added nodes. 
@@ -215,11 +247,15 @@ The default value is `2000`.
 
 ## `ksql.heartbeat.thread.pool.size`
 
+**Per query:** no
+
 If heartbeats are enabled, this config controls the size of the thread pool
 used for processing and sending heartbeats as well as determining changes in
 the cluster. The default value is `3`. 
 
 ## `ksql.internal.listener`
+
+**Per query:** no
 
 The `ksql.internal.listener` setting controls the address bound for use by internal,
 intra-cluster communication.
@@ -231,7 +267,7 @@ traffic from internal traffic.
 
 ## `ksql.internal.topic.replicas`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
@@ -240,12 +276,16 @@ configured separately. For more information, see
 
 ## `ksql.lag.reporting.enable`
 
+**Per query:** no
+
 If enabled, ksqlDB servers in the same ksqlDB cluster send state-store 
 lag information to each other as a form of heartbeat, for improved pull query routing.
 Only applicable if [`ksql.heartbeat.enable`](#ksqlheartbeatenable) is also set to `true`.
 The default is `false`.
 
 ## `ksql.logging.processing.topic.auto.create`
+
+**Per query:** no
 
 Toggles automatic processing log topic creation. If set to true, ksqlDB
 automatically tries to create a processing log topic at startup.
@@ -259,6 +299,8 @@ property. By default, this property has the value `false`.
 
 ## `ksql.logging.processing.topic.name`
 
+**Per query:** no
+
 If automatic processing log topic creation is enabled, ksqlDB sets the
 name of the topic to the value of this property. If automatic processing
 log stream creation is enabled, ksqlDB uses this topic to back the stream.
@@ -268,17 +310,23 @@ the [ksql.service.id](#ksqlserviceid) property.
 
 ## `ksql.logging.processing.topic.partitions`
 
+**Per query:** no
+
 If automatic processing log topic creation is enabled, ksqlDB creates the
 topic with the number of partitions set to the value of this property. By
 default, this property has the value `1`.
 
 ## `ksql.logging.processing.topic.replication.factor`
 
+**Per query:** no
+
 If automatic processing log topic creation is enabled, ksqlDB creates the
 topic with the number of replicas set to the value of this property. By
 default, this property has the value `1`.
 
 ## `ksql.logging.processing.stream.auto.create`
+
+**Per query:** no
 
 Toggles automatic processing log stream creation. If set to true, and
 ksqlDB is running in interactive mode on a new cluster, ksqlDB automatically
@@ -291,11 +339,15 @@ By default, this property has the value `false`.
 
 ## `ksql.logging.processing.stream.name`
 
+**Per query:** no
+
 If automatic processing log stream creation is enabled, ksqlDB sets the
 name of the stream to the value of this property. By default, this
 property has the value `KSQL_PROCESSING_LOG`.
 
 ## `ksql.logging.processing.rows.include`
+
+**Per query:** no
 
 Toggles whether or not the processing log should include rows in log
 messages. By default, this property has the value `false`.
@@ -306,6 +358,8 @@ messages. By default, this property has the value `false`.
     processing log. Contact support to disable this default setting.
 
 ## `ksql.logging.server.rate.limited.response.codes`
+
+**Per query:** no
 
 A list of `code:qps` pairs, to limit the rate of server request
 logging.  An example would be "400:10" which would limit 400 error
@@ -318,6 +372,8 @@ is being hit, so an absence of this message means a complete set of logs.
 
 ## `ksql.logging.server.rate.limited.request.paths`
 
+**Per query:** no
+
 A list of `path:qps` pairs, to limit the rate of server request
 logging.  An example would be "/query:10" which would limit pull query
 logs to 10 per second. This is useful for requests that are coming in
@@ -329,12 +385,16 @@ is being hit, so an absence of this message means a complete set of logs.
 
 ## `ksql.metrics.tags.custom`
 
+**Per query:** no
+
 A list of tags to be included with emitted
 [JMX metrics](/operate-and-deploy/monitoring), formatted as
 a string of `key:value` pairs separated by commas. For example,
 `key1:value1,key2:value2`.
 
 ## `ksql.output.topic.name.prefix`
+
+**Per query:** no
 
 The default prefix for automatically created topic names. Unless a user
 defines an explicit topic name in a SQL statement, ksqlDB prepends the
@@ -346,7 +406,7 @@ interactive mode. For more information, see
 
 ## `ksql.persistence.default.format.key`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Sets the default value for the `KEY_FORMAT` property if one is
 not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table)
@@ -368,7 +428,7 @@ key format set in this configuration if no explicit key format is declared in th
 
 ## `ksql.persistence.default.format.value`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Sets the default value for the `VALUE_FORMAT` property if one is
 not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table)
@@ -382,7 +442,7 @@ For supported formats, see [Serialization Formats](/reference/serialization).
 
 ## `ksql.persistence.wrap.single.values`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Sets the default value for the `WRAP_SINGLE_VALUE` property if one is
 not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table),
@@ -480,7 +540,7 @@ Specifies the server properties that ksqlDB clients and users can't override.
 
 ## `ksql.schema.registry.url`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr }}
 over a secure connection, see
@@ -488,7 +548,7 @@ over a secure connection, see
 
 ## `ksql.service.id`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 The service ID of the ksqlDB server. This is used to define the ksqlDB
 cluster membership of a ksqlDB Server instance.
@@ -514,12 +574,16 @@ becomes `_confluent-ksql-default__command_topic`).
 
 ## `ksql.source.table.materialization.enabled`
 
+**Per query:** no
+
 Controls whether the SOURCE table feature is enabled. If you specify the SOURCE
 clause when you create a table, you can execute pull queries against the table.
 For more information, see
 [SOURCE Tables](/developer-guide/ksqldb-reference/create-table/#source-tables).
 
 ## `ksql.headers.columns.enabled`
+
+**Per query:** no
 
 Controls whether creating new streams/tables with `HEADERS` or `HEADER('<key>')`
 columns is allowed. If you specify a `HEADERS` or `HEADER('<key>')` column when
@@ -528,6 +592,8 @@ then the statement is rejected. Existing sources with `HEADER`columns can be
 queried though.
 
 ## `ksql.streams.auto.offset.reset`
+
+**Per query:** yes
 
 Determines what to do when there is no initial offset in {{ site.aktm }}
 or if the current offset doesn't exist on the server. The default
@@ -543,6 +609,8 @@ For more information, see [Kafka Consumer](https://docs.confluent.io/current/cli
 [AUTO_OFFSET_RESET_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG).
 
 ## `ksql.streams.bootstrap.servers`
+
+**Per query:** no
 
 A list of host and port pairs that is used for establishing the initial
 connection to the Kafka cluster. This list should be in the form
@@ -560,6 +628,8 @@ and
 
 ## `ksql.streams.commit.interval.ms`
 
+**Per query:** no
+
 The frequency to save the position of the processor. The default value
 in ksqlDB is `2000`. Here is an example to change the value to `5000` by
 using the ksqlDB CLI:
@@ -574,6 +644,8 @@ and
 [COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
 
 ## `ksql.streams.cache.max.bytes.buffering`
+
+**Per query:** yes
 
 The maximum number of memory bytes to be used for buffering across all
 threads. The default value in ksqlDB is `10000000` (~ 10 MB). Here is an
@@ -590,6 +662,8 @@ and
 
 ## `ksql.streams.max.task.idle.ms`
 
+**Per query:** yes
+
 The maximum amount of time a task will idle without processing data when
 waiting for all of its input partition buffers to contain records. This can
 help avoid potential out-of-order processing when the task has multiple input
@@ -603,6 +677,8 @@ For more information, see
 
 ## `ksql.streams.num.standby.replicas`
 
+**Per query:** no
+
 The number of standby replicas. Standby replicas are shadow copies of tables. ksqlDB, through
 {{ site.kstreams }}, attempts to create the specified number of replicas and keep them up to date
 as long as there are enough instances running. Standby replicas are used to minimize the latency of
@@ -612,12 +688,16 @@ changelog can be minimized.
 
 ## `ksql.streams.num.stream.threads`
 
+**Per query:** no
+
 This number of stream threads in an instance of the {{ site.kstreams }}
 application. The stream processing code runs in these threads. For more
 information about the {{ site.kstreams }} threading model, see
 [Threading Model](https://docs.confluent.io/current/streams/architecture.html#threading-model).
 
 ## `ksql.streams.processing.guarantee`
+
+**Per query:** no
 
 The processing semantics to use for persistent queries. The default is 
 `at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
@@ -626,6 +706,8 @@ For more information, see [Processing Guarantees](/operate-and-deploy/exactly-on
 
 ## `ksql.streams.producer.compression.type`
 
+**Per query:** no
+
 The type of compression used by streams producers for topics created by INSERT INTO, 
 CREATE TABLE AS SELECT, and CREATE STREAM AS SELECT statements. The default is `snappy`.
 
@@ -633,6 +715,8 @@ This setting is distinct from the `ksql.compression.type` config, which sets the
 compression type used by {{ site.ak }} producers, like the INSERT VALUES statement.
 
 ## `ksql.streams.state.dir`
+
+**Per query:** no
 
 Sets the storage directory for stateful operations, like aggregations and
 joins, to a durable location. By default, state is stored in the
@@ -644,11 +728,15 @@ joins, to a durable location. By default, state is stored in the
 
 ## `ksql.queries.file`
 
+**Per query:** no
+
 A file that specifies a predefined set of queries for the ksqlDB cluster.
 For an example, see
 [Non-interactive (Headless) ksqlDB Usage](/operate-and-deploy/installation/server-config/#non-interactive-headless-ksqldb-usage).
 
 ## `ksql.query.persistent.active.limit`
+
+**Per query:** no
 
 The maximum number of persistent queries that may be running at any
 given time. Applies to interactive mode only. Once the limit is reached,
@@ -665,7 +753,7 @@ associated with starting each new query. For more information, see
 
 ## `ksql.query.pull.enable.standby.reads`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Config to enable/disable forwarding pull queries to standby hosts when the active is dead. This means that stale values may be returned 
 for these queries since standby hosts receive updates from the changelog topic (to which the active writes to) asynchronously.
@@ -680,7 +768,7 @@ without wastefully attempting to open connections to it (which can be slow & res
 
 ## `ksql.query.pull.max.allowed.offset.lag`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Config to control the maximum lag tolerated by a pull query against a table, expressed as the number of messages a given table-partition is behind, compared to the 
 changelog topic. This is applied to all servers, both active and standbys included. This can be overridden per query, from the CLI (using `SET` command) or 
@@ -691,7 +779,7 @@ By default, any amount of lag is allowed. For using this functionality, the serv
 
 ## `ksql.query.pull.table.scan.enabled`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Config to control whether table scans are permitted when executing pull queries. Without this enabled, only key lookups are used. Enabling table scans
 removes various restrictions on what types of queries are allowed. In particular, these pull query types are now permitted:
@@ -714,7 +802,7 @@ request can be useful when throwing an error is preferable to doing the potentia
 
 ## `ksql.query.pull.interpreter.enabled`
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Controls whether pull queries use the interpreter or the code compiler as their expression
 evaluator. The interpreter is the default. The code compiler is used
@@ -724,17 +812,23 @@ is preferred.
 
 ## `ksql.query.pull.max.qps`
 
+**Per query:** no
+
 Sets a rate limit for pull queries, in queries per second. This limit is enforced per host, not per cluster.
 After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
 
 ## `ksql.query.pull.max.concurrent.requests`
 
+**Per query:** no
+
 Sets the maximum number of concurrent pull queries. This limit is enforced per host, not per cluster.
 After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
 
 ## `ksql.idle.connection.timeout.seconds`
+
+**Per query:** no
 
 Sets the timeout for idle connections. A connection is idle if there is no data in either direction
 on that connection for the duration of the timeout. This configuration can be helpful if you are 
@@ -746,9 +840,13 @@ Increasing this timeout makes the server more tolerant of low-data volume use ca
 
 ## `ksql.variable.substitution.enable`
 
+**Per query:** no
+
 Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.
 
 ## `listeners`
+
+**Per query:** no
 
 The `listeners` setting controls the REST API endpoint for the ksqlDB
 Server. For more info, see
@@ -778,6 +876,8 @@ You can configure ksqlDB Server to use HTTPS. For more information, see
 
 ## `response.http.headers.config`
 
+**Per query:** no
+
 Use to select which HTTP headers are returned in the HTTP response for {{ site.cp }}
 components. Specify multiple values in a comma-separated string using the
 format ``[action][header name]:[header value]`` where ``[action]`` is one of
@@ -791,7 +891,7 @@ response.http.headers.config="add Cache-Control: no-cache, no-store, must-revali
 
 ## `ksql.sink.partitions` (Deprecated)
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 The default number of partitions for the topics created by ksqlDB. The
 default is four. This property has been deprecated.
@@ -801,7 +901,7 @@ For more info see the WITH clause properties in
 
 ## `ksql.sink.replicas` (Deprecated)
 
-**Per query:** yes
+**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 The default number of replicas for the topics created by ksqlDB. The
 default is one. This property has been deprecated. For

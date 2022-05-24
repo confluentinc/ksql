@@ -503,7 +503,6 @@ public class QueryRegistryImpl implements QueryRegistry {
     notifyCreate(serviceContext, metaStore, query);
   }
 
-  // JNH: This is where queries are unregistered.
   private void unregisterQuery(final QueryMetadata query) {
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;

@@ -36,14 +36,12 @@ public final class SandboxedPersistentQueryMetadataImpl extends PersistentQueryM
 
   @Override
   public void pause() {
-    System.out.println("In SandboxedPersistentQueryMetadataImpl.java.   no-op /  calling a "
-        + "listener?");
+    // no-op
   }
 
   @Override
   public void resume() {
-    System.out.println("In SandboxedPersistentQueryMetadataImpl.java.  no-op /  calling a "
-        + "listener?");
+    // no-op
   }
 
   @Override

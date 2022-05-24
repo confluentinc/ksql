@@ -139,12 +139,12 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
 
   @Override
   public void pause(final QueryId queryId) {
-    System.out.println("In Sandbox calling pause for " + queryId);
+    //no-op
   }
 
   @Override
   public void resume(final QueryId queryId) {
-    System.out.println("In Sandbox calling resume for " + queryId);
+    //no-op
   }
 
   @Override

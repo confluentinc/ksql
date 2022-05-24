@@ -198,7 +198,6 @@ public class CommandStore implements CommandQueue, Closeable {
       final Command command,
       final Producer<CommandId, Command> transactionalProducer
   ) {
-    System.out.println("JNH: enqueue: " + command);
     final CommandStatusFuture statusFuture = commandStatusMap.compute(
         commandId,
         (k, v) -> {

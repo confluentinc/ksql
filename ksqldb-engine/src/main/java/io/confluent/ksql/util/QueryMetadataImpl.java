@@ -433,14 +433,12 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   @Override
   public void pause() {
-    System.out.println("In QueryMetadataImpl.java.  Calling kafkaStreams.pause()");
     kafkaStreams.pause();
     isPaused.set(true);
   }
 
   @Override
   public void resume() {
-    System.out.println("In QueryMetadataImpl.java.  Calling kafkaStreams.resume()");
     kafkaStreams.resume();
     isPaused.set(false);
   }

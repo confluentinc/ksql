@@ -49,31 +49,31 @@ public class CommandIdAssigner {
   private static final Map<Class<? extends Statement>, CommandIdSupplier> SUPPLIERS =
       ImmutableMap.<Class<? extends Statement>, CommandIdSupplier>builder()
           .put(CreateStream.class,
-            command -> getTopicStreamCommandId((CreateStream) command))
+              command -> getTopicStreamCommandId((CreateStream) command))
           .put(CreateTable.class,
-            command -> getTopicTableCommandId((CreateTable) command))
+              command -> getTopicTableCommandId((CreateTable) command))
           .put(CreateStreamAsSelect.class,
-            command -> getSelectStreamCommandId((CreateStreamAsSelect) command))
+              command -> getSelectStreamCommandId((CreateStreamAsSelect) command))
           .put(CreateTableAsSelect.class,
-            command -> getSelectTableCommandId((CreateTableAsSelect) command))
+              command -> getSelectTableCommandId((CreateTableAsSelect) command))
           .put(RegisterType.class,
               command -> getRegisterTypeCommandId((RegisterType) command))
           .put(DropType.class,
               command -> getDropTypeCommandId((DropType) command))
           .put(InsertInto.class,
-            command -> getInsertIntoCommandId((InsertInto) command))
+              command -> getInsertIntoCommandId((InsertInto) command))
           .put(PauseQuery.class,
-            command -> getPauseCommandId((PauseQuery) command))
+              command -> getPauseCommandId((PauseQuery) command))
           .put(ResumeQuery.class,
               command -> getResumeCommandId((ResumeQuery) command))
           .put(TerminateQuery.class,
               command -> getTerminateCommandId((TerminateQuery) command))
           .put(DropStream.class,
-            command -> getDropStreamCommandId((DropStream) command))
+              command -> getDropStreamCommandId((DropStream) command))
           .put(DropTable.class,
-            command -> getDropTableCommandId((DropTable) command))
+              command -> getDropTableCommandId((DropTable) command))
           .put(TerminateCluster.class,
-            command -> new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE))
+              command -> new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE))
           .put(AlterSource.class, command -> getAlterSourceCommandId((AlterSource) command))
           .put(AlterSystemProperty.class, command
               -> getAlterSystemCommandId((AlterSystemProperty) command))

@@ -194,22 +194,20 @@ public class KsqlContext implements AutoCloseable {
   }
 
   @VisibleForTesting
-  public void pauseQuery(final QueryId queryId) {
+  public void terminateQuery(final QueryId queryId) {
     ksqlEngine.getPersistentQuery(queryId).ifPresent(t -> {
-      t.pause();
+      t.close();
       ksqlEngine.removeQueryFromAssignor(t);
     });
   }
 
   @VisibleForTesting
-  public void terminateQuery(final QueryId queryId) {
-    // JNH: ksqlEngine.removeQueryFromAssignor(t);
-    ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::close);
+  public void pauseQuery(final QueryId queryId) {
+    ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::pause);
   }
 
   @VisibleForTesting
   public void resumeQuery(final QueryId queryId) {
-    // JNH: ksqlEngine.removeQueryFromAssignor(t);
     ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::resume);
   }
 

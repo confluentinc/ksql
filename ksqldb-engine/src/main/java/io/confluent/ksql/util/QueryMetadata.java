@@ -45,8 +45,6 @@ public interface QueryMetadata {
   KafkaStreams.State getState();
 
   KsqlQueryStatus getQueryStatus();
-  // default: KsqlConstants.fromStreamsState(
-  //                        query.getState())
 
   String getExecutionPlan();
 

@@ -430,20 +430,12 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void pause() {
-    System.out.println("In BinPackedPersistentQueryMetadataImpl.java.  "
-        + "Calling kafkaStreams.pause()");
-    // JNH: to-do allow for just pausing a specific query
-    //sharedKafkaStreamsRuntime.getKafkaStreams().pause();
     sharedKafkaStreamsRuntime.getKafkaStreams().pauseNamedTopology(topology.name());
     isPaused.set(true);
   }
 
   @Override
   public void resume() {
-    System.out.println("In BinPackedPersistentQueryMetadataImpl.java.  "
-        + "Calling kafkaStreams.resume()");
-    // JNH: to-do allow for just pausing a specific query
-    //sharedKafkaStreamsRuntime.getKafkaStreams().resume();
     sharedKafkaStreamsRuntime.getKafkaStreams().resumeNamedTopology(topology.name());
     isPaused.set(false);
   }

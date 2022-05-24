@@ -230,7 +230,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   @Override
   public void pause(final QueryId queryId) {
     System.out.println("In shared runtime calling pause for " + queryId);
-    //kafkaStreams.getTopologyByName(queryId.toString()).get()
   }
 
   @Override

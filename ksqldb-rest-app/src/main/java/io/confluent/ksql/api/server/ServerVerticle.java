@@ -144,6 +144,7 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .handler(BodyHandler.create(false))
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
+    // Add a separate route for KSQL_V1_PROTOBUF. See https://github.com/confluentinc/ksql/pull/9145
     router.route(HttpMethod.POST, "/query-stream")
         .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())
         .handler(BodyHandler.create(false))
@@ -182,6 +183,7 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, true));
+    // Add a separate route for KSQL_V1_PROTOBUF. See https://github.com/confluentinc/ksql/pull/9145
     router.route(HttpMethod.POST, "/query")
         .handler(BodyHandler.create(false))
         .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())

@@ -1059,7 +1059,7 @@ public class RestApiTest {
   @Test
   public void shouldExecutePushQueryAllEndpointsProto() {
     ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
-    final String query = String.format("SELECT COUNT, USERID from %s EMIT CHANGES LIMIT %d;", AGG_TABLE, LIMIT);;
+    final String query = String.format("SELECT COUNT, USERID from %s EMIT CHANGES LIMIT %d;", AGG_TABLE, LIMIT);
     Object requestBody;
 
     final String expectedResponse

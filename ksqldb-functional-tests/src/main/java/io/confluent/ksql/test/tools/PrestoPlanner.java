@@ -570,17 +570,9 @@ public class PrestoPlanner {
       final String sql,
       final String schemaName,
       final Connector connector) {
-    System.out.println(sql);
-
-    final SqlParser sqlParser = new SqlParser();
-    final Statement statement = sqlParser.createStatement(
-        sql,
-        ParsingOptions.builder().build()
-    );
-
-    System.out.println(statement);
 
     final WarningCollector warningCollector = WarningCollector.NOOP;
+    final SqlParser sqlParser = new SqlParser();
     final QueryPreparer queryPreparer = new QueryPreparer(sqlParser);
     final QueryIdGenerator queryIdGenerator = new QueryIdGenerator();
     final String catalogName = "catalog";
@@ -611,6 +603,17 @@ public class PrestoPlanner {
         InMemoryTransactionManager.createTestTransactionManager(
             catalogManager
         );
+
+
+    System.out.println(sql);
+
+    final Statement statement = sqlParser.createStatement(
+        sql,
+        ParsingOptions.builder().build()
+    );
+
+    System.out.println(statement);
+
 
     final AtomicReference<Plan> logicalPlan = new AtomicReference<>();
     TransactionBuilder.transaction(transactionManager, accessControl)

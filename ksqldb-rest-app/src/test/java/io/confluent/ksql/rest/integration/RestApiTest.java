@@ -924,6 +924,7 @@ public class RestApiTest {
   @Test
   public void shouldExecutePullQueryAllEndpointsDefaultMIME() {
     // Given:
+    final String acceptableContentType = "*/*";
     ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
     final String query = String.format("SELECT COUNT, USERID from %s;", AGG_TABLE);
     Object requestBody;
@@ -956,7 +957,7 @@ public class RestApiTest {
           try {
             resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
                 httpVersion, POST,
-                endpoint, finalRequestBody, "*/*",
+                endpoint, finalRequestBody, acceptableContentType,
                 Optional.empty(), Optional.empty());
             return resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\"");
           } catch (Throwable t) {
@@ -972,6 +973,7 @@ public class RestApiTest {
   @Test
   public void shouldExecutePullQueryAllEndpointsProto() {
     // Given:
+    final String acceptableContentType = KsqlMediaType.KSQL_V1_PROTOBUF.mediaType();
     ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
     final String query = String.format("SELECT COUNT, USERID from %s;", AGG_TABLE);
     Object requestBody;
@@ -1012,7 +1014,7 @@ public class RestApiTest {
             // When:
             resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
                 httpVersion, POST,
-                endpoint, finalRequestBody, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
+                endpoint, finalRequestBody, acceptableContentType,
                 Optional.empty(), Optional.empty());
             int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
             return respSize;
@@ -1032,6 +1034,7 @@ public class RestApiTest {
   @Test
   public void shouldExecutePullQueryAllEndpointsProtoRoundTrip() {
     // Given:
+    final String acceptableContentType = KsqlMediaType.KSQL_V1_PROTOBUF.mediaType();
     ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
     final String query = String.format("SELECT * from %s;", AGG_TABLE);
     Object requestBody;
@@ -1062,7 +1065,7 @@ public class RestApiTest {
             // When:
             resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
                 httpVersion, POST,
-                endpoint, finalRequestBody, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
+                endpoint, finalRequestBody, acceptableContentType,
                 Optional.empty(), Optional.empty());
             int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
             return respSize;

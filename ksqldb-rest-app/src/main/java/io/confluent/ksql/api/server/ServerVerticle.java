@@ -142,6 +142,9 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .handler(BodyHandler.create(false))
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
+    router.route(HttpMethod.POST, "/query-stream")
         .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())
         .handler(BodyHandler.create(false))
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
@@ -178,6 +181,10 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, true));
+    router.route(HttpMethod.POST, "/query")
+        .handler(BodyHandler.create(false))
+        .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, true));
     router.route(HttpMethod.GET, "/info")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())

@@ -48,6 +48,7 @@ import io.vertx.core.http.ServerWebSocket;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
@@ -105,10 +106,14 @@ public class WSQueryEndpoint {
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
-      final KsqlSecurityContext ksqlSecurityContext, final Context context) {
+      final KsqlSecurityContext ksqlSecurityContext, final Context context,
+      final Optional<Long> timeout) {
 
     try {
       final long startTimeNanos = Time.SYSTEM.nanoseconds();
+      if (timeout.isPresent()) {
+        exec.schedule(() -> webSocket.close(), timeout.get(), TimeUnit.MILLISECONDS);
+      }
 
       activenessRegistrar.updateLastRequestTime();
 

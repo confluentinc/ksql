@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.server;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.common.security.auth.JwtPrincipal;
+import io.confluent.kafka.clients.plugins.auth.jwt.UnverifiedJwtBearerToken;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.impl.InsertsStreamEndpoint;
 import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
@@ -46,6 +48,8 @@ import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
+import io.confluent.ksql.security.DefaultKsqlPrincipal;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -296,18 +300,37 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
       final Context context) {
-
     executeOnWorker(() -> {
       final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
           .provide(apiSecurityContext);
       try {
-        wsQueryEndpoint
-            .executeStreamQuery(webSocket, requestParams, ksqlSecurityContext, context);
+        wsQueryEndpoint.executeStreamQuery(
+            webSocket,
+            requestParams,
+            ksqlSecurityContext,
+            context,
+            getTokenTimeout(apiSecurityContext.getPrincipal())
+        );
       } finally {
         ksqlSecurityContext.getServiceContext().close();
       }
       return null;
     }, workerExecutor);
+  }
+
+  private Optional<Long> getTokenTimeout(final Optional<KsqlPrincipal> principal) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WEBSOCKET_TIMEOUT_ENABLE)
+        && principal.isPresent()
+        && principal.get() instanceof DefaultKsqlPrincipal
+        && ((DefaultKsqlPrincipal) principal.get()).getOriginalPrincipal() instanceof JwtPrincipal
+    ) {
+      final JwtPrincipal jwtPrincipal = (JwtPrincipal) ((DefaultKsqlPrincipal) principal.get())
+          .getOriginalPrincipal();
+      final UnverifiedJwtBearerToken token = new UnverifiedJwtBearerToken(jwtPrincipal.getJwt());
+      return Optional.of(token.lifetimeMs() - System.currentTimeMillis());
+    } else {
+      return Optional.empty();
+    }
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

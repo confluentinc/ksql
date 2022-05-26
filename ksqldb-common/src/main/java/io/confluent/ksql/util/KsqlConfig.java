@@ -674,6 +674,13 @@ public class KsqlConfig extends AbstractConfig {
       = "The default timeout for ASSERT SCHEMA statements if no timeout is specified "
       + "in the statement.";
 
+  public static final String KSQL_WEBSOCKET_TIMEOUT_ENABLE
+      = "ksql.websocket.timeout.enable";
+  public static final boolean KSQL_WEBSOCKET_TIMEOUT_ENABLE_DEFAULT = true;
+  public static final String KSQL_WEBSOCKET_TIMEOUT_ENABLE_DOC
+      = "If the websocket auth token has a timeout, then close the connection from the ksqlDB"
+      + "server when the token expires.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -1453,6 +1460,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DEFAULT,
             Importance.LOW,
             KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_WEBSOCKET_TIMEOUT_ENABLE,
+            Type.BOOLEAN,
+            KSQL_WEBSOCKET_TIMEOUT_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_TIMEOUT_ENABLE_DOC
         )
         .withClientSslSupport();
 

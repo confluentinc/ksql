@@ -93,6 +93,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -110,6 +111,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @Category({IntegrationTest.class})
+@Ignore
 public class PullQueryRoutingFunctionalTest {
   private static final Logger LOG = LoggerFactory.getLogger(PullQueryRoutingFunctionalTest.class);
 

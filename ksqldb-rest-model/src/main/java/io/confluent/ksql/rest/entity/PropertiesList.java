@@ -93,7 +93,6 @@ import static org.apache.kafka.streams.StreamsConfig.STATESTORE_CACHE_MAX_BYTES_
 import static org.apache.kafka.streams.StreamsConfig.STATE_CLEANUP_DELAY_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.STATE_DIR_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.TASK_TIMEOUT_MS_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.UPGRADE_FROM_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.WINDOW_SIZE_MS_CONFIG;
 
@@ -110,6 +109,8 @@ import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PropertiesList extends KsqlEntity {
+
+  @SuppressWarnings("deprecation")
   public static final List<String> QueryLevelPropertyList = ImmutableList.of(
       AUTO_OFFSET_RESET_CONFIG,
       BUFFERED_RECORDS_PER_PARTITION_CONFIG,

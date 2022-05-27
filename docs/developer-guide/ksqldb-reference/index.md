@@ -65,6 +65,7 @@ keywords: ksqldb, api, reference, function, operator, metadata, connector, query
 ## Execution
 
 - [RUN SCRIPT](run-script.md)
+- [ALTER SYSTEM](alter-system.md)
 
 ## Assertions
 - [ASSERT SCHEMA](assert-schema.md)

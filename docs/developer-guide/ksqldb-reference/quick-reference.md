@@ -21,11 +21,11 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
-## ALTER property
-Change a property value.
+## ALTER SYSTEM
+Change a system-level property value (only available in CCloud).
 
 ```sql
-ALTER 'auto.offset.reset'='earliest';
+ALTER SYSTEM 'auto.offset.reset'='earliest';
 ```
 
 ## ALTER STREAM

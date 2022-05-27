@@ -126,7 +126,7 @@ public class PropertiesList extends KsqlEntity {
       MAX_TASK_IDLE_MS_CONFIG,
       STATESTORE_CACHE_MAX_BYTES_CONFIG,
       TASK_TIMEOUT_MS_CONFIG
-      );
+  );
 
   /**
    * List os properties that can be changes via `ALTER SYSTEM` command.

@@ -100,18 +100,26 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PropertiesList extends KsqlEntity {
 
+  /**
+   * The set of query-level properties that can be configured via the `SET` command. They can also
+   * use the `ALTER SYSTEM` command to set a default value for queries without an explicit override.
+   *
+   * NOTE: IF YOU ADD A NEW CONFIG AND WANT IT TO BE CONFIGURABLE PER-QUERY YOU MUST ADD IT HERE.
+   */
   @SuppressWarnings("deprecation")
-  public static final List<String> QueryLevelPropertyList = ImmutableList.of(
+  public static final Set<String> QueryLevelProperties = ImmutableSet.of(
       AUTO_OFFSET_RESET_CONFIG,
       BUFFERED_RECORDS_PER_PARTITION_CONFIG,
       CACHE_MAX_BYTES_BUFFERING_CONFIG,
@@ -130,16 +138,15 @@ public class PropertiesList extends KsqlEntity {
   );
 
   /**
-   * List os properties that can be changes via `ALTER SYSTEM` command.
+   * The set of system properties that can be changed via the `ALTER SYSTEM` command.
    * We use this "allow list" for security reasons.
    * (Independent of LD.)
    */
-  public static final List<String> EditablePropertyList = ImmutableList.of(
+  public static final Set<String> MutableSystemProperties = ImmutableSet.of(
       MAX_POLL_RECORDS_CONFIG,
       MAX_POLL_INTERVAL_MS_CONFIG,
       SESSION_TIMEOUT_MS_CONFIG,
       HEARTBEAT_INTERVAL_MS_CONFIG,
-      AUTO_OFFSET_RESET_CONFIG,
       FETCH_MIN_BYTES_CONFIG,
       FETCH_MAX_BYTES_CONFIG,
       FETCH_MAX_WAIT_MS_CONFIG,
@@ -225,7 +232,7 @@ public class PropertiesList extends KsqlEntity {
       this.scope = scope;
       this.value = value;
       this.editable = Property.isEditable(name);
-      this.level = PropertiesList.QueryLevelPropertyList.contains(name) ? "QUERY" : "SERVER";
+      this.level = PropertiesList.QueryLevelProperties.contains(name) ? "QUERY" : "SERVER";
     }
 
     @SuppressWarnings("checkstyle:MissingJavadocMethod")
@@ -234,7 +241,8 @@ public class PropertiesList extends KsqlEntity {
       final Optional<ConfigItem> resolvedItem = resolver.resolve(propertyName, false);
 
       return resolvedItem.isPresent()
-          && PropertiesList.EditablePropertyList.contains(resolvedItem.get().getPropertyName());
+          && (PropertiesList.MutableSystemProperties.contains(resolvedItem.get().getPropertyName())
+          || PropertiesList.QueryLevelProperties.contains(resolvedItem.get().getPropertyName()));
     }
 
     public String getLevel() {

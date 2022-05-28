@@ -117,7 +117,6 @@ public class PropertiesList extends KsqlEntity {
   /**
    * The set of query-level properties that can be configured via the `SET` command. They can also
    * use the `ALTER SYSTEM` command to set a default value for queries without an explicit override.
-   * <p>
    * NOTE: IF YOU ADD A NEW CONFIG AND WANT IT TO BE CONFIGURABLE PER-QUERY YOU MUST ADD IT HERE.
    */
   @SuppressWarnings("deprecation")

@@ -112,7 +112,12 @@ public class WSQueryEndpoint {
     try {
       final long startTimeNanos = Time.SYSTEM.nanoseconds();
       if (timeout.isPresent()) {
-        exec.schedule(() -> webSocket.close(), timeout.get(), TimeUnit.MILLISECONDS);
+        exec.schedule(
+            () -> SessionUtil.closeSilently(
+                webSocket, INTERNAL_SERVER_ERROR.code(), "The request token has expired."),
+            timeout.get(),
+            TimeUnit.MILLISECONDS
+        );
       }
 
       activenessRegistrar.updateLastRequestTime();

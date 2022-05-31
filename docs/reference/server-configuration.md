@@ -165,14 +165,6 @@ any further values are silently ignored, by setting this configuration to N.
 For more information, see
 [aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_set).
 
-## `ksql.functions.substring.legacy.args`
-
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
-
-Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
-documentation in the [function](/developer-guide/ksqldb-reference/scalar-functions)
-guide for details.
-
 ## `ksql.endpoint.logging.log.queries`
 
 **Per query:** no
@@ -273,7 +265,7 @@ traffic from internal traffic.
 
 ## `ksql.internal.topic.replicas`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no
 
 The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
@@ -412,7 +404,7 @@ interactive mode. For more information, see
 
 ## `ksql.persistence.default.format.key`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no
 
 Sets the default value for the `KEY_FORMAT` property if one is
 not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table)
@@ -434,7 +426,7 @@ key format set in this configuration if no explicit key format is declared in th
 
 ## `ksql.persistence.default.format.value`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no
 
 Sets the default value for the `VALUE_FORMAT` property if one is
 not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table)
@@ -448,7 +440,7 @@ For supported formats, see [Serialization Formats](/reference/serialization).
 
 ## `ksql.persistence.wrap.single.values`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no
 
 Sets the default value for the `WRAP_SINGLE_VALUE` property if one is
 not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table),
@@ -546,7 +538,7 @@ Specifies the server properties that ksqlDB clients and users can't override.
 
 ## `ksql.schema.registry.url`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no
 
 The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr }}
 over a secure connection, see
@@ -554,7 +546,7 @@ over a secure connection, see
 
 ## `ksql.service.id`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no
 
 The service ID of the ksqlDB server. This is used to define the ksqlDB
 cluster membership of a ksqlDB Server instance.
@@ -801,7 +793,7 @@ By default, any amount of lag is allowed. For using this functionality, the serv
 
 ## `ksql.query.pull.table.scan.enabled`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** yes
 
 Config to control whether table scans are permitted when executing pull queries. Without this enabled, only key lookups are used. Enabling table scans
 removes various restrictions on what types of queries are allowed. In particular, these pull query types are now permitted:
@@ -824,7 +816,7 @@ request can be useful when throwing an error is preferable to doing the potentia
 
 ## `ksql.query.pull.interpreter.enabled`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** yes
 
 Controls whether pull queries use the interpreter or the code compiler as their expression
 evaluator. The interpreter is the default. The code compiler is used
@@ -913,7 +905,7 @@ response.http.headers.config="add Cache-Control: no-cache, no-store, must-revali
 
 ## `ksql.sink.partitions` (Deprecated)
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no
 
 The default number of partitions for the topics created by ksqlDB. The
 default is four. This property has been deprecated.
@@ -923,7 +915,7 @@ For more info see the WITH clause properties in
 
 ## `ksql.sink.replicas` (Deprecated)
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no
 
 The default number of replicas for the topics created by ksqlDB. The
 default is one. This property has been deprecated. For

@@ -166,7 +166,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
             )
         )
     );
-  }git
+  }
   
   private Map<String, String> getTags(final String key, final String value) {
     final Map<String, String> newTags = new HashMap<>(customTags);

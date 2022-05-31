@@ -767,7 +767,7 @@ associated with starting each new query. For more information, see
 
 ## `ksql.query.pull.enable.standby.reads`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** no (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
 
 Config to enable/disable forwarding pull queries to standby hosts when the active is dead. This means that stale values may be returned 
 for these queries since standby hosts receive updates from the changelog topic (to which the active writes to) asynchronously.

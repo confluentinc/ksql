@@ -17,6 +17,8 @@ package io.confluent.ksql.rest.entity;
 
 import static io.confluent.ksql.util.KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_NESTED_ERROR_HANDLING_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_TIMESTAMP_THROW_ON_INVALID;
@@ -40,6 +42,7 @@ import static org.apache.kafka.clients.producer.ProducerConfig.LINGER_MS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.MAX_BLOCK_MS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.MAX_REQUEST_SIZE_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.ACCEPTABLE_RECOVERY_LAG_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.BUFFERED_RECORDS_PER_PARTITION_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.COMMIT_INTERVAL_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.MAX_TASK_IDLE_MS_CONFIG;
@@ -48,6 +51,7 @@ import static org.apache.kafka.streams.StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG
 import static org.apache.kafka.streams.StreamsConfig.POLL_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.PROBING_REBALANCE_INTERVAL_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.PROCESSING_GUARANTEE_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.TASK_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.WINDOW_SIZE_MS_CONFIG;
 
@@ -77,8 +81,6 @@ public class PropertiesList extends KsqlEntity {
       AUTO_OFFSET_RESET_CONFIG,
       BUFFERED_RECORDS_PER_PARTITION_CONFIG,
       CACHE_MAX_BYTES_BUFFERING_CONFIG,
-      DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
-      DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
       FAIL_ON_DESERIALIZATION_ERROR_CONFIG,
       KSQL_STRING_CASE_CONFIG_TOGGLE,
       KSQL_NESTED_ERROR_HANDLING_CONFIG,
@@ -106,8 +108,6 @@ public class PropertiesList extends KsqlEntity {
       FETCH_MAX_WAIT_MS_CONFIG,
       METADATA_MAX_AGE_CONFIG,
       MAX_PARTITION_FETCH_BYTES_CONFIG,
-      KEY_DESERIALIZER_CLASS_CONFIG,
-      VALUE_DESERIALIZER_CLASS_CONFIG,
       BATCH_SIZE_CONFIG,
       LINGER_MS_CONFIG,
       DELIVERY_TIMEOUT_MS_CONFIG,

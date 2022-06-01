@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -42,14 +41,12 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -127,6 +124,17 @@ public class ValidatedCommandFactoryTest {
     configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
     when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
     when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    assertThrows(ConfigException.class,
+        () -> commandFactory.create(configuredStatement, executionContext));
+  }
+
+  @Test
+  public void shouldNotRaiseExceptionIfKeyInEditablePropertiesList() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.commit.interval.ms");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("100");
     when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
 
     commandFactory.create(configuredStatement, executionContext);

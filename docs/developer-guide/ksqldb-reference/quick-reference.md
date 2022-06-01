@@ -22,7 +22,8 @@ SELECT [...], aggregate_function
 ```
 
 ## ALTER SYSTEM
-Change a system-level property value (only available in CCloud).
+Change a system-level property value (only available in {{ site.ccloud }}).
+
 
 ```sql
 ALTER SYSTEM 'auto.offset.reset'='earliest';

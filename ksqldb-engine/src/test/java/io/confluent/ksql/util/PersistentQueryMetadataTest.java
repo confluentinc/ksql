@@ -214,7 +214,7 @@ public class PersistentQueryMetadataTest {
 
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams);
-    inOrder.verify(kafkaStreams).close(any());
+    inOrder.verify(kafkaStreams).close(any(java.time.Duration.class));
     inOrder.verify(kafkaStreams).state();
     inOrder.verifyNoMoreInteractions();
   }

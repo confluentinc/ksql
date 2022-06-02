@@ -540,7 +540,7 @@ public class StreamedQueryResourceTest {
     final KafkaStreamsBuilder kafkaStreamsBuilder = mock(KafkaStreamsBuilder.class);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(mockKafkaStreams);
     MutableBoolean closed = new MutableBoolean(false);
-    when(mockKafkaStreams.close(any())).thenAnswer(i -> {
+    when(mockKafkaStreams.close(any(java.time.Duration.class))).thenAnswer(i -> {
       closed.setValue(true);
       return true;
     });

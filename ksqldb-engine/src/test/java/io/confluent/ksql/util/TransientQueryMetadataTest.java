@@ -118,7 +118,7 @@ public class TransientQueryMetadataTest {
     // Then:
     final InOrder inOrder = inOrder(rowQueue, kafkaStreams);
     inOrder.verify(rowQueue).close();
-    inOrder.verify(kafkaStreams).close(any());
+    inOrder.verify(kafkaStreams).close(any(java.time.Duration.class));
   }
 
   @Test

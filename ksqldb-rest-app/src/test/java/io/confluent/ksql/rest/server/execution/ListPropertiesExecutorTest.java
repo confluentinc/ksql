@@ -39,10 +39,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -94,7 +91,7 @@ public class ListPropertiesExecutorTest {
 
     // Then:
     assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getLevel(), equalTo("SERVER"));
-    assertThat(toMap(properties).get(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE).getLevel(), equalTo("QUERY"));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE).getLevel(), equalTo("QUERY"));
   }
 
   @Test

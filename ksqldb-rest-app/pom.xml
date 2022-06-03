@@ -69,18 +69,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>confluent-security-plugins-common</artifactId>
-            <version>${io.confluent.confluent-security-plugins.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.confluent</groupId>
-                    <artifactId>broker-plugins</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
             <groupId>com.github.rvesse</groupId>
             <artifactId>airline</artifactId>
         </dependency>

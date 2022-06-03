@@ -28,6 +28,7 @@ import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.AuthObjectType;
+import io.confluent.ksql.security.KsqlAuthTokenProvider;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -132,6 +133,11 @@ public class AuthTest extends ApiTest {
           @Override
           public Optional<KsqlUserContextProvider> getUserContextProvider() {
             return Optional.ofNullable(userContextProvider);
+          }
+
+          @Override
+          public Optional<KsqlAuthTokenProvider> getAuthTokenProvider() {
+            return Optional.empty();
           }
 
           @Override

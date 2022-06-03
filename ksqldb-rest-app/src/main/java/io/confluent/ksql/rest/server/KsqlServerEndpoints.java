@@ -18,8 +18,6 @@ package io.confluent.ksql.rest.server;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.common.security.auth.JwtPrincipal;
-import io.confluent.kafka.clients.plugins.auth.jwt.UnverifiedJwtBearerToken;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.impl.InsertsStreamEndpoint;
 import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
@@ -48,8 +46,8 @@ import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
-import io.confluent.ksql.security.DefaultKsqlPrincipal;
-import io.confluent.ksql.security.KsqlPrincipal;
+import io.confluent.ksql.rest.util.AuthenticationUtil;
+import io.confluent.ksql.security.KsqlAuthTokenProvider;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -59,6 +57,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -87,6 +86,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final WSQueryEndpoint wsQueryEndpoint;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final QueryExecutor queryExecutor;
+  private final Optional<KsqlAuthTokenProvider> authTokenProvider;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -105,7 +105,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final QueryExecutor queryExecutor
+      final QueryExecutor queryExecutor,
+      final Optional<KsqlAuthTokenProvider> authTokenProvider
   ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
@@ -125,6 +126,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.queryExecutor = queryExecutor;
+    this.authTokenProvider = authTokenProvider;
   }
 
   @Override
@@ -309,28 +311,14 @@ public class KsqlServerEndpoints implements Endpoints {
             requestParams,
             ksqlSecurityContext,
             context,
-            getTokenTimeout(apiSecurityContext.getPrincipal())
+            new AuthenticationUtil(Clock.systemUTC())
+                .getTokenTimeout(apiSecurityContext.getPrincipal(), ksqlConfig, authTokenProvider)
         );
       } finally {
         ksqlSecurityContext.getServiceContext().close();
       }
       return null;
     }, workerExecutor);
-  }
-
-  private Optional<Long> getTokenTimeout(final Optional<KsqlPrincipal> principal) {
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WEBSOCKET_TIMEOUT_ENABLE)
-        && principal.isPresent()
-        && principal.get() instanceof DefaultKsqlPrincipal
-        && ((DefaultKsqlPrincipal) principal.get()).getOriginalPrincipal() instanceof JwtPrincipal
-    ) {
-      final JwtPrincipal jwtPrincipal = (JwtPrincipal) ((DefaultKsqlPrincipal) principal.get())
-          .getOriginalPrincipal();
-      final UnverifiedJwtBearerToken token = new UnverifiedJwtBearerToken(jwtPrincipal.getJwt());
-      return Optional.of(token.lifetimeMs() - System.currentTimeMillis());
-    } else {
-      return Optional.empty();
-    }
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

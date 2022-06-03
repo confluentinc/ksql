@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.integration;
 import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpHeaderNames.EXPIRES;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 
@@ -99,12 +98,12 @@ public final class RestIntegrationTestUtil {
     return makeKsqlRequest(restApp, sql, Optional.empty());
   }
 
-  public static String makeKsqlRequestWithVariables(
+  public static void makeKsqlRequestWithVariables(
       final TestKsqlRestApp restApp, final String sql, final Map<String, Object> variables) {
     final KsqlRequest request =
         new KsqlRequest(sql, ImmutableMap.of(), ImmutableMap.of(), variables, null);
 
-    return rawRestRequest(restApp, HTTP_1_1, POST, "/ksql", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+    rawRestRequest(restApp, HTTP_1_1, POST, "/ksql", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
         Optional.empty(), Optional.empty()).body().toString();
   }
 
@@ -661,8 +660,10 @@ public final class RestIntegrationTestUtil {
     return Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
   }
 
-  private static String buildStreamingRequest(final String sql,
-      Optional<Map<String, Object>> overrides, Optional<Map<String, Object>> requestProperties
+  private static String buildStreamingRequest(
+      final String sql,
+      final Optional<Map<String, Object>> overrides,
+      final Optional<Map<String, Object>> requestProperties
   ) {
     KsqlRequest request = new KsqlRequest(sql, overrides.orElse(Collections.emptyMap()),
         requestProperties.orElse(Collections.emptyMap()), null);

@@ -67,7 +67,7 @@ public class TimeMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf timeMinKudaf = getTimeMinKudaf();
+    final MinKudaf<Time> timeMinKudaf = getTimeMinKudaf();
     final Merger<GenericKey, Time> merger = timeMinKudaf.getMerger();
     final Time mergeResult1 = merger.apply(null, new Time(10), new Time(12));
     assertThat(mergeResult1, equalTo(new Time(10L)));
@@ -75,15 +75,15 @@ public class TimeMinKudafTest {
     assertThat(mergeResult2, equalTo(new Time(-12L)));
     final Time mergeResult3 = merger.apply(null, new Time(-10), new Time(0));
     assertThat(mergeResult3, equalTo(new Time(-10)));
-
   }
 
-
-  private MinKudaf getTimeMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MinKudaf<Time> getTimeMinKudaf() {
+    final KsqlAggregateFunction<Time, Time, Time> aggregateFunction =
+        (KsqlAggregateFunction<Time, Time, Time>) new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.TIME)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return (MinKudaf) aggregateFunction;
+    return (MinKudaf<Time>) aggregateFunction;
   }
 }

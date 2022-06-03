@@ -73,7 +73,6 @@ public class HealthCheckResource {
             new ServerInternalKsqlClient(ksqlResource,
                 new KsqlSecurityContext(Optional.empty(), serviceContext)),
             restConfig,
-            serviceContext,
             ksqlConfig,
             commandRunner,
             adminClient),

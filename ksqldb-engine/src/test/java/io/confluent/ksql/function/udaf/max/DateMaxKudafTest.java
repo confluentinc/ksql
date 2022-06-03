@@ -67,7 +67,7 @@ public class DateMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf dateMaxKudaf = getMaxComparableKudaf();
+    final MaxKudaf<Date> dateMaxKudaf = getMaxComparableKudaf();
     final Merger<GenericKey, Date> merger = dateMaxKudaf.getMerger();
     final Date mergeResult1 = merger.apply(null, new Date(10), new Date(12));
     assertThat(mergeResult1, equalTo(new Date(12)));
@@ -75,15 +75,15 @@ public class DateMaxKudafTest {
     assertThat(mergeResult2, equalTo(new Date(10)));
     final Date mergeResult3 = merger.apply(null, new Date(-10), new Date(0));
     assertThat(mergeResult3, equalTo(new Date(0)));
-
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MaxKudaf<Date> getMaxComparableKudaf() {
+    final KsqlAggregateFunction<Date, Date, Date> aggregateFunction =
+        (KsqlAggregateFunction<Date, Date, Date>) new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DATE)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Date>) aggregateFunction;
   }
-
 }

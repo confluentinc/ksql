@@ -37,11 +37,11 @@ public class LeastTest {
   
   @Test
   public void shouldHandleNullArrays(){
-    assertThat(udf.least((Integer) null, null), is(nullValue()));
-    assertThat(udf.least((Double) null, null), is(nullValue()));
-    assertThat(udf.least((Long) null, null), is(nullValue()));
-    assertThat(udf.least((BigDecimal) null, null), is(nullValue()));
-    assertThat(udf.least((String) null, null), is(nullValue()));
+    assertThat(udf.least(null, (Integer) null), is(nullValue()));
+    assertThat(udf.least(null, (Double) null), is(nullValue()));
+    assertThat(udf.least(null, (Long) null), is(nullValue()));
+    assertThat(udf.least(null, (BigDecimal) null), is(nullValue()));
+    assertThat(udf.least(null, (String) null), is(nullValue()));
   }
 
   @Test

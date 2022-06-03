@@ -525,8 +525,7 @@ public class TestExecutor implements Closeable {
     testDriver.getSourceTopic(producedRecord.topic())
         .pipeInput(new TestRecord<>(producedRecord));
 
-    testDriver.getSinkTopicName().ifPresent(topicName -> {
-      final String sinkTopicName = topicName;
+    testDriver.getSinkTopicName().ifPresent(sinkTopicName -> {
       final TestOutputTopic<byte[], byte[]> sinkTopic = testDriver.getSinkTopic(sinkTopicName);
 
       processRecordsForTopic(sinkTopic, sinkTopicName);
@@ -585,8 +584,10 @@ public class TestExecutor implements Closeable {
     );
   }
 
-  static KsqlEngine getKsqlEngine(final ServiceContext serviceContext,
-      final Optional<String> extensionDir) {
+  static KsqlEngine getKsqlEngine(
+      final ServiceContext serviceContext,
+      final Optional<String> extensionDir
+  ) {
     final FunctionRegistry functionRegistry;
     if (extensionDir.isPresent()) {
       final MutableFunctionRegistry mutable = new InternalFunctionRegistry();
@@ -632,6 +633,7 @@ public class TestExecutor implements Closeable {
         .forEach(kafka::writeRecord);
   }
 
+  @SuppressWarnings("unchecked")
   private static Object coerceRecordFields(final Object record) {
     if (!(record instanceof Map)) {
       return record;

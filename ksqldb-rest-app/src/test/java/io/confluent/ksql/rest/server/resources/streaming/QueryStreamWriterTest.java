@@ -295,7 +295,7 @@ public class QueryStreamWriterTest {
             ? null
             : GenericRow.genericRow(rows[i + 1]);
 
-        output.add(new KeyValueMetadata(KeyValue.keyValue(key, value)));
+        output.add(new KeyValueMetadata<>(KeyValue.keyValue(key, value)));
       }
 
       return null;
@@ -312,7 +312,7 @@ public class QueryStreamWriterTest {
             ? null
             : GenericRow.genericRow(rows[i + 1]);
 
-        output.add(new KeyValueMetadata(KeyValue.keyValue(key, value)));
+        output.add(new KeyValueMetadata<>(KeyValue.keyValue(key, value)));
       }
 
       return null;

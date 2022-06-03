@@ -17,6 +17,8 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Map;
@@ -25,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
-
 import org.mockito.junit.MockitoRule;
 
 public class AssertTopicTest {
@@ -34,7 +35,7 @@ public class AssertTopicTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   private final String SOME_TOPIC = "TOPIC";
-  private final Map SOME_CONFIG = ImmutableMap.of("partitions", 1);
+  private final Map<String, Literal> SOME_CONFIG = ImmutableMap.of("partitions", new IntegerLiteral(1));
   private final WindowTimeClause SOME_TIMEOUT = new WindowTimeClause(5, TimeUnit.SECONDS);
 
   @Test

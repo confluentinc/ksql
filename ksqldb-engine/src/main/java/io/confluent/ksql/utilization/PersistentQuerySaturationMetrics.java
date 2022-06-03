@@ -55,8 +55,8 @@ public class PersistentQuerySaturationMetrics implements Runnable {
   private static final String STREAMS_THREAD_METRICS_GROUP = "stream-thread-metrics";
   private static final String THREAD_ID = "thread-id";
   private static final String QUERY_ID = "query-id";
-  private static Map<String, String> customTags = new HashMap<>();
 
+  private Map<String, String> customTags;
   private final Map<String, KafkaStreamsSaturation> perKafkaStreamsStats = new HashMap<>();
   private final KsqlExecutionContext engine;
   private final Supplier<Instant> time;
@@ -168,13 +168,13 @@ public class PersistentQuerySaturationMetrics implements Runnable {
     );
   }
   
-  private static Map<String, String> getTags(final String key, final String value) {
+  private Map<String, String> getTags(final String key, final String value) {
     final Map<String, String> newTags = new HashMap<>(customTags);
     newTags.put(key, value);
     return newTags;
   }
 
-  private static final class KafkaStreamsSaturation {
+  private final class KafkaStreamsSaturation {
     private final Set<QueryId> queryIds = new HashSet<>();
     private final Map<String, ThreadSaturation> perThreadSaturation = new HashMap<>();
     private final Duration window;

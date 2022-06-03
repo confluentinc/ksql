@@ -94,7 +94,7 @@ public class BytesMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf bytesMinKudaf = getBytesMinKudaf();
+    final MinKudaf<ByteBuffer> bytesMinKudaf = getBytesMinKudaf();
     final Merger<GenericKey, ByteBuffer> merger = bytesMinKudaf.getMerger();
     final String mergeResult1 = fromBytesUDF.fromBytes(
         merger.apply(
@@ -119,12 +119,13 @@ public class BytesMinKudafTest {
     assertThat(mergeResult3, equalTo("A"));
   }
 
-  private MinKudaf getBytesMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MinKudaf<ByteBuffer> getBytesMinKudaf() {
+    final KsqlAggregateFunction<ByteBuffer, ByteBuffer, ByteBuffer> aggregateFunction =
+        (KsqlAggregateFunction<ByteBuffer, ByteBuffer, ByteBuffer>) new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BYTES)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return  (MinKudaf<ByteBuffer>) aggregateFunction;
   }
-
 }

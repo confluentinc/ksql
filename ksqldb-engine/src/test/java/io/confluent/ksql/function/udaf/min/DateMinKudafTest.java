@@ -67,7 +67,7 @@ public class DateMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf dateMinKudaf = getDateMinKudaf();
+    final MinKudaf<Date> dateMinKudaf = getDateMinKudaf();
     final Merger<GenericKey, Date> merger = dateMinKudaf.getMerger();
     final Date mergeResult1 = merger.apply(null, new Date(10), new Date(12));
     assertThat(mergeResult1, equalTo(new Date(10L)));
@@ -75,15 +75,15 @@ public class DateMinKudafTest {
     assertThat(mergeResult2, equalTo(new Date(-12L)));
     final Date mergeResult3 = merger.apply(null, new Date(-10), new Date(0));
     assertThat(mergeResult3, equalTo(new Date(-10)));
-
   }
 
-
-  private MinKudaf getDateMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MinKudaf<Date> getDateMinKudaf() {
+    final KsqlAggregateFunction<Date, Date, Date> aggregateFunction =
+        (KsqlAggregateFunction<Date, Date, Date>) new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DATE)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return  (MinKudaf<Date>) aggregateFunction;
   }
 }

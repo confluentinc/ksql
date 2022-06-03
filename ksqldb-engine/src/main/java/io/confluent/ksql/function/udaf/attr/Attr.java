@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -23,10 +23,13 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(
@@ -45,42 +48,43 @@ public final class Attr {
   }
 
   @UdafFactory(description = "Collect as a singleton")
-  public static <T> TableUdaf<T, Struct, T> createAttr() {
+  public static <T> TableUdaf<T, List<Struct>, T> createAttr() {
     return new Impl<T>();
   }
 
-  /**
-   * This class implements the logic for checking that we only ever see a valid value. Note
-   * that there is some complexity in this class to differentiate the case from a "valid null",
-   * which is the case for when the aggregate is initialized, from an "invalid null".
-   */
   @VisibleForTesting
-  static class Impl<T> implements TableUdaf<T, Struct, T> {
+  static class Impl<T> implements TableUdaf<T, List<Struct>, T> {
 
-    static final String INIT = "INIT";
-    static final String VALID = "VALID";
     static final String VALUE = "VALUE";
+    static final String COUNT = "COUNT";
 
     SqlType inType;
-    Schema schema;
+    Schema entrySchema;
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Override
     public void initializeTypeArguments(final List<SqlArgument> args) {
       this.inType = args.get(0).getSqlTypeOrThrow();
-      this.schema = SchemaConverters.sqlToConnectConverter()
-          .toConnectSchema(getAggregateSqlType().get());
+
+      // we use a list of structs instead of a map here for two reasons:
+      //
+      //   1. our data formats currently only support maps with string keys
+      //   2. null is a valid entry, and most maps don't support null keys
+      //
+      // this should be OK from a complexity perspective because ATTR expects
+      // a unique entry, so only the situations where it is used improperly will
+      // take a runtime hit
+      this.entrySchema = SchemaBuilder.struct()
+          .optional()
+          .field(VALUE, SchemaConverters.sqlToConnectConverter().toConnectSchema(inType))
+          .field(COUNT, Schema.OPTIONAL_INT32_SCHEMA)
+          .build();
     }
 
     @Override
     public Optional<SqlType> getAggregateSqlType() {
-      return Optional.of(
-          SqlTypes.struct()
-              .field(INIT, SqlTypes.BOOLEAN)
-              .field(VALID, SqlTypes.BOOLEAN)
-              .field(VALUE, inType)
-              .build()
-      );
+      return Optional.of(SqlTypes.array(
+          SchemaConverters.connectToSqlConverter().toSqlType(entrySchema)
+      ));
     }
 
     @Override
@@ -89,58 +93,62 @@ public final class Attr {
     }
 
     @Override
-    public Struct undo(final T valueToUndo, final Struct aggregateValue) {
-      return aggregateValue;
+    public List<Struct> initialize() {
+      return new ArrayList<>();
     }
 
     @Override
-    public Struct initialize() {
-      return new Struct(schema)
-          .put(INIT, false)
-          .put(VALID, true)
-          .put(VALUE, null);
+    public List<Struct> aggregate(final T current, final List<Struct> agg) {
+      final List<Struct> out = new ArrayList<>(agg);
+      aggregate(out, current, 1);
+      return out;
     }
 
     @Override
-    public Struct aggregate(final T current, final Struct aggregate) {
-      if (!aggregate.getBoolean(VALID)) {
-        return aggregate;
+    public List<Struct> merge(final List<Struct> one, final List<Struct> two) {
+      // use O(n^2) algorithm here because in practice each of these lists
+      // should have no more than one entry (otherwise it's an invalid Attr
+      // anyway)
+      final List<Struct> out = new ArrayList<>(one);
+      for (final Struct entry : two) {
+        aggregate(out, entry.get(VALUE), entry.getInt32(COUNT));
       }
-
-      if (!aggregate.getBoolean(INIT)) {
-        return aggregate
-            .put(INIT, true)
-            .put(VALID, true)
-            .put(VALUE, current);
-      }
-
-      final Object old = aggregate.get(VALUE);
-      return Objects.equals(old, current)
-          ? aggregate
-          : aggregate.put(VALID, false);
-
+      return out;
     }
 
     @Override
-    public Struct merge(final Struct aggOne, final Struct aggTwo) {
-      if (aggOne.getBoolean(INIT) && !aggTwo.getBoolean(INIT)) {
-        return aggOne;
-      } else if (!aggOne.getBoolean(INIT) && aggTwo.getBoolean(INIT)) {
-        return aggTwo;
-      } else if (!aggOne.getBoolean(VALID)) {
-        return aggOne;
-      } else if (!aggTwo.getBoolean(VALID)) {
-        return aggTwo;
-      }
-
-      return aggOne.equals(aggTwo) ? aggOne : aggOne.put(INIT, false);
-
+    public List<Struct> undo(final T valueToUndo, final List<Struct> agg) {
+      final List<Struct> out = new ArrayList<>(agg);
+      aggregate(out, valueToUndo, -1);
+      return out;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public T map(final Struct agg) {
-      return agg.getBoolean(VALID) ? (T) agg.get(VALUE) : null;
+    public T map(final List<Struct> agg) {
+      final List<Struct> collect = agg.stream()
+          .filter(s -> s.getInt32(COUNT) > 0)
+          .collect(Collectors.toList());
+
+      if (collect.size() != 1) {
+        return null;
+      }
+
+      return (T) collect.get(0).get(VALUE);
+    }
+
+    private void aggregate(final List<Struct> agg, final Object current, final int count) {
+      boolean found = false;
+      for (final Struct entry : agg) {
+        if (Objects.equals(entry.get(VALUE), current)) {
+          found = true;
+          entry.put(COUNT, Math.max(0, entry.getInt32(COUNT) + count));
+        }
+      }
+
+      if (!found && count > 0) {
+        agg.add(new Struct(entrySchema).put(VALUE, current).put(COUNT, count));
+      }
     }
   }
 }

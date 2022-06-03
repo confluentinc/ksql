@@ -10,13 +10,22 @@ keywords: ksqldb, configure, server, setup, install
 
 These configuration parameters control the general behavior of ksqlDB server.
 Many parameters can only be set once for the entire server, and must be
-specified using the `ksql-server.properties` file.
+specified using the `ksql-server.properties` file (for on-prem / standalone).
+In this case, configurations are applied when the cluster starts.
+
+A subset of these configuration parameters can be applied on a running cluster,
+either for individual queries (using the SET command or the Confluent Cloud
+Console) or for the entire cluster (using the ALTER SYSTEM command or the
+Confluent Cloud Console). When this is the case for a parameter, it is called
+out in the parameter description's **Per query** block. Currently, you can edit
+parameters in this subset only in {{ site.ccloud }}.
 
 You can assign the value of some parameters on a per-persistent query basis
 by using the `SET` statement. This is indicated in the following parameter
 sections with the **Per query** block. For ksqlDB in {{ site.ccloud }}, some 
-parameters can be set only by using the ALTER SYSTEM statement, and this is
-indicated in the corresponding **Per query** block.
+parameters can be set only by using the ALTER SYSTEM statement are applied to
+all queries running on the current cluster, as indicated in the corresponding
+**Per query** block.
 
 Retrieve the current list of configuration settings by using the
 [SHOW PROPERTIES](/developer-guide/ksqldb-reference/show-properties/) command.
@@ -632,7 +641,7 @@ The maximum number of records to buffer per partition. The default is `1000`.
 
 ## `ksql.streams.commit.interval.ms`
 
-**Per query:** no
+**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
 
 The frequency to save the position of the processor. The default value
 in ksqlDB is `2000`. Here is an example to change the value to `5000` by
@@ -681,7 +690,7 @@ For more information, see
 
 ## `ksql.streams.num.standby.replicas`
 
-**Per query:** no
+**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
 
 The number of standby replicas. Standby replicas are shadow copies of tables. ksqlDB, through
 {{ site.kstreams }}, attempts to create the specified number of replicas and keep them up to date
@@ -701,7 +710,7 @@ information about the {{ site.kstreams }} threading model, see
 
 ## `ksql.streams.processing.guarantee`
 
-**Per query:** no
+**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
 
 The processing semantics to use for persistent queries. The default is 
 `at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
@@ -710,7 +719,7 @@ For more information, see [Processing Guarantees](/operate-and-deploy/exactly-on
 
 ## `ksql.streams.producer.compression.type`
 
-**Per query:** no
+**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
 
 The type of compression used by streams producers for topics created by INSERT INTO, 
 CREATE TABLE AS SELECT, and CREATE STREAM AS SELECT statements. The default is `snappy`.
@@ -767,7 +776,7 @@ associated with starting each new query. For more information, see
 
 ## `ksql.query.pull.enable.standby.reads`
 
-**Per query:** no (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** yes
 
 Config to enable/disable forwarding pull queries to standby hosts when the active is dead. This means that stale values may be returned 
 for these queries since standby hosts receive updates from the changelog topic (to which the active writes to) asynchronously.
@@ -782,7 +791,7 @@ without wastefully attempting to open connections to it (which can be slow & res
 
 ## `ksql.query.pull.max.allowed.offset.lag`
 
-**Per query:** yes (for {{ site.ccloud }}, settable with ALTER SYSTEM only)
+**Per query:** yes
 
 Config to control the maximum lag tolerated by a pull query against a table, expressed as the number of messages a given table-partition is behind, compared to the 
 changelog topic. This is applied to all servers, both active and standbys included. This can be overridden per query, from the CLI (using `SET` command) or 

@@ -100,7 +100,7 @@ public final class Attr {
     @Override
     public List<Struct> aggregate(final T current, final List<Struct> agg) {
       final List<Struct> out = new ArrayList<>(agg);
-      aggregate(out, current, 1);
+      update(out, current, 1);
       return out;
     }
 
@@ -111,7 +111,7 @@ public final class Attr {
       // anyway)
       final List<Struct> out = new ArrayList<>(one);
       for (final Struct entry : two) {
-        aggregate(out, entry.get(VALUE), entry.getInt32(COUNT));
+        update(out, entry.get(VALUE), entry.getInt32(COUNT));
       }
       return out;
     }
@@ -119,7 +119,7 @@ public final class Attr {
     @Override
     public List<Struct> undo(final T valueToUndo, final List<Struct> agg) {
       final List<Struct> out = new ArrayList<>(agg);
-      aggregate(out, valueToUndo, -1);
+      update(out, valueToUndo, -1);
       return out;
     }
 
@@ -137,7 +137,7 @@ public final class Attr {
       return (T) collect.get(0).get(VALUE);
     }
 
-    private void aggregate(final List<Struct> agg, final Object current, final int count) {
+    private void update(final List<Struct> agg, final Object current, final int count) {
       boolean found = false;
       for (final Struct entry : agg) {
         if (Objects.equals(entry.get(VALUE), current)) {

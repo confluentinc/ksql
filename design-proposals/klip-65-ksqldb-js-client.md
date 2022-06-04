@@ -1,4 +1,4 @@
-# KLIP 64 - ksqlDB JavaScript Client
+# KLIP 65 - ksqlDB JavaScript Client
 
 **Author**: Javan Ang (@javanang) | Gerry Bong (@ggbong734) | Jonathan Luu @(jonathanluu17) | Michael Snyder (@MichaelCSnyder) | Matthew Xing (@aengil)
 **Release Target**: August 2022|

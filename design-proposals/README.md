@@ -104,3 +104,4 @@ Next KLIP number: **64**
 | [KLIP-61: Bootstrapped TABLE subscriptions](klip-61-bootstrapped-table-subscriptions.md)                                                     | Proposal |                   |            |  | 
 | [KLIP-62: ksqlDB Ruby Client](klip-62-ksqldb-ruby-client.md)                                                     | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/8865) | 
 | [KLIP-63: PAUSE and RESUME for persistent queries](klip-63-pause-resume-persistent-queries.md)                                                     | Proposal |                   |            | 	| 
+| [KLIP-66: Multiple parameter UDAFs](klip-66-multi-param-udafs.md)                                                     | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/9173)| 

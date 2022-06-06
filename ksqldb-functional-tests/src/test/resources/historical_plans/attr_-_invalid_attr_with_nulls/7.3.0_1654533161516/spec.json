@@ -1,6 +1,6 @@
 {
   "version" : "7.3.0",
-  "timestamp" : 1654223891649,
+  "timestamp" : 1654533161516,
   "path" : "query-validation-tests/attr.json",
   "schemas" : {
     "CTAS_OUT_0.Aggregate.Project" : {
@@ -31,7 +31,7 @@
       }
     },
     "CTAS_OUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`K` INTEGER KEY, `K` INTEGER, `S` STRING, `KSQL_AGG_VARIABLE_0` STRUCT<`INIT` BOOLEAN, `VALID` BOOLEAN, `VALUE` STRING>",
+      "schema" : "`K` INTEGER KEY, `K` INTEGER, `S` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`VALUE` STRING, `COUNT` INTEGER>>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -50,8 +50,14 @@
     }
   },
   "testCase" : {
-    "name" : "invalid attr with nulls as first entry",
+    "name" : "invalid attr with nulls",
     "inputs" : [ {
+      "topic" : "in",
+      "key" : 1,
+      "value" : {
+        "s" : "1"
+      }
+    }, {
       "topic" : "in",
       "key" : 1,
       "value" : {
@@ -61,20 +67,14 @@
       "topic" : "in",
       "key" : 1,
       "value" : {
-        "s" : "2"
-      }
-    }, {
-      "topic" : "in",
-      "key" : 1,
-      "value" : {
-        "s" : "2"
+        "s" : "1"
       }
     } ],
     "outputs" : [ {
       "topic" : "OUT",
       "key" : 1,
       "value" : {
-        "S" : null
+        "S" : "1"
       }
     }, {
       "topic" : "OUT",

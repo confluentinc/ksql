@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (K INTEGER KEY, S STRING) WITH (KAFKA_TOPIC='in', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM INPUT (K INTEGER KEY, LI ARRAY<INTEGER>, S STRUCT<A STRING, B INTEGER>) WITH (KAFKA_TOPIC='in', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
-      "schema" : "`K` INTEGER KEY, `S` STRING",
+      "schema" : "`K` INTEGER KEY, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
       "timestampColumn" : null,
       "topicName" : "in",
       "formats" : {
@@ -25,11 +25,11 @@
     "queryPlan" : null
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE OUT AS SELECT\n  INPUT.K K,\n  ATTR(INPUT.S) S\nFROM INPUT INPUT\nGROUP BY INPUT.K\nEMIT CHANGES",
+    "statementText" : "CREATE TABLE OUT AS SELECT\n  INPUT.K K,\n  ATTR(INPUT.LI) LI,\n  ATTR(INPUT.S) S\nFROM INPUT INPUT\nGROUP BY INPUT.K\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createTableV1",
       "sourceName" : "OUT",
-      "schema" : "`K` INTEGER KEY, `S` STRING",
+      "schema" : "`K` INTEGER KEY, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
       "timestampColumn" : null,
       "topicName" : "OUT",
       "formats" : {
@@ -91,12 +91,12 @@
                     }
                   },
                   "timestampColumn" : null,
-                  "sourceSchema" : "`K` INTEGER KEY, `S` STRING",
+                  "sourceSchema" : "`K` INTEGER KEY, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
                   "pseudoColumnVersion" : 1
                 },
                 "keyColumnNames" : [ "K" ],
                 "selectedKeys" : null,
-                "selectExpressions" : [ "K AS K", "S AS S" ]
+                "selectExpressions" : [ "K AS K", "LI AS LI", "S AS S" ]
               },
               "internalFormats" : {
                 "keyFormat" : {
@@ -119,11 +119,11 @@
                 "properties" : { }
               }
             },
-            "nonAggregateColumns" : [ "K", "S" ],
-            "aggregationFunctions" : [ "ATTR(S)" ]
+            "nonAggregateColumns" : [ "K", "LI", "S" ],
+            "aggregationFunctions" : [ "ATTR(LI)", "ATTR(S)" ]
           },
           "keyColumnNames" : [ "K" ],
-          "selectExpressions" : [ "KSQL_AGG_VARIABLE_0 AS S" ],
+          "selectExpressions" : [ "KSQL_AGG_VARIABLE_0 AS LI", "KSQL_AGG_VARIABLE_1 AS S" ],
           "internalFormats" : {
             "keyFormat" : {
               "format" : "KAFKA",
@@ -187,6 +187,7 @@
     "ksql.properties.overrides.denylist" : "",
     "ksql.service.id" : "some.ksql.service.id",
     "ksql.query.push.v2.max.catchup.consumers" : "5",
+    "ksql.assert.topic.default.timeout.ms" : "1000",
     "ksql.query.push.v2.enabled" : "false",
     "ksql.transient.query.cleanup.service.enable" : "true",
     "ksql.query.push.v2.metrics.enabled" : "true",
@@ -236,6 +237,7 @@
     "ksql.query.push.v2.latest.reset.age.ms" : "30000",
     "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
     "ksql.query.pull.interpreter.enabled" : "true",
+    "ksql.assert.schema.default.timeout.ms" : "1000",
     "ksql.query.pull.limit.clause.enabled" : "true",
     "ksql.query.pull.router.thread.pool.size" : "50",
     "ksql.query.push.v2.continuation.tokens.enabled" : "false",

@@ -1,10 +1,10 @@
 {
   "version" : "7.3.0",
-  "timestamp" : 1654223887685,
+  "timestamp" : 1654533159072,
   "path" : "query-validation-tests/attr.json",
   "schemas" : {
     "CTAS_OUT_0.Aggregate.Project" : {
-      "schema" : "`K` INTEGER KEY, `S` STRING, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `BO` BOOLEAN",
+      "schema" : "`K` INTEGER KEY, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -13,7 +13,7 @@
       }
     },
     "CTAS_OUT_0.OUT" : {
-      "schema" : "`K` INTEGER KEY, `S` STRING, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `BO` BOOLEAN",
+      "schema" : "`K` INTEGER KEY, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -22,7 +22,7 @@
       }
     },
     "CTAS_OUT_0.Aggregate.GroupBy" : {
-      "schema" : "`K` INTEGER KEY, `K` INTEGER, `S` STRING, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `BO` BOOLEAN",
+      "schema" : "`K` INTEGER KEY, `K` INTEGER, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -31,7 +31,7 @@
       }
     },
     "CTAS_OUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`K` INTEGER KEY, `K` INTEGER, `S` STRING, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `BO` BOOLEAN, `KSQL_AGG_VARIABLE_0` STRUCT<`INIT` BOOLEAN, `VALID` BOOLEAN, `VALUE` STRING>, `KSQL_AGG_VARIABLE_1` STRUCT<`INIT` BOOLEAN, `VALID` BOOLEAN, `VALUE` INTEGER>, `KSQL_AGG_VARIABLE_2` STRUCT<`INIT` BOOLEAN, `VALID` BOOLEAN, `VALUE` BIGINT>, `KSQL_AGG_VARIABLE_3` STRUCT<`INIT` BOOLEAN, `VALID` BOOLEAN, `VALUE` DOUBLE>, `KSQL_AGG_VARIABLE_4` STRUCT<`INIT` BOOLEAN, `VALID` BOOLEAN, `VALUE` BOOLEAN>",
+      "schema" : "`K` INTEGER KEY, `K` INTEGER, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`VALUE` ARRAY<INTEGER>, `COUNT` INTEGER>>, `KSQL_AGG_VARIABLE_1` ARRAY<STRUCT<`VALUE` STRUCT<`A` STRING, `B` INTEGER>, `COUNT` INTEGER>>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -40,7 +40,7 @@
       }
     },
     "CTAS_OUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` INTEGER KEY, `S` STRING, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `BO` BOOLEAN",
+      "schema" : "`K` INTEGER KEY, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -50,67 +50,67 @@
     }
   },
   "testCase" : {
-    "name" : "valid attr with various scalar fields",
+    "name" : "valid attr with various non-scalar fields",
     "inputs" : [ {
       "topic" : "in",
       "key" : 1,
       "value" : {
-        "s" : "s",
-        "i" : 1,
-        "bi" : 1,
-        "d" : 1.0,
-        "bo" : true
+        "s" : {
+          "A" : "a",
+          "B" : 1
+        },
+        "li" : [ 1, 2, 3 ]
       }
     }, {
       "topic" : "in",
       "key" : 1,
       "value" : {
-        "s" : "s",
-        "i" : 1,
-        "bi" : 1,
-        "d" : 1.0,
-        "bo" : true
+        "s" : {
+          "A" : "a",
+          "B" : 1
+        },
+        "li" : [ 1, 2, 3 ]
       }
     }, {
       "topic" : "in",
       "key" : 1,
       "value" : {
-        "s" : "s",
-        "i" : 1,
-        "bi" : 1,
-        "d" : 1.0,
-        "bo" : true
+        "s" : {
+          "A" : "a",
+          "B" : 1
+        },
+        "li" : [ 1, 2, 3 ]
       }
     } ],
     "outputs" : [ {
       "topic" : "OUT",
       "key" : 1,
       "value" : {
-        "S" : "s",
-        "I" : 1,
-        "BI" : 1,
-        "D" : 1.0,
-        "BO" : true
+        "S" : {
+          "A" : "a",
+          "B" : 1
+        },
+        "LI" : [ 1, 2, 3 ]
       }
     }, {
       "topic" : "OUT",
       "key" : 1,
       "value" : {
-        "S" : "s",
-        "I" : 1,
-        "BI" : 1,
-        "D" : 1.0,
-        "BO" : true
+        "S" : {
+          "A" : "a",
+          "B" : 1
+        },
+        "LI" : [ 1, 2, 3 ]
       }
     }, {
       "topic" : "OUT",
       "key" : 1,
       "value" : {
-        "S" : "s",
-        "I" : 1,
-        "BI" : 1,
-        "D" : 1.0,
-        "BO" : true
+        "S" : {
+          "A" : "a",
+          "B" : 1
+        },
+        "LI" : [ 1, 2, 3 ]
       }
     } ],
     "topics" : [ {
@@ -122,12 +122,12 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM input (k INT KEY, s STRING, i INT, bi BIGINT, d DOUBLE, bo BOOLEAN) WITH (kafka_topic='in', value_format='JSON');", "CREATE TABLE out AS SELECT k, ATTR(s) AS s, ATTR(i) AS i, ATTR(bi) AS bi, ATTR(d) AS d, ATTR(bo) AS bo FROM input GROUP BY k;" ],
+    "statements" : [ "CREATE STREAM input (k INT KEY, li ARRAY<INT>, s STRUCT<A STRING, B INT>) WITH (kafka_topic='in', value_format='JSON');", "CREATE TABLE out AS SELECT k, ATTR(li) AS li, ATTR(s) AS s FROM input GROUP BY k;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`K` INTEGER KEY, `S` STRING, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `BO` BOOLEAN",
+        "schema" : "`K` INTEGER KEY, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -138,7 +138,7 @@
       }, {
         "name" : "OUT",
         "type" : "TABLE",
-        "schema" : "`K` INTEGER KEY, `S` STRING, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `BO` BOOLEAN",
+        "schema" : "`K` INTEGER KEY, `LI` ARRAY<INTEGER>, `S` STRUCT<`A` STRING, `B` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

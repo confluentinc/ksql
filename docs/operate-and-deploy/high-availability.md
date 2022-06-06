@@ -4,7 +4,7 @@ When you run pull queries, it’s often the case that you need your data to rema
 
 High availability is turned off by default, but you can enable it with the following server configuration parameters. These parameters must be turned on for all nodes in your ksqlDB cluster.
 
-1. Set [`ksql.streams.num.standby.replicas`](/reference/server-configuration/#ksqlstreamsnumstandbyreplicas) to a value greater than `1`.
+1. Set [`ksql.streams.num.standby.replicas`](/reference/server-configuration/#ksqlstreamsnumstandbyreplicas) to a value greater than `0`.
 1. Set [`ksql.query.pull.enable.standby.reads`](/reference/server-configuration/#ksqlquerypullenablestandbyreads) to `true`.
 1. Set [`ksql.heartbeat.enable`](/reference/server-configuration/#ksqlheartbeatenable) to `true`.
 1. Set [`ksql.lag.reporting.enable`](/reference/server-configuration/#ksqllagreportingenable) to `true`.

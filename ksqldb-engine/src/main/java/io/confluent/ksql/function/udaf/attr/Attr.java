@@ -143,6 +143,7 @@ public final class Attr {
         if (Objects.equals(entry.get(VALUE), current)) {
           found = true;
           entry.put(COUNT, Math.max(0, entry.getInt32(COUNT) + count));
+          break;
         }
       }
 

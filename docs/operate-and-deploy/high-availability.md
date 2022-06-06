@@ -1,6 +1,6 @@
 # High availability
 
-When you run pull queries, it’s often the case that you need your data to remain available for querying even if the server fails. Because ksqlDB supports clustering, it can remain highly available to support pull queries on replicas of your data, even in the face of partial cluster failure.
+When you run pull queries, it’s often the case that you need your data to remain available for querying even if one server fails. Because ksqlDB supports clustering, it can remain highly available to support pull queries on replicas of your data, even in the face of partial cluster failures.
 
 High availability is turned off by default, but you can enable it with the following server configuration parameters. These parameters must be turned on for all nodes in your ksqlDB cluster.
 

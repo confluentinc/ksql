@@ -611,12 +611,19 @@ For more information, see
 
 ## `ksql.streams.num.standby.replicas`
 
-The number of standby replicas. Standby replicas are shadow copies of tables. ksqlDB, through
-{{ site.kstreams }}, attempts to create the specified number of replicas and keep them up to date
-as long as there are enough instances running. Standby replicas are used to minimize the latency of
-failover. A table that was previously hosted on a failed instance is preferred to restart on an
-instance that has standby replicas so that the local state store restoration process from its
-changelog can be minimized.
+Sets the number of hot-standby replicas of internal state to maintain. If a
+server fails and a standby replica is present, the standby will be able to take
+over active processing immediately for any of the failed server's tasks.
+
+Additionally, if [High Availability](/operate-and-deploy/high-availability)
+is enabled, and a server is offline, pull queries for its tasks can fail over
+to the standby replicas.
+
+Configuring standbys enables you to minimize the recovery time for both stream
+processing and pull queries in the event of a failure. Regardless of the
+configuration value, ksqlDB can provision only one replica on each server,
+so you need at least two servers in the cluster to provision an active replica
+and a standby replica, for example.
 
 ## `ksql.streams.num.stream.threads`
 

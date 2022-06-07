@@ -95,8 +95,6 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
         return Serdes.serdeFrom(
             new TestByteBufferSerializer(Serdes.ByteBuffer().serializer()),
             new TestByteBufferDeserializer(Serdes.ByteBuffer().deserializer())
-//            Serdes.ByteBuffer().serializer(),
-//            Serdes.ByteBuffer().deserializer()
         );
       default:
         throw new IllegalStateException("Unsupported type for KAFKA format");
@@ -198,9 +196,9 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   /**
    * Serializer that handles coercion to {@link Double}.
    *
-   * <p>The QTT tests are written in JSON. When the input values are read from the JSON file
-   * numbers can be deserialized as an {@link Integer}, {@link Long}, or {@link BigDecimal}. The
-   * value needs converting to the correct type before serializing.
+   * <p>The QTT tests are written in JSON. When the input values are read from the JSON file, we
+   * need to convert from base64 strings to bytebuffers since JSON can't inherently represent byte
+   * arrays
    */
   private static class TestByteBufferSerializer implements Serializer<Object> {
 
@@ -321,7 +319,7 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
 
   /***
    * <p>The QTT tests are written in JSON, so we have to write a custom deserializer to convert
-   * base64 strings to bytebuffers. This is because our tests are written as JSON files,
+   * bytebuffers to base64 strings. This is because our tests are written as JSON files,
    * which can't inherently represent byte arrays
    */
   private static class TestByteBufferDeserializer implements Deserializer<Object> {

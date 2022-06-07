@@ -194,9 +194,7 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   }
 
   /**
-   * Serializer that handles coercion to {@link Double}.
-   *
-   * <p>The QTT tests are written in JSON. When the input values are read from the JSON file, we
+   * The QTT tests are written in JSON. When the input values are read from the JSON file, we
    * need to convert from base64 strings to bytebuffers since JSON can't inherently represent byte
    * arrays
    */
@@ -317,8 +315,8 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
     }
   }
 
-  /***
-   * <p>The QTT tests are written in JSON, so we have to write a custom deserializer to convert
+  /**
+   * The QTT tests are written in JSON, so we have to write a custom deserializer to convert
    * bytebuffers to base64 strings. This is because our tests are written as JSON files,
    * which can't inherently represent byte arrays
    */

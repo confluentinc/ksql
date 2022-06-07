@@ -24,9 +24,12 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -88,6 +91,13 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
         );
       case STRING:
         return Serdes.String();
+      case BYTES:
+        return Serdes.serdeFrom(
+            new TestByteBufferSerializer(Serdes.ByteBuffer().serializer()),
+            new TestByteBufferDeserializer(Serdes.ByteBuffer().deserializer())
+//            Serdes.ByteBuffer().serializer(),
+//            Serdes.ByteBuffer().deserializer()
+        );
       default:
         throw new IllegalStateException("Unsupported type for KAFKA format");
     }
@@ -186,6 +196,53 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   }
 
   /**
+   * Serializer that handles coercion to {@link Double}.
+   *
+   * <p>The QTT tests are written in JSON. When the input values are read from the JSON file
+   * numbers can be deserialized as an {@link Integer}, {@link Long}, or {@link BigDecimal}. The
+   * value needs converting to the correct type before serializing.
+   */
+  private static class TestByteBufferSerializer implements Serializer<Object> {
+
+    private final Serializer<ByteBuffer> inner;
+
+
+    TestByteBufferSerializer(
+        final Serializer<ByteBuffer> inner
+    ) {
+      this.inner = requireNonNull(inner, "inner");
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs, final boolean isKey) {
+      inner.configure(configs, isKey);
+    }
+
+    @Override
+    public byte[] serialize(final String topicName, final Object value) {
+      final ByteBuffer coerced = coerce(value);
+      return inner.serialize(topicName, coerced);
+    }
+
+    @Override
+    public void close() {
+      inner.close();
+    }
+
+    private ByteBuffer coerce(final Object value) {
+      if (value == null) {
+        return null;
+      }
+
+      if (value instanceof String) {
+        return ByteBuffer.wrap(((String) value).getBytes(StandardCharsets.UTF_8));
+      }
+
+      throw new TestFrameworkException("Can't serialize " + value + " as BYTEBUFFER");
+    }
+  }
+
+  /**
    * Deserializer that handles coercion from {@link Long} to {@link Integer}.
    *
    * <p>The QTT tests are written in JSON. When the expected values are read from the JSON file
@@ -254,6 +311,45 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
       }
 
       return BigDecimal.valueOf(deserialized);
+    }
+
+    @Override
+    public void close() {
+      inner.close();
+    }
+  }
+
+  /***
+   * <p>The QTT tests are written in JSON, so we have to write a custom deserializer to convert
+   * base64 strings to bytebuffers. This is because our tests are written as JSON files,
+   * which can't inherently represent byte arrays
+   */
+  private static class TestByteBufferDeserializer implements Deserializer<Object> {
+
+    private final Deserializer<ByteBuffer> inner;
+
+    TestByteBufferDeserializer(final Deserializer<ByteBuffer> inner) {
+      this.inner = requireNonNull(inner, "inner");
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs, final boolean isKey) {
+      inner.configure(configs, isKey);
+    }
+
+    @Override
+    public String deserialize(final String topicName, final byte[] bytes) {
+      final ByteBuffer deserialized = inner.deserialize(topicName, bytes);
+      if (deserialized == null) {
+        return null;
+      }
+
+      return new String(deserialized.array());
+    }
+
+    @Override
+    public Object deserialize(String topic, Headers headers, byte[] data) {
+      return Deserializer.super.deserialize(topic, headers, data);
     }
 
     @Override

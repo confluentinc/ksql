@@ -344,7 +344,7 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
     }
 
     @Override
-    public Object deserialize(String topic, Headers headers, byte[] data) {
+    public Object deserialize(final String topic, final Headers headers, final byte[] data) {
       return Deserializer.super.deserialize(topic, headers, data);
     }
 

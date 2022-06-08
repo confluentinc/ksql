@@ -45,6 +45,16 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
     <Match>
         <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS"/>
     </Match>
+    <!-- false positive in Java 11, see https://github.com/spotbugs/spotbugs/issues/2040 -->
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
+    </Match>
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
+    </Match>
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_THROWABLE"/>
+    </Match>
 
     <!--
       DO NOT USE THIS EXCLUSION FILE FOR NON-GENERATED CODE

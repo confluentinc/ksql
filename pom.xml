@@ -157,6 +157,11 @@
         <jersey-common>2.34</jersey-common>
 
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
+
+        <!-- A newer mockito 4.5.1 added on https://github.com/confluentinc/common/pull/460
+             caused issues with some unit tests. This version 4.3.1 is temporary until we
+             figured out what's wrong with 4.5.1 or newer -->
+        <mockito.version>4.3.1</mockito.version>
     </properties>
 
     <dependencyManagement>

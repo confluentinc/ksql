@@ -340,7 +340,7 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
         return null;
       }
 
-      return new String(deserialized.array());
+      return new String(deserialized.array(), StandardCharsets.UTF_8);
     }
 
     @Override

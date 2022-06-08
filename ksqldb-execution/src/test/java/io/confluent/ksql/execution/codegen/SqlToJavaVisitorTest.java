@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.codegen.CodeGenTestUtil.Evaluator;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -64,6 +65,7 @@ import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
@@ -627,6 +629,20 @@ public class SqlToJavaVisitorTest {
         "COL8", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
     assertThat(java, containsString(doubleCast));
   }
+
+    @Test
+    public void shouldGenerateCastExpressionsWhichAreComparable() {
+        // Given:
+        final Expression cast = new Cast(new StringLiteral("2020-01-01"), new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DATE));
+        final ComparisonExpression exp = new ComparisonExpression(Type.GREATER_THAN_OR_EQUAL, cast, cast);
+
+        // When:
+        final String java = sqlToJavaVisitor.process(exp);
+
+        // Then:
+        final Evaluator evaluator = CodeGenTestUtil.cookCode(java, Boolean.class);
+        evaluator.evaluate(Collections.emptyList());
+    }
 
   @Test
   public void shouldGenerateCorrectCodeForDecimalSubtract() {
@@ -1298,24 +1314,24 @@ public class SqlToJavaVisitorTest {
     // Then
     assertThat(
         javaExpression, equalTo(
-            "(((Double) nested_0.evaluate(COL4, (Double)NullSafe.apply(0,new Function() {\n"
+            "(((Double) nested_0.evaluate(COL4, ((Double)NullSafe.apply(0,new Function() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1) {\n"
                 + "   final Integer val = (Integer) arg1;\n"
                 + "   return val.doubleValue();\n"
                 + " }\n"
-                + "}), new BiFunction() {\n"
+                + "})), new BiFunction() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1, Object arg2) {\n"
                 + "   final Double A = (Double) arg1;\n"
                 + "   final Integer B = (Integer) arg2;\n"
-                + "   return (((Double) nested_1.evaluate(COL4, (Double)NullSafe.apply(0,new Function() {\n"
+                + "   return (((Double) nested_1.evaluate(COL4, ((Double)NullSafe.apply(0,new Function() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1) {\n"
                 + "   final Integer val = (Integer) arg1;\n"
                 + "   return val.doubleValue();\n"
                 + " }\n"
-                + "}), new BiFunction() {\n"
+                + "})), new BiFunction() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1, Object arg2) {\n"
                 + "   final Double Q = (Double) arg1;\n"

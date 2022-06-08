@@ -75,8 +75,8 @@ public final class NullSafe {
       final String mapperCode,
       final Class<?> returnType
   ) {
-    return "(" + returnType.getSimpleName() + ")" + NullSafe.class.getSimpleName()
-        + ".apply(" + inputCode + "," + mapperCode + ")";
+    return "((" + returnType.getSimpleName() + ")" + NullSafe.class.getSimpleName()
+        + ".apply(" + inputCode + "," + mapperCode + "))";
   }
 
   /**

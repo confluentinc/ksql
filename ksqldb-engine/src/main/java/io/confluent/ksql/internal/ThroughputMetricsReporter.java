@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.kafka.common.utils.Utils.mkSet;
 
 public class ThroughputMetricsReporter implements MetricsReporter {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ThroughputMetricsReporter.class);
     private static final String RECORDS_CONSUMED = "records-consumed";
     private static final String BYTES_CONSUMED = "bytes-consumed";
@@ -73,27 +74,26 @@ public class ThroughputMetricsReporter implements MetricsReporter {
 
     @Override
     public void metricChange(final KafkaMetric metric) {
-        if (!metric.metricName().group().equals(StreamsMetricsImpl.TOPIC_LEVEL_GROUP)) {
+        if (!THROUGHPUT_METRIC_NAMES.contains(metric.metricName().name())) {
             return;
         }
         addMetric(
             metric,
             getQueryId(metric),
-            getTopicName(metric)
+            getTopic(metric)
         );
     }
 
     @Override
     public void metricRemoval(final KafkaMetric metric) {
-        final MetricName metricName = metric.metricName();
-        if (!THROUGHPUT_METRIC_NAMES.contains(metricName.name())) {
+        if (!THROUGHPUT_METRIC_NAMES.contains(metric.metricName().name())) {
             return;
         }
 
         removeMetric(
             metric,
             getQueryId(metric),
-            getTopicName(metric)
+            getTopic(metric)
         );
     }
 
@@ -124,56 +124,66 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     private synchronized void addMetric(
         final KafkaMetric metric,
         final String queryId,
-        final String topicName
-        ) {
-        final MetricName metricName = metric.metricName();
-        final Map<String, String> queryMetricTags = getQueryMetricTags(queryId, metric.metricName().tags());
-        final Map<String, String> topicMetricTags = getTopicMetricTags(queryMetricTags, topicName);
+        final String topic
+    ) {
+        final MetricName metricName = getMetricNameWithQueryIdTag(queryId, metric.metricName());
+        final Map<String, String> queryTopicThroughputMetricTags =
+            getQueryMetricTags(queryId, metric.metricName().tags());
 
-        LOGGER.debug("Adding {} metric for query={} and topic={}", metricName.name(), queryId, topicName);
+        LOGGER.debug("Adding {} metric for query={} and topic={}", metricName.name(), queryId, topic);
 
         if (!registeredMetrics.containsKey(queryId)) {
             registeredMetrics.put(queryId, new HashMap<>());
         }
-        if (!registeredMetrics.get(queryId).containsKey(topicName)) {
-            registeredMetrics.get(queryId).put(topicName, new HashMap<>());
+        if (!registeredMetrics.get(queryId).containsKey(topic)) {
+            registeredMetrics.get(queryId).put(topic, new HashMap<>());
         }
 
-        if (registeredMetrics.get(queryId).get(topicName).containsKey(metricName)) {
-            LOGGER.error("The {} metric has already been added for query={} and topic={}",
-                         metricName.name(), queryId, topicName);
+        final ThroughputTotalMetric newMetric;
+        if (registeredMetrics.get(queryId).get(topic).containsKey(metricName)) {
+            newMetric = registeredMetrics.get(queryId).get(topic).get(metricName);
+            newMetric.add(metricName, metric);
+        } else {
+            newMetric = registeredMetrics.get(queryId).get(topic).get(metricName);
+            new ThroughputTotalMetric(
+                metricRegistry.metricName(
+                    metricName.name(),
+                    StreamsMetricsImpl.TOPIC_LEVEL_GROUP,
+                    queryTopicThroughputMetricTags),
+                metric);
         }
-
-        final ThroughputTotalMetric newMetric = new ThroughputTotalMetric(
-            metricRegistry.metricName(
-                metricName.name(),
-                StreamsMetricsImpl.TOPIC_LEVEL_GROUP,
-                topicMetricTags),
-            metric);
-        registeredMetrics.get(queryId).get(topicName).put(metricName, newMetric);
+        
+        registeredMetrics.get(queryId).get(topic).put(metricName, newMetric);
 
         metricRegistry.addMetric(
-            new MetricName(
-                metricName.name(),
-                StreamsMetricsImpl.TOPIC_LEVEL_GROUP,
-                metricName.description(),
-                queryMetricTags),
-            (config, now) -> registeredMetrics.get(queryId).get(topicName).get(metricName).getValue()
+            metricName,
+            (config, now) -> registeredMetrics.get(queryId).get(topic).get(metricName).getValue()
         );
     }
 
     private synchronized void removeMetric(
         final KafkaMetric metric,
         final String queryId,
-        final String topicName
+        final String topic
     ) {
-        if (registeredMetrics.containsKey(queryId)) {
-            if (!registeredMetrics.get(queryId).containsKey(topicName)) {
-                metricRegistry.removeMetric(metric.metricName());
-                registeredMetrics.get(queryId).get(topicName).remove(metric.metricName());
+        final MetricName queryMetricName = getMetricNameWithQueryIdTag(queryId, metric.metricName());
+        if (registeredMetrics.containsKey(queryId) &&
+            registeredMetrics.get(queryId).containsKey(topic) &&
+            registeredMetrics.get(queryId).get(topic).containsKey(queryMetricName)) {
 
-                if (registeredMetrics.get(queryId).get(topicName).size() == 0) {
+            final ThroughputTotalMetric throughputTotalMetric =
+                registeredMetrics.get(queryId).get(topic).get(queryMetricName);
 
+            metricRegistry.removeMetric(queryMetricName);
+            throughputTotalMetric.remove(queryMetricName);
+
+            if (throughputTotalMetric.metrics.isEmpty()) {
+                registeredMetrics.get(queryId).get(topic).remove(queryMetricName);
+                if (registeredMetrics.get(queryId).get(topic).isEmpty()) {
+                    registeredMetrics.get(queryId).remove(topic);
+                    if (registeredMetrics.get(queryId).isEmpty()) {
+                        registeredMetrics.remove(queryId);
+                    }
                 }
             }
         }
@@ -181,14 +191,13 @@ public class ThroughputMetricsReporter implements MetricsReporter {
 
     private MetricName getMetricNameWithQueryIdTag(
         final String queryId,
-        final String topicName,
         final MetricName metricName
     ) {
         return new MetricName(
             metricName.name(),
             StreamsMetricsImpl.TOPIC_LEVEL_GROUP,
             metricName.description(),
-            getTopicMetricTags(getQueryMetricTags(queryId, metricName.tags()), topicName)
+            getQueryMetricTags(queryId, metricName.tags())
         );
     }
 
@@ -208,27 +217,18 @@ public class ThroughputMetricsReporter implements MetricsReporter {
         }
     }
 
-    private String getTopicName(final KafkaMetric metric) {
+    private String getTopic(final KafkaMetric metric) {
         return metric.metricName().tags().getOrDefault("topic", "");
     }
 
     private Map<String, String> getQueryMetricTags(
         final String queryId,
-        final Map<String, String> metricTags
+        final Map<String, String> originalMetricTags
     ) {
         final Map<String, String> queryMetricTags = new HashMap<>(customTags);
-        queryMetricTags.putAll(metricTags);
+        queryMetricTags.putAll(originalMetricTags);
         queryMetricTags.put("query-id", queryId);
         return ImmutableMap.copyOf(queryMetricTags);
-    }
-
-    private Map<String, String> getTopicMetricTags(
-        final Map<String, String> taskTags,
-        final String topic
-    ) {
-        final Map<String, String> topicMetricTags = new HashMap<>(taskTags);
-        topicMetricTags.put("topic", topic);
-        return ImmutableMap.copyOf((topicMetricTags));
     }
 
     @VisibleForTesting
@@ -238,16 +238,22 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     }
 
     private static class ThroughputTotalMetric {
-        final MetricName metricName;
-        final KafkaMetric metric;
+        final Map<MetricName, KafkaMetric> metrics = new HashMap<>();
 
         ThroughputTotalMetric(final MetricName metricName, final KafkaMetric metric) {
-            this.metricName = metricName;
-            this.metric = metric;
+            add(metricName, metric);
         }
 
-        public double getValue() {
-            return (double) metric.metricValue();
+        private void add(final MetricName metricName, final KafkaMetric metric) {
+            metrics.put(metricName, metric);
+        }
+
+        private void remove(final MetricName metric) {
+            metrics.remove(metric);
+        }
+
+        public Double getValue() {
+            return metrics.values().stream().map(m -> (Double) m.metricValue()).reduce(Double::sum).orElse(0D);
         }
     }
 

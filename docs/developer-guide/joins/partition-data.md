@@ -168,6 +168,10 @@ only if they are also both in the same partition after the repartition.
 Otherwise, Kafka is likely to interleave messages. The use case will determine
 if these ordering guarantees are acceptable.
 
+The PARTITION BY clause moves the columns into the key. If you want them in the
+value also, you must copy them by using the [AS_VALUE](../ksqldb-reference/scalar-functions.md#as_value)
+function.
+
 !!! important
       If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
       random partition. You may want to use [COALESCE](../ksqldb-reference/scalar-functions.md#coalesce) to wrap

@@ -43,10 +43,10 @@ import static org.apache.kafka.common.utils.Utils.mkSet;
 public class ThroughputMetricsReporter implements MetricsReporter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThroughputMetricsReporter.class);
-    private static final String RECORDS_CONSUMED = "records-consumed";
-    private static final String BYTES_CONSUMED = "bytes-consumed";
-    private static final String RECORDS_PRODUCED = "records-produced";
-    private static final String BYTES_PRODUCED = "bytes-produced";
+    private static final String RECORDS_CONSUMED = "records-consumed-total";
+    private static final String BYTES_CONSUMED = "bytes-consumed-total";
+    private static final String RECORDS_PRODUCED = "records-produced-total";
+    private static final String BYTES_PRODUCED = "bytes-produced-total";
     private static final Set<String> THROUGHPUT_METRIC_NAMES =
         mkSet(RECORDS_CONSUMED, BYTES_CONSUMED, RECORDS_PRODUCED, BYTES_PRODUCED);
     private static final Pattern NAMED_TOPOLOGY_PATTERN = Pattern.compile("(.*?)__\\d*_\\d*");
@@ -54,7 +54,6 @@ public class ThroughputMetricsReporter implements MetricsReporter {
         Pattern.compile("(?<=query_|transient_)(.*?)(?=-)");
 
     // CHECKSTYLE_RULES.OFF: LineLength
-    //
     private static final Map<String, Map<String, Map<MetricName, ThroughputTotalMetric>>> registeredMetrics = new HashMap<>();
     // CHECKSTYLE_RULES.ON: LineLength
     private static final Map<String, String> customTags = new HashMap<>();

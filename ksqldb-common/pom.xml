@@ -42,7 +42,6 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-avro-converter</artifactId>
-            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>

@@ -257,10 +257,10 @@ public class RocksDBMetricsCollector implements MetricsReporter {
 
     boolean check() {
       final Instant now = clock.get();
-      return last.accumulateAndGet(
+      return Objects.equals(last.accumulateAndGet(
           now,
           (l, n) -> n.isAfter(l.plusSeconds(intervalSeconds)) ? n : l
-      ) == now;
+      ), now);
     }
   }
 

@@ -52,15 +52,12 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private static final String TASK_STORAGE_USED_BYTES = "task_storage_used_bytes";
   private static final Pattern NAMED_TOPOLOGY_PATTERN = Pattern.compile("(.*?)__\\d*_\\d*");
   private static final Pattern QUERY_ID_PATTERN =
-      Pattern.compile("(?<=query_|transient_)(.*?)(?=-)");
+      Pattern.compile("(?<=query-|transient_)(.*?)(?=-)");
 
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private Metrics metricRegistry;
   private static Map<String, String> customTags = new HashMap<>();
-  private static AtomicInteger numberStatefulTasks = new AtomicInteger(0);
-
-  public StorageUtilizationMetricsReporter() {
-  }
+  private static final AtomicInteger numberStatefulTasks = new AtomicInteger(0);
 
   @Override
   public void init(final List<KafkaMetric> list) {
@@ -281,6 +278,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     if (matcher.find()) {
       return matcher.group(1);
     } else {
+      LOGGER.error("Can't parse query id from metric {}", metric);
       throw new KsqlException("Missing query ID when reporting utilization metrics");
     }
   }

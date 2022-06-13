@@ -18,7 +18,7 @@ work with `Struct` with that specific schema. This is tedious, and requires the 
 
 * UDAFs that accept variadic parameters: `example(col_int_1, col_int_2, col_int_3...) -> result`
 * UDAFs that accept a specific number of parameters, potentially of different types: `example(col_int, col_string) -> result`
-* Variadic TopK - a version of `TOPK` that returns the top K values of one column, along with the values of other columns from those records.
+* Variadic TopK - a version of `TOPK` that returns the top K values of one column, along with the values of other columns in a `Struct` from those records.
 * `correlation(double, double)` - a UDAF that computes the correlation coefficient of two columns.
 
 ## What is not in scope
@@ -50,7 +50,7 @@ The `List` contains the values of the columns specified in the function call. An
 ```
 // Returns the sum of all the values from multiple colunms
 private static <Integer> Udaf<MultipleArgs<Integer>, Long, Long> MultiColumnSum() {
-  return new Udaf<MultipleArgs<Integer>, List<Integer>, Long>() {
+  return new Udaf<MultipleArgs<Integer>, Long, Long>() {
 
     @Override
     public List<Integer> initialize() {
@@ -76,6 +76,9 @@ private static <Integer> Udaf<MultipleArgs<Integer>, Long, Long> MultiColumnSum(
 ```
 
 To create a function that accepts variadic parameters of any type, the `VariadicArgs` type parameter can be set to `Object`.
+
+Alternatively, we could use the [Apache Commons tuple library](https://commons.apache.org/proper/commons-lang/apidocs/org/apache/commons/lang3/tuple/package-summary.html),
+but it only has `Pair` and `Triple`.
 
 ### Specific parameters
 

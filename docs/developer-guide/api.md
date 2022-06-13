@@ -95,7 +95,7 @@ curl -X "POST" "http://localhost:8088/query" \
 }'
 ```
 Response:
-```
+```json
 [{"header":{"queryId":"query_1655152127973","schema":"`PROFILEID` STRING KEY, `LA` DOUBLE, `LO` DOUBLE","protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LA = 2;\n  double LO = 3;\n}\n"}},
 {"row":{"protobufBytes":"CggxOGY0ZWE4NhF90LNZ9bFCQBmASL99HYRewA=="}},
 {"row":{"protobufBytes":"Cgg0YTdjN2I0MRFAE2HD07NCQBnM7snDQoVewA=="}},

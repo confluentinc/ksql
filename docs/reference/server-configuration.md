@@ -14,8 +14,8 @@ specified using the `ksql-server.properties` file (for on-prem / standalone).
 In this case, configurations are applied when the cluster starts.
 
 A subset of these configuration parameters can be applied on a running cluster,
-either for individual queries (using the SET command or the Confluent Cloud
-Console) or for the entire cluster (using the ALTER SYSTEM command or the
+either for individual queries (using the `SET` command or the Confluent Cloud
+Console) or for the entire cluster (using the `ALTER SYSTEM` command or the
 Confluent Cloud Console). When this is the case for a parameter, it is called
 out in the parameter description's **Per query** block. Currently, you can edit
 parameters in this subset only in {{ site.ccloud }}.
@@ -23,9 +23,14 @@ parameters in this subset only in {{ site.ccloud }}.
 You can assign the value of some parameters on a per-persistent query basis
 by using the `SET` statement. This is indicated in the following parameter
 sections with the **Per query** block. For ksqlDB in {{ site.ccloud }}, some 
-parameters can be set only by using the ALTER SYSTEM statement are applied to
-all queries running on the current cluster, as indicated in the corresponding
+parameters can be set only by using the `ALTER SYSTEM` statement and are applied
+to all queries running on the current cluster, as indicated in the corresponding
 **Per query** block.
+
+!!! note
+    You can change per-query configs by using the `SET` statement, but you must
+    also redeploy the query with `CREATE OR REPLACE` or by deleting the query
+    and recreating it.
 
 Retrieve the current list of configuration settings by using the
 [SHOW PROPERTIES](/developer-guide/ksqldb-reference/show-properties/) command.
@@ -656,16 +661,16 @@ For more information, see the
 and 
 [COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
 
-## `ksql.streams.cache.max.bytes.buffering`
+## `ksql.streams.statestore.cache.max.bytes`
 
 **Per query:** yes
 
 The maximum number of memory bytes to be used for buffering across all
-threads. The default value in ksqlDB is `10000000` (~ 10 MB). Here is an
-example to change the value to `20000000` by using the ksqlDB CLI:
+threads. The default value in ksqlDB is `10000000` (~ 10 MB). The following
+example shows how to change the value to `20000000` by using the ksqlDB CLI:
 
 ```sql
-SET 'cache.max.bytes.buffering'='20000000';
+SET 'statestore.cache.max.bytes'='20000000';
 ```
 
 For more information, see the
@@ -938,3 +943,12 @@ default is one. This property has been deprecated. For
 more info see the WITH clause properties in
 [CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select) and
 [CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select).
+
+## `ksql.streams.cache.max.bytes.buffering` (Deprecated)
+
+Use `ksql.streams.statestore.cache.max.bytes` instead.
+
+**Per query:** yes
+
+The maximum number of memory bytes to be used for buffering across all
+threads. The default value in ksqlDB is `10000000` (~ 10 MB).

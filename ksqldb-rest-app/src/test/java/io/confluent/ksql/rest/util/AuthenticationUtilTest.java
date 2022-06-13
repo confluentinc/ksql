@@ -61,21 +61,21 @@ public class AuthenticationUtilTest {
 
   @Test
   public void shouldReturnDefaultWhenNoPrincipalPresent() {
-    assertThat(authenticationUtil.getTokenTimeout(Optional.empty(), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.empty()));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.empty(), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
   }
 
   @Test
-  public void shouldReturnEmptyWhenNoAuthTokenProviderPresent() {
-    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.empty()), equalTo(Optional.empty()));
+  public void shouldReturnDefaultWhenNoAuthTokenProviderPresent() {
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.empty()), equalTo(Optional.of(60000L)));
   }
 
   @Test
-  public void shouldReturnEmptyWhenPrincipalHasNoExpiry() {
+  public void shouldReturnDefaultWhenPrincipalHasNoExpiry() {
     // Given:
     when(authTokenProvider.getLifetimeMs(ksqlPrincipal)).thenReturn(Optional.empty());
 
     // Then:
-    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.empty()));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
   }
 
   @Test

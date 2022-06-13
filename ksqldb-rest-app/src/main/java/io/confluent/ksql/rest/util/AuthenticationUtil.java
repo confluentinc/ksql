@@ -37,14 +37,17 @@ public class AuthenticationUtil {
   ) {
     final long maxTimeout =
         ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS);
-    if (maxTimeout > 0
-        && authTokenProvider.isPresent()
-        && principal.isPresent()
-        && authTokenProvider.get().getLifetimeMs(principal.get()).isPresent()
-    ) {
-      final long tokenTimeout = authTokenProvider.get().getLifetimeMs(principal.get()).get()
-          - clock.millis();
-      return Optional.of(Math.min(tokenTimeout, maxTimeout));
+    if (maxTimeout > 0) {
+      if (authTokenProvider.isPresent()
+          && principal.isPresent()
+          && authTokenProvider.get().getLifetimeMs(principal.get()).isPresent()
+      ) {
+        final long tokenTimeout = authTokenProvider.get().getLifetimeMs(principal.get()).get()
+            - clock.millis();
+        return Optional.of(Math.min(tokenTimeout, maxTimeout));
+      } else {
+        return Optional.of(maxTimeout);
+      }
     } else {
       return Optional.empty();
     }

@@ -230,7 +230,7 @@ type, like `DECIMAL` or `STRUCT`. For example, a UDF that returns
 precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
-`public SqlType <your-method-name>(final List<SqlType> params)` and
+`public SqlType <your-method-name>(final List<SqlArgument> params)` and
 annotate it with `@UdfSchemaProvider`. Also, you need to link it to the
 corresponding UDF by using the `schemaProvider=<your-method-name>`
 parameter of the `@Udf` annotation.

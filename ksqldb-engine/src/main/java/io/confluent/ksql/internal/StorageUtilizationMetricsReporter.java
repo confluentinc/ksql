@@ -52,7 +52,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private static final String TASK_STORAGE_USED_BYTES = "task_storage_used_bytes";
   private static final Pattern NAMED_TOPOLOGY_PATTERN = Pattern.compile("(.*?)__\\d*_\\d*");
   private static final Pattern QUERY_ID_PATTERN =
-      Pattern.compile("(?<=query-|transient_)(.*?)(?=-)");
+      Pattern.compile("(?<=query_|transient_)(.*?)(?=-)");
 
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private Metrics metricRegistry;

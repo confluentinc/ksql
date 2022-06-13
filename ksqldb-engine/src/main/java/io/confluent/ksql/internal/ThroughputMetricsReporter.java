@@ -53,7 +53,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
       mkSet(RECORDS_CONSUMED, BYTES_CONSUMED, RECORDS_PRODUCED, BYTES_PRODUCED);
   private static final Pattern NAMED_TOPOLOGY_PATTERN = Pattern.compile("(.*?)__\\d*_\\d*");
   private static final Pattern QUERY_ID_PATTERN =
-      Pattern.compile("(?<=query-|transient_)(.*?)(?=-)");
+      Pattern.compile("(?<=query_|transient_)(.*?)(?=-)");
 
   private static final Map<String, Map<String, Map<MetricName, ThroughputTotalMetric>>> metrics =
       new HashMap<>();

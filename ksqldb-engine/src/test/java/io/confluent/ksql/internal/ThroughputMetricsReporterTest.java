@@ -261,6 +261,14 @@ public class ThroughputMetricsReporterTest {
     // Then:
     taskValue = bytesConsumed.measure(new MetricConfig().tags(QUERY_ONE_TAGS), 0);
     assertThat(taskValue, equalTo(2D));
+
+    final KafkaMetric metric3 = mockMetric(
+      BYTES_CONSUMED_TOTAL,
+      3D,
+      STREAMS_TAGS_PROCESSOR_2);
+    listener.metricChange(metric3);
+    taskValue = bytesConsumed.measure(new MetricConfig().tags(QUERY_ONE_TAGS), 0);
+    assertThat(taskValue, equalTo(5D));
   }
 
   @Test

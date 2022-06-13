@@ -80,11 +80,11 @@ curl -X "POST" "http://localhost:8088/query" \
 
 A `PROTOBUF` content type where the rows are serialized in the `PROTOBUF` format
 is also supported for querying the `/query` and `/query-stream` endpoints.
-Your can specify this serialization format in the `Accept` header:
+You can specify this serialization format in the `Accept` header:
 ```
 Accept: application/vnd.ksql.v1+protobuf
 ```
-Here is an example curl command that issues a Pull query on a table called `CURRENTLOCATION`
+The following example shows a curl command that issues a Pull query on a table called `CURRENTLOCATION`
 with the `PROTOBUF` content type:
 ```bash
 curl -X "POST" "http://localhost:8088/query" \

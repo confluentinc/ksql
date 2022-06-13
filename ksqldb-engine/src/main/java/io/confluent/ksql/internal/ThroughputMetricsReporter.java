@@ -151,11 +151,11 @@ public class ThroughputMetricsReporter implements MetricsReporter {
       final ThroughputTotalMetric throughputTotalMetric =
           metrics.get(queryId).get(topic).get(throughputTotalMetricName);
 
-      metricRegistry.removeMetric(throughputTotalMetricName);
       throughputTotalMetric.remove(metric.metricName());
-
+      
       if (throughputTotalMetric.throughputTotalMetrics.isEmpty()) {
         metrics.get(queryId).get(topic).remove(throughputTotalMetricName);
+        metricRegistry.removeMetric(throughputTotalMetricName);
         if (metrics.get(queryId).get(topic).isEmpty()) {
           metrics.get(queryId).remove(topic);
           if (metrics.get(queryId).isEmpty()) {
@@ -217,7 +217,13 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   }
 
   private String getTopic(final KafkaMetric metric) {
-    return metric.metricName().tags().getOrDefault(TOPIC_NAME_TAG, "");
+    final String topic = metric.metricName().tags().getOrDefault(TOPIC_NAME_TAG, "");
+    if (topic.equals("")) {
+      LOGGER.error("Can't parse topic name from metric {}", metric);
+      throw new KsqlException("Missing topic name when reporting total throughput metrics");
+    } else {
+      return topic;
+    }
   }
 
   private Map<String, String> getThroughputTotalMetricTags(

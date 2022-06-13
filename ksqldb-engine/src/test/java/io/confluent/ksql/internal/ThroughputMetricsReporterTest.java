@@ -3,6 +3,7 @@ package io.confluent.ksql.internal;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import org.apache.kafka.common.metrics.Measurable;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 
+import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -345,6 +347,52 @@ public class ThroughputMetricsReporterTest {
     bytesConsumedValue = bytesConsumed.measure(new MetricConfig().tags(sharedRuntimeQueryTags), 0L);
 
     assertThat(bytesConsumedValue, equalTo(17D));
+  }
+
+  @Test
+  public void shouldIgnoreNonThroughputMetric() {
+    // When:
+    listener.metricChange(mockMetric(
+      "other-metric",
+      2D,
+      STREAMS_TAGS_TASK_1)
+    );
+
+    // Then:
+    assertThrows(AssertionError.class, () -> verifyAndGetMetric("other-metric", QUERY_ONE_TAGS));
+  }
+
+  @Test
+  public void shouldThrowWhenFailingToParseQueryId() {
+    // When:
+    assertThrows(
+      KsqlException.class,
+      () -> listener.metricChange(mockMetric(
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        ImmutableMap.of(
+          "thread-id", "_confluent_blahblah_query-blahblah",
+          "task-id", TASK_ID_1,
+          "processor-node-id", PROCESSOR_NODE_ID,
+          "topic-name", TOPIC_NAME))
+      )
+    );
+  }
+
+  @Test
+  public void shouldThrowWhenTopicNameTagIsMissing() {
+    // When:
+    assertThrows(
+      KsqlException.class,
+      () -> listener.metricChange(mockMetric(
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        ImmutableMap.of(
+          "thread-id", THREAD_ID,
+          "task-id", TASK_ID_1,
+          "processor-node-id", PROCESSOR_NODE_ID))
+      )
+    );
   }
 
   private KafkaMetric mockMetric(

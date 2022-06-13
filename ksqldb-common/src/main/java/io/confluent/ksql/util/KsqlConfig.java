@@ -1799,9 +1799,16 @@ public class KsqlConfig extends AbstractConfig {
     return parseStringAsMap(key, value);
   }
 
-  public static Map<String, String> getStringAsMap(final String key, final Map<String, ?> configMap) {
-    final String value = ((String) configMap.get(key)).trim();
-    return parseStringAsMap(key, value);
+  public static Map<String, String> getStringAsMap(
+      final String key,
+      final Map<String, ?> configMap
+  ) {
+    final String value = (String) configMap.get(key);
+    if (value != null) {
+      return parseStringAsMap(key, value);
+    } else {
+      return Collections.emptyMap();
+    }
   }
 
   public static Map<String, String> parseStringAsMap(final String key, final String value) {

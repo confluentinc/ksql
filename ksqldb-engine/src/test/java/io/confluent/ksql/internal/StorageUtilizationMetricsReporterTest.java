@@ -39,7 +39,7 @@ public class StorageUtilizationMetricsReporterTest {
   private static final String KAFKA_METRIC_NAME = "total-sst-files-size";
   private static final String KAFKA_METRIC_GROUP = "streams-metric";
   private static final String KSQL_METRIC_GROUP = "ksqldb_utilization";
-  private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-blahblah";
+  private static final String THREAD_ID = "_confluent_blahblah_query-CTAS_TEST_1-blahblah";
   private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-blahblah";
   private static final String TASK_STORAGE_METRIC = "task_storage_used_bytes";
   private static final String QUERY_STORAGE_METRIC = "query_storage_used_bytes";

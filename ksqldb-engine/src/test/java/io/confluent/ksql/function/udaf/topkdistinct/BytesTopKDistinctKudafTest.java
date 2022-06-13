@@ -82,11 +82,11 @@ public class BytesTopKDistinctKudafTest {
                 toBytes(ImmutableList.of("A"))));
     }
 
-    private ByteBuffer toBytes(String val) {
+    private ByteBuffer toBytes(final String val) {
         return toBytesUDF.toBytes(val, BytesUtils.Encoding.ASCII.toString());
     }
 
-    private List<ByteBuffer> toBytes(List<String> vals) {
+    private List<ByteBuffer> toBytes(final List<String> vals) {
         return vals.stream().map(this::toBytes).collect(Collectors.toList());
     }
 }

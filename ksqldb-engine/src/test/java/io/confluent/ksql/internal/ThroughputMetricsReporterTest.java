@@ -61,16 +61,16 @@ public class ThroughputMetricsReporterTest {
       "topic-name", TOPIC_NAME
   );
   private static final Map<String, String> STREAMS_TAGS_TOPIC_2 = ImmutableMap.of(
-    "thread-id", THREAD_ID_2,
-    "task-id", TASK_ID_1,
-    "processor-node-id", PROCESSOR_NODE_ID,
-    "topic-name", TOPIC_NAME_2
+      "thread-id", THREAD_ID_2,
+      "task-id", TASK_ID_1,
+      "processor-node-id", PROCESSOR_NODE_ID,
+      "topic-name", TOPIC_NAME_2
   );
   private static final Map<String, String> QUERY_ONE_TAGS = ImmutableMap.of(
-    "logical_cluster_id", "lksqlc-12345",
-    "query-id", QUERY_ID + "_1",
-    "thread-id", THREAD_ID,
-    "topic-name", TOPIC_NAME
+      "logical_cluster_id", "lksqlc-12345",
+      "query-id", QUERY_ID + "_1",
+      "thread-id", THREAD_ID,
+      "topic-name", TOPIC_NAME
   );
   private static final Map<String, String> QUERY_TWO_TAGS = ImmutableMap.of(
       "logical_cluster_id", "lksqlc-12345",
@@ -107,27 +107,27 @@ public class ThroughputMetricsReporterTest {
   public void shouldAddNewMeasurableForAllThroughputMetricsTypes() {
     // Given:
     listener.metricChange(mockMetric(
-      BYTES_CONSUMED_TOTAL,
+        BYTES_CONSUMED_TOTAL,
         1D,
         STREAMS_TAGS_TASK_1)
     );
 
     listener.metricChange(mockMetric(
-      RECORDS_CONSUMED_TOTAL,
-      2D,
-      STREAMS_TAGS_TASK_1)
+        RECORDS_CONSUMED_TOTAL,
+        2D,
+        STREAMS_TAGS_TASK_1)
     );
 
     listener.metricChange(mockMetric(
-      BYTES_PRODUCED_TOTAL,
-      3D,
-      STREAMS_TAGS_TASK_1)
+        BYTES_PRODUCED_TOTAL,
+        3D,
+        STREAMS_TAGS_TASK_1)
     );
 
     listener.metricChange(mockMetric(
-      RECORDS_PRODUCED_TOTAL,
-      4D,
-      STREAMS_TAGS_TASK_1)
+        RECORDS_PRODUCED_TOTAL,
+        4D,
+        STREAMS_TAGS_TASK_1)
     );
 
     // When:
@@ -147,9 +147,9 @@ public class ThroughputMetricsReporterTest {
   public void shouldUpdateExistingMeasurable() {
     // Given:
     listener.metricChange(mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      2D,
-      STREAMS_TAGS_TASK_1)
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        STREAMS_TAGS_TASK_1)
     );
 
     Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, QUERY_ONE_TAGS);
@@ -158,9 +158,9 @@ public class ThroughputMetricsReporterTest {
 
     // When:
     listener.metricChange(mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      15D,
-      STREAMS_TAGS_TASK_1)
+        BYTES_CONSUMED_TOTAL,
+        15D,
+        STREAMS_TAGS_TASK_1)
     );
 
     // Then:
@@ -174,19 +174,19 @@ public class ThroughputMetricsReporterTest {
   public void shouldAggregateOverAllTasksAndProcessorNodes() {
     // Given:
     KafkaMetric m1 = mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      2D,
-      STREAMS_TAGS_TASK_1
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        STREAMS_TAGS_TASK_1
     );
     KafkaMetric m2 = mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      5D,
-      STREAMS_TAGS_TASK_2
+        BYTES_CONSUMED_TOTAL,
+        5D,
+        STREAMS_TAGS_TASK_2
     );
     KafkaMetric m3 = mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      3D,
-      STREAMS_TAGS_PROCESSOR_2
+        BYTES_CONSUMED_TOTAL,
+        3D,
+        STREAMS_TAGS_PROCESSOR_2
     );
 
     // When:
@@ -204,16 +204,16 @@ public class ThroughputMetricsReporterTest {
   public void shouldRemoveCorrectMetricAndReturnZero() {
     // Given:
     final KafkaMetric metric = mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      2D,
-      STREAMS_TAGS_TASK_1);
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        STREAMS_TAGS_TASK_1);
     listener.metricChange(metric);
     final Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, QUERY_ONE_TAGS);
 
     final KafkaMetric metric2 = mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      5D,
-      STREAMS_TAGS_TOPIC_2);
+        BYTES_CONSUMED_TOTAL,
+        5D,
+        STREAMS_TAGS_TOPIC_2);
     listener.metricChange(metric2);
     final Measurable bytesConsumed2 = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, QUERY_TWO_TAGS);
 
@@ -239,14 +239,14 @@ public class ThroughputMetricsReporterTest {
   public void shouldNotIncludeRemovedMetricInThroughputTotal() {
     // Given:
     listener.metricChange(mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      2D,
-      STREAMS_TAGS_TASK_1)
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        STREAMS_TAGS_TASK_1)
     );
     final KafkaMetric metric2 = mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      6D,
-      STREAMS_TAGS_TASK_2
+        BYTES_CONSUMED_TOTAL,
+        6D,
+        STREAMS_TAGS_TASK_2
     );
     listener.metricChange(metric2);
     final Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, QUERY_ONE_TAGS);
@@ -261,9 +261,9 @@ public class ThroughputMetricsReporterTest {
     assertThat(taskValue, equalTo(2D));
 
     final KafkaMetric metric3 = mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      3D,
-      STREAMS_TAGS_PROCESSOR_2);
+        BYTES_CONSUMED_TOTAL,
+        3D,
+        STREAMS_TAGS_PROCESSOR_2);
     listener.metricChange(metric3);
     taskValue = bytesConsumed.measure(new MetricConfig().tags(QUERY_ONE_TAGS), 0);
     assertThat(taskValue, equalTo(5D));
@@ -273,19 +273,19 @@ public class ThroughputMetricsReporterTest {
   public void shouldAggregateMetricsByQueryIdForTransientQueries() {
     // Given:
     final Map<String, String> transientQueryTags = ImmutableMap.of(
-      "logical_cluster_id", "lksqlc-12345",
-      "query-id", "blahblah_4",
-      "thread-id", TRANSIENT_THREAD_ID,
-      "topic-name", TOPIC_NAME
+        "logical_cluster_id", "lksqlc-12345",
+        "query-id", "blahblah_4",
+        "thread-id", TRANSIENT_THREAD_ID,
+        "topic-name", TOPIC_NAME
     );
     listener.metricChange(mockMetric(
-      BYTES_CONSUMED_TOTAL,
-      2D,
-      ImmutableMap.of(
-        "thread-id", TRANSIENT_THREAD_ID,
-        "task-id", TASK_ID_1,
-        "processor-node-id", PROCESSOR_NODE_ID,
-        "topic-name", TOPIC_NAME))
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        ImmutableMap.of(
+            "thread-id", TRANSIENT_THREAD_ID,
+            "task-id", TASK_ID_1,
+            "processor-node-id", PROCESSOR_NODE_ID,
+            "topic-name", TOPIC_NAME))
     );
 
     Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, transientQueryTags);

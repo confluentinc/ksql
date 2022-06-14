@@ -39,8 +39,6 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

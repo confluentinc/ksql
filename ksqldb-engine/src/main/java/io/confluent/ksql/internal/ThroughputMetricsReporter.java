@@ -20,7 +20,6 @@ import static org.apache.kafka.common.utils.Utils.mkSet;
 import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.PROCESSOR_NODE_ID_TAG;
 import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.TASK_ID_TAG;
 import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.THREAD_ID_TAG;
-import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.TOPIC_NAME_TAG;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
@@ -38,12 +37,13 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ThroughputMetricsReporter implements MetricsReporter {
   private static final Logger LOGGER = LoggerFactory.getLogger(ThroughputMetricsReporter.class);
+  private static final String TOPIC_LEVEL_GROUP = "stream-topic-metrics";
+  private static final String TOPIC_NAME_TAG = "stream-topic-metrics";
   private static final String QUERY_ID_TAG = "query-id";
   private static final String RECORDS_CONSUMED = "records-consumed-total";
   private static final String BYTES_CONSUMED = "bytes-consumed-total";
@@ -79,7 +79,8 @@ public class ThroughputMetricsReporter implements MetricsReporter {
 
   @Override
   public void metricChange(final KafkaMetric metric) {
-    if (!THROUGHPUT_METRIC_NAMES.contains(metric.metricName().name())) {
+    if (!THROUGHPUT_METRIC_NAMES.contains(metric.metricName().name())
+          || !TOPIC_LEVEL_GROUP.equals(metric.metricName().group())) {
       return;
     }
     addMetric(
@@ -123,7 +124,8 @@ public class ThroughputMetricsReporter implements MetricsReporter {
 
   @Override
   public void metricRemoval(final KafkaMetric metric) {
-    if (!THROUGHPUT_METRIC_NAMES.contains(metric.metricName().name())) {
+    if (!THROUGHPUT_METRIC_NAMES.contains(metric.metricName().name())
+          || !TOPIC_LEVEL_GROUP.equals(metric.metricName().group())) {
       return;
     }
 
@@ -193,7 +195,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   ) {
     return new MetricName(
       metricName.name(),
-      StreamsMetricsImpl.TOPIC_LEVEL_GROUP,
+      TOPIC_LEVEL_GROUP,
       metricName.description() + " by this query",
       getThroughputTotalMetricTags(queryId, metricName.tags())
     );
@@ -211,7 +213,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     if (matcher.find()) {
       return matcher.group(1);
     } else {
-      LOGGER.error("Can't parse query id from metric {}", metric);
+      LOGGER.error("Can't parse query id from metric {}", metric.metricName());
       throw new KsqlException("Missing query ID when reporting total throughput metrics");
     }
   }

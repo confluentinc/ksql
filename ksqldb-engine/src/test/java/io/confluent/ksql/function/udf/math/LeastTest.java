@@ -54,15 +54,15 @@ public class LeastTest {
   
   @Test
   public void shouldHandleNullArrays(){
-    assertThat(leastUDF.least(null, (Integer) null), is(nullValue()));
-    assertThat(leastUDF.least(null, (Double) null), is(nullValue()));
-    assertThat(leastUDF.least(null, (Long) null), is(nullValue()));
-    assertThat(leastUDF.least(null, (BigDecimal) null), is(nullValue()));
-    assertThat(leastUDF.least(null, (String) null), is(nullValue()));
-    assertThat(leastUDF.least(null, (ByteBuffer) null), is(nullValue()));
-    assertThat(leastUDF.least(null, (Date) null), is(nullValue()));
-    assertThat(leastUDF.least(null, (Time) null), is(nullValue()));
-    assertThat(leastUDF.least(null, (Timestamp) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (Integer[]) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (Double[]) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (Long[]) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (BigDecimal[]) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (String[]) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (ByteBuffer[]) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (Date[]) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (Time[]) null), is(nullValue()));
+    assertThat(leastUDF.least(null, (Timestamp[]) null), is(nullValue()));
   }
 
   @Test

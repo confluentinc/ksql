@@ -54,15 +54,15 @@ public class GreatestTest {
 
   @Test
   public void shouldHandleNullArrays(){
-    assertThat(greatestUDF.greatest((Integer) null, null), is(nullValue()));
-    assertThat(greatestUDF.greatest((Double) null, null), is(nullValue()));
-    assertThat(greatestUDF.greatest((Long) null, null), is(nullValue()));
-    assertThat(greatestUDF.greatest((BigDecimal) null, null), is(nullValue()));
-    assertThat(greatestUDF.greatest((String) null, null), is(nullValue()));
-    assertThat(greatestUDF.greatest(null, (ByteBuffer) null), is(nullValue()));
-    assertThat(greatestUDF.greatest(null, (Date) null), is(nullValue()));
-    assertThat(greatestUDF.greatest(null, (Time) null), is(nullValue()));
-    assertThat(greatestUDF.greatest(null, (Timestamp) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (Integer[]) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (Double[]) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (Long[]) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (BigDecimal[]) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (String[]) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (ByteBuffer[]) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (Date[]) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (Time[]) null), is(nullValue()));
+    assertThat(greatestUDF.greatest(null, (Timestamp[]) null), is(nullValue()));
   }
 
   @Test

@@ -26,6 +26,10 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -94,6 +98,42 @@ public class Least {
         .map(SqlArgument::getSqlTypeOrThrow)
         .reduce(DecimalUtil::widen)
         .orElse(null);
+  }
+
+  @Udf
+  public ByteBuffer least(@UdfParameter final ByteBuffer val, @UdfParameter final ByteBuffer... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .min(ByteBuffer::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Date least(@UdfParameter final Date val, @UdfParameter final Date... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .min(Date::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Time least(@UdfParameter final Time val, @UdfParameter final Time... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .min(Time::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Timestamp least(@UdfParameter final Timestamp val, @UdfParameter final Timestamp... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .min(Timestamp::compareTo)
+            .orElse(null);
   }
 
 }

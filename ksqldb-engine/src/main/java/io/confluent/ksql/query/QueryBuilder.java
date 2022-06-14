@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector;
 import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.StorageUtilizationMetricsReporter;
+import io.confluent.ksql.internal.ThroughputMetricsReporter;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -567,6 +568,11 @@ final class QueryBuilder {
         newStreamsProperties,
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         StorageUtilizationMetricsReporter.class.getName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        ThroughputMetricsReporter.class.getName()
     );
 
     if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {

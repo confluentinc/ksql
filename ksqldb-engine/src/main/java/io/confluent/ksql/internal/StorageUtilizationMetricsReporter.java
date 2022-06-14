@@ -57,10 +57,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private Metrics metricRegistry;
   private static Map<String, String> customTags = new HashMap<>();
-  private static AtomicInteger numberStatefulTasks = new AtomicInteger(0);
-
-  public StorageUtilizationMetricsReporter() {
-  }
+  private static final AtomicInteger numberStatefulTasks = new AtomicInteger(0);
 
   @Override
   public void init(final List<KafkaMetric> list) {
@@ -281,6 +278,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     if (matcher.find()) {
       return matcher.group(1);
     } else {
+      LOGGER.error("Can't parse query id from metric {}", metric);
       throw new KsqlException("Missing query ID when reporting utilization metrics");
     }
   }

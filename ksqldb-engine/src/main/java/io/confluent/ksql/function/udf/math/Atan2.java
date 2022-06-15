@@ -35,48 +35,6 @@ public class Atan2 {
             @UdfParameter(
                     value = "y",
                     description = "The ordinate (y) coordinate."
-            ) final Integer y,
-            @UdfParameter(
-                    value = "x",
-                    description = "The abscissa (x) coordinate."
-            ) final Long x
-    ) {
-        return atan2(y == null ? null : y.doubleValue(), x == null ? null : x.doubleValue());
-    }
-
-    @Udf(description = "Returns the inverse (arc) tangent of y / x")
-    public Double atan2(
-            @UdfParameter(
-                    value = "y",
-                    description = "The ordinate (y) coordinate."
-            ) final Integer y,
-            @UdfParameter(
-                    value = "x",
-                    description = "The abscissa (x) coordinate."
-            ) final Double x
-    ) {
-        return atan2(y == null ? null : y.doubleValue(), x);
-    }
-
-    @Udf(description = "Returns the inverse (arc) tangent of y / x")
-    public Double atan2(
-            @UdfParameter(
-                    value = "y",
-                    description = "The ordinate (y) coordinate."
-            ) final Long y,
-            @UdfParameter(
-                    value = "x",
-                    description = "The abscissa (x) coordinate."
-            ) final Integer x
-    ) {
-        return atan2(y == null ? null : y.doubleValue(), x == null ? null : x.doubleValue());
-    }
-
-    @Udf(description = "Returns the inverse (arc) tangent of y / x")
-    public Double atan2(
-            @UdfParameter(
-                    value = "y",
-                    description = "The ordinate (y) coordinate."
             ) final Long y,
             @UdfParameter(
                     value = "x",
@@ -84,48 +42,6 @@ public class Atan2 {
             ) final Long x
     ) {
         return atan2(y == null ? null : y.doubleValue(), x == null ? null : x.doubleValue());
-    }
-
-    @Udf(description = "Returns the inverse (arc) tangent of y / x")
-    public Double atan2(
-            @UdfParameter(
-                    value = "y",
-                    description = "The ordinate (y) coordinate."
-            ) final Long y,
-            @UdfParameter(
-                    value = "x",
-                    description = "The abscissa (x) coordinate."
-            ) final Double x
-    ) {
-        return atan2(y == null ? null : y.doubleValue(), x);
-    }
-
-    @Udf(description = "Returns the inverse (arc) tangent of y / x")
-    public Double atan2(
-            @UdfParameter(
-                    value = "y",
-                    description = "The ordinate (y) coordinate."
-            ) final Double y,
-            @UdfParameter(
-                    value = "x",
-                    description = "The abscissa (x) coordinate."
-            ) final Integer x
-    ) {
-        return atan2(y, x == null ? null : x.doubleValue());
-    }
-
-    @Udf(description = "Returns the inverse (arc) tangent of y / x")
-    public Double atan2(
-            @UdfParameter(
-                    value = "y",
-                    description = "The ordinate (y) coordinate."
-            ) final Double y,
-            @UdfParameter(
-                    value = "x",
-                    description = "The abscissa (x) coordinate."
-            ) final Long x
-    ) {
-        return atan2(y, x == null ? null : x.doubleValue());
     }
 
     @Udf(description = "Returns the inverse (arc) tangent of y / x")

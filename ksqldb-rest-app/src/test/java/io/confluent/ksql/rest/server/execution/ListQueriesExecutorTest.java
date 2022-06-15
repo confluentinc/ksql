@@ -473,6 +473,7 @@ public class ListQueriesExecutorTest {
     when(sinkTopic.getKafkaTopicName()).thenReturn(id);
     when(metadata.getResultTopic()).thenReturn(Optional.of(sinkTopic));
     when(metadata.getTaskMetadata()).thenReturn(tasksMetadata);
+    when(metadata.getQueryStatus()).thenReturn(KsqlConstants.fromStreamsState(state));
 
     return metadata;
   }

@@ -141,6 +141,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
     rowQueue.setCompletionHandler(completionHandler);
   }
 
+
   @Override
   public void close() {
     // Push queries can be closed by both terminate commands and the client ending the request, so

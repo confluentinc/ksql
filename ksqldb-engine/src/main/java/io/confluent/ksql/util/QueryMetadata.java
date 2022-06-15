@@ -20,6 +20,7 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,8 @@ public interface QueryMetadata {
   void setUncaughtExceptionHandler(StreamsUncaughtExceptionHandler handler);
 
   KafkaStreams.State getState();
+
+  KsqlQueryStatus getQueryStatus();
 
   String getExecutionPlan();
 
@@ -72,6 +75,10 @@ public interface QueryMetadata {
   void setCorruptionQueryError();
 
   KafkaStreams getKafkaStreams();
+
+  void pause();
+
+  void resume();
 
   void close();
 

@@ -138,6 +138,16 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   }
 
   @Override
+  public void pause(final QueryId queryId) {
+    //no-op
+  }
+
+  @Override
+  public void resume(final QueryId queryId) {
+    //no-op
+  }
+
+  @Override
   public void start(final QueryId queryId) {
   }
 

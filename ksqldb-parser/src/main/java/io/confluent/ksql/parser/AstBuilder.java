@@ -91,7 +91,9 @@ import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.SqlBaseParser.PauseQueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.ResumeQueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RetentionClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
@@ -146,10 +148,12 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -758,6 +762,30 @@ public class AstBuilder {
     @Override
     public Node visitListTypes(final ListTypesContext ctx) {
       return new ListTypes(getLocation(ctx));
+    }
+
+    @Override
+    public Node visitPauseQuery(final PauseQueryContext context) {
+      final Optional<NodeLocation> location = getLocation(context);
+
+      return context.ALL() != null
+          ? PauseQuery.all(location)
+          : PauseQuery.query(
+              location,
+              new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
+          );
+    }
+
+    @Override
+    public Node visitResumeQuery(final ResumeQueryContext context) {
+      final Optional<NodeLocation> location = getLocation(context);
+
+      return context.ALL() != null
+          ? ResumeQuery.all(location)
+          : ResumeQuery.query(
+              location,
+              new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
+          );
     }
 
     @Override

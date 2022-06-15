@@ -37,6 +37,8 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.PauseQuery;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
@@ -76,6 +78,10 @@ public class ValidatedCommandFactoryTest {
   private KsqlExecutionContext executionContext;
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private PauseQuery pauseQuery;
+  @Mock
+  private ResumeQuery resumeQuery;
   @Mock
   private TerminateQuery terminateQuery;
   @Mock
@@ -217,6 +223,56 @@ public class ValidatedCommandFactoryTest {
   }
 
   @Test
+  public void shouldCreateCommandForPauseQuery() {
+    // Given:
+    givenPause();
+
+    // When:
+    final Command command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command, is(Command.of(configuredStatement)));
+  }
+
+  @Test
+  public void shouldValidatePauseQuery() {
+    // Given:
+    givenPause();
+
+    // When:
+    commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    verify(executionContext).getPersistentQuery(QUERY_ID);
+    verify(query1).pause();
+  }
+
+  @Test
+  public void shouldCreateCommandForResumeQuery() {
+    // Given:
+    givenResume();
+
+    // When:
+    final Command command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command, is(Command.of(configuredStatement)));
+  }
+
+  @Test
+  public void shouldValidateResumeQuery() {
+    // Given:
+    givenResume();
+
+    // When:
+    commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    verify(executionContext).getPersistentQuery(QUERY_ID);
+    verify(query1).resume();
+  }
+
+  @Test
   public void shouldCreateCommandForTerminateQuery() {
     // Given:
     givenTerminate();
@@ -345,6 +401,18 @@ public class ValidatedCommandFactoryTest {
     // Then:
     assertThat(e.getMessage(), containsString("Did not write the command to the command topic "
         + "as it could not be deserialized."));
+  }
+
+  private void givenPause() {
+    configuredStatement = configuredStatement("PAUSE FOO", pauseQuery);
+    when(pauseQuery.getQueryId()).thenReturn(Optional.of(QUERY_ID));
+    when(executionContext.getPersistentQuery(any())).thenReturn(Optional.of(query1));
+  }
+
+  private void givenResume() {
+    configuredStatement = configuredStatement("RESUME FOO", resumeQuery);
+    when(resumeQuery.getQueryId()).thenReturn(Optional.of(QUERY_ID));
+    when(executionContext.getPersistentQuery(any())).thenReturn(Optional.of(query1));
   }
 
   private void givenTerminate() {

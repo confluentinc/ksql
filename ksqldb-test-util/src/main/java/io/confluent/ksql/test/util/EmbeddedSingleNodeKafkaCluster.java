@@ -393,7 +393,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
           throw new RuntimeException("Failed to send record to " + topic, e);
         }
       });
-
       return result;
     }
   }

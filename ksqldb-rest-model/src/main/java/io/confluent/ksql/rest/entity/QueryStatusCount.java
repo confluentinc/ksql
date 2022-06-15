@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 
 /**
- * Used to keep track of a the state of KafkaStreams application
+ * Used to keep track of the state of a KafkaStreams application
  * across multiple servers. Used in {@link RunningQuery}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

@@ -43,6 +43,6 @@ public class Cot {
     ) {
         return value == null
                 ? null
-                : Math.cos(value) / Math.sin(value);
+                : 1 / Math.tan(value);
     }
 }

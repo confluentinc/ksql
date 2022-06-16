@@ -29,7 +29,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandleNegativeXNegativeY() {
+    public void shouldHandleNegativeYNegativeX() {
         assertThat(udf.atan2(-1.1, -0.24), is(-1.7856117271965553));
         assertThat(udf.atan2(-6.0, -7.1), is(-2.4399674339361113));
         assertThat(udf.atan2(-2, -3), is(-2.5535900500422257));
@@ -37,7 +37,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandleNegativeXPositiveY() {
+    public void shouldHandleNegativeYPositiveX() {
         assertThat(udf.atan2(-1.1, 0.24), is(-1.355980926393238));
         assertThat(udf.atan2(-6.0, 7.1), is(-0.7016252196536817));
         assertThat(udf.atan2(-2, 3), is(-0.5880026035475675));
@@ -45,7 +45,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandleNegativeXZeroY() {
+    public void shouldHandleNegativeYZeroX() {
         assertThat(udf.atan2(-1.1, 0.0), is(-1.5707963267948966));
         assertThat(udf.atan2(-6.0, 0.0), is(-1.5707963267948966));
         assertThat(udf.atan2(-2, 0), is(-1.5707963267948966));
@@ -53,7 +53,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandleZeroXNegativeY() {
+    public void shouldHandleZeroYNegativeX() {
         assertThat(udf.atan2(0.0, -0.24), is(3.141592653589793));
         assertThat(udf.atan2(0.0, -7.1), is(3.141592653589793));
         assertThat(udf.atan2(0, -3), is(3.141592653589793));
@@ -61,7 +61,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandleZeroXPositiveY() {
+    public void shouldHandleZeroYPositiveX() {
         assertThat(udf.atan2(0.0, 0.24), is(0.0));
         assertThat(udf.atan2(0.0, 7.1), is(0.0));
         assertThat(udf.atan2(0, 3), is(0.0));
@@ -69,7 +69,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandleZeroXZeroY() {
+    public void shouldHandleZeroYZeroX() {
         assertThat(udf.atan2(0.0, 0.0), is(0.0));
         assertThat(udf.atan2(0.0, 0.0), is(0.0));
         assertThat(udf.atan2(0, 0), is(0.0));
@@ -77,7 +77,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandlePositiveXNegativeY() {
+    public void shouldHandlePositiveYNegativeX() {
         assertThat(udf.atan2(1.1, -0.24), is(1.7856117271965553));
         assertThat(udf.atan2(6.0, -7.1), is(2.4399674339361113));
         assertThat(udf.atan2(2, -3), is(2.5535900500422257));
@@ -85,7 +85,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandlePositiveXPositiveY() {
+    public void shouldHandlePositiveYPositiveX() {
         assertThat(udf.atan2(1.1, 0.24), is(1.355980926393238));
         assertThat(udf.atan2(6.0, 7.1), is(0.7016252196536817));
         assertThat(udf.atan2(2, 3), is(0.5880026035475675));
@@ -93,7 +93,7 @@ public class Atan2Test {
     }
 
     @Test
-    public void shouldHandlePositiveXZeroY() {
+    public void shouldHandlePositiveYZeroX() {
         assertThat(udf.atan2(1.1, 0.0), is(1.5707963267948966));
         assertThat(udf.atan2(6.0, 0.0), is(1.5707963267948966));
         assertThat(udf.atan2(2, 0), is(1.5707963267948966));

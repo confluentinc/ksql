@@ -51,11 +51,10 @@ public class PartialStringToTimestampParser {
 
     if (text.contains("T")) {
       date = text.substring(0, text.indexOf('T'));
-      final String withTimezone = completeTime(
-          text.substring(text.indexOf('T') + 1)
-      );
+      final String withTimezone = text.substring(text.indexOf('T') + 1);
       timezone = getTimezone(withTimezone);
-      time = completeTime(withTimezone.substring(0, withTimezone.length() - timezone.length()));
+      time = completeTime(withTimezone.substring(0, withTimezone.length() - timezone.length())
+              .replace("Z",""));
     } else {
       date = completeDate(text);
       time = completeTime("");

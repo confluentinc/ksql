@@ -26,63 +26,64 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class TimeTopKDistinctKudafTest {
-    private final List<Time> valuesArray = ImmutableList.of(new Time(10), new Time(30), new Time(45), new Time(10),
-            new Time(50), new Time(60), new Time(20), new Time(60), new Time(80), new Time(35), new Time(25),
-            new Time(60), new Time(80));
-    private final TopkDistinctKudaf<Time> timeTopkDistinctKudaf
-            = TopKDistinctTestUtils.getTopKDistinctKudaf(3, SqlTypes.TIME);
+  private final List<Time> valuesArray = ImmutableList.of(new Time(10), new Time(30), new Time(45),
+          new Time(10), new Time(50), new Time(60), new Time(20), new Time(60), new Time(80),
+          new Time(35), new Time(25), new Time(60), new Time(80));
+  private final TopkDistinctKudaf<Time> timeTopkDistinctKudaf
+          = TopKDistinctTestUtils.getTopKDistinctKudaf(3, SqlTypes.TIME);
 
-    @Test
-    public void shouldAggregateTopK() {
-        List<Time> currentVal = new ArrayList<>();
-        for (final Time d: valuesArray) {
-            currentVal = timeTopkDistinctKudaf.aggregate(d, currentVal);
-        }
-
-        assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(new Time(80), new Time(60), new Time(50))));
+  @Test
+  public void shouldAggregateTopK() {
+    List<Time> currentVal = new ArrayList<>();
+    for (final Time d : valuesArray) {
+      currentVal = timeTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    @Test
-    public void shouldAggregateTopKWithLessThanKValues() {
-        List<Time> currentVal = new ArrayList<>();
-        currentVal = timeTopkDistinctKudaf.aggregate(new Time(80), currentVal);
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(new Time(80), new Time(60),
+            new Time(50))));
+  }
 
-        assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(new Time(80))));
-    }
+  @Test
+  public void shouldAggregateTopKWithLessThanKValues() {
+    List<Time> currentVal = new ArrayList<>();
+    currentVal = timeTopkDistinctKudaf.aggregate(new Time(80), currentVal);
 
-    @Test
-    public void shouldMergeTopK() {
-        final List<Time> array1 = ImmutableList.of(new Time(50), new Time(45), new Time(25));
-        final List<Time> array2 = ImmutableList.of(new Time(60), new Time(50), new Time(48));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(new Time(80))));
+  }
 
-        assertThat("Invalid results.", timeTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
-                ImmutableList.of(new Time(60), new Time(50), new Time(48))));
-    }
+  @Test
+  public void shouldMergeTopK() {
+    final List<Time> array1 = ImmutableList.of(new Time(50), new Time(45), new Time(25));
+    final List<Time> array2 = ImmutableList.of(new Time(60), new Time(50), new Time(48));
 
-    @Test
-    public void shouldMergeTopKWithNulls() {
-        final List<Time> array1 = ImmutableList.of(new Time(50), new Time(45));
-        final List<Time> array2 = ImmutableList.of(new Time(60));
+    assertThat("Invalid results.", timeTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            equalTo(ImmutableList.of(new Time(60), new Time(50), new Time(48))));
+  }
 
-        assertThat("Invalid results.", timeTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
-                ImmutableList.of(new Time(60), new Time(50), new Time(45))));
-    }
+  @Test
+  public void shouldMergeTopKWithNulls() {
+    final List<Time> array1 = ImmutableList.of(new Time(50), new Time(45));
+    final List<Time> array2 = ImmutableList.of(new Time(60));
 
-    @Test
-    public void shouldMergeTopKWithNullsDuplicates() {
-        final List<Time> array1 = ImmutableList.of(new Time(50), new Time(45));
-        final List<Time> array2 = ImmutableList.of(new Time(60), new Time(50));
+    assertThat("Invalid results.", timeTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            equalTo(ImmutableList.of(new Time(60), new Time(50), new Time(45))));
+  }
 
-        assertThat("Invalid results.", timeTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
-                ImmutableList.of(new Time(60), new Time(50), new Time(45))));
-    }
+  @Test
+  public void shouldMergeTopKWithNullsDuplicates() {
+    final List<Time> array1 = ImmutableList.of(new Time(50), new Time(45));
+    final List<Time> array2 = ImmutableList.of(new Time(60), new Time(50));
 
-    @Test
-    public void shouldMergeTopKWithMoreNulls() {
-        final List<Time> array1 = ImmutableList.of(new Time(60));
-        final List<Time> array2 = ImmutableList.of(new Time(60));
+    assertThat("Invalid results.", timeTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            equalTo(ImmutableList.of(new Time(60), new Time(50), new Time(45))));
+  }
 
-        assertThat("Invalid results.", timeTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
-                ImmutableList.of(new Time(60))));
-    }
+  @Test
+  public void shouldMergeTopKWithMoreNulls() {
+    final List<Time> array1 = ImmutableList.of(new Time(60));
+    final List<Time> array2 = ImmutableList.of(new Time(60));
+
+    assertThat("Invalid results.", timeTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            equalTo(ImmutableList.of(new Time(60))));
+  }
 }

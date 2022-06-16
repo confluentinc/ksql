@@ -26,64 +26,71 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class TimestampTopKDistinctKudafTest {
-    private final List<Timestamp> valuesArray = ImmutableList.of(new Timestamp(10), new Timestamp(30), new Timestamp(45),
-            new Timestamp(10), new Timestamp(50), new Timestamp(60), new Timestamp(20), new Timestamp(60), new Timestamp(80),
-            new Timestamp(35), new Timestamp(25), new Timestamp(60), new Timestamp(80));
-    private final TopkDistinctKudaf<Timestamp> timestampTopkDistinctKudaf
-            = TopKDistinctTestUtils.getTopKDistinctKudaf(3, SqlTypes.TIMESTAMP);
+  private final List<Timestamp> valuesArray = ImmutableList.of(new Timestamp(10),
+          new Timestamp(30), new Timestamp(45), new Timestamp(10), new Timestamp(50),
+          new Timestamp(60), new Timestamp(20), new Timestamp(60), new Timestamp(80),
+          new Timestamp(35), new Timestamp(25), new Timestamp(60), new Timestamp(80));
+  private final TopkDistinctKudaf<Timestamp> timestampTopkDistinctKudaf
+          = TopKDistinctTestUtils.getTopKDistinctKudaf(3, SqlTypes.TIMESTAMP);
 
-    @Test
-    public void shouldAggregateTopK() {
-        List<Timestamp> currentVal = new ArrayList<>();
-        for (final Timestamp d: valuesArray) {
-            currentVal = timestampTopkDistinctKudaf.aggregate(d, currentVal);
-        }
-
-        assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(new Timestamp(80), new Timestamp(60),
-                new Timestamp(50))));
+  @Test
+  public void shouldAggregateTopK() {
+    List<Timestamp> currentVal = new ArrayList<>();
+    for (final Timestamp d : valuesArray) {
+      currentVal = timestampTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    @Test
-    public void shouldAggregateTopKWithLessThanKValues() {
-        List<Timestamp> currentVal = new ArrayList<>();
-        currentVal = timestampTopkDistinctKudaf.aggregate(new Timestamp(80), currentVal);
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(
+            new Timestamp(80), new Timestamp(60), new Timestamp(50))));
+  }
 
-        assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(new Timestamp(80))));
-    }
+  @Test
+  public void shouldAggregateTopKWithLessThanKValues() {
+    List<Timestamp> currentVal = new ArrayList<>();
+    currentVal = timestampTopkDistinctKudaf.aggregate(new Timestamp(80), currentVal);
 
-    @Test
-    public void shouldMergeTopK() {
-        final List<Timestamp> array1 = ImmutableList.of(new Timestamp(50), new Timestamp(45), new Timestamp(25));
-        final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(48));
+    assertThat("Invalid results.", currentVal, equalTo(ImmutableList.of(new Timestamp(80))));
+  }
 
-        assertThat("Invalid results.", timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
-                ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(48))));
-    }
+  @Test
+  public void shouldMergeTopK() {
+    final List<Timestamp> array1 = ImmutableList.of(new Timestamp(50), new Timestamp(45),
+            new Timestamp(25));
+    final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60), new Timestamp(50),
+            new Timestamp(48));
 
-    @Test
-    public void shouldMergeTopKWithNulls() {
-        final List<Timestamp> array1 = ImmutableList.of(new Timestamp(50), new Timestamp(45));
-        final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60));
+    assertThat("Invalid results.",
+            timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            equalTo(ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(48))));
+  }
 
-        assertThat("Invalid results.", timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
-                ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(45))));
-    }
+  @Test
+  public void shouldMergeTopKWithNulls() {
+    final List<Timestamp> array1 = ImmutableList.of(new Timestamp(50), new Timestamp(45));
+    final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60));
 
-    @Test
-    public void shouldMergeTopKWithNullsDuplicates() {
-        final List<Timestamp> array1 = ImmutableList.of(new Timestamp(50), new Timestamp(45));
-        final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60), new Timestamp(50));
+    assertThat("Invalid results.",
+            timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            equalTo(ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(45))));
+  }
 
-        assertThat("Invalid results.", timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
-                ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(45))));
-    }
+  @Test
+  public void shouldMergeTopKWithNullsDuplicates() {
+    final List<Timestamp> array1 = ImmutableList.of(new Timestamp(50), new Timestamp(45));
+    final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60), new Timestamp(50));
 
-    @Test
-    public void shouldMergeTopKWithMoreNulls() {
-        final List<Timestamp> array1 = ImmutableList.of(new Timestamp(60));
-        final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60));
+    assertThat("Invalid results.",
+            timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            equalTo(ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(45))));
+  }
 
-        assertThat("Invalid results.", timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
-                ImmutableList.of(new Timestamp(60))));
-    }
+  @Test
+  public void shouldMergeTopKWithMoreNulls() {
+    final List<Timestamp> array1 = ImmutableList.of(new Timestamp(60));
+    final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60));
+
+    assertThat("Invalid results.",
+            timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            equalTo(ImmutableList.of(new Timestamp(60))));
+  }
 }

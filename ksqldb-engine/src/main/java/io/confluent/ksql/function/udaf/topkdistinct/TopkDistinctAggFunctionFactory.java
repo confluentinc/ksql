@@ -24,7 +24,6 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.List;
 
 public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {

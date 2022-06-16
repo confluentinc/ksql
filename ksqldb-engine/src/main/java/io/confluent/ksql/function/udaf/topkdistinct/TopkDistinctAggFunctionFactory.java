@@ -15,13 +15,11 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
-import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.types.ParamType;
-import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -32,15 +30,6 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
   private static final String NAME = "TOPKDISTINCT";
 
-  private static final ImmutableList<List<ParamType>> SUPPORTED_TYPES = ImmutableList
-      .<List<ParamType>>builder()
-      .add(ImmutableList.of(ParamTypes.INTEGER))
-      .add(ImmutableList.of(ParamTypes.LONG))
-      .add(ImmutableList.of(ParamTypes.DOUBLE))
-      .add(ImmutableList.of(ParamTypes.STRING))
-      .add(ImmutableList.of(ParamTypes.DECIMAL))
-      .build();
-
   public TopkDistinctAggFunctionFactory() {
     super(NAME);
   }
@@ -48,7 +37,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   private static final AggregateFunctionInitArguments DEFAULT_INIT_ARGS =
       new AggregateFunctionInitArguments(0, 1);
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "CyclomaticComplexity"})
   @Override
   public KsqlAggregateFunction createAggregateFunction(
       final List<SqlArgument> argTypeList,
@@ -64,6 +53,10 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
       case DOUBLE:
       case STRING:
       case DECIMAL:
+      case BYTES:
+      case DATE:
+      case TIME:
+      case TIMESTAMP:
         return new TopkDistinctKudaf(
             NAME, initArgs.udafIndex(), tkValFromArg, argSchema,
             SchemaConverters.sqlToFunctionConverter().toFunctionType(argSchema),
@@ -80,9 +73,9 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "SUPPORTED_TYPES is ImmutableList")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "COMPARABLE_ARGS is ImmutableList")
   public List<List<ParamType>> supportedArgs() {
-    return SUPPORTED_TYPES;
+    return COMPARABLE_ARGS;
   }
 
   @Override

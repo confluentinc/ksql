@@ -80,28 +80,9 @@ public class Least {
         .orElse(null);
   }
 
-  @Udf(schemaProvider = "leastDecimalProvider")
-  public BigDecimal least(@UdfParameter final BigDecimal val,
-      @UdfParameter final BigDecimal... vals) {
-
-    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
-        .filter(Objects::nonNull)
-        .min(Comparator.naturalOrder())
-        .orElse(null);
-  }
-
-  @UdfSchemaProvider
-  public SqlType leastDecimalProvider(final List<SqlArgument> params) {
-
-    return params.stream()
-        .filter(s -> s.getSqlType().isPresent())
-        .map(SqlArgument::getSqlTypeOrThrow)
-        .reduce(DecimalUtil::widen)
-        .orElse(null);
-  }
-
   @Udf
-  public ByteBuffer least(@UdfParameter final ByteBuffer val, @UdfParameter final ByteBuffer... vals) {
+  public ByteBuffer least(@UdfParameter final ByteBuffer val,
+                          @UdfParameter final ByteBuffer... vals) {
 
     return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
             .filter(Objects::nonNull)
@@ -133,6 +114,26 @@ public class Least {
     return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
             .filter(Objects::nonNull)
             .min(Timestamp::compareTo)
+            .orElse(null);
+  }
+
+  @Udf(schemaProvider = "leastDecimalProvider")
+  public BigDecimal least(@UdfParameter final BigDecimal val,
+      @UdfParameter final BigDecimal... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+        .filter(Objects::nonNull)
+        .min(Comparator.naturalOrder())
+        .orElse(null);
+  }
+
+  @UdfSchemaProvider
+  public SqlType leastDecimalProvider(final List<SqlArgument> params) {
+
+    return params.stream()
+            .filter(s -> s.getSqlType().isPresent())
+            .map(SqlArgument::getSqlTypeOrThrow)
+            .reduce(DecimalUtil::widen)
             .orElse(null);
   }
 

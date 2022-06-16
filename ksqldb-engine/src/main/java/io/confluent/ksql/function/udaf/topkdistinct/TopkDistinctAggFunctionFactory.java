@@ -38,7 +38,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   private static final AggregateFunctionInitArguments DEFAULT_INIT_ARGS =
       new AggregateFunctionInitArguments(0, 1);
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "CyclomaticComplexity"})
   @Override
   public KsqlAggregateFunction createAggregateFunction(
       final List<SqlArgument> argTypeList,

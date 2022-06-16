@@ -30,7 +30,10 @@ import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @UdfDescription(
@@ -77,28 +80,9 @@ public class Greatest {
         .orElse(null);
   }
 
-  @Udf(schemaProvider = "greatestDecimalProvider")
-  public BigDecimal greatest(@UdfParameter final BigDecimal val,
-      @UdfParameter final BigDecimal... vals) {
-
-    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
-        .filter(Objects::nonNull)
-        .max(Comparator.naturalOrder())
-        .orElse(null);
-  }
-
-  @UdfSchemaProvider
-  public SqlType greatestDecimalProvider(final List<SqlArgument> params) {
-
-    return params.stream()
-        .filter(s -> s.getSqlType().isPresent())
-        .map(SqlArgument::getSqlTypeOrThrow)
-        .reduce(DecimalUtil::widen)
-        .orElse(null);
-  }
-
   @Udf
-  public ByteBuffer greatest(@UdfParameter final ByteBuffer val, @UdfParameter final ByteBuffer... vals) {
+  public ByteBuffer greatest(@UdfParameter final ByteBuffer val,
+                             @UdfParameter final ByteBuffer... vals) {
 
     return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
             .filter(Objects::nonNull)
@@ -125,12 +109,33 @@ public class Greatest {
   }
 
   @Udf
-  public Timestamp greatest(@UdfParameter final Timestamp val, @UdfParameter final Timestamp... vals) {
+  public Timestamp greatest(@UdfParameter final Timestamp val,
+                            @UdfParameter final Timestamp... vals) {
 
     return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
             .filter(Objects::nonNull)
             .max(Timestamp::compareTo)
             .orElse(null);
+  }
+
+  @Udf(schemaProvider = "greatestDecimalProvider")
+  public BigDecimal greatest(@UdfParameter final BigDecimal val,
+      @UdfParameter final BigDecimal... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+        .filter(Objects::nonNull)
+        .max(Comparator.naturalOrder())
+        .orElse(null);
+  }
+
+  @UdfSchemaProvider
+  public SqlType greatestDecimalProvider(final List<SqlArgument> params) {
+
+    return params.stream()
+        .filter(s -> s.getSqlType().isPresent())
+        .map(SqlArgument::getSqlTypeOrThrow)
+        .reduce(DecimalUtil::widen)
+        .orElse(null);
   }
 
 }

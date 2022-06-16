@@ -25,7 +25,7 @@ import io.confluent.ksql.util.KsqlConstants;
         category = FunctionCategory.MATHEMATICAL,
         author = KsqlConstants.CONFLUENT_AUTHOR,
         description = "The inverse (arc) tangent of y / x. This is equivalent to the angle theta "
-                + "when Cartesian coordinates (x, y) is converted to polar coordinates (radius, "
+                + "when Cartesian coordinates (x, y) are converted to polar coordinates (radius, "
                 + "theta). The returned value is in radians."
 )
 public class Atan2 {

@@ -41,7 +41,6 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -263,7 +262,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     }
 
     @Override
-    public double measure(MetricConfig var1, long var2) {
+    public double measure(final MetricConfig metricConfig, final long now) {
       return throughputTotalMetrics
         .values()
          .stream()

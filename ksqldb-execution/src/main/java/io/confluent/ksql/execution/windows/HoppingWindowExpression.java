@@ -58,9 +58,9 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   ) {
     this(
         Optional.empty(),
-         size,
-         advanceBy,
-         Optional.empty(),
+        size,
+        advanceBy,
+        Optional.empty(),
         Optional.empty(),
         Optional.empty()
     );

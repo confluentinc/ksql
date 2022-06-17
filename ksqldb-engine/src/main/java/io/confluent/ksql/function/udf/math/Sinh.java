@@ -32,7 +32,7 @@ public class Sinh {
   public Double sinh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic sine of."
+                  description = "The value in radians to get the hyperbolic sine of."
           ) final Integer value
   ) {
     return sinh(value == null ? null : value.doubleValue());
@@ -42,7 +42,7 @@ public class Sinh {
   public Double sinh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic sine of."
+                  description = "The value in radians to get the hyperbolic sine of."
           ) final Long value
   ) {
     return sinh(value == null ? null : value.doubleValue());
@@ -52,7 +52,7 @@ public class Sinh {
   public Double sinh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic sine of."
+                  description = "The value in radians to get the hyperbolic sine of."
           ) final Double value
   ) {
     return value == null

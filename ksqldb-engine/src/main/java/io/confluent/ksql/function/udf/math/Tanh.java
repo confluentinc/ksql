@@ -32,7 +32,7 @@ public class Tanh {
   public Double tanh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic tangent of."
+                  description = "The value in radians to get the hyperbolic tangent of."
           ) final Integer value
   ) {
     return tanh(value == null ? null : value.doubleValue());
@@ -42,7 +42,7 @@ public class Tanh {
   public Double tanh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic tangent of."
+                  description = "The value in radians to get the hyperbolic tangent of."
           ) final Long value
   ) {
     return tanh(value == null ? null : value.doubleValue());
@@ -52,7 +52,7 @@ public class Tanh {
   public Double tanh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic tangent of."
+                  description = "The value in radians to get the hyperbolic tangent of."
           ) final Double value
   ) {
     return value == null

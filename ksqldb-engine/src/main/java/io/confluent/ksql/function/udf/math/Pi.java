@@ -23,10 +23,10 @@ import io.confluent.ksql.util.KsqlConstants;
         name = "pi",
         category = FunctionCategory.MATHEMATICAL,
         author = KsqlConstants.CONFLUENT_AUTHOR,
-        description = "Returns the approximate value of pi."
+        description = "Returns an approximate value of pi."
 )
 public class Pi {
-  @Udf(description = "Returns the approximate value of pi")
+  @Udf(description = "Returns an approximate value of pi")
   public Double pi() {
     return Math.PI;
   }

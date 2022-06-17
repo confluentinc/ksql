@@ -32,7 +32,7 @@ public class Cosh {
   public Double cosh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic cosine of."
+                  description = "The value in radians to get the hyperbolic cosine of."
           ) final Integer value
   ) {
     return cosh(value == null ? null : value.doubleValue());
@@ -42,7 +42,7 @@ public class Cosh {
   public Double cosh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic cosine of."
+                  description = "The value in radians to get the hyperbolic cosine of."
           ) final Long value
   ) {
     return cosh(value == null ? null : value.doubleValue());
@@ -52,7 +52,7 @@ public class Cosh {
   public Double cosh(
           @UdfParameter(
                   value = "value",
-                  description = "The value to get the hyperbolic cosine of."
+                  description = "The value in radians to get the hyperbolic cosine of."
           ) final Double value
   ) {
     return value == null

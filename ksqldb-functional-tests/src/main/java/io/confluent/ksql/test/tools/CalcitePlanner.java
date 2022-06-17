@@ -298,7 +298,7 @@ public class CalcitePlanner {
       );
       return filterNodeOutputStream;
     }*/
-    throw new IllegalArgumentException();
+    throw new IllegalArgumentException(node.toString());
   }
 
   private static Expression getExpression(final RowExpression predicate) {

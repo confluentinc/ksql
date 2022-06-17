@@ -186,6 +186,11 @@
                 <artifactId>calcite-core</artifactId>
                 <version>1.30.0</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-server</artifactId>
+                <version>1.30.0</version>
+            </dependency>
 
             <!-- Cross-submodule dependencies -->
 

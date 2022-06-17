@@ -19,16 +19,30 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.io.PrintWriter;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParser.Config;
+import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -43,7 +57,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CalcitePlannerTest {
-  public static String[] queries = new String[] {
+
+  public static String[] queries = new String[]{
       "SELECT * FROM Pantalones",
       "SELECT id, waist FROM Pantalones",
       "SELECT * FROM Pantalones WHERE ID = '5'",
@@ -53,6 +68,7 @@ public class CalcitePlannerTest {
       "SELECT Pantalones.ID, Waist, Size, Sleeve FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID",
       "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID > A.ID",
       "CREATE TABLE asdf AS SELECT * FROM Pantalones",
+      "CREATE MATERIALIZED VIEW asdf AS SELECT * FROM Pantalones",
       "SELECT ID, CONCAT(ID, '+'), Waist * 2 FROM Pantalones",
       "(SELECT ID, Waist AS Num FROM Pantalones) UNION (SELECT ID, Sleeve as Num FROM Abrigos)",
       "SELECT ID1, Waist, Size FROM (SELECT ID AS ID1, Waist FROM Pantalones) JOIN (SELECT ID AS ID2, Size FROM Pantalones) ON ID1 = ID2",
@@ -121,6 +137,13 @@ public class CalcitePlannerTest {
     };
   }
 
+  public static class ConcatFunction {
+
+    public String eval(final String s1, final String s2) {
+      return s1 + s2;
+    }
+  }
+
   @Before
   public void before() {
     schemaName = "schema";
@@ -128,9 +151,18 @@ public class CalcitePlannerTest {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
 
     final ReflectiveSchema reflectiveSchema = new ReflectiveSchema(new TestSchema());
-    final SchemaPlus schema = rootSchema.add(schemaName, reflectiveSchema);
+    final SchemaPlus schema =
+        rootSchema.add(schemaName, reflectiveSchema);
+    schema.add(
+        "CONCAT",
+        ScalarFunctionImpl.create(ConcatFunction.class, "eval")
+    );
 
-    final Config parserConfig = SqlParser.config().withCaseSensitive(false);
+    final Config parserConfig =
+        SqlParser
+            .config()
+            .withCaseSensitive(false)
+            .withParserFactory(SqlDdlParserImpl::new);
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -162,6 +194,7 @@ public class CalcitePlannerTest {
         new SchemaTableName(schemaName, "pantalones"), pantalonesKsqlTable
     );
   }
+
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     final Builder<Object[]> builder = ImmutableList.builder();
@@ -171,7 +204,7 @@ public class CalcitePlannerTest {
     return builder.build();
   }
 
-  public CalcitePlannerTest(final String sql){
+  public CalcitePlannerTest(final String sql) {
     this.sql = sql;
   }
 
@@ -213,7 +246,20 @@ public class CalcitePlannerTest {
       throws SqlParseException, ValidationException, RelConversionException {
     final SqlNode parsed = planner.parse(sql);
     System.out.println(parsed);
-    final SqlNode validated = planner.validate(parsed);
+    if (parsed instanceof SqlCreateTable) {
+      final SqlNode query = ((SqlCreateTable) parsed).query;
+      return getLogicalPlan(query);
+    } else if (parsed instanceof SqlCreateMaterializedView) {
+      final SqlNode query = ((SqlCreateMaterializedView) parsed).query;
+      return getLogicalPlan(query);
+    } else {
+      return getLogicalPlan(parsed);
+    }
+  }
+
+  private RelRoot getLogicalPlan(final SqlNode query)
+      throws ValidationException, RelConversionException {
+    final SqlNode validated = planner.validate(query);
     System.out.println(validated);
     final RelRoot logicalPlan = planner.rel(validated);
     return logicalPlan;

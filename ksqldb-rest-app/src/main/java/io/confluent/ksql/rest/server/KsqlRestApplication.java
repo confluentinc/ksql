@@ -316,7 +316,8 @@ public final class KsqlRestApplication implements Executable {
           lagReportingResource,
           healthCheckResource,
           serverMetadataResource,
-          wsQueryEndpoint
+          wsQueryEndpoint,
+          securityExtension.getAuthTokenProvider()
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState);

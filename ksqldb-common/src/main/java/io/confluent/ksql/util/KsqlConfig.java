@@ -285,6 +285,15 @@ public class KsqlConfig extends AbstractConfig {
       + " and the regex pattern will be matched against the error class name and message of any "
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
+      = "ksql.websocket.connection.max.timeout.ms";
+  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 0;
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+      = "If this config is set to a positive number, then ksqlDB will terminate websocket"
+      + " connections after a timeout. The timeout will be the lower of the auth token's "
+      + "lifespan (if present) and the value of this config. If this config is set to 0, then "
+      + "ksqlDB will not close websockets even if the token has an expiration time.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -653,6 +662,13 @@ public class KsqlConfig extends AbstractConfig {
             "",
             Importance.LOW,
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC
+        )
+        .define(
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
         )
         .withClientSslSupport();
 

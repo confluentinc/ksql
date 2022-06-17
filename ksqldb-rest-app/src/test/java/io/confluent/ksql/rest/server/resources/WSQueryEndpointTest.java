@@ -16,6 +16,11 @@
 package io.confluent.ksql.rest.server.resources;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,6 +45,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,6 +63,7 @@ public class WSQueryEndpointTest {
   private KsqlSecurityContext ksqlSecurityContext;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  private ListeningScheduledExecutorService exec;
 
   private WSQueryEndpoint wsQueryEndpoint;
 
@@ -67,7 +74,7 @@ public class WSQueryEndpointTest {
         mock(StatementParser.class),
         mock(KsqlEngine.class),
         mock(CommandQueue.class),
-        mock(ListeningScheduledExecutorService.class),
+        exec,
         mock(ActivenessRegistrar.class),
         mock(Duration.class),
         Optional.empty(),
@@ -95,7 +102,24 @@ public class WSQueryEndpointTest {
     verify(denyListPropertyValidator).validateAll(overrides);
   }
 
-  private MultiMap buildRequestParams(final String command, final Map<String, Object> streamProps)
+  public void shouldScheduleCloseOnTimeout() throws JsonProcessingException {
+    // When
+    executeStreamQuery(buildRequestParams("show streams;", ImmutableMap.of()), Optional.of(10L));
+
+    // Then
+    verify(exec).schedule(any(Runnable.class), eq(10L), eq(TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void shouldNotScheduleCloseOnTimeout() throws JsonProcessingException {
+    // When
+    executeStreamQuery(buildRequestParams("show streams;", ImmutableMap.of()), Optional.empty());
+
+    // Then
+    verify(exec, never()).schedule(any(Runnable.class), anyLong(), any());
+
+
+    private MultiMap buildRequestParams(final String command, final Map<String, Object> streamProps)
       throws JsonProcessingException {
     final MultiMap params = MultiMap.caseInsensitiveMultiMap();
     final KsqlRequest request = new KsqlRequest(
@@ -105,7 +129,7 @@ public class WSQueryEndpointTest {
     return params;
   }
 
-  private void executeStreamQuery(final MultiMap params) {
-    wsQueryEndpoint.executeStreamQuery(serverWebSocket, params, ksqlSecurityContext);
+  private void executeStreamQuery(final MultiMap params, final Optional<Long> timeout) {
+    wsQueryEndpoint.executeStreamQuery(serverWebSocket, params, ksqlSecurityContext, timeout);
   }
 }

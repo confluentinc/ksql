@@ -235,6 +235,18 @@ public class RocksDBMetricsCollectorTest {
   }
 
   @Test
+  public void shouldComputeIntervalChangeCorrectlyInSameInstant() {
+    // Given:
+    final Instant now = Instant.now();
+    when(clock.get()).thenReturn(now, now);
+    final Interval interval = new Interval(UPDATE_INTERVAL, clock);
+
+    // When/Then:
+    assertThat(interval.check(), is(true));
+    assertThat(interval.check(), is(false));
+  }
+
+  @Test
   public void shouldNotUpdateIfWithinInterval() {
     // Given:
     final RocksDBMetricsCollector collector = new RocksDBMetricsCollector();

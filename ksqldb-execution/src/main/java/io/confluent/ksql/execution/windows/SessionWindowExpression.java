@@ -17,6 +17,9 @@ package io.confluent.ksql.execution.windows;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
@@ -29,6 +32,22 @@ import java.util.Optional;
 public class SessionWindowExpression extends KsqlWindowExpression {
 
   private final WindowTimeClause gap;
+
+  @JsonCreator
+  public static SessionWindowExpression of(
+      @JsonProperty(value = "gap", required = true) final WindowTimeClause gap,
+      @JsonProperty(value = "retention") final WindowTimeClause retention,
+      @JsonProperty(value = "gracePeriod") final WindowTimeClause gracePeriod,
+      @JsonProperty(value = "emitStrategy") final OutputRefinement emitStrategy
+  ) {
+    return new SessionWindowExpression(
+        Optional.empty(),
+        gap,
+        Optional.ofNullable(retention),
+        Optional.ofNullable(gracePeriod),
+        Optional.ofNullable(emitStrategy)
+    );
+  }
 
   public SessionWindowExpression(final WindowTimeClause gap) {
     this(Optional.empty(), gap, Optional.empty(), Optional.empty());
@@ -58,10 +77,16 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     return gap;
   }
 
+  @JsonIgnore
   @Override
   public WindowInfo getWindowInfo() {
     return WindowInfo.of(WindowType.SESSION, Optional.empty(), emitStrategy);
   }
+
+  public WindowType getWindowType() {
+    return WindowType.SESSION;
+  }
+
 
   @Override
   public <R, C> R accept(final WindowVisitor<R, C> visitor, final C context) {
@@ -73,7 +98,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     return " SESSION ( " + gap
         + retention.map(w -> " , RETENTION " + w).orElse("")
         + gracePeriod.map(g -> " , GRACE PERIOD " + g).orElse("")
-        + " ) " + emitStrategy.map(Enum::toString).orElse("");
+        + " ) ";
   }
 
   @Override

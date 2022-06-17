@@ -46,11 +46,7 @@ public enum OutputRefinement {
    *
    * <p>For a stream, all events are final, so all are output.
    */
-  FINAL_PERSISTENT {
-    public String toString() {
-      return "FINAL";
-    }
-  }
+  FINAL_PERSISTENT
 }
 
 

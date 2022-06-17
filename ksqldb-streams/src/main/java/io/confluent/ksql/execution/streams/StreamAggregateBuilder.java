@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.kstream.EmitStrategy;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -274,15 +275,12 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      final TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
+      TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);
 
-      //refinementInfo.getOutputRefinement()
       if (window.getEmitStrategy().isPresent()
           && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
-        // to-do: need to wait for KS PR to get merged
-        //timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.ON_WINDOW_CLOSE);
-        System.out.println("TODO");
+        timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
       }
 
       return timeWindowedKStream.aggregate(
@@ -311,7 +309,7 @@ public final class StreamAggregateBuilder {
       if (window.getEmitStrategy().isPresent()
           && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
         // to-do: need to wait for KS PR to get merged
-        //sessionWindowedKStream=sessionWindowedKStream.emitStrategy(EmitStrategy.ON_WINDOW_CLOSE);
+        //sessionWindowedKStreaM=sessionWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
         System.out.println("TODO");
       }
 
@@ -336,14 +334,12 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      final TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
+      TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);
 
       if (window.getEmitStrategy().isPresent()
           && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
-        // to-do: need to wait for KS PR to get merged
-        //timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.ON_WINDOW_CLOSE);
-        System.out.println("TODO");
+        timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
       }
 
       return timeWindowedKStream.aggregate(

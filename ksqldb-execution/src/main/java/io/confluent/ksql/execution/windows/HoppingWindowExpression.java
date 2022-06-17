@@ -17,6 +17,9 @@ package io.confluent.ksql.execution.windows;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
@@ -30,6 +33,24 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
 
   private final WindowTimeClause size;
   private final WindowTimeClause advanceBy;
+
+  @JsonCreator
+  public static HoppingWindowExpression of(
+      @JsonProperty(value = "size", required = true) final WindowTimeClause size,
+      @JsonProperty(value = "advanceBy", required = true) final WindowTimeClause advanceBy,
+      @JsonProperty(value = "retention") final WindowTimeClause retention,
+      @JsonProperty(value = "gracePeriod") final WindowTimeClause gracePeriod,
+      @JsonProperty(value = "emitStrategy") final OutputRefinement emitStrategy
+  ) {
+    return new HoppingWindowExpression(
+        Optional.empty(),
+        size,
+        advanceBy,
+        Optional.ofNullable(retention),
+        Optional.ofNullable(gracePeriod),
+        Optional.ofNullable(emitStrategy)
+    );
+  }
 
   public HoppingWindowExpression(
       final WindowTimeClause size,
@@ -68,9 +89,14 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     this.advanceBy = requireNonNull(advanceBy, "advanceBy");
   }
 
+  @JsonIgnore
   @Override
   public WindowInfo getWindowInfo() {
     return WindowInfo.of(WindowType.HOPPING, Optional.of(size.toDuration()), emitStrategy);
+  }
+
+  public WindowType getWindowType() {
+    return WindowType.HOPPING;
   }
 
   public WindowTimeClause getSize() {
@@ -92,7 +118,7 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
         + "ADVANCE BY " + advanceBy
         + retention.map(w -> " , RETENTION " + w).orElse("")
         + gracePeriod.map(g -> " , GRACE PERIOD " + g).orElse("")
-        + " ) " + emitStrategy.map(Enum::toString).orElse("");
+        + " ) ";
   }
 
   @Override

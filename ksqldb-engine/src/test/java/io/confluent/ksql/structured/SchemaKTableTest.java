@@ -788,6 +788,7 @@ public class SchemaKTableTest {
       );
     }
   }
+
   @Test
   public void shouldThrowOnIntoIfKeyFormatWindowInfoIsDifferent() {
     // Given:

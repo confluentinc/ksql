@@ -17,6 +17,9 @@ package io.confluent.ksql.execution.windows;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
@@ -29,6 +32,22 @@ import java.util.Optional;
 public class TumblingWindowExpression extends KsqlWindowExpression {
 
   private final WindowTimeClause size;
+
+  @JsonCreator
+  public static TumblingWindowExpression of(
+      @JsonProperty(value = "size", required = true) final WindowTimeClause size,
+      @JsonProperty(value = "retention") final WindowTimeClause retention,
+      @JsonProperty(value = "gracePeriod") final WindowTimeClause gracePeriod,
+      @JsonProperty(value = "emitStrategy") final OutputRefinement emitStrategy
+  ) {
+    return new TumblingWindowExpression(
+        Optional.empty(),
+        size,
+        Optional.ofNullable(retention),
+        Optional.ofNullable(gracePeriod),
+        Optional.ofNullable(emitStrategy)
+    );
+  }
 
   public TumblingWindowExpression(final WindowTimeClause size) {
     this(Optional.empty(), size, Optional.empty(), Optional.empty());
@@ -54,9 +73,14 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     this.size = requireNonNull(size, "size");
   }
 
+  @JsonIgnore
   @Override
   public WindowInfo getWindowInfo() {
     return WindowInfo.of(WindowType.TUMBLING, Optional.of(size.toDuration()), emitStrategy);
+  }
+
+  public WindowType getWindowType() {
+    return WindowType.TUMBLING;
   }
 
   public WindowTimeClause getSize() {
@@ -73,7 +97,7 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     return " TUMBLING ( SIZE " + size
         + retention.map(w -> " , RETENTION " + w).orElse("")
         + gracePeriod.map(g -> " , GRACE PERIOD " + g).orElse("")
-        + " ) " + emitStrategy.map(Enum::toString).orElse("");
+        + " ) ";
   }
 
   @Override

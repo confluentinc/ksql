@@ -50,6 +50,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -175,19 +176,23 @@ public class LogicalPlanner {
       currentNode = buildUserProjectNode(currentNode);
     }
 
-    if (analysis.getRefinementInfo().isPresent()
-        && analysis.getRefinementInfo().get().isFinal()) {
-      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SUPPRESS_ENABLED)) {
-        throw new KsqlException("Suppression is currently disabled. You can enable it by setting "
-            + KsqlConfig.KSQL_SUPPRESS_ENABLED + " to true");
+    if (analysis.getRefinementInfo().isPresent()) {
+      final RefinementInfo refinementInfo = analysis.getRefinementInfo().get();
+      if (refinementInfo.isFinal()) {
+        if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SUPPRESS_ENABLED)) {
+          throw new KsqlException("Suppression is currently disabled. You can enable it by setting "
+              + KsqlConfig.KSQL_SUPPRESS_ENABLED + " to true");
+        }
+        if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
+          throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
+        }
+        if (refinementInfo.getOutputRefinement() != OutputRefinement.FINAL_PERSISTENT) {
+          currentNode = buildSuppressNode(
+              currentNode,
+              analysis.getRefinementInfo().get()
+          );
+        }
       }
-      if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
-        throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
-      }
-      currentNode = buildSuppressNode(
-          currentNode,
-          analysis.getRefinementInfo().get()
-      );
     }
 
     return buildOutputNode(currentNode);

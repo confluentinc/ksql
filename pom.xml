@@ -181,6 +181,12 @@
                 </exclusions>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-core</artifactId>
+                <version>1.30.0</version>
+            </dependency>
+
             <!-- Cross-submodule dependencies -->
 
             <dependency>

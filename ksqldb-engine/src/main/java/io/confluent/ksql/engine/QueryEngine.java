@@ -35,7 +35,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.StreamsBuilder;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class QueryEngine {

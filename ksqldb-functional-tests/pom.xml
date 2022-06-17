@@ -33,6 +33,10 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-core</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>

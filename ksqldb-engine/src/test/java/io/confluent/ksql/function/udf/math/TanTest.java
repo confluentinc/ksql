@@ -50,6 +50,8 @@ public class TanTest {
     assertThat(udf.tan(-0.43), is(-0.45862102348555517));
     assertThat(udf.tan(-Math.PI), closeTo(0, 0.000000000000001));
     assertThat(udf.tan(-Math.PI * 2), closeTo(0, 0.000000000000001));
+    assertThat(udf.tan(-Math.PI * 2), closeTo(0, 0.000000000000001));
+    assertThat(udf.tan(-Math.PI / 2), is(-1.633123935319537E16));
     assertThat(udf.tan(-6), is(0.29100619138474915));
     assertThat(udf.tan(-6L), is(0.29100619138474915));
   }
@@ -66,6 +68,7 @@ public class TanTest {
     assertThat(udf.tan(0.43), is(0.45862102348555517));
     assertThat(udf.tan(Math.PI), closeTo(0, 0.000000000000001));
     assertThat(udf.tan(Math.PI * 2), closeTo(0, 0.000000000000001));
+    assertThat(udf.tan(Math.PI / 2), is(1.633123935319537E16));
     assertThat(udf.tan(6), is(-0.29100619138474915));
     assertThat(udf.tan(6L), is(-0.29100619138474915));
   }

@@ -145,6 +145,7 @@
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.3.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <io.confluent.confluent-security-plugins.version>${confluent.version.range}</io.confluent.confluent-security-plugins.version>
         <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -157,11 +158,6 @@
         <jersey-common>2.34</jersey-common>
 
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-
-        <!-- A newer mockito 4.5.1 added on https://github.com/confluentinc/common/pull/460
-             caused issues with some unit tests. This version 4.3.1 is temporary until we
-             figured out what's wrong with 4.5.1 or newer -->
-        <mockito.version>4.3.1</mockito.version>
     </properties>
 
     <dependencyManagement>

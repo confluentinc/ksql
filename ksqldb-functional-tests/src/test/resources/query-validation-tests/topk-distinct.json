@@ -93,6 +93,98 @@
         {"topic": "S2", "key": 0, "value": {"TOPK":["9.8","8.9","7.8"]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":["9.9","9.8","8.9"]}}
       ]
+    },
+    {
+      "name": "topk distinct bytes",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bytes) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, topkdistinct(value, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE":"Qg=="}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": "Rg=="}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": "Rw=="}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": "QQ=="}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": "Rg=="}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"TOPK":["Qg=="]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":["Rg==","Qg=="]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":["Rw==","Rg==","Qg=="]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":["Rw==","Rg==","Qg=="]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":["Rw==","Rg==","Qg=="]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":["Rw==","Rg==","Qg=="]}}
+      ]
+    },
+    {
+      "name": "topk distinct date",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE date) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, topkdistinct(value, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE":0}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 100}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 99}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": -7}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 100}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"TOPK":[0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}}
+      ]
+    },
+    {
+      "name": "topk distinct time",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE time) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, topkdistinct(value, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE":0}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 100}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 99}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 7}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 100}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"TOPK":[0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,7]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,7]}}
+      ]
+    },
+    {
+      "name": "topk distinct timestamp",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE timestamp) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, topkdistinct(value, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE":0}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 100}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 99}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": -7}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 100}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"TOPK":[0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[100,99,0]}}
+      ]
     }
   ]
 }

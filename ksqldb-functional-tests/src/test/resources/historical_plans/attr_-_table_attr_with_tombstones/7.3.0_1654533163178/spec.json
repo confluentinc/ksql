@@ -1,0 +1,241 @@
+{
+  "version" : "7.3.0",
+  "timestamp" : 1654533163178,
+  "path" : "query-validation-tests/attr.json",
+  "schemas" : {
+    "CTAS_OUT_0.Aggregate.Project" : {
+      "schema" : "`G` INTEGER KEY, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUT_0.OUT" : {
+      "schema" : "`G` INTEGER KEY, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUT_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`K` INTEGER KEY, `G` INTEGER, `S` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUT_0.Aggregate.GroupBy" : {
+      "schema" : "`G` INTEGER KEY, `G` INTEGER, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`G` INTEGER KEY, `G` INTEGER, `S` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`VALUE` STRING, `COUNT` INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` INTEGER KEY, `G` INTEGER, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUT_0.Aggregate.Prepare" : {
+      "schema" : "`K` INTEGER KEY, `G` INTEGER, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "table attr with tombstones",
+    "inputs" : [ {
+      "topic" : "in",
+      "key" : 1,
+      "value" : null
+    }, {
+      "topic" : "in",
+      "key" : 1,
+      "value" : {
+        "g" : 1,
+        "s" : "1"
+      }
+    }, {
+      "topic" : "in",
+      "key" : 2,
+      "value" : {
+        "g" : 1,
+        "s" : "1"
+      }
+    }, {
+      "topic" : "in",
+      "key" : 1,
+      "value" : null
+    }, {
+      "topic" : "in",
+      "key" : 2,
+      "value" : null
+    }, {
+      "topic" : "in",
+      "key" : 1,
+      "value" : {
+        "g" : 1,
+        "s" : "2"
+      }
+    }, {
+      "topic" : "in",
+      "key" : 2,
+      "value" : {
+        "g" : 1,
+        "s" : "3"
+      }
+    }, {
+      "topic" : "in",
+      "key" : 2,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : 1,
+      "value" : {
+        "S" : "1"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : 1,
+      "value" : {
+        "S" : "1"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : 1,
+      "value" : {
+        "S" : "1"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : 1,
+      "value" : {
+        "S" : null
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : 1,
+      "value" : {
+        "S" : "2"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : 1,
+      "value" : {
+        "S" : null
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : 1,
+      "value" : {
+        "S" : "2"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "in",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE input (k INT PRIMARY KEY, g INT, s STRING) WITH (kafka_topic='in', value_format='JSON');", "CREATE TABLE out AS SELECT g, ATTR(s) AS s FROM input GROUP BY g;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "TABLE",
+        "schema" : "`K` INTEGER KEY, `G` INTEGER, `S` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUT",
+        "type" : "TABLE",
+        "schema" : "`G` INTEGER KEY, `S` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "in",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUT_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

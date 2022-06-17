@@ -47,8 +47,8 @@ public class CosTest {
   @Test
   public void shouldHandleNegative() {
     assertThat(udf.cos(-0.43), is(0.9089657496748851));
-    assertThat(udf.cos(-3.14159265), is(-1.0));
-    assertThat(udf.cos(-6.28318531), is(1.0));
+    assertThat(udf.cos(-Math.PI), is(-1.0));
+    assertThat(udf.cos(-2 * Math.PI), is(1.0));
     assertThat(udf.cos(-6), is(0.960170286650366));
     assertThat(udf.cos(-6L), is(0.960170286650366));
   }
@@ -63,8 +63,8 @@ public class CosTest {
   @Test
   public void shouldHandlePositive() {
     assertThat(udf.cos(0.43), is(0.9089657496748851));
-    assertThat(udf.cos(3.14159265), is(-1.0));
-    assertThat(udf.cos(6.28318531), is(1.0));
+    assertThat(udf.cos(Math.PI), is(-1.0));
+    assertThat(udf.cos(2 * Math.PI), is(1.0));
     assertThat(udf.cos(6), is(0.960170286650366));
     assertThat(udf.cos(6L), is(0.960170286650366));
   }

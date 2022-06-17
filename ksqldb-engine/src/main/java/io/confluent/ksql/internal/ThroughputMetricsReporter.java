@@ -36,14 +36,18 @@ import java.util.regex.Pattern;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ThroughputMetricsReporter implements MetricsReporter {
   private static final Logger LOGGER = LoggerFactory.getLogger(ThroughputMetricsReporter.class);
+  private static final String THROUGHPUT_METRICS_GROUP = "ksql-query-throughput-metrics";
   private static final String QUERY_ID_TAG = "query-id";
   private static final String RECORDS_CONSUMED = "records-consumed-total";
   private static final String BYTES_CONSUMED = "bytes-consumed-total";
@@ -115,7 +119,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
           .put(throughputTotalMetricName, newThroughputMetric);
       metricRegistry.addMetric(
           throughputTotalMetricName,
-          (config, now) -> newThroughputMetric.getValue()
+          newThroughputMetric
       );
     } else {
       existingThroughputMetric.add(metric);
@@ -195,7 +199,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   ) {
     return new MetricName(
       metricName.name(),
-      TOPIC_LEVEL_GROUP,
+      THROUGHPUT_METRICS_GROUP,
       metricName.description() + " by this query",
       getThroughputTotalMetricTags(queryId, metricName.tags())
     );
@@ -241,7 +245,9 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     return ImmutableMap.copyOf(queryMetricTags);
   }
 
-  private static class ThroughputTotalMetric {
+  // This is a hack to get the ce-metrics to correctly identify these metrics as a cumulative sum
+  // and take the diff to compute the delta so that it can be accumulated downstream.
+  private static class ThroughputTotalMetric extends CumulativeSum {
     final Map<MetricName, KafkaMetric> throughputTotalMetrics = new HashMap<>();
 
     ThroughputTotalMetric(final KafkaMetric metric) {
@@ -256,7 +262,8 @@ public class ThroughputMetricsReporter implements MetricsReporter {
       throughputTotalMetrics.remove(metric);
     }
 
-    public Double getValue() {
+    @Override
+    public double measure(MetricConfig var1, long var2) {
       return throughputTotalMetrics
         .values()
          .stream()

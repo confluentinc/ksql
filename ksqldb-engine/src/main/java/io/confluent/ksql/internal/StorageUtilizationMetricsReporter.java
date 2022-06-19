@@ -15,7 +15,13 @@
 
 package io.confluent.ksql.internal;
 
+import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_QUERY_ID_TAG;
+import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TASK_ID_TAG;
+import static io.confluent.ksql.internal.MetricsTagUtils.NAMED_TOPOLOGY_PATTERN;
+import static io.confluent.ksql.internal.MetricsTagUtils.QUERY_ID_PATTERN;
 import static java.util.Objects.requireNonNull;
+import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.TASK_ID_TAG;
+import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.THREAD_ID_TAG;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
@@ -33,7 +39,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigException;
@@ -44,14 +49,6 @@ import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.TASK_ID_TAG;
-import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.THREAD_ID_TAG;
-
-import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_QUERY_ID_TAG;
-import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TASK_ID_TAG;
-import static io.confluent.ksql.internal.MetricsTagUtils.NAMED_TOPOLOGY_PATTERN;
-import static io.confluent.ksql.internal.MetricsTagUtils.QUERY_ID_PATTERN;
 
 public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private static final Logger LOGGER

@@ -69,13 +69,13 @@ public class ThroughputMetricsReporterTest {
   private static final Map<String, String> QUERY_ONE_TAGS = ImmutableMap.of(
       "logical_cluster_id", "lksqlc-12345",
       "query-id", QUERY_ID + "_1",
-      "consumer-group-member-id", THREAD_ID,
+      "consumer_group_member_id", THREAD_ID,
       "topic", TOPIC_NAME
   );
   private static final Map<String, String> QUERY_TWO_TAGS = ImmutableMap.of(
       "logical_cluster_id", "lksqlc-12345",
       "query-id", QUERY_ID + "_2",
-      "consumer-group-member-id", THREAD_ID_2,
+      "consumer_group_member_id", THREAD_ID_2,
       "topic", TOPIC_NAME_2
   );
 
@@ -275,14 +275,14 @@ public class ThroughputMetricsReporterTest {
     final Map<String, String> transientQueryTags = ImmutableMap.of(
         "logical_cluster_id", "lksqlc-12345",
         "query-id", "blahblah_4",
-        "consumer-group-member-id", TRANSIENT_THREAD_ID,
+        "consumer_group_id", TRANSIENT_THREAD_ID,
         "topic", TOPIC_NAME
     );
     listener.metricChange(mockMetric(
         BYTES_CONSUMED_TOTAL,
         2D,
         ImmutableMap.of(
-            "consumer-group-member-id", TRANSIENT_THREAD_ID,
+            "thread-id", TRANSIENT_THREAD_ID,
             "task-id", TASK_ID_1,
             "processor-node-id", PROCESSOR_NODE_ID,
             "topic", TOPIC_NAME))
@@ -298,7 +298,7 @@ public class ThroughputMetricsReporterTest {
       BYTES_CONSUMED_TOTAL,
       15D,
       ImmutableMap.of(
-        "consumer-group-member-id", TRANSIENT_THREAD_ID,
+        "thread-id", TRANSIENT_THREAD_ID,
         "task-id", TASK_ID_2,
         "processor-node-id", PROCESSOR_NODE_ID,
         "topic", TOPIC_NAME
@@ -318,14 +318,14 @@ public class ThroughputMetricsReporterTest {
     final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
       "logical_cluster_id", "lksqlc-12345",
       "query-id", "CTAS_TEST_5",
-      "consumer-group-member-id", "_confluent_blahblah_query-1-blahblah",
+      "consumer_group_id", "_confluent_blahblah_query-1-blahblah",
       "topic", TOPIC_NAME
     );
     listener.metricChange(mockMetric(
       BYTES_CONSUMED_TOTAL,
       2D,
       ImmutableMap.of(
-        "consumer-group-member-id", "_confluent_blahblah_query-1-blahblah",
+        "thread-id", "_confluent_blahblah_query-1-blahblah",
         "task-id", "CTAS_TEST_5__" + TASK_ID_1,
         "processor-node-id", PROCESSOR_NODE_ID,
         "topic", TOPIC_NAME))
@@ -341,7 +341,7 @@ public class ThroughputMetricsReporterTest {
       BYTES_CONSUMED_TOTAL,
       15D,
       ImmutableMap.of(
-        "consumer-group-member-id", "_confluent_blahblah_query-1-blahblah",
+        "thread-id", "_confluent_blahblah_query-1-blahblah",
         "task-id", "CTAS_TEST_5__" + TASK_ID_2,
         "processor-node-id", PROCESSOR_NODE_ID,
         "topic", TOPIC_NAME
@@ -377,7 +377,7 @@ public class ThroughputMetricsReporterTest {
         BYTES_CONSUMED_TOTAL,
         2D,
         ImmutableMap.of(
-          "consumer-group-member-id", "_confluent_blahblah_query-blahblah",
+          "thread-id", "_confluent_blahblah_query-blahblah",
           "task-id", TASK_ID_1,
           "processor-node-id", PROCESSOR_NODE_ID,
           "topic", TOPIC_NAME))
@@ -394,7 +394,7 @@ public class ThroughputMetricsReporterTest {
         BYTES_CONSUMED_TOTAL,
         2D,
         ImmutableMap.of(
-          "consumer-group-member-id", THREAD_ID,
+          "thread-id", THREAD_ID,
           "task-id", TASK_ID_1,
           "processor-node-id", PROCESSOR_NODE_ID))
       )

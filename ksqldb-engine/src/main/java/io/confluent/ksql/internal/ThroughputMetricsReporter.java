@@ -203,6 +203,10 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   }
 
   private String getQueryId(final KafkaMetric metric) {
+    if (metric.metricName().tags().containsKey(KSQL_QUERY_ID_TAG)) {
+      return metric.metricName().tags().get(KSQL_QUERY_ID_TAG);
+    }
+
     final String taskName = metric.metricName().tags().getOrDefault(StreamsMetricsImpl.TASK_ID_TAG, "");
     final Matcher namedTopologyMatcher = NAMED_TOPOLOGY_PATTERN.matcher(taskName);
     if (namedTopologyMatcher.find()) {
@@ -220,6 +224,10 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   }
 
   private String getTopic(final KafkaMetric metric) {
+    if (metric.metricName().tags().containsKey(KSQL_TOPIC_TAG)) {
+      return metric.metricName().tags().get(KSQL_TOPIC_TAG);
+    }
+
     final String topic = metric.metricName().tags().getOrDefault(StreamsMetricsImpl.TOPIC_NAME_TAG, "");
     if (topic.equals("")) {
       LOGGER.error("Can't parse topic name from metric {}", metric);
@@ -240,12 +248,13 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     queryMetricTags.remove(StreamsMetricsImpl.TASK_ID_TAG);
     queryMetricTags.remove(StreamsMetricsImpl.PROCESSOR_NODE_ID_TAG);
 
-    // Need to convert the tag name from 'topic-name' to 'topic' to conform to Druid label
-    // TODO: remove this once we fix it upstream (see
+    // Convert the tag name from 'topic-name' to 'topic' to conform to client metrics
+    // TODO: we can remove this once the upstream fix is merged --
+    //  see https://github.com/apache/kafka/pull/12310
     queryMetricTags.remove(StreamsMetricsImpl.TOPIC_NAME_TAG);
     queryMetricTags.put(KSQL_TOPIC_TAG, topic);
 
-    // Replace thread id with consumer group member id to match Druid label
+    // Replace thread id with consumer group member id to match existing client tag/Druid label
     final String threadId = queryMetricTags.remove(StreamsMetricsImpl.THREAD_ID_TAG);
     queryMetricTags.put(KSQL_CONSUMER_GROUP_MEMBER_ID_TAG, threadId);
 

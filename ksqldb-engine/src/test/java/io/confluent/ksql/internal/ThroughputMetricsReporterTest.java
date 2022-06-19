@@ -275,7 +275,7 @@ public class ThroughputMetricsReporterTest {
     final Map<String, String> transientQueryTags = ImmutableMap.of(
         "logical_cluster_id", "lksqlc-12345",
         "query-id", "blahblah_4",
-        "consumer_group_id", TRANSIENT_THREAD_ID,
+        "consumer_group_member_id", TRANSIENT_THREAD_ID,
         "topic", TOPIC_NAME
     );
     listener.metricChange(mockMetric(
@@ -318,7 +318,7 @@ public class ThroughputMetricsReporterTest {
     final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
       "logical_cluster_id", "lksqlc-12345",
       "query-id", "CTAS_TEST_5",
-      "consumer_group_id", "_confluent_blahblah_query-1-blahblah",
+      "consumer_group_member_id", "_confluent_blahblah_query-1-blahblah",
       "topic", TOPIC_NAME
     );
     listener.metricChange(mockMetric(

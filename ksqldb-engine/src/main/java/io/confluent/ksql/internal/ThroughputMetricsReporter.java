@@ -251,8 +251,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     queryMetricTags.remove(StreamsMetricsImpl.PROCESSOR_NODE_ID_TAG);
 
     // Convert the tag name from 'topic-name' to 'topic' to conform to client metrics
-    // TODO: we can remove this once the upstream fix is merged --
-    //  see https://github.com/apache/kafka/pull/12310
+    // We can remove this once the Streams fix is merged https://github.com/apache/kafka/pull/12310
     queryMetricTags.remove(StreamsMetricsImpl.TOPIC_NAME_TAG);
     queryMetricTags.put(KSQL_TOPIC_TAG, topic);
 

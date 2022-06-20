@@ -41,7 +41,6 @@ import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -207,13 +206,15 @@ public class ThroughputMetricsReporter implements MetricsReporter {
       return metric.metricName().tags().get(KSQL_QUERY_ID_TAG);
     }
 
-    final String taskName = metric.metricName().tags().getOrDefault(StreamsMetricsImpl.TASK_ID_TAG, "");
+    final String taskName =
+        metric.metricName().tags().getOrDefault(StreamsMetricsImpl.TASK_ID_TAG, "");
     final Matcher namedTopologyMatcher = NAMED_TOPOLOGY_PATTERN.matcher(taskName);
     if (namedTopologyMatcher.find()) {
       return namedTopologyMatcher.group(1);
     }
 
-    final String queryIdTag = metric.metricName().tags().getOrDefault(StreamsMetricsImpl.THREAD_ID_TAG, "");
+    final String queryIdTag =
+        metric.metricName().tags().getOrDefault(StreamsMetricsImpl.THREAD_ID_TAG, "");
     final Matcher matcher = QUERY_ID_PATTERN.matcher(queryIdTag);
     if (matcher.find()) {
       return matcher.group(1);
@@ -228,7 +229,8 @@ public class ThroughputMetricsReporter implements MetricsReporter {
       return metric.metricName().tags().get(KSQL_TOPIC_TAG);
     }
 
-    final String topic = metric.metricName().tags().getOrDefault(StreamsMetricsImpl.TOPIC_NAME_TAG, "");
+    final String topic =
+        metric.metricName().tags().getOrDefault(StreamsMetricsImpl.TOPIC_NAME_TAG, "");
     if (topic.equals("")) {
       LOGGER.error("Can't parse topic name from metric {}", metric);
       throw new KsqlException("Missing topic name when reporting total throughput metrics");

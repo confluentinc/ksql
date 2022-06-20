@@ -17,7 +17,7 @@ package io.confluent.ksql.internal;
 
 import java.util.regex.Pattern;
 
-final public class MetricsTagUtils {
+public final class MetricsTagUtils {
 
   private MetricsTagUtils() {
   }

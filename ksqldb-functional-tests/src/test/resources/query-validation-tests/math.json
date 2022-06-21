@@ -256,6 +256,104 @@
           }
         ]
       }
+    },
+    {
+      "name": "cbrt",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, cbrt(i) i, cbrt(l) l, cbrt(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -8, "l": -3, "d": -1.0}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 8, "l": 3, "d": 1.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -2.0, "L": -1.4422495703074083, "D": -1.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 2.0, "L": 1.4422495703074083, "D": 1.0}}
+      ]
+    },
+    {
+      "name": "power",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ib INT, ie INT, lb BIGINT, le BIGINT, db DOUBLE, de DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, power(ib, ie) i, power(lb, le) l, power(db, de) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"ib": null, "ie": 13, "lb": null, "le": 13, "db": null, "de":  13.0}},
+        {"topic": "input", "value": {"ib": 13, "ie": null, "lb": 13, "le": null, "db": 13.0, "de":  null}},
+        {"topic": "input", "value": {"ib": 15, "ie": -1, "lb": 15, "le": -1, "db": 15.0, "de":  -1.0}},
+        {"topic": "input", "value": {"ib": 15, "ie": 0, "lb": 15, "le": 0, "db": 15.0, "de":  0.0}},
+        {"topic": "input", "value": {"ib": 0, "ie": 0, "lb": 0, "le": 0, "db": 0.0, "de":  0.0}},
+        {"topic": "input", "value": {"ib": 15, "ie": 13, "lb": 15, "le": 13, "db": 15.0, "de":  13.0}},
+        {"topic": "input", "value": {"ib": -15, "ie": 2, "lb": -15, "le": 2, "db": -15.0, "de":  2.0}},
+        {"topic": "input", "value": {"ib": 0, "ie": 2, "lb": 0, "le": 2, "db": 0.0, "de":  2.0}},
+        {"topic": "input", "value": {"ib": 1, "ie": 2, "lb": 1, "le": 2, "db": 1.0, "de":  2.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": 0.06666666666666667, "L": 0.06666666666666667, "D": 0.06666666666666667}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.946195068359375E15, "L": 1.946195068359375E15, "D": 1.946195068359375E15}},
+        {"topic": "OUTPUT", "value": {"I": 225.0, "L": 225.0, "D": 225.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}}
+      ]
+    },
+    {
+      "name": "log-base-10",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, log(i) i, log(l) l, log(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -13, "l": -13, "d": -13.0}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 1.0}},
+        {"topic": "input", "value": {"i": 13, "l": 13, "d": 13.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "-Infinity", "L": "-Infinity", "D": "-Infinity"}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 2.5649493574615367, "L": 2.5649493574615367, "D": 2.5649493574615367}}
+      ]
+    },
+    {
+      "name": "log-custom-base",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ib INT, iv INT, lb BIGINT, lv BIGINT, db DOUBLE, dv DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, log(ib, iv) i, log(lb, lv) l, log(db, dv) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"ib": null, "iv": 13, "lb": null, "lv": 13, "db": null, "dv":  13.0}},
+        {"topic": "input", "value": {"ib": 13, "iv": null, "lb": 13, "lv": null, "db": 13.0, "dv":  null}},
+        {"topic": "input", "value": {"ib": 15, "iv": 13, "lb": 15, "lv": 13, "db": 15.0, "dv":  13.0}},
+        {"topic": "input", "value": {"ib": 15, "iv": 1, "lb": 15, "lv": 1, "db": 15.0, "dv":  1.0}},
+        {"topic": "input", "value": {"ib": 15, "iv": 0, "lb": 15, "lv": 0, "db": 15.0, "dv":  0.0}},
+        {"topic": "input", "value": {"ib": 15, "iv": -13, "lb": 15, "lv": -13, "db": 15.0, "dv":  -13.0}},
+        {"topic": "input", "value": {"ib": -15, "iv": 13, "lb": -15, "lv": 13, "db": -15.0, "dv":  13.0}},
+        {"topic": "input", "value": {"ib": 0, "iv": 13, "lb": 0, "lv": 13, "db": 0.0, "dv":  13.0}},
+        {"topic": "input", "value": {"ib": 1, "iv": 13, "lb": 1, "lv": 13, "db": 1.0, "dv":  13.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": 0.9471572411831843, "L": 0.9471572411831843, "D": 0.9471572411831843}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": "-Infinity", "L": "-Infinity", "D": "-Infinity"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}}
+      ]
     }
   ]
 }

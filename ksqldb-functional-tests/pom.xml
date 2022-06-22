@@ -41,6 +41,15 @@
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-server</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-plus</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>tpcds</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>

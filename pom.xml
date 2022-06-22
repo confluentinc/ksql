@@ -191,6 +191,16 @@
                 <artifactId>calcite-server</artifactId>
                 <version>1.30.0</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-plus</artifactId>
+                <version>1.30.0</version>
+            </dependency>
+            <dependency>
+                <groupId>net.hydromatic</groupId>
+                <artifactId>tpcds</artifactId>
+                <version>0.4</version>
+            </dependency>
 
             <!-- Cross-submodule dependencies -->
 

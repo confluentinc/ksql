@@ -19,7 +19,6 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.io.PrintWriter;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import net.hydromatic.tpcds.query.Query;
@@ -46,12 +45,13 @@ import org.apache.calcite.tools.ValidationException;
 import org.apache.kafka.streams.Topology;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class CalcitePlannerTest {
+public class CalcitePlannerTestDS {
 
   public static String[] queries = new String[]{
       "SELECT * FROM Pantalones",
@@ -145,21 +145,10 @@ public class CalcitePlannerTest {
 
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
 
-    final ReflectiveSchema reflectiveSchema = new ReflectiveSchema(new TestSchema());
-    final SchemaPlus schema =
-        rootSchema
-            .add(schemaName, reflectiveSchema);
-    schema.add(
-        "CONCAT",
-        ScalarFunctionImpl.create(ConcatFunction.class, "eval")
-    );
-    rootSchema.add(
-        "TPCH",
-        new TpchSchema(
-            1.0,
-            1,
-            1,
-            false
+    final SchemaPlus schema = rootSchema.add(
+        "TCPDS",
+        new TpcdsSchema(
+            1.0
         )
     );
 
@@ -203,24 +192,34 @@ public class CalcitePlannerTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     final Builder<Object[]> builder = ImmutableList.builder();
-    for (final String query : queries) {
-      builder.add(new Object[]{query, query});
-    }
-    for (int i = 0; i < CalcitePlannerTestTpch.QUERIES.size(); i++) {
-      final String query = CalcitePlannerTestTpch.QUERIES.get(i);
-      builder.add(new Object[]{"TPCH Query " + i, query});
+//    for (final String query : queries) {
+//      builder.add(new Object[]{query, query});
+//    }
+//    for (int i = 0; i < CalcitePlannerTestTpch.QUERIES.size(); i++) {
+//      final String query = CalcitePlannerTestTpch.QUERIES.get(i);
+//      builder.add(new Object[]{"TPCH Query " + i, query});
+//    }
+    for (final Query value : Query.values()) {
+      final String query = value.sql(new Random(0));
+      builder.add(new Object[]{"TPCDS Query " + value.id, query});
     }
     return builder.build();
   }
 
-  public CalcitePlannerTest(final String name, final String sql) {
+  public CalcitePlannerTestDS(final String name, final String sql) {
     this.sql = sql;
   }
 
   @Test
   public void logical()
       throws SqlParseException, ValidationException, RelConversionException {
-    final RelRoot logicalPlan = getLogicalPlan(sql);
+    final RelRoot logicalPlan;
+    try {
+      logicalPlan = getLogicalPlan(sql);
+    } catch (final RuntimeException | SqlParseException | ValidationException | RelConversionException e) {
+      System.out.println(sql);
+      throw e;
+    }
 
     final RelWriterImpl relWriter = new RelWriterImpl(new PrintWriter(System.out),
         SqlExplainLevel.ALL_ATTRIBUTES, false);
@@ -230,6 +229,7 @@ public class CalcitePlannerTest {
     System.out.println("}");
   }
 
+  @Ignore
   @Test
   public void physical()
       throws SqlParseException, ValidationException, RelConversionException {

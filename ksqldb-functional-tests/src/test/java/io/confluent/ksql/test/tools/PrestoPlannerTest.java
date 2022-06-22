@@ -26,16 +26,18 @@ import io.confluent.ksql.test.tools.PrestoPlanner.Table;
 import java.util.Optional;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class PrestoPlannerTest {
 
-  private String schemaName;
-  private Connector connector;
-  private ImmutableMap<SchemaTableName, ? extends KsqlTable<?>> ksqlTables;
+  private static String schemaName;
+  private static Connector connector;
+  private static ImmutableMap<SchemaTableName, ? extends KsqlTable<?>> ksqlTables;
+  private static PrestoPlanner prestoPlanner;
 
-  @Before
-  public void beforeClass() {
+  @BeforeClass
+  public static void beforeClass() {
     schemaName = "schema";
 
     final LogicalSchema.Builder pantalonesKsqlSchema = LogicalSchema.builder();
@@ -108,13 +110,13 @@ public class PrestoPlannerTest {
             pantalonesPrestoTable, abrigosTable
         )
     );
+
+    prestoPlanner = new PrestoPlanner(schemaName, connector);
   }
 
   @Test public void selectStarFrom() {
-    final Plan prestoPlan = PrestoPlanner.logicalPlan(
-        "SELECT * FROM Pantalones",
-        schemaName,
-        connector
+    final Plan prestoPlan = prestoPlanner.logicalPlan(
+        "SELECT * FROM Pantalones"
     );
 
     final PlanBuildContext planBuildContext = PrestoPlanner.getPlanBuildContext();
@@ -124,10 +126,8 @@ public class PrestoPlannerTest {
   }
 
   @Test public void selectFieldsFrom() {
-    final Plan prestoPlan = PrestoPlanner.logicalPlan(
-        "SELECT ID, Size FROM Pantalones",
-        schemaName,
-        connector
+    final Plan prestoPlan = prestoPlanner.logicalPlan(
+        "SELECT ID, Size FROM Pantalones"
     );
 
     final PlanBuildContext planBuildContext = PrestoPlanner.getPlanBuildContext();
@@ -137,10 +137,8 @@ public class PrestoPlannerTest {
   }
 
   @Test public void selectStarFromWhere() {
-    final Plan prestoPlan = PrestoPlanner.logicalPlan(
-        "SELECT * FROM Pantalones WHERE ID = '5'",
-        schemaName,
-        connector
+    final Plan prestoPlan = prestoPlanner.logicalPlan(
+        "SELECT * FROM Pantalones WHERE ID = '5'"
     );
 
     final PlanBuildContext planBuildContext = PrestoPlanner.getPlanBuildContext();
@@ -150,10 +148,8 @@ public class PrestoPlannerTest {
   }
 
   @Test public void selectStarFromWhereIn() {
-    final Plan prestoPlan = PrestoPlanner.logicalPlan(
-        "SELECT * FROM Pantalones WHERE ID IN ('5', 'XYZ')",
-        schemaName,
-        connector
+    final Plan prestoPlan = prestoPlanner.logicalPlan(
+        "SELECT * FROM Pantalones WHERE ID IN ('5', 'XYZ')"
     );
 
     final PlanBuildContext planBuildContext = PrestoPlanner.getPlanBuildContext();
@@ -163,10 +159,8 @@ public class PrestoPlannerTest {
   }
 
   @Test public void selectStarFromWhereGreater() {
-    final Plan prestoPlan = PrestoPlanner.logicalPlan(
-        "SELECT * FROM Pantalones WHERE Waist > 32",
-        schemaName,
-        connector
+    final Plan prestoPlan = prestoPlanner.logicalPlan(
+        "SELECT * FROM Pantalones WHERE Waist > 32"
     );
 
     final PlanBuildContext planBuildContext = PrestoPlanner.getPlanBuildContext();

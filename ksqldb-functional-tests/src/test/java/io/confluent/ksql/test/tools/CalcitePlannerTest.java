@@ -19,12 +19,8 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.io.PrintWriter;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
-import java.util.Random;
-import net.hydromatic.tpcds.query.Query;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
-import org.apache.calcite.adapter.tpcds.TpcdsSchema;
 import org.apache.calcite.adapter.tpch.TpchSchema;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
@@ -36,7 +32,6 @@ import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
 import org.apache.calcite.sql.ddl.SqlCreateTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -45,7 +40,7 @@ import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.kafka.streams.Topology;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -72,9 +67,9 @@ public class CalcitePlannerTest {
       "SELECT id, size FROM (SELECT id, waist, size FROM (SELECT * FROM Pantalones))",
   };
 
-  private String schemaName;
-  private Planner planner;
-  private ImmutableMap<SchemaTableName, ? extends KsqlTable<?>> ksqlTables;
+  private static String schemaName;
+  private static Planner planner;
+  private static ImmutableMap<SchemaTableName, ? extends KsqlTable<?>> ksqlTables;
 
   private final String sql;
 
@@ -139,8 +134,8 @@ public class CalcitePlannerTest {
     }
   }
 
-  @Before
-  public void before() {
+  @BeforeClass
+  public static void before() {
     schemaName = "schema";
 
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
@@ -163,7 +158,7 @@ public class CalcitePlannerTest {
         )
     );
 
-    final Config parserConfig =
+    final SqlParser.Config parserConfig =
         SqlParser
             .config()
             .withCaseSensitive(false)
@@ -206,8 +201,8 @@ public class CalcitePlannerTest {
     for (final String query : queries) {
       builder.add(new Object[]{query, query});
     }
-    for (int i = 0; i < CalcitePlannerTestTpch.QUERIES.size(); i++) {
-      final String query = CalcitePlannerTestTpch.QUERIES.get(i);
+    for (int i = 0; i < CalciteTPCHQueries.QUERIES.size(); i++) {
+      final String query = CalciteTPCHQueries.QUERIES.get(i);
       builder.add(new Object[]{"TPCH Query " + i, query});
     }
     return builder.build();
@@ -253,6 +248,8 @@ public class CalcitePlannerTest {
   @NotNull
   private RelRoot getLogicalPlan(final String sql)
       throws SqlParseException, ValidationException, RelConversionException {
+    planner.close();
+    planner.reset();
     final SqlNode parsed = planner.parse(sql);
     System.out.println(parsed);
     if (parsed instanceof SqlCreateTable) {

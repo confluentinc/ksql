@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 
-public class CalcitePlannerTestTpch {
+public class CalciteTPCHQueries {
 
-  static final List<String> QUERIES = ImmutableList.of(
+  public static final List<String> QUERIES = ImmutableList.of(
       // 01
       "select\n"
           + "  l_returnflag,\n"

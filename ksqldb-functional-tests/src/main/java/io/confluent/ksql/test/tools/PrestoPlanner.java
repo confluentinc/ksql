@@ -171,7 +171,203 @@ import org.weakref.jmx.MBeanExporter;
 )
 public class PrestoPlanner {
 
-  public PrestoPlanner() {
+  private final WarningCollector warningCollector;
+  private final QueryPreparer queryPreparer;
+  private final Session session;
+  private final AllowAllAccessControl accessControl;
+  private final TransactionManager transactionManager;
+  private final SqlParser sqlParser;
+  private final MetadataManager metadata;
+  private final List<PlanOptimizer> planningTimeOptimizers;
+  private final ComposableStatsCalculator statsCalculator;
+  private final CostCalculatorUsingExchanges costCalculator;
+
+  public PrestoPlanner(final String schemaName, final Connector connector) {
+    warningCollector = WarningCollector.NOOP;
+    sqlParser = new SqlParser();
+    queryPreparer = new QueryPreparer(sqlParser);
+    final QueryIdGenerator queryIdGenerator = new QueryIdGenerator();
+    final String catalogName = "catalog";
+
+    final CatalogManager catalogManager = new CatalogManager();
+    ConnectorId connectorId = new ConnectorId(catalogName);
+    final ConnectorId systemConnectorId = new ConnectorId("systemCatalog");
+    final Connector systemConnector = new ProtoConnector(ImmutableList.of());
+    final Catalog catalog = new Catalog(
+        catalogName,
+        connectorId,
+        connector,
+        createInformationSchemaConnectorId(connectorId),
+        connector,
+        createSystemTablesConnectorId(systemConnectorId),
+        systemConnector);
+    catalogManager.registerCatalog(catalog);
+
+    session = Session.builder(new SessionPropertyManager())
+        .setQueryId(queryIdGenerator.createNextQueryId())
+        .setIdentity(new Identity("user", Optional.empty()))
+        .setCatalog(catalogName)
+        .setSchema(schemaName)
+        .build();
+
+    accessControl = new AllowAllAccessControl();
+    transactionManager =
+        InMemoryTransactionManager.createTestTransactionManager(
+            catalogManager
+        );
+
+    BlockEncodingManager blockEncodingManager = new BlockEncodingManager();
+    TablePropertyManager tablePropertyManager = new TablePropertyManager();
+    tablePropertyManager.addProperties(connectorId, ImmutableList.of());
+
+    FunctionAndTypeManager functionAndTypeManager = new FunctionAndTypeManager(
+        transactionManager,
+        blockEncodingManager,
+        new FeaturesConfig(),
+        new HandleResolver(),
+        ImmutableSet.of()
+    );
+
+    metadata = new MetadataManager(
+        functionAndTypeManager,
+        blockEncodingManager,
+        new SessionPropertyManager(),
+        new SchemaPropertyManager(),
+        tablePropertyManager,
+        new ColumnPropertyManager(),
+        new AnalyzePropertyManager(),
+        transactionManager);
+
+    statsCalculator =
+        new ComposableStatsCalculator(Collections.emptyList());
+    costCalculator = new CostCalculatorUsingExchanges(
+        new TaskCountEstimator(() -> 42));
+
+    final boolean forceSingleNode = true;
+    final MBeanExporter exporter = null;
+    final SplitManager splitManager = new SplitManager(metadata, new QueryManagerConfig(),
+        new NodeSchedulerConfig());
+    final ConnectorPlanOptimizerManager connectorPlanOptimizerManager = new ConnectorPlanOptimizerManager();
+    final PageSourceManager pageSourceManager = new PageSourceManager();
+    final CostComparator costComparator = new CostComparator(1.0, 1.0, 1.0);
+    final TaskCountEstimator taskCountEstimator = null;
+    final PartitioningProviderManager partitioningProviderManager = null;
+    PlanOptimizers po = new PlanOptimizers(
+        metadata,
+        sqlParser,
+        forceSingleNode,
+        exporter,
+        splitManager,
+        connectorPlanOptimizerManager,
+        pageSourceManager,
+        statsCalculator,
+        costCalculator,
+        costCalculator,
+        costComparator,
+        taskCountEstimator,
+        partitioningProviderManager
+    );
+
+    planningTimeOptimizers = po.getPlanningTimeOptimizers();
+  }
+
+  public Plan logicalPlan(final String sql) {
+    final Statement statement = sqlParser.createStatement(
+        sql,
+        ParsingOptions.builder().build()
+    );
+
+//    System.out.println(statement);
+
+    final AtomicReference<Plan> logicalPlan = new AtomicReference<>();
+    TransactionBuilder.transaction(transactionManager, accessControl)
+        .singleStatement()
+        .execute(session, transactionSession -> {
+
+//          final Optional<TransactionId> transactionId = transactionSession.getTransactionId();
+//          System.out.println(transactionId);
+
+          final PreparedQuery preparedQuery = queryPreparer.prepareQuery(
+              transactionSession,
+              statement,
+              warningCollector
+          );
+//          System.out.println(preparedQuery);
+
+
+
+
+          final Analyzer analyzer = new Analyzer(
+              transactionSession,
+              metadata,
+              sqlParser,
+              accessControl,
+              Optional.empty(),
+              preparedQuery.getParameters(),
+              ParameterUtils.parameterExtractor(preparedQuery.getStatement(),
+                  preparedQuery.getParameters()),
+              warningCollector
+          );
+
+          final Analysis analysis = analyzer.analyze(
+              preparedQuery.getStatement()
+          );
+
+//          System.out.println(analysis);
+
+
+
+/*          // Hack. The goal here was to avoid running any optimizations,
+          // but these two are required rewrite rules to produce a valid plan.
+          final List<PlanOptimizer> optimizers = ImmutableList.of(
+              new IterativeOptimizer(
+                  ruleStats,
+                  statsCalculator,
+                  costCalculator,
+                  new TranslateExpressions(metadata, sqlParser).rules()
+              ),
+              new IterativeOptimizer(
+                  ruleStats,
+                  statsCalculator,
+                  costCalculator,
+                  Collections.singleton(new ProjectLocalityRewrite())
+              )
+          );*/
+
+          final PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
+
+          final LogicalPlanner logicalPlanner = new LogicalPlanner(
+              false,
+              transactionSession,
+              planningTimeOptimizers,
+              new PlanChecker(new FeaturesConfig()),
+              idAllocator,
+              metadata,
+              sqlParser,
+              statsCalculator,
+              costCalculator,
+              warningCollector
+          );
+
+          final Plan plan = logicalPlanner.plan(analysis);
+
+//          System.out.println(plan);
+
+//          System.out.println(
+//              PlanPrinter.textLogicalPlan(
+//                  plan.getRoot(),
+//                  plan.getTypes(),
+//                  FunctionAndTypeManager.createTestFunctionAndTypeManager(),
+//                  plan.getStatsAndCosts(),
+//                  transactionSession,
+//                  0
+//              )
+//          );
+
+          logicalPlan.set(plan);
+        });
+
+    return logicalPlan.get();
   }
 
   public static void main(final String[] args) {
@@ -248,46 +444,34 @@ public class PrestoPlanner {
 
     planKsql();
 
-    logicalPlan(
-        "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID",
-        schemaName,
-        connector
+    final PrestoPlanner prestoPlanner = new PrestoPlanner(schemaName, connector);
+
+    prestoPlanner.logicalPlan(
+        "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID"
     );
 
-    logicalPlan(
-        "SELECT Pantalones.ID, Waist, Size, Sleeve FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID",
-        schemaName,
-        connector
+    prestoPlanner.logicalPlan(
+        "SELECT Pantalones.ID, Waist, Size, Sleeve FROM Pantalones JOIN Abrigos A ON Pantalones.ID = A.ID"
     );
 
-    logicalPlan(
-        "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID > A.ID",
-        schemaName,
-        connector
+    prestoPlanner.logicalPlan(
+        "SELECT * FROM Pantalones JOIN Abrigos A ON Pantalones.ID > A.ID"
     );
 
-    logicalPlan(
-        "CREATE TABLE asdf AS SELECT * FROM Pantalones",
-        schemaName,
-        connector
+    prestoPlanner.logicalPlan(
+        "CREATE TABLE asdf AS SELECT * FROM Pantalones"
     );
 
-    logicalPlan(
-        "SELECT ID, CONCAT(ID, '+'), Waist * 2 FROM Pantalones",
-        schemaName,
-        connector
+    prestoPlanner.logicalPlan(
+        "SELECT ID, CONCAT(ID, '+'), Waist * 2 FROM Pantalones"
     );
 
-    logicalPlan(
-        "(SELECT ID, Waist AS Num FROM Pantalones) UNION (SELECT ID, Sleeve as Num FROM Abrigos)",
-        schemaName,
-        connector
+    prestoPlanner.logicalPlan(
+        "(SELECT ID, Waist AS Num FROM Pantalones) UNION (SELECT ID, Sleeve as Num FROM Abrigos)"
     );
 
-    logicalPlan(
-        "SELECT ID1, Waist, Size FROM (SELECT ID AS ID1, Waist FROM Pantalones) JOIN (SELECT ID AS ID2, Size FROM Pantalones) ON ID1 = ID2",
-        schemaName,
-        connector
+    prestoPlanner.logicalPlan(
+        "SELECT ID1, Waist, Size FROM (SELECT ID AS ID1, Waist FROM Pantalones) JOIN (SELECT ID AS ID2, Size FROM Pantalones) ON ID1 = ID2"
     );
   }
 
@@ -566,194 +750,10 @@ public class PrestoPlanner {
     }
   }*/
 
-  public static Plan logicalPlan(
-      final String sql,
-      final String schemaName,
-      final Connector connector) {
-
-    final WarningCollector warningCollector = WarningCollector.NOOP;
-    final SqlParser sqlParser = new SqlParser();
-    final QueryPreparer queryPreparer = new QueryPreparer(sqlParser);
-    final QueryIdGenerator queryIdGenerator = new QueryIdGenerator();
-    final String catalogName = "catalog";
-
-    final CatalogManager catalogManager = new CatalogManager();
-    final ConnectorId connectorId = new ConnectorId(catalogName);
-    final ConnectorId systemConnectorId = new ConnectorId("systemCatalog");
-    final Connector systemConnector = new ProtoConnector(ImmutableList.of());
-    final Catalog catalog = new Catalog(
-        catalogName,
-        connectorId,
-        connector,
-        createInformationSchemaConnectorId(connectorId),
-        connector,
-        createSystemTablesConnectorId(systemConnectorId),
-        systemConnector);
-    catalogManager.registerCatalog(catalog);
-
-    final Session session = Session.builder(new SessionPropertyManager())
-        .setQueryId(queryIdGenerator.createNextQueryId())
-        .setIdentity(new Identity("user", Optional.empty()))
-        .setCatalog(catalogName)
-        .setSchema(schemaName)
-        .build();
-
-    final AccessControl accessControl = new AllowAllAccessControl();
-    final TransactionManager transactionManager =
-        InMemoryTransactionManager.createTestTransactionManager(
-            catalogManager
-        );
-
-
-    System.out.println(sql);
-
-    final Statement statement = sqlParser.createStatement(
-        sql,
-        ParsingOptions.builder().build()
-    );
-
-    System.out.println(statement);
-
-
-    final AtomicReference<Plan> logicalPlan = new AtomicReference<>();
-    TransactionBuilder.transaction(transactionManager, accessControl)
-        .singleStatement()
-        .execute(session, transactionSession -> {
-
-          final Optional<TransactionId> transactionId = transactionSession.getTransactionId();
-          System.out.println(transactionId);
-
-          final PreparedQuery preparedQuery = queryPreparer.prepareQuery(
-              transactionSession,
-              statement,
-              warningCollector
-          );
-          System.out.println(preparedQuery);
-
-          BlockEncodingManager blockEncodingManager = new BlockEncodingManager();
-          final TablePropertyManager tablePropertyManager = new TablePropertyManager();
-          tablePropertyManager.addProperties(connectorId, ImmutableList.of());
-          final MetadataManager metadata = new MetadataManager(
-              new FunctionAndTypeManager(transactionManager, blockEncodingManager,
-                  new FeaturesConfig(), new HandleResolver(), ImmutableSet.of()),
-              blockEncodingManager,
-              new SessionPropertyManager(),
-              new SchemaPropertyManager(),
-              tablePropertyManager,
-              new ColumnPropertyManager(),
-              new AnalyzePropertyManager(),
-              transactionManager);
-
-          final Analyzer analyzer = new Analyzer(
-              transactionSession,
-              metadata,
-              sqlParser,
-              accessControl,
-              Optional.empty(),
-              preparedQuery.getParameters(),
-              ParameterUtils.parameterExtractor(preparedQuery.getStatement(),
-                  preparedQuery.getParameters()),
-              warningCollector
-          );
-
-          final Analysis analysis = analyzer.analyze(
-              preparedQuery.getStatement()
-          );
-
-          System.out.println(analysis);
-
-          final StatsCalculator statsCalculator =
-              new ComposableStatsCalculator(Collections.emptyList());
-          final CostCalculator costCalculator = new CostCalculatorUsingExchanges(
-              new TaskCountEstimator(() -> 42));
-          final RuleStatsRecorder ruleStats = new RuleStatsRecorder();
-
-          final boolean forceSingleNode = true;
-          final MBeanExporter exporter = null;
-          final SplitManager splitManager = new SplitManager(metadata, new QueryManagerConfig(),
-              new NodeSchedulerConfig());
-          final ConnectorPlanOptimizerManager connectorPlanOptimizerManager = new ConnectorPlanOptimizerManager();
-          final PageSourceManager pageSourceManager = new PageSourceManager();
-          final CostComparator costComparator = new CostComparator(1.0, 1.0, 1.0);
-          final TaskCountEstimator taskCountEstimator = null;
-          final PartitioningProviderManager partitioningProviderManager = null;
-          PlanOptimizers po = new PlanOptimizers(
-              metadata,
-              sqlParser,
-              forceSingleNode,
-              exporter,
-              splitManager,
-              connectorPlanOptimizerManager,
-              pageSourceManager,
-              statsCalculator,
-              costCalculator,
-              costCalculator,
-              costComparator,
-              taskCountEstimator,
-              partitioningProviderManager
-          );
-
-          final List<PlanOptimizer> planningTimeOptimizers = po.getPlanningTimeOptimizers();
-
-/*          // Hack. The goal here was to avoid running any optimizations,
-          // but these two are required rewrite rules to produce a valid plan.
-          final List<PlanOptimizer> optimizers = ImmutableList.of(
-              new IterativeOptimizer(
-                  ruleStats,
-                  statsCalculator,
-                  costCalculator,
-                  new TranslateExpressions(metadata, sqlParser).rules()
-              ),
-              new IterativeOptimizer(
-                  ruleStats,
-                  statsCalculator,
-                  costCalculator,
-                  Collections.singleton(new ProjectLocalityRewrite())
-              )
-          );*/
-
-          final PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
-
-          final LogicalPlanner logicalPlanner = new LogicalPlanner(
-              false,
-              transactionSession,
-              planningTimeOptimizers,
-              new PlanChecker(new FeaturesConfig()),
-              idAllocator,
-              metadata,
-              sqlParser,
-              statsCalculator,
-              costCalculator,
-              warningCollector
-          );
-
-          final Plan plan = logicalPlanner.plan(analysis);
-
-          System.out.println(plan);
-
-          System.out.println(
-              PlanPrinter.textLogicalPlan(
-                  plan.getRoot(),
-                  plan.getTypes(),
-                  FunctionAndTypeManager.createTestFunctionAndTypeManager(),
-                  plan.getStatsAndCosts(),
-                  transactionSession,
-                  0
-              )
-          );
-
-          logicalPlan.set(plan);
-        });
-
-    return logicalPlan.get();
-  }
-
 
   public static class Table {
 
 
-    private final String tableName;
-    private final String schemaName;
     private final SchemaTableName schemaTableName;
     private final ConnectorTableHandle connectorTableHandle;
     private final ConnectorTableMetadata connectorTableMetadata;
@@ -764,8 +764,6 @@ public class PrestoPlanner {
         final String schemaName,
         final List<ColumnMetadata> columnMetadata) {
 
-      this.tableName = tableName;
-      this.schemaName = schemaName;
       this.schemaTableName = new SchemaTableName(schemaName, tableName);
       this.connectorTableHandle = new MyConnectorTableHandle(schemaTableName);
       this.connectorTableMetadata = new ConnectorTableMetadata(schemaTableName, columnMetadata);

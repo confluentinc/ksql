@@ -87,6 +87,7 @@ import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.ParsingOptions;
+import com.facebook.presto.sql.parser.ParsingOptions.DecimalLiteralTreatment;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.ConnectorPlanOptimizerManager;
 import com.facebook.presto.sql.planner.LogicalPlanner;
@@ -274,7 +275,7 @@ public class PrestoPlanner {
   public Plan logicalPlan(final String sql) {
     final Statement statement = sqlParser.createStatement(
         sql,
-        ParsingOptions.builder().build()
+        ParsingOptions.builder().setDecimalLiteralTreatment(DecimalLiteralTreatment.AS_DECIMAL).build()
     );
 
 //    System.out.println(statement);

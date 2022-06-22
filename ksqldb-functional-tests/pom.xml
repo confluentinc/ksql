@@ -50,6 +50,10 @@
       <groupId>net.hydromatic</groupId>
       <artifactId>tpcds</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.facebook.presto</groupId>
+      <artifactId>presto-tpcds</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>

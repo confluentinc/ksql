@@ -250,11 +250,6 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     queryMetricTags.remove(StreamsMetricsImpl.TASK_ID_TAG);
     queryMetricTags.remove(StreamsMetricsImpl.PROCESSOR_NODE_ID_TAG);
 
-    // Convert the tag name from 'topic-name' to 'topic' to conform to client metrics
-    // We can remove this once the Streams fix is merged https://github.com/apache/kafka/pull/12310
-    queryMetricTags.remove(StreamsMetricsImpl.TOPIC_NAME_TAG);
-    queryMetricTags.put(KSQL_TOPIC_TAG, topic);
-
     // Replace thread id with consumer group member id to match existing client tag/Druid label
     final String threadId = queryMetricTags.remove(StreamsMetricsImpl.THREAD_ID_TAG);
     queryMetricTags.put(KSQL_CONSUMER_GROUP_MEMBER_ID_TAG, threadId);

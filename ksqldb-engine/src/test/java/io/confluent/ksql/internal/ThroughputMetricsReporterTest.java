@@ -46,25 +46,25 @@ public class ThroughputMetricsReporterTest {
       "thread-id", THREAD_ID,
       "task-id", TASK_ID_1,
       "processor-node-id", PROCESSOR_NODE_ID,
-      "topic-name", TOPIC_NAME
+      "topic", TOPIC_NAME
   );
   private static final Map<String, String> STREAMS_TAGS_TASK_2 = ImmutableMap.of(
       "thread-id", THREAD_ID,
       "task-id", TASK_ID_2,
       "processor-node-id", PROCESSOR_NODE_ID,
-      "topic-name", TOPIC_NAME
+      "topic", TOPIC_NAME
   );
   private static final Map<String, String> STREAMS_TAGS_PROCESSOR_2 = ImmutableMap.of(
       "thread-id", THREAD_ID,
       "task-id", TASK_ID_2,
       "processor-node-id", PROCESSOR_NODE_ID_2,
-      "topic-name", TOPIC_NAME
+      "topic", TOPIC_NAME
   );
   private static final Map<String, String> STREAMS_TAGS_TOPIC_2 = ImmutableMap.of(
       "thread-id", THREAD_ID_2,
       "task-id", TASK_ID_1,
       "processor-node-id", PROCESSOR_NODE_ID,
-      "topic-name", TOPIC_NAME_2
+      "topic", TOPIC_NAME_2
   );
   private static final Map<String, String> QUERY_ONE_TAGS = ImmutableMap.of(
       "logical_cluster_id", "lksqlc-12345",

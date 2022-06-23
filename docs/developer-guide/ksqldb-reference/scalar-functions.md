@@ -26,7 +26,7 @@ ACOS(col1)
 
 Returns the inverse (arc) cosine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
 
-Note that this function will return `NaN` for any input outside [-1, 1].
+This function returns `NaN` for any input outside [-1, 1].
 
 ---
 

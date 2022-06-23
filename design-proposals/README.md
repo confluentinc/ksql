@@ -39,7 +39,8 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **64**
+Next KLIP number: **67**
+
 
 | KLIP                                                                                                                                               |  Status  | Community Release | CP Release | Discussion PR                                                |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | :------: | :---------------: | :--------: | ------------------------------------------------------------ |
@@ -108,3 +109,6 @@ Next KLIP number: **64**
 | [KLIP-63: PAUSE and RESUME for persistent queries](klip-63-pause-resume-persistent-queries.md)                                                     | Proposal |                   |            |                                                              |
 | [KLIP-64: Make internal topic prefix configurable](https://github.com/confluentinc/ksql/pull/9170)                                                 | Proposal |                   |            |                                                              |
 | [KLIP-65: ksqlDB Node.js Client](klip-64-ksqldb-js-client.md)                                                                                      | Proposal |                   |            |                                                              |
+| [KLIP-66: Multiple parameter UDAFs](klip-66-multi-param-udafs.md)                                                                                  | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/9173) | 
+=======
+

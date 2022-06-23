@@ -674,6 +674,15 @@ public class KsqlConfig extends AbstractConfig {
       = "The default timeout for ASSERT SCHEMA statements if no timeout is specified "
       + "in the statement.";
 
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
+      = "ksql.websocket.connection.max.timeout.ms";
+  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 0;
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+      = "If this config is set to a positive number, then ksqlDB will terminate websocket"
+      + " connections after a timeout. The timeout will be the lower of the auth token's "
+      + "lifespan (if present) and the value of this config. If this config is set to 0, then "
+      + "ksqlDB will not close websockets even if the token has an expiration time.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -1454,6 +1463,13 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DOC
         )
+        .define(
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+        )
         .withClientSslSupport();
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
@@ -1797,6 +1813,18 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, String> getStringAsMap(final String key) {
     final String value = getString(key).trim();
     return parseStringAsMap(key, value);
+  }
+
+  public static Map<String, String> getStringAsMap(
+      final String key,
+      final Map<String, ?> configMap
+  ) {
+    final String value = (String) configMap.get(key);
+    if (value != null) {
+      return parseStringAsMap(key, value);
+    } else {
+      return Collections.emptyMap();
+    }
   }
 
   public static Map<String, String> parseStringAsMap(final String key, final String value) {

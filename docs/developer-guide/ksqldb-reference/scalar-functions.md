@@ -24,7 +24,7 @@ Returns the absolute value of `col1`.
 ACOS(col1)
 ```
 
-Returns the inverse (arc) cosine of `col1` in radians. Use [DEGREES](#degrees) to convert the output to degrees if necessary.
+Returns the inverse (arc) cosine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
 
 Note that this function will return `NaN` for any input outside [-1, 1].
 
@@ -36,9 +36,9 @@ Note that this function will return `NaN` for any input outside [-1, 1].
 ASIN(col1)
 ```
 
-Returns the inverse (arc) sine of `col1` in radians. Use [DEGREES](#degrees) to convert the output to degrees if necessary.
+Returns the inverse (arc) sine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
 
-Note that this function will return `NaN` for any input outside [-1, 1].
+This function returns `NaN` for any input outside [-1, 1].
 
 ---
 
@@ -71,7 +71,7 @@ CREATE TABLE AGG AS
 ATAN(col1)
 ```
 
-Returns the inverse (arc) tangent of `col1` in radians. Use [DEGREES](#degrees) to convert the output to degrees if necessary.
+Returns the inverse (arc) tangent of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
 
 ---
 
@@ -81,9 +81,9 @@ Returns the inverse (arc) tangent of `col1` in radians. Use [DEGREES](#degrees) 
 ATAN2(y, x)
 ```
 
-Returns the inverse (arc) tangent of `y / x`. This is equivalent to the angle theta when Cartesian coordinates (x, y) are converted to polar coordinates (radius, theta). The returned value is in radians. Use [DEGREES](#degrees) to convert the output to degrees if necessary.
+Returns the inverse (arc) tangent of `y / x`. This is equivalent to the angle _theta_ when Cartesian coordinates (x, y) are converted to polar coordinates (_radius_, _theta_). The returned value is in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
 
-In cases where `x` is zero, and `y / x` is undefined, this function returns the approximate value of a multiple of π/2.
+If `x` is zero, `y / x` is undefined, and this function returns the approximate value of a multiple of _π/2_.
 
 ---
 
@@ -132,7 +132,7 @@ Returns the the smallest integer value that's greater than or equal to `col1`.
 COS(col1)
 ```
 
-Returns the cosine of `col1`. `col1` is in radians. Use [RADIANS](#radians) to convert the input to radians if necessary.
+Returns the cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
 ---
 
@@ -142,7 +142,7 @@ Returns the cosine of `col1`. `col1` is in radians. Use [RADIANS](#radians) to c
 COSH(col1)
 ```
 
-Returns the hyperbolic cosine of `col1`. `col1` is in radians. Use [RADIANS](#radians) to convert the input to radians if necessary.
+Returns the hyperbolic cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
 ---
 
@@ -152,9 +152,9 @@ Returns the hyperbolic cosine of `col1`. `col1` is in radians. Use [RADIANS](#ra
 COT(col1)
 ```
 
-Returns the cotangent of `col1`. `col1` is in radians. Use [RADIANS](#radians) to convert the input to radians if necessary.
+Returns the cotangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
-This implementation returns a large value approaching positive or negative infinity near the asymptotes since 2π and similar values cannot be represented exactly. At 0, it returns `Infinity` with the same sign as the input.
+This implementation returns a large value approaching positive or negative infinity near the asymptotes, because _2π_ and similar values cannot be represented exactly. At _0_, it returns `Infinity` with the same sign as the input.
 
 ---
 
@@ -274,7 +274,7 @@ The value of `col1` must be greater than 0.
 PI()
 ```
 
-Returns an approximate value of π.
+Returns an approximate value of _π_.
 
 ---
 
@@ -337,7 +337,7 @@ Returns the sign of `col1` as an `INTEGER`:
 SIN(col1)
 ```
 
-Returns the sine of `col1`. `col1` is in radians. Use [RADIANS](#radians) to convert the input to radians if necessary.
+Returns the sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
 ---
 
@@ -347,7 +347,7 @@ Returns the sine of `col1`. `col1` is in radians. Use [RADIANS](#radians) to con
 SINH(col1)
 ```
 
-Returns the hyperbolic sine of `col1`. `col1` is in radians. Use [RADIANS](#radians) to convert the input to radians if necessary.
+Returns the hyperbolic sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
 ---
 
@@ -367,9 +367,9 @@ Returns the square root of `col`.
 TAN(col1)
 ```
 
-Returns the tangent of `col1`. `col1` is in radians. Use [RADIANS](#radians) to convert the input to radians if necessary.
+Returns the tangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
-This implementation returns a large value approaching positive or negative infinity near the asymptotes since π/2 and similar values cannot be represented exactly.
+This implementation returns a large value approaching positive or negative infinity near the asymptotes, because _π/2_ and similar values cannot be represented exactly.
 
 ---
 
@@ -379,7 +379,7 @@ This implementation returns a large value approaching positive or negative infin
 TANH(col1)
 ```
 
-Returns the hyperbolic tangent of `col1`. `col1` is in radians. Use [RADIANS](#radians) to convert the input to radians if necessary.
+Returns the hyperbolic tangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
 ---
 

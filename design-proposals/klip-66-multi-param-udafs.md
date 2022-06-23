@@ -75,7 +75,7 @@ private static <Integer> Udaf<MultipleArgs<Integer>, Long, Long> MultiColumnSum(
 }
 ```
 
-To create a function that accepts variadic parameters of any type, the `VariadicArgs` type parameter can be set to `Object`.
+To create a function that accepts variadic parameters of any type, the `MultipleArgs` type parameter can be set to `Object`.
 
 Alternatively, we could use the [Apache Commons tuple library](https://commons.apache.org/proper/commons-lang/apidocs/org/apache/commons/lang3/tuple/package-summary.html),
 but it only has `Pair` and `Triple`.

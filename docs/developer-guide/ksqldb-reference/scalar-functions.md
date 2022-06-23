@@ -20,7 +20,7 @@ Returns the absolute value of `col1`.
 
 ### **`ACOS`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 ACOS(col1)
 ```
 
@@ -32,7 +32,7 @@ This function returns `NaN` for any input outside [-1, 1].
 
 ### **`ASIN`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 ASIN(col1)
 ```
 
@@ -67,7 +67,7 @@ CREATE TABLE AGG AS
 
 ### **`ATAN`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 ATAN(col1)
 ```
 
@@ -77,7 +77,7 @@ Returns the inverse (arc) tangent of `col1`, in radians. Use the [DEGREES](#degr
 
 ### **`ATAN2`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 ATAN2(y, x)
 ```
 
@@ -128,7 +128,7 @@ Returns the the smallest integer value that's greater than or equal to `col1`.
 
 ### **`COS`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 COS(col1)
 ```
 
@@ -138,7 +138,7 @@ Returns the cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) 
 
 ### **`COSH`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 COSH(col1)
 ```
 
@@ -148,7 +148,7 @@ Returns the hyperbolic cosine of `col1`. `col1` is in radians. Use the [RADIANS]
 
 ### **`COT`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 COT(col1)
 ```
 
@@ -160,7 +160,7 @@ This implementation returns a large value approaching positive or negative infin
 
 ### **`DEGREES`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 DEGREES(col1)
 ```
 
@@ -270,7 +270,7 @@ The value of `col1` must be greater than 0.
 
 ### **`PI`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 PI()
 ```
 
@@ -280,7 +280,7 @@ Returns an approximate value of _π_.
 
 ### **`RADIANS`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 RADIANS(col1)
 ```
 
@@ -333,7 +333,7 @@ Returns the sign of `col1` as an `INTEGER`:
 
 ### **`SIN`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 SIN(col1)
 ```
 
@@ -343,7 +343,7 @@ Returns the sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) fu
 
 ### **`SINH`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 SINH(col1)
 ```
 
@@ -363,7 +363,7 @@ Returns the square root of `col`.
 
 ### **`TAN`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 TAN(col1)
 ```
 
@@ -375,7 +375,7 @@ This implementation returns a large value approaching positive or negative infin
 
 ### **`TANH`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.28.0"
 TANH(col1)
 ```
 

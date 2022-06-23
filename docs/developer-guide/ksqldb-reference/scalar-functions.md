@@ -70,6 +70,16 @@ Converts one type to another. The following casts are supported:
 
 ---
 
+### **`CBRT`**
+
+```sql title="Since: 0.27.0"
+CBRT(col1)
+```
+
+Returns the cube root of `col1`.
+
+---
+
 ### **`CEIL`**
 
 ```sql title="Since: 0.1.0"
@@ -177,6 +187,31 @@ LN(col1)
 Returns the natural logarithm of `col1`, which is .
 
 The value of `col1` must be greater than 0.
+
+---
+
+### **`LOG`**
+
+```sql title="Since: 0.27.0"
+LOG(value)
+LOG(base, value)
+```
+
+The single parameter version of this method returns the base 10 logarithm of the `value`. The two parameter version returns the logarithm with the given `base` of the `value`.
+
+This function returns `-Infinity` for any `base` when the `value` is 0. It returns `NaN` when the `value` is negative, when the `base` is negative, when the `base` is 0, or when the `base` is 1.
+
+---
+
+### **`POWER`**
+
+```sql title="Since: 0.27.0"
+POWER(base, exponent)
+```
+
+Calculates the value of the `base` raised to the `exponent`.
+
+This function returns `Infinity` when the result overflows the `DOUBLE` type.
 
 ---
 

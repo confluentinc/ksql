@@ -61,6 +61,7 @@ final class SandboxedKafkaTopicClient {
             methodParams(String.class, int.class, short.class, Map.class), sandbox)
         .forward("isTopicExists", methodParams(String.class), sandbox)
         .forward("describeTopic", methodParams(String.class), sandbox)
+        .forward("getTopicConfig", methodParams(String.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
         .forward("deleteTopics", methodParams(Collection.class), sandbox)
         .forward("listTopicsStartOffsets", methodParams(Collection.class), sandbox)
@@ -74,6 +75,7 @@ final class SandboxedKafkaTopicClient {
   private final Supplier<Admin> adminClient;
 
   private final Map<String, TopicDescription> createdTopics = new HashMap<>();
+  private final Map<String, Map<String, String>> createdTopicsConfig = new HashMap<>();
 
   private SandboxedKafkaTopicClient(final KafkaTopicClient delegate,
                                     final Supplier<Admin> sharedAdminClient) {
@@ -125,6 +127,8 @@ final class SandboxedKafkaTopicClient {
         partitions,
         Sets.newHashSet(AclOperation.READ, AclOperation.WRITE)
     ));
+
+    createdTopicsConfig.put(topic, toStringConfigs(configs));
   }
 
   private short getDefaultClusterReplication() {
@@ -170,6 +174,10 @@ final class SandboxedKafkaTopicClient {
     return descriptions;
   }
 
+  public Map<String, String> getTopicConfig(final String topicName) {
+    return createdTopicsConfig.getOrDefault(topicName, Collections.emptyMap());
+  }
+
   private void deleteTopics(final Collection<String> topicsToDelete) {
     topicsToDelete.forEach(createdTopics::remove);
   }
@@ -190,5 +198,10 @@ final class SandboxedKafkaTopicClient {
 
   private Map<TopicPartition, Long> listTopicsEndOffsets(final Collection<String> topics) {
     return delegate.listTopicsEndOffsets(topics);
+  }
+
+  private static Map<String, String> toStringConfigs(final Map<String, ?> configs) {
+    return configs.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
   }
 }

@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
@@ -86,6 +87,10 @@ public final class CreateSourceAsProperties {
 
   public Optional<Short> getReplicas() {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
+  }
+
+  public Optional<Long> getRetentionInMillis() {
+    return Optional.ofNullable(props.getLong(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS));
   }
 
   public Optional<ColumnName> getTimestampColumnName() {
@@ -202,12 +207,14 @@ public final class CreateSourceAsProperties {
   public CreateSourceAsProperties withTopic(
       final String name,
       final int partitions,
-      final short replicas
+      final short replicas,
+      final long retentionMs
   ) {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(name));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
+    originals.put(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS, new LongLiteral(retentionMs));
 
     return new CreateSourceAsProperties(originals, unwrapProtobufPrimitives);
   }

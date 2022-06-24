@@ -106,7 +106,10 @@ public class TopicCreateInjector implements Injector {
     final String topicName = properties.getKafkaTopic();
 
     if (topicClient.isTopicExists(topicName)) {
-      topicPropertiesBuilder.withSource(() -> topicClient.describeTopic(topicName));
+      topicPropertiesBuilder
+          .withSource(
+              () -> topicClient.describeTopic(topicName),
+              () -> topicClient.getTopicConfig(topicName));
     } else if (!properties.getPartitions().isPresent()) {
       final CreateSource example = createSource.copyWith(
           createSource.getElements(),
@@ -124,7 +127,8 @@ public class TopicCreateInjector implements Injector {
         .withWithClause(
             Optional.of(properties.getKafkaTopic()),
             properties.getPartitions(),
-            properties.getReplicas());
+            properties.getReplicas(),
+            properties.getRetentionInMillis());
 
     final String topicCleanUpPolicy = createSource instanceof CreateTable
         ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
@@ -151,11 +155,14 @@ public class TopicCreateInjector implements Injector {
 
     topicPropertiesBuilder
         .withName(prefix + createAsSelect.getName().text())
-        .withSource(() -> topicClient.describeTopic(sourceTopicName))
+        .withSource(
+            () -> topicClient.describeTopic(sourceTopicName),
+            () -> topicClient.getTopicConfig(sourceTopicName))
         .withWithClause(
             properties.getKafkaTopic(),
             properties.getPartitions(),
-            properties.getReplicas());
+            properties.getReplicas(),
+            properties.getRetentionInMillis());
 
     final String topicCleanUpPolicy;
     final Map<String, Object> additionalTopicConfigs = new HashMap<>();
@@ -182,7 +189,9 @@ public class TopicCreateInjector implements Injector {
     final T withTopic = (T) createAsSelect.copyWith(properties.withTopic(
         info.getTopicName(),
         info.getPartitions(),
-        info.getReplicas()
+        info.getReplicas(),
+        (Long) additionalTopicConfigs
+            .getOrDefault(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis())
     ));
 
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
@@ -206,6 +215,10 @@ public class TopicCreateInjector implements Injector {
 
     final Map<String, Object> config = new HashMap<>();
     config.put(TopicConfig.CLEANUP_POLICY_CONFIG, topicCleanUpPolicy);
+    // This is to make sure WINDOW RETENTION config is honored over WITH RETENTION_MS config
+    if (!additionalTopicConfigs.containsKey(TopicConfig.RETENTION_MS_CONFIG)) {
+      config.put(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis());
+    }
     config.putAll(additionalTopicConfigs);
 
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);

@@ -32,6 +32,7 @@ public final class CommonCreateConfigs {
   public static final String KAFKA_TOPIC_NAME_PROPERTY = "KAFKA_TOPIC";
   public static final String SOURCE_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SOURCE_NUMBER_OF_REPLICAS = "REPLICAS";
+  public static final String SOURCE_TOPIC_RETENTION_IN_MS = "RETENTION_MS";
 
   // Timestamp Props:
   public static final String TIMESTAMP_NAME_PROPERTY = "TIMESTAMP";
@@ -85,6 +86,14 @@ public final class CommonCreateConfigs {
                 + "' is set, then the default "
                 + "Kafka cluster configuration for replicas will be used for creating a new "
                 + "topic."
+        )
+        .define(
+            SOURCE_TOPIC_RETENTION_IN_MS,
+            ConfigDef.Type.LONG,
+            null,
+            Importance.MEDIUM,
+            "The retention in milliseconds in the backing topic. If this property is"
+                + "not set then the default value of 7 days will be used for creating a new topic."
         )
         .define(
             VALUE_FORMAT_PROPERTY,

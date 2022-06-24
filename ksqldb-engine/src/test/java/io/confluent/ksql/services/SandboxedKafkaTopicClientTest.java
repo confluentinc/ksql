@@ -20,6 +20,7 @@ import static java.util.Collections.unmodifiableList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -53,7 +54,6 @@ import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
@@ -87,6 +87,7 @@ public class SandboxedKafkaTopicClientTest {
           .ignore("createTopic", String.class, int.class, short.class, Map.class)
           .ignore("isTopicExists", String.class)
           .ignore("describeTopic", String.class)
+          .ignore("getTopicConfig", String.class)
           .ignore("describeTopics", Collection.class)
           .ignore("deleteTopics", Collection.class)
           .ignore("listTopicsStartOffsets", Collection.class)
@@ -150,6 +151,8 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(sandboxedClient.isTopicExists("some topic"), is(true));
+      assertThat(sandboxedClient.getTopicConfig("some topic").entrySet(),
+          equalTo(toStringConfigs(configs).entrySet()));
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -438,6 +441,11 @@ public class SandboxedKafkaTopicClientTest {
           .forEach(builder::add);
 
       return builder.build();
+    }
+
+    private static Map<String, String> toStringConfigs(final Map<String, ?> configs) {
+      return configs.entrySet().stream()
+          .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
     }
   }
 }

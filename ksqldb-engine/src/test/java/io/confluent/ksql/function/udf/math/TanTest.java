@@ -39,45 +39,45 @@ public class TanTest {
 
   @Test
   public void shouldHandleLessThanNegative2Pi() {
-    assertThat(udf.tan(-9.1), is(0.33670052643287396));
-    assertThat(udf.tan(-6.3), is(-0.016816277694182057));
-    assertThat(udf.tan(-7), is(-0.8714479827243188));
-    assertThat(udf.tan(-7L), is(-0.8714479827243188));
+    assertThat(udf.tan(-9.1), closeTo(0.33670052643287396, 0.000000000000001));
+    assertThat(udf.tan(-6.3), closeTo(-0.016816277694182057, 0.000000000000001));
+    assertThat(udf.tan(-7), closeTo(-0.8714479827243188, 0.000000000000001));
+    assertThat(udf.tan(-7L), closeTo(-0.8714479827243188, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.tan(-0.43), is(-0.45862102348555517));
+    assertThat(udf.tan(-0.43), closeTo(-0.45862102348555517, 0.000000000000001));
     assertThat(udf.tan(-Math.PI), closeTo(0, 0.000000000000001));
     assertThat(udf.tan(-Math.PI * 2), closeTo(0, 0.000000000000001));
     assertThat(udf.tan(-Math.PI * 2), closeTo(0, 0.000000000000001));
-    assertThat(udf.tan(-Math.PI / 2), is(-1.633123935319537E16));
-    assertThat(udf.tan(-6), is(0.29100619138474915));
-    assertThat(udf.tan(-6L), is(0.29100619138474915));
+    assertThat(udf.tan(-Math.PI / 2), closeTo(-1.633123935319537E16, 0.000000000000001));
+    assertThat(udf.tan(-6), closeTo(0.29100619138474915, 0.000000000000001));
+    assertThat(udf.tan(-6L), closeTo(0.29100619138474915, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.tan(0.0), is(0.0));
-    assertThat(udf.tan(0), is(0.0));
-    assertThat(udf.tan(0L), is(0.0));
+    assertThat(udf.tan(0.0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.tan(0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.tan(0L), closeTo(0.0, 0.000000000000001));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.tan(0.43), is(0.45862102348555517));
+    assertThat(udf.tan(0.43), closeTo(0.45862102348555517, 0.000000000000001));
     assertThat(udf.tan(Math.PI), closeTo(0, 0.000000000000001));
     assertThat(udf.tan(Math.PI * 2), closeTo(0, 0.000000000000001));
-    assertThat(udf.tan(Math.PI / 2), is(1.633123935319537E16));
-    assertThat(udf.tan(6), is(-0.29100619138474915));
-    assertThat(udf.tan(6L), is(-0.29100619138474915));
+    assertThat(udf.tan(Math.PI / 2), closeTo(1.633123935319537E16, 0.000000000000001));
+    assertThat(udf.tan(6), closeTo(-0.29100619138474915, 0.000000000000001));
+    assertThat(udf.tan(6L), closeTo(-0.29100619138474915, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleMoreThanPositive2Pi() {
-    assertThat(udf.tan(9.1), is(-0.33670052643287396));
-    assertThat(udf.tan(6.3), is(0.016816277694182057));
-    assertThat(udf.tan(7), is(0.8714479827243188));
-    assertThat(udf.tan(7L), is(0.8714479827243188));
+    assertThat(udf.tan(9.1), closeTo(-0.33670052643287396, 0.000000000000001));
+    assertThat(udf.tan(6.3), closeTo(0.016816277694182057, 0.000000000000001));
+    assertThat(udf.tan(7), closeTo(0.8714479827243188, 0.000000000000001));
+    assertThat(udf.tan(7L), closeTo(0.8714479827243188, 0.000000000000001));
   }
 }

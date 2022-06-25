@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -38,26 +39,26 @@ public class DegreesTest {
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.degrees(-Math.PI), is(-180.0));
-    assertThat(udf.degrees(-2 * Math.PI), is(-360.0));
-    assertThat(udf.degrees(-1.2345), is(-70.73163980890013));
-    assertThat(udf.degrees(-2), is(-114.59155902616465));
-    assertThat(udf.degrees(-2L), is(-114.59155902616465));
+    assertThat(udf.degrees(-Math.PI), closeTo(-180.0, 0.000000000000001));
+    assertThat(udf.degrees(-2 * Math.PI), closeTo(-360.0, 0.000000000000001));
+    assertThat(udf.degrees(-1.2345), closeTo(-70.73163980890013, 0.000000000000001));
+    assertThat(udf.degrees(-2), closeTo(-114.59155902616465, 0.000000000000001));
+    assertThat(udf.degrees(-2L), closeTo(-114.59155902616465, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.degrees(0), is(0.0));
-    assertThat(udf.degrees(0L), is(0.0));
-    assertThat(udf.degrees(0.0), is(0.0));
+    assertThat(udf.degrees(0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.degrees(0L), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.degrees(0.0), closeTo(0.0, 0.000000000000001));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.degrees(Math.PI), is(180.0));
-    assertThat(udf.degrees(2 * Math.PI), is(360.0));
-    assertThat(udf.degrees(1.2345), is(70.73163980890013));
-    assertThat(udf.degrees(2), is(114.59155902616465));
-    assertThat(udf.degrees(2L), is(114.59155902616465));
+    assertThat(udf.degrees(Math.PI), closeTo(180.0, 0.000000000000001));
+    assertThat(udf.degrees(2 * Math.PI), closeTo(360.0, 0.000000000000001));
+    assertThat(udf.degrees(1.2345), closeTo(70.73163980890013, 0.000000000000001));
+    assertThat(udf.degrees(2), closeTo(114.59155902616465, 0.000000000000001));
+    assertThat(udf.degrees(2L), closeTo(114.59155902616465, 0.000000000000001));
   }
 }

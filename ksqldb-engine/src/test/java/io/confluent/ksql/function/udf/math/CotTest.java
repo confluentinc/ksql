@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -38,19 +39,19 @@ public class CotTest {
 
   @Test
   public void shouldHandleLessThanNegative2Pi() {
-    assertThat(udf.cot(-9.1), is(2.9699983263892054));
-    assertThat(udf.cot(-6.3), is(-59.46619211372627));
-    assertThat(udf.cot(-7), is(-1.1475154224051356));
-    assertThat(udf.cot(-7L), is(-1.1475154224051356));
+    assertThat(udf.cot(-9.1), closeTo(2.9699983263892054, 0.000000000000001));
+    assertThat(udf.cot(-6.3), closeTo(-59.46619211372627, 0.000000000000001));
+    assertThat(udf.cot(-7), closeTo(-1.1475154224051356, 0.000000000000001));
+    assertThat(udf.cot(-7L), closeTo(-1.1475154224051356, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.cot(-0.43), is(-2.1804495406685085));
-    assertThat(udf.cot(-Math.PI), is(8.165619676597685E15));
-    assertThat(udf.cot(-Math.PI * 2), is(4.0828098382988425E15));
-    assertThat(udf.cot(-6), is(3.436353004180128));
-    assertThat(udf.cot(-6L), is(3.436353004180128));
+    assertThat(udf.cot(-0.43), closeTo(-2.1804495406685085, 0.000000000000001));
+    assertThat(udf.cot(-Math.PI), closeTo(8.165619676597685E15, 0.000000000000001));
+    assertThat(udf.cot(-Math.PI * 2), closeTo(4.0828098382988425E15, 0.000000000000001));
+    assertThat(udf.cot(-6), closeTo(3.436353004180128, 0.000000000000001));
+    assertThat(udf.cot(-6L), closeTo(3.436353004180128, 0.000000000000001));
   }
 
   @Test
@@ -62,18 +63,18 @@ public class CotTest {
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.cot(0.43), is(2.1804495406685085));
-    assertThat(udf.cot(Math.PI), is(-8.165619676597685E15));
-    assertThat(udf.cot(Math.PI * 2), is(-4.0828098382988425E15));
-    assertThat(udf.cot(6), is(-3.436353004180128));
-    assertThat(udf.cot(6L), is(-3.436353004180128));
+    assertThat(udf.cot(0.43), closeTo(2.1804495406685085, 0.000000000000001));
+    assertThat(udf.cot(Math.PI), closeTo(-8.165619676597685E15, 0.000000000000001));
+    assertThat(udf.cot(Math.PI * 2), closeTo(-4.0828098382988425E15, 0.000000000000001));
+    assertThat(udf.cot(6), closeTo(-3.436353004180128, 0.000000000000001));
+    assertThat(udf.cot(6L), closeTo(-3.436353004180128, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleMoreThanPositive2Pi() {
-    assertThat(udf.cot(9.1), is(-2.9699983263892054));
-    assertThat(udf.cot(6.3), is(59.46619211372627));
-    assertThat(udf.cot(7), is(1.1475154224051356));
-    assertThat(udf.cot(7L), is(1.1475154224051356));
+    assertThat(udf.cot(9.1), closeTo(-2.9699983263892054, 0.000000000000001));
+    assertThat(udf.cot(6.3), closeTo(59.46619211372627, 0.000000000000001));
+    assertThat(udf.cot(7), closeTo(1.1475154224051356, 0.000000000000001));
+    assertThat(udf.cot(7L), closeTo(1.1475154224051356, 0.000000000000001));
   }
 }

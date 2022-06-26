@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.math;
 import org.junit.Before;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -37,42 +38,42 @@ public class SinhTest {
 
   @Test
   public void shouldHandleLessThanNegative2Pi() {
-    assertThat(udf.sinh(-9.1), is(-4477.64629590835));
-    assertThat(udf.sinh(-6.3), is(-272.28503691057597));
-    assertThat(udf.sinh(-7), is(-548.3161232732465));
-    assertThat(udf.sinh(-7L), is(-548.3161232732465));
+    assertThat(udf.sinh(-9.1), closeTo(-4477.64629590835, 0.000000000000001));
+    assertThat(udf.sinh(-6.3), closeTo(-272.28503691057597, 0.000000000000001));
+    assertThat(udf.sinh(-7), closeTo(-548.3161232732465, 0.000000000000001));
+    assertThat(udf.sinh(-7L), closeTo(-548.3161232732465, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.sinh(-0.43), is(-0.4433742144124824));
-    assertThat(udf.sinh(-Math.PI), is(-11.548739357257748));
-    assertThat(udf.sinh(-Math.PI * 2), is(-267.74489404101644));
-    assertThat(udf.sinh(-6), is(-201.71315737027922));
-    assertThat(udf.sinh(-6L), is(-201.71315737027922));
+    assertThat(udf.sinh(-0.43), closeTo(-0.4433742144124824, 0.000000000000001));
+    assertThat(udf.sinh(-Math.PI), closeTo(-11.548739357257748, 0.000000000000001));
+    assertThat(udf.sinh(-Math.PI * 2), closeTo(-267.74489404101644, 0.000000000000001));
+    assertThat(udf.sinh(-6), closeTo(-201.71315737027922, 0.000000000000001));
+    assertThat(udf.sinh(-6L), closeTo(-201.71315737027922, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.sinh(0.0), is(0.0));
-    assertThat(udf.sinh(0), is(0.0));
-    assertThat(udf.sinh(0L), is(0.0));
+    assertThat(udf.sinh(0.0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.sinh(0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.sinh(0L), closeTo(0.0, 0.000000000000001));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.sinh(0.43), is(0.4433742144124824));
-    assertThat(udf.sinh(Math.PI), is(11.548739357257748));
-    assertThat(udf.sinh(Math.PI * 2), is(267.74489404101644));
-    assertThat(udf.sinh(6), is(201.71315737027922));
-    assertThat(udf.sinh(6L), is(201.71315737027922));
+    assertThat(udf.sinh(0.43), closeTo(0.4433742144124824, 0.000000000000001));
+    assertThat(udf.sinh(Math.PI), closeTo(11.548739357257748, 0.000000000000001));
+    assertThat(udf.sinh(Math.PI * 2), closeTo(267.74489404101644, 0.000000000000001));
+    assertThat(udf.sinh(6), closeTo(201.71315737027922, 0.000000000000001));
+    assertThat(udf.sinh(6L), closeTo(201.71315737027922, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleMoreThanPositive2Pi() {
-    assertThat(udf.sinh(9.1), is(4477.64629590835));
-    assertThat(udf.sinh(6.3), is(272.28503691057597));
-    assertThat(udf.sinh(7), is(548.3161232732465));
-    assertThat(udf.sinh(7L), is(548.3161232732465));
+    assertThat(udf.sinh(9.1), closeTo(4477.64629590835, 0.000000000000001));
+    assertThat(udf.sinh(6.3), closeTo(272.28503691057597, 0.000000000000001));
+    assertThat(udf.sinh(7), closeTo(548.3161232732465, 0.000000000000001));
+    assertThat(udf.sinh(7L), closeTo(548.3161232732465, 0.000000000000001));
   }
 }

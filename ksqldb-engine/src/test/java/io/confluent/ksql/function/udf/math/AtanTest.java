@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -38,42 +39,42 @@ public class AtanTest {
 
   @Test
   public void shouldHandleLessThanNegativeOne() {
-    assertThat(udf.atan(-1.1), is(-0.8329812666744317));
-    assertThat(udf.atan(-6.0), is(-1.4056476493802699));
-    assertThat(udf.atan(-2), is(-1.1071487177940904));
-    assertThat(udf.atan(-2L), is(-1.1071487177940904));
+    assertThat(udf.atan(-1.1), closeTo(-0.8329812666744317, 0.000000000000001));
+    assertThat(udf.atan(-6.0), closeTo(-1.4056476493802699, 0.000000000000001));
+    assertThat(udf.atan(-2), closeTo(-1.1071487177940904, 0.000000000000001));
+    assertThat(udf.atan(-2L), closeTo(-1.1071487177940904, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.atan(-0.43), is(-0.40609805831761564));
-    assertThat(udf.atan(-0.5), is(-0.4636476090008061));
-    assertThat(udf.atan(-1.0), is(-0.7853981633974483));
-    assertThat(udf.atan(-1), is(-0.7853981633974483));
-    assertThat(udf.atan(-1L), is(-0.7853981633974483));
+    assertThat(udf.atan(-0.43), closeTo(-0.40609805831761564, 0.000000000000001));
+    assertThat(udf.atan(-0.5), closeTo(-0.4636476090008061, 0.000000000000001));
+    assertThat(udf.atan(-1.0), closeTo(-0.7853981633974483, 0.000000000000001));
+    assertThat(udf.atan(-1), closeTo(-0.7853981633974483, 0.000000000000001));
+    assertThat(udf.atan(-1L), closeTo(-0.7853981633974483, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.atan(0.0), is(0.0));
-    assertThat(udf.atan(0), is(0.0));
-    assertThat(udf.atan(0L), is(0.0));
+    assertThat(udf.atan(0.0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.atan(0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.atan(0L), closeTo(0.0, 0.000000000000001));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.atan(0.43), is(0.40609805831761564));
-    assertThat(udf.atan(0.5), is(0.4636476090008061));
-    assertThat(udf.atan(1.0), is(0.7853981633974483));
-    assertThat(udf.atan(1), is(0.7853981633974483));
-    assertThat(udf.atan(1L), is(0.7853981633974483));
+    assertThat(udf.atan(0.43), closeTo(0.40609805831761564, 0.000000000000001));
+    assertThat(udf.atan(0.5), closeTo(0.4636476090008061, 0.000000000000001));
+    assertThat(udf.atan(1.0), closeTo(0.7853981633974483, 0.000000000000001));
+    assertThat(udf.atan(1), closeTo(0.7853981633974483, 0.000000000000001));
+    assertThat(udf.atan(1L), closeTo(0.7853981633974483, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleMoreThanPositiveOne() {
-    assertThat(udf.atan(1.1), is(0.8329812666744317));
-    assertThat(udf.atan(6.0), is(1.4056476493802699));
-    assertThat(udf.atan(2), is(1.1071487177940904));
-    assertThat(udf.atan(2L), is(1.1071487177940904));
+    assertThat(udf.atan(1.1), closeTo(0.8329812666744317, 0.000000000000001));
+    assertThat(udf.atan(6.0), closeTo(1.4056476493802699, 0.000000000000001));
+    assertThat(udf.atan(2), closeTo(1.1071487177940904, 0.000000000000001));
+    assertThat(udf.atan(2L), closeTo(1.1071487177940904, 0.000000000000001));
   }
 }

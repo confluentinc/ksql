@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -46,27 +47,27 @@ public class AcosTest {
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.acos(-0.43), is(2.0152891037307157));
-    assertThat(udf.acos(-0.5), is(2.0943951023931957));
-    assertThat(udf.acos(-1.0), is(3.141592653589793));
-    assertThat(udf.acos(-1), is(3.141592653589793));
-    assertThat(udf.acos(-1L), is(3.141592653589793));
+    assertThat(udf.acos(-0.43), closeTo(2.0152891037307157, 0.000000000000001));
+    assertThat(udf.acos(-0.5), closeTo(2.0943951023931957, 0.000000000000001));
+    assertThat(udf.acos(-1.0), closeTo(3.141592653589793, 0.000000000000001));
+    assertThat(udf.acos(-1), closeTo(3.141592653589793, 0.000000000000001));
+    assertThat(udf.acos(-1L), closeTo(3.141592653589793, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.acos(0.0), is(1.5707963267948966));
-    assertThat(udf.acos(0), is(1.5707963267948966));
-    assertThat(udf.acos(0L), is(1.5707963267948966));
+    assertThat(udf.acos(0.0), closeTo(1.5707963267948966, 0.000000000000001));
+    assertThat(udf.acos(0), closeTo(1.5707963267948966, 0.000000000000001));
+    assertThat(udf.acos(0L), closeTo(1.5707963267948966, 0.000000000000001));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.acos(0.43), is(1.1263035498590777));
-    assertThat(udf.acos(0.5), is(1.0471975511965979));
-    assertThat(udf.acos(1.0), is(0.0));
-    assertThat(udf.acos(1), is(0.0));
-    assertThat(udf.acos(1L), is(0.0));
+    assertThat(udf.acos(0.43), closeTo(1.1263035498590777, 0.000000000000001));
+    assertThat(udf.acos(0.5), closeTo(1.0471975511965979, 0.000000000000001));
+    assertThat(udf.acos(1.0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.acos(1), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.acos(1L), closeTo(0.0, 0.000000000000001));
   }
 
   @Test

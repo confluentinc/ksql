@@ -311,7 +311,7 @@
     {
       "name": "asin edge cases",
       "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, i DOUBLE, l DOUBLE, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT k, asin(i) i, asin(l) l, asin(d) d FROM INPUT;"
       ],
       "inputs": [

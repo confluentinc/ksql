@@ -27,7 +27,7 @@ public abstract class KsqlWindowExpression extends Node {
 
   protected final Optional<WindowTimeClause> retention;
   protected final Optional<WindowTimeClause> gracePeriod;
-  protected Optional<OutputRefinement> emitStrategy;
+  protected final Optional<OutputRefinement> emitStrategy;
 
   KsqlWindowExpression(final Optional<NodeLocation> nodeLocation,
                        final Optional<WindowTimeClause> retention,
@@ -49,10 +49,6 @@ public abstract class KsqlWindowExpression extends Node {
 
   public Optional<OutputRefinement> getEmitStrategy() {
     return emitStrategy;
-  }
-
-  public void setEmitStrategy(final OutputRefinement emitStrategy) {
-    this.emitStrategy = Optional.of(emitStrategy);
   }
 
   public abstract WindowInfo getWindowInfo();

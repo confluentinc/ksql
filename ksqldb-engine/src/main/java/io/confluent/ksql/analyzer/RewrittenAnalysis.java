@@ -142,7 +142,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     // we only need to rewrite if we have a window expression and if we use emit final
     if (!windowExpression.isPresent()
         || !refinementInfo.isPresent()
-        || !refinementInfo.get().isFinal()) { // can we test for isFinal? or memory vs rocks?
+        || refinementInfo.get().getOutputRefinement() == OutputRefinement.CHANGES) {
       return original.getWindowExpression();
     }
 
@@ -168,7 +168,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
           ((HoppingWindowExpression) ksqlWindowOld).getAdvanceBy(),
           retention,
           gracePeriod,
-          Optional.of(OutputRefinement.FINAL_PERSISTENT)
+          Optional.of(OutputRefinement.FINAL)
       );
     } else if (ksqlWindowOld instanceof TumblingWindowExpression) {
       ksqlWindowNew = new TumblingWindowExpression(
@@ -176,7 +176,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
           ((TumblingWindowExpression) ksqlWindowOld).getSize(),
           retention,
           gracePeriod,
-          Optional.of(OutputRefinement.FINAL_PERSISTENT)
+          Optional.of(OutputRefinement.FINAL)
       );
     } else if (ksqlWindowOld instanceof SessionWindowExpression) {
       ksqlWindowNew = new SessionWindowExpression(
@@ -184,7 +184,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
           ((SessionWindowExpression) ksqlWindowOld).getGap(),
           retention,
           gracePeriod,
-          Optional.of(OutputRefinement.FINAL_PERSISTENT)
+          Optional.of(OutputRefinement.FINAL)
       );
     } else {
       throw new KsqlException("WINDOW type must be HOPPING, TUMBLING, or SESSION");

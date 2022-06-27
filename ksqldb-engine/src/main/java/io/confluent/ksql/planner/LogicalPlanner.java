@@ -77,7 +77,6 @@ import io.confluent.ksql.planner.plan.QueryLimitNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SingleSourcePlanNode;
-import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
@@ -88,7 +87,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueFormat;
@@ -176,22 +174,14 @@ public class LogicalPlanner {
       currentNode = buildUserProjectNode(currentNode);
     }
 
-    if (analysis.getRefinementInfo().isPresent()) {
-      final RefinementInfo refinementInfo = analysis.getRefinementInfo().get();
-      if (refinementInfo.isFinal()) {
-        if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SUPPRESS_ENABLED)) {
-          throw new KsqlException("Suppression is currently disabled. You can enable it by setting "
-              + KsqlConfig.KSQL_SUPPRESS_ENABLED + " to true");
-        }
-        if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
-          throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
-        }
-        if (refinementInfo.getOutputRefinement() != OutputRefinement.FINAL_PERSISTENT) {
-          currentNode = buildSuppressNode(
-              currentNode,
-              analysis.getRefinementInfo().get()
-          );
-        }
+    if (analysis.getRefinementInfo().isPresent()
+        && analysis.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL) {
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SUPPRESS_ENABLED)) {
+        throw new KsqlException("Suppression is currently disabled. You can enable it by setting "
+            + KsqlConfig.KSQL_SUPPRESS_ENABLED + " to true");
+      }
+      if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
+        throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
       }
     }
 
@@ -999,17 +989,6 @@ public class LogicalPlanner {
         dataSource.getAlias(),
         isWindowed,
         ksqlConfig
-    );
-  }
-
-  private static SuppressNode buildSuppressNode(
-      final PlanNode sourcePlanNode,
-      final RefinementInfo refinementInfo
-  ) {
-    return new SuppressNode(
-        new PlanNodeId("Suppress"),
-        sourcePlanNode,
-        refinementInfo
     );
   }
 

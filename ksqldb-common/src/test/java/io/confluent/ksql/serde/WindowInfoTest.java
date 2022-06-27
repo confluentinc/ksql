@@ -56,9 +56,9 @@ public class WindowInfoTest {
             WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(1010)), Optional.empty())
         )
         .addEqualityGroup(
+            WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(1020)), Optional.empty()),
             WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(1020)), Optional.of(OutputRefinement.CHANGES)),
-            WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(1020)), Optional.of(OutputRefinement.FINAL)),
-            WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(1020)), Optional.of(OutputRefinement.FINAL_PERSISTENT))
+            WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(1020)), Optional.of(OutputRefinement.FINAL))
         )
         .testEquals();
   }

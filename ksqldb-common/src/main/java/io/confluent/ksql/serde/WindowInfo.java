@@ -85,15 +85,14 @@ public final class WindowInfo {
       return false;
     }
     final WindowInfo that = (WindowInfo) o;
-    // we omit `emitStrategy`
     return type == that.type
-        && Objects.equals(size, that.size);
+        && Objects.equals(size, that.size)
+        && Objects.equals(emitStrategy, that.emitStrategy);
   }
 
   @Override
   public int hashCode() {
-    // we omit `emitStrategy`
-    return Objects.hash(type, size);
+    return Objects.hash(type, size, emitStrategy);
   }
 
   @Override

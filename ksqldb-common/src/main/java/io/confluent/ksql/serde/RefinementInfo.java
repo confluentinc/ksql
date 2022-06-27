@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.OutputRefinement;
@@ -44,12 +43,6 @@ public final class RefinementInfo {
 
   public OutputRefinement getOutputRefinement() {
     return outputRefinement;
-  }
-
-  @JsonIgnore
-  public boolean isFinal() {
-    return outputRefinement == OutputRefinement.FINAL
-        || outputRefinement == OutputRefinement.FINAL_PERSISTENT;
   }
 
   @Override

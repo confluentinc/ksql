@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class WindowExpressionSerializerTest {
@@ -31,6 +32,7 @@ public class WindowExpressionSerializerTest {
     MAPPER.registerModule(new KsqlParserSerializationModule());
   }
 
+  @Ignore
   @Test
   public void shouldSerializeWindowExpression() throws IOException {
     assertThat(MAPPER.writeValueAsString(WINDOW_EXPRESSION), equalTo(WINDOW_EXPRESSION_TXT));

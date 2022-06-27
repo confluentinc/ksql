@@ -279,7 +279,7 @@ public final class StreamAggregateBuilder {
           groupedStream.windowedBy(windows);
 
       if (window.getEmitStrategy().isPresent()
-          && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL) {
         timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
       }
 
@@ -307,7 +307,7 @@ public final class StreamAggregateBuilder {
           groupedStream.windowedBy(windows);
 
       if (window.getEmitStrategy().isPresent()
-          && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL) {
         // to-do: need to wait for KS PR to get merged
         //sessionWindowedKStreaM=sessionWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
         System.out.println("TODO");
@@ -338,7 +338,7 @@ public final class StreamAggregateBuilder {
           groupedStream.windowedBy(windows);
 
       if (window.getEmitStrategy().isPresent()
-          && window.getEmitStrategy().get() == OutputRefinement.FINAL_PERSISTENT) {
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL) {
         timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
       }
 

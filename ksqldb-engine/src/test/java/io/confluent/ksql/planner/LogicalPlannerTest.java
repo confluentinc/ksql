@@ -53,6 +53,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -191,6 +192,7 @@ public class LogicalPlannerTest {
     assertThat(rightSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
   }
 
+  @Ignore
   @Test
   public void testSuppressLogicalPlan() {
     final String simpleQuery = "SELECT col1,COUNT(*) as COUNT FROM test2 WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY col1 EMIT FINAL;";

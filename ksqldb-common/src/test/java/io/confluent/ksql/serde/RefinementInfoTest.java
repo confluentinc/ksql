@@ -41,9 +41,6 @@ public class RefinementInfoTest {
         .addEqualityGroup(
             RefinementInfo.of(OutputRefinement.CHANGES)
         )
-        .addEqualityGroup(
-            RefinementInfo.of(OutputRefinement.FINAL_PERSISTENT)
-        )
         .testEquals();
   }
 

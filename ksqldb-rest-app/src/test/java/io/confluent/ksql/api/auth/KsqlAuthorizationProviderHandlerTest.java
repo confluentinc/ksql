@@ -61,4 +61,25 @@ public class KsqlAuthorizationProviderHandlerTest {
     Mockito.verifyZeroInteractions(workerExecutor);
   }
 
+  @Test
+  public void shouldNotSkipNonAuthenticatedPaths() {
+    // Given:
+    Mockito.when(server.getWorkerExecutor()).thenReturn(workerExecutor);
+    Mockito.when(server.getConfig()).thenReturn(new KsqlRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG,
+            ImmutableList.of("/heartbeat")
+        )
+    ));
+    Mockito.when(routingContext.normalisedPath()).thenReturn("/foo");
+    KsqlAuthorizationProviderHandler handler = new KsqlAuthorizationProviderHandler(server, authProvider);
+
+    // When:
+    handler.handle(routingContext);
+
+    // Then (make sure the authorization "work" is not skipped):
+    Mockito.verify(routingContext, Mockito.never()).next();
+    Mockito.verify(workerExecutor).executeBlocking(Mockito.any(), Mockito.any());
+  }
+
 }

@@ -58,7 +58,7 @@ public class KsqlAuthorizationProviderHandlerTest {
 
     // Then (make sure the authorization "work" is skipped):
     Mockito.verify(routingContext).next();
-    Mockito.verifyZeroInteractions(workerExecutor);
+    Mockito.verifyNoInteractions(workerExecutor);
   }
 
   @Test
@@ -79,7 +79,7 @@ public class KsqlAuthorizationProviderHandlerTest {
 
     // Then (make sure the authorization "work" is not skipped):
     Mockito.verify(routingContext, Mockito.never()).next();
-    Mockito.verify(workerExecutor).executeBlocking(Mockito.any(), Mockito.any());
+    Mockito.verify(workerExecutor).executeBlocking(Mockito.any(), Mockito.anyBoolean(), Mockito.any());
   }
 
 }

@@ -18,7 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.closeTo;
 
 public class PiTest {
   private Pi udf;
@@ -30,6 +30,6 @@ public class PiTest {
 
   @Test
   public void shouldReturnPi() {
-    assertThat(udf.pi(), is(Math.PI));
+    assertThat(udf.pi(), closeTo(Math.PI, 0.000000000000001));
   }
 }

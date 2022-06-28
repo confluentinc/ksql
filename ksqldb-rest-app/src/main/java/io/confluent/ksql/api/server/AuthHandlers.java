@@ -60,8 +60,7 @@ public final class AuthHandlers {
       // For authorization use auth provider configured via security extension (if any)
       securityExtension.getAuthorizationProvider()
           .ifPresent(ksqlAuthorizationProvider -> router.route()
-              .handler(new KsqlAuthorizationProviderHandler(server.getWorkerExecutor(),
-                  ksqlAuthorizationProvider)));
+              .handler(new KsqlAuthorizationProviderHandler(server, ksqlAuthorizationProvider)));
 
       router.route().handler(AuthHandlers::resumeHandler);
     }

@@ -22,7 +22,7 @@ public final class MetricsTagUtils {
   private MetricsTagUtils() {
   }
 
-  public static final String KSQL_CONSUMER_GROUP_MEMBER_ID_TAG = "consumer_group_member_id";
+  public static final String KSQL_CONSUMER_GROUP_MEMBER_ID_TAG = "member";
   public static final String KSQL_TASK_ID_TAG = "task-id";
   public static final String KSQL_TOPIC_TAG = "topic";
   public static final String KSQL_QUERY_ID_TAG = "query-id";

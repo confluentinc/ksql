@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -46,27 +47,27 @@ public class AsinTest {
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.asin(-0.43), is(-0.444492776935819));
-    assertThat(udf.asin(-0.5), is(-0.5235987755982989));
-    assertThat(udf.asin(-1.0), is(-1.5707963267948966));
-    assertThat(udf.asin(-1), is(-1.5707963267948966));
-    assertThat(udf.asin(-1L), is(-1.5707963267948966));
+    assertThat(udf.asin(-0.43), closeTo(-0.444492776935819, 0.000000000000001));
+    assertThat(udf.asin(-0.5), closeTo(-0.5235987755982989, 0.000000000000001));
+    assertThat(udf.asin(-1.0), closeTo(-1.5707963267948966, 0.000000000000001));
+    assertThat(udf.asin(-1), closeTo(-1.5707963267948966, 0.000000000000001));
+    assertThat(udf.asin(-1L), closeTo(-1.5707963267948966, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.asin(0.0), is(0.0));
-    assertThat(udf.asin(0), is(0.0));
-    assertThat(udf.asin(0L), is(0.0));
+    assertThat(udf.asin(0.0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.asin(0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.asin(0L), closeTo(0.0, 0.000000000000001));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.asin(0.43), is(0.444492776935819));
-    assertThat(udf.asin(0.5), is(0.5235987755982989));
-    assertThat(udf.asin(1.0), is(1.5707963267948966));
-    assertThat(udf.asin(1), is(1.5707963267948966));
-    assertThat(udf.asin(1L), is(1.5707963267948966));
+    assertThat(udf.asin(0.43), closeTo(0.444492776935819, 0.000000000000001));
+    assertThat(udf.asin(0.5), closeTo(0.5235987755982989, 0.000000000000001));
+    assertThat(udf.asin(1.0), closeTo(1.5707963267948966, 0.000000000000001));
+    assertThat(udf.asin(1), closeTo(1.5707963267948966, 0.000000000000001));
+    assertThat(udf.asin(1L), closeTo(1.5707963267948966, 0.000000000000001));
   }
 
   @Test

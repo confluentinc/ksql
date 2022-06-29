@@ -213,7 +213,7 @@ separator character of some form, for example a dash or underscore, as
 this makes the topic name easier to read.
 
 !!! note
-	In Confluent Cloud, the Command Topic is managed by Confluent and not visible in the Kafka cluster. Previous version of ksqlDB in Confluent Cloud created Command Topic in user-owned Kafka clusters, but they are not updated anymore.
+	In Confluent Cloud, the Command Topic is managed by Confluent and not visible in the Kafka cluster. Previous version of ksqlDB in Confluent Cloud created Command Topic in user-owned Kafka clusters, but this isn't the case for newly created ksqlDB clusters.
 
 ### Headless Deployment
 

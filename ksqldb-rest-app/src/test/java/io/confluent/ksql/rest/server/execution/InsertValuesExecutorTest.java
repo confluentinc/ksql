@@ -142,7 +142,9 @@ public class InsertValuesExecutorTest {
       + "\"name\":\"KsqlDataSourceSchema\","
       + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
       + "\"fields\":["
-      + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+      + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}],"
+      + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}";
+
 
   private static final LogicalSchema SCHEMA_WITH_MUTI_KEYS = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.STRING)
@@ -1024,41 +1026,6 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, genericKey("K0", "K1"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("V0", 21L));
-    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
-  }
-
-  @Test
-  public void shouldIgnoreConnectNameComparingKeySchema() throws Exception {
-    // Given:
-    when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, RAW_SCHEMA));
-    when(srClient.getSchemaById(1))
-        .thenReturn(new AvroSchema(RAW_SCHEMA));
-    givenDataSourceWithSchema(
-        TOPIC_NAME,
-        SCHEMA_WITH_MUTI_KEYS,
-        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
-        SerdeFeatures.of(),
-        FormatInfo.of(FormatFactory.AVRO.name()),
-        FormatInfo.of(FormatFactory.AVRO.name()),
-        false,
-        false);
-
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of(K0, K1, COL0, COL1),
-        ImmutableList.of(
-            new StringLiteral("k0"),
-            new StringLiteral("k1"),
-            new StringLiteral("v0"),
-            new LongLiteral(21))
-    );
-
-    // When:
-    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
-
-    // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, genericKey("k0", "k1"));
-    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("v0", 21L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 

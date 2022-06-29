@@ -398,21 +398,7 @@ public class InsertValuesExecutor {
     if (latest.isPresent() && !latest.get().canonicalString().equals(schema.canonicalString())) {
       final Map<String, String> formatProps = keyFormat.getFormatInfo().getProperties();
 
-      // Hack: skip comparing connect name. See https://github.com/confluentinc/ksql/issues/7211
-      // Avro schema are registered in source creation time as well data insertion time.
-      // CONNECT_META_DATA_CONFIG is configured to false in Avro Serializer, but it's true in
-      // AvroSchemaTranslator. It needs to be true to make ConnectSchema map type work. But
-      // enabling it breaks lots of history QTT test which implies backward compatibility issues.
-      // So we just bypass the connect name check here.
-      if (format instanceof AvroFormat) {
-        final SchemaTranslator translator = format.getSchemaTranslator(formatProps);
-        translator.configure(ImmutableMap.of(AvroDataConfig.CONNECT_META_DATA_CONFIG, false));
-        final ParsedSchema parsedSchema = translator.toParsedSchema(keySchema);
-        if (latest.get().canonicalString().equals(parsedSchema.canonicalString())) {
-          return;
-        }
-      } else
-        if (format instanceof ProtobufFormat
+      if (format instanceof ProtobufFormat
           && formatProps.containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
 
         // The SR key schema may have multiple schema definitions. The FULL_SCHEMA_NAME is used

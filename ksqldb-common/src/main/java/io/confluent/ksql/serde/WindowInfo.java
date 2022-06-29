@@ -85,14 +85,27 @@ public final class WindowInfo {
       return false;
     }
     final WindowInfo that = (WindowInfo) o;
+
+    final Optional<OutputRefinement> thisEmit = emitStrategy.isPresent()
+        ? emitStrategy
+        : Optional.of(OutputRefinement.CHANGES);
+    final Optional<OutputRefinement> thatEmit = that.emitStrategy.isPresent()
+        ? that.emitStrategy
+        : Optional.of(OutputRefinement.CHANGES);
+
     return type == that.type
         && Objects.equals(size, that.size)
-        && Objects.equals(emitStrategy, that.emitStrategy);
+        && Objects.equals(thisEmit, thatEmit);
+
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, size, emitStrategy);
+    final Optional<OutputRefinement> thisEmit = emitStrategy.isPresent()
+        ? emitStrategy
+        : Optional.of(OutputRefinement.CHANGES);
+
+    return Objects.hash(type, size, thisEmit);
   }
 
   @Override

@@ -1099,6 +1099,44 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldThrowOnNewSchemaRegistrationByInsert() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+            .thenReturn(new SchemaMetadata(1, 1, RAW_SCHEMA));
+    when(srClient.getSchemaById(1))
+            .thenReturn(new AvroSchema(RAW_SCHEMA));
+    givenDataSourceWithSchema(
+            TOPIC_NAME,
+            SCHEMA_WITH_MUTI_KEYS,
+            SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+            SerdeFeatures.of(),
+            FormatInfo.of(FormatFactory.AVRO.name()),
+            FormatInfo.of(FormatFactory.AVRO.name()),
+            false,
+            false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+            ImmutableList.of(K0, K1, COL0, COL1),
+            ImmutableList.of(
+                    new StringLiteral("k0"),
+                    new StringLiteral("k1"),
+                    new StringLiteral("v0"),
+                    new LongLiteral(21))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
+    assertThat(e.getMessage(), containsString("Existing Schema: " + RAW_SCHEMA));
+    assertThat(e.getMessage(), containsString("ksqlDB Generated: {\"type\":"));
+  }
+
+  @Test
   public void shouldBuildCorrectSerde() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(

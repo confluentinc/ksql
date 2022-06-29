@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericKey;
@@ -317,7 +318,8 @@ public class InsertValuesExecutor {
 
     ensureKeySchemasMatch(physicalSchema.keySchema(), dataSource, serviceContext);
 
-    final FormatInfo formatInfo = addSerializerMissingFormatFields(
+    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
+    final FormatInfo formatInfo = addSerializerMissingFormatFields(schemaRegistryClient,
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
         dataSource.getKafkaTopicName(),
         true
@@ -369,8 +371,7 @@ public class InsertValuesExecutor {
     }
 
     final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
-
-    final FormatInfo formatInfo = addSerializerMissingFormatFields(
+    final FormatInfo formatInfo = addSerializerMissingFormatFields(schemaRegistryClient,
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
         dataSource.getKafkaTopicName(),
         true
@@ -410,7 +411,8 @@ public class InsertValuesExecutor {
         if (latest.get().canonicalString().equals(parsedSchema.canonicalString())) {
           return;
         }
-      } else if (format instanceof ProtobufFormat
+      } else
+        if (format instanceof ProtobufFormat
           && formatProps.containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
 
         // The SR key schema may have multiple schema definitions. The FULL_SCHEMA_NAME is used
@@ -450,7 +452,8 @@ public class InsertValuesExecutor {
         dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    final FormatInfo formatInfo = addSerializerMissingFormatFields(
+    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
+    final FormatInfo formatInfo = addSerializerMissingFormatFields(schemaRegistryClient,
         dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
         dataSource.getKafkaTopicName(),
         false
@@ -495,6 +498,7 @@ public class InsertValuesExecutor {
    * The best option was to dynamically look at the SR schema during an INSERT statement.
    */
   private static FormatInfo addSerializerMissingFormatFields(
+      final SchemaRegistryClient schemaRegistryClient,
       final FormatInfo formatInfo,
       final String topicName,
       final boolean isKey
@@ -505,22 +509,28 @@ public class InsertValuesExecutor {
       return formatInfo;
     }
 
-    // If SCHEMA_ID is not specified, then add the SUBJECT_NAME which helps the serializer
-    // to identify the schema to fetch from SR but without using the restrictions we
-    // have with SCHEMA_ID
+    // If SCHEMA_ID is not specified, then retrieve it from schema metadata or add the SUBJECT_NAME
     if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
-      final Set<String> supportedProperties = format.getSupportedProperties();
-
-      // Add SUBJECT_NAME only on supported SR formats
-      if (supportedProperties.contains(ConnectProperties.SUBJECT_NAME)) {
-        final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
-        propertiesBuilder.putAll(formatInfo.getProperties());
-
-        propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,
-            KsqlConstants.getSRSubject(topicName, isKey));
-
-        return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
+      final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
+      propertiesBuilder.putAll(formatInfo.getProperties());
+      // Retrieve and add the SCHEMA_ID
+      Optional<SchemaMetadata> schemaMetadata = SchemaRegistryUtil
+              .getLatestSchema(schemaRegistryClient, topicName, isKey);
+      if (schemaMetadata.isPresent()) {
+        propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaMetadata.get().getId()));
       }
+      else {
+        // If SCHEMA_ID is not specified, then add the SUBJECT_NAME which helps the serializer
+        // to identify the schema to fetch from SR but without using the restrictions we
+        // have with SCHEMA_ID
+
+        // Add SUBJECT_NAME only on supported SR formats
+        if (format.getSupportedProperties().contains(ConnectProperties.SUBJECT_NAME)) {
+          propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,
+                  KsqlConstants.getSRSubject(topicName, isKey));
+        }
+      }
+      return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
     }
 
     return formatInfo;

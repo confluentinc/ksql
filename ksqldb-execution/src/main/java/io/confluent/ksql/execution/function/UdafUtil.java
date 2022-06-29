@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -57,12 +58,8 @@ public final class UdafUtil {
                 // assume that it is a column reference with no alias
                 : schema.findValueColumn(ColumnName.of(arg.toString()));
 
-        final Column valueColumn = possibleValueColumn.orElseThrow(
-                () -> new KsqlException("Could not find column for expression: " + arg)
-        );
-
-        return valueColumn.index();
-      }).collect(Collectors.toList());
+        return possibleValueColumn.orElse(null);
+      }).filter(Objects::nonNull).map(Column::index).collect(Collectors.toList());
 
       final List<SqlType> argumentTypes = functionCall.getArguments().stream()
               .map(expressionTypeManager::getExpressionSqlType)
@@ -71,8 +68,8 @@ public final class UdafUtil {
       return functionRegistry.getAggregateFunction(
               functionCall.getName(),
               argumentTypes,
-              (numInitArgs) -> createAggregateFunctionInitArgs(
-                      numInitArgs,
+              createAggregateFunctionInitArgs(
+                      argumentTypes.size() - argIndices.size(),
                       argIndices,
                       functionCall,
                       config

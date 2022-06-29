@@ -21,7 +21,6 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 
 public class CorrelationAggFunctionFactory extends AggregateFunctionFactory {
@@ -43,8 +42,4 @@ public class CorrelationAggFunctionFactory extends AggregateFunctionFactory {
     return ImmutableList.of(ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.DOUBLE));
   }
 
-  @Override
-  public int numInitialArguments(List<SqlType> argumentTypes) {
-    return 0;
-  }
 }

@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -85,7 +86,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
@@ -532,22 +532,21 @@ public class ExpressionTypeManager {
       if (functionRegistry.isAggregate(node.getName())) {
         final List<SqlType> schema = node.getArguments().isEmpty()
             ? Collections.singletonList(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
-            : node.getArguments().stream().map(
+            : node.getArguments().stream().filter((arg) -> arg instanceof ColumnReferenceExp).map(
                     (arg) -> getExpressionSqlType(arg, context.getLambdaSqlTypeMapping())
               ).collect(Collectors.toList());
 
         // use an empty KsqlConfig here because the expression type
         // of an aggregate function does not depend on the configuration
-        final Function<Integer, AggregateFunctionInitArguments> argGetter = (numInitArgs) ->
-                UdafUtil.createAggregateFunctionInitArgs(
-                        numInitArgs,
-                        Collections.singletonList(0),
-                        node,
-                        KsqlConfig.empty()
+        final AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
+                node.getArguments().size() - schema.size(),
+                Collections.singletonList(0),
+                node,
+                KsqlConfig.empty()
         );
 
         final KsqlAggregateFunction<?,?,?> aggFunc = functionRegistry
-            .getAggregateFunction(node.getName(), schema, argGetter);
+            .getAggregateFunction(node.getName(), schema, initArgs);
 
         context.setSqlType(aggFunc.returnType());
         return null;

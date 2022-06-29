@@ -21,10 +21,10 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -101,7 +101,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   @Override
   public synchronized KsqlAggregateFunction getAggregateFunction(
       final FunctionName functionName,
-      final SqlType argumentType,
+      final List<SqlType> argumentTypes,
       final AggregateFunctionInitArguments initArgs
   ) {
     final AggregateFunctionFactory udafFactory = udafs.get(functionName.text().toUpperCase());
@@ -109,7 +109,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
     return udafFactory.createAggregateFunction(
-        Collections.singletonList(SqlArgument.of(argumentType)),
+            argumentTypes.stream().map(SqlArgument::of).collect(Collectors.toList()),
         initArgs
     );
   }

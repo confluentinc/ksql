@@ -257,7 +257,7 @@ public class InternalFunctionRegistryTest {
     functionRegistry.addAggregateFunctionFactory(createAggregateFunctionFactory());
     assertThat(functionRegistry.getAggregateFunction(FunctionName.of("my_aggregate"),
             Collections.singletonList(SqlTypes.INTEGER),
-            (numInitArgs) -> AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
+            AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
   }
 
   @Test

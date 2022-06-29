@@ -22,7 +22,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.function.Function;
 
 @EffectivelyImmutable
 public interface FunctionRegistry {
@@ -105,7 +104,7 @@ public interface FunctionRegistry {
   KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
       FunctionName functionName,
       List<SqlType> argumentTypes,
-      Function<Integer, AggregateFunctionInitArguments> initArgsGetter
+      AggregateFunctionInitArguments initArgs
   );
 
   /**

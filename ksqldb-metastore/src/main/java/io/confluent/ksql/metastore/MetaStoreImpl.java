@@ -31,6 +31,9 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.vertx.core.impl.ConcurrentHashSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -39,12 +42,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.concurrent.ThreadSafe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
@@ -263,9 +262,9 @@ public final class MetaStoreImpl implements MutableMetaStore {
   public KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
       final FunctionName functionName,
       final List<SqlType> argumentTypes,
-      final Function<Integer, AggregateFunctionInitArguments> initArgsGetter
+      final AggregateFunctionInitArguments initArgs
   ) {
-    return functionRegistry.getAggregateFunction(functionName, argumentTypes, initArgsGetter);
+    return functionRegistry.getAggregateFunction(functionName, argumentTypes, initArgs);
   }
 
   public KsqlTableFunction getTableFunction(

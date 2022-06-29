@@ -78,6 +78,10 @@ public abstract class AggregateFunctionFactory {
 
   protected abstract List<List<ParamType>> supportedArgs();
 
+  public int numInitialArguments(List<SqlType> argumentTypes) {
+    return Math.max(0, argumentTypes.size() - 1);
+  }
+
   public UdfMetadata getMetadata() {
     return metadata;
   }

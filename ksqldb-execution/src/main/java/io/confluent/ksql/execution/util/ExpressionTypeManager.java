@@ -85,6 +85,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
@@ -529,19 +530,24 @@ public class ExpressionTypeManager {
     ) {
       // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       if (functionRegistry.isAggregate(node.getName())) {
-        final SqlType schema = node.getArguments().isEmpty()
-            ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
-            : getExpressionSqlType(
-                node.getArguments().get(0),
-                context.getLambdaSqlTypeMapping());
+        final List<SqlType> schema = node.getArguments().isEmpty()
+            ? Collections.singletonList(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
+            : node.getArguments().stream().map(
+                    (arg) -> getExpressionSqlType(arg, context.getLambdaSqlTypeMapping())
+              ).collect(Collectors.toList());
 
         // use an empty KsqlConfig here because the expression type
         // of an aggregate function does not depend on the configuration
-        final AggregateFunctionInitArguments args =
-            UdafUtil.createAggregateFunctionInitArgs(0, node, KsqlConfig.empty());
+        final Function<Integer, AggregateFunctionInitArguments> argGetter = (numInitArgs) ->
+                UdafUtil.createAggregateFunctionInitArgs(
+                        numInitArgs,
+                        Collections.singletonList(0),
+                        node,
+                        KsqlConfig.empty()
+        );
 
         final KsqlAggregateFunction<?,?,?> aggFunc = functionRegistry
-            .getAggregateFunction(node.getName(), schema, args);
+            .getAggregateFunction(node.getName(), schema, argGetter);
 
         context.setSqlType(aggFunc.returnType());
         return null;

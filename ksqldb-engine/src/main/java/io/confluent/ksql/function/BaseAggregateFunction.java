@@ -23,11 +23,12 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Struct;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Struct;
 
 public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFunction<I, A, O> {
 
@@ -35,7 +36,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
    * For instance, in the example SELECT key, SUM(ROWTIME), aggregation will be done on a row
    * with two columns (key, ROWTIME) and the `argIndexInValue` will be 1.
    **/
-  private final int argIndexInValue;
+  private final List<Integer> argIndicesInValue;
   private final Supplier<A> initialValueSupplier;
   private final SqlType aggregateSchema;
   private final SqlType outputSchema;
@@ -46,15 +47,35 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   private final String description;
 
   public BaseAggregateFunction(
+          final String functionName,
+          final int argIndexInValue,
+          final Supplier<A> initialValueSupplier,
+          final SqlType aggregateType,
+          final SqlType outputType,
+          final List<ParameterInfo> parameters,
+          final String description
+  ) {
+    this(
+            functionName,
+            Collections.singletonList(argIndexInValue),
+            initialValueSupplier,
+            aggregateType,
+            outputType,
+            parameters,
+            description
+    );
+  }
+
+  public BaseAggregateFunction(
       final String functionName,
-      final int argIndexInValue,
+      final List<Integer> argIndicesInValue,
       final Supplier<A> initialValueSupplier,
       final SqlType aggregateType,
       final SqlType outputType,
       final List<ParameterInfo> parameters,
       final String description
   ) {
-    this.argIndexInValue = argIndexInValue;
+    this.argIndicesInValue = argIndicesInValue;
     this.initialValueSupplier = () -> {
       ExtensionSecurityManager.INSTANCE.pushInUdf();
       try {
@@ -87,7 +108,11 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   }
 
   public int getArgIndexInValue() {
-    return argIndexInValue;
+    return argIndicesInValue.get(0);
+  }
+
+  public List<Integer> getArgIndicesInValue() {
+    return argIndicesInValue;
   }
 
   public SqlType getAggregateType() {

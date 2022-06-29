@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class UdafUtil {
 
@@ -49,27 +50,33 @@ public final class UdafUtil {
       final ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
 
-      final SqlType argumentType =
-          expressionTypeManager.getExpressionSqlType(functionCall.getArguments().get(0));
-
       // UDAFs only support one non-constant argument, and that argument must be a column reference
-      final Expression arg = functionCall.getArguments().get(0);
+      final List<Integer> argIndices = functionCall.getArguments().stream().map((arg) -> {
+        final Optional<Column> possibleValueColumn = arg instanceof UnqualifiedColumnReferenceExp
+                ? schema.findValueColumn(((UnqualifiedColumnReferenceExp) arg).getColumnName())
+                // assume that it is a column reference with no alias
+                : schema.findValueColumn(ColumnName.of(arg.toString()));
 
-      final Optional<Column> possibleValueColumn = arg instanceof UnqualifiedColumnReferenceExp
-          ? schema.findValueColumn(((UnqualifiedColumnReferenceExp) arg).getColumnName())
-          // assume that it is a column reference with no alias
-          : schema.findValueColumn(ColumnName.of(arg.toString()));
+        final Column valueColumn = possibleValueColumn.orElseThrow(
+                () -> new KsqlException("Could not find column for expression: " + arg)
+        );
 
-      final Column valueColumn = possibleValueColumn
-          .orElseThrow(() -> new KsqlException("Could not find column for expression: " + arg));
+        return valueColumn.index();
+      }).collect(Collectors.toList());
 
-      final AggregateFunctionInitArguments aggregateFunctionInitArguments =
-          createAggregateFunctionInitArgs(valueColumn.index(), functionCall, config);
+      final List<SqlType> argumentTypes = functionCall.getArguments().stream()
+              .map(expressionTypeManager::getExpressionSqlType)
+              .collect(Collectors.toList());
 
       return functionRegistry.getAggregateFunction(
-          functionCall.getName(),
-          argumentType,
-          aggregateFunctionInitArguments
+              functionCall.getName(),
+              argumentTypes,
+              (numInitArgs) -> createAggregateFunctionInitArgs(
+                      numInitArgs,
+                      argIndices,
+                      functionCall,
+                      config
+              )
       );
     } catch (final Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
@@ -77,16 +84,17 @@ public final class UdafUtil {
   }
 
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
-      final int udafIndex,
-      final FunctionCall functionCall,
-      final KsqlConfig config
+          final int numInitArgs,
+          final List<Integer> udafIndices,
+          final FunctionCall functionCall,
+          final KsqlConfig config
   ) {
     final List<Expression> args = functionCall.getArguments();
 
-    final List<Object> initArgs = new ArrayList<>(Math.max(0, args.size() - 1));
+    final List<Object> initArgs = new ArrayList<>(numInitArgs);
 
     // args for index > 0 must be literals:
-    for (int idx = 1; idx < args.size(); idx++) {
+    for (int idx = args.size() - numInitArgs; idx < args.size(); idx++) {
       final Expression param = args.get(idx);
       if (!(param instanceof Literal)) {
         throw new KsqlException("Parameter " + (idx + 1) + " passed to function "
@@ -100,6 +108,6 @@ public final class UdafUtil {
     final Map<String, Object> functionConfig = config
         .getKsqlFunctionsConfigProps(functionCall.getName().text());
 
-    return new AggregateFunctionInitArguments(udafIndex, functionConfig, initArgs);
+    return new AggregateFunctionInitArguments(udafIndices, functionConfig, initArgs);
   }
 }

@@ -22,6 +22,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.function.Function;
 
 @EffectivelyImmutable
 public interface FunctionRegistry {
@@ -88,7 +89,7 @@ public interface FunctionRegistry {
    *
    * <p>The current assumption is that all aggregate functions take a single argument for
    * computing the aggregate at runtime. For functions that have no runtime arguments pass {@link
-   * #DEFAULT_FUNCTION_ARG_SCHEMA} for the {@code argumentType} parameter.
+   * #DEFAULT_FUNCTION_ARG_SCHEMA} for the {@code argumentTypes} parameter.
    *
    * <p>Some aggregate functions also take initialisation arguments, e.g.
    * <code> SELECT TOPK(AGE, 5) FROM PEOPLE</code>.
@@ -97,14 +98,14 @@ public interface FunctionRegistry {
    * <code>KsqlAggregateFunction</code> instance.
    *
    * @param functionName the name of the function.
-   * @param argumentType the schema of the argument.
+   * @param argumentTypes the schemas of the argument types.
    * @return the function instance.
-   * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentType}.
+   * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentTypes}.
    */
   KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
       FunctionName functionName,
-      SqlType argumentType,
-      AggregateFunctionInitArguments initArgs
+      List<SqlType> argumentTypes,
+      Function<Integer, AggregateFunctionInitArguments> initArgsGetter
   );
 
   /**

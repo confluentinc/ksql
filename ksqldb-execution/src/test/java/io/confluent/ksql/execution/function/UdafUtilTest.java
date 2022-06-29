@@ -46,6 +46,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class UdafUtilTest {
@@ -104,7 +105,11 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA, KsqlConfig.empty());
 
     // Then:
-    verify(functionRegistry).getAggregateFunction(any(), eq(SqlTypes.BIGINT), any());
+    verify(functionRegistry).getAggregateFunction(
+            any(),
+            eq(Collections.singletonList(SqlTypes.BIGINT)),
+            any()
+    );
   }
 
 
@@ -117,7 +122,12 @@ public class UdafUtilTest {
     ));
 
     // When:
-    UdafUtil.createAggregateFunctionInitArgs(0, functionCall, KsqlConfig.empty());
+    UdafUtil.createAggregateFunctionInitArgs(
+            Math.max(0, functionCall.getArguments().size() - 1),
+            Collections.singletonList(0),
+            functionCall,
+            KsqlConfig.empty()
+    );
 
     // Then: did not throw.
   }
@@ -134,7 +144,11 @@ public class UdafUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> UdafUtil.createAggregateFunctionInitArgs(0, functionCall, KsqlConfig.empty())
+        () -> UdafUtil.createAggregateFunctionInitArgs(
+                Math.max(0, functionCall.getArguments().size() - 1),
+                Collections.singletonList(0),
+                functionCall, KsqlConfig.empty()
+        )
     );
 
     // Then:
@@ -155,7 +169,12 @@ public class UdafUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> UdafUtil.createAggregateFunctionInitArgs(0, functionCall, KsqlConfig.empty())
+        () -> UdafUtil.createAggregateFunctionInitArgs(
+                Math.max(0, functionCall.getArguments().size() - 1),
+                Collections.singletonList(0),
+                functionCall,
+                KsqlConfig.empty()
+        )
     );
 
     // Then:

@@ -539,7 +539,7 @@ public class ExpressionTypeManager {
         // use an empty KsqlConfig here because the expression type
         // of an aggregate function does not depend on the configuration
         final AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
-                1,
+                node.getArguments().size() - schema.size(),
                 Collections.singletonList(0),
                 node,
                 KsqlConfig.empty()

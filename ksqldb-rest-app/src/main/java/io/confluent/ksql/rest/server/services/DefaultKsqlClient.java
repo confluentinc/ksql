@@ -87,7 +87,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    return getTarget(target, authHeader)
+    return getTarget(target)
         .postKsqlRequest(sql, requestProperties, Optional.empty());
   }
 
@@ -103,7 +103,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .target(serverEndPoint)
         .properties(configOverrides);
 
-    final RestResponse<List<StreamedRow>> resp = getTarget(target, authHeader)
+    final RestResponse<List<StreamedRow>> resp = getTarget(target)
         .postQueryRequest(sql, requestProperties, Optional.empty());
 
     if (resp.isErroneous()) {
@@ -126,7 +126,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .target(serverEndPoint)
         .properties(configOverrides);
 
-    final RestResponse<Integer> resp = getTarget(target, authHeader)
+    final RestResponse<Integer> resp = getTarget(target)
         .postQueryRequest(sql, requestProperties, Optional.empty(), rowConsumer,
             shouldCloseConnection);
 
@@ -149,7 +149,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .properties(configOverrides);
 
     final CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>> response =
-        getTarget(target, authHeader)
+        getTarget(target)
         .postQueryRequestStreamedAsync(sql, requestProperties);
 
     return response.thenApply(resp -> {
@@ -169,7 +169,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    getTarget(target, authHeader)
+    getTarget(target)
         .postAsyncHeartbeatRequest(new KsqlHostInfoEntity(host.host(), host.port()), timestamp)
         .exceptionally(t -> {
           // We send heartbeat requests quite frequently and to nodes that might be down.  We don't
@@ -184,7 +184,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    return getTarget(target, authHeader).getClusterStatus();
+    return getTarget(target).getClusterStatus();
   }
 
   @Override
@@ -195,7 +195,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage)
+    getTarget(target).postAsyncLagReportingRequest(lagReportingMessage)
         .exceptionally(t -> {
           LOG.debug("Exception in async lag reporting request", t);
           return null;
@@ -209,7 +209,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     }
   }
 
-  private KsqlTarget getTarget(final KsqlTarget target, final Optional<String> authHeader) {
+  private KsqlTarget getTarget(final KsqlTarget target) {
     return authHeader
         .map(target::authorizationHeader)
         .orElse(target);

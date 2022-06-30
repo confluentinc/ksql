@@ -105,7 +105,7 @@ public final class RestIntegrationTestUtil {
         new KsqlRequest(sql, ImmutableMap.of(), ImmutableMap.of(), variables, null);
 
     rawRestRequest(restApp, HTTP_1_1, POST, "/ksql", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        Optional.empty(), Optional.empty()).body().toString();
+        Optional.empty(), Optional.empty()).body();
   }
 
   static List<KsqlEntity> makeKsqlRequest(

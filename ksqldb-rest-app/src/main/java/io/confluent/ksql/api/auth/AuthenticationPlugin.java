@@ -19,6 +19,7 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -45,5 +46,9 @@ public interface AuthenticationPlugin {
    */
   CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
       WorkerExecutor workerExecutor);
+
+  default Optional<String> getAuthToken(final RoutingContext context) {
+    return Optional.ofNullable(context.request().getHeader("Authorization"));
+  }
 
 }

@@ -234,7 +234,7 @@ command topics. Command topics have a single partition and default to a
 replication factor of 1.
 
 !!! note
-		Headless mode deployments don't have a command topic.
+		{{ site.ccloud }} and Headless mode deployments don't have a command topic.
 
 #### Consumption and Production
 

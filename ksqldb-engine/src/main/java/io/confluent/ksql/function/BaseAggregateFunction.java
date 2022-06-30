@@ -97,7 +97,8 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     this.paramTypes = ImmutableList.copyOf(
         parameters.stream().map(ParameterInfo::type).collect(Collectors.toList())
     );
-    this.inputConverter = ((objects) -> objects.size() == 1 ? objects.get(0) : objects);
+    this.inputConverter = this.params.size() == 1
+            ? ((objects) -> objects.get(0)) : ((objects) -> objects);
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
   }

@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udaf.correlation;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.ParameterInfo;
@@ -21,7 +22,6 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import org.apache.kafka.streams.kstream.Merger;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -37,9 +37,16 @@ public class CorrelationKudaf extends BaseAggregateFunction<List<Double>, Double
             () -> 0.0,
             SqlTypes.DOUBLE,
             SqlTypes.DOUBLE,
-            Collections.singletonList(
+            ImmutableList.of(
                     new ParameterInfo(
                             "value",
+                            SchemaConverters.sqlToFunctionConverter()
+                                    .toFunctionType(SqlTypes.DOUBLE),
+                            "the value to aggregate",
+                            false
+                    ),
+                    new ParameterInfo(
+                            "value2",
                             SchemaConverters.sqlToFunctionConverter()
                                     .toFunctionType(SqlTypes.DOUBLE),
                             "the value to aggregate",

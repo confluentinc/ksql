@@ -42,7 +42,7 @@ public class BaseAggregateFunctionTest {
     // When:
     final TestAggFunc aggFunc = new TestAggFunc(
         "funcName",
-        0,
+        Collections.singletonList(0),
         initialValueSupplier,
         SqlTypes.BIGINT,
         Collections.emptyList(),
@@ -57,13 +57,13 @@ public class BaseAggregateFunctionTest {
 
     TestAggFunc(
         final String functionName,
-        final int argIndexInValue,
+        final List<Integer> argIndicesInValue,
         final Supplier<Integer> initialValueSupplier,
         final SqlType returnType,
         final List<ParameterInfo> arguments,
         final String description
     ) {
-      super(functionName, argIndexInValue, initialValueSupplier, returnType, returnType,
+      super(functionName, argIndicesInValue, initialValueSupplier, returnType, returnType,
           arguments, description);
     }
 

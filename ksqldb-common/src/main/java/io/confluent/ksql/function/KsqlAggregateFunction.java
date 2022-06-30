@@ -17,21 +17,16 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import java.util.Collections;
+import org.apache.kafka.streams.kstream.Merger;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.apache.kafka.streams.kstream.Merger;
 
 public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
 
   Supplier<A> getInitialValueSupplier();
 
-  int getArgIndexInValue();
-
-  default List<Integer> getArgIndicesInValue() {
-    return Collections.singletonList(getArgIndexInValue());
-  }
+  List<Integer> getArgIndicesInValue();
 
   SqlType getAggregateType();
 

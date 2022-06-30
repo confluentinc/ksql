@@ -87,10 +87,6 @@ public class AggregateFunctionInitArguments {
     this.initArgs = ImmutableList.of();
   }
 
-  public int udafIndex() {
-    return udafIndices.get(0);
-  }
-
   public List<Integer> udafIndices() {
     return udafIndices;
   }

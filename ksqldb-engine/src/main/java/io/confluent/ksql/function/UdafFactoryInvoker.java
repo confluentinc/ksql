@@ -108,7 +108,7 @@ class UdafFactoryInvoker implements FunctionSignature {
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
         function = new UdafTableAggregateFunction(
             functionName.text(),
-            initArgs.udafIndex(),
+            initArgs.udafIndices(),
             udaf,
             aggregateSqlType,
             returnSqlType,
@@ -119,7 +119,7 @@ class UdafFactoryInvoker implements FunctionSignature {
       } else {
         function = new UdafAggregateFunction(
             functionName.text(),
-            initArgs.udafIndex(),
+            initArgs.udafIndices(),
             udaf,
             aggregateSqlType,
             returnSqlType,

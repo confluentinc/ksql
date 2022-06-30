@@ -22,14 +22,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>6.2.4</version>
+        <version>[6.2.5-0, 6.2.6-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>6.2.4</version>
+    <version>6.2.5-0</version>
 
     <licenses>
         <license>
@@ -109,7 +109,7 @@
         <commons.compress.version>1.21</commons.compress.version>
         <lang3.version>3.3.1</lang3.version>
         <guava.version>30.1.1-jre</guava.version>
-        <protobuf.version>3.17.0</protobuf.version>
+        <protobuf.version>3.19.4</protobuf.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
@@ -136,7 +136,7 @@
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
-        <io.confluent.ksql.version>6.2.4</io.confluent.ksql.version>
+        <io.confluent.ksql.version>6.2.5-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
 
         <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>

@@ -105,10 +105,10 @@ public class WindowInfoTest {
     final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(10)), Optional.of(OutputRefinement.CHANGES));
 
     // When:
-    final Optional<OutputRefinement> result = windowInfo.getEmitStrategy();
+    final OutputRefinement result = windowInfo.getEmitStrategy();
 
     // Then:
-    assertThat(result, is(Optional.of(OutputRefinement.CHANGES)));
+    assertThat(result, is(OutputRefinement.CHANGES));
   }
 
   @Test(expected = IllegalArgumentException.class)

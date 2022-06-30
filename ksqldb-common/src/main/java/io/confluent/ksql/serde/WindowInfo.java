@@ -32,7 +32,7 @@ public final class WindowInfo {
 
   private final WindowType type;
   private final Optional<Duration> size;
-  private final Optional<OutputRefinement> emitStrategy;
+  private final OutputRefinement emitStrategy;
 
   @JsonCreator
   public static WindowInfo of(
@@ -49,7 +49,9 @@ public final class WindowInfo {
   ) {
     this.type = Objects.requireNonNull(type, "type");
     this.size = Objects.requireNonNull(size, "size");
-    this.emitStrategy = Objects.requireNonNull(emitStrategy, "emitStrategy");
+    this.emitStrategy = Objects.requireNonNull(
+        emitStrategy.orElse(OutputRefinement.CHANGES),
+        "emitStrategy");
 
     if (type.requiresWindowSize() && !size.isPresent()) {
       throw new IllegalArgumentException("Size required");
@@ -72,7 +74,7 @@ public final class WindowInfo {
     return size;
   }
 
-  public Optional<OutputRefinement> getEmitStrategy() {
+  public OutputRefinement getEmitStrategy() {
     return emitStrategy;
   }
 
@@ -86,26 +88,15 @@ public final class WindowInfo {
     }
     final WindowInfo that = (WindowInfo) o;
 
-    final Optional<OutputRefinement> thisEmit = emitStrategy.isPresent()
-        ? emitStrategy
-        : Optional.of(OutputRefinement.CHANGES);
-    final Optional<OutputRefinement> thatEmit = that.emitStrategy.isPresent()
-        ? that.emitStrategy
-        : Optional.of(OutputRefinement.CHANGES);
-
     return type == that.type
         && Objects.equals(size, that.size)
-        && Objects.equals(thisEmit, thatEmit);
+        && Objects.equals(emitStrategy, that.emitStrategy);
 
   }
 
   @Override
   public int hashCode() {
-    final Optional<OutputRefinement> thisEmit = emitStrategy.isPresent()
-        ? emitStrategy
-        : Optional.of(OutputRefinement.CHANGES);
-
-    return Objects.hash(type, size, thisEmit);
+    return Objects.hash(type, size, emitStrategy);
   }
 
   @Override

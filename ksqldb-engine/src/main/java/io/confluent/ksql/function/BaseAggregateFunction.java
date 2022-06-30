@@ -27,6 +27,7 @@ import org.apache.kafka.connect.data.Struct;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -42,6 +43,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   private final SqlType outputSchema;
   private final ImmutableList<ParameterInfo> params;
   private final ImmutableList<ParamType> paramTypes;
+  private final Function<List<Object>, Object> inputConverter;
 
   protected final String functionName;
   private final String description;
@@ -95,6 +97,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     this.paramTypes = ImmutableList.copyOf(
         parameters.stream().map(ParameterInfo::type).collect(Collectors.toList())
     );
+    this.inputConverter = ((objects) -> objects.size() == 1 ? objects.get(0) : objects);
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
   }
@@ -138,6 +141,11 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "params is ImmutableList")
   public List<ParameterInfo> parameterInfo() {
     return params;
+  }
+
+  @Override
+  public Object convertToInput(List<Object> arguments) {
+    return inputConverter.apply(arguments);
   }
 
   @Override

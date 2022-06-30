@@ -37,6 +37,8 @@ public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
 
   SqlType returnType();
 
+  Object convertToInput(List<Object> arguments);
+
   /**
    * Merges values inside the window.
    *

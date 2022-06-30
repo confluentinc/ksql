@@ -23,6 +23,8 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.Triple;
 import org.apache.kafka.connect.data.Struct;
 import java.util.List;
 import java.util.Objects;
@@ -76,8 +78,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     this.paramTypes = ImmutableList.copyOf(
         parameters.stream().map(ParameterInfo::type).collect(Collectors.toList())
     );
-    this.inputConverter = this.params.size() == 1
-            ? ((objects) -> objects.get(0)) : ((objects) -> objects);
+    this.inputConverter = determineInputConverter();
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
   }
@@ -127,5 +128,19 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   @Override
   public String getDescription() {
     return description;
+  }
+
+  private Function<List<Object>, Object> determineInputConverter() {
+    switch (parameters().size()) {
+      case 1:
+        return (objects) -> objects.get(0);
+      case 2:
+        return (objects) -> Pair.of(objects.get(0), objects.get(1));
+      case 3:
+        return (objects) -> Triple.of(objects.get(0), objects.get(1), objects.get(2));
+      default:
+        throw new KsqlException("Unsupported number of aggregation function parameters: "
+                + parameters().size());
+    }
   }
 }

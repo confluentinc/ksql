@@ -21,11 +21,12 @@ import io.confluent.ksql.function.ParameterInfo;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.util.Pair;
 import org.apache.kafka.streams.kstream.Merger;
 import java.util.List;
 import java.util.function.Function;
 
-public class CorrelationKudaf extends BaseAggregateFunction<List<Double>, Double, Double> {
+public class CorrelationKudaf extends BaseAggregateFunction<Pair<Double, Double>, Double, Double> {
 
   CorrelationKudaf(
           final String functionName,
@@ -64,8 +65,8 @@ public class CorrelationKudaf extends BaseAggregateFunction<List<Double>, Double
   }
 
   @Override
-  public Double aggregate(List<Double> currentValue, Double aggregateValue) {
-    return aggregateValue + currentValue.get(0) + currentValue.get(1);
+  public Double aggregate(Pair<Double, Double> currentValue, Double aggregateValue) {
+    return aggregateValue + currentValue.getLeft() + currentValue.getRight();
   }
 
   @Override

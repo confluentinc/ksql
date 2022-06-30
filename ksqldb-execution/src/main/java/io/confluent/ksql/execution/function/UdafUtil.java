@@ -30,6 +30,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -78,6 +79,30 @@ public final class UdafUtil {
     } catch (final Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
     }
+  }
+
+  /**
+   * Creates the initial arguments for a dummy aggregate function that will not
+   * actually be called. For example, this is useful for retrieving the return type
+   * in the {@link ExpressionTypeManager}.
+   * @param numInitArgs     number of initial arguments. This is necessary as there
+   *                        is the potential for the {@link FunctionRegistry} to
+   *                        resolve different functions based on the number of initial
+   *                        arguments.
+   * @param functionCall    the call to the function whose initial arguments should be
+   *                        created
+   * @return initial arguments for a dummy aggregate function
+   */
+  public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
+          final int numInitArgs,
+          final FunctionCall functionCall
+  ) {
+    return createAggregateFunctionInitArgs(
+            numInitArgs,
+            Collections.emptyList(),
+            functionCall,
+            KsqlConfig.empty()
+    );
   }
 
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(

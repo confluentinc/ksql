@@ -78,7 +78,6 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.Collections;
@@ -540,9 +539,7 @@ public class ExpressionTypeManager {
         // of an aggregate function does not depend on the configuration
         final AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
                 node.getArguments().size() - schema.size(),
-                Collections.singletonList(0),
-                node,
-                KsqlConfig.empty()
+                node
         );
 
         final KsqlAggregateFunction<?,?,?> aggFunc = functionRegistry

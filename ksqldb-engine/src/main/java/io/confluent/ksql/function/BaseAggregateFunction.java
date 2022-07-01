@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.udaf.VariadicArgs;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -131,16 +132,44 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   }
 
   private Function<List<Object>, Object> determineInputConverter() {
-    switch (parameters().size()) {
-      case 1:
-        return (objects) -> objects.get(0);
-      case 2:
-        return (objects) -> Pair.of(objects.get(0), objects.get(1));
-      case 3:
-        return (objects) -> Triple.of(objects.get(0), objects.get(1), objects.get(2));
-      default:
-        throw new KsqlException("Unsupported number of aggregation function parameters: "
-                + parameters().size());
+    if (isVariadic()) {
+      switch (parameters().size()) {
+        case 1:
+          return VariadicArgs::new;
+        case 2:
+          return (objects) -> Pair.of(
+                  objects.get(0),
+                  new VariadicArgs<>(objects.subList(1, objects.size()))
+          );
+        case 3:
+          return (objects) -> Triple.of(
+                  objects.get(0),
+                  objects.get(1),
+                  new VariadicArgs<>(objects.subList(2, objects.size()))
+          );
+        default:
+          throw new KsqlException("Unsupported number of aggregation function parameters: "
+                  + parameters().size());
+      }
+    } else {
+      switch (parameters().size()) {
+        case 1:
+          return (objects) -> objects.get(0);
+        case 2:
+          return (objects) -> Pair.of(
+                  objects.get(0),
+                  objects.get(1)
+          );
+        case 3:
+          return (objects) -> Triple.of(
+                  objects.get(0),
+                  objects.get(1),
+                  objects.get(2)
+          );
+        default:
+          throw new KsqlException("Unsupported number of aggregation function parameters: "
+                  + parameters().size());
+      }
     }
   }
 }

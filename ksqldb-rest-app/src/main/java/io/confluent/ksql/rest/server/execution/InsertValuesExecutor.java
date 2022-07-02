@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -45,10 +44,8 @@ import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
-import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
-import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
@@ -66,7 +63,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
@@ -500,21 +496,19 @@ public class InsertValuesExecutor {
       final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
       propertiesBuilder.putAll(formatInfo.getProperties());
       // Retrieve and add the SCHEMA_ID
-      Optional<SchemaMetadata> schemaMetadata = SchemaRegistryUtil
+      final Optional<SchemaMetadata> schemaMetadata = SchemaRegistryUtil
               .getLatestSchema(schemaRegistryClient, topicName, isKey);
       if (schemaMetadata.isPresent()) {
-        propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaMetadata.get().getId()));
-      }
-      else {
+        propertiesBuilder.put(ConnectProperties.SCHEMA_ID,
+                String.valueOf(schemaMetadata.get().getId()));
+      } else if (format.getSupportedProperties().contains(ConnectProperties.SUBJECT_NAME)) {
         // If SCHEMA_ID is not specified, then add the SUBJECT_NAME which helps the serializer
         // to identify the schema to fetch from SR but without using the restrictions we
         // have with SCHEMA_ID
 
         // Add SUBJECT_NAME only on supported SR formats
-        if (format.getSupportedProperties().contains(ConnectProperties.SUBJECT_NAME)) {
-          propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,
-                  KsqlConstants.getSRSubject(topicName, isKey));
-        }
+        propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,
+            KsqlConstants.getSRSubject(topicName, isKey));
       }
       return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
     }

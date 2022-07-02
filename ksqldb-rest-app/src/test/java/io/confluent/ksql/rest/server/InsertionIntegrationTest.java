@@ -68,7 +68,7 @@ public class InsertionIntegrationTest {
   }
 
   @Test
-  public void shouldAvoid() {
+  public void shouldAvoidNewSchemaRegistrationWithInsertValues() {
     ksqlRestClient.makeKsqlRequest
             ("CREATE STREAM " + STREAM_NAME + " (K0 INT KEY, K1 STRING KEY,V0 BOOLEAN, V1 INT) " +
                     "WITH (KAFKA_TOPIC = '" + TOPIC_NAME + "', VALUE_FORMAT = 'AVRO', " +

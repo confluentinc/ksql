@@ -1099,7 +1099,7 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldThrowOnNewSchemaRegistrationByInsert() throws Exception {
+  public void shouldThrowOnMissingConnectNameComparingKeySchema() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
             .thenReturn(new SchemaMetadata(1, 1, RAW_SCHEMA));
@@ -1123,7 +1123,6 @@ public class InsertValuesExecutorTest {
                     new StringLiteral("v0"),
                     new LongLiteral(21))
     );
-
     // When:
     final Exception e = assertThrows(
             KsqlException.class,

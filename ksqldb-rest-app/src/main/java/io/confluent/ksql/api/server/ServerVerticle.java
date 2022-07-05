@@ -296,7 +296,8 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleHeartbeatRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, HeartbeatMessage.class, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeHeartbeat(request, DefaultApiSecurityContext.create(routingContext, server))
+            endpoints.executeHeartbeat(
+                request, DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -333,7 +334,8 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleLagReportRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, LagReportingMessage.class, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeLagReport(request, DefaultApiSecurityContext.create(routingContext, server))
+            endpoints.executeLagReport(
+                request, DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -347,7 +349,8 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleServerMetadataRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeServerMetadata(DefaultApiSecurityContext.create(routingContext, server))
+            endpoints.executeServerMetadata(
+                DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -355,7 +358,8 @@ public class ServerVerticle extends AbstractVerticle {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
             endpoints
-                .executeServerMetadataClusterId(DefaultApiSecurityContext.create(routingContext, server))
+                .executeServerMetadataClusterId(
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -383,7 +387,8 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleWebsocket(final RoutingContext routingContext) {
-    final ApiSecurityContext apiSecurityContext = DefaultApiSecurityContext.create(routingContext, server);
+    final ApiSecurityContext apiSecurityContext =
+        DefaultApiSecurityContext.create(routingContext, server);
 
     final VertexHandler handler = new VertexHandler();
     routingContext.request().toWebSocket(handler);

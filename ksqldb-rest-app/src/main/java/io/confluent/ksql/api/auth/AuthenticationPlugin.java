@@ -46,4 +46,9 @@ public interface AuthenticationPlugin {
   CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
       WorkerExecutor workerExecutor);
 
+
+  default String getAuthToken(final RoutingContext routingContext) {
+    return routingContext.request().getHeader("Authorization");
+  }
+
 }

@@ -88,15 +88,17 @@ public final class WindowInfo {
     }
     final WindowInfo that = (WindowInfo) o;
 
+    // we omit `emitStrategy` because `WindowInfo` is used to determine the topic format,
+    // and the emit-strategy has no impact on the serialization format
     return type == that.type
-        && Objects.equals(size, that.size)
-        && Objects.equals(emitStrategy, that.emitStrategy);
-
+        && Objects.equals(size, that.size);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, size, emitStrategy);
+    // we omit `emitStrategy` because `WindowInfo` is used to determine the topic format,
+    // and the emit-strategy has no impact on the serialization format
+    return Objects.hash(type, size);
   }
 
   @Override

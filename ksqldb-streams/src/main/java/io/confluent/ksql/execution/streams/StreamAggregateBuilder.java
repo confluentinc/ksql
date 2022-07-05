@@ -303,14 +303,12 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      final SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
+      SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
           groupedStream.windowedBy(windows);
 
       if (window.getEmitStrategy().isPresent()
           && window.getEmitStrategy().get() == OutputRefinement.FINAL) {
-        // to-do: need to wait for KS PR to get merged
-        //sessionWindowedKStreaM=sessionWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
-        System.out.println("TODO");
+        sessionWindowedKStream = sessionWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
       }
 
       return sessionWindowedKStream.aggregate(

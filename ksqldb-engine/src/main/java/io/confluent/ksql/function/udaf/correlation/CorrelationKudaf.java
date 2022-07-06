@@ -53,7 +53,7 @@ public class CorrelationKudaf
                             SchemaConverters.sqlToFunctionConverter()
                                     .toFunctionType(SqlTypes.DOUBLE),
                             "the value to aggregate",
-                            false
+                            true
                     )
             ),
             "Computes the maximum " + SqlTypes.DOUBLE.toString(FormatOptions.none())
@@ -79,10 +79,5 @@ public class CorrelationKudaf
   @Override
   public Function<Double, Double> getResultMapper() {
     return Function.identity();
-  }
-
-  @Override
-  public boolean isVariadic() {
-    return true;
   }
 }

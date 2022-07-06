@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.udaf.VariadicArgs;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
@@ -34,6 +35,7 @@ import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,6 +43,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.Triple;
 import org.apache.kafka.connect.data.Struct;
 
 class UdafTypes {
@@ -69,7 +75,15 @@ class UdafTypes {
       .add(ByteBuffer.class)
       .build();
 
-  private final Type inputType;
+  private static final ImmutableSet<Type> TUPLE_TYPES =
+          ImmutableSet.<Type>builder()
+                  .add(Pair.class)
+                  .add(Triple.class)
+                  .build();
+  private static final Type VARIADIC_TYPE = VariadicArgs.class;
+
+  private final boolean isVariadic;
+  private final Type[] inputTypes;
   private final Type aggregateType;
   private final Type outputType;
   private final List<ParameterInfo> literalParams;
@@ -89,24 +103,57 @@ class UdafTypes {
     final ParameterizedType type = (ParameterizedType) annotatedReturnType.getType();
     this.sqlTypeParser = Objects.requireNonNull(sqlTypeParser);
 
-    this.inputType = type.getActualTypeArguments()[0];
+    final Type inputWrapperType = type.getActualTypeArguments()[0];
+
+    if (TUPLE_TYPES.contains(inputWrapperType)) {
+      this.inputTypes = type.getActualTypeArguments();
+    } else {
+      this.inputTypes = new Type[]{inputWrapperType};
+    }
+
+    final int lastTypeIndex = inputTypes.length - 1;
+    if (this.inputTypes.length > 0 && getRawType(this.inputTypes[lastTypeIndex]) == VARIADIC_TYPE) {
+      this.isVariadic = true;
+      this.inputTypes[lastTypeIndex] = ((ParameterizedType) inputTypes[lastTypeIndex])
+              .getActualTypeArguments()[0];
+    } else {
+      this.isVariadic = false;
+    }
+
     this.aggregateType = type.getActualTypeArguments()[1];
     this.outputType = type.getActualTypeArguments()[2];
 
     this.literalParams = FunctionLoaderUtils
         .createParameters(method, functionName.text(), sqlTypeParser);
 
-    validateTypes(inputType);
-    validateTypes(aggregateType);
-    validateTypes(outputType);
+    validateTypes(inputTypes);
+    validateType(aggregateType);
+    validateType(outputType);
   }
 
-  List<ParameterInfo> getInputSchema(final String inSchema) {
-    validateStructAnnotation(inputType, inSchema, "paramSchema");
-    final ParamType inputSchema = getSchemaFromType(inputType, inSchema);
+  List<ParameterInfo> getInputSchema(final String[] inSchemas) {
+    final List<ParamType> paramTypes = new ArrayList<>();
+
+    for (int paramIndex = 0; paramIndex < inputTypes.length; paramIndex++) {
+      final Type inputType = inputTypes[paramIndex];
+      final String schema = paramIndex < inSchemas.length ? inSchemas[paramIndex] : "";
+      Objects.requireNonNull(schema);
+
+      validateStructAnnotation(inputType, schema, "paramSchema");
+      paramTypes.add(getSchemaFromType(inputType, schema));
+    }
+
+    final int lastParamIndex = paramTypes.size() - 1;
+    final List<ParameterInfo> paramInfos = IntStream.range(0, paramTypes.size())
+            .mapToObj((paramIndex) -> new ParameterInfo(
+                    "val" + (paramIndex + 1),
+                    paramTypes.get(paramIndex),
+                    "",
+                    isVariadic && paramIndex == lastParamIndex
+            )).collect(Collectors.toList());
 
     return ImmutableList.<ParameterInfo>builder()
-        .add(new ParameterInfo("val", inputSchema, "", false))
+        .addAll(paramInfos)
         .addAll(literalParams)
         .build();
   }
@@ -121,9 +168,15 @@ class UdafTypes {
     return getSchemaFromType(outputType, outSchema);
   }
 
-  private void validateTypes(final Type t) {
+  private void validateType(final Type t) {
     if (!(t instanceof TypeVariable) && isUnsupportedType((Class<?>) getRawType(t))) {
       throw new KsqlException(String.format(invalidClassErrorMsg, t));
+    }
+  }
+
+  private void validateTypes(final Type[] types) {
+    for (Type type : types) {
+      validateType(type);
     }
   }
 

@@ -122,6 +122,11 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   }
 
   @Override
+  public boolean isVariadic() {
+    return !params.isEmpty() && params.get(params.size() - 1).isVariadic();
+  }
+
+  @Override
   public Object convertToInput(List<Object> arguments) {
     return inputConverter.apply(arguments);
   }

@@ -1120,7 +1120,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
     assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.emptyList()),
@@ -1136,7 +1136,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumInt"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+         new String[]{""},
         "",
         "");
     final AggregateFunctionInitArguments initArgs = new AggregateFunctionInitArguments(
@@ -1172,7 +1172,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
     final KsqlAggregateFunction function = creator
@@ -1190,7 +1190,7 @@ public class UdfLoaderTest {
             String.class),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
     final KsqlAggregateFunction instance =
@@ -1210,7 +1210,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
 
@@ -1233,7 +1233,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumT"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
 
@@ -1258,7 +1258,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("invalidInputTypeUdaf"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         ""
     );
@@ -1273,7 +1273,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("missingInputSchemaAnnotationUdaf"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1290,7 +1290,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
         of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         ""
     );
@@ -1314,7 +1314,7 @@ public class UdfLoaderTest {
                 UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
                 of("test"),
                 "desc",
-                "",
+                new String[]{""},
                 "",
                 ""
         )
@@ -1379,7 +1379,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createBlah"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1395,7 +1395,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createLongDouble"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1406,7 +1406,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createDoubleLong"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1417,7 +1417,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createIntegerString"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1428,7 +1428,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createStringInteger"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1439,7 +1439,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createBooleanList"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1450,7 +1450,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createListBoolean"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1461,7 +1461,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createMapMap"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1472,7 +1472,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createMapMap", int.class),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1483,7 +1483,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createStructStruct"),
         FunctionName.of("test"),
         "desc",
-        "STRUCT<A VARCHAR>",
+        new String[]{"STRUCT<A VARCHAR>"},
         "STRUCT<B VARCHAR>",
         "STRUCT<B VARCHAR>");
   }
@@ -1497,7 +1497,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createBad"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1516,7 +1516,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createNonStatic"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );

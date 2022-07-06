@@ -55,7 +55,7 @@ class UdafFactoryInvoker implements FunctionSignature {
       final Method method,
       final FunctionName functionName,
       final String description,
-      final String inputSchema,
+      final String[] inputSchemas,
       final String aggregateSchema,
       final String outputSchema,
       final SqlTypeParser typeParser,
@@ -76,7 +76,7 @@ class UdafFactoryInvoker implements FunctionSignature {
     this.functionName = Objects.requireNonNull(functionName);
     this.aggregateSchema = aggregateSchema; // This can be null if the annotation is not used.
     this.metrics = Objects.requireNonNull(metrics);
-    this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
+    this.params = types.getInputSchema(Objects.requireNonNull(inputSchemas));
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
     this.aggregateReturnType = types.getOutputSchema(Objects.requireNonNull(outputSchema));
     this.method = Objects.requireNonNull(method);

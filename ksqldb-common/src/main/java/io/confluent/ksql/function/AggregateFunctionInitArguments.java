@@ -48,11 +48,11 @@ public class AggregateFunctionInitArguments {
    * not be properly passed through to the aggregate function.
    */
   public AggregateFunctionInitArguments(
-      final int index,
+      final List<Integer> indices,
       final Object... initArgs
   ) {
     this(
-            Collections.singletonList(index),
+            indices,
             ImmutableMap.of(/* not a configurable function */),
             Arrays.asList(initArgs)
     );

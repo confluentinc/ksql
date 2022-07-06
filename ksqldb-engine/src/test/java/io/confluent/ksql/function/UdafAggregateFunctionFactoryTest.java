@@ -29,6 +29,7 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,7 +61,11 @@ public class UdafAggregateFunctionFactoryTest {
     // When:
     functionFactory.createAggregateFunction(
         ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
-        new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(1))
+        new AggregateFunctionInitArguments(
+                Collections.singletonList(0),
+                ImmutableMap.of(),
+                ImmutableList.of(1)
+        )
     );
 
     // Then:
@@ -72,7 +77,11 @@ public class UdafAggregateFunctionFactoryTest {
     // When:
     functionFactory.createAggregateFunction(
         ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
-        new AggregateFunctionInitArguments(0, ImmutableMap.of(), Arrays.asList(null, 5L))
+        new AggregateFunctionInitArguments(
+                Collections.singletonList(0),
+                ImmutableMap.of(),
+                Arrays.asList(null, 5L)
+        )
     );
 
     // Then:
@@ -84,7 +93,11 @@ public class UdafAggregateFunctionFactoryTest {
     // When:
     functionFactory.createAggregateFunction(
         ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
-        new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(true, 1, 1L, 1.0d, "s"))
+        new AggregateFunctionInitArguments(
+                Collections.singletonList(0),
+                ImmutableMap.of(),
+                ImmutableList.of(true, 1, 1L, 1.0d, "s")
+        )
     );
 
     // Then: did not throw.
@@ -96,7 +109,11 @@ public class UdafAggregateFunctionFactoryTest {
     final Exception e = assertThrows(KsqlFunctionException.class,
         () -> functionFactory.createAggregateFunction(
             ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
-            new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(BigDecimal.ONE))
+            new AggregateFunctionInitArguments(
+                    Collections.singletonList(0),
+                    ImmutableMap.of(),
+                    ImmutableList.of(BigDecimal.ONE)
+            )
         )
     );
 

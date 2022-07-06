@@ -1140,7 +1140,9 @@ public class UdfLoaderTest {
         "",
         "");
     final AggregateFunctionInitArguments initArgs = new AggregateFunctionInitArguments(
-        0, ImmutableMap.of("ksql.functions.test_udaf.init", 100L));
+            Collections.singletonList(0),
+            ImmutableMap.of("ksql.functions.test_udaf.init", 100L)
+    );
 
     // When:
     final KsqlAggregateFunction function = creator.createFunction(initArgs, Collections.emptyList());
@@ -1193,8 +1195,10 @@ public class UdfLoaderTest {
         new String[]{""},
         "",
         "");
-    final KsqlAggregateFunction instance =
-        creator.createFunction(new AggregateFunctionInitArguments(0, "foo"), Collections.emptyList());
+    final KsqlAggregateFunction instance = creator.createFunction(
+            new AggregateFunctionInitArguments(Collections.singletonList(0), "foo"),
+            Collections.emptyList()
+    );
     assertThat(instance,
         not(nullValue()));
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));

@@ -23,9 +23,9 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.Pair;
-import org.apache.kafka.streams.kstream.Merger;
 import java.util.List;
 import java.util.function.Function;
+import org.apache.kafka.streams.kstream.Merger;
 
 public class CorrelationKudaf
         extends BaseAggregateFunction<Pair<Double, VariadicArgs<Double>>, Double, Double> {
@@ -67,8 +67,9 @@ public class CorrelationKudaf
   }
 
   @Override
-  public Double aggregate(Pair<Double, VariadicArgs<Double>> currentValue, Double aggregateValue) {
-    return aggregateValue + currentValue.getLeft() + currentValue.getRight().getValues().get(0);
+  public Double aggregate(final Pair<Double, VariadicArgs<Double>> currentValue,
+                          final Double aggregateValue) {
+    return aggregateValue + currentValue.getLeft() + currentValue.getRight().get(0);
   }
 
   @Override

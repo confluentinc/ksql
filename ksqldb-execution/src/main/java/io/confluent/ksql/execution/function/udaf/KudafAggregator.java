@@ -117,8 +117,8 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     return (KsqlAggregateFunction) aggregateFunctions.get(columnIndex - nonAggColumnCount);
   }
 
-  private Object getCurrentValue(GenericRow row, List<Integer> indices,
-                                 Function<List<Object>, Object> inputConverter) {
+  private Object getCurrentValue(final GenericRow row, final List<Integer> indices,
+                                 final Function<List<Object>, Object> inputConverter) {
     return inputConverter.apply(
             indices.stream()
                     .map(row::get)

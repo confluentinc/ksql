@@ -32,8 +32,8 @@ public class CorrelationAggFunctionFactory extends AggregateFunctionFactory {
 
   @Override
   public KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
-          List<SqlArgument> argTypeList,
-          AggregateFunctionInitArguments initArgs) {
+          final List<SqlArgument> argTypeList,
+          final AggregateFunctionInitArguments initArgs) {
     return new CorrelationKudaf(FUNCTION_NAME, initArgs.udafIndices());
   }
 

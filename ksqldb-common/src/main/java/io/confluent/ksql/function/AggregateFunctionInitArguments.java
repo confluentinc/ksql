@@ -37,7 +37,7 @@ public class AggregateFunctionInitArguments {
   public static final AggregateFunctionInitArguments EMPTY_ARGS =
       new AggregateFunctionInitArguments();
 
-  private final List<Integer> udafIndices;
+  private final ImmutableList<Integer> udafIndices;
   private final List<Object> initArgs; // cannot use ImmutableList as we need to handle `null`
   private final ImmutableMap<String, ?> config;
 
@@ -71,18 +71,20 @@ public class AggregateFunctionInitArguments {
       final Map<String, ?> config,
       final List<Object> initArgs
   ) {
-    this.udafIndices = indices;
+    this.udafIndices = ImmutableList.copyOf(indices);
     this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
     this.initArgs = new ArrayList<>(Objects.requireNonNull(initArgs, "initArgs"));
 
-    Optional<Integer> negativeIndex = indices.stream().filter((index) -> index < 0).findFirst();
+    final Optional<Integer> negativeIndex = indices.stream()
+            .filter((index) -> index < 0)
+            .findFirst();
     if (negativeIndex.isPresent()) {
       throw new IllegalArgumentException("index is negative: " + negativeIndex.get());
     }
   }
 
   private AggregateFunctionInitArguments() {
-    this.udafIndices = Collections.singletonList(0);
+    this.udafIndices = ImmutableList.of(0);
     this.config = ImmutableMap.of();
     this.initArgs = ImmutableList.of();
   }

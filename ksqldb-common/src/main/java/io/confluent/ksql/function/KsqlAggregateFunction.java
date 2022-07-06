@@ -17,10 +17,10 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import org.apache.kafka.streams.kstream.Merger;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.kafka.streams.kstream.Merger;
 
 public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
 

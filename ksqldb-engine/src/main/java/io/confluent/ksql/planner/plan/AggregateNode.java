@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
@@ -55,9 +58,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import static java.util.Objects.requireNonNull;
-
 
 public class AggregateNode extends SingleSourcePlanNode implements VerifiableNode {
 

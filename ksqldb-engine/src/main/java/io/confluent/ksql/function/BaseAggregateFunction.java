@@ -26,12 +26,12 @@ import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.Triple;
-import org.apache.kafka.connect.data.Struct;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Struct;
 
 public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFunction<I, A, O> {
 
@@ -39,7 +39,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
    * For instance, in the example SELECT key, SUM(ROWTIME), aggregation will be done on a row
    * with two columns (key, ROWTIME) and the `argIndexInValue` will be 1.
    **/
-  private final List<Integer> argIndicesInValue;
+  private final ImmutableList<Integer> argIndicesInValue;
   private final Supplier<A> initialValueSupplier;
   private final SqlType aggregateSchema;
   private final SqlType outputSchema;
@@ -59,7 +59,9 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
       final List<ParameterInfo> parameters,
       final String description
   ) {
-    this.argIndicesInValue = argIndicesInValue;
+    this.argIndicesInValue = ImmutableList.copyOf(
+            Objects.requireNonNull(argIndicesInValue, "argIndicesInValue")
+    );
     this.initialValueSupplier = () -> {
       ExtensionSecurityManager.INSTANCE.pushInUdf();
       try {
@@ -92,6 +94,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     return initialValueSupplier;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "argIndicesInValue is ImmutableList")
   public List<Integer> getArgIndicesInValue() {
     return argIndicesInValue;
   }
@@ -127,7 +130,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   }
 
   @Override
-  public Object convertToInput(List<Object> arguments) {
+  public Object convertToInput(final List<Object> arguments) {
     return inputConverter.apply(arguments);
   }
 

@@ -25,6 +25,8 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.Triple;
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -45,8 +47,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.Triple;
 import org.apache.kafka.connect.data.Struct;
 
 class UdafTypes {

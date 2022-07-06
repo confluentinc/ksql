@@ -14,16 +14,21 @@
 
 package io.confluent.ksql.function.udaf;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class VariadicArgs<T> {
-  private final List<T> values;
+  private final ImmutableList<T> values;
 
   public VariadicArgs(final List<T> values) {
-    this.values = values;
+    this.values = ImmutableList.copyOf(values);
   }
 
-  public List<T> getValues() {
-    return values;
+  public T get(final int index) {
+    return values.get(index);
+  }
+
+  public int size() {
+    return values.size();
   }
 }

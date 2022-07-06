@@ -77,8 +77,8 @@ public class KudafUndoAggregator implements Aggregator<GenericKey, GenericRow, G
     return result;
   }
 
-  private Object getCurrentValue(GenericRow row, List<Integer> indices,
-                                 Function<List<Object>, Object> inputConverter) {
+  private Object getCurrentValue(final GenericRow row, final List<Integer> indices,
+                                 final Function<List<Object>, Object> inputConverter) {
     return inputConverter.apply(
             indices.stream()
                     .map(row::get)

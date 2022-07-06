@@ -123,6 +123,16 @@ public class KsqlRequest {
         + '}';
   }
 
+  public String toMaskedString(final String maskedQuery) {
+    return "KsqlRequest{"
+        + "ksql='" + maskedQuery + '\''
+        + ", configOverrides=" + configOverrides
+        + ", requestProperties=" + requestProperties
+        + ", sessionVariables=" + sessionVariables
+        + ", commandSequenceNumber=" + commandSequenceNumber
+        + '}';
+  }
+
   /**
    * Converts all Class references values to their canonical String value.
    * </p>

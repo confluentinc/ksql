@@ -22,6 +22,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.rewrite.QueryMask;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -272,7 +273,9 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    LOG.info("Received: " + request);
+    final String maskedQuery = new QueryMask(request).getMaskedQuery();
+    final String maskedRequest = request.toMaskedString(maskedQuery);
+    LOG.info("Received: " + maskedRequest);
 
     throwIfNotConfigured();
 
@@ -326,22 +329,22 @@ public class KsqlResource implements KsqlConfigurable {
           )
       );
 
-      LOG.info("Processed successfully: " + request);
+      LOG.info("Processed successfully: " + maskedRequest);
       addCommandRunnerWarning(
           entities,
           commandRunnerWarning);
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      LOG.info("Processed unsuccessfully: " + maskedRequest + ", reason: ", e);
       throw e;
     } catch (final KsqlStatementException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      LOG.info("Processed unsuccessfully: " + maskedRequest + ", reason: ", e);
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      LOG.info("Processed unsuccessfully: " + maskedRequest + ", reason: ", e);
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      LOG.info("Processed unsuccessfully: " + maskedRequest + ", reason: ", e);
       return errorHandler.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }

@@ -20,6 +20,9 @@
     },
     {
       "name": "should not emit final result before window end if grace is specified as zero",
+      "properties": {
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 0 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -33,6 +36,9 @@
     },
     {
       "name": "should not emit before window end if no grace period given",
+      "properties": {
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS) GROUP BY ID EMIT FINAL;"

@@ -44,7 +44,7 @@ public class UdafTypesTest {
 
     // Then:
     assertThat(types.getInputSchema(new String[]{""}), is(ImmutableList.of(
-       new ParameterInfo("val", ParamTypes.INTEGER, "", false)
+       new ParameterInfo("val1", ParamTypes.INTEGER, "", false)
     )));
   }
 
@@ -55,7 +55,7 @@ public class UdafTypesTest {
 
     // Then:
     assertThat(types.getInputSchema(new String[]{""}), is(ImmutableList.of(
-        new ParameterInfo("val", ParamTypes.INTEGER, "", false),
+        new ParameterInfo("val1", ParamTypes.INTEGER, "", false),
         new ParameterInfo("initParam", ParamTypes.STRING, "", false)
     )));
   }

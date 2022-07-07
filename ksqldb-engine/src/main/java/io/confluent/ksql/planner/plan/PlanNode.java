@@ -184,9 +184,8 @@ public abstract class PlanNode {
     throw new KsqlException("Key" + keyPostfix + " missing from projection (ie, SELECT). "
         + additional1
         + System.lineSeparator()
-        + "The query used to build " + sinkName
-        + " must include the " + types + " " + joined + " in its projection."
-        + additional2
+        + "The query used to build " + sinkName + " must include the " + types + " " + joined
+        + " in its projection (eg, SELECT " + joined + "...)." + additional2
     );
   }
 

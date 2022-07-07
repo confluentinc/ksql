@@ -1036,7 +1036,10 @@ final class EngineExecutor {
       ));
     }
 
-    return Optional.of(engineContext.createDdlCommand(outputNode));
+    return Optional.of(engineContext.createDdlCommand(
+        outputNode,
+        ((QueryContainer) statement).getQuery().getRefinement())
+    );
   }
 
   private void validateExistingSink(

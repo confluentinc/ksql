@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -531,7 +530,7 @@ public class ExpressionTypeManager {
       if (functionRegistry.isAggregate(node.getName())) {
         final List<SqlType> schema = node.getArguments().isEmpty()
             ? Collections.singletonList(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
-            : node.getArguments().stream().filter((arg) -> arg instanceof ColumnReferenceExp).map(
+            : node.getArguments().stream().filter(ColumnExtractor::detectColumns).map(
                     (arg) -> getExpressionSqlType(arg, context.getLambdaSqlTypeMapping())
               ).collect(Collectors.toList());
 

@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extrac
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryWsRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
@@ -33,7 +34,10 @@ import static org.hamcrest.Matchers.not;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.api.AuthTest.StringPrincipal;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
@@ -58,8 +62,10 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
@@ -160,7 +166,7 @@ public class PullQueryRoutingFunctionalTest {
       // In order to whitelist the above paths for auth, we need to install a noop authentication
       // plugin.  In practice, these are internal paths so we're not interested in testing auth
       // for them in these tests.
-      .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, NoAuthPlugin.class)
+      .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, WSAuthPlugin.class)
       .build();
 
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
@@ -317,6 +323,36 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
+  @Test
+  public void shouldQueryWS() throws Exception {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.standBy.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+
+    final Credentials credentials =  new Credentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+    // When:
+    List<String> rows_0 =
+        makePullQueryWsRequest(clusterFormation.router.getApp().getWsListener(), sql, "", "", credentials, Optional.empty(), Optional.empty());
+
+    // Then:
+    // websocket pull query returns a header, the value row, and an error row indicating that it is done
+    assertThat(rows_0, hasSize(HEADER + 2));
+  }
 
   @Test
   public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
@@ -644,6 +680,34 @@ public class PullQueryRoutingFunctionalTest {
         WorkerExecutor workerExecutor) {
       return CompletableFuture.completedFuture(null);
     }
+  }
+
+  public static class WSAuthPlugin implements AuthenticationPlugin {
+
+    @Override
+    public void configure(Map<String, ?> map) {
+    }
+
+    @Override
+    public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
+        WorkerExecutor workerExecutor) {
+      if (getAuthToken(routingContext) == null){
+        routingContext.fail(HttpResponseStatus.UNAUTHORIZED.code(),
+            new KsqlApiException("Unauthorized", HttpResponseStatus.UNAUTHORIZED.code()));
+        return CompletableFuture.completedFuture(null);
+      }
+      return CompletableFuture.completedFuture(new StringPrincipal(USER_WITH_ACCESS));
+    }
+
+    @Override
+    public String getAuthToken(RoutingContext routingContext) {
+      String authToken = routingContext.request().getHeader("Authorization");
+      if (authToken == null) {
+        authToken = routingContext.request().getParam("access_token");
+      }
+      return authToken;
+    }
+
   }
 }
 

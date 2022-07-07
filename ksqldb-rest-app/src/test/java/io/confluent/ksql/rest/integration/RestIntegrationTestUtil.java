@@ -432,12 +432,15 @@ public final class RestIntegrationTestUtil {
     try {
       httpClient = vertx.createHttpClient();
 
+<<<<<<< HEAD
       final String uri = baseUri.toString() + "/ws/query?request=" + buildStreamingRequest(sql);
+=======
+      final String uri = baseUri.toString() + "/ws/query?request="
+          + buildStreamingRequest(sql, overrides, requestProperties)
+          + "&access_token=" + buildBasicAuthHeader(credentials.get());
+>>>>>>> b6fc8d9115 (fix: add getAuthToken method to AuthenticationPlugin interface (#9239))
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-
-      credentials.ifPresent(
-          creds -> headers.add(AUTHORIZATION.toString(), "Basic " + buildBasicAuthHeader(creds)));
 
       mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
       contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));

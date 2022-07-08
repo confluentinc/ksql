@@ -328,10 +328,9 @@ CREATE OR REPLACE TABLE b AS SELECT id, COUNT(*)
 ----------------------------------------------------------------------------------------------------
 --@test: add filter to Suppress
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: Upgrades not yet supported for TableSuppress
+--@expected.message: Upgrades not yet supported for StreamWindowedAggregate
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
-SET 'ksql.suppress.enabled' = 'true';
 
 CREATE STREAM a (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
 CREATE TABLE b AS SELECT id, COUNT(*)

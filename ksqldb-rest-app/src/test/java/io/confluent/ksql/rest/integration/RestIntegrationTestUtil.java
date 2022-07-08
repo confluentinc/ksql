@@ -564,12 +564,10 @@ public final class RestIntegrationTestUtil {
       httpClient = vertx.createHttpClient();
 
       final String uri = baseUri.toString() + "/ws/query?request="
-          + buildStreamingRequest(sql, overrides, requestProperties);
+          + buildStreamingRequest(sql, overrides, requestProperties)
+          + "&access_token=" + buildBasicAuthHeader(credentials.get());
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-
-      credentials.ifPresent(
-          creds -> headers.add(AUTHORIZATION.toString(), "Basic " + buildBasicAuthHeader(creds)));
 
       mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
       contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));

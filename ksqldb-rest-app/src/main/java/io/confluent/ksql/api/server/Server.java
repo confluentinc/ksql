@@ -233,7 +233,7 @@ public class Server {
     return securityExtension;
   }
 
-  Optional<AuthenticationPlugin> getAuthenticationPlugin() {
+  public Optional<AuthenticationPlugin> getAuthenticationPlugin() {
     return authenticationPlugin;
   }
 

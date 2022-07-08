@@ -37,7 +37,7 @@ public enum OutputRefinement {
    *
    * <p>For a stream, all events are final, so all are output.
    */
-  FINAL;
+  FINAL
 }
 
 

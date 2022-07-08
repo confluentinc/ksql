@@ -139,18 +139,20 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     final Optional<WindowExpression> windowExpression = original.getWindowExpression();
     final Optional<RefinementInfo> refinementInfo = original.getRefinementInfo();
 
-    /* Return the original window expression, unless there is no grace period provided during a
-    suppression, in which case we rewrite the window expression to have a default grace period
-    of zero.
-    */
-    if (!(windowExpression.isPresent()
-        && !windowExpression.get().getKsqlWindowExpression().getGracePeriod().isPresent()
-        && refinementInfo.isPresent()
-        && refinementInfo.get().getOutputRefinement() == OutputRefinement.FINAL
-         )
-    ) {
+    // we only need to rewrite if we have a window expression and if we use emit final
+    if (!windowExpression.isPresent()
+        || !refinementInfo.isPresent()
+        || refinementInfo.get().getOutputRefinement() == OutputRefinement.CHANGES) {
       return original.getWindowExpression();
     }
+
+    final Optional<WindowTimeClause> gracePeriod;
+    if (!windowExpression.get().getKsqlWindowExpression().getGracePeriod().isPresent()) {
+      gracePeriod = Optional.of(zeroGracePeriod);
+    } else {
+      gracePeriod = windowExpression.get().getKsqlWindowExpression().getGracePeriod();
+    }
+
     final WindowExpression window = original.getWindowExpression().get();
 
     final KsqlWindowExpression ksqlWindowNew;
@@ -165,21 +167,24 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
           ((HoppingWindowExpression) ksqlWindowOld).getSize(),
           ((HoppingWindowExpression) ksqlWindowOld).getAdvanceBy(),
           retention,
-          Optional.of(zeroGracePeriod)
+          gracePeriod,
+          Optional.of(OutputRefinement.FINAL)
       );
     } else if (ksqlWindowOld instanceof TumblingWindowExpression) {
       ksqlWindowNew = new TumblingWindowExpression(
           location,
           ((TumblingWindowExpression) ksqlWindowOld).getSize(),
           retention,
-          Optional.of(zeroGracePeriod)
+          gracePeriod,
+          Optional.of(OutputRefinement.FINAL)
       );
     } else if (ksqlWindowOld instanceof SessionWindowExpression) {
       ksqlWindowNew = new SessionWindowExpression(
           location,
           ((SessionWindowExpression) ksqlWindowOld).getGap(),
           retention,
-          Optional.of(zeroGracePeriod)
+          gracePeriod,
+          Optional.of(OutputRefinement.FINAL)
       );
     } else {
       throw new KsqlException("WINDOW type must be HOPPING, TUMBLING, or SESSION");

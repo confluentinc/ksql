@@ -152,7 +152,7 @@ public class Command {
     final SessionConfig sessionConfig = configuredStatement.getSessionConfig();
 
     return new Command(
-        configuredStatement.getUnMaskedStatementText(),
+        configuredStatement.getStatementText(),
         sessionConfig.getOverrides(),
         sessionConfig.getConfig(false).getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty(),

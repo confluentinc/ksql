@@ -87,6 +87,11 @@ public interface KsqlParser {
     public SingleStatementContext getStatement() {
       return statement;
     }
+
+    @Override
+    public String toString() {
+      return maskedStatementText;
+    }
   }
 
   @Immutable

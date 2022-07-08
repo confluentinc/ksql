@@ -809,7 +809,7 @@ final class EngineExecutor {
       );
 
       final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-          statement.getUnMaskedStatementText(),
+          statement.getStatementText(),
           Optional.of(outputNode)
       );
 

@@ -35,6 +35,7 @@ public class KsqlRequest {
   private final ImmutableMap<String, Object> requestProperties;
   private final ImmutableMap<String, Object> sessionVariables;
   private final Optional<Long> commandSequenceNumber;
+  private String maskedKsql;
 
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
@@ -68,6 +69,14 @@ public class KsqlRequest {
 
   public String getKsql() {
     return ksql;
+  }
+
+  public String getMaskedKsql() {
+    return maskedKsql;
+  }
+
+  public void setMaskedKsql(final String maskedKsql) {
+    this.maskedKsql = maskedKsql;
   }
 
   @JsonProperty("streamsProperties")
@@ -115,17 +124,7 @@ public class KsqlRequest {
   @Override
   public String toString() {
     return "KsqlRequest{"
-        + "ksql='" + ksql + '\''
-        + ", configOverrides=" + configOverrides
-        + ", requestProperties=" + requestProperties
-        + ", sessionVariables=" + sessionVariables
-        + ", commandSequenceNumber=" + commandSequenceNumber
-        + '}';
-  }
-
-  public String toMaskedString(final String maskedQuery) {
-    return "KsqlRequest{"
-        + "ksql='" + maskedQuery + '\''
+        + "ksql='" + maskedKsql + '\''
         + ", configOverrides=" + configOverrides
         + ", requestProperties=" + requestProperties
         + ", sessionVariables=" + sessionVariables

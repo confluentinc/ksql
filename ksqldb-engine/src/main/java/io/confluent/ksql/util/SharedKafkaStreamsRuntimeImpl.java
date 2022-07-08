@@ -228,14 +228,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   }
 
   @Override
-  public void pause(final QueryId queryId) {
-  }
-
-  @Override
-  public void resume(final QueryId queryId) {
-  }
-
-  @Override
   public void start(final QueryId queryId) {
     log.info("Attempting to start query {} in runtime {}", queryId, getApplicationId());
     if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {

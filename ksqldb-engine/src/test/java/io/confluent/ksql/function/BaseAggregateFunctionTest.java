@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
@@ -45,7 +46,7 @@ public class BaseAggregateFunctionTest {
         Collections.singletonList(0),
         initialValueSupplier,
         SqlTypes.BIGINT,
-        Collections.emptyList(),
+        Collections.singletonList(new ParameterInfo("val", ParamTypes.STRING, "", false)),
         "the description"
     );
 

@@ -185,7 +185,11 @@ public abstract class PlanNode {
         + additional1
         + System.lineSeparator()
         + "The query used to build " + sinkName + " must include the " + types + " " + joined
-        + " in its projection (eg, SELECT " + joined + "...)." + additional2
+        + " in its projection (eg, SELECT "
+        + (requireAll
+              ? GrammaticalJoiner.comma().join(requiredKeys)
+              : requiredKeys.stream().findFirst().get())
+        + "...)." + additional2
     );
   }
 

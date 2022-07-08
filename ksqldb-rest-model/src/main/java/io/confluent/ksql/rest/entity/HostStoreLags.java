@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,6 +50,7 @@ public class HostStoreLags {
     return Optional.ofNullable(stateStoreLags.get(queryStateStoreId));
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "stateStoreLags is ImmutableMap")
   public Map<QueryStateStoreId, StateStoreLags> getStateStoreLags() {
     return stateStoreLags;
   }

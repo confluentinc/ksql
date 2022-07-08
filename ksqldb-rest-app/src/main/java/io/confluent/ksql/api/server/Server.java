@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
@@ -83,6 +84,7 @@ public class Server {
   private WorkerExecutor workerExecutor;
   private FileWatcher fileWatcher;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public Server(
       final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
       final KsqlSecurityExtension securityExtension,
@@ -107,6 +109,9 @@ public class Server {
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
     }
+    final int idleConnectionTimeoutSeconds =
+            config.getInt(KsqlRestConfig.IDLE_CONNECTION_TIMEOUT_SECONDS);
+
     this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
         config.getInt(KsqlRestConfig.WORKER_POOL_SIZE));
     final LoggingRateLimiter loggingRateLimiter = new LoggingRateLimiter(config);
@@ -130,7 +135,8 @@ public class Server {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false)),
+                listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false),
+                idleConnectionTimeoutSeconds),
             this, isInternalListener, pullQueryMetrics, loggingRateLimiter);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
@@ -285,14 +291,14 @@ public class Server {
 
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
       final String host, final int port, final boolean tls,
-      final boolean isInternalListener) {
+      final boolean isInternalListener, final int idleTimeoutSeconds) {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(host)
         .setPort(port)
         .setReuseAddress(true)
         .setReusePort(true)
-        .setIdleTimeout(10 * 60).setIdleTimeoutUnit(TimeUnit.SECONDS)
+        .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
         .setPerFrameWebSocketCompressionSupported(true);
 

@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.entity.CloseQueryArgs;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
@@ -31,6 +32,7 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
 
   private final Server server;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public CloseQueryHandler(final Server server) {
     this.server = Objects.requireNonNull(server);
   }

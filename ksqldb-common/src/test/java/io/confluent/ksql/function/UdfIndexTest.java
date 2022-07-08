@@ -3,6 +3,7 @@ package io.confluent.ksql.function;
 import static io.confluent.ksql.function.KsqlScalarFunction.INTERNAL_PATH;
 import static io.confluent.ksql.function.types.ArrayType.of;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static java.lang.System.lineSeparator;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -563,35 +564,6 @@ public class UdfIndexTest {
   }
 
   @Test
-  public void shouldChooseFirstAddedWithNullValues() {
-    // Given:
-    givenFunctions(
-        function(EXPECTED, false, STRING),
-        function(OTHER, false, INT)
-    );
-
-    // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(null));
-
-    // Then:
-    assertThat(fun.name(), equalTo(EXPECTED));
-  }
-
-  @Test
-  public void shouldFindVarargWithNullValues() {
-    // Given:
-    givenFunctions(
-        function(EXPECTED, true, STRING_VARARGS)
-    );
-
-    // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new SqlArgument[]{null}));
-
-    // Then:
-    assertThat(fun.name(), equalTo(EXPECTED));
-  }
-
-  @Test
   public void shouldFindVarargWithSomeNullValues() {
     // Given:
     givenFunctions(
@@ -962,6 +934,61 @@ public class UdfIndexTest {
     // Then:
     assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
             + "(INTEGER)"));
+  }
+
+  @Test
+  public void shouldThrowOnAmbiguousImplicitCastWithoutGenerics() {
+    // Given:
+    givenFunctions(
+        function(FIRST_FUNC, false, LONG, LONG),
+        function(SECOND_FUNC, false, DOUBLE, DOUBLE)
+    );
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> udfIndex
+            .getFunction(ImmutableList.of(SqlArgument.of(INTEGER), SqlArgument.of(BIGINT))));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' cannot be resolved due " +
+        "to ambiguous method parameters "
+        + "(INTEGER, BIGINT)"));
+  }
+
+  @Test
+  public void shouldFindFewerGenerics() {
+    // Given:
+    givenFunctions(
+        function(EXPECTED, false, INT, GenericType.of("A"), INT),
+        function(OTHER, false, INT, GenericType.of("A"), GenericType.of("B"))
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList
+        .of(SqlArgument.of(INTEGER), SqlArgument.of(INTEGER), SqlArgument.of(INTEGER)));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldThrowOnAmbiguousImplicitCastWithGenerics() {
+    // Given:
+    givenFunctions(
+        function(FIRST_FUNC, false, LONG, GenericType.of("A"), GenericType.of("B")),
+        function(SECOND_FUNC, false, DOUBLE, GenericType.of("A"), GenericType.of("B"))
+    );
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> udfIndex
+            .getFunction(ImmutableList
+                .of(SqlArgument.of(INTEGER), SqlArgument.of(INTEGER), SqlArgument.of(INTEGER))));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' cannot be resolved due " +
+        "to ambiguous method parameters "
+        + "(INTEGER, INTEGER, INTEGER)"));
   }
 
   private void givenFunctions(final KsqlScalarFunction... functions) {

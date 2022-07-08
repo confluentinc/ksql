@@ -2,7 +2,7 @@ import argparse
 import datetime
 import re
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 
 CONFLUENT_USERNAME = 'confluentinc'
@@ -34,10 +34,29 @@ def parse_changelog(filename, release=None):
 					release (str): if provided, method will validate that the first header corresponds to the expected release
 
 			Returns:
-					commits (dict): maps commit type (str) to list of commits (strings) of that type.
-									Note thatt the commit type is the final line that will be written, e.g., "### Features" rather than simply "Features"
+					commits (dict): maps commit type (str) to dict of commits of that type, where keys are shortened commits 
+									(strings, truncated at the first open parenthesis) and values are the full commits (strings).
+									Note that the commit type is the final line that will be written, e.g., "### Features" rather 
+									than simply "Features"
 	'''
 	log_info('parsing changelog file %s' % filename)
+	return _reformat_and_remove_duplicates(_parse_changelog_with_duplicates(filename, release))
+
+def _parse_changelog_with_duplicates(filename, release=None):
+	'''
+	Parses a list of commits and into a dict mapping commit type to commits of that type.
+	Also performs basic processing on the returned commits (e.g., replacing fork name with Confluent user).
+	Note that blank lines in multiline commit messages are removed as a byproduct of processing.
+
+			Parameters:
+					filename (str): file containing list of commits
+					release (str): if provided, method will validate that the first header corresponds to the expected release
+
+			Returns:
+					commits (dict): maps commit type (str) to list of commits (strings) of that type.
+									Note that the commit type is the final line that will be written, e.g., "### Features" rather 
+									than simply "Features"
+	'''
 	with open(filename, 'r') as f:
 		found_header = True if release is None else False
 		fork_name = None
@@ -129,7 +148,7 @@ def _get_fork_name(header):
 #### PROCESS #####
 ##################
 
-def remove_duplicates(commits_by_type):
+def _reformat_and_remove_duplicates(commits_by_type):
 	'''
 	Removes duplicate commits from the supplied dictionary of commits. Duplicates are determined based on prefix until the first
 	open parenthesis in the commit message, if present, else the entire commit message is used for comparison.
@@ -139,12 +158,12 @@ def remove_duplicates(commits_by_type):
 											values are lists of commits (strings) of that type.
 
 			Returns:
-					unique_commits_by_type (dict): new dictionary of the same format as the input, with duplicate commits (per type) removed.
+					unique_commits_by_type (dict): maps commit type (str) to dict of commits of that type, where keys are shortened commits 
+												   (strings, truncated at the first open parenthesis) and values are the full commits (strings).
 	'''
 	unique_commits_by_type = {}
 	for commit_type, commits in commits_by_type.items():
-		unique_messages = {} ## shortened message -> full message
-		unique_messages_ordered = []
+		unique_messages = OrderedDict() ## shortened message -> full message
 		for commit in commits:
 			pull_request_ind = commit.find('(')
 			shortened_msg = commit if pull_request_ind == -1 else commit[:pull_request_ind]
@@ -152,8 +171,7 @@ def remove_duplicates(commits_by_type):
 				log_info('found duplicate message:\n\tfirst:\n\t' + unique_messages[shortened_msg] + '\n\tsecond:\n\t' + commit + '\n\tdropping duplicate')
 			else:
 				unique_messages[shortened_msg] = commit
-				unique_messages_ordered.append(commit)
-		unique_commits_by_type[commit_type] = unique_messages_ordered
+		unique_commits_by_type[commit_type] = unique_messages
 	return unique_commits_by_type
 
 def _process_commit_line(fork_name, line, is_first, is_breaking_change):
@@ -195,12 +213,14 @@ def get_diff(all_commits_by_type, old_commits_by_type):
 
 			Parameters:
 					all_commits_by_type (dict): dictionary of commits where keys are commit type (str) and
-												values are lists of commits (strings) of that type.
+												values are an (ordered) dict of commits of that type, where keys are shortened commits 
+												(strings, for purposes of deduplication) and values are the full commits (strings).
 					old_commits_by_type (dict): same format as above.
 
 			Returns:
 					new_commits_by_type (dict): commits present in <all_commits_by_type> but not <old_commits_by_type>.
-												Same format as above.
+												Format is a dictionary of commits where keys are commit type (str) and
+												values are lists of commits (strings) of that type.
 	'''
 	diff = {}
 	for commit_type, all_commits in all_commits_by_type.items():
@@ -212,21 +232,25 @@ def get_diff(all_commits_by_type, old_commits_by_type):
 def _get_diff_commits(all_commits, old_commits):
 	'''
 	Returns new commits, i.e., those in <all_commits> but not <old_commits>.
+	This method de-dups based on the shortened commits (dict keys) in order to avoid duplicates caused
+	by commits being cherry-picked to different branches, which causes the full commit message to differ
+	as the commit SHAs differ in this case. 
 
 			Parameters:
-					all_commits (list): lists of commits (strings).
-					old_commits (list): same format as above.
+					all_commits (dict): dictionary of commits where keys are shortened commits (strings, for 
+										purposes of deduplication) and values are the full commits (strings).
+					old_commits (dict): same format as above.
 
 			Returns:
 					new_commits (list): commits present in <all_commits> but not <old_commits>.
-										Same format as above.
+										Format is a list of commits (strings).
 	'''
 
 	## iterate rather than using set logic in order to preserve order
-	new_commits = [commit for commit in all_commits if commit not in set(old_commits)]
+	new_commits = [commit for k, commit in all_commits.items() if k not in old_commits]
 
 	## sanity check that all_commits is a superset of old_commits
-	missing_commits = [commit for commit in old_commits if commit not in set(all_commits)]
+	missing_commits = [commit for k, commit in old_commits.items() if k not in all_commits]
 	if len(missing_commits) > 0:
 		msg = 'commits present in old commits file but not new commits file\n'
 		for commit in missing_commits:
@@ -331,8 +355,6 @@ if __name__ == '__main__':
 	old_commits = parse_changelog(args.old_commits_file, args.previous_version)
 
 	new_commits = get_diff(all_commits, old_commits)
-	## may see duplicates from changes being backported to multiple branches
-	new_commits = remove_duplicates(new_commits)
 
 	write_output(args.output_file, args.release_version, new_commits)
 

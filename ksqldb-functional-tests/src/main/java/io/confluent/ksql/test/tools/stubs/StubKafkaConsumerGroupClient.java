@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools.stubs;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import java.util.LinkedHashMap;
@@ -31,6 +32,7 @@ public class StubKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
   private static final List<String> groups = ImmutableList.of("cg1", "cg2");
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "groups is ImmutableList")
   public List<String> listGroups() {
     return groups;
   }

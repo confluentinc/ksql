@@ -16,10 +16,11 @@
 package io.confluent.ksql.physical.pull;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
-import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
+import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
@@ -47,6 +48,8 @@ public class PullPhysicalPlan {
   private final LogicalSchema schema;
   private final QueryId queryId;
   private final List<LookupConstraint> lookupConstraints;
+  private final PullPhysicalPlanType pullPhysicalPlanType;
+  private final PullSourceType pullSourceType;
   private final Materialization mat;
   private final DataSourceOperator dataSourceOperator;
 
@@ -55,6 +58,8 @@ public class PullPhysicalPlan {
       final LogicalSchema schema,
       final QueryId queryId,
       final List<LookupConstraint> lookupConstraints,
+      final PullPhysicalPlanType pullPhysicalPlanType,
+      final PullSourceType pullSourceType,
       final Materialization mat,
       final DataSourceOperator dataSourceOperator
   ) {
@@ -62,6 +67,9 @@ public class PullPhysicalPlan {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.lookupConstraints = Objects.requireNonNull(lookupConstraints, "lookupConstraints");
+    this.pullPhysicalPlanType = Objects.requireNonNull(pullPhysicalPlanType,
+        "pullPhysicalPlanType");
+    this.pullSourceType = Objects.requireNonNull(pullSourceType, "pullSourceType");
     this.mat = Objects.requireNonNull(mat, "mat");
     this.dataSourceOperator = Objects.requireNonNull(
         dataSourceOperator, "dataSourceOperator");
@@ -105,6 +113,7 @@ public class PullPhysicalPlan {
     root.close();
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public AbstractPhysicalOperator getRoot() {
     return root;
   }
@@ -140,7 +149,50 @@ public class PullPhysicalPlan {
     return schema;
   }
 
+  public PullPhysicalPlanType getPlanType() {
+    return pullPhysicalPlanType;
+  }
+
+  public PullSourceType getSourceType() {
+    return pullSourceType;
+  }
+
+  public long getRowsReadFromDataSource() {
+    return dataSourceOperator.getReturnedRowCount();
+  }
+
   public QueryId getQueryId() {
     return queryId;
+  }
+
+  /**
+   * The types we consider for metrics purposes. These should only be added to. You can deprecate
+   * a field, but don't delete it or change its meaning
+   */
+  public enum PullPhysicalPlanType {
+    // Could be one or more keys
+    KEY_LOOKUP,
+    TABLE_SCAN,
+    UNKNOWN
+  }
+
+  /**
+   * The types we consider for metrics purposes. These should only be added to. You can deprecate
+   * a field, but don't delete it or change its meaning
+   */
+  public enum PullSourceType {
+    NON_WINDOWED,
+    WINDOWED,
+    UNKNOWN
+  }
+
+  /**
+   * The types we consider for metrics purposes. These should only be added to. You can deprecate
+   * a field, but don't delete it or change its meaning
+   */
+  public enum RoutingNodeType {
+    SOURCE_NODE,
+    REMOTE_NODE,
+    UNKNOWN
   }
 }

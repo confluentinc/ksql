@@ -123,7 +123,18 @@
           "valueFormat" : {
             "format" : "JSON"
           },
-          "partitions" : 1
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "ignored",
+            "fields" : [ {
+              "name" : "FOO",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", "string" ]
+              } ]
+            } ]
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {

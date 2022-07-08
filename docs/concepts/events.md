@@ -9,7 +9,7 @@ keywords: ksqldb, event, stream
 What is an event?
 -----------------
 
-ksqlDB is an event streaming database that's purpose-built for stream
+ksqlDB is a database that's purpose-built for stream
 processing applications. The main focus of stream processing is modeling
 computation over unbounded streams of events.
 

@@ -30,7 +30,7 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 
-class TopicSensors<R> {
+public final class TopicSensors<R> {
 
   private final String topic;
   private final List<SensorMetric<R>> sensors;
@@ -71,13 +71,13 @@ class TopicSensors<R> {
         .collect(Collectors.toList());
   }
 
-  static class Stat {
+  public static class Stat {
 
     private final String name;
     private double value;
     private final long timestamp;
 
-    Stat(final String name, final double value, final long timestamp) {
+    public Stat(final String name, final double value, final long timestamp) {
       this.name = name;
       this.value = value;
       this.timestamp = timestamp;

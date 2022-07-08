@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +44,7 @@ public class LocalCommandsFileTest {
           "_confluent-ksql-default_transient_123457300573686369_1606940012343");
 
   @Rule
-  public TemporaryFolder commandsDir = new TemporaryFolder();
+  public TemporaryFolder commandsDir = KsqlTestFolder.temporaryFolder();
 
   private LocalCommandsFile localCommandsFile;
   private File internalCommandsFile;

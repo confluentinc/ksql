@@ -841,7 +841,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"query": [
            {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1582501512000, 1582501513000, 1]}}
+          {"row":{"columns":["10", 1582501512000, 1582501513000, 2]}}
         ]}
       ]
     },
@@ -2963,6 +2963,18 @@
           {"row":{"columns":[3, 1, [5]]}}
         ]}
       ]
+    },
+    {
+      "name": "should give good error message when querying with duplicate column values",
+      "statements": [
+        "CREATE TABLE INPUT (ID INTEGER PRIMARY KEY, VAL VARCHAR) with (kafka_topic='test_topic', format='json', partitions=1);",
+        "SELECT VAL, VAL FROM INPUT WHERE ID = 10;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Duplicate value columns found in schema: `VAL` STRING",
+        "status": 400
+      }
     }
   ]
 }

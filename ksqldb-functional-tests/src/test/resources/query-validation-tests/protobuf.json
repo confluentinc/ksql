@@ -161,6 +161,31 @@
       }
     },
     {
+      "name": "protobuf inference - wrapped primitives",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; import 'google/protobuf/wrappers.proto'; message ConfluentDefault1 {google.protobuf.BoolValue c1 = 1; google.protobuf.Int32Value c2 = 2; google.protobuf.Int64Value c3 = 3; google.protobuf.DoubleValue c4 = 4; google.protobuf.StringValue c5 = 5;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C1": true, "C2": 1, "C3": 400000000000, "C4": 1.284765648, "C5": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"}
+        ]
+      }
+    },
+    {
       "name": "protobuf inference - partial schema",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY) WITH (kafka_topic='input', value_format='PROTOBUF');",
@@ -560,7 +585,7 @@
       ]
     },
     {
-      "name": "should filter out columns with unsupported types",
+      "name": "should not filter out bytes",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM input;"
@@ -573,10 +598,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"expected": 1, "c4": null}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1, "c2": null}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT, C2 BYTES"}
         ]
       }
     },

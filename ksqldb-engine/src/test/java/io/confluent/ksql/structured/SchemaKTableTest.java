@@ -163,6 +163,8 @@ public class SchemaKTableTest {
   private PlanInfo planInfo;
   @Mock
   private MaterializationInfo.Builder materializationBuilder;
+  @Mock
+  private FormatInfo internalFormats;
 
   @Before
   public void init() {
@@ -284,7 +286,8 @@ public class SchemaKTableTest {
         ImmutableList.of(ColumnName.of("K")),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        buildContext
+        buildContext,
+        internalFormats
     );
 
     // Then:
@@ -407,7 +410,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(ImmutableList.of(),
-        projectNode.getSelectExpressions(), childContextStacker, buildContext);
+        projectNode.getSelectExpressions(), childContextStacker, buildContext, internalFormats);
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema(),
@@ -430,7 +433,8 @@ public class SchemaKTableTest {
         ImmutableList.of(),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        buildContext
+        buildContext,
+        internalFormats
     );
 
     // Then:
@@ -694,7 +698,7 @@ public class SchemaKTableTest {
         .thenReturn(mock(KTable.class));
 
     final SchemaKStream<?> joinedKStream = firstSchemaKTable
-        .join(secondSchemaKTable, KEY, childContextStacker);
+        .innerJoin(secondSchemaKTable, KEY, childContextStacker);
 
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder, planInfo);
     verify(mockKTable).join(eq(secondKTable),
@@ -733,7 +737,7 @@ public class SchemaKTableTest {
     // Given:
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
-        Pair.of(JoinType.INNER, firstSchemaKTable::join)
+        Pair.of(JoinType.INNER, firstSchemaKTable::innerJoin)
     );
 
     for (final Pair<JoinType, Join> testCase : cases) {
@@ -762,7 +766,7 @@ public class SchemaKTableTest {
     // Given:
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
-        Pair.of(JoinType.INNER, firstSchemaKTable::join)
+        Pair.of(JoinType.INNER, firstSchemaKTable::innerJoin)
     );
 
     for (final Pair<JoinType, Join> testCase : cases) {

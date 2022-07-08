@@ -66,21 +66,21 @@ public final class JoinParamsFactory {
       final LogicalSchema leftSchema,
       final LogicalSchema rightSchema
   ) {
-    final List<Column> leftCols = leftSchema.key();
-    final List<Column> rightCols = rightSchema.key();
-    if (leftCols.size() != 1 || rightCols.size() != 1) {
+    final List<Column> leftKeyCols = leftSchema.key();
+    final List<Column> rightKeyCols = rightSchema.key();
+    if (leftKeyCols.size() != 1 || rightKeyCols.size() != 1) {
       throw new UnsupportedOperationException("Multi-key joins not supported");
     }
 
-    final Column left = leftCols.get(0);
-    final Column right = rightCols.get(0);
+    final Column leftKey = leftKeyCols.get(0);
+    final Column rightKey = rightKeyCols.get(0);
 
-    if (!left.type().equals(right.type())) {
+    if (!leftKey.type().equals(rightKey.type())) {
       throw new KsqlException("Invalid join. Key types differ: "
-          + left.type() + " vs " + right.type());
+          + leftKey.type() + " vs " + rightKey.type());
     }
 
-    return left.type();
+    return leftKey.type();
   }
 
   @SuppressWarnings("UnstableApiUsage")

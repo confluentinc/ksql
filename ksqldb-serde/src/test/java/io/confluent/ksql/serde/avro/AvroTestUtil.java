@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Objects;
@@ -48,6 +49,7 @@ final class AvroTestUtil {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public org.apache.avro.Schema getSchema() {
       return schema;
     }

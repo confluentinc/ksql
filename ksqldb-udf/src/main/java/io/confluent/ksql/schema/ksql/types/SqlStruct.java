@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ public final class SqlStruct extends SqlType {
     this.byName = ImmutableMap.copyOf(requireNonNull(byName, "byName"));
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "fields is ImmutableList")
   public List<Field> fields() {
     return fields;
   }

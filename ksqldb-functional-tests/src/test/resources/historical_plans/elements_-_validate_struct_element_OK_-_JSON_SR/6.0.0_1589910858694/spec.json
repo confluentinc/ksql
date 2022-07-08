@@ -118,7 +118,39 @@
           "valueFormat" : {
             "format" : "JSON_SR"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "V0" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "object",
+                  "properties" : {
+                    "F0" : {
+                      "connect.index" : 0,
+                      "oneOf" : [ {
+                        "type" : "null"
+                      }, {
+                        "type" : "string"
+                      } ]
+                    },
+                    "F1" : {
+                      "connect.index" : 1,
+                      "oneOf" : [ {
+                        "type" : "null"
+                      }, {
+                        "type" : "integer",
+                        "connect.type" : "int32"
+                      } ]
+                    }
+                  }
+                } ]
+              }
+            }
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -127,7 +159,39 @@
           "valueFormat" : {
             "format" : "JSON_SR"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "V0" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "object",
+                  "properties" : {
+                    "F0" : {
+                      "connect.index" : 0,
+                      "oneOf" : [ {
+                        "type" : "null"
+                      }, {
+                        "type" : "string"
+                      } ]
+                    },
+                    "F1" : {
+                      "connect.index" : 1,
+                      "oneOf" : [ {
+                        "type" : "null"
+                      }, {
+                        "type" : "integer",
+                        "connect.type" : "int32"
+                      } ]
+                    }
+                  }
+                } ]
+              }
+            }
+          }
         } ]
       }
     }

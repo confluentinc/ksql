@@ -28,7 +28,9 @@ import io.confluent.ksql.util.KsqlException;
 
 public final class InterpretedExpressionFactory {
 
-  private InterpretedExpressionFactory() { }
+  private InterpretedExpressionFactory() {
+
+  }
 
   public static InterpretedExpression create(
       final Expression expression,

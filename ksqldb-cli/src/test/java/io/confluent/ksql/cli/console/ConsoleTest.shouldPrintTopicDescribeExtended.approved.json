@@ -1,0 +1,96 @@
+[ {
+  "@type" : "sourceDescription",
+  "statementText" : "e",
+  "sourceDescription" : {
+    "name" : "TestSource",
+    "windowType" : null,
+    "readQueries" : [ {
+      "queryString" : "read query",
+      "sinks" : [ "sink1" ],
+      "sinkKafkaTopics" : [ "sink1 topic" ],
+      "id" : "readId",
+      "statusCount" : {
+        "RUNNING" : 1,
+        "ERROR" : 2
+      },
+      "queryType" : "PERSISTENT",
+      "state" : "ERROR"
+    } ],
+    "writeQueries" : [ {
+      "queryString" : "write query",
+      "sinks" : [ "sink2" ],
+      "sinkKafkaTopics" : [ "sink2 topic" ],
+      "id" : "writeId",
+      "statusCount" : {
+        "RUNNING" : 1,
+        "ERROR" : 2
+      },
+      "queryType" : "PERSISTENT",
+      "state" : "ERROR"
+    } ],
+    "fields" : [ {
+      "name" : "ROWKEY",
+      "schema" : {
+        "type" : "STRING",
+        "fields" : null,
+        "memberSchema" : null
+      },
+      "type" : "KEY"
+    }, {
+      "name" : "f_0",
+      "schema" : {
+        "type" : "STRING",
+        "fields" : null,
+        "memberSchema" : null
+      }
+    } ],
+    "type" : "TABLE",
+    "timestamp" : "2000-01-01",
+    "statistics" : "The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\nstats",
+    "errorStats" : "The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\nerrors\n",
+    "extended" : true,
+    "keyFormat" : "json",
+    "valueFormat" : "avro",
+    "topic" : "kafka-topic",
+    "partitions" : 2,
+    "replication" : 1,
+    "statement" : "sql statement text",
+    "queryOffsetSummaries" : [ {
+      "groupId" : "consumer1",
+      "topicSummaries" : [ {
+        "kafkaTopic" : "kafka-topic",
+        "offsets" : [ {
+          "partition" : 0,
+          "logStartOffset" : 100,
+          "logEndOffset" : 900,
+          "consumerOffset" : 800
+        }, {
+          "partition" : 1,
+          "logStartOffset" : 50,
+          "logEndOffset" : 900,
+          "consumerOffset" : 900
+        } ]
+      }, {
+        "kafkaTopic" : "kafka-topic-2",
+        "offsets" : [ {
+          "partition" : 0,
+          "logStartOffset" : 0,
+          "logEndOffset" : 90,
+          "consumerOffset" : 80
+        }, {
+          "partition" : 1,
+          "logStartOffset" : 10,
+          "logEndOffset" : 90,
+          "consumerOffset" : 90
+        } ]
+      } ]
+    }, {
+      "groupId" : "consumer2",
+      "topicSummaries" : [ ]
+    } ],
+    "sourceConstraints" : [ "S1", "S2" ],
+    "clusterStatistics" : [ ],
+    "clusterErrorStats" : [ ]
+  },
+  "warnings" : [ ]
+} ]

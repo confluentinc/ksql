@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryId;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -35,4 +36,6 @@ public interface QueryHandle {
   BlockingRowQueue getQueue();
 
   void onException(Consumer<Throwable> onException);
+
+  QueryId getQueryId();
 }

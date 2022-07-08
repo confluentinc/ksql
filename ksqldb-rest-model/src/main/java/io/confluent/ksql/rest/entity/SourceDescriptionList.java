@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 
@@ -33,9 +35,13 @@ public class SourceDescriptionList extends KsqlEntity {
       @JsonProperty("warnings") final List<KsqlWarning> warnings
   ) {
     super(statementText, warnings);
-    this.sourceDescriptions = sourceDescriptions;
+    this.sourceDescriptions = ImmutableList.copyOf(sourceDescriptions);
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "sourceDescriptions is ImmutableList"
+  )
   public List<SourceDescription> getSourceDescriptions() {
     return sourceDescriptions;
   }

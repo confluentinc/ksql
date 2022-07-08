@@ -72,7 +72,13 @@ public final class ExpectedRecordComparator {
     final Iterator<Entry<String, JsonNode>> fields = expected.fields();
     while (fields.hasNext()) {
       final Entry<String, JsonNode> field = fields.next();
-      if (!comparator(field.getValue()).test(getter.apply(field.getKey()), field.getValue())) {
+
+      Object key = getter.apply(field.getKey());
+      if (key == null) {
+        key = getter.apply(field.getKey().toUpperCase());
+      }
+
+      if (!comparator(field.getValue()).test(key, field.getValue())) {
         return false;
       }
     }

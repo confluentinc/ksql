@@ -32,7 +32,7 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("entities") final KsqlEntityList entities) {
     super(errorCode, message);
-    this.entities = entities;
+    this.entities = new KsqlEntityList(entities);
     this.statementText = statementText;
   }
 
@@ -49,7 +49,7 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
   }
 
   public KsqlEntityList getEntities() {
-    return entities;
+    return new KsqlEntityList(entities);
   }
 
   @Override

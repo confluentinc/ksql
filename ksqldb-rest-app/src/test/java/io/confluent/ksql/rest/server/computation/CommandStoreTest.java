@@ -55,6 +55,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.RecordBatch;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -100,7 +101,7 @@ public class CommandStoreTest {
       Optional.empty()
   );
   private final RecordMetadata recordMetadata = new RecordMetadata(
-      COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
+      COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0, 0);
 
   private final Future<RecordMetadata> testFuture = new Future<RecordMetadata>() {
     @Override
@@ -124,7 +125,7 @@ public class CommandStoreTest {
     }
 
     @Override
-    public RecordMetadata get(final long timeout, final TimeUnit unit) {
+    public RecordMetadata get(final long timeout, @NotNull final TimeUnit unit) {
       return null;
     }
   };

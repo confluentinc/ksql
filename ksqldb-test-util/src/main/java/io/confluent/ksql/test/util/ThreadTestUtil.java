@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 
 import java.lang.Thread.State;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public final class ThreadTestUtil {
+
+  private static final String SYSTEM_THREAD_GROUP_NAME = "system";
 
   private ThreadTestUtil() {
   }
@@ -62,8 +65,13 @@ public final class ThreadTestUtil {
       final Set<Thread> previousThreads,
       final Map<Thread, StackTraceElement[]> currentThreads
   ) {
+    final Set<Thread> system = currentThreads.keySet().stream()
+        .filter(thread -> thread.getThreadGroup() != null
+            && thread.getThreadGroup().getName().equals(SYSTEM_THREAD_GROUP_NAME))
+        .collect(Collectors.toSet());
     final Map<Thread, StackTraceElement[]> difference = new HashMap<>(currentThreads);
     difference.keySet().removeAll(previousThreads);
+    difference.keySet().removeAll(system);
     return difference;
   }
 
@@ -94,7 +102,7 @@ public final class ThreadTestUtil {
     }
 
     public Map<Thread, StackTraceElement[]> getThreads() {
-      return threads;
+      return Collections.unmodifiableMap(threads);
     }
 
     public String detailsOfNewThreads(final ThreadSnapshot previous) {

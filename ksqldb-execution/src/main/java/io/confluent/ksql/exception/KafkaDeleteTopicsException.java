@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.exception;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.Pair;
 import java.util.List;
 
@@ -27,9 +29,10 @@ public class KafkaDeleteTopicsException extends KafkaTopicClientException {
       final List<Pair<String, Throwable>> failList
   ) {
     super(message);
-    exceptionList = failList;
+    exceptionList = ImmutableList.copyOf(failList);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "exceptionList is ImmutableList")
   public final List<Pair<String, Throwable>> getExceptionList() {
     return exceptionList;
   }

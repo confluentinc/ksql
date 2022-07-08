@@ -177,7 +177,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 KSQL_INTERNAL_COL_0 = 1;\n  string KSQL_INTERNAL_COL_1 = 2;\n  repeated string KSQL_AGG_VARIABLE_0 = 3;\n}\n"
         }, {
           "name" : "test_topic",
           "keyFormat" : {
@@ -186,7 +187,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string VALUE = 2;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
@@ -194,7 +196,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 KSQL_INTERNAL_COL_0 = 1;\n  string KSQL_INTERNAL_COL_1 = 2;\n}\n"
         }, {
           "name" : "S2",
           "keyFormat" : {
@@ -203,7 +206,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  repeated string COLLECTED = 2;\n}\n"
         } ]
       }
     }

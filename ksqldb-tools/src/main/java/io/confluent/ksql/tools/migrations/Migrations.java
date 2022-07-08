@@ -71,7 +71,9 @@ public final class Migrations {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Migrations.class);
 
-  private Migrations() {}
+  private Migrations() {
+
+  }
 
   public static void main(final String[] args) {
     // even though all migrations commands implement BaseCommand, the Help

@@ -19,17 +19,25 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.kafka.common.acl.AclOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class SchemaRegistryUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(SchemaRegistryUtil.class);
+
+  private static final Pattern DENIED_OPERATION_STRING_PATTERN =
+      Pattern.compile("User is denied operation (.*) on .*");
 
   @VisibleForTesting
   public static final int SUBJECT_NOT_FOUND_ERROR_CODE = 40401;
@@ -69,10 +77,21 @@ public final class SchemaRegistryUtil {
   public static void deleteSubjectWithRetries(
       final SchemaRegistryClient schemaRegistryClient,
       final String subject) throws Exception {
-    ExecutorUtil.executeWithRetries(
-        () -> schemaRegistryClient.deleteSubject(subject),
-        error -> !isSubjectNotFoundErrorCode(error)
-    );
+    try {
+      ExecutorUtil.executeWithRetries(
+          () -> schemaRegistryClient.deleteSubject(subject),
+          error -> isRetriableError(error)
+      );
+    } catch (final RestClientException e) {
+      if (isAuthErrorCode(e)) {
+        throw new KsqlSchemaAuthorizationException(
+            AclOperation.DELETE,
+            subject
+        );
+      }
+
+      throw e;
+    }
   }
 
 
@@ -93,7 +112,7 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject);
   }
 
-  private static Optional<SchemaMetadata> getLatestSchema(
+  public static Optional<SchemaMetadata> getLatestSchema(
       final SchemaRegistryClient srClient,
       final String subject
   ) {
@@ -104,7 +123,28 @@ public final class SchemaRegistryUtil {
       if (isSubjectNotFoundErrorCode(e)) {
         return Optional.empty();
       }
+
+      if (isAuthErrorCode(e)) {
+        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
+
+        if (deniedOperation != AclOperation.UNKNOWN) {
+          throw new KsqlSchemaAuthorizationException(
+              deniedOperation,
+              subject
+          );
+        }
+      }
+
       throw new KsqlException("Could not get latest schema for subject " + subject, e);
+    }
+  }
+
+  public static AclOperation getDeniedOperation(final String errorMessage) {
+    final Matcher matcher = DENIED_OPERATION_STRING_PATTERN.matcher(errorMessage);
+    if (matcher.matches()) {
+      return AclOperation.fromString(matcher.group(1));
+    } else {
+      return AclOperation.UNKNOWN;
     }
   }
 
@@ -113,13 +153,38 @@ public final class SchemaRegistryUtil {
         && ((RestClientException) error).getErrorCode() == SUBJECT_NOT_FOUND_ERROR_CODE);
   }
 
+  public static boolean isAuthErrorCode(final Throwable error) {
+    return (error instanceof RestClientException
+        && ((((RestClientException) error).getStatus() == HttpStatus.SC_UNAUTHORIZED)
+              || ((RestClientException) error).getStatus() == HttpStatus.SC_FORBIDDEN));
+  }
+
+  private static boolean isRetriableError(final Throwable error) {
+    return !isSubjectNotFoundErrorCode(error) && !isAuthErrorCode(error);
+  }
+
   private static void hardDeleteSubjectWithRetries(
       final SchemaRegistryClient schemaRegistryClient,
       final String subject) throws Exception {
-    ExecutorUtil.executeWithRetries(
-        () -> schemaRegistryClient.deleteSubject(subject, true),
-        error -> !isSubjectNotFoundErrorCode(error)
-    );
+    try {
+      ExecutorUtil.executeWithRetries(
+          () -> schemaRegistryClient.deleteSubject(subject, true),
+          error -> isRetriableError(error)
+      );
+    } catch (final RestClientException e) {
+      if (isAuthErrorCode(e)) {
+        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
+
+        if (deniedOperation != AclOperation.UNKNOWN) {
+          throw new KsqlSchemaAuthorizationException(
+              deniedOperation,
+              subject
+          );
+        }
+      }
+
+      throw e;
+    }
   }
 
   private static Stream<String> getInternalSubjectNames(
@@ -164,4 +229,6 @@ public final class SchemaRegistryUtil {
           + ", subject: " + subjectName, e);
     }
   }
+
+
 }

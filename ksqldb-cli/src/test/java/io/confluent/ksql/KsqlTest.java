@@ -29,6 +29,7 @@ import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -49,7 +50,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlTest {
 
   @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  public static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   @Mock
   private Options options;

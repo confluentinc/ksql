@@ -1,0 +1,6 @@
+
+ Query ID | Query Type | Status            | Sink Name | Sink Kafka Topic | Query String                  
+----------------------------------------------------------------------------------------------------
+ 0        | PUSH       | RUNNING:1,ERROR:2 | Test      | Test topic       | select * from t1 emit changes 
+----------------------------------------------------------------------------------------------------
+For detailed information on a Query run: EXPLAIN <Query ID>;

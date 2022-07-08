@@ -143,7 +143,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   public Map<String, FakeTopic> createdTopics() {
-    return createdTopics;
+    return Collections.unmodifiableMap(createdTopics);
   }
 
   @Override

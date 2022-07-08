@@ -93,7 +93,20 @@
           "valueFormat" : {
             "format" : "JSON_SR"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "V0" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "boolean"
+                } ]
+              }
+            }
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -102,7 +115,20 @@
           "valueFormat" : {
             "format" : "JSON_SR"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "V0" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "boolean"
+                } ]
+              }
+            }
+          }
         } ]
       }
     }

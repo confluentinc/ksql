@@ -17,11 +17,14 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
+import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -30,7 +33,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.vertx.core.Context;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("UnstableApiUsage")
-class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
+final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   private static final Logger log = LoggerFactory.getLogger(PushQueryPublisher.class);
 
@@ -49,8 +54,11 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final ConfiguredStatement<Query> query;
   private final Optional<LocalCommands> localCommands;
   private final ListeningScheduledExecutorService exec;
+  private final PushRouting pushRouting;
+  private final boolean isScalablePush;
+  private final Context context;
 
-  PushQueryPublisher(
+  private PushQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
@@ -62,18 +70,76 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.exec = requireNonNull(exec, "exec");
     this.query = requireNonNull(query, "query");
     this.localCommands = requireNonNull(localCommands, "localCommands");
+    this.pushRouting = null;
+    this.isScalablePush = false;
+    this.context = null;
+  }
+
+  private PushQueryPublisher(
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
+      final ConfiguredStatement<Query> query,
+      final PushRouting pushRouting,
+      final Context context
+  ) {
+    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.exec = requireNonNull(exec, "exec");
+    this.query = requireNonNull(query, "query");
+    this.localCommands = Optional.empty();
+    this.pushRouting = requireNonNull(pushRouting, "pushRouting");
+    this.isScalablePush = true;
+    this.context = requireNonNull(context, "context");
+  }
+
+  public static PushQueryPublisher createPublisher(
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
+      final ConfiguredStatement<Query> query,
+      final Optional<LocalCommands> localCommands
+  ) {
+    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, localCommands);
+  }
+
+  public static PushQueryPublisher createScalablePublisher(
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
+      final ConfiguredStatement<Query> query,
+      final PushRouting pushRouting,
+      final Context context
+  ) {
+    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, pushRouting, context);
   }
 
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final TransientQueryMetadata queryMetadata = ksqlEngine
-        .executeQuery(serviceContext, query, true);
+    final PushQueryMetadata queryMetadata;
+    if (isScalablePush) {
+      final PushRoutingOptions routingOptions = new PushQueryConfigRoutingOptions(
+          ImmutableMap.of()
+      );
+
+      final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
+              query.getSessionConfig().getConfig(false),
+              query.getSessionConfig().getOverrides());
+
+      queryMetadata = ksqlEngine
+          .executeScalablePushQuery(serviceContext, query, pushRouting, routingOptions,
+              plannerOptions, context);
+    } else {
+      queryMetadata = ksqlEngine
+          .executeQuery(serviceContext, query, true);
+
+      localCommands.ifPresent(lc -> lc.write((TransientQueryMetadata) queryMetadata));
+    }
+
     final PushQuerySubscription subscription =
         new PushQuerySubscription(exec, subscriber, queryMetadata);
 
-    localCommands.ifPresent(lc -> lc.write(queryMetadata));
-
-    log.info("Running query {}", queryMetadata.getQueryApplicationId());
+    log.info("Running query {}", queryMetadata.getQueryId().toString());
     queryMetadata.start();
 
     subscriber.onSubscribe(subscription);
@@ -81,13 +147,13 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   static class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {
 
-    private final TransientQueryMetadata queryMetadata;
+    private final PushQueryMetadata queryMetadata;
     private boolean closed = false;
 
     PushQuerySubscription(
         final ListeningScheduledExecutorService exec,
         final Subscriber<Collection<StreamedRow>> subscriber,
-        final TransientQueryMetadata queryMetadata
+        final PushQueryMetadata queryMetadata
     ) {
       super(exec, subscriber, valueColumnOnly(queryMetadata.getLogicalSchema()));
       this.queryMetadata = requireNonNull(queryMetadata, "queryMetadata");
@@ -118,7 +184,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     public synchronized void close() {
       if (!closed) {
         closed = true;
-        log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
+        log.info("Terminating query {}", queryMetadata.getQueryId().toString());
         queryMetadata.close();
       }
     }

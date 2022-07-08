@@ -1,0 +1,1 @@
+ALTER STREAM stream1 (ADD COLUMN column1 INT, ADD COLUMN column2 INT);

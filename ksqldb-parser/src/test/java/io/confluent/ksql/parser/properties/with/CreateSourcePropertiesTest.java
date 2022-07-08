@@ -27,7 +27,9 @@ import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_TYPE_PROPER
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -47,6 +49,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -170,7 +173,7 @@ public class CreateSourcePropertiesTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new CreateSourceProperties(props, durationParser)
+        () -> new CreateSourceProperties(props, durationParser, false)
     );
 
     // Then:
@@ -446,6 +449,9 @@ public class CreateSourcePropertiesTest {
                 .putAll(MINIMUM_VALID_PROPS)
                 .put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
                 .build()))
+        .addEqualityGroup(
+            CreateSourceProperties.from(MINIMUM_VALID_PROPS)
+                .withUnwrapProtobufPrimitives(true))
         .testEquals();
   }
 
@@ -548,5 +554,69 @@ public class CreateSourcePropertiesTest {
     assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties, "
         + "as 'FORMAT' sets both key and value formats."));
     assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithUnwrapping() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .build())
+        .withUnwrapProtobufPrimitives(true);
+
+    // When / Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(
+        SourceName.of("foo")).get().getProperties(),
+        hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithoutUnwrapping() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(
+        SourceName.of("foo")).get().getProperties(),
+        not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithUnwrapping() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .build())
+        .withUnwrapProtobufPrimitives(true);
+
+    // When / Then:
+    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getProperties(),
+        hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithoutUnwrapping() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .build());
+
+    // When / Then:
+    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getProperties(),
+        not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
   }
 }

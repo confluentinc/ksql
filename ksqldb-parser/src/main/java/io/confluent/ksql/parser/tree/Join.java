@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
 import java.util.Objects;
@@ -53,6 +54,7 @@ public class Join extends Relation {
     return left;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "rights is ImmutableList")
   public ImmutableList<JoinedSource> getRights() {
     return rights;
   }

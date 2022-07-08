@@ -30,7 +30,7 @@ public final class AppInfo {
     try {
       final Properties props = new Properties();
       try (InputStream resourceAsStream = AppInfo.class.getResourceAsStream(
-          "/version.properties")) {
+          "/ksqldb/version.properties")) {
         props.load(resourceAsStream);
       }
       version = props.getProperty("version", version).trim();

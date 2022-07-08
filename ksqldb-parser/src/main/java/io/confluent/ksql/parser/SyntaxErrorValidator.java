@@ -107,7 +107,7 @@ public class SyntaxErrorValidator extends BaseErrorListener {
    * checks if the error is a reserved keyword error by checking the message and offendingSymbol
    * @param message the error message
    * @param offendingSymbol the symbol that caused the error
-   * @return True if the error is a reserved keyword
+   * @return true if the error is a reserved keyword error
    */
   private static boolean isKeywordError(final String message, final String offendingSymbol) {
     final Matcher m = EXTRANEOUS_INPUT_PATTERN.matcher(message);

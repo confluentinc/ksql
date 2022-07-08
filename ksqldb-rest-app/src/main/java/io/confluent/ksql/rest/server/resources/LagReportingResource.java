@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
@@ -22,8 +23,9 @@ import io.confluent.ksql.rest.server.LagReportingAgent;
 
 public class LagReportingResource {
 
-  private LagReportingAgent lagReportingAgent;
+  private final LagReportingAgent lagReportingAgent;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public LagReportingResource(final LagReportingAgent lagReportingAgent) {
     this.lagReportingAgent = lagReportingAgent;
   }

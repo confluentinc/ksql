@@ -15,12 +15,19 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.TreeMultimap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -42,7 +49,9 @@ public class TestDataProvider {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
     this.sourceName = namePrefix + "_KSTREAM";
     this.schema = Objects.requireNonNull(schema, "schema");
-    this.data = Objects.requireNonNull(data, "data");
+    this.data = Multimaps.unmodifiableMultimap(
+        LinkedListMultimap.create(Objects.requireNonNull(data, "data"))
+    );
   }
 
   public String topicName() {
@@ -63,6 +72,7 @@ public class TestDataProvider {
     return schema;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "data is unmodifiableMultimap()")
   public Multimap<GenericKey, GenericRow> data() {
     return data;
   }

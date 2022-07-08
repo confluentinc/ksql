@@ -26,7 +26,9 @@ import java.util.Optional;
 public final class KeystoreUtil {
   private static final String KEYSTORE_TYPE = "JKS";
 
-  private KeystoreUtil() {}
+  private KeystoreUtil() {
+
+  }
 
   /**
    * Utility to fetch a Vert.x Buffer that is the serialized version of the key store from the

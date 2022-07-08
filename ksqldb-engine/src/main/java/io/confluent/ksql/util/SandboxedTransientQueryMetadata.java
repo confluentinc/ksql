@@ -22,54 +22,28 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 public final class SandboxedTransientQueryMetadata extends TransientQueryMetadata {
   private SandboxedTransientQueryMetadata(
       final TransientQueryMetadata actual,
-      final Consumer<QueryMetadata> closeCallback
+      final Listener listener
   ) {
-    super(
-        actual.getStatementString(),
-        actual.getLogicalSchema(),
-        actual.getSourceNames(),
-        actual.getExecutionPlan(),
-        new SandboxQueue(),
-        actual.getQueryApplicationId(),
-        actual.getTopology(),
-        (t, c) -> {
-          throw new IllegalStateException(
-              "SandboxedTransientQueryMetadata should never create a streams instance");
-        },
-        actual.getStreamsProperties(),
-        actual.getOverriddenProperties(),
-        closeCallback,
-        -1,
-        0,
-        actual.getResultType(),
-        -1,
-        -1
-    );
+    super(actual, new SandboxQueue(), listener);
   }
 
   public static SandboxedTransientQueryMetadata of(
       final TransientQueryMetadata queryMetadata,
-      final Consumer<QueryMetadata> closeCallback
+      final QueryMetadata.Listener listener
   ) {
     return new SandboxedTransientQueryMetadata(
         Objects.requireNonNull(queryMetadata, "queryMetadata"),
-        Objects.requireNonNull(closeCallback, "closeCallback")
+        Objects.requireNonNull(listener, "listener")
     );
   }
 
   @Override
   public void initialize() {
     // no-op
-  }
-
-  @Override
-  public void stop() {
-    throw new IllegalStateException("SandboxedTransientQueryMetadta should never be stopped");
   }
 
   @Override
@@ -80,7 +54,8 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
   @Override
   public void close() {
     closed = true;
-    closeCallback.accept(this);
+    isRunning.set(false);
+    getListener().onClose(this);
   }
 
   private static class SandboxQueue implements BlockingRowQueue {

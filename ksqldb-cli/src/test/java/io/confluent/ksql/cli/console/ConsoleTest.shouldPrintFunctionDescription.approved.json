@@ -1,0 +1,22 @@
+[ {
+  "@type" : "describe_function",
+  "statementText" : "DESCRIBE FUNCTION foo;",
+  "name" : "FOO",
+  "description" : "Description that is very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very long\nand containing new lines\n\tAND TABS\ntoo!",
+  "author" : "Andy",
+  "version" : "v1.1.0",
+  "path" : "some.jar",
+  "functions" : [ {
+    "arguments" : [ {
+      "name" : "arg1",
+      "type" : "INT",
+      "description" : "Another really, really, really, really, really, really, really,really, really, really, really, really, really, really, really  really, really, really, really, really, really, really, long\ndescription\n\tContaining Tabs\nand stuff",
+      "isVariadic" : true
+    } ],
+    "returnType" : "LONG",
+    "description" : "The function description, which too can be really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, really, long\nand contains\n\ttabs and stuff",
+    "argumentTypes" : [ "INT" ]
+  } ],
+  "type" : "SCALAR",
+  "warnings" : [ ]
+} ]

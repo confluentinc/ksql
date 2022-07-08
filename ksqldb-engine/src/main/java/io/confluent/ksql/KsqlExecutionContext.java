@@ -27,14 +27,18 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
+import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.vertx.core.Context;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -156,9 +160,29 @@ public interface KsqlExecutionContext {
       ConfiguredStatement<Query> statement,
       HARouting routing,
       RoutingOptions routingOptions,
-      PullPlannerOptions pullPlannerOptions,
+      QueryPlannerOptions queryPlannerOptions,
       Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       boolean startImmediately
+  );
+
+  /**
+   * Executes a scalable push query by first creating a logical plan and then translating it to a
+   * physical plan. The physical plan is then traversed for every row that's passing through the
+   * topology's output.
+   * @param serviceContext The service context to execute the query in
+   * @param statement The scalable push query
+   * @param pushRouting The push routing object
+   * @param pushRoutingOptions The options for routing
+   * @param context The Vertx context of the request
+   * @return A ScalablePushQueryMetadata object
+   */
+  ScalablePushQueryMetadata executeScalablePushQuery(
+      ServiceContext serviceContext,
+      ConfiguredStatement<Query> statement,
+      PushRouting pushRouting,
+      PushRoutingOptions pushRoutingOptions,
+      QueryPlannerOptions queryPlannerOptions,
+      Context context
   );
 
   /**

@@ -178,7 +178,7 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   public List<JoinInfo> getJoin() {
-    return joinInfo;
+    return Collections.unmodifiableList(joinInfo);
   }
 
   public boolean isJoin() {
@@ -258,7 +258,7 @@ public class Analysis implements ImmutableAnalysis {
 
   @Override
   public List<FunctionCall> getTableFunctions() {
-    return tableFunctions;
+    return Collections.unmodifiableList(tableFunctions);
   }
 
   private LogicalSchema buildStreamsSchema(
@@ -400,6 +400,7 @@ public class Analysis implements ImmutableAnalysis {
     private final Optional<WithinExpression> withinExpression;
     private final AliasedDataSource leftSource;
     private final AliasedDataSource rightSource;
+    private final boolean flippedJoinCondition;
 
     JoinInfo(
         final AliasedDataSource leftSource,
@@ -407,6 +408,7 @@ public class Analysis implements ImmutableAnalysis {
         final AliasedDataSource rightSource,
         final Expression rightJoinExpression,
         final JoinType type,
+        final boolean flippedJoinCondition,
         final Optional<WithinExpression> withinExpression
 
     ) {
@@ -415,6 +417,7 @@ public class Analysis implements ImmutableAnalysis {
       this.leftJoinExpression = requireNonNull(leftJoinExpression, "leftJoinExpression");
       this.rightJoinExpression = requireNonNull(rightJoinExpression, "rightJoinExpression");
       this.type = requireNonNull(type, "type");
+      this.flippedJoinCondition = flippedJoinCondition;
       this.withinExpression = requireNonNull(withinExpression, "withinExpression");
     }
 
@@ -434,8 +437,20 @@ public class Analysis implements ImmutableAnalysis {
       return rightJoinExpression;
     }
 
+    public Expression getFlippedLeftJoinExpression() {
+      return flippedJoinCondition ? rightJoinExpression : leftJoinExpression;
+    }
+
+    public Expression getFlippedRightJoinExpression() {
+      return flippedJoinCondition ? leftJoinExpression : rightJoinExpression;
+    }
+
     public JoinType getType() {
       return type;
+    }
+
+    public boolean hasFlippedJoinCondition() {
+      return flippedJoinCondition;
     }
 
     public Optional<WithinExpression> getWithinExpression() {
@@ -449,6 +464,7 @@ public class Analysis implements ImmutableAnalysis {
           leftSource,
           leftJoinExpression,
           type,
+          true,
           withinExpression
       );
     }

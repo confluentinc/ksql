@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.KsqlConfig;
@@ -54,6 +55,8 @@ public class KsqlServerMain {
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final KsqlConfig ksqlConfig = new KsqlConfig(properties);
       validateConfig(ksqlConfig);
+      QueryLogger.initialize();
+      QueryLogger.configure(ksqlConfig);
 
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final Executable executable = createExecutable(

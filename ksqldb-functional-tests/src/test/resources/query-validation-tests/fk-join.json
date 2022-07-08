@@ -1,0 +1,712 @@
+{
+  "tests": [
+    {
+      "name": "Should fail if types in join condition don't match",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key_wrong_type VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT * FROM left_table JOIN right_table ON foreign_key_wrong_type = r_id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: types don't match. Got LEFT_TABLE.FOREIGN_KEY_WRONG_TYPE{STRING} = RIGHT_TABLE.R_ID{BIGINT}."
+      }
+    },
+    {
+      "name": "Should fail if types in join condition don't match (expression)",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON CAST(foreign_key AS STRING) = r_id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: types don't match. Got CAST(LEFT_TABLE.FOREIGN_KEY AS STRING){STRING} = RIGHT_TABLE.R_ID{BIGINT}."
+      }
+    },
+    {
+      "name": "Should not allow join on partial right source key",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id_1 BIGINT PRIMARY KEY, r_id_2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT * FROM left_table JOIN right_table ON foreign_key = r_id_1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got LEFT_TABLE.FOREIGN_KEY = RIGHT_TABLE.R_ID_1."
+      }
+    },
+    {
+      "name": "Should fail if single result key column is missing in projection for inner-join",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT f1, foreign_key, r_id, f2 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Primary key column missing in projection. For foreign-key table-table joins, the projection must include all primary key columns from the left input table (`LEFT_TABLE`). Missing column: `L_ID`."
+      }
+    },
+    {
+      "name": "Should fail on partial left source key in projection",
+      "statements": [
+        "CREATE TABLE left_table (l_id_1 BIGINT PRIMARY KEY, l_id_2 BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id_1, f1, foreign_key, r_id, f2 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Primary key column missing in projection. For foreign-key table-table joins, the projection must include all primary key columns from the left input table (`LEFT_TABLE`). Missing column: `L_ID_2`."
+      }
+    },
+    {
+      "name": "Should fail if all result key columns are missing for inner join",
+      "statements": [
+        "CREATE TABLE left_table (l_id_1 BIGINT PRIMARY KEY, l_id_2 BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT f1, foreign_key, r_id, f2 FROM left_table LEFT JOIN right_table ON foreign_key = r_id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Primary key columns missing in projection. For foreign-key table-table joins, the projection must include all primary key columns from the left input table (`LEFT_TABLE`). Missing columns: `L_ID_1`, `L_ID_2`."
+      }
+    },
+    {
+      "name": "Should fail with duplicate left source key in projection",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, l_id AS l_id_duplicate, f1, foreign_key r_id, f2 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The projection contains a key column (`LEFT_TABLE_L_ID`) more than once, aliased as: L_ID and L_ID_DUPLICATE."
+      }
+    },
+    {
+      "name": "Should support inner join with left value-column expression",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support left join with left value-column expression",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table LEFT JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "left_topic", "key": 0, "value": null, "timestamp": 19000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": null, "NAME": "zero", "F1": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 0, "value": {"R_ID": null, "NAME": "foo", "F1": null}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": null, "NAME": "zero", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": null, "NAME": "bar", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support inner join with left key-column expression",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, l_id_2_foreign_key BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, l_id_2_foreign_key, r_id, name, f1 FROM left_table JOIN right_table ON l_id_2_foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": {"L_ID": 0, "L_ID_2_FOREIGN_KEY": 100}, "value": {"NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": {"L_ID": 10, "L_ID_2_FOREIGN_KEY": 0}, "value": {"NAME": "bar", "VALUE": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2_FOREIGN_KEY": 0}, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, L_ID_2_FOREIGN_KEY BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support left join with left key-column expression",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, l_id_2_foreign_key BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, l_id_2_foreign_key, r_id, name, f1 FROM left_table LEFT JOIN right_table ON l_id_2_foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 10000},
+        {"topic": "left_topic", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": {"L_ID": 0, "L_ID_2_FOREIGN_KEY": 100}, "value": {"NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": {"L_ID": 10, "L_ID_2_FOREIGN_KEY": 0}, "value": {"NAME": "bar", "VALUE": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": null, "timestamp": 18000},
+        {"topic": "left_topic", "key": {"L_ID": 0, "L_ID_2_FOREIGN_KEY": 100}, "value": null, "timestamp": 19000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": null, "NAME": "zero", "F1": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": {"L_ID": 0, "L_ID_2_FOREIGN_KEY": 100}, "value": {"R_ID": null, "NAME": "foo", "F1": null}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": null, "NAME": "zero", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": null, "NAME": "bar", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": {"L_ID": 0, "L_ID_2_FOREIGN_KEY": 100}, "value": null, "timestamp": 19000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, L_ID_2_FOREIGN_KEY BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support inner join with left value-column expression - with aliases",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT lt.id, rt.id AS rt_id_alias, name AS name_alias, rt.f1 FROM left_table AS lt JOIN right_table AS rt ON lt.foreign_key = rt.id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "LT_ID BIGINT KEY, RT_ID_ALIAS BIGINT, NAME_ALIAS STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support left join with left value-column expression - with aliases",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT lt.id, rt.id, name, rt.f1 FROM left_table AS lt LEFT JOIN right_table AS rt ON lt.foreign_key = rt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "left_topic", "key": 0, "value": null, "timestamp": 19000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID": null, "NAME": "zero", "F1": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 0, "value": {"RT_ID": null, "NAME": "foo", "F1": null}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"RT_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID": null, "NAME": "zero", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": {"RT_ID": null, "NAME": "bar", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "LT_ID BIGINT KEY, RT_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support non-column reference in left join expression",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key + 1 = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": -1}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 99}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": -1}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support non-column reference in left join expression with qualifier",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON left_table.foreign_key + 1 = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": -1}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 99}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": -1}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support non-column reference in left join expression with alias",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT lt.l_id, r_id, lt.name, f1 FROM left_table AS lt JOIN right_table ON lt.foreign_key + 1 = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": -1}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 99}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": -1}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support flipped join condition",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON r_id = foreign_key;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support flipped join condition with aliases",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT lt.id, rt.id AS rt_id_alias, name AS name_alias, rt.f1 FROM left_table AS lt LEFT JOIN right_table AS rt ON rt.id = lt.foreign_key;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "left_topic", "key": 0, "value": null, "timestamp": 19000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": null, "NAME_ALIAS": "zero", "F1": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "zero", "F1": "blah"}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 0, "value": {"RT_ID_ALIAS": null, "NAME_ALIAS": "foo", "F1": null}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": null, "NAME_ALIAS": "zero", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": {"RT_ID_ALIAS": null, "NAME_ALIAS": "bar", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "LT_ID BIGINT KEY, RT_ID_ALIAS BIGINT, NAME_ALIAS STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should allow to omit join columns in projection",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support `SELECT *`",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT * FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LEFT_TABLE_NAME": "zero", "LEFT_TABLE_FOREIGN_KEY": 0, "RIGHT_TABLE_R_ID": 0, "RIGHT_TABLE_F1": "blah", "RIGHT_TABLE_F2": 4}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "LEFT_TABLE_L_ID BIGINT KEY, LEFT_TABLE_NAME STRING, LEFT_TABLE_FOREIGN_KEY BIGINT, RIGHT_TABLE_R_ID BIGINT, RIGHT_TABLE_F1 STRING, RIGHT_TABLE_F2 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Should support qualified `SELECT *` for right input",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, right_table.* FROM left_table LEFT JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"RIGHT_TABLE_R_ID": null, "RIGHT_TABLE_F1": null, "RIGHT_TABLE_F2": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"RIGHT_TABLE_R_ID": 0, "RIGHT_TABLE_F1": "blah", "RIGHT_TABLE_F2": 4}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RIGHT_TABLE_R_ID": 0, "RIGHT_TABLE_F1": "blah", "RIGHT_TABLE_F2": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, RIGHT_TABLE_R_ID BIGINT, RIGHT_TABLE_F1 STRING, RIGHT_TABLE_F2 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Should support qualified `SELECT *` for left input",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT left_table.*, right_table.f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LEFT_TABLE_NAME": "zero", "LEFT_TABLE_FOREIGN_KEY": 0, "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "LEFT_TABLE_L_ID BIGINT KEY, LEFT_TABLE_NAME STRING, LEFT_TABLE_FOREIGN_KEY BIGINT, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support qualified `SELECT *` for both input using aliases",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT lt.*, rt.*, lt.name AS name_alias FROM left_table AS lt LEFT JOIN right_table AS rt ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LT_NAME": "zero", "LT_FOREIGN_KEY": 0, "RT_R_ID": null, "RT_F1": null, "RT_F2": null, "NAME_ALIAS": "zero"}, ",timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"LT_NAME": "zero", "LT_FOREIGN_KEY": 0, "RT_R_ID": 0, "RT_F1": "blah", "RT_F2": 4, "NAME_ALIAS": "zero"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"LT_NAME": "zero", "LT_FOREIGN_KEY": 0, "RT_R_ID": 0, "RT_F1": "blah", "RT_F2": 4, "NAME_ALIAS": "zero"}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "LT_L_ID BIGINT KEY, LT_NAME STRING, LT_FOREIGN_KEY BIGINT, RT_R_ID BIGINT, RT_F1 STRING, RT_F2 BIGINT, NAME_ALIAS STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should allow key format mismatch",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyFormat": {"format": "KAFKA"}}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "Should allow partition count mismatch",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON', partitions=1);",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON', partitions=2);",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": { "format": "KAFKA" },
+              "valueFormat": { "format": "JSON" },
+              "partitions": 4
+            }
+          ],
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "Should allow format mismatch without repartitioning",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='AVRO');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": {
+                "format": "AVRO",
+                "properties": { "fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey" },
+                "features": ["UNWRAP_SINGLES"]
+              },
+              "valueFormat": { "format": "AVRO" },
+              "partitions": 4
+            }
+          ],
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "Should allow (default) key feature mismatch",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', key_format='DELIMITED', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": "1", "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": "0", "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": "10", "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": "1", "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": "1", "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": "10", "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": "1", "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": "10", "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": "1", "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyFormat": {"format": "DELIMITED"}}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    }
+  ]
+}

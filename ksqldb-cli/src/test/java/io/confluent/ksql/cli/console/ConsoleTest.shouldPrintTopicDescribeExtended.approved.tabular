@@ -1,0 +1,65 @@
+
+Name                 : TestSource
+Type                 : TABLE
+Timestamp field      : 2000-01-01
+Key format           : json
+Value format         : avro
+Kafka topic          : kafka-topic (partitions: 2, replication: 1)
+Statement            : sql statement text
+
+ Field  | Type                           
+-----------------------------------------
+ ROWKEY | VARCHAR(STRING)  (primary key) 
+ f_0    | VARCHAR(STRING)                
+-----------------------------------------
+
+Sources that have a DROP constraint on this source
+--------------------------------------------------
+S1
+S2
+
+Queries that read from this TABLE
+-----------------------------------
+readId (ERROR) : read query
+
+For query topology and execution plan please run: EXPLAIN <QueryId>
+
+Queries that write from this TABLE
+-----------------------------------
+writeId (ERROR) : write query
+
+For query topology and execution plan please run: EXPLAIN <QueryId>
+
+Local runtime statistics
+------------------------
+The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.
+stats
+The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.
+errors
+
+(Statistics of the local KSQL server interaction with the Kafka topic kafka-topic)
+
+Consumer Groups summary:
+
+Consumer Group       : consumer1
+
+Kafka topic          : kafka-topic
+Max lag              : 100
+
+ Partition | Start Offset | End Offset | Offset | Lag 
+------------------------------------------------------
+ 0         | 100          | 900        | 800    | 100 
+ 1         | 50           | 900        | 900    | 0   
+------------------------------------------------------
+
+Kafka topic          : kafka-topic-2
+Max lag              : 10
+
+ Partition | Start Offset | End Offset | Offset | Lag 
+------------------------------------------------------
+ 0         | 0            | 90         | 80     | 10  
+ 1         | 10           | 90         | 90     | 0   
+------------------------------------------------------
+
+Consumer Group       : consumer2
+<no offsets committed by this group yet>

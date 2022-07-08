@@ -42,7 +42,34 @@ upgrading a cluster involves leaving the old cluster running on the old version,
 cluster on the new version, porting across your database schema, and finally thinking about your data.
 Read on for details.
 
-### Port the database schema
+
+### In-Place upgrade
+
+Follow these steps to do an in-place upgrade of ksqlDB.
+
+1. Download the [new ksqlDB version](https://docs.confluent.io/platform/current/installation/installing_cp/zip-tar.html#get-the-software) to upgrade to.
+2. Set it up with all required configs. For the vast majority of upgrades, you may simply copy existing configs over to the new version.
+3. Copy source UDFs and recompile against the new ksqlDB version, to accommodate any changes to the UDF framework.
+4. Stop the ksqlDB process running the current version and start the newer version with the latest ksqlDB config file, which you created in Step 2.
+5. ksqlDB starts executing queries and rebuilds all states, using the command topic, because the value of `ksql.service.id` is the same as the previous version. ksqlDB Server with the latest version is up and running.
+
+
+### Troubleshooting an Upgrade
+
+1. ksqlDB Server fails to start with an error message like "KsqlException: UdfFactory not compatible with existing factory. function: <FUNCTION_NAME> existing":  
+This error occurs when the new ksqlDB version introduces a built-in function that has the same name as yours, creating a conflict with your UDF. Create a new UDF jar by renaming or eliminating the conflicting function(s), and restart ksqlDB with the new UDF jar.
+
+2. DESCRIBE EXTENDED command doesn't work: 
+Usually, this happens when the ksqlDB CLI and ksqlDB Server versions are different. You can create an alias for ksqlDB CLI to make sure to change it to newer version. You should ensure that the ksqlDB CLI and Server versions are the same. In "<Home-Folder-Path>/.bashrc" file, you can create an alias for logging into ksqlDB cli. 
+Eg : 
+(i) Open .bashrc file
+(ii) Create alias using command : "alias ksqldb='cd <ksqlDB bin folder location> && ./ksql http://<host-ip>:8088'" and save the changes. Now you can type "ksqldb" on shell and can login into ksqlDB.
+
+
+
+### Steps to follow when "In-Place" upgrade is not supported
+
+#### Port the database schema
 
 To port your database schema from one cluster to another you need to recreate all the streams,
 tables and types in the source cluster.
@@ -83,7 +110,7 @@ If you prefer to recover the schema manually, use the following steps.
    [RUN SCRIPT](../../developer-guide/ksqldb-reference/run-script.md) command, which takes a SQL
    file as an input.
 
-### Rebuild state
+#### Rebuild state
 
 Porting the database schema to the new cluster will cause ksqlDB to start processing data. As this
 is a new cluster it will start processing all data from the start, i.e. it will likely be
@@ -102,13 +129,31 @@ It is possible to monitor how far behind the processing is through JMX. Monitor 
 `kafka.consumer/consumer-fetch-manager-metrics/<consumer-name>/records-lag-max` metrics to observe
 the new nodes processing the historic data.
 
-### Destroy the old cluster
+#### Destroy the old cluster
 
 Once you're happy with your new cluster you can destroy the old one using the
 [terminate endpoint](https://github.com/confluentinc/ksql/blob/master/docs/developer-guide/ksqldb-rest-api/terminate-endpoint.md).
 This will stop all processing and delete any internal topics in Kafka.
 
 ## Upgrade notes
+
+### Upgrading from ksqlDB 0.14.0 to {{ site.ksqldbversion }}
+
+In-place upgrades are supported from ksqlDB 0.14.0 to {{ site.ksqldbversion }}.
+See the [changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md)
+for potential breaking changes that may affect the behavior or required syntax
+for new queries.
+
+#### Join statements
+
+The GRACE PERIOD clause is now supported in stream-stream joins since 0.20.0. However, when set
+explicitly, the grace period now defines when the left/outer non-joined results are emitted.
+Contrary to the old syntax (without GRACE PERIOD) that emits left/outer non-joined results eagerly,
+which may cause "spurious" result records.
+
+The use of GRACE PERIOD is highly recommended now that it is supported. It helps to reduce high
+disk usage when using small grace period values (default 24 hours if not set) and also provides
+better semantics for left/outer joins.
 
 ### Upgrading from ksqlDB 0.10.0 to 0.14.0
 

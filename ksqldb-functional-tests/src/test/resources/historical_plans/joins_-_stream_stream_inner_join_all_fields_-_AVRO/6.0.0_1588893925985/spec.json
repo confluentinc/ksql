@@ -335,7 +335,25 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TT_NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "TT_ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "TT_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
+          }
         }, {
           "name" : "INNER_JOIN",
           "keyFormat" : {
@@ -344,7 +362,25 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TT_NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "T_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "T_F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ]
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
@@ -353,7 +389,25 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "T_F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "T_ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "T_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
+          }
         }, {
           "name" : "left_topic",
           "keyFormat" : {
@@ -362,7 +416,18 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "right_topic",
           "keyFormat" : {
@@ -371,7 +436,18 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         } ]
       }
     }

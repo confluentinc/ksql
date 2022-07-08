@@ -41,6 +41,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -139,6 +140,9 @@ public class JoinNodeTest {
 
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
+  private static final WindowTimeClause GRACE_PERIOD = new WindowTimeClause(5, TimeUnit.SECONDS);
+  private static final Optional<WithinExpression> WITHIN_EXPRESSION_WITH_GRACE =
+      Optional.of(new WithinExpression(10, TimeUnit.SECONDS, GRACE_PERIOD));
 
   private static final PlanNodeId nodeId = new PlanNodeId("join");
   private static final QueryContext.Stacker CONTEXT_STACKER =
@@ -285,7 +289,31 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).leftJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
+        WITHIN_EXPRESSION.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamLeftJoinWithGracePeriod() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, LEFT, joinKey, true, left, right,
+            WITHIN_EXPRESSION_WITH_GRACE, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).leftJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -305,10 +333,34 @@ public class JoinNodeTest {
     joinNode.buildStream(planBuildContext);
 
     // Then:
-    verify(leftSchemaKStream).join(
+    verify(leftSchemaKStream).innerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
+        WITHIN_EXPRESSION.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamInnerJoinWithGracePeriod() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, INNER, joinKey, true, left, right,
+            WITHIN_EXPRESSION_WITH_GRACE, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).innerJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -331,7 +383,31 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).outerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
+        WITHIN_EXPRESSION.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamOuterJoinWithGrace() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, OUTER, joinKey, true, left, right,
+            WITHIN_EXPRESSION_WITH_GRACE, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).outerJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -344,8 +420,8 @@ public class JoinNodeTest {
     when(left.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(right.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
 
-    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey,       true, left,
+        right, empty(), "KAFKA");
 
     // When:
     final Exception e = assertThrows(
@@ -364,8 +440,8 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,        true, left,
+        right, empty(), "KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -385,8 +461,8 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,       true, left,
+        right, empty(), "KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -406,14 +482,14 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
 
     // Then:
-    verify(leftSchemaKStream).join(
+    verify(leftSchemaKStream).innerJoin(
         rightSchemaKTable,
         SYNTH_KEY,
         VALUE_FORMAT.getFormatInfo(),
@@ -427,8 +503,8 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(), "KAFKA");
 
     // When:
     final Exception e = assertThrows(
@@ -438,7 +514,7 @@ public class JoinNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Full outer joins between streams and tables are not supported."));
+        "Invalid join type encountered: [FULL] OUTER JOIN"));
   }
 
   @Test
@@ -450,8 +526,8 @@ public class JoinNodeTest {
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, OUTER, joinKey, true, left, right, Optional.of(withinExpression),
-            "KAFKA");
+        new JoinNode(nodeId, OUTER, joinKey,           true, left, right,
+            Optional.of(withinExpression),"KAFKA");
 
     // When:
     final Exception e = assertThrows(
@@ -470,14 +546,14 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey,       true, left,
+        right, empty(), "KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
 
     // Then:
-    verify(leftSchemaKTable).join(
+    verify(leftSchemaKTable).innerJoin(
         rightSchemaKTable,
         SYNTH_KEY,
         CONTEXT_STACKER
@@ -490,8 +566,8 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -510,8 +586,8 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -533,8 +609,8 @@ public class JoinNodeTest {
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, OUTER, joinKey, true, left, right, Optional.of(withinExpression),
-            "KAFKA");
+        new JoinNode(nodeId, OUTER, joinKey,          true, left, right,
+            Optional.of(withinExpression),"KAFKA");
 
     // When:
     final Exception e = assertThrows(
@@ -553,8 +629,8 @@ public class JoinNodeTest {
     when(joinKey.resolveKeyName(any(), any())).thenReturn(ColumnName.of("right_rightKey"));
 
     // When:
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
@@ -577,8 +653,8 @@ public class JoinNodeTest {
     when(joinKey.resolveKeyName(any(), any())).thenReturn(SYNTH_KEY);
 
     // When:
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
@@ -600,7 +676,8 @@ public class JoinNodeTest {
   public void shouldReturnCorrectSchema() {
     // When:
     final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, left, right, WITHIN_EXPRESSION, "KAFKA");
+        new JoinNode(nodeId, LEFT, joinKey,          true, left, right,
+            WITHIN_EXPRESSION, "KAFKA");
 
     // Then:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
@@ -614,8 +691,8 @@ public class JoinNodeTest {
   @Test
   public void shouldResolveUnaliasedSelectStarByCallingAllSourcesWithValueOnlyFalse() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
@@ -635,10 +712,12 @@ public class JoinNodeTest {
   public void shouldResolveUnaliasedSelectStarWithMultipleJoins() {
     // Given:
     final JoinNode inner =
-        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty(), "KAFKA");
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey,           true, right,
+            right2, empty(), "KAFKA");
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, left, inner, empty(), "KAFKA");
+        new JoinNode(nodeId, LEFT, joinKey,          true, left, inner, empty(),
+            "KAFKA");
 
     when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
@@ -660,10 +739,12 @@ public class JoinNodeTest {
   public void shouldResolveUnaliasedSelectStarWithMultipleJoinsOnLeftSide() {
     // Given:
     final JoinNode inner =
-        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty(), "KAFKA");
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey,          true, right,
+            right2, empty(), "KAFKA");
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, inner, left, empty(), "KAFKA");
+        new JoinNode(nodeId, LEFT, joinKey,          true, inner, left, empty(),
+            "KAFKA");
 
     when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
@@ -684,8 +765,8 @@ public class JoinNodeTest {
   @Test
   public void shouldResolveAliasedSelectStarByCallingOnlyCorrectParent() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left, right,
+        empty(),"KAFKA");
 
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
 
@@ -705,8 +786,8 @@ public class JoinNodeTest {
     // Given:
     when(joinKey.isSynthetic()).thenReturn(true);
 
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
@@ -723,10 +804,12 @@ public class JoinNodeTest {
   public void shouldResolveNestedAliasedSelectStarByCallingOnlyCorrectParentWithMultiJoins() {
     // Given:
     final JoinNode inner =
-        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty(), "KAFKA");
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey,          true, right,
+            right2, empty(), "KAFKA");
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, left, inner, empty(), "KAFKA");
+        new JoinNode(nodeId, LEFT, joinKey,         true, left, inner, empty(),
+            "KAFKA");
 
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
 
@@ -748,8 +831,8 @@ public class JoinNodeTest {
     // Given:
     when(projection.containsExpression(any())).thenReturn(false, true);
 
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left,
+        right, empty(),"KAFKA");
 
     when(joinKey.getAllViableKeys(any()))
         .thenReturn((List) ImmutableList.of(expression1, expression2));
@@ -765,8 +848,8 @@ public class JoinNodeTest {
   @Test
   public void shouldThrowIfProjectionDoesNotIncludeAnyJoinColumns() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left, right,
+        empty(),"KAFKA");
 
     when(joinKey.getAllViableKeys(any()))
         .thenReturn((List) ImmutableList.of(expression1, expression2));
@@ -864,6 +947,7 @@ public class JoinNodeTest {
   ) {
     when(dataSourceNode.getDataSource()).thenReturn(dataSource);
     when(node.getLeftmostSourceNode()).thenReturn(dataSourceNode);
+    when(node.getSources()).thenReturn(ImmutableList.of(dataSourceNode));
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);

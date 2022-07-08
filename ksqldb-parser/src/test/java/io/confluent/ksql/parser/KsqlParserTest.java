@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -463,7 +464,7 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("ROWTIME is a reserved system column name. You cannot use it as an alias for a column."));
+    assertThat(e.getMessage(), containsString("'ROWTIME' is a reserved column name. You cannot use it as an alias for a column."));
   }
 
   @Test
@@ -938,6 +939,7 @@ public class KsqlParserTest {
     assertThat(withinExpression.getBefore(), is(10L));
     assertThat(withinExpression.getAfter(), is(10L));
     assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(withinExpression.getGrace(), is(Optional.empty()));
     assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 
@@ -969,6 +971,7 @@ public class KsqlParserTest {
     assertThat(withinExpression.getAfter(), is(20L));
     assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
     assertThat(withinExpression.getAfterTimeUnit(), is(TimeUnit.MINUTES));
+    assertThat(withinExpression.getGrace(), is(Optional.empty()));
     assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 

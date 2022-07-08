@@ -1,0 +1,217 @@
+{
+  "tests": [
+    {
+      "name": "Should fail as second step in n-way join",
+      "comments": [
+        "Note: this case should be supported after we lift the general restriction to not support FK-joins in n-way joins."
+      ],
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (id3 BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2, f3 FROM left_table JOIN middle_table ON id1 = id2 JOIN right_table ON f1 = id3;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: foreign-key table-table joins are not supported as part of n-way joins. Got LEFT_TABLE.F1 = RIGHT_TABLE.ID3."
+      }
+    },
+    {
+      "name": "Should allow fk join at start of n-way join",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, m_id, foreign_key, f2, f3 FROM left_table JOIN middle_table ON foreign_key = m_id LEFT JOIN right_table ON l_id = r_id;"
+      ],
+      "inputs": [
+        {"topic": "middle_topic", "key": 0, "value": {"F2": 100, "OTHER": "unused"}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 1, "value": {"F3": 4}, "timestamp": 11000},
+        {"topic": "middle_topic", "key": 8, "value": {"F2": 10, "OTHER": "unused"}, "timestamp": 13000},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 8}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID": 0, "FOREIGN_KEY": 0, "F2": 100, "F3": null}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID": 0, "FOREIGN_KEY": 0, "F2": 100, "F3": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID": 8, "FOREIGN_KEY": 8, "F2": 10, "F3": 4}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, M_ID BIGINT, FOREIGN_KEY BIGINT, F2 BIGINT, F3 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Should fail as second step in n-way join with fk join as first step",
+      "comments": [
+        "Note: this case should be supported after we lift the general restriction to not support FK-joins in n-way joins."
+      ],
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (id3 BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2, f3 FROM left_table JOIN middle_table ON f1 = id2 JOIN right_table ON f1 = id3;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: foreign-key table-table joins are not supported as part of n-way joins. Got LEFT_TABLE.F1 = RIGHT_TABLE.ID3."
+      }
+    },
+    {
+      "name": "Should allow fk join at start of n-way join - without fk join expressions in projection",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, f2, f3 FROM left_table JOIN middle_table ON foreign_key = m_id LEFT JOIN right_table ON l_id = r_id;"
+      ],
+      "inputs": [
+        {"topic": "middle_topic", "key": 0, "value": {"F2": 100, "OTHER": "unused"}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 1, "value": {"F3": 4}, "timestamp": 11000},
+        {"topic": "middle_topic", "key": 8, "value": {"F2": 10, "OTHER": "unused"}, "timestamp": 13000},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 8}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"F2": 100, "F3": null}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"F2": 100, "F3": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"F2": 10, "F3": 4}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, F2 BIGINT, F3 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "FK join at start of join should fail without key in projection",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (id3 BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT f1, f2, f3 FROM left_table JOIN middle_table ON f1 = id2 JOIN right_table ON id1 = id3;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the join expressions LEFT_TABLE.ID1 or RIGHT_TABLE.ID3 in its projection."
+      }
+    },
+    {
+      "name": "Should allow fk join at start of n-way join - alternative key expression in projection",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT r_id, m_id, foreign_key, f2, f3 FROM left_table JOIN middle_table ON foreign_key = m_id LEFT JOIN right_table ON l_id = r_id;"
+      ],
+      "inputs": [
+        {"topic": "middle_topic", "key": 0, "value": {"F2": 100, "OTHER": "unused"}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 1, "value": {"F3": 4}, "timestamp": 11000},
+        {"topic": "middle_topic", "key": 8, "value": {"F2": 10, "OTHER": "unused"}, "timestamp": 13000},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 8}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID": 0, "FOREIGN_KEY": 0, "F2": 100, "F3": null}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID": 0, "FOREIGN_KEY": 0, "F2": 100, "F3": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID": 8, "FOREIGN_KEY": 8, "F2": 10, "F3": 4}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "R_ID BIGINT KEY, M_ID BIGINT, FOREIGN_KEY BIGINT, F2 BIGINT, F3 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Should allow fk join at start of n-way join - select *",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT * FROM left_table JOIN middle_table ON foreign_key = m_id LEFT JOIN right_table ON l_id = r_id;"
+      ],
+      "inputs": [
+        {"topic": "middle_topic", "key": 0, "value": {"F2": 100, "OTHER": "unused"}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 1, "value": {"F3": 4}, "timestamp": 11000},
+        {"topic": "middle_topic", "key": 8, "value": {"F2": 10, "OTHER": "unused"}, "timestamp": 13000},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 8}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LEFT_TABLE_FOREIGN_KEY": 0, "MIDDLE_TABLE_M_ID": 0, "MIDDLE_TABLE_F2": 100, "MIDDLE_TABLE_OTHER": "unused", "RIGHT_TABLE_R_ID": null, "RIGHT_TABLE_F3": null}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"LEFT_TABLE_FOREIGN_KEY": 0, "MIDDLE_TABLE_M_ID": 0, "MIDDLE_TABLE_F2": 100, "MIDDLE_TABLE_OTHER": "unused", "RIGHT_TABLE_R_ID": 1, "RIGHT_TABLE_F3": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"LEFT_TABLE_FOREIGN_KEY": 8, "MIDDLE_TABLE_M_ID": 8, "MIDDLE_TABLE_F2": 10, "MIDDLE_TABLE_OTHER": "unused", "RIGHT_TABLE_R_ID": 1, "RIGHT_TABLE_F3": 4}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "LEFT_TABLE_L_ID BIGINT KEY, LEFT_TABLE_FOREIGN_KEY BIGINT, MIDDLE_TABLE_M_ID BIGINT, MIDDLE_TABLE_F2 BIGINT, MIDDLE_TABLE_OTHER VARCHAR, RIGHT_TABLE_R_ID BIGINT, RIGHT_TABLE_F3 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Should allow fk join at start of n-way join - qualified select *",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (id3 BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, middle_table.*, right_table.* FROM left_table JOIN middle_table ON f1 = id2 LEFT JOIN right_table ON id1 = id3;"
+      ],
+      "inputs": [
+        {"topic": "middle_topic", "key": 0, "value": {"F2": 100, "OTHER": "foo"}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"F1": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 1, "value": {"F3": 4}, "timestamp": 11000},
+        {"topic": "middle_topic", "key": 8, "value": {"F2": 10, "OTHER": "bar"}, "timestamp": 13000},
+        {"topic": "left_topic", "key": 1, "value": {"F1": 8}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"MIDDLE_TABLE_ID2": 0, "MIDDLE_TABLE_F2": 100, "MIDDLE_TABLE_OTHER": "foo", "RIGHT_TABLE_ID3": null, "RIGHT_TABLE_F3": null}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"MIDDLE_TABLE_ID2": 0, "MIDDLE_TABLE_F2": 100, "MIDDLE_TABLE_OTHER": "foo", "RIGHT_TABLE_ID3": 1, "RIGHT_TABLE_F3": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"MIDDLE_TABLE_ID2": 8, "MIDDLE_TABLE_F2": 10, "MIDDLE_TABLE_OTHER": "bar", "RIGHT_TABLE_ID3": 1, "RIGHT_TABLE_F3": 4}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ID1 BIGINT KEY, MIDDLE_TABLE_ID2 BIGINT, MIDDLE_TABLE_F2 BIGINT, MIDDLE_TABLE_OTHER STRING, RIGHT_TABLE_ID3 BIGINT, RIGHT_TABLE_F3 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Should allow fk join at start of n-way join - with aliases",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, m_id AS m_id_alias, foreign_key, mt.f2 AS mt_f2_alias, rt.f3 FROM left_table AS lt JOIN middle_table AS mt ON foreign_key = mt.m_id LEFT JOIN right_table AS rt ON lt.l_id = r_id;"
+      ],
+      "inputs": [
+        {"topic": "middle_topic", "key": 0, "value": {"F2": 100, "OTHER": "unused"}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 1, "value": {"F3": 4}, "timestamp": 11000},
+        {"topic": "middle_topic", "key": 8, "value": {"F2": 10, "OTHER": "unused"}, "timestamp": 13000},
+        {"topic": "left_topic", "key": 1, "value": {"FOREIGN_KEY": 8}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID_ALIAS": 0, "FOREIGN_KEY": 0, "MT_F2_ALIAS": 100, "F3": null}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID_ALIAS": 0, "FOREIGN_KEY": 0, "MT_F2_ALIAS": 100, "F3": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"M_ID_ALIAS": 8, "FOREIGN_KEY": 8, "MT_F2_ALIAS": 10, "F3": 4}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, M_ID_ALIAS BIGINT, FOREIGN_KEY BIGINT, MT_F2_ALIAS BIGINT, F3 BIGINT"}
+        ]
+      }
+    }
+  ]
+}

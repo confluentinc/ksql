@@ -105,18 +105,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-Aggregate-Aggregate-Materialize-changelog",
-          "keyFormat" : {
-            "format" : "KAFKA",
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 30.000000000
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          }
-        }, {
           "name" : "T1",
           "keyFormat" : {
             "format" : "KAFKA",
@@ -129,6 +117,18 @@
             "format" : "DELIMITED"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
         }, {
           "name" : "test_topic",
           "keyFormat" : {

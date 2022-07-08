@@ -29,4 +29,17 @@ public interface RoutingOptions {
   boolean getIsDebugRequest();
 
   Set<Integer> getPartitions();
+
+  /**
+   * @return a human readable representation of the routing options, used
+   *         to debug requests
+   */
+  default String debugString() {
+    return "RoutingOptions{"
+        + "maxOffsetLagAllowed: " + getMaxOffsetLagAllowed()
+        + ", isSkipForwardRequest: " + getIsSkipForwardRequest()
+        + ", isDebugRequest: " + getIsDebugRequest()
+        + ", partitions: " + getPartitions()
+        + "}";
+  }
 }

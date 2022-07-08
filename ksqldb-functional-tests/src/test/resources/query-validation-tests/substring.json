@@ -3,15 +3,16 @@
     "Tests covering the use of the SUBSTRING function.",
     "NOTE: At present the SUBSTRING function has two modes: current and legacy.",
     " v5.0 and earlier only have legacy mode.",
-    " v5.1 and later have both current and legacy. New queries default to the current mode"
+    " v5.1 and later have both current and legacy. New queries default to the current mode",
+    "NOTE: Inputs for bytes tests are same inputs for strings but base64 encoded"
   ],
   "tests": [
     {
-      "name": "do substring with just pos",
+      "name": "do substring with strings with just pos",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS FROM TEST;"
+        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6) AS SUBSTRING, SUBSTRING(CAST(null AS STRING), 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "some_string"}},
@@ -25,11 +26,31 @@
       ]
     },
     {
-      "name": "do substring with pos and length",
+      "name": "do substring with bytes with just pos",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source BYTES) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6) AS SUBSTRING, SUBSTRING(source, null) AS NULL_POS FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "c29tZV9zdHJpbmc="}},
+        {"topic": "test_topic", "value": {"source": "YW5vdGhlcg=="}},
+        {"topic": "test_topic", "value": {"source": "c2hvcnQ="}},
+        {"topic": "test_topic", "value": {"source": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"c3RyaW5n", "NULL_POS":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"ZXI=", "NULL_POS":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"", "NULL_POS":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":null, "NULL_POS":null}}
+      ]
+    },
+    {
+      "name": "do substring with strings with pos and length",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6, 3) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS, SUBSTRING(source, 6, null) AS NULL_LEN FROM TEST;"
+        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6, 3) AS SUBSTRING, SUBSTRING(CAST(null AS STRING), 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS, SUBSTRING(source, 6, null) AS NULL_LEN FROM TEST;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": {"source": "some_string"}},
@@ -40,6 +61,26 @@
         {"topic": "OUTPUT", "value": {"SUBSTRING":"str", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}},
         {"topic": "OUTPUT", "value": {"SUBSTRING":"er", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}},
         {"topic": "OUTPUT", "value": {"SUBSTRING":"", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}}
+      ]
+    },
+    {
+      "name": "do substring with bytes with pos and length",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source BYTES) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6, 3) AS SUBSTRING, SUBSTRING(source, null) AS NULL_POS, SUBSTRING(source, 6, null) AS NULL_LEN FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "c29tZV9zdHJpbmc="}},
+        {"topic": "test_topic", "value": {"source": "YW5vdGhlcg=="}},
+        {"topic": "test_topic", "value": {"source": "c2hvcnQ="}},
+        {"topic": "test_topic", "value": {"source": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"c3Ry", "NULL_POS":null, "NULL_LEN":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"ZXI=", "NULL_POS":null, "NULL_LEN":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"", "NULL_POS":null, "NULL_LEN":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":null, "NULL_POS":null, "NULL_LEN":null}}
       ]
     },
     {

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -28,8 +29,8 @@ import java.util.stream.Collectors;
 public class PullQueryConfigRoutingOptions implements RoutingOptions {
 
   private final KsqlConfig ksqlConfig;
-  private final Map<String, ?> configOverrides;
-  private final Map<String, ?> requestProperties;
+  private final ImmutableMap<String, ?> configOverrides;
+  private final ImmutableMap<String, ?> requestProperties;
 
   public PullQueryConfigRoutingOptions(
       final KsqlConfig ksqlConfig,
@@ -37,8 +38,10 @@ public class PullQueryConfigRoutingOptions implements RoutingOptions {
       final Map<String, ?> requestProperties
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.configOverrides = configOverrides;
-    this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
+    this.configOverrides = ImmutableMap.copyOf(configOverrides);
+    this.requestProperties = ImmutableMap.copyOf(
+        Objects.requireNonNull(requestProperties, "requestProperties")
+    );
   }
 
   private long getLong() {

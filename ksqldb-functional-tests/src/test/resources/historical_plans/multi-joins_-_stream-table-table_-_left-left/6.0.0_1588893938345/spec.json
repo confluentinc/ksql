@@ -201,7 +201,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "right2",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "format" : "KAFKA"
           },
@@ -210,7 +210,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "OUTPUT",
+          "name" : "right2",
           "keyFormat" : {
             "format" : "KAFKA"
           },

@@ -18,6 +18,7 @@ package io.confluent.ksql.test.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -37,6 +38,7 @@ public final class OutputRecordsNode {
     this.outputRecords = ImmutableList.copyOf(outputRecords);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "outputRecords is ImmutableList")
   public List<RecordNode> getOutputRecords() {
     return outputRecords;
   }

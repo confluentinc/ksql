@@ -180,9 +180,13 @@ class Analyzer {
           srcTopic.getKeyFormat().getFormatInfo()
       );
 
+      final String valueFormatName = formatName(
+          props.getValueFormat(),
+          srcTopic.getValueFormat().getFormatInfo()
+      );
       final FormatInfo valueFmtInfo = buildFormatInfo(
-          formatName(props.getValueFormat(), srcTopic.getValueFormat().getFormatInfo()),
-          props.getValueFormatProperties(),
+          valueFormatName,
+          props.getValueFormatProperties(valueFormatName),
           srcTopic.getValueFormat().getFormatInfo()
       );
 
@@ -333,7 +337,10 @@ class Analyzer {
         if (joinExp instanceof LogicalBinaryExpression
             && isEqualityJoin(((LogicalBinaryExpression) joinExp).getLeft())
             && isEqualityJoin(((LogicalBinaryExpression) joinExp).getRight())) {
-          throw new KsqlException("JOINs on multiple conditions are not yet supported: " + joinExp);
+          throw new KsqlException(String.format(
+              "Invalid join condition: joins on multiple conditions are not yet supported. Got %s.",
+              joinExp
+          ));
         }
 
         throw new KsqlException("Unsupported join expression: " + joinExp);
@@ -379,6 +386,7 @@ class Analyzer {
           right,
           comparisonExpression.getRight(),
           joinType,
+          flipped,
           node.getWithinExpression()
       );
       analysis.addJoin(flipped ? joinInfo.flip() : joinInfo);

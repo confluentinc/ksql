@@ -14,7 +14,6 @@
  */
 
 package io.confluent.ksql.rest.server.execution;
-
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -29,7 +28,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -59,6 +57,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Arrays;
@@ -68,6 +67,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.jeasy.random.EasyRandom;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -78,11 +78,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ListSourceExecutorTest {
 
+  EasyRandom objectMother = new EasyRandom();
+
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
 
   @Mock
+  private SessionProperties SESSION_PROPERTIES;
+  @Mock
   private TopicDescription topicWith1PartitionAndRfOf1;
+
+  private KsqlHostInfo ksqlHostInfo = objectMother.nextObject(KsqlHostInfo.class);
 
   @Before
   public void setUp() {
@@ -90,6 +96,7 @@ public class ListSourceExecutorTest {
     final TopicPartitionInfo topicInfo = mock(TopicPartitionInfo.class);
     when(topicInfo.replicas()).thenReturn(ImmutableList.of(node));
     when(topicWith1PartitionAndRfOf1.partitions()).thenReturn(ImmutableList.of(topicInfo));
+    when(SESSION_PROPERTIES.getKsqlHostInfo()).thenReturn(ksqlHostInfo);
   }
 
   @Test
@@ -103,7 +110,7 @@ public class ListSourceExecutorTest {
     final StreamsList descriptionList = (StreamsList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS;"),
-            mock(SessionProperties.class),
+            SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -139,7 +146,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS EXTENDED;"),
-            mock(SessionProperties.class),
+            SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -177,7 +184,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.DESCRIBE_STREAMS.execute(
             engine.configure("DESCRIBE STREAMS;"),
-            mock(SessionProperties.class),
+            SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -214,7 +221,7 @@ public class ListSourceExecutorTest {
     final TablesList descriptionList = (TablesList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES;"),
-            mock(SessionProperties.class),
+            SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -250,7 +257,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES EXTENDED;"),
-            mock(SessionProperties.class),
+            SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -291,7 +298,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.DESCRIBE_TABLES.execute(
             engine.configure("DESCRIBE TABLES;"),
-            mock(SessionProperties.class),
+            SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -338,7 +345,7 @@ public class ListSourceExecutorTest {
                 "DESCRIBE SINK;",
                 new ShowColumns(SourceName.of("SINK"), false)),
                 SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
-            mock(SessionProperties.class),
+            SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -371,7 +378,7 @@ public class ListSourceExecutorTest {
         KsqlStatementException.class,
         () -> CustomExecutors.SHOW_COLUMNS.execute(
             engine.configure("DESCRIBE S;"),
-            mock(SessionProperties.class),
+            SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
         )
@@ -398,7 +405,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS;"),
-        mock(SessionProperties.class),
+        SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -456,7 +463,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS EXTENDED;"),
-        mock(SessionProperties.class),
+        SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -476,7 +483,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_TABLES.execute(
         engine.configure("SHOW TABLES EXTENDED;"),
-        mock(SessionProperties.class),
+        SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -495,7 +502,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE STREAM1 EXTENDED;"),
-        mock(SessionProperties.class),
+        SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);

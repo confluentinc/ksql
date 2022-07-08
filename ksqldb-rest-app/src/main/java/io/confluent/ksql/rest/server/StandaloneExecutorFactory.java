@@ -39,6 +39,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -129,7 +130,8 @@ public final class StandaloneExecutorFactory {
         functionRegistry,
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
-        ksqlConfig);
+        ksqlConfig,
+        Collections.emptyList());
 
     final UserFunctionLoader udfLoader =
         UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, installDir);

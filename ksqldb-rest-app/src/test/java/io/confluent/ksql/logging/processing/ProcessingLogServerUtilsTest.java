@@ -26,9 +26,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
@@ -39,7 +38,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.List;
 import java.util.Optional;
 import org.junit.After;
 import org.junit.Test;
@@ -89,10 +87,6 @@ public class ProcessingLogServerUtilsTest {
   @After
   public void teardown() {
     ksqlEngine.close();
-  }
-
-  private static List<String> push(final List<String> path, final String elem) {
-    return new ImmutableList.Builder<String>().addAll(path).add(elem).build();
   }
 
   @Test
@@ -159,7 +153,7 @@ public class ProcessingLogServerUtilsTest {
 
     // Then:
     assertThat(createdTopic.isPresent(), is(false));
-    verifyZeroInteractions(spyTopicClient);
+    verifyNoMoreInteractions(spyTopicClient);
   }
 
   @Test

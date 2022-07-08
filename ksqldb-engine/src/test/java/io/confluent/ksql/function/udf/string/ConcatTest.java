@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udf.string;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import java.nio.ByteBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,24 +37,35 @@ public class ConcatTest {
   }
 
   @Test
-  public void shouldIgnoreNullInputs() {
-    assertThat(udf.concat(null, "this ", null, "should ", null, "work!", null),
-        is("this should work!"));
+  public void shouldConcatBytes() {
+    assertThat(udf.concat(ByteBuffer.wrap(new byte[] {1}), ByteBuffer.wrap(new byte[] {2}), ByteBuffer.wrap(new byte[] {3})),
+        is(ByteBuffer.wrap(new byte[] {1, 2, 3})));
   }
 
   @Test
-  public void shouldReturnEmptyStringIfAllInputsNull() {
-    assertThat(udf.concat(null, null), is(""));
+  public void shouldIgnoreNullInputs() {
+    assertThat(udf.concat(null, "this ", null, "should ", null, "work!", null),
+        is("this should work!"));
+    assertThat(udf.concat(null, ByteBuffer.wrap(new byte[] {1}), null, ByteBuffer.wrap(new byte[] {2}), null),
+        is(ByteBuffer.wrap(new byte[] {1, 2})));
+  }
+
+  @Test
+  public void shouldReturnEmptyIfAllInputsNull() {
+    assertThat(udf.concat((String) null, null), is(""));
+    assertThat(udf.concat((ByteBuffer) null, null), is(ByteBuffer.wrap(new byte[] {})));
   }
 
   @Test
   public void shouldReturnSingleInput() {
     assertThat(udf.concat("singular"), is("singular"));
+    assertThat(udf.concat(ByteBuffer.wrap(new byte[] {2})), is(ByteBuffer.wrap(new byte[] {2})));
   }
 
   @Test
-  public void shouldReturnEmptyStringForSingleNullInput() {
+  public void shouldReturnEmptyForSingleNullInput() {
     assertThat(udf.concat((String) null), is(""));
+    assertThat(udf.concat((ByteBuffer) null), is(ByteBuffer.wrap(new byte[] {})));
   }
 
 }

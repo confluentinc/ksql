@@ -28,6 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.ArrayUtils;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 @Immutable
@@ -84,7 +85,8 @@ public class CompiledExpression implements ExpressionEvaluator {
       final Supplier<String> errorMsg
   ) {
     try {
-      return expressionEvaluator.evaluate(getParameters(row));
+      return expressionEvaluator.evaluate(
+          ArrayUtils.addAll(getParameters(row), defaultValue, logger, row));
     } catch (final Exception e) {
       final Throwable cause = e instanceof InvocationTargetException
           ? e.getCause()
@@ -94,7 +96,6 @@ public class CompiledExpression implements ExpressionEvaluator {
       return defaultValue;
     }
   }
-
 
   private Object[] getParameters(final GenericRow row) {
     final Object[] parameters = threadLocalParameters.get();

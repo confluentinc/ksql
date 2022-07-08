@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.test.parser.TestDirective.Type;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +38,7 @@ import org.junit.rules.TemporaryFolder;
 public class SqlTestReaderTest {
 
   @Rule
-  public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+  public final TemporaryFolder temporaryFolder = KsqlTestFolder.temporaryFolder();
 
   private static final NodeLocation LOC = new NodeLocation(1, 1);
 

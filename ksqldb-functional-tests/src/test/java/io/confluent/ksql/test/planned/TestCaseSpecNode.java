@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import java.util.Map;
@@ -43,7 +45,7 @@ public class TestCaseSpecNode {
     this.version = requireNonNull(version, "version");
     this.timestamp = timestamp;
     this.path = requireNonNull(path, "path");
-    this.schemas = requireNonNull(schemas, "schemas");
+    this.schemas = ImmutableMap.copyOf(requireNonNull(schemas, "schemas"));
     this.testCase = requireNonNull(testCase, "testCase");
   }
 
@@ -55,6 +57,7 @@ public class TestCaseSpecNode {
     return path;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "schemas is ImmutableMap")
   public Map<String, SchemaNode> getSchemas() {
     return schemas;
   }

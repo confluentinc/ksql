@@ -51,7 +51,7 @@ public class FakeApiServer extends AbstractVerticle {
   private int errorCode = -1;
 
   public FakeApiServer(final HttpServerOptions httpServerOptions) {
-    this.httpServerOptions = httpServerOptions;
+    this.httpServerOptions = new HttpServerOptions(httpServerOptions);
   }
 
   @Override

@@ -16,6 +16,8 @@
 package io.confluent.ksql.execution.ddl.commands;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import java.util.List;
@@ -33,7 +35,7 @@ public class AlterSourceCommand implements DdlCommand {
   ) {
     this.sourceName = sourceName;
     this.ksqlType = ksqlType;
-    this.newColumns = newColumns;
+    this.newColumns = ImmutableList.copyOf(newColumns);
   }
 
   public SourceName getSourceName() {
@@ -44,6 +46,7 @@ public class AlterSourceCommand implements DdlCommand {
     return ksqlType;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "newColumns is ImmutableList")
   public List<Column> getNewColumns() {
     return newColumns;
   }

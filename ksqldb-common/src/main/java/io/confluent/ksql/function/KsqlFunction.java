@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
@@ -86,11 +87,13 @@ public class KsqlFunction implements FunctionSignature {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "paramTypes is ImmutableList")
   public List<ParamType> parameters() {
     return paramTypes;
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "parameters is ImmutableList")
   public List<ParameterInfo> parameterInfo() {
     return parameters;
   }

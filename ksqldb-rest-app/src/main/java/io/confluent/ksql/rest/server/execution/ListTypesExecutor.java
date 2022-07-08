@@ -31,7 +31,9 @@ import java.util.Optional;
 
 public final class ListTypesExecutor {
 
-  private ListTypesExecutor() { }
+  private ListTypesExecutor() {
+
+  }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListTypes> configuredStatement,

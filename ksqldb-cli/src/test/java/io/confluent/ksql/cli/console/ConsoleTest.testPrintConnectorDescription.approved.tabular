@@ -1,0 +1,22 @@
+
+Name                 : name
+Class                : io.confluent.Connector
+Type                 : source
+State                : state
+WorkerId             : worker
+Trace                : msg
+
+ Task ID | State | Error Trace 
+-------------------------------
+ 0       | task  | task_msg    
+-------------------------------
+
+ KSQL Source Name | Kafka Topic | Type  
+----------------------------------------
+ TestSource       | kafka-topic | TABLE 
+----------------------------------------
+
+ Related Topics 
+----------------
+ a-jdbc-topic   
+----------------

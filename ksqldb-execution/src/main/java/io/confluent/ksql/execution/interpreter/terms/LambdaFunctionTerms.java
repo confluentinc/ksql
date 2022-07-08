@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.interpreter.terms;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -37,7 +38,7 @@ public class LambdaFunctionTerms {
         final List<Pair<String, SqlType>> argNamesToTypes,
         final Term body
     ) {
-      this.argNamesToTypes = argNamesToTypes;
+      this.argNamesToTypes = ImmutableList.copyOf(argNamesToTypes);
       this.body = body;
     }
 

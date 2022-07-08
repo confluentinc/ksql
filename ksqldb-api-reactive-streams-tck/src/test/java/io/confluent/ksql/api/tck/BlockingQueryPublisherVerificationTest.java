@@ -19,6 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.impl.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.util.KeyValue;
 import io.vertx.core.Context;
@@ -50,7 +51,7 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     final Context context = vertx.getOrCreateContext();
     BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
     final TestQueryHandle queryHandle = new TestQueryHandle(elements);
-    publisher.setQueryHandle(queryHandle, false);
+    publisher.setQueryHandle(queryHandle, false, false);
     if (elements < Integer.MAX_VALUE) {
       for (long l = 0; l < elements; l++) {
         queryHandle.queue.acceptRow(null, generateRow(l));
@@ -109,6 +110,11 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
 
     @Override
     public void onException(Consumer<Throwable> onException) {
+    }
+
+    @Override
+    public QueryId getQueryId() {
+      return new QueryId("queryId");
     }
   }
 }

@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.test.tools;
 
+import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.TestLocation;
@@ -97,15 +100,15 @@ public class TestCase implements VersionedTest {
       final Optional<TopologyAndConfigs> expectedTopology
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    this.topics = topics;
+    this.topics = immutableCopyOf(topics);
     this.originalFileName = requireNonNull(originalFileName, "originalFileName");
-    this.inputRecords = inputRecords;
-    this.outputRecords = outputRecords;
+    this.inputRecords = ImmutableList.copyOf(inputRecords);
+    this.outputRecords = ImmutableList.copyOf(outputRecords);
     this.location = requireNonNull(location, "location");
     this.name = name;
     this.versionBounds = Objects.requireNonNull(versionBounds, "versionBounds");
     this.properties = ImmutableMap.copyOf(properties);
-    this.statements = statements;
+    this.statements = ImmutableList.copyOf(statements);
     this.expectedException = requireNonNull(expectedException, "expectedException");
     this.expectedTopology = requireNonNull(expectedTopology, "expectedTopology");
     this.postConditions = Objects.requireNonNull(postConditions, "postConditions");
@@ -160,14 +163,21 @@ public class TestCase implements VersionedTest {
     return originalFileName;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topics is ImmutableCollection")
   public Collection<Topic> getTopics() {
     return topics;
   }
 
   public void setGeneratedTopologies(final List<String> generatedTopology) {
-    this.generatedTopologies = Objects.requireNonNull(generatedTopology, "generatedTopology");
+    this.generatedTopologies = ImmutableList.copyOf(
+        Objects.requireNonNull(generatedTopology, "generatedTopology")
+    );
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "generatedTopologies is ImmutableList"
+  )
   public List<String> getGeneratedTopologies() {
     return generatedTopologies;
   }
@@ -178,9 +188,11 @@ public class TestCase implements VersionedTest {
 
   public void setGeneratedSchemas(final Map<String, QuerySchemas.SchemaInfo> generatedSchemas) {
     this.generatedSchemas = ImmutableMap.copyOf(
-        Objects.requireNonNull(generatedSchemas, "generatedSchemas"));
+        Objects.requireNonNull(generatedSchemas, "generatedSchemas")
+    );
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "generatedSchemas is ImmutableMap")
   public Map<String, QuerySchemas.SchemaInfo> getGeneratedSchemas() {
     return generatedSchemas;
   }
@@ -203,10 +215,12 @@ public class TestCase implements VersionedTest {
     return applyPropertyOverrides(applyPersistedProperties(systemConfig));
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "properties is ImmutableMap")
   public Map<String, Object> properties() {
     return properties;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "statements is ImmutableList")
   public List<String> statements() {
     return statements;
   }
@@ -215,10 +229,12 @@ public class TestCase implements VersionedTest {
     return postConditions;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "inputRecords is ImmutableList")
   public List<Record> getInputRecords() {
     return inputRecords;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "outputRecords is ImmutableList")
   public List<Record> getOutputRecords() {
     return outputRecords;
   }

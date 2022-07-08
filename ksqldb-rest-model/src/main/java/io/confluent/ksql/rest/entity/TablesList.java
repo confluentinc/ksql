@@ -18,14 +18,16 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.rest.entity.SourceInfo.Table;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TablesList extends KsqlEntity {
-  private final Collection<SourceInfo.Table> tables;
+  private final ImmutableList<Table> tables;
 
   @JsonCreator
   public TablesList(
@@ -33,11 +35,12 @@ public class TablesList extends KsqlEntity {
       @JsonProperty("tables") final Collection<SourceInfo.Table> tables
   ) {
     super(statementText);
-    this.tables = tables;
+    this.tables = ImmutableList.copyOf(tables);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "tables is ImmutableList")
   public List<SourceInfo.Table> getTables() {
-    return new ArrayList<>(tables);
+    return tables;
   }
 
   @Override

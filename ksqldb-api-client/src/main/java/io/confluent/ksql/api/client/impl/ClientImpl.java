@@ -23,6 +23,8 @@ import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.ConnectorDescription;
+import io.confluent.ksql.api.client.ConnectorInfo;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
@@ -52,12 +54,14 @@ import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -76,6 +80,7 @@ public class ClientImpl implements Client {
   private final SocketAddress serverSocketAddress;
   private final String basicAuthHeader;
   private final boolean ownedVertx;
+  private final Map<String, Object> sessionVariables;
 
   /**
    * {@code Client} instances should be created via {@link Client#create(ClientOptions)}, NOT via
@@ -102,6 +107,7 @@ public class ClientImpl implements Client {
     this.basicAuthHeader = createBasicAuthHeader(clientOptions);
     this.serverSocketAddress =
         SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
+    this.sessionVariables = new HashMap<>();
   }
 
   @Override
@@ -214,7 +220,10 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         KSQL_ENDPOINT,
-        new JsonObject().put("ksql", sql).put("streamsProperties", properties),
+        new JsonObject()
+            .put("ksql", sql)
+            .put("streamsProperties", properties)
+            .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
             response,
@@ -292,7 +301,9 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         KSQL_ENDPOINT,
-        new JsonObject().put("ksql", "describe " + sourceName + ";"),
+        new JsonObject()
+            .put("ksql", "describe " + sourceName + ";")
+            .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
             response, cf, AdminResponseHandlers::handleDescribeSourceResponse)
@@ -314,6 +325,97 @@ public class ClientImpl implements Client {
     );
 
     return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> createConnector(
+      final String name,
+      final boolean isSource,
+      final Map<String, Object> properties
+  ) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String connectorConfigs = properties.entrySet()
+                .stream()
+                .map(e -> String.format("'%s'='%s'", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(","));
+    final String type = isSource ? "SOURCE" : "SINK";
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql",
+                String.format("CREATE %s CONNECTOR %s WITH (%s);", type, name, connectorConfigs))
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleCreateConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> dropConnector(final String name) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", "drop connector " + name + ";")
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleDropConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<List<ConnectorInfo>> listConnectors() {
+    final CompletableFuture<List<ConnectorInfo>> cf = new CompletableFuture<>();
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "list connectors;"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleListConnectorsResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<ConnectorDescription> describeConnector(final String name) {
+    final CompletableFuture<ConnectorDescription> cf = new CompletableFuture<>();
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", "describe connector " + name + ";")
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleDescribeConnectorsResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public void define(final String variable, final Object value) {
+    sessionVariables.put(variable, value);
+  }
+
+  @Override
+  public void undefine(final String variable) {
+    sessionVariables.remove(variable);
+  }
+
+  @Override
+  public Map<String, Object> getVariables() {
+    return new HashMap<>(sessionVariables);
   }
 
   @Override
@@ -340,7 +442,10 @@ public class ClientImpl implements Client {
       final T cf,
       final StreamedResponseHandlerSupplier<T> responseHandlerSupplier
   ) {
-    final JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
+    final JsonObject requestBody = new JsonObject()
+        .put("sql", sql)
+        .put("properties", properties)
+        .put("sessionVariables", sessionVariables);
 
     makePostRequest(
         QUERY_STREAM_ENDPOINT,
@@ -402,9 +507,7 @@ public class ClientImpl implements Client {
       request.end(requestBody);
     } else {
       final HttpClientRequest finalRequest = request;
-      finalRequest.sendHead(version -> {
-        finalRequest.writeCustomFrame(0, 0, requestBody);
-      });
+      finalRequest.sendHead(version -> finalRequest.writeCustomFrame(0, 0, requestBody));
     }
   }
 
@@ -518,7 +621,8 @@ public class ClientImpl implements Client {
         .setHttp2ClearTextUpgrade(false)
         .setVerifyHost(clientOptions.isVerifyHost())
         .setDefaultHost(clientOptions.getHost())
-        .setDefaultPort(clientOptions.getPort());
+        .setDefaultPort(clientOptions.getPort())
+        .setHttp2MultiplexingLimit(clientOptions.getHttp2MultiplexingLimit());
     if (clientOptions.isUseTls() && !clientOptions.getTrustStore().isEmpty()) {
       final JksOptions jksOptions = VertxSslOptionsFactory.getJksTrustStoreOptions(
           clientOptions.getTrustStore(),

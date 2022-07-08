@@ -189,7 +189,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 S2_ID = 1;\n  string S2_F1 = 2;\n  string S2_F2 = 3;\n  int64 S2_ROWTIME = 4;\n  int64 S2_ROWKEY = 5;\n}\n"
         }, {
           "name" : "s2",
           "keyFormat" : {
@@ -198,7 +199,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string F1 = 2;\n  string F2 = 3;\n}\n"
         }, {
           "name" : "s1",
           "keyFormat" : {
@@ -207,7 +209,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string NAME = 2;\n  int64 TS = 3;\n}\n"
         }, {
           "name" : "S1_JOIN_S2",
           "keyFormat" : {
@@ -216,7 +219,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string NAME = 2;\n  int64 TS = 3;\n  string F1 = 4;\n  string F2 = 5;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_S2_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
@@ -224,7 +228,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 S1_ID = 1;\n  string S1_NAME = 2;\n  int64 S1_TS = 3;\n  int64 S1_ROWTIME = 4;\n  int64 S1_ROWKEY = 5;\n}\n"
         } ]
       }
     }

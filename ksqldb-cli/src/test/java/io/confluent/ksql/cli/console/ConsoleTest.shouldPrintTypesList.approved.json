@@ -1,0 +1,37 @@
+[ {
+  "@type" : "type_list",
+  "statementText" : "statement",
+  "types" : {
+    "typeB" : {
+      "type" : "ARRAY",
+      "fields" : null,
+      "memberSchema" : {
+        "type" : "STRING",
+        "fields" : null,
+        "memberSchema" : null
+      }
+    },
+    "typeA" : {
+      "type" : "STRUCT",
+      "fields" : [ {
+        "name" : "f1",
+        "schema" : {
+          "type" : "STRING",
+          "fields" : null,
+          "memberSchema" : null
+        }
+      } ],
+      "memberSchema" : null
+    },
+    "typeC" : {
+      "type" : "DECIMAL",
+      "fields" : null,
+      "memberSchema" : null,
+      "parameters" : {
+        "precision" : 10,
+        "scale" : 9
+      }
+    }
+  },
+  "warnings" : [ ]
+} ]

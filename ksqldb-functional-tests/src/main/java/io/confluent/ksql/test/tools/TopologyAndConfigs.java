@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.test.tools;
 
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.test.model.SchemaNode;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,20 +41,22 @@ public class TopologyAndConfigs {
   ) {
     this.plan = Objects.requireNonNull(plan, "plan");
     this.topology = Objects.requireNonNull(topology, "topology");
-    this.schemas = Objects.requireNonNull(schemas, "schemas");
-    this.configs = Objects.requireNonNull(configs, "configs");
+    this.schemas = ImmutableMap.copyOf(Objects.requireNonNull(schemas, "schemas"));
+    // cannot use ImmutableMap, because we need to handle `null`
+    this.configs = new HashMap<>(Objects.requireNonNull(configs, "configs"));
   }
 
   public String getTopology() {
     return topology;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "schemas is ImmutableMap")
   public Map<String, SchemaNode> getSchemas() {
     return schemas;
   }
 
   public Map<String, String> getConfigs() {
-    return configs;
+    return Collections.unmodifiableMap(configs);
   }
 
   public Optional<List<KsqlPlan>> getPlan() {

@@ -17,22 +17,30 @@ package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.function.Function;
 
 /**
  * Literal helpers
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class Literals {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final ImmutableMap<SqlBaseType, Function<Object, ? extends Literal>> FACTORIES =
       ImmutableMap.<SqlBaseType, Function<Object, ? extends Literal>>builder()
@@ -42,7 +50,10 @@ public final class Literals {
           .put(SqlBaseType.DECIMAL, v -> new DecimalLiteral((BigDecimal) v))
           .put(SqlBaseType.DOUBLE, v -> new DoubleLiteral((Double) v))
           .put(SqlBaseType.STRING, v -> new StringLiteral((String) v))
+          .put(SqlBaseType.TIME, v -> new TimeLiteral((Time) v))
+          .put(SqlBaseType.DATE, v -> new DateLiteral((Date) v))
           .put(SqlBaseType.TIMESTAMP, v -> new TimestampLiteral((Timestamp) v))
+          .put(SqlBaseType.BYTES, v -> new BytesLiteral((ByteBuffer) v))
           .build();
 
   private Literals() {

@@ -16,6 +16,8 @@
 package io.confluent.ksql.engine.generic;
 
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRING;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.DATE;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIME;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
 
 import io.confluent.ksql.GenericRow;
@@ -113,13 +115,24 @@ public class GenericExpressionResolver {
                 fieldName,
                 valueSqlType,
                 value,
-                (fieldType == TIMESTAMP && valueSqlType == STRING)
-                    ? ". Timestamp format must be yyyy-mm-ddThh:mm:ss[.S]" :
-                    ""
+                parseTimeErrorMessage(fieldType, valueSqlType)
             );
             return new KsqlException(errorMessage);
           })
           .orElse(null);
+    }
+
+    private String parseTimeErrorMessage(final SqlType fieldType, final SqlBaseType valueType) {
+      if (valueType == STRING) {
+        if (fieldType == TIMESTAMP) {
+          return ". Timestamp format must be yyyy-mm-ddThh:mm:ss[.S]";
+        } else if (fieldType == TIME) {
+          return ". Time format must be hh:mm:ss[.S]";
+        } else if (fieldType == DATE) {
+          return ". Date format must be yyyy-mm-dd";
+        }
+      }
+      return "";
     }
 
     @Override

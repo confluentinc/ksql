@@ -95,7 +95,19 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 1
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "blah",
+            "fields" : [ {
+              "name" : "c1",
+              "type" : {
+                "type" : "map",
+                "values" : "long"
+              }
+            } ],
+            "connect.name" : "blah"
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -104,7 +116,33 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "C1",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_C1",
+                  "fields" : [ {
+                    "name" : "key",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "value",
+                    "type" : [ "null", "long" ],
+                    "default" : null
+                  } ],
+                  "connect.internal.type" : "MapEntry"
+                }
+              } ],
+              "default" : null
+            } ]
+          }
         } ]
       }
     }

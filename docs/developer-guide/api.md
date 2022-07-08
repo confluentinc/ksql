@@ -12,7 +12,7 @@ description: Learn how to communicate with ksqlDB by using HTTP
 - [Introspect query status (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
 - [Introspect server status (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
 - [Introspect cluster status (/clusterStatus endpoint)](ksqldb-rest-api/cluster-status-endpoint.md)
-- [Terminate a cluster (/is_valid_property)](ksqldb-rest-api/is_valid_property-endpoint.md)
+- [ Get the validity of a property (/is_valid_property)](ksqldb-rest-api/is_valid_property-endpoint.md)
 
 REST Endpoint
 -------------

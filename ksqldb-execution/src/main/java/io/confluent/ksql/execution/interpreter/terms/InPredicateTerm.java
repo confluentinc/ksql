@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -28,7 +29,7 @@ public class InPredicateTerm implements Term {
 
   public InPredicateTerm(final Term value, final List<Term> valueList) {
     this.value = value;
-    this.valueList = valueList;
+    this.valueList = ImmutableList.copyOf(valueList);
   }
 
   @Override

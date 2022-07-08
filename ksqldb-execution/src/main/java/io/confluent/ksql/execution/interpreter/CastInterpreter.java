@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.interpreter.terms.CastTerm.ComparableCastFunc
 import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
-import io.confluent.ksql.schema.ksql.SqlTimestamps;
+import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -33,6 +33,8 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
@@ -40,7 +42,9 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class CastInterpreter {
-  private CastInterpreter() { }
+  private CastInterpreter() {
+
+  }
 
   public static CastTerm cast(
       final Term term,
@@ -51,11 +55,13 @@ public final class CastInterpreter {
     return new CastTerm(term, to, castFunction(from, to, config));
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static CastFunction castFunction(
       final SqlType from,
       final SqlType to,
       final KsqlConfig config
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final SqlBaseType toBaseType = to.baseType();
     if (toBaseType == SqlBaseType.INTEGER) {
       return castToIntegerFunction(from);
@@ -71,10 +77,16 @@ public final class CastInterpreter {
       return castToBooleanFunction(from);
     } else if (toBaseType == SqlBaseType.TIMESTAMP) {
       return castToTimestampFunction(from);
+    } else if (toBaseType == SqlBaseType.DATE) {
+      return castToDateFunction(from);
+    } else if (toBaseType == SqlBaseType.TIME) {
+      return castToTimeFunction(from);
     } else if (toBaseType == SqlBaseType.ARRAY) {
       return castToArrayFunction(from, to, config);
     } else if (toBaseType == SqlBaseType.MAP) {
       return castToMapFunction(from, to, config);
+    } else if (toBaseType == SqlBaseType.BYTES) {
+      return castToBytesFunction(from);
     } else {
       throw new KsqlException("Unsupported cast from " + from + " to " + to);
     }
@@ -180,7 +192,9 @@ public final class CastInterpreter {
     if (from.baseType() == SqlBaseType.DECIMAL) {
       return object -> ((BigDecimal) object).toPlainString();
     } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
-      return object -> SqlTimestamps.formatTimestamp(((Timestamp) object));
+      return object -> SqlTimeTypes.formatTimestamp(((Timestamp) object));
+    } else if (from.baseType() == SqlBaseType.BYTES) {
+      throw new KsqlException(getErrorMessage(SqlTypes.BYTES, SqlTypes.STRING));
     }
     return object -> config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
         ? Objects.toString(object, null)
@@ -202,11 +216,48 @@ public final class CastInterpreter {
       final SqlType from
   ) {
     if (from.baseType() == SqlBaseType.STRING) {
-      return object -> SqlTimestamps.parseTimestamp(((String) object).trim());
+      return object -> SqlTimeTypes.parseTimestamp(((String) object).trim());
     } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
       return object -> (Timestamp) object;
+    } else if (from.baseType() == SqlBaseType.DATE) {
+      return object -> new Timestamp(((java.sql.Date) object).getTime()) ;
     }
-    throw new KsqlException("Unsupported cast to TIMESTAMP: " + from);
+    throw new KsqlException(getErrorMessage(from, SqlTypes.TIMESTAMP));
+  }
+
+  public static ComparableCastFunction<Date> castToTimeFunction(
+      final SqlType from
+  ) {
+    if (from.baseType() == SqlBaseType.STRING) {
+      return object -> SqlTimeTypes.parseTime(((String) object).trim());
+    } else if (from.baseType() == SqlBaseType.TIME) {
+      return object -> (Time) object;
+    } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
+      return object -> SqlTimeTypes.timestampToTime((Timestamp) object);
+    }
+    throw new KsqlException(getErrorMessage(from, SqlTypes.TIME));
+  }
+
+  public static ComparableCastFunction<Date> castToDateFunction(
+      final SqlType from
+  ) {
+    if (from.baseType() == SqlBaseType.STRING) {
+      return object -> SqlTimeTypes.parseDate(((String) object).trim());
+    } else if (from.baseType() == SqlBaseType.DATE) {
+      return object -> (java.sql.Date) object;
+    } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
+      return object -> SqlTimeTypes.timestampToDate((Timestamp) object);
+    }
+    throw new KsqlException(getErrorMessage(from, SqlTypes.DATE));
+  }
+
+  public static ComparableCastFunction<ByteBuffer> castToBytesFunction(
+      final SqlType from
+  ) {
+    if (from.baseType() == SqlBaseType.BYTES) {
+      return object -> (ByteBuffer) object;
+    }
+    throw new KsqlException(getErrorMessage(from, SqlTypes.BYTES));
   }
 
   public static CastFunction castToArrayFunction(

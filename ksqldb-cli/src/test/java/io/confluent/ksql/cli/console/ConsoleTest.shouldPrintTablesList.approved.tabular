@@ -1,0 +1,6 @@
+
+ Table Name | Kafka Topic | Key Format | Value Format | Windowed 
+-----------------------------------------------------------------
+ A          | t1          | KAFKA      | AVRO         | false    
+ B          | t2          | JSON       | JSON         | true     
+-----------------------------------------------------------------

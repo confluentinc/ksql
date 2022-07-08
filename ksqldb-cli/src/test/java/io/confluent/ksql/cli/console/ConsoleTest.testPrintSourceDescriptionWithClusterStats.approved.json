@@ -1,0 +1,168 @@
+[ {
+  "@type" : "sourceDescription",
+  "statementText" : "some sql",
+  "sourceDescription" : {
+    "name" : "TestSource",
+    "windowType" : null,
+    "readQueries" : [ {
+      "queryString" : "read query",
+      "sinks" : [ "sink1" ],
+      "sinkKafkaTopics" : [ "sink1 topic" ],
+      "id" : "readId",
+      "statusCount" : {
+        "RUNNING" : 1,
+        "ERROR" : 2
+      },
+      "queryType" : "PERSISTENT",
+      "state" : "ERROR"
+    } ],
+    "writeQueries" : [ {
+      "queryString" : "write query",
+      "sinks" : [ "sink2" ],
+      "sinkKafkaTopics" : [ "sink2 topic" ],
+      "id" : "writeId",
+      "statusCount" : {
+        "RUNNING" : 1,
+        "ERROR" : 2
+      },
+      "queryType" : "PERSISTENT",
+      "state" : "ERROR"
+    } ],
+    "fields" : [ {
+      "name" : "ROWKEY",
+      "schema" : {
+        "type" : "STRING",
+        "fields" : null,
+        "memberSchema" : null
+      },
+      "type" : "KEY"
+    }, {
+      "name" : "f_0",
+      "schema" : {
+        "type" : "BOOLEAN",
+        "fields" : null,
+        "memberSchema" : null
+      }
+    }, {
+      "name" : "f_1",
+      "schema" : {
+        "type" : "INTEGER",
+        "fields" : null,
+        "memberSchema" : null
+      }
+    }, {
+      "name" : "f_2",
+      "schema" : {
+        "type" : "BIGINT",
+        "fields" : null,
+        "memberSchema" : null
+      }
+    }, {
+      "name" : "f_3",
+      "schema" : {
+        "type" : "DOUBLE",
+        "fields" : null,
+        "memberSchema" : null
+      }
+    }, {
+      "name" : "f_4",
+      "schema" : {
+        "type" : "STRING",
+        "fields" : null,
+        "memberSchema" : null
+      }
+    }, {
+      "name" : "f_5",
+      "schema" : {
+        "type" : "ARRAY",
+        "fields" : null,
+        "memberSchema" : {
+          "type" : "STRING",
+          "fields" : null,
+          "memberSchema" : null
+        }
+      }
+    }, {
+      "name" : "f_6",
+      "schema" : {
+        "type" : "MAP",
+        "fields" : null,
+        "memberSchema" : {
+          "type" : "BIGINT",
+          "fields" : null,
+          "memberSchema" : null
+        }
+      }
+    }, {
+      "name" : "f_7",
+      "schema" : {
+        "type" : "STRUCT",
+        "fields" : [ {
+          "name" : "a",
+          "schema" : {
+            "type" : "DOUBLE",
+            "fields" : null,
+            "memberSchema" : null
+          }
+        } ],
+        "memberSchema" : null
+      }
+    } ],
+    "type" : "TABLE",
+    "timestamp" : "2000-01-01",
+    "statistics" : "The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\nstats",
+    "errorStats" : "The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\nerrors\n",
+    "extended" : true,
+    "keyFormat" : "kafka",
+    "valueFormat" : "avro",
+    "topic" : "kafka-topic",
+    "partitions" : 1,
+    "replication" : 1,
+    "statement" : "sql statement",
+    "queryOffsetSummaries" : [ ],
+    "sourceConstraints" : [ ],
+    "clusterStatistics" : [ {
+      "name" : "TEST",
+      "host" : "host1:8001",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "TEST",
+      "host" : "host2:8002",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "TEST",
+      "host" : "host3:8003",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "TEST",
+      "host" : "host4:8004",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    } ],
+    "clusterErrorStats" : [ {
+      "name" : "ERROR",
+      "host" : "host1:8001",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "ERROR",
+      "host" : "host2:8002",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "ERROR",
+      "host" : "host3:8003",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "ERROR",
+      "host" : "host4:8004",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    } ]
+  },
+  "warnings" : [ ]
+} ]

@@ -15,16 +15,23 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public final class LiteralTerms {
 
-  private LiteralTerms() { }
+  private LiteralTerms() {
+
+  }
 
   public static Term of(final Boolean value) {
     return new BooleanTermImpl(value);
@@ -52,6 +59,22 @@ public final class LiteralTerms {
 
   public static Term of(final Timestamp value) {
     return new TimestampTermImpl(value);
+  }
+
+  public static Term of(final Time value) {
+    return new TimeTermImpl(value);
+  }
+
+  public static Term of(final Date value) {
+    return new DateTermImpl(value);
+  }
+
+  public static Term of(final TimeUnit value) {
+    return new IntervalUnitTermImpl(value);
+  }
+
+  public static Term of(final ByteBuffer value) {
+    return new BytesTermImpl(value);
   }
 
   public static NullTerm ofNull() {
@@ -175,11 +198,13 @@ public final class LiteralTerms {
     private final BigDecimal value;
     private final SqlType sqlType;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public DecimalTermImpl(final BigDecimal value, final SqlType sqlType) {
       this.value = value;
       this.sqlType = sqlType;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     @Override
     public Object getValue(final TermEvaluationContext context) {
       return value;
@@ -207,6 +232,84 @@ public final class LiteralTerms {
     @Override
     public SqlType getSqlType() {
       return SqlTypes.TIMESTAMP;
+    }
+  }
+
+  public static class TimeTermImpl implements Term {
+
+    private final long timeMs;
+
+    public TimeTermImpl(final Time time) {
+      this.timeMs = time.getTime();
+    }
+
+    @Override
+    public Object getValue(final TermEvaluationContext context) {
+      return new Time(timeMs);
+    }
+
+    @Override
+    public SqlType getSqlType() {
+      return SqlTypes.TIME;
+    }
+  }
+
+  public static class DateTermImpl implements Term {
+
+    private final long dateMs;
+
+    public DateTermImpl(final Date date) {
+      this.dateMs = date.getTime();
+    }
+
+    @Override
+    public Object getValue(final TermEvaluationContext context) {
+      return new Date(dateMs);
+    }
+
+    @Override
+    public SqlType getSqlType() {
+      return SqlTypes.DATE;
+    }
+  }
+
+  public static class BytesTermImpl implements Term {
+
+    private final ByteBuffer value;
+
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+    public BytesTermImpl(final ByteBuffer bytes) {
+      this.value = bytes;
+    }
+
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+    @Override
+    public Object getValue(final TermEvaluationContext context) {
+      return value;
+    }
+
+    @Override
+    public SqlType getSqlType() {
+      return SqlTypes.BYTES;
+    }
+  }
+
+  public static class IntervalUnitTermImpl implements Term {
+
+    private final TimeUnit value;
+
+    public IntervalUnitTermImpl(final TimeUnit timeUnit) {
+      this.value = timeUnit;
+    }
+
+    @Override
+    public Object getValue(final TermEvaluationContext context) {
+      return value;
+    }
+
+    @Override
+    public SqlType getSqlType() {
+      return null;
     }
   }
 }

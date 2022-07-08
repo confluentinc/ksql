@@ -1,0 +1,141 @@
+{
+  "comments": ["tests for bytes functionality"],
+  "tests": [
+    {
+      "name": "DELIMITED in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, b BYTES) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "dmFyaWF0aW9ucw=="}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "dmFyaWF0aW9ucw=="}
+      ]
+    },
+    {
+      "name": "JSON in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, b BYTES) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ]
+    },
+    {
+      "name": "PROTOBUF in/out",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "topics": [
+        {
+          "name": "test",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {bytes b = 1;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"b": "dmFyaWF0aW9ucw=="}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "TEST2", "type": "stream", "schema": "B BYTES"}
+        ]
+      }
+    },
+    {
+      "name": "AVRO in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, b BYTES) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "topics": [
+        {
+          "name" : "test",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "ID",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", "bytes" ],
+              "default" : null
+            }],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          },
+          "valueFormat" : "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ]
+    },
+    {
+      "name": "bytes in complex types",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, S STRUCT<B BYTES>, A ARRAY<BYTES>, M MAP<STRING, BYTES>) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM TEST2 AS SELECT ID, S -> B AS S, A[1] AS A, M['B'] AS M FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"S": {"B": "ew=="}, "A":  ["ew==", "ew=="], "M":  {"B": "ew=="}}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"S": "ew==", "A":  "ew==", "M": "ew=="}}
+      ]
+    },
+    {
+      "name": "greater than",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a BYTES, b BYTES) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a > b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": "YQ==", "B": "YQ=="}},
+        {"topic": "test", "value": {"A": null, "B": null}},
+        {"topic": "test", "value": {"A": "YQ==", "B": null}},
+        {"topic": "test", "value": {"A": null, "B": "YQ=="}},
+        {"topic": "test", "value": {"A": "Yg==", "B": "YQ=="}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": true}}
+      ]
+    },
+    {
+      "name": "filter",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a BYTES, b BYTES, c BYTES) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM TEST2 AS SELECT ID, C AS RESULT FROM TEST WHERE b BETWEEN a AND c;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": "Yg==", "B": "YQ==", "C": "Yg=="}},
+        {"topic": "test", "value": {"A": null, "B": "YQ==", "C": "YQ=="}},
+        {"topic": "test", "value": {"A": "YQ==", "B": null, "C": "YQ=="}},
+        {"topic": "test", "value": {"A": "YQ==", "B": "YQ==", "C": null}},
+        {"topic": "test", "value": {"A": "YQ==", "B": "Yg==", "C": "Yw=="}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": "Yw=="}}
+      ]
+    }
+  ]
+}

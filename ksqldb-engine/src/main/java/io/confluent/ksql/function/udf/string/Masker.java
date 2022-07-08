@@ -39,7 +39,9 @@ class Masker {
     this.otherMask = otherMask;
   }
 
-  Masker() {}
+  Masker() {
+
+  }
 
   public String mask(final String input) {
     final StringBuilder output = new StringBuilder(input.length());

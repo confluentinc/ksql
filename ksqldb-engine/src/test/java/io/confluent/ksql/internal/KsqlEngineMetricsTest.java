@@ -85,7 +85,6 @@ public class KsqlEngineMetricsTest {
   public void setUp() {
     MetricCollectors.initialize();
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
-    when(query1.getQueryApplicationId()).thenReturn("app-1");
 
     engineMetrics = new KsqlEngineMetrics(
         METRIC_GROUP,
@@ -274,15 +273,6 @@ public class KsqlEngineMetricsTest {
 
     assertThat(value, equalTo(123.0));
     assertThat(legacyValue, equalTo(123.0));
-  }
-
-  @Test
-  public void shouldRegisterQueries() {
-    // When:
-    engineMetrics.registerQuery(query1);
-
-    // Then:
-    verify(query1).setQueryStateListener(any());
   }
 
   private double getMetricValue(final String metricName) {

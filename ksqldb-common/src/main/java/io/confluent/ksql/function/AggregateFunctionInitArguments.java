@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -34,8 +37,8 @@ public class AggregateFunctionInitArguments {
       new AggregateFunctionInitArguments();
 
   private final int udafIndex;
-  private final List<Object> initArgs;
-  private final Map<String, ?> config;
+  private final List<Object> initArgs; // cannot use ImmutableList as we need to handle `null`
+  private final ImmutableMap<String, ?> config;
 
   /**
    * This method should only be used for legacy "built-in" UDAF
@@ -65,7 +68,7 @@ public class AggregateFunctionInitArguments {
   ) {
     this.udafIndex = index;
     this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
-    this.initArgs = Objects.requireNonNull(initArgs);
+    this.initArgs = new ArrayList<>(Objects.requireNonNull(initArgs, "initArgs"));
 
     if (index < 0) {
       throw new IllegalArgumentException("index is negative: " + index);
@@ -75,7 +78,7 @@ public class AggregateFunctionInitArguments {
   private AggregateFunctionInitArguments() {
     this.udafIndex = 0;
     this.config = ImmutableMap.of();
-    this.initArgs = Collections.emptyList();
+    this.initArgs = ImmutableList.of();
   }
 
   public int udafIndex() {
@@ -87,9 +90,10 @@ public class AggregateFunctionInitArguments {
   }
 
   public List<Object> args() {
-    return initArgs;
+    return Collections.unmodifiableList(initArgs);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "config is ImmutableMap")
   public Map<String, ?> config() {
     return config;
   }

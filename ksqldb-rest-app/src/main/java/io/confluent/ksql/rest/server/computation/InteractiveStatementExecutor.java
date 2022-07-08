@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -100,6 +101,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public void configure(final KsqlConfig config) {
     if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
       throw new IllegalArgumentException("Need KS application server set");
@@ -307,7 +309,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
 
   private static void throwUnsupportedStatementError() {
     throw new KsqlException("This version of ksqlDB does not support executing "
-        + "statements submitted prior to ksqlDB 0.8.0 or Confluent Platform ksqlDB 5.0. "
+        + "statements submitted prior to ksqlDB 0.8.0 or Confluent Platform ksqlDB 5.5. "
         + "Please see the upgrading guide to upgrade.");
   }
 

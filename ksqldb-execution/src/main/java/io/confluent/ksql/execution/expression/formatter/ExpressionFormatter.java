@@ -24,11 +24,13 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -59,12 +61,13 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.name.Name;
-import io.confluent.ksql.schema.ksql.SqlTimestamps;
+import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 public final class ExpressionFormatter {
 
@@ -190,13 +193,24 @@ public final class ExpressionFormatter {
     }
 
     @Override
+    public String visitBytesLiteral(final BytesLiteral bytesLiteral, final Context context) {
+      return "ByteBuffer.wrap(new byte[]{"
+          + StringUtils.join(bytesLiteral.getByteArray(), ',') + "})";
+    }
+
+    @Override
     public String visitTimeLiteral(final TimeLiteral node, final Context context) {
-      return "TIME '" + node.getValue() + "'";
+      return SqlTimeTypes.formatTime(node.getValue());
+    }
+
+    @Override
+    public String visitDateLiteral(final DateLiteral node, final Context context) {
+      return SqlTimeTypes.formatDate(node.getValue());
     }
 
     @Override
     public String visitTimestampLiteral(final TimestampLiteral node, final Context context) {
-      return SqlTimestamps.formatTimestamp(node.getValue());
+      return SqlTimeTypes.formatTimestamp(node.getValue());
     }
 
     @Override

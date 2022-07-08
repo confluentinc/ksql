@@ -28,7 +28,9 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
+import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -36,7 +38,9 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.vertx.core.Context;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,22 +84,22 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   @Override
   public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
-    return engineContext.getPersistentQuery(queryId);
+    return engineContext.getQueryRegistry().getPersistentQuery(queryId);
   }
 
   @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
-    return ImmutableList.copyOf(engineContext.getPersistentQueries().values());
+    return ImmutableList.copyOf(engineContext.getQueryRegistry().getPersistentQueries().values());
   }
 
   @Override
   public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
-    return engineContext.getQueriesWithSink(sourceName);
+    return engineContext.getQueryRegistry().getQueriesWithSink(sourceName);
   }
 
   @Override
   public List<QueryMetadata> getAllLiveQueries() {
-    return engineContext.getAllLiveQueries();
+    return engineContext.getQueryRegistry().getAllLiveQueries();
   }
 
   @Override
@@ -167,7 +171,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
-      final PullPlannerOptions pullPlannerOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final boolean startImmediately
   ) {
@@ -179,9 +183,31 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         statement,
         routing,
         routingOptions,
-        pullPlannerOptions,
+        queryPlannerOptions,
         pullQueryMetrics,
         startImmediately
+    );
+  }
+
+  @Override
+  public ScalablePushQueryMetadata executeScalablePushQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final PushRouting pushRouting,
+      final PushRoutingOptions pushRoutingOptions,
+      final QueryPlannerOptions queryPlannerOptions,
+      final Context context
+  ) {
+    return EngineExecutor.create(
+        engineContext,
+        serviceContext,
+        statement.getSessionConfig()
+    ).executeScalablePushQuery(
+        statement,
+        pushRouting,
+        pushRoutingOptions,
+        queryPlannerOptions,
+        context
     );
   }
 }

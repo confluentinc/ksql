@@ -57,6 +57,11 @@ Use the [ksqlDB migrations tool](migrations-tool.md)
 to manage your ksqlDB clusters' metadata schemas, including
 the creation, deletion, and updating of streams, tables, and queries.
 
+Using High Availability for Pull Queries
+---------------------------------------
+The [HA for pull queries guide](high-availability-pull-queries.md) gives an overview of how to
+utilize the high availability functionality and configure your server for it.
+
 Troubleshooting
 ---------------
 

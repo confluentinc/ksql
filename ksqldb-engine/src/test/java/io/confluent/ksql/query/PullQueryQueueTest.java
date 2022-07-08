@@ -144,4 +144,15 @@ public class PullQueryQueueTest {
     queue.drainRowsTo(entries);
     return entries;
   }
+
+  @Test
+  public void totalRowsQueued() {
+    // When:
+    queue.acceptRow(VAL_ONE);
+
+    // Then:
+    assertThat(queue.getTotalRowsQueued(), is(1L));
+    queue.acceptRow(VAL_TWO);
+    assertThat(queue.getTotalRowsQueued(), is(2L));
+  }
 }

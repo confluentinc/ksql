@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.model.WindowType;
 import java.util.List;
 import java.util.Objects;
@@ -49,6 +50,8 @@ public class SourceDescription {
   private final String statement;
   private final List<QueryOffsetSummary> queryOffsetSummaries;
   private final List<String> sourceConstraints;
+  private final List<QueryHostStat> clusterStatistics;
+  private final List<QueryHostStat> clusterErrorStats;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -70,7 +73,9 @@ public class SourceDescription {
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
       @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries,
-      @JsonProperty("sourceConstraints") final List<String> sourceConstraints
+      @JsonProperty("sourceConstraints") final List<String> sourceConstraints,
+      @JsonProperty("clusterStatistics") final List<QueryHostStat> clusterStats,
+      @JsonProperty("clusterErrorStats") final List<QueryHostStat> clusterErrors
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
@@ -96,7 +101,55 @@ public class SourceDescription {
         Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
     this.sourceConstraints =
         ImmutableList.copyOf(Objects.requireNonNull(sourceConstraints, "sourceConstraints"));
+    this.clusterErrorStats = ImmutableList.copyOf(clusterErrors);
+    this.clusterStatistics = ImmutableList.copyOf(clusterStats);
   }
+
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  public SourceDescription(
+      @JsonProperty("name") final String name,
+      @JsonProperty("windowType") final Optional<WindowType> windowType,
+      @JsonProperty("readQueries") final List<RunningQuery> readQueries,
+      @JsonProperty("writeQueries") final List<RunningQuery> writeQueries,
+      @JsonProperty("fields") final List<FieldInfo> fields,
+      @JsonProperty("type") final String type,
+      @JsonProperty("timestamp") final String timestamp,
+      @JsonProperty("statistics") final String statistics,
+      @JsonProperty("errorStats") final String errorStats,
+      @JsonProperty("extended") final boolean extended,
+      @JsonProperty("keyFormat") final String keyFormat,
+      @JsonProperty("valueFormat") final String valueFormat,
+      @JsonProperty("topic") final String topic,
+      @JsonProperty("partitions") final int partitions,
+      @JsonProperty("replication") final int replication,
+      @JsonProperty("statement") final String statement,
+      @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries,
+      @JsonProperty("sourceConstraints") final List<String> sourceConstraints
+  ) {
+    this(
+        name,
+        windowType,
+        readQueries,
+        writeQueries,
+        fields,
+        type,
+        timestamp,
+        statistics,
+        errorStats,
+        extended,
+        keyFormat,
+        valueFormat,
+        topic,
+        partitions,
+        replication,
+        statement,
+        queryOffsetSummaries,
+        sourceConstraints,
+        ImmutableList.of(),
+        ImmutableList.of()
+    );
+  }
+  // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
   public String getStatement() {
     return statement;
@@ -118,6 +171,7 @@ public class SourceDescription {
     return name;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "fields is ImmutableList")
   public List<FieldInfo> getFields() {
     return fields;
   }
@@ -142,10 +196,12 @@ public class SourceDescription {
     return topic;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "writeQueries is ImmutableList")
   public List<RunningQuery> getWriteQueries() {
     return writeQueries;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "readQueries is ImmutableList")
   public List<RunningQuery> getReadQueries() {
     return readQueries;
   }
@@ -155,19 +211,44 @@ public class SourceDescription {
   }
 
   public String getStatistics() {
-    return statistics;
+    if (statistics.length() > 0) {
+      return "The statistics field is deprecated and will be removed in a future version of ksql. "
+          + "Please update your client to the latest version and use statisticsMap instead.\n"
+          + statistics;
+    }
+    return "";
   }
 
   public String getErrorStats() {
-    return errorStats;
+    if (errorStats.length() > 0) {
+      return "The errorStats field is deprecated and will be removed in a future version of ksql. "
+          + "Please update your client to the latest version and use errorStatsMap instead.\n"
+          + errorStats + '\n';
+    }
+    return "";
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "queryOffsetSummaries is ImmutableList"
+  )
   public List<QueryOffsetSummary> getQueryOffsetSummaries() {
     return queryOffsetSummaries;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sourceConstraints is ImmutableList")
   public List<String> getSourceConstraints() {
     return sourceConstraints;
+  }
+
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "clusterStatistics is ImmutableList")
+  public List<QueryHostStat> getClusterStatistics() {
+    return clusterStatistics;
+  }
+
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "clusterErrorStats is ImmutableList")
+  public List<QueryHostStat> getClusterErrorStats() {
+    return clusterErrorStats;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -193,6 +274,8 @@ public class SourceDescription {
         && Objects.equals(timestamp, that.timestamp)
         && Objects.equals(statistics, that.statistics)
         && Objects.equals(errorStats, that.errorStats)
+        && Objects.equals(clusterStatistics, that.clusterStatistics)
+        && Objects.equals(clusterErrorStats, that.clusterErrorStats)
         && Objects.equals(keyFormat, that.keyFormat)
         && Objects.equals(valueFormat, that.valueFormat)
         && Objects.equals(topic, that.topic)

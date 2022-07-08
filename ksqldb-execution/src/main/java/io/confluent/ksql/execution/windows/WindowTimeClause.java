@@ -41,6 +41,14 @@ public class WindowTimeClause {
     return Duration.ofMillis(unit.toMillis(value));
   }
 
+  public long getValue() {
+    return value;
+  }
+
+  public TimeUnit getTimeUnit() {
+    return unit;
+  }
+
   public String toString() {
     return value + " " + unit;
   }

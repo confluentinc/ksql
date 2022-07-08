@@ -1,0 +1,87 @@
+{
+  "comments": [
+    "Tests covering conversions of BYTES to STRINGS and viceversa using different encodings."
+  ],
+  "tests": [
+    {
+      "name": "convert bytes to HEX encoded string",
+      "statements": [
+        "CREATE STREAM TEST (s STRING, b BYTES) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TS AS select FROM_BYTES(b, 'hex') AS hex, TO_BYTES(FROM_BYTES(b, 'hex'), 'hex') AS b1, FROM_BYTES(TO_BYTES(s, 'hex'), 'hex') AS s1 from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": null, "value": "21,IQ=="},
+        {"topic": "test_topic", "key": null, "value": "23,Iw=="}
+      ],
+      "outputs": [
+        {"topic": "TS", "key": null, "value": "21,IQ==,21"},
+        {"topic": "TS", "key": null, "value": "23,Iw==,23"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "TS", "type": "stream", "schema": "hex STRING, b1 BYTES, s1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "convert bytes to ASCII encoded string",
+      "statements": [
+        "CREATE STREAM TEST (s STRING, b BYTES) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TS AS select FROM_BYTES(b, 'ascii') AS ascii, TO_BYTES(FROM_BYTES(b, 'ascii'), 'ascii') AS b1, FROM_BYTES(TO_BYTES(s, 'ascii'), 'ascii') AS s1 from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": null, "value": "!,IQ=="},
+        {"topic": "test_topic", "key": null, "value": "#,Iw=="}
+      ],
+      "outputs": [
+        {"topic": "TS", "key": null, "value": "\"!\",IQ==,\"!\""},
+        {"topic": "TS", "key": null, "value": "\"#\",Iw==,\"#\""}
+      ],
+      "post": {
+        "sources": [
+          {"name": "TS", "type": "stream", "schema": "ascii STRING, b1 BYTES, s1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "convert bytes to UTF8 encoded string",
+      "statements": [
+        "CREATE STREAM TEST (s STRING, b BYTES) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TS AS select FROM_BYTES(b, 'utf8') AS utf8, TO_BYTES(FROM_BYTES(b, 'utf8'), 'utf8') AS b1, FROM_BYTES(TO_BYTES(s, 'utf8'), 'utf8') AS s1 from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": null, "value": "!,IQ=="},
+        {"topic": "test_topic", "key": null, "value": "#,Iw=="}
+      ],
+      "outputs": [
+        {"topic": "TS", "key": null, "value": "\"!\",IQ==,\"!\""},
+        {"topic": "TS", "key": null, "value": "\"#\",Iw==,\"#\""}
+      ],
+      "post": {
+        "sources": [
+          {"name": "TS", "type": "stream", "schema": "utf8 STRING, b1 BYTES, s1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "convert bytes to BASE64 encoded string",
+      "statements": [
+        "CREATE STREAM TEST (s STRING, b BYTES) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TS AS select FROM_BYTES(b, 'base64') AS base64, TO_BYTES(FROM_BYTES(b, 'base64'), 'base64') AS b1, FROM_BYTES(TO_BYTES(s, 'base64'), 'base64') AS s1 from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": null, "value": "IQ==,IQ=="},
+        {"topic": "test_topic", "key": null, "value": "Iw==,Iw=="}
+      ],
+      "outputs": [
+        {"topic": "TS", "key": null, "value": "IQ==,IQ==,IQ=="},
+        {"topic": "TS", "key": null, "value": "Iw==,Iw==,Iw=="}
+      ],
+      "post": {
+        "sources": [
+          {"name": "TS", "type": "stream", "schema": "base64 STRING, b1 BYTES, s1 STRING"}
+        ]
+      }
+    }
+  ]
+}

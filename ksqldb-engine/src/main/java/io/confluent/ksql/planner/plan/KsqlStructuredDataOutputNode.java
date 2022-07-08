@@ -35,7 +35,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final boolean doCreateInto;
-  private final SourceName intoSourceName;
+  private final SourceName sinkName;
   private final boolean orReplace;
 
   public KsqlStructuredDataOutputNode(
@@ -46,17 +46,17 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlTopic ksqlTopic,
       final OptionalInt limit,
       final boolean doCreateInto,
-      final SourceName intoSourceName,
+      final SourceName sinkName,
       final boolean orReplace
   ) {
     super(id, source, schema, limit, timestampColumn);
 
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.doCreateInto = doCreateInto;
-    this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
+    this.sinkName = requireNonNull(sinkName, "sinkName");
     this.orReplace = orReplace;
 
-    validate(source, intoSourceName);
+    validate(source, sinkName);
   }
 
   public boolean createInto() {
@@ -67,17 +67,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return ksqlTopic;
   }
 
-  public SourceName getIntoSourceName() {
-    return intoSourceName;
-  }
-
   public boolean getOrReplace() {
     return orReplace;
   }
 
   @Override
   public Optional<SourceName> getSinkName() {
-    return Optional.of(intoSourceName);
+    return Optional.of(sinkName);
   }
 
   @Override
@@ -96,14 +92,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private static void validate(
       final PlanNode source,
-      final SourceName intoSourceName
+      final SourceName sinkName
   ) {
     if (!(source instanceof VerifiableNode)) {
       throw new IllegalArgumentException("VerifiableNode required");
     }
 
     ((VerifiableNode) source)
-        .validateKeyPresent(intoSourceName);
+        .validateKeyPresent(sinkName);
 
     final LogicalSchema schema = source.getSchema();
 

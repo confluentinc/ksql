@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.avro;
 
 import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
@@ -46,6 +47,7 @@ public final class AvroFormat extends ConnectFormat {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "SUPPORTED_FEATURES is ImmutableSet")
   public Set<SerdeFeature> supportedFeatures() {
     return SUPPORTED_FEATURES;
   }

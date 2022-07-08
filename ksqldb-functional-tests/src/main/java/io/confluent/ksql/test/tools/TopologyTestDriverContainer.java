@@ -17,17 +17,24 @@ package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.util.Pair;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.streams.TestInputTopic;
+import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.TopologyTestDriver;
 
 public final class TopologyTestDriverContainer {
 
   private final TopologyTestDriver topologyTestDriver;
-  private final List<Topic> sourceTopics;
-  private final Topic sinkTopic;
-  private final Set<String> sourceTopicNames;
+  private final Map<String, TestInputTopic<byte[], byte[]>> sourceTopics;
+  private final String sinkTopicName;
+  private final Map<String, TestOutputTopic<byte[], byte[]>> sinkTopics = new HashMap<>();
 
   public static TopologyTestDriverContainer of(
       final TopologyTestDriver topologyTestDriver,
@@ -47,24 +54,53 @@ public final class TopologyTestDriverContainer {
       final Topic sinkTopic
   ) {
     this.topologyTestDriver = requireNonNull(topologyTestDriver, "topologyTestDriver");
-    this.sourceTopics = requireNonNull(sourceTopics, "sourceTopics");
-    this.sinkTopic = requireNonNull(sinkTopic, "sinkTopic");
-    this.sourceTopicNames = sourceTopics.stream().map(Topic::getName).collect(Collectors.toSet());
+    requireNonNull(sourceTopics, "sourceTopics");
+    this.sourceTopics = sourceTopics
+        .stream()
+        .map(topic -> Pair.of(
+            topic.getName(),
+            topologyTestDriver.createInputTopic(
+                topic.getName(),
+                new ByteArraySerializer(),
+                new ByteArraySerializer())
+            )
+        )
+        .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+    sinkTopicName = requireNonNull(sinkTopic, "sinkTopic").getName();
+    sinkTopics.put(
+        sinkTopicName,
+        topologyTestDriver.createOutputTopic(
+            sinkTopicName,
+            new ByteArrayDeserializer(),
+            new ByteArrayDeserializer()
+        )
+    );
   }
 
   TopologyTestDriver getTopologyTestDriver() {
     return topologyTestDriver;
   }
 
-  public List<Topic> getSourceTopics() {
-    return sourceTopics;
+  public TestInputTopic<byte[], byte[]> getSourceTopic(final String topicName) {
+    return sourceTopics.get(topicName);
   }
 
-  public Topic getSinkTopic() {
-    return sinkTopic;
+  public TestOutputTopic<byte[], byte[]> getSinkTopic(final String topicName) {
+    return sinkTopics.computeIfAbsent(
+        topicName,
+        t -> topologyTestDriver.createOutputTopic(
+            t,
+            new ByteArrayDeserializer(),
+            new ByteArrayDeserializer()
+        )
+    );
+  }
+
+  public String getSinkTopicName() {
+    return sinkTopicName;
   }
 
   public Set<String> getSourceTopicNames() {
-    return sourceTopicNames;
+    return sourceTopics.keySet();
   }
 }

@@ -23,12 +23,14 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -49,6 +51,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.ValueFormat;
@@ -119,6 +122,7 @@ public class RecoveryTest {
 
   private KsqlEngine createKsqlEngine(final QueryIdGenerator queryIdGenerator) {
     final KsqlEngineMetrics engineMetrics = mock(KsqlEngineMetrics.class);
+    when(engineMetrics.getQueryEventListener()).thenReturn(mock(QueryEventListener.class));
     return KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
@@ -255,7 +259,15 @@ public class RecoveryTest {
     }
 
     void recover() {
-      this.commandRunner.processPriorCommands();
+      this.commandRunner.processPriorCommands(new PersistentQueryCleanupImpl(
+        ksqlConfig
+          .getKsqlStreamConfigProps()
+          .getOrDefault(
+            StreamsConfig.STATE_DIR_CONFIG,
+            StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+          .toString(),
+        serviceContext)
+      );
     }
 
     void executeCommands() {

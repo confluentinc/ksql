@@ -66,8 +66,23 @@ public final class SqlTypeCodeGen {
     }
 
     @Override
+    public String visitTime(final SqlPrimitiveType type) {
+      return "SqlTypes.TIME";
+    }
+
+    @Override
+    public String visitDate(final SqlPrimitiveType type) {
+      return "SqlTypes.DATE";
+    }
+
+    @Override
     public String visitTimestamp(final SqlPrimitiveType type) {
       return "SqlTypes.TIMESTAMP";
+    }
+
+    @Override
+    public String visitBytes(final SqlPrimitiveType type) {
+      return "SqlTypes.BYTES";
     }
 
     @Override

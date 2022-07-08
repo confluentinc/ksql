@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -26,7 +27,7 @@ public class CreateArrayTerm implements Term {
   private final SqlType resultType;
 
   public CreateArrayTerm(final List<Term> arrayTerms, final SqlType resultType) {
-    this.arrayTerms = arrayTerms;
+    this.arrayTerms = ImmutableList.copyOf(arrayTerms);
     this.resultType = resultType;
   }
 

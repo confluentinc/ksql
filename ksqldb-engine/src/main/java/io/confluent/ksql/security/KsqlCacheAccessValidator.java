@@ -20,6 +20,7 @@ import com.google.common.base.Ticker;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
@@ -40,16 +41,19 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
     private static final String UNKNOWN_USER = "";
 
     private final KsqlSecurityContext securityContext;
-    private final String topicName;
+    private final AuthObjectType authObjectType;
+    private final String objectName;
     private final AclOperation operation;
 
     CacheKey(
         final KsqlSecurityContext securityContext,
-        final String topicName,
+        final AuthObjectType authObjectType,
+        final String objectName,
         final AclOperation operation
     ) {
       this.securityContext = securityContext;
-      this.topicName = topicName;
+      this.authObjectType = authObjectType;
+      this.objectName = objectName;
       this.operation = operation;
     }
 
@@ -61,7 +65,8 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
 
       final CacheKey other = (CacheKey)o;
       return getUserName(securityContext).equals(getUserName(other.securityContext))
-          && topicName.equals(other.topicName)
+          && authObjectType.equals(other.authObjectType)
+          && objectName.equals(other.objectName)
           && operation.code() == other.operation.code();
     }
 
@@ -69,7 +74,8 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
     public int hashCode() {
       return Objects.hash(
           getUserName(securityContext),
-          topicName,
+          authObjectType,
+          objectName,
           operation.code()
       );
     }
@@ -123,31 +129,76 @@ public class KsqlCacheAccessValidator implements KsqlAccessValidator {
     return new CacheLoader<CacheKey, CacheValue>() {
       @Override
       public CacheValue load(final CacheKey cacheKey) {
-        try {
-          backendValidator.checkAccess(
-              cacheKey.securityContext,
-              cacheKey.topicName,
-              cacheKey.operation
-          );
-        } catch (KsqlTopicAuthorizationException e) {
-          return new CacheValue(!ALLOW_ACCESS, Optional.of(e));
+        switch (cacheKey.authObjectType) {
+          case TOPIC:
+            return internalTopicAccessValidator(cacheKey);
+          case SUBJECT:
+            return internalSubjectAccessValidator(cacheKey);
+          default:
+            throw new IllegalStateException("Unknown access validator type: "
+                + cacheKey.authObjectType);
         }
-
-        return new CacheValue(ALLOW_ACCESS, Optional.empty());
       }
     };
   }
 
-  @Override
-  public void checkAccess(
-      final KsqlSecurityContext securityContext,
-      final String topicName,
-      final AclOperation operation
-  ) {
-    final CacheKey cacheKey = new CacheKey(securityContext, topicName, operation);
+  private CacheValue internalTopicAccessValidator(final CacheKey cacheKey) {
+    try {
+      backendValidator.checkTopicAccess(
+          cacheKey.securityContext,
+          cacheKey.objectName,
+          cacheKey.operation
+      );
+    } catch (final KsqlTopicAuthorizationException e) {
+      return new CacheValue(!ALLOW_ACCESS, Optional.of(e));
+    }
+
+    return new CacheValue(ALLOW_ACCESS, Optional.empty());
+  }
+
+  private CacheValue internalSubjectAccessValidator(final CacheKey cacheKey) {
+    try {
+      backendValidator.checkSubjectAccess(
+          cacheKey.securityContext,
+          cacheKey.objectName,
+          cacheKey.operation
+      );
+    } catch (final KsqlSchemaAuthorizationException e) {
+      return new CacheValue(!ALLOW_ACCESS, Optional.of(e));
+    }
+
+    return new CacheValue(ALLOW_ACCESS, Optional.empty());
+  }
+
+  private void checkAccess(final CacheKey cacheKey) {
     final CacheValue cacheValue = cache.getUnchecked(cacheKey);
     if (!cacheValue.allowAccess) {
       throw cacheValue.denialReason.get();
     }
+  }
+
+  @Override
+  public void checkTopicAccess(
+      final KsqlSecurityContext securityContext,
+      final String topicName,
+      final AclOperation operation
+  ) {
+    checkAccess(new CacheKey(securityContext,
+        AuthObjectType.TOPIC,
+        topicName,
+        operation));
+
+  }
+
+  @Override
+  public void checkSubjectAccess(
+      final KsqlSecurityContext securityContext,
+      final String subjectName,
+      final AclOperation operation
+  ) {
+    checkAccess(new CacheKey(securityContext,
+        AuthObjectType.SUBJECT,
+        subjectName,
+        operation));
   }
 }

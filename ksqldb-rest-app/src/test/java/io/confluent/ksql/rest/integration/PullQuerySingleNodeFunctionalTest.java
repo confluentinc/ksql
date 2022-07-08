@@ -49,6 +49,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.UserDataProvider;
@@ -72,6 +73,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -120,7 +122,7 @@ public class PullQuerySingleNodeFunctionalTest {
       .build();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private static final TemporaryFolder TMP = new TemporaryFolder();
+  private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
   private static final int INT_PORT_0 = TestUtils.findFreeLocalPort();
   private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", INT_PORT_0);
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
@@ -212,6 +214,7 @@ public class PullQuerySingleNodeFunctionalTest {
         REST_APP_0, ImmutableList.of(host0));
   }
 
+  @Ignore
   @Test
   public void restoreAfterClearState() {
     waitForStreamsMetadataToInitialize(REST_APP_0, ImmutableList.of(host0));

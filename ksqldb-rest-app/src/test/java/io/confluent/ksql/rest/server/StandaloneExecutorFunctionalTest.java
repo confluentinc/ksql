@@ -36,6 +36,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -70,7 +71,7 @@ public class StandaloneExecutorFunctionalTest {
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  public static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   private static final String AVRO_TOPIC = "avro-topic";
   private static final String JSON_TOPIC = "json-topic";
@@ -254,7 +255,7 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Schema for message values on topic topic-without-schema does not exist in the Schema Registry"));
+        "Schema for message values on topic 'topic-without-schema' does not exist in the Schema Registry"));
   }
 
   @Test

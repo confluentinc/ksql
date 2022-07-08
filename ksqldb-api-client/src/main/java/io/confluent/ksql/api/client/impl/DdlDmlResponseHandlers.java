@@ -107,24 +107,22 @@ final class DdlDmlResponseHandlers {
               + "listing custom types."));
     } else if (AdminResponseHandlers.isListConnectorsResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
-          EXECUTE_STATEMENT_USAGE_DOC + "The client does not currently support "
-              + "listing connectors."));
+          EXECUTE_STATEMENT_USAGE_DOC + "Use the listConnectors() method instead."));
     } else if (AdminResponseHandlers.isDescribeConnectorResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
-          EXECUTE_STATEMENT_USAGE_DOC + "The client does not currently support "
-              + "'DESCRIBE <CONNECTOR>' statements."));
+          EXECUTE_STATEMENT_USAGE_DOC + "Use the describeConnector() method instead."));
     } else if (AdminResponseHandlers.isCreateConnectorResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
           EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC + EXECUTE_STATEMENT_USAGE_DOC
-              + "The client does not currently support 'CREATE CONNECTOR' statements."));
+              + "Use the createConnector() method instead."));
     } else if (AdminResponseHandlers.isDropConnectorResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
           EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC + EXECUTE_STATEMENT_USAGE_DOC
-              + "The client does not currently support 'DROP CONNECTOR' statements."));
+              + "Use the dropConnector() method instead."));
     } else if (AdminResponseHandlers.isConnectErrorResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
-          EXECUTE_STATEMENT_USAGE_DOC + "The client does not currently support "
-              + "statements for creating, dropping, listing, or describing connectors."));
+          EXECUTE_STATEMENT_USAGE_DOC + "Use the createConnector, dropConnector, describeConnector "
+              + "or listConnectors methods instead."));
     } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response type. Response: " + ksqlEntity

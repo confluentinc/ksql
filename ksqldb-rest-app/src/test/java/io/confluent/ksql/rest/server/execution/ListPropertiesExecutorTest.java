@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -54,7 +55,7 @@ public class ListPropertiesExecutorTest {
   public final TemporaryEngine engine = new TemporaryEngine();
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
+  public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
   private String connectPropsFile;
 

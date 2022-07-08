@@ -16,15 +16,16 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -37,13 +38,14 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.util.QueryMetadata.Listener;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -82,13 +84,13 @@ public class PersistentQueryMetadataTest {
   @Mock
   private Map<String, Object> overrides;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
-  @Mock
   private QueryErrorClassifier queryErrorClassifier;
   @Mock
   private ExecutionStep<?> physicalPlan;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private Listener listener;
 
   private PersistentQueryMetadata query;
 
@@ -98,8 +100,10 @@ public class PersistentQueryMetadataTest {
     when(physicalSchema.logicalSchema()).thenReturn(mock(LogicalSchema.class));
     when(materializationProviderBuilder.apply(kafkaStreams, topology))
         .thenReturn(Optional.of(materializationProvider));
+    when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
-    query = new PersistentQueryMetadata(
+    query = new PersistentQueryMetadataImpl(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         SQL,
         physicalSchema,
         Collections.emptySet(),
@@ -113,20 +117,88 @@ public class PersistentQueryMetadataTest {
         schemas,
         props,
         overrides,
-        closeCallback,
         CLOSE_TIMEOUT,
         queryErrorClassifier,
         physicalPlan,
         10,
         processingLogger,
         0L,
-        0L
+        0L,
+        listener,
+        Optional.empty()
     );
 
     query.initialize();
   }
 
   @Test
+  public void shouldReturnInsertQueryType() {
+    // Given
+    final PersistentQueryMetadata query = new PersistentQueryMetadataImpl(
+        KsqlConstants.PersistentQueryType.INSERT,
+        SQL,
+        physicalSchema,
+        Collections.emptySet(),
+        sinkDataSource,
+        EXECUTION_PLAN,
+        QUERY_ID,
+        Optional.of(materializationProviderBuilder),
+        APPLICATION_ID,
+        topology,
+        kafkaStreamsBuilder,
+        schemas,
+        props,
+        overrides,
+        CLOSE_TIMEOUT,
+        queryErrorClassifier,
+        physicalPlan,
+        10,
+        processingLogger,
+        0L,
+        0L,
+        listener,
+        Optional.empty()
+    );
+
+    // When/Then
+    assertThat(query.getPersistentQueryType(), is(KsqlConstants.PersistentQueryType.INSERT));
+  }
+
+  @Test
+  public void shouldReturnCreateAsQueryType() {
+    // Given
+    final PersistentQueryMetadata query = new PersistentQueryMetadataImpl(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        SQL,
+        physicalSchema,
+        Collections.emptySet(),
+        sinkDataSource,
+        EXECUTION_PLAN,
+        QUERY_ID,
+        Optional.of(materializationProviderBuilder),
+        APPLICATION_ID,
+        topology,
+        kafkaStreamsBuilder,
+        schemas,
+        props,
+        overrides,
+        CLOSE_TIMEOUT,
+        queryErrorClassifier,
+        physicalPlan,
+        10,
+        processingLogger,
+        0L,
+        0L,
+        listener,
+        Optional.empty()
+    );
+
+    // When/Then
+    assertThat(query.getPersistentQueryType(), is(KsqlConstants.PersistentQueryType.CREATE_AS));
+  }
+
+  @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldCloseKafkaStreamsOnStop() {
     // When:
     query.stop();
@@ -134,43 +206,35 @@ public class PersistentQueryMetadataTest {
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams);
     inOrder.verify(kafkaStreams).close(any());
+    inOrder.verify(kafkaStreams).state();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  public void shouldRestartKafkaStreams() {
-    final KafkaStreams newKafkaStreams = mock(KafkaStreams.class);
-    final MaterializationProvider newMaterializationProvider = mock(MaterializationProvider.class);
-
-    // Given:
-    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(newKafkaStreams);
-    when(materializationProviderBuilder.apply(newKafkaStreams, topology))
-        .thenReturn(Optional.of(newMaterializationProvider));
-
+  public void shouldNotCallCloseCallbackOnStop() {
     // When:
-    query.restart();
+    query.stop();
 
     // Then:
-    final InOrder inOrder = inOrder(kafkaStreams, newKafkaStreams);
-    inOrder.verify(kafkaStreams).close(any());
-    inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(
-        any(StreamsUncaughtExceptionHandler.class));
-    inOrder.verify(newKafkaStreams).start();
-
-    assertThat(query.getKafkaStreams(), is(newKafkaStreams));
-    assertThat(query.getMaterializationProvider(), is(Optional.of(newMaterializationProvider)));
+    verify(listener, times(0)).onClose(query);
   }
 
   @Test
-  public void shouldNotRestartIfQueryIsClosed() {
-    // Given:
-    query.close();
-
+  public void shouldCallKafkaStreamsCloseOnStop() {
     // When:
-    final Exception e = assertThrows(Exception.class, () -> query.restart());
+    query.stop();
 
     // Then:
-    assertThat(e.getMessage(), containsString("is already closed, cannot restart."));
+    verify(kafkaStreams).close(Duration.ofMillis(CLOSE_TIMEOUT));
+  }
+
+  @Test
+  public void shouldNotCleanUpKStreamsAppOnStop() {
+    // When:
+    query.stop();
+
+    // Then:
+    verify(kafkaStreams, never()).cleanUp();
   }
 
   @Test

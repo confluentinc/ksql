@@ -155,3 +155,15 @@ ul.card-items li {
 .card.reference {
     border-top: 3.5px solid #66CC69;
 }
+
+.md-button--top-level {
+    background-color: #ef5762;
+    border-color: #ef5762 !important;
+    color: #ffffff !important;
+}
+
+.md-typeset .md-button:focus, .md-typeset .md-button:hover {
+    opacity: 0.85 !important;
+    background-color: #ef5762 !important;
+    border-color: #ef5762 !important;
+}

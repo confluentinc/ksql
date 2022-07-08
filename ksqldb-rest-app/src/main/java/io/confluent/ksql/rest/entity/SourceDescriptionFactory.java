@@ -15,14 +15,20 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
+import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.TopicDescription;
+
 
 public final class SourceDescriptionFactory {
 
@@ -35,9 +41,47 @@ public final class SourceDescriptionFactory {
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription,
-      final List<QueryOffsetSummary> offsetSummaries,
+      final List<QueryOffsetSummary> queryOffsetSummaries,
       final List<String> sourceConstraints
   ) {
+    return create(
+        dataSource,
+        extended,
+        readQueries,
+        writeQueries,
+        topicDescription,
+        queryOffsetSummaries,
+        sourceConstraints,
+        Stream.empty(),
+        Stream.empty(),
+        new KsqlHostInfo("", 0)
+    );
+  }
+
+  @SuppressWarnings("checkstyle:ParameterNumber")
+  public static SourceDescription create(
+      final DataSource dataSource,
+      final boolean extended,
+      final List<RunningQuery> readQueries,
+      final List<RunningQuery> writeQueries,
+      final Optional<TopicDescription> topicDescription,
+      final List<QueryOffsetSummary> queryOffsetSummaries,
+      final List<String> sourceConstraints,
+      final Stream<QueryHostStat> stats,
+      final Stream<QueryHostStat> errorStats,
+      final KsqlHostInfo host
+  ) {
+    final KsqlHostInfoEntity hostEntity = new KsqlHostInfoEntity(host);
+
+    final Stream<QueryHostStat> localStats = MetricCollectors
+        .getStatsFor(dataSource.getKafkaTopicName(), false)
+        .stream()
+        .map((stat) -> QueryHostStat.fromStat(stat, hostEntity));
+    final Stream<QueryHostStat> localErrorStats = MetricCollectors
+        .getStatsFor(dataSource.getKafkaTopicName(), true)
+        .stream()
+        .map((stat) -> QueryHostStat.fromStat(stat, hostEntity));
+
     return new SourceDescription(
         dataSource.getName().toString(FormatOptions.noEscape()),
         dataSource.getKsqlTopic().getKeyFormat().getWindowType(),
@@ -61,7 +105,9 @@ public final class SourceDescriptionFactory {
         topicDescription.map(td -> td.partitions().size()).orElse(0),
         topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),
         dataSource.getSqlExpression(),
-        offsetSummaries,
-        sourceConstraints);
+        queryOffsetSummaries,
+        sourceConstraints,
+        Streams.concat(localStats, stats).collect(toImmutableList()),
+        Streams.concat(localErrorStats, errorStats).collect(toImmutableList()));
   }
 }

@@ -19,15 +19,21 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.isIn;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mockStatic;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
+import io.confluent.ksql.metrics.TopicSensors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -38,36 +44,28 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import java.util.Arrays;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.record.TimestampType;
-import org.junit.After;
-import org.junit.Before;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 public class SourceDescriptionFactoryTest {
-  private final static String CLIENT_ID = "client";
-  private final static String APP_ID = "test-app";
+  private final List<TopicSensors.Stat> errorStats = IntStream.range(0, 5)
+      .boxed()
+      .map((x) -> new TopicSensors.Stat(StreamsErrorCollector.CONSUMER_FAILED_MESSAGES, x, x))
+      .collect(Collectors.toList());
 
-  private ConsumerCollector consumerCollector;
+  private final List<TopicSensors.Stat> stats = IntStream.range(0, 5)
+      .boxed()
+      .map((x) -> new TopicSensors.Stat(ConsumerCollector.CONSUMER_TOTAL_MESSAGES, x, x))
+      .collect(Collectors.toList());
 
-  @Before
-  public void setUp() {
-    consumerCollector = new ConsumerCollector();
-    consumerCollector.configure(
-        Collections.singletonMap(ConsumerConfig.CLIENT_ID_CONFIG, CLIENT_ID));
-  }
-
-  @After
-  public void tearDown() {
-    StreamsErrorCollector.notifyApplicationClose(APP_ID);
-    consumerCollector.close();
-  }
+  private static final String mockStringStat = "mock_string_stat";
 
   private static DataSource buildDataSource(
       final String kafkaTopicName,
@@ -93,44 +91,108 @@ public class SourceDescriptionFactoryTest {
     );
   }
 
-  private static ConsumerRecords<Object, Object> buildRecords(final String kafkaTopicName) {
-    return new ConsumerRecords<>(
-        ImmutableMap.of(
-            new TopicPartition(kafkaTopicName, 1),
-            Arrays.asList(
-                new ConsumerRecord<>(
-                    kafkaTopicName, 1, 1, 1L, TimestampType.CREATE_TIME, 1L,
-                    10, 10, "key", "1234567890")
-            )
-        )
-    );
-  }
-
   @Test
-  public void shouldReturnStatsBasedOnKafkaTopic() {
+  public void shouldReturnLocalStatsBasedOnKafkaTopic() {
     // Given:
     final String kafkaTopicName = "kafka";
     final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
-    consumerCollector.onConsume(buildRecords(kafkaTopicName));
-    StreamsErrorCollector.recordError(APP_ID, kafkaTopicName);
 
-    // When
-    final SourceDescription sourceDescription = SourceDescriptionFactory.create(
-        dataSource,
-        true,
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Optional.empty(),
-        Collections.emptyList(),
-        Collections.emptyList());
+    try (MockedStatic<MetricCollectors> mc = mockStatic(MetricCollectors.class)) {
+      mc.when(() -> MetricCollectors.getAndFormatStatsFor(anyString(), anyBoolean())).thenReturn(mockStringStat);
+      mc.when(() -> MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), true))
+          .thenReturn(errorStats);
+      mc.when(() -> MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), false))
+          .thenReturn(stats);
+      KsqlHostInfo localhost = new KsqlHostInfo("myhost", 10);
+      // When
+      final SourceDescription sourceDescription = SourceDescriptionFactory.create(
+          dataSource,
+          true,
+          Collections.emptyList(),
+          Collections.emptyList(),
+          Optional.empty(),
+          Collections.emptyList(),
+          Collections.emptyList(),
+          Stream.empty(),
+          Stream.empty(),
+          localhost
+      );
 
-    // Then:
-    assertThat(
-        sourceDescription.getStatistics(),
-        containsString(ConsumerCollector.CONSUMER_TOTAL_MESSAGES));
-    assertThat(
-        sourceDescription.getErrorStats(),
-        containsString(StreamsErrorCollector.CONSUMER_FAILED_MESSAGES));
+      // Then:
+      // TODO deprecate and remove
+      assertThat(
+          sourceDescription.getStatistics(),
+          containsString(mockStringStat));
+      assertThat(
+          sourceDescription.getErrorStats(),
+          containsString(mockStringStat));
+      // Also check includes its own stats in cluster stats
+      final Stream<QueryHostStat> localStats = stats.stream().map((s) -> QueryHostStat.fromStat(s, new KsqlHostInfoEntity(localhost)));
+      assertThat(
+          localStats.collect(Collectors.toList()),
+          everyItem(isIn(sourceDescription.getClusterStatistics()))
+      );
+
+      final Stream<QueryHostStat> localErrors = errorStats.stream().map((s) -> QueryHostStat.fromStat(s, new KsqlHostInfoEntity(localhost)));
+      assertThat(
+          localErrors.collect(Collectors.toList()),
+          everyItem(isIn(sourceDescription.getClusterErrorStats()))
+      );
+    }
+  }
+
+  @Test
+  public void testShouldIncludeRemoteStatsIfProvided() {
+    final List<QueryHostStat> remoteStats = IntStream.range(0, 5)
+        .boxed()
+        .map(x -> new QueryHostStat(
+            new KsqlHostInfoEntity("otherhost:1090"),
+            ConsumerCollector.CONSUMER_MESSAGES_PER_SEC,
+            x,
+            x)
+        ).collect(Collectors.toList());
+    final List<QueryHostStat> remoteErrors = IntStream.range(0, 5)
+        .boxed()
+        .map(x -> new QueryHostStat(
+            new KsqlHostInfoEntity("otherhost:1090"),
+            StreamsErrorCollector.CONSUMER_FAILED_MESSAGES_PER_SEC,
+            x,
+            x)
+        ).collect(Collectors.toList());
+
+    try (MockedStatic<MetricCollectors> mc = mockStatic(MetricCollectors.class)) {
+      // Given:
+      final String kafkaTopicName = "kafka";
+      final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+
+      mc.when(() -> MetricCollectors.getAndFormatStatsFor(anyString(), anyBoolean())).thenReturn(mockStringStat);
+      mc.when(() -> MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), true)).thenReturn(errorStats);
+      mc.when(() -> MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), false)).thenReturn(stats);
+
+      // When
+      final SourceDescription sourceDescription = SourceDescriptionFactory.create(
+          dataSource,
+          true,
+          Collections.emptyList(),
+          Collections.emptyList(),
+          Optional.empty(),
+          Collections.emptyList(),
+          Collections.emptyList(),
+          remoteStats.stream(),
+          remoteErrors.stream(),
+          new KsqlHostInfo("myhost", 10)
+      );
+
+      // Then:
+      assertThat(
+          remoteStats,
+          everyItem(isIn(sourceDescription.getClusterStatistics()))
+      );
+      assertThat(
+          remoteErrors,
+          everyItem(isIn(sourceDescription.getClusterErrorStats()))
+      );
+    }
   }
 
   @Test

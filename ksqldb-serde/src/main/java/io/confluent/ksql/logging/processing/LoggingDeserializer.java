@@ -18,6 +18,7 @@ package io.confluent.ksql.logging.processing;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -79,6 +80,7 @@ public final class LoggingDeserializer<T> implements Deserializer<T> {
     private final ProcessingLogger processingLogger;
     private final DeserializationError deserializationError;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public DelayedResult(
         final RuntimeException error,
         final DeserializationError deserializationError,

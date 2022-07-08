@@ -18,7 +18,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 
@@ -82,9 +83,9 @@ public class PropertiesList extends KsqlEntity {
     }
   }
 
-  private final List<Property> properties;
-  private final List<String> overwrittenProperties;
-  private final List<String> defaultProperties;
+  private final ImmutableList<Property> properties;
+  private final ImmutableList<String> overwrittenProperties;
+  private final ImmutableList<String> defaultProperties;
 
   @JsonCreator
   public PropertiesList(
@@ -94,22 +95,25 @@ public class PropertiesList extends KsqlEntity {
       @JsonProperty("defaultProperties") final List<String> defaultProperties
   ) {
     super(statementText);
-    this.properties = properties == null
-        ? Collections.emptyList() : properties;
-    this.overwrittenProperties = overwrittenProperties == null
-        ? Collections.emptyList() : overwrittenProperties;
-    this.defaultProperties = defaultProperties == null
-        ? Collections.emptyList() : defaultProperties;
+    this.properties = ImmutableList.copyOf(properties);
+    this.overwrittenProperties = ImmutableList.copyOf(overwrittenProperties);
+    this.defaultProperties = ImmutableList.copyOf(defaultProperties);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "properties is ImmutableList")
   public List<Property> getProperties() {
     return properties;
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "overwrittenProperties is ImmutableList"
+  )
   public List<String> getOverwrittenProperties() {
     return overwrittenProperties;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "defaultProperties is ImmutableList")
   public List<String> getDefaultProperties() {
     return defaultProperties;
   }

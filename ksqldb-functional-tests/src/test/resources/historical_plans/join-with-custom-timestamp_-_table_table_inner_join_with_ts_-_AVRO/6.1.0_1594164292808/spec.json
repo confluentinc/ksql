@@ -192,7 +192,22 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "F2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "s1",
           "keyFormat" : {
@@ -201,7 +216,22 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "TS",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "S1_JOIN_S2",
           "keyFormat" : {
@@ -210,7 +240,29 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "TS",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "F2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ]
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S1_JOIN_S2_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
@@ -218,6 +270,20 @@
           },
           "valueFormat" : {
             "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "F2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ]
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S1_JOIN_S2_0-KafkaTopic_Left-Reduce-changelog",
@@ -226,6 +292,20 @@
           },
           "valueFormat" : {
             "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "TS",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
           }
         } ]
       }

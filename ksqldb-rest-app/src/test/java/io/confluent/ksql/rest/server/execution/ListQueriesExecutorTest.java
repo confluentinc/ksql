@@ -42,6 +42,7 @@ import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -62,9 +63,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -310,8 +312,11 @@ public class ListQueriesExecutorTest {
     // Given
     when(sessionProperties.getInternalRequest()).thenReturn(false);
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
-    final PersistentQueryMetadata localMetadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
-    final PersistentQueryMetadata remoteMetadata = givenPersistentQuery("id", ERROR_QUERY_STATE);
+    
+    final StreamsTaskMetadata localTaskMetadata = mock(StreamsTaskMetadata.class);
+    final StreamsTaskMetadata remoteTaskMetadata = mock(StreamsTaskMetadata.class);
+    final PersistentQueryMetadata localMetadata = givenPersistentQuery("id", RUNNING_QUERY_STATE, Collections.singleton(localTaskMetadata));
+    final PersistentQueryMetadata remoteMetadata = givenPersistentQuery("id", ERROR_QUERY_STATE, Collections.singleton(remoteTaskMetadata));
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
@@ -339,8 +344,10 @@ public class ListQueriesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then
+    final QueryDescription mergedQueryDescription = QueryDescriptionFactory.forQueryMetadata(localMetadata, mergedMap);
+    mergedQueryDescription.updateTaskMetadata(Collections.singleton(remoteTaskMetadata));
     assertThat(queries.getQueryDescriptions(), 
-        containsInAnyOrder(QueryDescriptionFactory.forQueryMetadata(localMetadata, mergedMap)));
+        containsInAnyOrder(mergedQueryDescription));
   }
 
   @Test
@@ -447,6 +454,14 @@ public class ListQueriesExecutorTest {
       final String id,
       final KafkaStreams.State state
   ) {
+    return givenPersistentQuery(id, state, Collections.emptySet());
+  }
+
+  public static PersistentQueryMetadata givenPersistentQuery(
+      final String id,
+      final KafkaStreams.State state,
+      final Set<StreamsTaskMetadata> tasksMetadata
+  ) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     mockQuery(id, state, metadata);
     when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PERSISTENT);
@@ -456,6 +471,7 @@ public class ListQueriesExecutorTest {
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
     when(sinkTopic.getKafkaTopicName()).thenReturn(id);
     when(metadata.getResultTopic()).thenReturn(sinkTopic);
+    when(metadata.getTaskMetadata()).thenReturn(tasksMetadata);
 
     return metadata;
   }

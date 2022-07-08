@@ -24,7 +24,9 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 
 public final class PrintTopicValidator {
 
-  private PrintTopicValidator() { }
+  private PrintTopicValidator() {
+
+  }
 
   public static void validate(
       final ConfiguredStatement<?> statement,

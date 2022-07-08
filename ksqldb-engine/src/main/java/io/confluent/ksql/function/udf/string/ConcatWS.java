@@ -19,16 +19,21 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 @UdfDescription(
     name = "concat_ws",
     category = FunctionCategory.STRING,
-    description = "Concatenate several strings, inserting a separator string passed as the "
+    description = "Concatenate several strings or bytes, inserting a separator passed as the "
         + "first argument between each one.")
 public class ConcatWS {
+
+  private static final Concat CONCAT = new Concat();
 
   @Udf
   public String concatWS(
@@ -46,5 +51,31 @@ public class ConcatWS {
         inputs.length)
         .filter(Objects::nonNull)
         .collect(Collectors.joining(separator));
+  }
+
+  @Udf
+  public ByteBuffer concatWS(
+      @UdfParameter(description = "Separator and bytes values to join")
+      final ByteBuffer... inputs) {
+    if (inputs == null || inputs.length < 2) {
+      throw new KsqlFunctionException("Function Concat_WS expects at least two input arguments.");
+    }
+
+    final ByteBuffer separator = inputs[0];
+    if (separator == null) {
+      return null;
+    }
+
+    final List<ByteBuffer> concatInputs = new ArrayList<>();
+    for (int i = 1; i < inputs.length; i++) {
+      if (Objects.nonNull(inputs[i])) {
+        if (concatInputs.size() != 0) {
+          concatInputs.add(separator.duplicate());
+        }
+        concatInputs.add(inputs[i]);
+      }
+    }
+
+    return CONCAT.concat(concatInputs.toArray(new ByteBuffer[0]));
   }
 }

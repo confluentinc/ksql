@@ -119,6 +119,19 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"KSQL_COL_0": 1}}
       ]
+    },
+    {
+      "name": "Output array with an error",
+      "statements": [
+        "CREATE STREAM test (K STRING KEY, val VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, ARRAY[44, stringtodate(val, 'yyyyMMdd')] AS VALUE FROM test;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": "1", "value": {"val": "foo"}, "timestamp":  0}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": "1", "value": {"VALUE": [44, null]}, "timestamp":  0}
+      ]
     }
   ]
 }

@@ -84,21 +84,14 @@
       "value" : {
         "COL1" : "v1"
       },
-      "timestamp" : 16
+      "timestamp" : 10
     }, {
       "topic" : "input_topic",
       "key" : "k1",
       "value" : {
         "COL1" : "v1"
       },
-      "timestamp" : 15
-    }, {
-      "topic" : "input_topic",
-      "key" : "k1",
-      "value" : {
-        "COL1" : "v1"
-      },
-      "timestamp" : 5
+      "timestamp" : 14
     }, {
       "topic" : "input_topic",
       "key" : "k1",
@@ -106,17 +99,38 @@
         "COL1" : "v1"
       },
       "timestamp" : 30
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 29
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 17
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 42
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : "k1",
       "value" : {
-        "COUNT" : 3
+        "COUNT" : 5
       },
-      "timestamp" : 8,
+      "timestamp" : 14,
       "window" : {
         "start" : 0,
-        "end" : 8,
+        "end" : 14,
         "type" : "SESSION"
       }
     }, {
@@ -125,10 +139,10 @@
       "value" : {
         "COUNT" : 2
       },
-      "timestamp" : 16,
+      "timestamp" : 30,
       "window" : {
-        "start" : 15,
-        "end" : 16,
+        "start" : 29,
+        "end" : 30,
         "type" : "SESSION"
       }
     } ],

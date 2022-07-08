@@ -1,47 +1,61 @@
- package io.confluent.ksql.execution.streams;
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
- import static org.hamcrest.MatcherAssert.assertThat;
- import static org.hamcrest.Matchers.is;
- import static org.mockito.ArgumentMatchers.any;
- import static org.mockito.ArgumentMatchers.eq;
- import static org.mockito.Mockito.mock;
- import static org.mockito.Mockito.verify;
- import static org.mockito.Mockito.when;
+package io.confluent.ksql.execution.streams;
 
- import io.confluent.ksql.GenericRow;
- import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
- import io.confluent.ksql.execution.context.QueryContext;
- import io.confluent.ksql.execution.expression.tree.Expression;
- import io.confluent.ksql.execution.materialization.MaterializationInfo;
- import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
- import io.confluent.ksql.execution.plan.ExecutionStep;
- import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
- import io.confluent.ksql.execution.plan.PlanInfo;
- import io.confluent.ksql.execution.plan.KTableHolder;
- import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
- import io.confluent.ksql.execution.plan.PlanBuilder;
- import io.confluent.ksql.execution.plan.TableFilter;
- import io.confluent.ksql.execution.transform.KsqlProcessingContext;
- import io.confluent.ksql.execution.transform.KsqlTransformer;
- import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
- import io.confluent.ksql.function.FunctionRegistry;
- import io.confluent.ksql.logging.processing.ProcessingLogger;
- import io.confluent.ksql.query.QueryId;
- import io.confluent.ksql.schema.ksql.LogicalSchema;
- import io.confluent.ksql.util.KsqlConfig;
- import java.util.Optional;
- import org.apache.kafka.connect.data.Struct;
- import org.apache.kafka.streams.kstream.KTable;
- import org.apache.kafka.streams.kstream.Named;
- import org.apache.kafka.streams.kstream.ValueMapper;
- import org.junit.Before;
- import org.junit.Rule;
- import org.junit.Test;
- import org.mockito.ArgumentCaptor;
- import org.mockito.Captor;
- import org.mockito.Mock;
- import org.mockito.junit.MockitoJUnit;
- import org.mockito.junit.MockitoRule;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
+import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
+import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.TableFilter;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.ValueMapper;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 public class TableFilterBuilderTest {
 
@@ -102,14 +116,14 @@ public class TableFilterBuilderTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void init() {
     when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
     when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceKTable.transformValues(any(), any(Named.class))).thenReturn((KTable)preKTable);
-    when(preKTable.filter(any(), any(Named.class))).thenReturn((KTable)filteredKTable);
+    when(preKTable.filter(any(), any(Named.class))).thenReturn(filteredKTable);
     when(filteredKTable.mapValues(any(ValueMapper.class), any(Named.class))).thenReturn(postKTable);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) preTransformer);

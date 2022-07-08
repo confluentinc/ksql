@@ -169,7 +169,7 @@ public class KafkaStreamsQueryValidatorTest {
     );
   }
 
-  private Map<String, Object> streamPropsWithCacheLimit(long limit) {
+  private ImmutableMap<String, Object> streamPropsWithCacheLimit(long limit) {
     return ImmutableMap.<String, Object>builder()
         .putAll(BASE_STREAMS_PROPERTIES)
         .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, limit)

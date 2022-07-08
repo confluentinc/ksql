@@ -30,6 +30,10 @@ SELECT statements use the `/query` endpoint.
 - **streamsProperties[``property-name``]** (string): The value of the property
 - named by ``property-name``. Both the value and ``property-name`` should be
   strings.
+- **sessionVariables** (map): Optional. Starting from 0.18, the parameter `sessionVariables` accepts
+  a map of string variable names and values of any type as initial variable substitution values. See
+  [ksqlDB Variable Substitution](../../../how-to-guides/substitute-variables) for more information
+  on variable substitution.
 - **commandSequenceNumber** (long): Optional. If specified, the statements will
   not be run until all existing commands up to and including the specified
   sequence number have completed. If unspecified, the statements are run
@@ -119,7 +123,7 @@ Response JSON Object:
 - **sourceDescription.fields[i].schema** (object): A schema object that describes
   the schema of the field.
 - **sourceDescription.fields[i].schema.type** (string): The type the schema
-  represents. One of INTEGER, BIGINT, BOOLEAN, DOUBLE, STRING, TIMESTAMP, MAP, ARRAY, or
+  represents. One of INTEGER, BIGINT, BOOLEAN, BYTES, DOUBLE, STRING, TIMESTAMP, TIME, DATE, MAP, ARRAY, or
   STRUCT.
 - **sourceDescription.fields[i].schema.memberSchema** (object): A schema object.
   For MAP and ARRAY types, contains the schema of the map values and array
@@ -153,7 +157,7 @@ Response JSON Object:
 - **queryDescription.fields** (array): A list of field objects that describes each field in the query output.
 - **queryDescription.fields[i].name** (string): The name of the field.
 - **queryDescription.fields[i].schema** (object): A schema object that describes the schema of the field.
-- **queryDescription.fields[i].schema.type** (string): The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, DOUBLE, STRING, TIMESTAMP, MAP, ARRAY, or STRUCT.
+- **queryDescription.fields[i].schema.type** (string): The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, BYTES, DOUBLE, STRING, TIMESTAMP, TIME, DATE, MAP, ARRAY, or STRUCT.
 - **queryDescription.fields[i].schema.memberSchema** (object): A schema object. For MAP and ARRAY types, contains the schema of the map values and array elements, respectively. For other types this field is not used and its value is undefined.
 - **queryDescription.fields[i].schema.fields** (array): For STRUCT types, contains a list of field objects that descrbies each field within the struct. For other types this field is not used and its value is undefined.
 - **queryDescription.sources** (array): The streams and tables being read by the query.
@@ -188,8 +192,10 @@ The ``/ksql`` endpoint may return the following error codes in the ``error_code`
 ### Example curl command
 
 ```bash
-curl -X "POST" "http://<ksqldb-host-name>:8088/ksql" \
+curl --http1.1
+     -X "POST" "http://<ksqldb-host-name>:8088/ksql" \
      -H "Accept: application/vnd.ksql.v1+json" \
+     -H "Content-Type: application/json" \
      -d $'{
   "ksql": "LIST STREAMS;",
   "streamsProperties": {}

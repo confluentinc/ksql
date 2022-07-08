@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_DATE_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_TIMESTAMP_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_TIME_SCHEMA;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -200,22 +203,22 @@ public class DefaultSchemaInjectorFunctionalTest {
   }
 
   @Test
-  public void shouldInferDateAsIntegeer() {
+  public void shouldInferDateAsDate() {
     shouldInferType(
         org.apache.avro.LogicalTypes.date().addToSchema(
             org.apache.avro.SchemaBuilder.builder().intType()
         ),
-        Schema.OPTIONAL_INT32_SCHEMA
+        OPTIONAL_DATE_SCHEMA
     );
   }
 
   @Test
-  public void shouldInferTimeMillisAsInteger() {
+  public void shouldInferTimeMillisAsTime() {
     shouldInferType(
         org.apache.avro.LogicalTypes.timeMillis().addToSchema(
             org.apache.avro.SchemaBuilder.builder().intType()
         ),
-        Schema.OPTIONAL_INT32_SCHEMA
+        OPTIONAL_TIME_SCHEMA
     );
   }
 
@@ -230,12 +233,12 @@ public class DefaultSchemaInjectorFunctionalTest {
   }
 
   @Test
-  public void shouldInferTimestampMillisAsBigint() {
+  public void shouldInferTimestampMillisAsTimestamp() {
     shouldInferType(
         org.apache.avro.LogicalTypes.timestampMillis().addToSchema(
             org.apache.avro.SchemaBuilder.builder().longType()
         ),
-        Schema.OPTIONAL_INT64_SCHEMA
+        OPTIONAL_TIMESTAMP_SCHEMA
     );
 
   }
@@ -276,6 +279,7 @@ public class DefaultSchemaInjectorFunctionalTest {
             .nullableString("STRING", "bar")
             .endRecord(),
         SchemaBuilder.struct()
+            .field("FIXED_FIELD", Schema.OPTIONAL_BYTES_SCHEMA)
             .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()
@@ -283,13 +287,14 @@ public class DefaultSchemaInjectorFunctionalTest {
   }
 
   @Test
-  public void shouldIgnoreBytes() {
+  public void shouldInferBytes() {
     shouldInferType(
         org.apache.avro.SchemaBuilder.record("foo").fields()
             .nullableBytes("bytes", new byte[]{})
             .nullableString("STRING", "bar")
             .endRecord(),
         SchemaBuilder.struct()
+            .field("BYTES", Schema.OPTIONAL_BYTES_SCHEMA)
             .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()

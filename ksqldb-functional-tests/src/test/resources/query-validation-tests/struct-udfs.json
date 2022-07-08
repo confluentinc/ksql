@@ -41,6 +41,19 @@
       "outputs": [
         {"topic":  "OUTPUT", "key": "1", "value": {"VALUE": {"A": "foo"}}, "timestamp":  0}
       ]
+    },
+    {
+      "name": "Output struct with errors in one field",
+      "statements": [
+        "CREATE STREAM test (K STRING KEY, val VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, STRUCT(field1:='moo', field2:=stringtodate(val, 'yyyyMMdd')) AS VALUE FROM test;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": "1", "value": {"val": "foo"}, "timestamp":  0}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": "1", "value": {"VALUE": {"FIELD1": "moo", "FIELD2": null}}, "timestamp":  0}
+      ]
     }
   ]
 }

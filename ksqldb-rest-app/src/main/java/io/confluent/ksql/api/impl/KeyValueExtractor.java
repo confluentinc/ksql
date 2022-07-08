@@ -22,10 +22,13 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.JsonUtil;
 import io.vertx.core.json.JsonObject;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 public final class KeyValueExtractor {
@@ -61,12 +64,21 @@ public final class KeyValueExtractor {
     final List<Object> vals = new ArrayList<>(valColumns.size());
     for (Column column : valColumns) {
       final String colName = column.name().text();
-      final Object val = values.getValue(colName);
+
+      // Need to decode JSON bytes because they are base64 encoded
+      final Object val = (column.type().baseType() == SqlBaseType.BYTES)
+          ? decodeJsonBytes((String) values.getValue(colName))
+          : values.getValue(colName);
+
       final Object coercedValue =
           val == null ? null : coerceObject(val, column.type(), sqlValueCoercer);
       vals.add(coercedValue);
     }
     return GenericRow.fromList(vals);
+  }
+
+  private static ByteBuffer decodeJsonBytes(final String value) {
+    return (value != null) ? ByteBuffer.wrap(Base64.getDecoder().decode(value)) : null;
   }
 
   static JsonObject convertColumnNameCase(final JsonObject jsonObjectWithCaseInsensitiveFields) {

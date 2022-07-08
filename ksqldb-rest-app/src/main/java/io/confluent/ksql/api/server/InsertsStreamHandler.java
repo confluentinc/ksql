@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.server.QueryStreamHandler.DELIMITED_CONTENT_
 import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.reactive.BufferedPublisher;
@@ -55,6 +56,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
   private final Server server;
   private final WorkerExecutor workerExecutor;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public InsertsStreamHandler(final Context ctx, final Endpoints endpoints,
       final Server server) {
     this.ctx = Objects.requireNonNull(ctx);

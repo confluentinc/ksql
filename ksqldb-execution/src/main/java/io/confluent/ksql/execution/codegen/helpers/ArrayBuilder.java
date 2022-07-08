@@ -37,7 +37,7 @@ public class ArrayBuilder {
   }
 
   public List<Object> build() {
-    return list;
+    return new ArrayList<>(list);
   }
 
 }

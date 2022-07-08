@@ -98,8 +98,8 @@
         "T3_ID" : 0,
         "T3_V0" : 3,
         "S1_ROWTIME" : 12,
-        "T2_ROWTIME" : 12,
-        "T3_ROWTIME" : 12
+        "T2_ROWTIME" : 11,
+        "T3_ROWTIME" : 10
       },
       "timestamp" : 12
     } ],

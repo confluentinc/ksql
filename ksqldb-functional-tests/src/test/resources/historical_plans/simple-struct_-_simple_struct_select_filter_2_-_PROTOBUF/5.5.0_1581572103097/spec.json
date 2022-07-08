@@ -229,7 +229,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ORDERTIME = 1;\n  int64 ORDERID = 2;\n  ConnectDefault2 ITEMID = 3;\n  double ORDERUNITS = 4;\n  repeated double ARRAYCOL = 5;\n  repeated ConnectDefault4Entry MAPCOL = 6;\n  ConnectDefault5 ADDRESS = 7;\n\n  message ConnectDefault2 {\n    int64 ITEMID = 1;\n    string NAME = 2;\n    ConnectDefault3 CATEGORY = 3;\n  \n    message ConnectDefault3 {\n      int64 ID = 1;\n      string NAME = 2;\n    }\n  }\n  message ConnectDefault4Entry {\n    string key = 1;\n    double value = 2;\n  }\n  message ConnectDefault5 {\n    int64 NUMBER = 1;\n    string STREET = 2;\n    string CITY = 3;\n    string STATE = 4;\n    int64 ZIPCODE = 5;\n  }\n}\n"
         }, {
           "name" : "S3",
           "keyFormat" : {
@@ -238,7 +239,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ITEMID__CATEGORY__ID = 1;\n  string ADDRESS__STREET = 2;\n  int64 ZIPCODE = 3;\n  string STATE = 4;\n}\n"
         } ]
       }
     }

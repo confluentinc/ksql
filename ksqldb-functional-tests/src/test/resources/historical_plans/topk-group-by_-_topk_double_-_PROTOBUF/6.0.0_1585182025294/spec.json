@@ -166,7 +166,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  double VALUE = 2;\n  repeated double KSQL_AGG_VARIABLE_0 = 3;\n}\n"
         }, {
           "name" : "test_topic",
           "keyFormat" : {
@@ -175,7 +176,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string NAME = 2;\n  double VALUE = 3;\n}\n"
         }, {
           "name" : "S2",
           "keyFormat" : {
@@ -184,7 +186,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  repeated double TOPK = 2;\n}\n"
         } ]
       }
     }

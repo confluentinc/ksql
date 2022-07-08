@@ -15,10 +15,8 @@
 
 package io.confluent.ksql.serde.avro;
 
-import com.google.common.base.Preconditions;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -37,14 +35,6 @@ final class AvroUtil {
         if (schema.keySchema().type() != Type.STRING) {
           throw new KsqlException("Avro only supports MAPs with STRING keys");
         }
-        return null;
-      }
-
-      @Override
-      public Void visitBytes(final Schema schema) {
-        Preconditions.checkArgument(
-            DecimalUtil.isDecimal(schema),
-            "Avro only supports DECIMAL for BYTES type.");
         return null;
       }
 

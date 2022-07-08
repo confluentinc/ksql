@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (final the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -128,6 +128,12 @@ public class PlanInfoExtractor {
 
   public <K> PlanInfo visitTableTableJoin(final TableTableJoin<K> tableTableJoin) {
     return visitJoinStep(tableTableJoin);
+  }
+
+  public <KLeftT, KRightT> PlanInfo visitForeignKeyTableTableJoin(
+      final ForeignKeyTableTableJoin<KLeftT, KRightT> foreignKeyTableTableJoin) {
+
+    return visitJoinStep(foreignKeyTableTableJoin);
   }
 
   private PlanInfo visitSourceStep(final ExecutionStep<?> step) {

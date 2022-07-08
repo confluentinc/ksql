@@ -19,6 +19,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -28,15 +29,18 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -72,7 +76,7 @@ public class ShowQueriesMultiNodeFunctionalTest {
       .around(REST_APP_1);
 
   @BeforeClass
-  public static void setUpClass() {
+  public static void setUpClass() throws InterruptedException {
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
@@ -122,37 +126,79 @@ public class ShowQueriesMultiNodeFunctionalTest {
   @Test
   public void shouldShowAllQueriesExtended() {
     // When:
-    final Supplier<Set<KsqlHostInfoEntity>> app0Response = () -> getShowQueriesExtendedResult(REST_APP_0);
-    final Supplier<Set<KsqlHostInfoEntity>> app1Response = () -> getShowQueriesExtendedResult(REST_APP_1);
+    final Supplier<Set<KsqlHostInfoEntity>> app0HostResponse = () -> getShowQueriesExtendedResult(REST_APP_0).getKsqlHosts();
+    final Supplier<Set<KsqlHostInfoEntity>> app1HostResponse = () -> getShowQueriesExtendedResult(REST_APP_1).getKsqlHosts();
+    final Supplier<Set<StreamsTaskMetadata>> app0TaskMetadata = () -> getShowQueriesExtendedResult(REST_APP_0).getTasksMetadata();
+    final Supplier<Set<StreamsTaskMetadata>> app1TaskMetadata = () -> getShowQueriesExtendedResult(REST_APP_1).getTasksMetadata();
 
     // Then:
-    assertThatEventually("App0", app0Response, containsInAnyOrder(host0, host1));
-    assertThatEventually("App1", app1Response, containsInAnyOrder(host0, host1));
+    assertThatEventually("App0HostResponse", app0HostResponse, containsInAnyOrder(host0, host1));
+    assertThatEventually("App1HostResponse", app1HostResponse, containsInAnyOrder(host0, host1));
+
+    assertThatEventually("App0TaskMetadata", () -> app0TaskMetadata.get().size(), is(2));
+    assertThatEventually("App1TaskMetadata", () -> app1TaskMetadata.get().size(), is(2));
+
+    assertThatEventually(
+        "App0TaskMetadata",
+        () -> app0TaskMetadata.get().stream().map(StreamsTaskMetadata::getTaskId).collect(Collectors.toList()),
+        containsInAnyOrder("0_0", "0_1"));
+    assertThatEventually("App1TaskMetadata",
+        () -> app1TaskMetadata.get().stream().map(StreamsTaskMetadata::getTaskId).collect(Collectors.toList()),
+        containsInAnyOrder("0_0", "0_1"));
   }
 
-  private static Set<KsqlHostInfoEntity> getShowQueriesExtendedResult(final TestKsqlRestApp restApp) {
+  private static QueryExtendedResults getShowQueriesExtendedResult(final TestKsqlRestApp restApp) {
     final List<KsqlEntity> results = RestIntegrationTestUtil.makeKsqlRequest(
         restApp,
         "Show Queries Extended;"
     );
 
     if (results.size() != 1) {
-      return Collections.emptySet();
+      return new QueryExtendedResults();
     }
 
     final KsqlEntity result = results.get(0);
 
     if (!(result instanceof QueryDescriptionList)) {
-      return Collections.emptySet();
+      return new QueryExtendedResults();
     }
 
     final List<QueryDescription> queryDescriptions = ((QueryDescriptionList) result)
         .getQueryDescriptions();
 
     if (queryDescriptions.size() != 1) {
-      return Collections.emptySet();
+      return new QueryExtendedResults();
     }
-    
-    return queryDescriptions.get(0).getKsqlHostQueryStatus().keySet();
+
+    return new QueryExtendedResults(
+        queryDescriptions.get(0).getKsqlHostQueryStatus().keySet(),
+        queryDescriptions.get(0).getTasksMetadata()
+    );
+  }
+
+  @Immutable
+  private static final class QueryExtendedResults {
+
+    private final Set<KsqlHostInfoEntity> ksqlHosts;
+    private final Set<StreamsTaskMetadata> tasksMetadata;
+
+    private QueryExtendedResults() {
+      this(Collections.emptySet(), Collections.emptySet());
+    }
+    private QueryExtendedResults(
+        final Set<KsqlHostInfoEntity> ksqlHosts,
+        final Set<StreamsTaskMetadata> tasksMetadata
+    ) {
+      this.ksqlHosts = Objects.requireNonNull(ksqlHosts, "ksqlHosts");
+      this.tasksMetadata = Objects.requireNonNull(tasksMetadata, "tasksMetadata");
+    }
+
+    Set<KsqlHostInfoEntity> getKsqlHosts() {
+      return ksqlHosts;
+    }
+
+    Set<StreamsTaskMetadata> getTasksMetadata() {
+      return tasksMetadata;
+    }
   }
 }

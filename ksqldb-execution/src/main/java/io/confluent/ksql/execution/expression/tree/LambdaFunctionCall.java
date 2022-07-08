@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.expression.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.HashSet;
 import java.util.List;
@@ -57,6 +58,7 @@ public class LambdaFunctionCall extends Expression {
     this.body = requireNonNull(body, "body is null");
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "arguments is ImmutableList")
   public List<String> getArguments() {
     return arguments;
   }

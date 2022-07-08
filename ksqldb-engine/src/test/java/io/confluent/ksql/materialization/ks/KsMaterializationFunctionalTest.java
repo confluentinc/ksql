@@ -172,11 +172,6 @@ public class KsMaterializationFunctionalTest {
     initializeKsql(ksqlContext);
   }
 
-  @After
-  public void after() {
-    toClose.forEach(QueryMetadata::close);
-  }
-
   @Test
   public void shouldReturnEmptyIfNotMaterializedStream() {
     // Given:

@@ -234,7 +234,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 T_ID = 1;\n  int64 TT_ID = 2;\n  string NAME = 3;\n  int64 VALUE = 4;\n  string F1 = 5;\n  int64 F2 = 6;\n}\n"
         }, {
           "name" : "left_topic",
           "keyFormat" : {
@@ -243,7 +244,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n"
         }, {
           "name" : "right_topic",
           "keyFormat" : {
@@ -252,7 +254,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n}\n"
         } ]
       }
     }

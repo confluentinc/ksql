@@ -16,7 +16,11 @@
 package io.confluent.ksql.physical.pull;
 
 import com.google.common.base.Preconditions;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -24,6 +28,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class PullQueryResult {
 
@@ -32,6 +37,10 @@ public class PullQueryResult {
   private final QueryId queryId;
   private final PullQueryQueue pullQueryQueue;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final PullSourceType sourceType;
+  private final PullPhysicalPlanType planType;
+  private final RoutingNodeType routingNodeType;
+  private final Supplier<Long> rowsProcessedSupplier;
 
   // This future is used to keep track of all of the callbacks since we allow for adding them both
   // before and after the pull query has been started.  When the pull query has completed, it will
@@ -39,18 +48,27 @@ public class PullQueryResult {
   private CompletableFuture<Void> future = new CompletableFuture<>();
   private boolean started = false;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PullQueryResult(
       final LogicalSchema schema,
       final PullQueryQueuePopulator populator,
       final QueryId queryId,
       final PullQueryQueue pullQueryQueue,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final PullSourceType sourceType,
+      final PullPhysicalPlanType planType,
+      final RoutingNodeType routingNodeType,
+      final Supplier<Long> rowsProcessedSupplier
   ) {
     this.schema = schema;
     this.populator = populator;
     this.queryId = queryId;
     this.pullQueryQueue = pullQueryQueue;
     this.pullQueryMetrics = pullQueryMetrics;
+    this.sourceType = sourceType;
+    this.planType = planType;
+    this.routingNodeType = routingNodeType;
+    this.rowsProcessedSupplier = rowsProcessedSupplier;
   }
 
   public LogicalSchema getSchema() {
@@ -61,6 +79,7 @@ public class PullQueryResult {
     return queryId;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public PullQueryQueue getPullQueryQueue() {
     return pullQueryQueue;
   }
@@ -82,7 +101,8 @@ public class PullQueryResult {
 
   public void onException(final Consumer<Throwable> consumer) {
     future.exceptionally(t -> {
-      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+      pullQueryMetrics.ifPresent(metrics ->
+          metrics.recordErrorRate(1, sourceType, planType, routingNodeType));
       consumer.accept(t);
       return null;
     });
@@ -97,5 +117,25 @@ public class PullQueryResult {
       biConsumer.accept(v, t);
       return null;
     });
+  }
+
+  public PullSourceType getSourceType() {
+    return sourceType;
+  }
+
+  public PullPhysicalPlanType getPlanType() {
+    return planType;
+  }
+
+  public RoutingNodeType getRoutingNodeType() {
+    return routingNodeType;
+  }
+
+  public long getTotalRowsReturned() {
+    return pullQueryQueue.getTotalRowsQueued();
+  }
+
+  public long getTotalRowsProcessed() {
+    return rowsProcessedSupplier.get();
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (final the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
@@ -34,8 +33,9 @@ import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.List;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +72,8 @@ public class PlanInfoExtractorTest {
         "s1",
         formats,
         Optional.empty(),
-        schema
+        schema,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
     tableSource = new TableSource(
         new ExecutionStepPropertiesV1(queryContext),
@@ -80,7 +81,8 @@ public class PlanInfoExtractorTest {
         formats,
         Optional.empty(),
         schema,
-        Optional.of(true)
+        Optional.of(true),
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
     streamSourceRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),

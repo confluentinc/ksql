@@ -68,6 +68,7 @@ Because materialized views are incrementally updated as new events arrive,
 pull queries run with predictably low latency. They're a great match for
 request/response flows. For asynchronous application flows, see
 [Push Query](/developer-guide/ksqldb-reference/select-push-query/).
+Pull queries are expressed using a strict subset of ANSI SQL.
 
 Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.

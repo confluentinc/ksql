@@ -18,12 +18,14 @@ package io.confluent.ksql.execution.codegen.helpers;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DECIMAL;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRING;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIME;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIMESTAMP;
 import static java.util.Objects.requireNonNull;
 
@@ -89,7 +91,9 @@ public final class CastEvaluator {
       .put(key(STRING, BIGINT), nonNullSafeCode("Long.parseLong(%s.trim())"))
       .put(key(STRING, DECIMAL), CastEvaluator::castToDecimal)
       .put(key(STRING, DOUBLE), nonNullSafeCode("SqlDoubles.parseDouble(%s.trim())"))
-      .put(key(STRING, TIMESTAMP), nonNullSafeCode("SqlTimestamps.parseTimestamp(%s.trim())"))
+      .put(key(STRING, TIMESTAMP), nonNullSafeCode("SqlTimeTypes.parseTimestamp(%s.trim())"))
+      .put(key(STRING, TIME), nonNullSafeCode("SqlTimeTypes.parseTime(%s.trim())"))
+      .put(key(STRING, DATE), nonNullSafeCode("SqlTimeTypes.parseDate(%s.trim())"))
       // ARRAY:
       .put(key(ARRAY, ARRAY), CastEvaluator::castArrayToArray)
       .put(key(ARRAY, STRING), CastEvaluator::castToString)
@@ -99,8 +103,13 @@ public final class CastEvaluator {
       // STRUCT:
       .put(key(STRUCT, STRUCT), CastEvaluator::castStructToStruct)
       .put(key(STRUCT, STRING), CastEvaluator::castToString)
-      // TIMESTAMP:
-      .put(key(TIMESTAMP, STRING), nonNullSafeCode("SqlTimestamps.formatTimestamp(%s)"))
+      // TIME:
+      .put(key(TIMESTAMP, STRING), nonNullSafeCode("SqlTimeTypes.formatTimestamp(%s)"))
+      .put(key(TIMESTAMP, TIME), nonNullSafeCode("SqlTimeTypes.timestampToTime(%s)"))
+      .put(key(TIMESTAMP, DATE), nonNullSafeCode("SqlTimeTypes.timestampToDate(%s)"))
+      .put(key(DATE, TIMESTAMP), nonNullSafeCode("new Timestamp(%s.getTime())"))
+      .put(key(TIME, STRING), nonNullSafeCode("SqlTimeTypes.formatTime(%s)"))
+      .put(key(DATE, STRING), nonNullSafeCode("SqlTimeTypes.formatDate(%s)"))
       .build();
 
   private CastEvaluator() {

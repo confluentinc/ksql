@@ -101,7 +101,7 @@ public class PartialStringToTimestampParser {
     }
   }
 
-  private static String completeDate(final String date) {
+  public static String completeDate(final String date) {
     final String[] parts = date.split("-");
     if (parts.length == 1) {
       return date + "-01-01";

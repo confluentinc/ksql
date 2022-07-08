@@ -15,10 +15,16 @@
 
 package io.confluent.ksql.schema.registry;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -29,6 +35,8 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
+import org.apache.kafka.common.acl.AclOperation;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
@@ -198,5 +206,42 @@ public class SchemaRegistryUtilTest {
 
     // Then:
     assertFalse("Expected subject to not exist", subjectExists);
+  }
+
+  @Test
+  public void shouldThrowAuthorizationExceptionOnUnauthorizedSubjectAccess() throws Exception {
+    // Given:
+    when(schemaRegistryClient.getLatestSchemaMetadata("bar-value")).thenThrow(
+        new RestClientException(
+            "User is denied operation Write on Subject: bar-value; error code: 40301", 403, 40301)
+    );
+
+    // When:
+    final Exception e = assertThrows(KsqlSchemaAuthorizationException.class,
+        () -> SchemaRegistryUtil.subjectExists(schemaRegistryClient, "bar-value"));
+
+    // Then:
+    assertThat(e.getMessage(), equalTo(
+        "Authorization denied to Write on Schema Registry subject: [bar-value]"));
+  }
+
+  @Test
+  public void shouldReturnKnownDeniedOperationFromValidAuthorizationMessage() {
+    // When:
+    final AclOperation operation = SchemaRegistryUtil.getDeniedOperation(
+        "User is denied operation Write on Subject: t2-value; error code: 40301");
+
+    // Then:
+    assertThat(operation, is(AclOperation.WRITE));
+  }
+
+  @Test
+  public void shouldReturnUnknownDeniedOperationFromNoValidAuthorizationMessage() {
+    // When:
+    final AclOperation operation = SchemaRegistryUtil.getDeniedOperation(
+        "INVALID is denied operation Write on Subject: t2-value; error code: 40301");
+
+    // Then:
+    assertThat(operation, is(AclOperation.UNKNOWN));
   }
 }

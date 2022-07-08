@@ -16,6 +16,7 @@
 package io.confluent.ksql;
 
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ public final class GenericKey {
     return values.get(index);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "values is unmodifiableList()")
   public List<?> values() {
     return values;
   }

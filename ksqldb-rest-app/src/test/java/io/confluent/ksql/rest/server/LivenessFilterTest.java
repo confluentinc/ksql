@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.streams.RoutingFilter.Host;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.Map;
@@ -65,14 +66,18 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHost);
-    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
-    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
+    final Host filterActive = livenessFilter.filter(activeHost);
+    final Host filterStandby1 = livenessFilter.filter(standByHost1);
+    final Host filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
-    assertThat(filterActive, is(true));
-    assertThat(filterStandby1, is(false));
-    assertThat(filterStandby2, is(false));
+    assertThat(filterActive.isSelected(), is(true));
+
+    assertThat(filterStandby1.isSelected(), is(false));
+    assertThat(filterStandby1.getReasonNotSelected(), is("Host is not alive as of time 0"));
+
+    assertThat(filterStandby2.isSelected(), is(false));
+    assertThat(filterStandby2.getReasonNotSelected(), is("Host is not alive as of time 0"));
   }
 
   @Test
@@ -86,14 +91,18 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHost);
-    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
-    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
+    final Host filterActive = livenessFilter.filter(activeHost);
+    final Host filterStandby1 = livenessFilter.filter(standByHost1);
+    final Host filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
-    assertThat(filterActive, is(false));
-    assertThat(filterStandby1, is(true));
-    assertThat(filterStandby2, is(false));
+    assertThat(filterActive.isSelected(), is(false));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
+
+    assertThat(filterStandby1.isSelected(), is(true));
+
+    assertThat(filterStandby2.isSelected(), is(false));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
   }
 
   @Test
@@ -107,14 +116,14 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHost);
-    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
-    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
+    final Host filterActive = livenessFilter.filter(activeHost);
+    final Host filterStandby1 = livenessFilter.filter(standByHost1);
+    final Host filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
-    assertThat(filterActive, is(true));
-    assertThat(filterStandby1, is(true));
-    assertThat(filterStandby2, is(true));
+    assertThat(filterActive.isSelected(), is(true));
+    assertThat(filterStandby1.isSelected(), is(true));
+    assertThat(filterStandby2.isSelected(), is(true));
   }
 
   @Test
@@ -128,14 +137,19 @@ public class LivenessFilterTest {
     when(heartbeatAgent.getHostsStatus()).thenReturn(allHostsStatus);
 
     // When:
-    final boolean filterActive = livenessFilter.filter(activeHost);
-    final boolean filterStandby1 = livenessFilter.filter(standByHost1);
-    final boolean filterStandby2 = livenessFilter.filter(standByHost2);
+    final Host filterActive = livenessFilter.filter(activeHost);
+    final Host filterStandby1 = livenessFilter.filter(standByHost1);
+    final Host filterStandby2 = livenessFilter.filter(standByHost2);
 
     // Then:
-    assertThat(filterActive, is(false));
-    assertThat(filterStandby1, is(false));
-    assertThat(filterStandby2, is(false));
+    assertThat(filterActive.isSelected(), is(false));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
+
+    assertThat(filterStandby1.isSelected(), is(false));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
+
+    assertThat(filterStandby2.isSelected(), is(false));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
   }
 
 }

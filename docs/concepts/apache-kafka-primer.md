@@ -6,7 +6,7 @@ description: Learn the minimum number of Kafka concepts to use ksqlDB effectivel
 keywords: ksqldb, kafka
 ---
 
-ksqlDB is an event streaming database built specifically for {{ site.aktm }}.
+ksqlDB is a database built specifically for stream processing on {{ site.aktm }}.
 Although it's designed to give you a higher-level set of primitives than
 {{ site.ak }} has, it's inevitable that all of {{ site.ak }}'s concepts can't be, and
 shouldn't be, abstracted away entirely. This section describes the minimum

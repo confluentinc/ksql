@@ -264,7 +264,22 @@ Scope: SESSION
 In Java API client, the session is opened when `Client.create()` is called, and closed when `Client.close()` is called. Variables
 may be defined using a client method instead of a new syntax. This is to ensure users know the scope starts after the `create()` call.
 
-TBD: Define a Java API method for variable substitution.
+Users will define variables using the functions, `define(variable_name, value)` and `undefine(variable_name)`.
+The client will keep track of the calls made in a map. Alternatively, the `executeStatement`, `executeQuery`, `streamQuery`
+`insertInto`, `streamInserts` and `createConnector` functions could accept a third parameter, `sessionVariables`
+that is a map of variables to variable definitions.
+
+There are two options for executing the variable substitution. The first is to do it in the client by
+using the variable substitutor in `ksqldb-parser`. The disadvantages to this are that `ksqldb-parser`
+would be a dependency of the Java client, and that the client and server versions would have
+to match in order for the parser to work.
+
+The other option is to update the endpoints `/ksql`, `/inserts-stream` and `/query-stream` to accept `sessionVariables`
+as a parameter. The variable substitution would then be done on the server side. The disadvantage is
+that an API change would be required.
+
+Because the Java client is meant to be lightweight and flexible, the disadvantages of the first option
+are stronger than the disadvantage of the second, so we will go with the second option.
 
 Note: Users can use variables and replace variables in strings using Java language features too.
 

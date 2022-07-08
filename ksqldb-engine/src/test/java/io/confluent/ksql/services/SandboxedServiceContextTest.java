@@ -78,7 +78,7 @@ public final class SandboxedServiceContextTest {
 
     @Before
     public void setUp() {
-      MockitoAnnotations.initMocks(this);
+      MockitoAnnotations.openMocks(this);
 
       when(delegate.getTopicClient()).thenReturn(delegateTopicClient);
       when(delegate.getSchemaRegistryClient()).thenReturn(delegateSrClient);

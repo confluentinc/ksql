@@ -149,7 +149,23 @@
             "format" : "JSON",
             "features" : [ "UNWRAP_SINGLES" ]
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "record",
+              "name" : "test",
+              "fields" : [ {
+                "name" : "key",
+                "type" : [ "null", "string" ],
+                "default" : null
+              }, {
+                "name" : "value",
+                "type" : [ "null", "double" ],
+                "default" : null
+              } ]
+            }
+          }
         } ]
       }
     }

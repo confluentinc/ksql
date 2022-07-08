@@ -100,7 +100,9 @@ public final class QueryIdUtil {
     }
 
     if (!outputNode.getSinkName().isPresent()) {
-      return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
+      final String prefix =
+          "transient_" + outputNode.getSource().getLeftmostSourceNode().getAlias().text() + "_";
+      return new QueryId(prefix + Math.abs(ThreadLocalRandom.current().nextLong()));
     }
 
     final KsqlStructuredDataOutputNode structured = (KsqlStructuredDataOutputNode) outputNode;
@@ -109,7 +111,7 @@ public final class QueryIdUtil {
     }
 
     final SourceName sink = outputNode.getSinkName().get();
-    final Set<QueryId> queriesForSink = engineContext.getQueriesWithSink(sink);
+    final Set<QueryId> queriesForSink = engineContext.getQueryRegistry().getQueriesWithSink(sink);
     if (queriesForSink.size() > 1) {
       throw new KsqlException("REPLACE for sink " + sink + " is not supported because there are "
           + "multiple queries writing into it: " + queriesForSink);

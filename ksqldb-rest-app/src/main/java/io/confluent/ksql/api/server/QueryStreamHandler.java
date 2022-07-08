@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -44,6 +45,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private final Context context;
   private final Server server;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryStreamHandler(final Endpoints endpoints,
       final ConnectionQueryManager connectionQueryManager,
       final Context context,
@@ -80,9 +82,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
+        queryStreamArgs.get().sessionVariables, queryStreamArgs.get().requestProperties,
         context, server.getWorkerExecutor(),
-            DefaultApiSecurityContext.create(routingContext, server),
-        metricsCallbackHolder)
+        DefaultApiSecurityContext.create(routingContext, server), metricsCallbackHolder)
         .thenAccept(queryPublisher -> {
 
           final QueryResponseMetadata metadata;
@@ -96,9 +98,18 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.response().endHandler(v -> {
               queryPublisher.close();
               metricsCallbackHolder.reportMetrics(
+                  routingContext.response().getStatusCode(),
                   routingContext.request().bytesRead(),
                   routingContext.response().bytesWritten(),
                   startTimeNanos);
+            });
+          }  else if (queryPublisher.isScalablePushQuery()) {
+            metadata = new QueryResponseMetadata(
+                queryPublisher.queryId().toString(),
+                queryPublisher.getColumnNames(),
+                queryPublisher.getColumnTypes());
+            routingContext.response().endHandler(v -> {
+              queryPublisher.close();
             });
           } else {
             final PushQueryHolder query = connectionQueryManager

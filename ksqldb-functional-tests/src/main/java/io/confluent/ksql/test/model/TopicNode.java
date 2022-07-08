@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -42,6 +43,8 @@ public final class TopicNode {
   private final int replicas;
   private final String keyFormat;
   private final String valueFormat;
+  private final SerdeFeatures keySerdeFeatures;
+  private final SerdeFeatures valueSerdeFeatures;
 
   public TopicNode(
       @JsonProperty("name") final String name,
@@ -50,7 +53,9 @@ public final class TopicNode {
       @JsonProperty("keyFormat") final String keyFormat,
       @JsonProperty("valueFormat") final String valueFormat,
       @JsonProperty("partitions") final Integer numPartitions,
-      @JsonProperty("replicas") final Integer replicas
+      @JsonProperty("replicas") final Integer replicas,
+      @JsonProperty("keySerdeFeatures") final SerdeFeatures keySerdeFeatures,
+      @JsonProperty("valueSerdeFeatures") final SerdeFeatures valueSerdeFeatures
   ) {
 
     this.name = name == null ? "" : name;
@@ -60,6 +65,8 @@ public final class TopicNode {
     this.valueFormat = valueFormat;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;
+    this.keySerdeFeatures = keySerdeFeatures == null ? SerdeFeatures.of() : keySerdeFeatures;
+    this.valueSerdeFeatures = valueSerdeFeatures == null ? SerdeFeatures.of() : valueSerdeFeatures;
 
     if (this.name.isEmpty()) {
       throw new InvalidFieldException("name", "empty or missing");
@@ -100,13 +107,23 @@ public final class TopicNode {
     return replicas;
   }
 
+  public SerdeFeatures getKeySerdeFeatures() {
+    return keySerdeFeatures;
+  }
+
+  public SerdeFeatures getValueSerdeFeatures() {
+    return valueSerdeFeatures;
+  }
+
   public Topic build() {
     return new Topic(
         name,
         numPartitions,
         replicas,
         SerdeUtil.buildSchema(keySchema, keyFormat),
-        SerdeUtil.buildSchema(valueSchema, valueFormat)
+        SerdeUtil.buildSchema(valueSchema, valueFormat),
+        keySerdeFeatures,
+        valueSerdeFeatures
     );
   }
 
@@ -129,7 +146,9 @@ public final class TopicNode {
         keyFormat,
         valueFormat,
         topic.getNumPartitions(),
-        (int) topic.getReplicas()
+        (int) topic.getReplicas(),
+        topic.getKeyFeatures(),
+        topic.getValueFeatures()
     );
   }
 

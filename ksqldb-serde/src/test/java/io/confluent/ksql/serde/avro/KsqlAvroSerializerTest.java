@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_BYTES_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
@@ -63,9 +65,11 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
@@ -140,6 +144,18 @@ public class KsqlAvroSerializerTest {
           "{"
               + "\"type\": \"long\","
               + "\"logicalType\": \"timestamp-millis\""
+              + "}");
+  private static final org.apache.avro.Schema TIME_SCHEMA =
+      parseAvroSchema(
+          "{"
+              + "\"type\": \"int\","
+              + "\"logicalType\": \"time-millis\""
+              + "}");
+  private static final org.apache.avro.Schema DATE_SCHEMA =
+      parseAvroSchema(
+          "{"
+              + "\"type\": \"int\","
+              + "\"logicalType\": \"date\""
               + "}");
 
   private static final String SOME_TOPIC = "bob";
@@ -466,6 +482,36 @@ public class KsqlAvroSerializerTest {
     // Then:
     assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
         "java.lang.Boolean cannot be cast to java.util.List"))));
+  }
+
+  @Test
+  public void shouldSerializeTime() {
+    // Given:
+    final Serializer<java.sql.Time> serializer =
+        givenSerializerForSchema(Time.SCHEMA, java.sql.Time.class);
+    final java.sql.Time value = new java.sql.Time(500);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
+
+    // Then:
+    assertThat(deserialize(bytes), is(500));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(TIME_SCHEMA));
+  }
+
+  @Test
+  public void shouldSerializeDate() {
+    // Given:
+    final Serializer<java.sql.Date> serializer =
+        givenSerializerForSchema(Date.SCHEMA, java.sql.Date.class);
+    final java.sql.Date value = new java.sql.Date(864000000L);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
+
+    // Then:
+    assertThat(deserialize(bytes), is(10));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(DATE_SCHEMA));
   }
 
   @Test
@@ -854,6 +900,16 @@ public class KsqlAvroSerializerTest {
         OPTIONAL_INT64_SCHEMA,
         123L,
         org.apache.avro.SchemaBuilder.builder().longType()
+    );
+  }
+
+  @Test
+  public void shouldSerializeBytesField() {
+    shouldSerializeFieldTypeCorrectly(
+        OPTIONAL_BYTES_SCHEMA,
+        "abc".getBytes(UTF_8),
+        org.apache.avro.SchemaBuilder.builder().bytesType(),
+        ByteBuffer.wrap("abc".getBytes(UTF_8))
     );
   }
 

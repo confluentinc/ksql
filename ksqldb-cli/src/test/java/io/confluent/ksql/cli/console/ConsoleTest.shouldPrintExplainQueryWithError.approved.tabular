@@ -1,0 +1,41 @@
+
+ID                   : id
+Query Type           : PERSISTENT
+SQL                  : statement
+Host Query Status    : {foo:123=ERROR}
+
+ Field | Type            
+-------------------------
+ name  | VARCHAR(STRING) 
+-------------------------
+
+Sources that this query reads from: 
+-----------------------------------
+source
+
+For source description please run: DESCRIBE [EXTENDED] <SourceId>
+
+Sinks that this query writes to: 
+-----------------------------------
+sink
+
+For sink description please run: DESCRIBE [EXTENDED] <SinkId>
+
+Execution plan      
+--------------      
+executionPlan
+
+Processing topology 
+------------------- 
+topology
+
+Overridden Properties
+---------------------
+ Property        | Value 
+-------------------------
+ overridden.prop | 42    
+-------------------------
+
+Error Date           : 2020-08-05 04:28:56,314 (UTC)
+Error Details        : error
+Error Type           : SYSTEM

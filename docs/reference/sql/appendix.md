@@ -20,12 +20,14 @@ The following table shows all keywords in the language.
 | `BEGINNING`    | print from start of topic             | `PRINT <topic-name> FROM BEGINNING;`                                 |
 | `BETWEEN`      | constrain a value to a range          | `SELECT event FROM events WHERE event_id BETWEEN 10 AND 20 …`        |
 | `BY`           | specify expression                    | `GROUP BY regionid`, `ADVANCE BY 10 SECONDS`, `PARTITION BY userid`  |
+| `BYTES`        | bytes data type                       |                                                                      |
 | `CASE`         | select a condition from expressions   | `SELECT CASE WHEN condition THEN result [ WHEN … THEN … ] … END`     |
 | `CAST`         | change expression type                | `SELECT id, CONCAT(CAST(COUNT(*) AS VARCHAR), '_HELLO') FROM views …`|
 | `CHANGES`      | specify incremental refinement type   | `SELECT * FROM users EMIT CHANGES;`                                  |
 | `CONNECTOR`    | manage a connector                    |  `CREATE SOURCE CONNECTOR 'jdbc-connector' WITH( …`                  |
 | `CONNECTORS`   | list all connectors                   |  `SHOW CONNECTORS;`                                                  |
 | `CREATE`       | create an object                      |  `CREATE STREAM rock_songs (artist VARCHAR, title VARCHAR) …`        |
+| `DATE`         | date data type                        |                                                                      |
 | `DAY`          | time unit of one day for a window     |  `WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1 DAY)`                |
 | `DAYS`         | time unit of days for a window        |  `WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)`            |
 | `DECIMAL`      | decimal numeric type                  |                                                                      |
@@ -104,6 +106,7 @@ The following table shows all keywords in the language.
 | `TABLES`       | list all tables                       | `SHOW TABLES;`                                                       |
 | `TERMINATE`    | end a persistent query                | `TERMINATE query_id;`                                                |
 | `THEN`         | return expression in a CASE block     | `CASE WHEN units<2 THEN 'sm' WHEN units<4 THEN 'med' ELSE 'large' …` |
+| `TIME`         | time data type                        |                                                                      |
 | `TIMESTAMP`    | timestamp data type                   |                                                                      |
 | `TIMESTAMP`    | specify a timestamp column            | `CREATE STREAM pageviews WITH (TIMESTAMP='viewtime', …`              |
 | `TOPIC`        | specify {{site.ak}} topic to delete   | `DROP TABLE <table-name> DELETE TOPIC;`                              |

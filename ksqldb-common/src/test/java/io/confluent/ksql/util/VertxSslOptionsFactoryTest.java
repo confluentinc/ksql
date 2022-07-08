@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PfxOptions;
@@ -38,7 +39,7 @@ public class VertxSslOptionsFactoryTest {
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
   @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  public static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   @Test
   public void shouldBuildTrustStoreJksOptionsWithPathAndPassword() {

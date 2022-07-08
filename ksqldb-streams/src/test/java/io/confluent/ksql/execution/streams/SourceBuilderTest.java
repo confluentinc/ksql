@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -52,9 +52,9 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -64,6 +64,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
@@ -92,7 +93,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
 
 public class SourceBuilderTest {
 
@@ -202,7 +202,7 @@ public class SourceBuilderTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void setup() {
     when(buildContext.getApplicationId()).thenReturn("appid");
     when(buildContext.getStreamsBuilder()).thenReturn(streamsBuilder);
@@ -797,7 +797,8 @@ public class SourceBuilderTest {
   ) {
     streamSource.build(planBuilder, planInfo);
     verify(kStream).transformValues(transformSupplierCaptor.capture());
-    final ValueTransformerWithKey transformer = transformSupplierCaptor.getValue().get();
+    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
+        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
     transformer.init(processorCtx);
     return transformer;
   }
@@ -808,7 +809,8 @@ public class SourceBuilderTest {
   ) {
     streamSource.build(planBuilder, planInfo);
     verify(kTable).transformValues(transformSupplierCaptor.capture());
-    final ValueTransformerWithKey transformer = transformSupplierCaptor.getValue().get();
+    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
+        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
     transformer.init(processorCtx);
     return transformer;
   }
@@ -822,7 +824,8 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         windowInfo,
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -834,7 +837,8 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -846,7 +850,8 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
-        MULTI_COL_SOURCE_SCHEMA
+        MULTI_COL_SOURCE_SCHEMA,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -860,7 +865,8 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         windowInfo,
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -873,7 +879,8 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        Optional.of(forceChangelog)
+        Optional.of(forceChangelog),
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 

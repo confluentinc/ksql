@@ -18,7 +18,7 @@ package io.confluent.ksql.tools.migrations.commands;
 import static io.confluent.ksql.tools.migrations.util.CommandParser.preserveCase;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllMigrations;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
-import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDir;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -56,7 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,6 +131,14 @@ public class ApplyMigrationCommand extends BaseCommand {
   )
   private List<String> definedVars = null;
 
+  @Option(
+      name = {"--headers"},
+      description = "Path to custom request headers file. These headers will be sent with all "
+          + "requests to the ksqlDB server as part of applying these migrations."
+  )
+  @Once
+  private String headersFile;
+
   @Override
   protected int command() {
     if (!validateConfigFilePresent()) {
@@ -148,7 +156,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     return command(
         config,
         MigrationsUtil::getKsqlClient,
-        getMigrationsDirFromConfigFile(getConfigFile()),
+        getMigrationsDir(getConfigFile(), config),
         Clock.systemDefaultZone()
     );
   }
@@ -157,14 +165,14 @@ public class ApplyMigrationCommand extends BaseCommand {
   @VisibleForTesting
   int command(
       final MigrationConfig config,
-      final Function<MigrationConfig, Client> clientSupplier,
+      final BiFunction<MigrationConfig, String, Client> clientSupplier,
       final String migrationsDir,
       final Clock clock
   ) {
     // CHECKSTYLE_RULES.ON: NPathComplexity
     final Client ksqlClient;
     try {
-      ksqlClient = clientSupplier.apply(config);
+      ksqlClient = clientSupplier.apply(config, headersFile);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
@@ -330,9 +338,11 @@ public class ApplyMigrationCommand extends BaseCommand {
     final List<String> commands = CommandParser.splitSql(migrationFileContent);
 
     executeCommands(
-        commands, ksqlClient, config, executionStart, migration, clock, previous, true);
+        commands, ksqlClient, config, executionStart,
+        migration, clock, previous, true);
     executeCommands(
-        commands, ksqlClient, config, executionStart, migration, clock, previous, false);
+        commands, ksqlClient, config, executionStart,
+        migration, clock, previous, false);
   }
 
   /**
@@ -424,10 +434,14 @@ public class ApplyMigrationCommand extends BaseCommand {
       ksqlClient.createConnector(
           ((SqlCreateConnectorStatement) command).getName(),
           ((SqlCreateConnectorStatement) command).isSource(),
-          ((SqlCreateConnectorStatement) command).getProperties()
+          ((SqlCreateConnectorStatement) command).getProperties(),
+          ((SqlCreateConnectorStatement) command).getIfNotExists()
       ).get();
     } else if (command instanceof SqlDropConnectorStatement) {
-      ksqlClient.dropConnector(((SqlDropConnectorStatement) command).getName()).get();
+      ksqlClient.dropConnector(
+          ((SqlDropConnectorStatement) command).getName(),
+          ((SqlDropConnectorStatement) command).getIfExists()
+      ).get();
     } else if (command instanceof SqlPropertyCommand) {
       if (((SqlPropertyCommand) command).isSetCommand()
           && ((SqlPropertyCommand) command).getValue().isPresent()) {

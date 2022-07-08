@@ -16,108 +16,106 @@
 package io.confluent.ksql.rest.integration;
 
 
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
-import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
-import static io.vertx.core.http.HttpMethod.POST;
-import static io.vertx.core.http.HttpVersion.HTTP_1_1;
-import static io.vertx.core.http.HttpVersion.HTTP_2;
-import static org.apache.kafka.common.acl.AclOperation.ALL;
-import static org.apache.kafka.common.acl.AclOperation.CREATE;
-import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
-import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
-import static org.apache.kafka.common.acl.AclOperation.WRITE;
-import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
-import static org.apache.kafka.common.resource.ResourceType.GROUP;
-import static org.apache.kafka.common.resource.ResourceType.TOPIC;
-import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.fail;
+  import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
+  import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
+  import static io.vertx.core.http.HttpMethod.POST;
+  import static io.vertx.core.http.HttpVersion.HTTP_1_1;
+  import static io.vertx.core.http.HttpVersion.HTTP_2;
+  import static org.apache.kafka.common.acl.AclOperation.ALL;
+  import static org.apache.kafka.common.acl.AclOperation.CREATE;
+  import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
+  import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
+  import static org.apache.kafka.common.acl.AclOperation.WRITE;
+  import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
+  import static org.apache.kafka.common.resource.ResourceType.GROUP;
+  import static org.apache.kafka.common.resource.ResourceType.TOPIC;
+  import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
+  import static org.hamcrest.MatcherAssert.assertThat;
+  import static org.hamcrest.Matchers.endsWith;
+  import static org.hamcrest.Matchers.equalTo;
+  import static org.hamcrest.Matchers.hasSize;
+  import static org.hamcrest.Matchers.is;
+  import static org.hamcrest.Matchers.notNullValue;
+  import static org.hamcrest.Matchers.startsWith;
+  import static org.junit.Assert.fail;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.api.utils.QueryResponse;
-import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.ApiJsonMapper;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.entity.CommandId.Action;
-import io.confluent.ksql.rest.entity.CommandId.Type;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatus.Status;
-import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlMediaType;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.Queries;
-import io.confluent.ksql.rest.entity.QueryStreamArgs;
-import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.ServerClusterId;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.ServerMetadata;
-import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.test.util.secure.ClientTrustStore;
-import io.confluent.ksql.test.util.secure.Credentials;
-import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlRequestConfig;
-import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.PageViewDataProvider.Batch;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.TestDataProvider;
-import io.confluent.ksql.util.TombstoneProvider;
-import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpVersion;
-import io.vertx.ext.web.client.HttpResponse;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import javax.ws.rs.core.MediaType;
-import org.apache.hc.core5.http.HttpStatus;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+  import com.fasterxml.jackson.core.type.TypeReference;
+  import com.google.common.collect.ImmutableList;
+  import com.google.common.collect.ImmutableMap;
+  import io.confluent.common.utils.IntegrationTest;
+  import io.confluent.ksql.api.utils.QueryResponse;
+  import io.confluent.ksql.integration.IntegrationTestHarness;
+  import io.confluent.ksql.integration.Retry;
+  import io.confluent.ksql.rest.ApiJsonMapper;
+  import io.confluent.ksql.rest.entity.CommandId;
+  import io.confluent.ksql.rest.entity.CommandId.Action;
+  import io.confluent.ksql.rest.entity.CommandId.Type;
+  import io.confluent.ksql.rest.entity.CommandStatus;
+  import io.confluent.ksql.rest.entity.CommandStatus.Status;
+  import io.confluent.ksql.rest.entity.CommandStatuses;
+  import io.confluent.ksql.rest.entity.KsqlEntity;
+  import io.confluent.ksql.rest.entity.KsqlMediaType;
+  import io.confluent.ksql.rest.entity.KsqlRequest;
+  import io.confluent.ksql.rest.entity.Queries;
+  import io.confluent.ksql.rest.entity.QueryStreamArgs;
+  import io.confluent.ksql.rest.entity.RunningQuery;
+  import io.confluent.ksql.rest.entity.ServerClusterId;
+  import io.confluent.ksql.rest.entity.ServerInfo;
+  import io.confluent.ksql.rest.entity.ServerMetadata;
+  import io.confluent.ksql.rest.server.TestKsqlRestApp;
+  import io.confluent.ksql.serde.FormatFactory;
+  import io.confluent.ksql.services.ServiceContext;
+  import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+  import io.confluent.ksql.test.util.secure.ClientTrustStore;
+  import io.confluent.ksql.test.util.secure.Credentials;
+  import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
+  import io.confluent.ksql.util.KsqlConfig;
+  import io.confluent.ksql.util.PageViewDataProvider;
+  import io.confluent.ksql.util.PageViewDataProvider.Batch;
+  import io.confluent.ksql.util.PersistentQueryMetadata;
+  import io.confluent.ksql.util.TestDataProvider;
+  import io.confluent.ksql.util.TombstoneProvider;
+  import io.confluent.ksql.util.VertxCompletableFuture;
+  import io.vertx.core.buffer.Buffer;
+  import io.vertx.core.http.HttpMethod;
+  import io.vertx.core.http.HttpVersion;
+  import io.vertx.ext.web.client.HttpResponse;
+  import java.util.ArrayList;
+  import java.util.Arrays;
+  import java.util.Collections;
+  import java.util.List;
+  import java.util.Map;
+  import java.util.Optional;
+  import java.util.concurrent.CompletableFuture;
+  import java.util.concurrent.ExecutionException;
+  import java.util.concurrent.Semaphore;
+  import java.util.concurrent.TimeUnit;
+  import java.util.function.Consumer;
+  import java.util.function.Supplier;
+  import java.util.stream.Collectors;
+  import javax.ws.rs.core.MediaType;
+  import org.apache.hc.core5.http.HttpStatus;
+  import org.junit.After;
+  import org.junit.AfterClass;
+  import org.junit.Before;
+  import org.junit.BeforeClass;
+  import org.junit.ClassRule;
+  import org.junit.Rule;
+  import org.junit.Test;
+  import org.junit.experimental.categories.Category;
+  import org.junit.rules.RuleChain;
+  import org.junit.rules.Timeout;
+  import org.slf4j.Logger;
+  import org.slf4j.LoggerFactory;
 
-  @Category({IntegrationTest.class})
+@Category({IntegrationTest.class})
 public class RestApiTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);
 
   private static final int HEADER = 1;  // <-- some responses include a header as the first message.
   private static final int FOOTER = 1;  // <-- some responses include a footer as the last message.
@@ -227,7 +225,6 @@ public class RestApiTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
       .build();
 
   @ClassRule
@@ -471,7 +468,7 @@ public class RestApiTest {
 
     HttpResponse<Buffer> resp = RestIntegrationTestUtil
         .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET,
-            "/", null);
+            "/", null, Optional.empty());
 
     // Then
     assertThat(resp.statusCode(), is(HttpStatus.SC_TEMPORARY_REDIRECT));
@@ -528,7 +525,7 @@ public class RestApiTest {
 
     final String response = RestIntegrationTestUtil.rawRestRequest(REST_APP, HTTP_1_1, POST,
             "/query", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
-            Optional.empty())
+            Optional.empty(), Optional.empty())
         .body()
         .toString();
 
@@ -545,8 +542,7 @@ public class RestApiTest {
                 + "{\"row\":{\"columns\":[\"USER_0\",\"PAGE_5\",5]}},\n"
                 + "{\"row\":{\"columns\":[\"USER_2\",\"PAGE_5\",6]}},\n"
                 + "{\"row\":{\"columns\":[\"USER_3\",\"PAGE_5\",7]}},\n"
-                + "\n"
-                + "]\n"
+                + "{\"finalMessage\":\"Query Completed\"}]"
     )
     );
   }
@@ -643,7 +639,7 @@ public class RestApiTest {
           }
           String[] parts = str.split("\n");
           messages.addAll(Arrays.asList(parts));
-        });
+        }, Optional.empty());
 
     // Wait to get the metadata so we know we've started.
     start.acquire();
@@ -680,6 +676,11 @@ public class RestApiTest {
         "/query", ksqlRequest, KsqlMediaType.KSQL_V1_JSON.mediaType(),
         buffer -> {
           if (buffer == null || buffer.length() == 0) {
+            if (sb.length() > 0) {
+              String remainder = sb.toString();
+              sb.setLength(0);
+              messages.add(remainder);
+            }
             return;
           }
 
@@ -699,7 +700,7 @@ public class RestApiTest {
               Arrays.stream(parts)
                   .filter(part -> !(part.equals(",") || part.equals("]")))
                   .collect(Collectors.toList()));
-        });
+        }, Optional.empty());
 
     // Wait to get the metadata so we know we've started.
     start.acquire();
@@ -861,7 +862,8 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> {
       final String response = rawRestQueryRequest(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-          MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON
+          );
       return Arrays.asList(response.split(System.lineSeparator()));
     };
 
@@ -876,24 +878,7 @@ public class RestApiTest {
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 
-  @Test
-  public void shouldFailToExecutePullQueryOverRestHttp2() {
-    // Given
-    final KsqlRequest request = new KsqlRequest(
-        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        ImmutableMap.of(),
-        Collections.emptyMap(),
-        null
-    );
-    final Supplier<Integer> call = () -> rawRestRequest(
-        HttpVersion.HTTP_2, HttpMethod.POST, "/query", request
-    ).statusCode();
-
-    // When:
-    assertThatEventually(call, is(METHOD_NOT_ALLOWED.code()));
-  }
-
-  @Test
+    @Test
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
@@ -905,7 +890,7 @@ public class RestApiTest {
           HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
               HTTP_2, POST,
               "/query-stream", queryStreamArgs, "application/vnd.ksqlapi.delimited.v1",
-              Optional.empty());
+              Optional.empty(), Optional.empty());
           queryResponse[0] = new QueryResponse(resp.body().toString());
           return queryResponse[0].rows.size();
         } catch (Throwable t) {
@@ -921,115 +906,87 @@ public class RestApiTest {
         "application/vnd.ksqlapi.delimited.v1",
         KsqlMediaType.KSQL_V1_JSON.mediaType());
     ImmutableList<HttpVersion> httpVersions = ImmutableList.of(HTTP_1_1, HTTP_2);
-    ImmutableList<String> endpoints = ImmutableList.of("/query-stream");
+    ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
+    ImmutableList<Boolean> migrationFlags = ImmutableList.of(true, false);
+
+    final String query
+        = "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
 
     for (String format : formats) {
       for (HttpVersion version : httpVersions) {
         for (String endpoint : endpoints) {
-          LOG.info("Trying pull query combination {} {} {}", format, version, endpoint);
-          Object requestBody;
-          if (endpoint.equals("/query-stream")) {
-            requestBody = new QueryStreamArgs(
-                "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
-          } else {
-            fail("Unknown endpoint " + endpoint);
-            return;
-          }
+          for (Boolean migrationEnabled : migrationFlags) {
+            boolean routedToQueryStream = endpoint.equals("/query")
+                && format.equals("application/vnd.ksqlapi.delimited.v1");
+            boolean migrated = routedToQueryStream || migrationEnabled;
+            if (!migrated && endpoint.equals("/query") && version == HTTP_2) {
+              LOG.info("Skipping pull query combination {} {} {} {}", format, version, endpoint,
+                  migrationEnabled);
+              continue;
+            }
 
-          // It would be nice to check the output the same way between all of the formats, but this
-          // is somewhat hard since they have different data, so we don't try.
-          if (format.equals("application/vnd.ksqlapi.delimited.v1")) {
-            QueryResponse[] queryResponse = new QueryResponse[1];
-            assertThatEventually(() -> {
-              try {
+            LOG.info("Trying pull query combination {} {} {} {}", format, version, endpoint,
+                migrationEnabled);
+            Object requestBody;
+            ImmutableMap<String, Object> overrides = ImmutableMap.of(
+                KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG, migrationEnabled
+            );
+            if (endpoint.equals("/query-stream")) {
+              requestBody = new QueryStreamArgs(query, overrides,
+                  Collections.emptyMap(), Collections.emptyMap());
+            } else if (endpoint.equals("/query")) {
+              requestBody = new KsqlRequest(
+                  query, overrides, Collections.emptyMap(), Collections.emptyMap(),
+                  null);
+            } else {
+              fail("Unknown endpoint " + endpoint);
+              return;
+            }
+
+            // It would be nice to check the output the same way between all of the formats, but
+            // this is somewhat hard since they have different data, so we don't try.
+            if (format.equals("application/vnd.ksqlapi.delimited.v1")) {
+              QueryResponse[] queryResponse = new QueryResponse[1];
+              assertThatEventually(() -> {
+                try {
+                  HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                      version, POST,
+                      endpoint, requestBody, "application/vnd.ksqlapi.delimited.v1",
+                      Optional.empty(), Optional.empty());
+                  queryResponse[0] = new QueryResponse(resp.body().toString());
+                  return queryResponse[0].rows.size();
+                } catch (Throwable t) {
+                  return Integer.MAX_VALUE;
+                }
+              }, is(1));
+              assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
+            } else if (format.equals(KsqlMediaType.KSQL_V1_JSON.mediaType())) {
+              final Supplier<List<String>> call = () -> {
                 HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
                     version, POST,
-                    endpoint, requestBody, "application/vnd.ksqlapi.delimited.v1",
-                    Optional.empty());
-                queryResponse[0] = new QueryResponse(resp.body().toString());
-                return queryResponse[0].rows.size();
-              } catch (Throwable t) {
-                return Integer.MAX_VALUE;
-              }
-            }, is(1));
-            assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
-          } else if (format.equals(KsqlMediaType.KSQL_V1_JSON.mediaType())) {
-            final Supplier<List<String>> call = () -> {
-              HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
-                  version, POST,
-                  endpoint, requestBody, KsqlMediaType.KSQL_V1_JSON.mediaType(),
-                  Optional.empty());
-              final String response = resp.body().toString();
-              return Arrays.asList(response.split(System.lineSeparator()));
-            };
+                    endpoint, requestBody, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+                    Optional.empty(), Optional.empty());
+                final String response = resp.body().toString();
+                return Arrays.asList(response.split(System.lineSeparator()));
+              };
 
-            // When:
-            final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1 + FOOTER));
-            // Then:
-            assertThat(messages, hasSize(HEADER + 1 + FOOTER));
-            assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
-            assertThat(messages.get(0),
-                endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-            assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
-            assertThat(messages.get(2), is("{\"finalMessage\":\"Pull query complete\"}]"));
-          } else {
-            fail("Unknown format " + format);
-            return;
+              // When:
+              final List<String> messages = assertThatEventually(call,
+                  hasSize(HEADER + 1));
+              // Then:
+              assertThat(messages, hasSize(HEADER + 1));
+              assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+              assertThat(messages.get(0),
+                  endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
+              assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
+            } else {
+              fail("Unknown format " + format);
+              return;
+            }
           }
         }
       }
     }
-  }
-
-  @Test
-  public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
-    // Given:
-    Map<String, Object> configOverrides =  ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-    Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
-
-    // When:
-    final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON,
-        Optional.of(configOverrides),
-        Optional.of(requestProperties)
-    );
-
-    // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
-    assertValidJsonMessages(messages);
-    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
-                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
-  }
-
-  @Test
-  public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
-    // Given:
-    Map<String, Object> configOverrides =  ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-    Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
-
-    // When:
-    final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        Optional.of(configOverrides),
-        Optional.of(requestProperties)
-    );
-
-    // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
-    assertValidJsonMessages(messages);
-    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
-                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
   }
 
   @Test
@@ -1082,20 +1039,6 @@ public class RestApiTest {
     assertThat(query.size(), is(1));
   }
 
-  @Test
-  public void shouldFailToExecuteQueryUsingRestWithHttp2() {
-    // Given:
-    KsqlRequest ksqlRequest = new KsqlRequest("SELECT * from " + AGG_TABLE + " EMIT CHANGES;",
-        Collections.emptyMap(), Collections.emptyMap(), null);
-
-    // When:
-    HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
-        HttpVersion.HTTP_2, HttpMethod.POST, "/query", ksqlRequest);
-
-    // Then:
-    assertThat(resp.statusCode(), is(405));
-  }
-
   private boolean topicExists(final String topicName) {
     return getServiceContext().getTopicClient().isTopicExists(topicName);
   }
@@ -1116,13 +1059,13 @@ public class RestApiTest {
   }
 
   private static String rawRestQueryRequest(final String sql, final String mediaType) {
-    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType)
+    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType, Optional.empty())
         .body()
         .toString();
   }
 
   private static int failingRestQueryRequest(final String sql, final String mediaType) {
-    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType)
+    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType, Optional.empty())
         .statusCode();
   }
 
@@ -1136,14 +1079,6 @@ public class RestApiTest {
     } catch (final Exception e) {
       throw new AssertionError("Invalid JSON received: " + response, e);
     }
-  }
-
-  private static HttpResponse<Buffer> rawRestRequest(
-      final HttpVersion httpVersion,
-      final HttpMethod method,
-      final String uri,
-      final Object requestBody) {
-    return RestIntegrationTestUtil.rawRestRequest(REST_APP, httpVersion, method, uri, requestBody);
   }
 
   private static List<String> makeWebSocketRequest(
@@ -1222,4 +1157,5 @@ public class RestApiTest {
       return true;
     }, is(true));
   }
+
 }

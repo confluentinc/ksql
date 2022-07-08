@@ -18,6 +18,10 @@ package io.confluent.ksql;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.pull.HARouting;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.scalablepush.PushRouting;
+import io.confluent.ksql.execution.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
@@ -28,10 +32,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -226,7 +226,15 @@ public interface KsqlExecutionContext {
   /**
    * Executes a KSQL plan using the supplied service context.
    */
-  ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan);
+  default ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan) {
+    return execute(serviceContext, plan, false);
+  }
+
+  /**
+   * Executes a KSQL plan using the supplied service context.
+   */
+  ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan,
+                        boolean restoreInProgress);
 
   /**
    * Execute the supplied statement, updating the meta store and registering any query.

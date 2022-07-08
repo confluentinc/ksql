@@ -47,6 +47,7 @@ import io.confluent.ksql.test.serde.none.NoneSerdeSupplier;
 import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -67,16 +68,17 @@ public final class SerdeUtil {
 
   public static SerdeSupplier<?> getSerdeSupplier(
       final FormatInfo formatInfo,
-      final LogicalSchema schema
+      final LogicalSchema schema,
+      final Map<String, Object> properties
   ) {
     final Format format = FormatFactory.of(formatInfo);
     switch (format.name()) {
       case AvroFormat.NAME:       return new ValueSpecAvroSerdeSupplier();
       case ProtobufFormat.NAME:
         return new ValueSpecProtobufSerdeSupplier(
-            new ProtobufProperties(formatInfo.getProperties()).getUnwrapPrimitives());
-      case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(false);
-      case JsonSchemaFormat.NAME: return new ValueSpecJsonSerdeSupplier(true);
+            new ProtobufProperties(formatInfo.getProperties()));
+      case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(false, properties);
+      case JsonSchemaFormat.NAME: return new ValueSpecJsonSerdeSupplier(true, properties);
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();
       case KafkaFormat.NAME:      return new KafkaSerdeSupplier(schema);
       case NoneFormat.NAME:       return new NoneSerdeSupplier();
@@ -117,12 +119,12 @@ public final class SerdeUtil {
   @SuppressWarnings("unchecked")
   public static <T> SerdeSupplier<?> getKeySerdeSupplier(
       final KeyFormat keyFormat,
-      final LogicalSchema schema
-  ) {
+      final LogicalSchema schema,
+      final Map<String, Object> properties) {
     final SerdeSupplier<T> inner = (SerdeSupplier<T>) getSerdeSupplier(
         keyFormat.getFormatInfo(),
-        schema
-    );
+        schema,
+        properties);
 
     if (!keyFormat.getWindowType().isPresent()) {
       return inner;

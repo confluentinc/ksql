@@ -358,6 +358,18 @@
       ]
     },
     {
+      "name": "should insert decimals between zero and one",
+      "statements": [
+        "CREATE STREAM S (ID INT KEY, V0 DECIMAL(12, 2))  WITH (kafka_topic='test_topic',partitions = 1, value_format='JSON');",
+        "INSERT INTO S (ID,V0) VALUES (1,0.05);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": 1, "value": {"V0": 0.05}}
+      ]
+    },
+    {
       "name": "should fail on column reference",
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -421,6 +433,20 @@
       ]
     },
     {
+      "name": "multi-key insert - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (COL1 VARCHAR KEY, COL2 INT KEY, COL3 VARCHAR) WITH (kafka_topic='input_topic', VALUE_FORMAT='AVRO', KEY_FORMAT='AVRO', PARTITIONS=1);",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('1', 1, '1');",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('2', 2, '2');"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "input_topic", "key": {"COL1": "1", "COL2": 1}, "value": {"COL3": "1"}},
+        {"topic": "input_topic", "key": {"COL1": "2", "COL2": 2}, "value": {"COL3": "2"}}
+      ]
+    },
+    {
       "name": "AVRO struct key format",
       "statements": [
         "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, ID INT) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -430,6 +456,101 @@
       ],
       "outputs": [
         {"topic": "test_topic", "timestamp": 1234, "key": {"F1": "key"}, "value": {"ID": 10}}
+      ]
+    },
+    {
+      "name": "PROTOBUF key and value format",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', format='PROTOBUF');",
+        "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, 'key');"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K": "key"}, "value": {"ID": 10}}
+      ]
+    },
+    {
+      "name": "PROTOBUF array key and value format",
+      "statements": [
+        "CREATE STREAM TEST (K ARRAY<INT> KEY, V ARRAY<INT>) WITH (kafka_topic='test_topic', format='PROTOBUF');",
+        "INSERT INTO TEST (V, ROWTIME, K) VALUES (ARRAY[10, 20], 1234, ARRAY[12, 22]);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K": [12, 22]}, "value": {"V": [10, 20]}}
+      ]
+    },
+    {
+      "name": "multi-key insert - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (COL1 VARCHAR KEY, COL2 INT KEY, COL3 VARCHAR) WITH (kafka_topic='input_topic', VALUE_FORMAT='PROTOBUF', KEY_FORMAT='PROTOBUF', PARTITIONS=1);",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('1', 1, '1');",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('2', 2, '2');"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "input_topic", "key": {"COL1": "1", "COL2": 1}, "value": {"COL3": "1"}},
+        {"topic": "input_topic", "key": {"COL1": "2", "COL2": 2}, "value": {"COL3": "2"}}
+      ]
+    },
+    {
+      "name": "PROTOBUF struct key and value format",
+      "statements": [
+        "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, V STRUCT<V1 STRING>) WITH (kafka_topic='test_topic', format='PROTOBUF');",
+        "INSERT INTO TEST (V, ROWTIME, K) VALUES (STRUCT(v1:='value'), 1234, STRUCT(f1:='key'));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K": {"F1": "key"}}, "value": {"V": {"V1":  "value"}}}
+      ]
+    },
+    {
+      "name": "PROTOBUF with schema full name",
+      "statements": [
+        "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, V STRUCT<V1 STRING>) WITH (kafka_topic='test_topic', format='PROTOBUF', key_schema_full_name='io.test.key', value_schema_full_name='io.test.value');",
+        "INSERT INTO TEST (V, ROWTIME, K) VALUES (STRUCT(v1:='value'), 1234, STRUCT(f1:='key'));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K": {"F1": "key"}}, "value": {"V": {"V1":  "value"}}}
+      ]
+    },
+    {
+      "name": "PROTOBUF with deep schema",
+      "statements": [
+        "CREATE STREAM TEST (K0 STRUCT<ID INT> KEY, V0 STRUCT<id INT>, V1 ARRAY<STRUCT<NAME STRING>>, V2 MAP<STRING, STRUCT<ADDRESS STRING>>) WITH (kafka_topic='test_topic', format='PROTOBUF', value_schema_full_name='io.test.value');",
+        "INSERT INTO TEST (ROWTIME, K0, V0, V1, V2) VALUES (1234, STRUCT(id:=1), STRUCT(id:=1), ARRAY[struct(name:='n1'), STRUCT(name:='n2')], MAP('k0':=STRUCT(address:='addr1')));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K0": {"ID": 1}}, "value": {"V0": {"ID": 1}, "V1": [{"NAME": "n1"}, {"NAME": "n2"}], "V2": {"k0": {"ADDRESS": "addr1"}}}}
+      ]
+    },
+    {
+      "name": "PROTOBUF from multiple schema definitions",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', format='PROTOBUF', key_schema_full_name='ProtobufKey2', value_schema_full_name='ProtobufValue2');",
+        "INSERT INTO TEST (ROWTIME, K1, C2) VALUES (1234, 'key', 1);"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 K1 = 1;} message ProtobufKey2 {string K1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float C1 = 1; uint32 C2 = 2;} message ProtobufValue2 {uint32 C2 = 1;}"
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K1": "key"}, "value": {"C2":  1}}
       ]
     },
     {

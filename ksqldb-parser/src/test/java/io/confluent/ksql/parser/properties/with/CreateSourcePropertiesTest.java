@@ -101,6 +101,38 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getValueSerdeFeatures(), is(SerdeFeatures.of()));
+    assertThat(properties.getKeySchemaFullName(), is(Optional.empty()));
+    assertThat(properties.getValueSchemaFullName(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldReturnOptionalEmptyForPropsWithSpaces() {
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(KEY_SCHEMA_FULL_NAME, new StringLiteral("     "))
+            .put(VALUE_SCHEMA_FULL_NAME, new StringLiteral("     "))
+            .build());
+
+    // Then:
+    assertThat(properties.getKeySchemaFullName(), is(Optional.empty()));
+    assertThat(properties.getValueSchemaFullName(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldSetValidKeyAndValueFullSchemaName() {
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME, new StringLiteral("io.com.key"))
+            .put(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME, new StringLiteral("io.com.val"))
+            .build());
+
+    // Then:
+    assertThat(properties.getKeySchemaFullName(), is(Optional.of("io.com.key")));
+    assertThat(properties.getValueSchemaFullName(), is(Optional.of("io.com.val")));
   }
 
   @Test

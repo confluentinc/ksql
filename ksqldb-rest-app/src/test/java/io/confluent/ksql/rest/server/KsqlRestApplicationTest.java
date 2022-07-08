@@ -68,6 +68,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
+
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -120,10 +122,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private KsqlServerPrecondition precondition2;
   @Mock
-  private ParsedStatement parsedStatement;
-  @Mock
-  private PreparedStatement<?> preparedStatement;
-  @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
   private HeartbeatAgent heartbeatAgent;
@@ -135,6 +133,10 @@ public class KsqlRestApplicationTest {
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private QueryExecutor queryExecutor;
+  @Mock
+  private KafkaTopicClient internalTopicClient;
+  @Mock
+  private Admin internalAdminClient;
 
   @Mock
   private Vertx vertx;
@@ -162,18 +164,14 @@ public class KsqlRestApplicationTest {
     when(processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)).thenReturn(true);
     when(processingLogContext.getConfig()).thenReturn(processingLogConfig);
 
-    when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(parsedStatement));
-    when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement) preparedStatement);
-
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
-    when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
-    
+
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "/tmp/cat"));
 
-    when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
-    when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
+    when(precondition1.checkPrecondition(any(), any(), any())).thenReturn(Optional.empty());
+    when(precondition2.checkPrecondition(any(), any(), any())).thenReturn(Optional.empty());
 
     when(response.getStatus()).thenReturn(200);
     when(response.getEntity()).thenReturn(new KsqlEntityList(
@@ -323,8 +321,8 @@ public class KsqlRestApplicationTest {
     app.startKsql(ksqlConfig);
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(topicClient, commandQueue, commandRunner);
-    inOrder.verify(topicClient).createTopic(eq(CMD_TOPIC_NAME), anyInt(), anyShort(), anyMap());
+    final InOrder inOrder = Mockito.inOrder(internalTopicClient, commandQueue, commandRunner);
+    inOrder.verify(internalTopicClient).createTopic(eq(CMD_TOPIC_NAME), anyInt(), anyShort(), anyMap());
     inOrder.verify(commandQueue).start();
     inOrder.verify(commandRunner).processPriorCommands(queryCleanupArgumentCaptor.capture());
   }
@@ -359,7 +357,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCheckPreconditionsBeforeUsingServiceContext() {
     // Given:
-    when(precondition2.checkPrecondition(any(), any())).then(a -> {
+    when(precondition2.checkPrecondition(any(), any(), any())).then(a -> {
       verifyNoMoreInteractions(serviceContext);
       return Optional.empty();
     });
@@ -369,8 +367,8 @@ public class KsqlRestApplicationTest {
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serviceContext);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
+    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
+    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
   }
 
   @Test
@@ -381,7 +379,7 @@ public class KsqlRestApplicationTest {
     final Queue<KsqlErrorMessage> errors = new LinkedList<>();
     errors.add(error1);
     errors.add(error2);
-    when(precondition2.checkPrecondition(any(), any())).then(a -> {
+    when(precondition2.checkPrecondition(any(), any(), any())).then(a -> {
       verifyNoMoreInteractions(serviceContext);
       return Optional.ofNullable(errors.isEmpty() ? null : errors.remove());
     });
@@ -391,14 +389,14 @@ public class KsqlRestApplicationTest {
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serverState);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
+    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
+    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
     inOrder.verify(serverState).setInitializingReason(error1);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
+    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
+    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
     inOrder.verify(serverState).setInitializingReason(error2);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
+    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
+    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
   }
 
   @Test
@@ -484,7 +482,9 @@ public class KsqlRestApplicationTest {
         Optional.empty(),
         Optional.empty(),
         queryExecutor,
-        metricCollectors
+        metricCollectors,
+        internalTopicClient,
+        internalAdminClient
     );
   }
 

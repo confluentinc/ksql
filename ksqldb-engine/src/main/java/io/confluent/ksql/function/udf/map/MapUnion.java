@@ -47,7 +47,7 @@ public class MapUnion {
     }
 
     final Map<String, T> output = new HashMap<>();
-    nonNullInputs.stream()
+    nonNullInputs
         .forEach(output::putAll);
     return output;
   }

@@ -57,6 +57,9 @@ public class TimestampToString {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
+    if (formatPattern == null) {
+      return null;
+    }
     try {
       final Timestamp timestamp = new Timestamp(epochMilli);
       final DateTimeFormatter formatter = formatters.get(formatPattern);
@@ -84,6 +87,9 @@ public class TimestampToString {
       @UdfParameter(
           description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
               + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String timeZone) {
+    if (formatPattern == null || timeZone == null) {
+      return null;
+    }
     try {
       final Timestamp timestamp = new Timestamp(epochMilli);
       final DateTimeFormatter formatter = formatters.get(formatPattern);

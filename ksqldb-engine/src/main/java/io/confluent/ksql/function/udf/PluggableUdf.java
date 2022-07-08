@@ -22,7 +22,7 @@ import java.util.Objects;
 /**
  * Class to allow conversion from Kudf to UdfInvoker.
  * This may change if we ever get rid of Kudf. As it stands we need
- * to do a conversion from custom UDF -> Kudf so we can support strong
+ * to do a conversion from custom UDF -> Kudf, so we can support strong
  * typing etc.
  */
 public class PluggableUdf implements Kudf {

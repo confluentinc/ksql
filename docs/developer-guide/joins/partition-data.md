@@ -168,6 +168,10 @@ only if they are also both in the same partition after the repartition.
 Otherwise, Kafka is likely to interleave messages. The use case will determine
 if these ordering guarantees are acceptable.
 
+The PARTITION BY clause moves the columns into the key. If you want them in the
+value also, you must copy them by using the [AS_VALUE](../ksqldb-reference/scalar-functions.md#as_value)
+function.
+
 !!! important
       If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
       random partition. You may want to use [COALESCE](../ksqldb-reference/scalar-functions.md#coalesce) to wrap
@@ -223,11 +227,11 @@ you don't need to worry about the partitioning strategy.
 
 But if the producer applications for your records have custom
 partitioners specified in
-[configuration](http://kafka.apache.org/documentation/#producerconfigs),
+[configuration](https://kafka.apache.org/documentation/#producerconfigs),
 the same custom partitioner logic must be used for records on both sides
 of the join. The applications that write to the join inputs must have
 the same partitioning strategy, so that records with the same key are
-delivered to same partition number.
+delivered to the same partition.
 
 This means that the input records must be in the same partition on both
 sides of the join. For example, in a stream-table join, if a `userId`

@@ -15,12 +15,18 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
+import static io.confluent.ksql.serde.connect.ConnectFormat.VALUE_SCHEMA_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -620,11 +626,16 @@ public class SchemaRegisterInjectorTest {
         + ");", Pair.of(keySchemaAndId, ValueSchemaAndId));
 
     // When:
-    injector.inject(statement);
+    ConfiguredStatement<?> newStatement = injector.inject(statement);
 
     // Then:
     verify(schemaRegistryClient).register("expectedName-key", AVRO_UNWRAPPED_KEY_SCHEMA);
     verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA);
+    assertTrue(statement.getSessionConfig().getOverrides().containsKey(KEY_SCHEMA_ID));
+    assertTrue(statement.getSessionConfig().getOverrides().containsKey(VALUE_SCHEMA_ID));
+    assertFalse(newStatement.getSessionConfig().getOverrides().containsKey(KEY_SCHEMA_ID));
+    assertFalse(newStatement.getSessionConfig().getOverrides().containsKey(VALUE_SCHEMA_ID));
+    assertThat(newStatement.getSessionConfig().getOverrides(), hasKey("Dummy key"));
   }
 
   private void givenStatement(final String sql) {
@@ -640,11 +651,12 @@ public class SchemaRegisterInjectorTest {
 
     final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
     if (rawSchemaAndId.left != null) {
-      builder.put(CommonCreateConfigs.KEY_SCHEMA_ID, rawSchemaAndId.left);
+      builder.put(KEY_SCHEMA_ID, rawSchemaAndId.left);
     }
     if (rawSchemaAndId.right != null) {
       builder.put(CommonCreateConfigs.VALUE_SCHEMA_ID, rawSchemaAndId.right);
     }
+    builder.put("Dummy key", 1);
 
     statement = ConfiguredStatement.of(
         preparedStatement,

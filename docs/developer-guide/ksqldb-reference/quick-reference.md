@@ -40,7 +40,7 @@ ALTER STREAM stream_name
 ```
 
 ## ALTER TABLE
-Add new columns to a table. This is not supported for table defined using queries
+Add new columns to a table. This is not supported for tables defined using queries
 (`CREATE TABLE ... AS`)
 ```sql
 ALTER TABLE stream_name
@@ -51,7 +51,7 @@ ALTER TABLE stream_name
 
 ## AND / OR
 Logical AND/OR operators in a WHERE clause. For more information, see
-[SELECT](../../ksqldb-reference/select-push-query/#example).
+[SELECT](/developer-guide/ksqldb-reference/select-push-query/#examples).
 
 ```sql hl_lines="4"
 SELECT column_name(s)
@@ -62,7 +62,7 @@ SELECT column_name(s)
 
 ## AS
 Alias a column, expression, or type. For more information, see
-[Create a table](../../create-a-table/#create-a-ksqldb-table-from-a-ksqldb-stream).
+[Create a table](/developer-guide/ksqldb-reference/create-table-as-select/#examples).
 
 ```sql hl_lines="1"
 SELECT column_name AS column_alias
@@ -517,6 +517,18 @@ information, see [PRINT](../../ksqldb-reference/print).
 PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
 ```
 
+## RIGHT JOIN
+Select all records from the right stream/table and the matched records from the
+left stream/table. For more information, see
+[Join streams and tables](/developer-guide/joins/join-streams-and-tables).
+
+```sql hl_lines="3"
+SELECT column_name(s)
+  FROM stream_name1 | table_name1
+   RIGHT JOIN stream_name2 | table_name2
+   ON <stream_name1|table_name1>.column_name=<stream_name2|table_name2>.column_name
+```
+
 ## RUN SCRIPT
 Execute predefined queries and commands from a file. For more
 information, see [RUN SCRIPT](../../ksqldb-reference/run-script).
@@ -701,7 +713,7 @@ UNSET 'auto.offset.reset';
 
 ## WHERE
 Extract records that fulfill a specified condition. For more information, see
-[SELECT](../../ksqldb-reference/select-push-query/#example).  
+[SELECT](/developer-guide/ksqldb-reference/select-push-query/#examples).  
 
 ```sql hl_lines="3"
 SELECT column_name(s)
@@ -722,7 +734,7 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 ```
 
 ## WINDOWSTART / WINDOWEND
-Specify the beginning and end bounds a window. For more information, see
+Specify the beginning and end bounds of a window. For more information, see
 [WINDOW](../../ksqldb-reference/select-push-query/#window).
 
 ```sql hl_lines="1"

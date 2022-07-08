@@ -212,6 +212,29 @@ public class DdlCommandExecTest {
   }
 
   @Test
+  public void shouldDropStreamIfConstraintExistsAndRestoreIsInProgress() {
+    // Given:
+    final CreateStreamCommand stream1 = buildCreateStream(SourceName.of("s1"), SCHEMA, false, false);
+    final CreateStreamCommand stream2 = buildCreateStream(SourceName.of("s2"), SCHEMA, false, false);
+    final CreateStreamCommand stream3 = buildCreateStream(SourceName.of("s3"), SCHEMA, false, false);
+    cmdExec.execute(SQL_TEXT, stream1, true, Collections.emptySet());
+    cmdExec.execute(SQL_TEXT, stream2, true, Collections.singleton(SourceName.of("s1")));
+    cmdExec.execute(SQL_TEXT, stream3, true, Collections.singleton(SourceName.of("s1")));
+
+    // When:
+    final DropSourceCommand dropStream = buildDropSourceCommand(SourceName.of("s1"));
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropStream, false,
+        Collections.emptySet(), true);
+
+    // Then
+    assertThat(result.isSuccess(), is(true));
+    assertThat(
+        result.getMessage(),
+        equalTo(String.format("Source %s (topic: %s) was dropped.", STREAM_NAME, TOPIC_NAME))
+    );
+  }
+
+  @Test
   public void shouldAddStreamWithCorrectKsqlTopic() {
     // Given:
     givenCreateStream();

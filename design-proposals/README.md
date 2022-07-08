@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **59**
+Next KLIP number: **63**
 
 | KLIP                                                                                                                             |  Status  | Community Release | CP Release | Discussion PR                                                |
 |----------------------------------------------------------------------------------------------------------------------------------|:--------:|:-----------------:|:----------:|--------------------------------------------------------------|
@@ -96,5 +96,10 @@ Next KLIP number: **59**
 | [KLIP-53: Pull Queries on Streams                                                                                                | Proposal |      0.22.0       |            |                                                              |
 | [KLIP-54: Optimized Range Pull Queries on Tables                                                                                 | Proposal |      0.22.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/7993) |
 | [KLIP-55: Tablespaces](https://github.com/confluentinc/ksql/blob/af5e34f27627b634a33dc8e5bfa4f64ac75069e6/design-proposals/klip-55-tablespaces.md)                                                                                 | Proposal |      TBD       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8109) |
-| [KLIP-57: Kafka headers](klip-57-kafka-headers.md)                                                                               | Proposal |      0.25.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8293) |
+| [KLIP-56: Schema id in create statements](klip-56-schema-id-in-create-statements.md)                                             |  Merged  |      0.24.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8303) |
+| [KLIP-57: Kafka headers](klip-57-kafka-headers.md)                                                                               |  Merged  |      0.24.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8293) |
 | KLIP-58: [`LIMIT` clause for Pull Queries](https://github.com/confluentinc/ksql/pull/8298)                                       | Approved |      0.24.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8298) |
+| [KLIP-59: JSON functions](klip-59-json-functions.md)                                                                             | Approved |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/8550) | 
+| [KLIP-60: Support input topics with multiple message types](klip-60-multiple-message-types.md)                                                                             | Proposal |                   |            |  | 
+| [KLIP-61: Bootstrapped TABLE subscriptions](klip-61-bootstrapped-subscriptions.md)                                                     | Proposal |                   |            |  | 
+| [KLIP-62: ksqlDB Ruby Client](klip-62-ksqldb-ruby-client.md)                                                     | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/8865) | 

@@ -45,7 +45,8 @@
         {"query": [
           {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER, `MYHEADERS` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>"}},
           {"row":{"columns":[10, 1, []]}},
-          {"row":{"columns":[11, 2, [{"KEY": "abc", "VALUE": "IQ=="}]]}}
+          {"row":{"columns":[11, 2, [{"KEY": "abc", "VALUE": "IQ=="}]]}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },

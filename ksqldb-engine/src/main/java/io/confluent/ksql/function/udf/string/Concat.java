@@ -60,7 +60,7 @@ public class Concat {
     final ByteBuffer concatenated = ByteBuffer.allocate(capacity);
     Arrays.stream(inputs)
         .filter(Objects::nonNull)
-        .forEachOrdered(bytes -> concatenated.put(bytes));
+        .forEachOrdered(concatenated::put);
 
     concatenated.rewind();
     return concatenated;

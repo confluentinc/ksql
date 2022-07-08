@@ -19,9 +19,13 @@ import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +40,25 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
         getSandboxStreamsProperties(sharedRuntime)
     );
 
+    final Collection<NamedTopology> namedTopologies = collocatedQueries.values()
+        .stream()
+        .map(BinPackedPersistentQueryMetadataImpl::getTopology)
+        .collect(Collectors.toSet());
+
+    if (!namedTopologies.containsAll(sharedRuntime.kafkaStreams.getAllTopologies())
+        || !sharedRuntime.kafkaStreams.getAllTopologies().containsAll(namedTopologies)) {
+      log.warn("Streams topologies and registered queries do not align."
+              + " \nmetadata: {} \nstreams: {}",
+          namedTopologies
+              .stream()
+              .map(s -> s.name())
+              .collect(Collectors.toList()),
+          sharedRuntime.kafkaStreams.getAllTopologies()
+              .stream()
+              .map(s -> s.name())
+              .collect(Collectors.toList()));
+    }
+    collocatedQueries.putAll(sharedRuntime.collocatedQueries);
     for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {
       kafkaStreams.addNamedTopology(query.getTopologyCopy(this));
     }
@@ -66,15 +89,41 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
 
   @Override
   public void register(
-      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
-      final QueryId queryId
+      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata
   ) {
+    final QueryId queryId = binpackedPersistentQueryMetadata.getQueryId();
+    log.info("Registering query {} for validation for runtime {}", queryId, getApplicationId());
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    log.debug("mapping {}", collocatedQueries);
+    try {
+      if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
+        kafkaStreams.removeNamedTopology(queryId.toString(), false).all().get();
+      }
+      kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+          .all()
+          .get();
+    }  catch (final Throwable e) {
+      final Throwable t = (e instanceof ExecutionException && e.getCause() != null)
+          ? e.getCause()
+          : e;
+      throw new IllegalStateException(String.format(
+          "Encountered an error when trying to add query %s to runtime: %s",
+          queryId,
+          getApplicationId()),
+        t);
+    }
+    log.info("Registered query: {}  in {} \n"
+            + "Runtime {} is executing these queries: {}",
+        queryId,
+        getApplicationId(),
+        getApplicationId(),
+        collocatedQueries.keySet()
+            .stream()
+            .map(QueryId::toString)
+            .collect(Collectors.joining(", ")));
   }
 
   @Override
-  public void stop(final QueryId queryId, final boolean resetOffsets) {
+  public void stop(final QueryId queryId, final boolean isCreateOrReplace) {
   }
 
   public TimeBoundedQueue getNewQueryErrorQueue() {
@@ -83,7 +132,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
 
   @Override
   public synchronized void close() {
-    log.debug("Closing validation runtime {}", getApplicationId());
+    log.info("Closing validation runtime {}", getApplicationId());
     kafkaStreams.close();
     kafkaStreams.cleanUp();
   }

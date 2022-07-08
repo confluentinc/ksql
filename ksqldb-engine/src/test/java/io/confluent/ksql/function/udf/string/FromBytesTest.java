@@ -84,6 +84,11 @@ public class FromBytesTest {
     }
 
     @Test
+    public void shouldReturnNullOnNullEncoding() {
+        assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{0, 1, 2}), null), nullValue());
+    }
+
+    @Test
     public void shouldThrowOnUnknownEncodingType() {
         final Exception e = assertThrows(IllegalArgumentException.class,
             () -> udf.fromBytes(ByteBuffer.wrap(new byte[]{0, 1, 2}), "base5000"));

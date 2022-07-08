@@ -22,16 +22,18 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
+import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
 import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcherRange;
 import java.time.Instant;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.query.Position;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
@@ -39,7 +41,7 @@ import org.apache.kafka.streams.state.ReadOnlySessionStore;
 /**
  * Kafka Streams impl of {@link MaterializedWindowedTable}.
  */
-class KsMaterializedSessionTable implements MaterializedWindowedTable {
+class KsMaterializedSessionTable implements StreamsMaterializedWindowedTable {
 
   private final KsStateStore stateStore;
   private final SessionStoreCacheBypassFetcher cacheBypassFetcher;
@@ -55,25 +57,31 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
   }
 
   @Override
-  public List<WindowedRow> get(
+  public KsMaterializedQueryResult<WindowedRow> get(
       final GenericKey key,
       final int partition,
       final Range<Instant> windowStart,
-      final Range<Instant> windowEnd
+      final Range<Instant> windowEnd,
+      final Optional<Position> position
   ) {
     try {
       final ReadOnlySessionStore<GenericKey, GenericRow> store = stateStore
           .store(QueryableStoreTypes.sessionStore(), partition);
 
-      return findSession(store, key, windowStart, windowEnd);
+      return KsMaterializedQueryResult.rowIterator(
+          findSession(store, key, windowStart, windowEnd).iterator());
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
   }
 
   @Override
-  public Iterator<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
-      final Range<Instant> windowEndBounds) {
+  public KsMaterializedQueryResult<WindowedRow> get(
+      final int partition,
+      final Range<Instant> windowStartBounds,
+      final Range<Instant> windowEndBounds,
+      final Optional<Position> position
+  ) {
     throw new MaterializationException("Table scan unsupported on session tables");
   }
 

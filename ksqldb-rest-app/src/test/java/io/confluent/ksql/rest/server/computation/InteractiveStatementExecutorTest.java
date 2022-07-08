@@ -295,7 +295,7 @@ public class InteractiveStatementExecutorTest {
         "_CSASGen",
         CommandId.Action.CREATE);
 
-    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
+    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan), eq(false)))
         .thenReturn(ExecuteResult.of(mockQueryMetadata));
 
     // When:
@@ -361,7 +361,8 @@ public class InteractiveStatementExecutorTest {
         plannedCommand.getOriginalProperties());
     verify(mockEngine).execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap()))
+        ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap())),
+        false
     );
   }
 
@@ -395,7 +396,7 @@ public class InteractiveStatementExecutorTest {
     final InOrder inOrder = Mockito.inOrder(status, mockEngine);
     inOrder.verify(status).setStatus(
         new CommandStatus(Status.EXECUTING, "Executing statement"));
-    inOrder.verify(mockEngine).execute(any(), any(ConfiguredKsqlPlan.class));
+    inOrder.verify(mockEngine).execute(any(), any(ConfiguredKsqlPlan.class), any(Boolean.class));
     inOrder.verify(status).setFinalStatus(
         new CommandStatus(Status.SUCCESS, "Created query with ID qid", Optional.of(QUERY_ID)));
   }
@@ -403,7 +404,7 @@ public class InteractiveStatementExecutorTest {
   @Test
   public void shouldSetCorrectFinalStatusOnCompletedPlannedDDLCommand() {
     // Given:
-    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class)))
+    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class), any(Boolean.class)))
         .thenReturn(ExecuteResult.of("result"));
 
     // When:
@@ -457,7 +458,8 @@ public class InteractiveStatementExecutorTest {
     verify(mockConfig).overrideBreakingConfigsWithOriginalValues(savedConfigs);
     verify(mockEngine).execute(
         any(),
-        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig, emptyMap())))
+        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig, emptyMap()))),
+        eq(false)
     );
   }
 
@@ -598,7 +600,7 @@ public class InteractiveStatementExecutorTest {
   ) {
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
     when(mockQuery.getQueryId()).thenReturn(queryId);
-    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
+    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan), any(Boolean.class)))
         .thenReturn(ExecuteResult.of(mockQuery));
     return mockQuery;
   }
@@ -1035,7 +1037,7 @@ public class InteractiveStatementExecutorTest {
 
   private void givenMockPlannedQuery() {
     when(mockQueryMetadata.getQueryId()).thenReturn(QUERY_ID);
-    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class)))
+    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class), any(Boolean.class)))
         .thenReturn(ExecuteResult.of(mockQueryMetadata));
   }
 

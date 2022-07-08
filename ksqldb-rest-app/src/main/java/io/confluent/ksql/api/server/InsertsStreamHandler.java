@@ -35,6 +35,7 @@ import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,7 @@ import org.slf4j.LoggerFactory;
  */
 public class InsertsStreamHandler implements Handler<RoutingContext> {
 
-  private static final Logger log = LoggerFactory.getLogger(InsertsStreamHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(InsertsStreamHandler.class);
 
   private final Context ctx;
   private final Endpoints endpoints;
@@ -67,7 +68,6 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-
     if (!checkHttp2(routingContext)) {
       return;
     }
@@ -85,6 +85,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     private final RoutingContext routingContext;
     private final RecordParser recordParser;
     private final InsertsStreamResponseWriter insertsStreamResponseWriter;
+    private final UUID uuid; // used to correlate logs
     private boolean hasReadArguments;
     private BufferedPublisher<JsonObject> publisher;
     private long rowsReceived;
@@ -98,18 +99,19 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
         final RecordParser recordParser) {
       this.routingContext = Objects.requireNonNull(routingContext);
       this.recordParser = Objects.requireNonNull(recordParser);
+      this.uuid = UUID.randomUUID();
       final String contentType = routingContext.getAcceptableContentType();
       if (DELIMITED_CONTENT_TYPE.equals(contentType) || contentType == null) {
         // Default
         insertsStreamResponseWriter =
-            new DelimitedInsertsStreamResponseWriter(routingContext.response());
+            new DelimitedInsertsStreamResponseWriter(routingContext.response(), uuid);
       } else {
         insertsStreamResponseWriter = new JsonInsertsStreamResponseWriter(
-            routingContext.response());
+            routingContext.response(), uuid);
       }
     }
 
-    public void handleBodyBuffer(final Buffer buff) {
+    private void handleBodyBuffer(final Buffer buff) {
 
       if (responseEnded) {
         // Ignore further buffers from request if response has been written (most probably due
@@ -132,6 +134,8 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
         return;
       }
 
+      LOG.debug("({}) Processed insert stream args: {}", uuid, insertsStreamArgs.get());
+
       routingContext.response().endHandler(v -> handleResponseEnd());
 
       acksSubscriber = new AcksSubscriber(ctx, routingContext.response(),
@@ -147,6 +151,8 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
             // This forces response headers to be written so we know we send a 200 OK
             // This is important if we subsequently find an error in the stream
+            LOG.debug(
+                "({}) Acknowledging insert stream in subscriber after creating publisher.", uuid);
             routingContext.response().write("");
 
             publisher.subscribe(insertsSubscriber);
@@ -164,11 +170,14 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       final JsonObject row;
       try {
         row = new JsonObject(buff);
+        LOG.debug("({}) Handling insert stream row: {}", uuid, row);
       } catch (DecodeException e) {
         final InsertError errorResponse = new InsertError(
             seq,
             ERROR_CODE_BAD_REQUEST,
             "Invalid JSON in inserts stream");
+        LOG.warn("({}) Failed to process row at sequence {} ({})",
+            uuid, sendSequence, buff.toString(), e);
         insertsStreamResponseWriter.writeError(errorResponse).end();
         acksSubscriber.cancel();
         return;
@@ -176,6 +185,8 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
       final boolean bufferFull = publisher.accept(row);
       if (bufferFull && !paused) {
+        LOG.debug("({}) Buffer is full after processing {} records. Pausing the parser",
+            uuid, sendSequence);
         recordParser.pause();
         publisher.drainHandler(this::publisherReceptive);
         paused = true;
@@ -184,11 +195,18 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     }
 
     private void publisherReceptive() {
+      LOG.debug("({}) Resuming record parser after draining publisher.", uuid);
       paused = false;
       recordParser.resume();
     }
 
-    public void handleBodyEnd(final Void v) {
+    private void handleBodyEnd(final Void v) {
+      LOG.debug("({}) Completed reading the request, ending the response. "
+              + "Completing Publisher: {}, Closing Publisher: {}",
+          uuid,
+          publisher != null,
+          acksSubscriber == null);
+
       if (publisher != null) {
         publisher.complete();
         if (acksSubscriber == null) {

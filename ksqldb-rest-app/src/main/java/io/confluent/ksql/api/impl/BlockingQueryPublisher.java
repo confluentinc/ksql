@@ -26,10 +26,13 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +64,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   private boolean complete;
   private boolean hitLimit;
   private volatile boolean closed;
+  private volatile boolean started;
 
   public BlockingQueryPublisher(final Context ctx,
       final WorkerExecutor workerExecutor) {
@@ -160,6 +164,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   }
 
   @Override
+  public Optional<ResultType> getResultType() {
+    return queryHandle.getResultType();
+  }
+
+  @Override
   protected void maybeSend() {
     ctx.runOnContext(v -> doSend());
   }
@@ -167,7 +176,17 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   @Override
   protected void afterSubscribe() {
     // Run async as it can block
-    executeOnWorker(queryHandle::start);
+    if (!started) {
+      started = true;
+      executeOnWorker(queryHandle::start);
+    }
+  }
+
+  // Method to explicitly start from the worker thread
+  public void startFromWorkerThread() {
+    VertxUtils.checkIsWorker();
+    started = true;
+    queryHandle.start();
   }
 
   private void executeOnWorker(final Runnable runnable) {

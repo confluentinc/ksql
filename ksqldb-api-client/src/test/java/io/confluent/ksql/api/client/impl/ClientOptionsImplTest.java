@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client.impl;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.ClientOptions;
+import java.util.Collections;
 import org.junit.Test;
 
 public class ClientOptionsImplTest {
@@ -65,6 +66,9 @@ public class ClientOptionsImplTest {
         )
         .addEqualityGroup(
             ClientOptions.create().setHttp2MultiplexingLimit(5)
+        )
+        .addEqualityGroup(
+            ClientOptions.create().setRequestHeaders(Collections.singletonMap("h1", "v1"))
         )
         .testEquals();
   }

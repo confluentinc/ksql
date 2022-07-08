@@ -838,6 +838,162 @@ The following list shows the supported encoding types.
 - `ascii`
 - `base64`
 
+### `IS_JSON_STRING`
+
+```sql title="Since: 0.24.0"
+IS_JSON_STRING(json_string) => Boolean
+```
+
+Returns `true` if `json_string` can be parsed as a valid JSON value; otherwise,
+`false` .
+
+```sql title="Examples"
+IS_JSON_STRING('[1, 2, 3]') => true
+IS_JSON_STRING('{}') => true
+IS_JSON_STRING('1') => true
+IS_JSON_STRING('\"abc\"') => true
+IS_JSON_STRING('null') => true
+IS_JSON_STRING('') => false
+IS_JSON_STRING('abc') => false
+IS_JSON_STRING(NULL) => false
+```
+
+### `JSON_ARRAY_LENGTH`
+
+```sql title="Since: 0.24.0"
+JSON_ARRAY_LENGTH(json_string) => Integer
+```
+
+Parses `json_string` as a JSON value and returns the length of the top-level
+array.
+
+Returns `NULL` if the string can't be interpreted as a JSON array, for example,
+when the string is `NULL` or it doesn't contain valid JSON, or the JSON value
+is not an array.
+
+```sql title="Examples"
+JSON_ARRAY_LENGTH('[1, 2, 3]') => 3
+JSON_ARRAY_LENGTH('[1, [1, [2]], 3]') =>  3
+JSON_ARRAY_LENGTH('[]') => 0
+JSON_ARRAY_LENGTH('{}') => NULL
+JSON_ARRAY_LENGTH('123') => NULL
+JSON_ARRAY_LENGTH(NULL) => NULL
+JSON_ARRAY_LENGTH('abc') => returns NULL and logs an "Invalid JSON format" exception in server log
+```
+
+### `JSON_CONCAT`
+
+```sql title="Since: 0.24.0"
+JSON_CONCAT(json_string1, json_string2, ...) => String
+```
+
+Given N strings, parses them as JSON values and returns a string representing
+their concatenation.
+
+Concatenation rules are identical to PostgreSQL's
+[|| operator](https://www.postgresql.org/docs/14/functions-json.html):
+
+* If all strings deserialize into JSON objects, return an object with a union
+  of the input keys. If there are duplicate objects, take values from the last
+  object.
+* If all strings deserialize into JSON arrays, return the result of array
+  concatenation.
+* If at least one of the deserialized values is not an object, convert
+  non-array inputs to a single-element array and return the result of
+  array concatenation.
+* If at least one of the input strings is `NULL` or can't be deserialized as
+  JSON, return `NULL`.
+
+Similar to PostgreSQL's `||` operator, this function merges only top-level
+object keys or arrays.
+
+Examples:
+
+```sql title="Examples"
+JSON_CONCAT('{\"a\": 1}', '{\"b\": 2}') => '{"a":1,"b":2}'
+JSON_CONCAT('{\"a\": {\"5\": 6}}', '{\"a\": {\"3\": 4}}') => '{"a":{"3":4}}'
+JSON_CONCAT('{}', '{}') => '{}'
+JSON_CONCAT('[1, 2]', '[3, 4]') => '[1,2,3,4]'
+JSON_CONCAT('[1, [2]]', '[[[3]], [[[4]]]]') => '[ 1, [2], [[3]], [[[4]]] ]'
+JSON_CONCAT('null', 'null') => '[null, null]'
+JSON_CONCAT('[1, 2]', '{\"a\": 1}') => '[1,2,{"a":1}]'
+JSON_CONCAT('[1, 2]', '3') => '[1, 2, 3]'
+JSON_CONCAT('1', '2') => '[1, 2]'
+JSON_CONCAT('[]', '[]') => '[]'
+JSON_CONCAT('abc', '[1]') => NULL
+JSON_CONCAT(NULL, '[1]') => NULL
+```
+
+### `JSON_KEYS`
+
+```sql title="Since: 0.24.0"
+JSON_KEYS(json_string) => Array<String>
+```
+
+Parses `json_string` as a JSON object and returns an array of strings
+representing the top-level keys.
+
+Returns `NULL` if the string can't be interpreted as a JSON object,
+for example, when the string is `NULL` or it does not contain valid JSON,
+or the JSON value is not an object.
+
+```sql title="Examples"
+JSON_KEYS('{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}') => ['a', 'b', 'd']
+JSON_KEYS('{}') => []
+JSON_KEYS('[]') => NULL
+JSON_KEYS('123') => NULL
+JSON_KEYS(NULL) => NULL
+JSON_KEYS('') => NULL
+```
+
+### `JSON_RECORDS`
+
+```sql title="Since: 0.24.0"
+JSON_RECORDS(json_string) => Map<String, String>
+```
+
+Parses `json_string` as a JSON object and returns a map representing the
+top-level keys and values.
+
+Returns `NULL` if the string can't be interpreted as a JSON object,
+for example, when the string is `NULL` or it does not contain valid JSON,
+or the JSON value is not an object.
+
+```sql title="Examples"
+JSON_RECORDS('{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}') => {d=1, a="abc", b={"c":"a"}}
+JSON_RECORDS('{}') => {}
+JSON_RECORDS('[]') => NULL
+JSON_RECORDS('123') => NULL
+JSON_RECORDS(NULL) => NULL
+JSON_RECORDS('abc') => NULL
+```
+
+### `TO_JSON_STRING`
+
+```sql title="Since: 0.24.0"
+TO_JSON_STRING(val) => String
+```
+
+Given any ksqlDB type, returns the equivalent JSON string.
+
+```sql title="Primitives types"
+TO_JSON_STRING(1) => '1'
+TO_JSON_STRING(15.3) => '15.3'
+TO_JSON_STRING('abc') => '"abc"'
+TO_JSON_STRING(true) => 'true'
+TO_JSON_STRING(PARSE_DATE('2021-10-11', 'yyyy-MM-dd')) => '"2021-10-11"'
+TO_JSON_STRING(PARSE_TIME('13:25', 'HH:mm')) => '"13:25"'
+TO_JSON_STRING(PARSE_TIMESTAMP('2021-06-31 12:18:39.446', 'yyyy-MM-dd HH:mm:ss.SSS')) => '"2021-06-30T12:18:39.446"'
+TO_JSON_STRING(NULL) => 'null'
+```
+
+```sql title="Compound types"
+TO_JSON_STRING(Array[1, 2, 3]) => '[1, 2, 3]'
+TO_JSON_STRING(Struct(id := 1, name := 'A')) => '{"ID":1,"NAME":"A"}'
+TO_JSON_STRING(Map('c' := 2, 'd' := 4)) => '{"c": 2, "d": 4}'
+TO_JSON_STRING(Array[Struct(json_key := 1, json_value := Map('c' := 2, 'd' := 3))]) => '[{"JSON_KEY": 1, "JSON_VALUE": {"c": 2, "d": 3}}]'
+```
+
 ---
 
 ### **`INITCAP`**
@@ -1880,7 +2036,7 @@ more information on timestamp formats, see
 
 Since: 0.7.1
 
-**Deprecated since 0.17.0 (use FORMAT_TIMESTAMP)**
+**Deprecated since 0.17.0 (use [FORMAT_TIMESTAMP](#format_timestamp))**
 
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -1894,3 +2050,12 @@ can be escaped with two successive single quotes, `''`, for example:
 TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
 for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
 information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+!!! note
+    To use the [`FORMAT_TIMESTAMP`](#format_timestamp) function with a BIGINT millisecond timestamp
+    parameter, convert the millisecond value to a `TIMESTAMP` by using the
+    `FROM_UNIXTIME` function, for example:
+
+    ```sql
+    FORMAT_TIMESTAMP(FROM_UNIXTIME(unix_timestamp))
+    ```

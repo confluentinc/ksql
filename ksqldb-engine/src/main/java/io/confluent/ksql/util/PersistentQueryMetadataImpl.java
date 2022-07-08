@@ -22,13 +22,13 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -133,7 +133,7 @@ public class PersistentQueryMetadataImpl
     this.schemas = original.schemas;
     this.resultSchema = original.resultSchema;
     this.materializationProvider = original.materializationProvider;
-    this.physicalPlan = original.physicalPlan;
+    this.physicalPlan = original.getPhysicalPlan();
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.processingLogger = original.processingLogger;
     this.scalablePushRegistry = original.scalablePushRegistry;
@@ -224,6 +224,11 @@ public class PersistentQueryMetadataImpl
 
   public void stop(final boolean resetOffsets) {
     stop();
+  }
+
+  @Override
+  public void register() {
+
   }
 
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {

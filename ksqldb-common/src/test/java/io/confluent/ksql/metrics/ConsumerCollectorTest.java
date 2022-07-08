@@ -43,7 +43,7 @@ public class ConsumerCollectorTest {
   public void shouldDisplayRateThroughput() {
 
     final ConsumerCollector collector = new ConsumerCollector();//
-    collector.configure("group", new MetricCollectors());
+    collector.configure("group", new MetricCollectors(), Collections.emptyMap());
 
     for (int i = 0; i < 100; i++) {
 
@@ -82,7 +82,7 @@ public class ConsumerCollectorTest {
 
     final MetricCollectors metricCollectors = new MetricCollectors();
     final ConsumerCollector collector = new ConsumerCollector();
-    collector.configure("group", metricCollectors);
+    collector.configure("group", metricCollectors, Collections.emptyMap());
 
     for (int i = 0; i < 100; i++){
 
@@ -136,5 +136,45 @@ public class ConsumerCollectorTest {
         ConsumerCollector.CONSUMER_ALL_TOTAL_BYTES_SUM,
         ConsumerCollector.CONSUMER_COLLECTOR_METRICS_GROUP_NAME)
     ).metricValue().toString()), equalTo(4000.0));
+  }
+
+  @Test
+  public void shouldAddCustomMetricsTagsToTotalBytesSumMetric() {
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    final ConsumerCollector collector = new ConsumerCollector();
+    final Map<String, String> metricsTags = Collections.singletonMap("custom-tag", "custom-tag-value");
+    collector.configure("group", metricCollectors, metricsTags);
+
+    for (int i = 0; i < 100; i++){
+
+      final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records1 = ImmutableMap.of(
+          new TopicPartition(TEST_TOPIC, 1),
+          Collections.singletonList(
+              new ConsumerRecord<>(
+                  TEST_TOPIC,
+                  1,
+                  i,
+                  1L,
+                  TimestampType.CREATE_TIME,
+                  10,
+                  10,
+                  "key",
+                  "1234567890",
+                  new RecordHeaders(),
+                  Optional.empty()
+              )
+          )
+      );
+
+      final ConsumerRecords<Object, Object> consumerRecords1 = new ConsumerRecords<>(records1);
+      collector.onConsume(consumerRecords1);
+    }
+
+    final Metrics metrics = metricCollectors.getMetrics();
+    assertThat(Double.parseDouble(metrics.metric(metrics.metricName(
+        ConsumerCollector.CONSUMER_ALL_TOTAL_BYTES_SUM,
+        ConsumerCollector.CONSUMER_COLLECTOR_METRICS_GROUP_NAME,
+        metricsTags)
+    ).metricValue().toString()), equalTo(2000.0));
   }
 }

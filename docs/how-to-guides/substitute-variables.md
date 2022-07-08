@@ -118,7 +118,7 @@ Using a variable in a statement that doesn't support variables causes a SQL pars
 
 ## Disable substitution variables
 
-Enable or disable variable substitution by setting the `ksql.variable.substitution.enable` [server configuration parameter](../../operate-and-deploy/installation/server-config/config-reference/#ksqlvariablesubstitutionenable).
+Enable or disable variable substitution by setting the [ksql.variable.substitution.enable](../../operate-and-deploy/installation/server-config/config-reference/#ksqlvariablesubstitutionenable) server configuration parameter.
 
 ```sql
 ksql> SET 'ksql.variable.substitution.enable' = 'false';

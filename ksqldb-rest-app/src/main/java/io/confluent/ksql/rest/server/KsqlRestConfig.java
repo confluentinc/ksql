@@ -163,9 +163,9 @@ public class KsqlRestConfig extends AbstractConfig {
 
   private static final String KSQL_CONFIG_PREFIX = "ksql.";
 
-  private static final String COMMAND_CONSUMER_PREFIX =
+  public static final String COMMAND_CONSUMER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.consumer.";
-  private static final String COMMAND_PRODUCER_PREFIX =
+  public static final String COMMAND_PRODUCER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.producer.";
 
   public static final String ADVERTISED_LISTENER_CONFIG =
@@ -377,7 +377,8 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DOC =
       "A regex that allows users to filter out logging from certain endpoints. Without this filter,"
           + " all endpoints are logged. An example usage of this configuration would be to disable"
-          + " heartbeat logging (e.g. ksql.endpoint.logging.filter=.*heartbeat.* ) which can"
+          + " heartbeat logging (e.g. " + KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG
+          + " =.*heartbeat.* ) which can"
           + " otherwise be verbose. Note that this works on the entire URI, respecting the "
           + KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG + " configuration";
 
@@ -386,6 +387,21 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final int KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT = 3000;
   public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC =
       "The maximum connection pool size used by Vertx for http2 internal connections";
+
+  public static final String KSQL_SERVER_SNI_CHECK_ENABLE =
+      KSQL_CONFIG_PREFIX + "server.sni.check.enable";
+  public static final boolean KSQL_SERVER_SNI_CHECK_ENABLE_DEFAULT = false;
+
+  private static final String KSQL_SERVER_SNI_CHECK_ENABLE_DOC =
+      "Whether or not to check the SNI against the Host header. If the values don't match, "
+          + "returns a 421 mis-directed response. (NOTE: this check should not be enabled if "
+          + "ksqlDB servers have mutual TLS enabled)";
+
+  public static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG = 
+      KSQL_CONFIG_PREFIX + "server.command.topic.rate.limit";
+  public static final double KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT = Double.MAX_VALUE;
+  private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC = 
+      "Sets the number of statements that can be executed against the command topic per second";
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -734,7 +750,19 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC
-        );
+        ).define(
+            KSQL_SERVER_SNI_CHECK_ENABLE,
+            Type.BOOLEAN,
+            KSQL_SERVER_SNI_CHECK_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_SERVER_SNI_CHECK_ENABLE_DOC
+        ).define(
+        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG,
+        Type.DOUBLE,
+        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT,
+        Importance.LOW,
+        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
+      );
   }
 
   public KsqlRestConfig(final Map<?, ?> props) {

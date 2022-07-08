@@ -121,7 +121,7 @@ The number of messages produced per second across all queries.
 
 `error-rate`
 
-The number of messages that were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternately, a consumed message may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
+The number of messages that were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternatively, a consumed message may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
 
 **Liveness indicator**
 
@@ -211,7 +211,7 @@ this reference to avoid redundancy.
 
 ## HTTP server
 
-ksqlDB's REST API is built ontop of Vert, and consequentially exposes
+ksqlDB's REST API is built using Vert.x, and consequentially exposes
 many [Vert.x
 metrics](https://vertx.io/docs/vertx-dropwizard-metrics/java/)
 directly. These metrics are omitted from this reference to avoid redundancy.

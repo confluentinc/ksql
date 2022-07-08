@@ -140,7 +140,7 @@ public final class ExpectedRecordComparator {
     }
 
     if (actualValue instanceof Double) {
-      return expected.doubleValue() == (Double) actualValue;
+      return Math.abs(expected.doubleValue() - (Double) actualValue) < 0.000_001;
     }
 
     if (actualValue instanceof BigDecimal) {

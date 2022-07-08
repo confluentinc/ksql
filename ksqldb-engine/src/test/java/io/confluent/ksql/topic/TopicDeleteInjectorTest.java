@@ -203,7 +203,7 @@ public class TopicDeleteInjectorTest {
   public void shouldThrowExceptionIfSourceDoesNotExist() {
     // Given:
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(SourceName.of("SOMETHING_ELSE"), true, true));
+        "DROP SOMETHING", new DropStream(SourceName.of("SOMETHING_ELSE"), false, true));
 
     // When:
     final Exception e = assertThrows(
@@ -213,6 +213,16 @@ public class TopicDeleteInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Could not find source to delete topic for"));
+  }
+
+  @Test
+  public void shouldNotThrowIfStatementHasIfExistsAndSourceDoesNotExist() {
+    // Given:
+    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
+        "DROP SOMETHING", new DropStream(SourceName.of("SOMETHING_ELSE"), true, true));
+
+    // When:
+    deleteInjector.inject(dropStatement);
   }
 
   @Test

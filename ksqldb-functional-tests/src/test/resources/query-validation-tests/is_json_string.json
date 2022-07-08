@@ -1,0 +1,27 @@
+{
+  "comments": [
+    "Tests covering the use of the IS_JSON_STRING function."
+  ],
+  "tests": [
+    {
+      "name": "filter rows that contain valid JSON",
+      "statements": [
+        "CREATE STREAM test (K STRING KEY, maybeJSON STRING) WITH (kafka_topic='test_topic', VALUE_FORMAT='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, maybeJSON as JSON FROM test WHERE IS_JSON_STRING(maybeJSON);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": {"maybeJSON": "1"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"maybeJSON": "abc"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"maybeJSON": "[1, 2, 3]"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"maybeJSON": "\"abc\""}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"maybeJSON": "", "timestamp": 0}},
+        {"topic": "test_topic", "key": "1", "value": {"maybeJSON": null, "timestamp": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON":"1"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON":"[1, 2, 3]"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON":"\"abc\""}, "timestamp": 0}
+      ]
+    }
+  ]
+}

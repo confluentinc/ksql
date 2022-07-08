@@ -69,7 +69,7 @@ class KsqlAvroSerdeFactory {
   ) {
     AvroUtil.throwOnInvalidSchema(schema);
     final Optional<Schema> physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
-        SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
+        SerdeUtils.getAndTranslateSchemaById(srFactory, properties.getSchemaId()
             .get(), new AvroSchemaTranslator(properties))) : Optional.empty();
 
     final Supplier<Serializer<T>> serializerSupplier = createConnectSerializer(

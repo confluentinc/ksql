@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;

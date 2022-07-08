@@ -51,7 +51,7 @@ public interface QueryMetadata {
 
   Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags();
 
-  Collection<StreamsMetadata> getAllMetadata();
+  Collection<StreamsMetadata> getAllStreamsHostMetadata();
 
   Map<String, Object> getStreamsProperties();
 

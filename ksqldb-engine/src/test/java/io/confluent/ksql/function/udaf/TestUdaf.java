@@ -15,8 +15,13 @@
 
 package io.confluent.ksql.function.udaf;
 
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -88,6 +93,58 @@ public final class TestUdaf {
       @Override
       public Double map(final Double agg) {
         return agg;
+      }
+    };
+  }
+
+  @UdafFactory(description = "sums numbers")
+  public static <T extends Number> Udaf<T, T, T> createSumT() {
+    return new Udaf<T, T, T>() {
+      Udaf<T, T, T> delegate = null;
+      SqlType type;
+
+      @Override
+      public T initialize() {
+        return delegate.initialize();
+      }
+
+      @Override
+      public T aggregate(T current, T aggregate) {
+        return delegate.aggregate(current, aggregate);
+      }
+
+      @Override
+      public T merge(T aggOne, T aggTwo) {
+        return delegate.merge(aggOne, aggTwo);
+      }
+
+      @Override
+      public T map(T agg) {
+        return delegate.map(agg);
+      }
+
+      @Override
+      public void initializeTypeArguments(List<SqlArgument> argTypeList) {
+        type = argTypeList.get(0).getSqlTypeOrThrow();
+        if (type == SqlTypes.DOUBLE) {
+          delegate = (Udaf<T, T, T>) createSumDouble();
+        } else if (type == SqlTypes.INTEGER) {
+          delegate = (Udaf<T, T, T>) createSumInt();
+        } else if (type == SqlTypes.BIGINT) {
+          delegate = (Udaf<T, T, T>) createSumLong();
+        } else {
+          throw new IllegalArgumentException("Type " + type + " is not handled.");
+        }
+      }
+
+      @Override
+      public Optional<SqlType> getAggregateSqlType() {
+        return Optional.of(type);
+      }
+
+      @Override
+      public Optional<SqlType> getReturnSqlType() {
+        return Optional.of(type);
       }
     };
   }

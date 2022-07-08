@@ -19,7 +19,10 @@ import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.createClien
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
+import java.util.Collections;
+import java.util.Map;
 import org.junit.Test;
 
 public class MigrationsUtilTest {
@@ -32,7 +35,7 @@ public class MigrationsUtilTest {
     // Given:
     final ClientOptions clientOptions = createClientOptions(NON_TLS_URL, "user",
         "pass", null, "", null,
-        null, "", "foo", false, true);
+        null, "", "foo", false, true, null);
 
     // Then:
     assertThat(clientOptions.isUseTls(), is(false));
@@ -46,14 +49,16 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.getKeyAlias(), is(""));
     assertThat(clientOptions.isUseAlpn(), is(false));
     assertThat(clientOptions.isVerifyHost(), is(true));
+    assertThat(clientOptions.getRequestHeaders(), is(Collections.emptyMap()));
   }
 
   @Test
   public void shouldCreateTlsClientOptions() {
     // Given:
+    final Map<String, String> requestHeaders = ImmutableMap.of("h1", "v1", "h2", "v2");
     final ClientOptions clientOptions = createClientOptions(TLS_URL, "user",
         "pass", "abc", null, null,
-        null, null, null, true, true);
+        null, null, null, true, true, requestHeaders);
 
     // Then:
     assertThat(clientOptions.isUseTls(), is(true));
@@ -67,5 +72,6 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.getKeyAlias(), is(""));
     assertThat(clientOptions.isUseAlpn(), is(true));
     assertThat(clientOptions.isVerifyHost(), is(true));
+    assertThat(clientOptions.getRequestHeaders(), is(requestHeaders));
   }
 }

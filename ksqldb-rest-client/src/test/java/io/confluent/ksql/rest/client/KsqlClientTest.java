@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;

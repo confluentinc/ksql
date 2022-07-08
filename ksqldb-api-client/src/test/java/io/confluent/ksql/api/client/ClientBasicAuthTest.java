@@ -57,9 +57,7 @@ public class ClientBasicAuthTest extends ClientTest {
 
   @Override
   protected ClientOptions createJavaClientOptions() {
-    return ClientOptions.create()
-        .setHost("localhost")
-        .setPort(server.getListeners().get(0).getPort())
+    return super.createJavaClientOptions()
         .setBasicAuthCredentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
   }
 

@@ -149,33 +149,39 @@ public class PauseResumeIntegrationTest {
     createQuery("2");
 
     Supplier<Integer> supplier = getSupplier(1);
+    Supplier<Integer> supplier2 = getSupplier(2);
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
 
     // 7 records are produced + a header & footer.
     assertThatEventually(supplier, equalTo(9));
+    assertThatEventually(supplier2, equalTo(9));
 
     // When:
     String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
         + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
     assertThat(getPausedCount(), equalTo(1));
+    assertThat(getRunningCount(), equalTo(1));
 
     // Produce more records
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON,
         System::currentTimeMillis);
     
     assertThatEventually(supplier, equalTo(9));
+    assertThatEventually(supplier2, equalTo(14));
 
     // Then:
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "RESUME " + queryId + ";");
 
     // 5 more records have been produced
     assertThatEventually(supplier, equalTo(14));
+    assertThatEventually(supplier2, equalTo(14));
 
     List <KsqlEntity> showQueries3 = RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
         + "QUERIES;");
     assertThat(((Queries) showQueries3.get(0)).getQueries().get(0).getStatusCount().getStatuses()
         .get(KsqlQueryStatus.RUNNING), equalTo(1));
+    assertThat(getRunningCount(), equalTo(2));
   }
 
   @Test
@@ -184,8 +190,7 @@ public class PauseResumeIntegrationTest {
     createQuery("1");
     createQuery("2");
 
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON,
-        System::currentTimeMillis);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
 
     Supplier<Integer> supplier = getSupplier(1);
     Supplier<Integer> supplier2 = getSupplier(2);
@@ -197,8 +202,7 @@ public class PauseResumeIntegrationTest {
     // When:
     String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
         + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
-    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE "
-        + queryId + ";");
+    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
     assertThatEventually(supplier, equalTo(9));
 
     // Restart server
@@ -207,33 +211,20 @@ public class PauseResumeIntegrationTest {
 
     // Verify PAUSED state -- eventually
     assertThatEventually(this::getPausedCount, equalTo(1));
-
-    // Verify number of processed records
-    assertThatEventually(supplier, equalTo(9));
-
-    // Then:
-    String queryId2 = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
-        + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
-    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "RESUME " + queryId2 + ";");
-    assertThatEventually(this::getPausedCount, equalTo(0));
     assertThatEventually(this::getRunningCount, equalTo(1));
 
     // Adding more after restart.
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON,
-        System::currentTimeMillis);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON, System::currentTimeMillis);
 
+    // Verify number of processed records
+    assertThatEventually(supplier, equalTo(9));
+    assertThatEventually(supplier2, equalTo(14));
+
+    // Then:
+    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "RESUME " + queryId + ";");
+    assertThatEventually(this::getPausedCount, equalTo(0));
+    assertThatEventually(this::getRunningCount, equalTo(2));
     assertThatEventually(supplier, equalTo(14));
-
-    List <KsqlEntity> showQueries3 = RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
-        + "QUERIES;");
-    assertThat(((Queries) showQueries3.get(0)).getQueries().get(0).getStatusCount().getStatuses()
-        .get(KsqlQueryStatus.RUNNING), equalTo(1));
-  }
-
-  // Parameterize this entire class to run with multiple REST instances?
-  // @Test
-  public void pauseResumeShouldWorkWithMultipleServers() {
-
   }
 
   private void createQuery(final String suffix) {

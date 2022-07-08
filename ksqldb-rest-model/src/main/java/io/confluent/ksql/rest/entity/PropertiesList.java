@@ -43,6 +43,8 @@ import static org.apache.kafka.streams.StreamsConfig.ACCEPTABLE_RECOVERY_LAG_CON
 import static org.apache.kafka.streams.StreamsConfig.BUFFERED_RECORDS_PER_PARTITION_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.COMMIT_INTERVAL_MS_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.MAX_TASK_IDLE_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.MAX_WARMUP_REPLICAS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG;
@@ -51,6 +53,7 @@ import static org.apache.kafka.streams.StreamsConfig.PROBING_REBALANCE_INTERVAL_
 import static org.apache.kafka.streams.StreamsConfig.PROCESSING_GUARANTEE_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.TASK_TIMEOUT_MS_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.WINDOW_SIZE_MS_CONFIG;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -88,7 +91,10 @@ public class PropertiesList extends KsqlEntity {
       KSQL_TIMESTAMP_THROW_ON_INVALID,
       MAX_TASK_IDLE_MS_CONFIG,
       STATESTORE_CACHE_MAX_BYTES_CONFIG,
-      TASK_TIMEOUT_MS_CONFIG
+      TASK_TIMEOUT_MS_CONFIG,
+      TOPOLOGY_OPTIMIZATION_CONFIG,
+      DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
+      DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG
   );
 
   /**

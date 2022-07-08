@@ -69,7 +69,7 @@ public final class OldApiUtils {
       requestObject = null;
     }
     final CompletableFuture<EndpointResponse> completableFuture = requestor
-        .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
+        .apply(requestObject, DefaultApiSecurityContext.create(routingContext, server));
     completableFuture.thenAccept(endpointResponse -> {
       handleOldApiResponse(
           server, routingContext, endpointResponse, metricsCallbackHolder, startTimeNanos);

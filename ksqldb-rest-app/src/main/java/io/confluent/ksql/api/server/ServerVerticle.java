@@ -146,7 +146,7 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new InsertsStreamHandler(context, endpoints, server.getWorkerExecutor()));
+        .handler(new InsertsStreamHandler(context, endpoints, server));
     router.route(HttpMethod.POST, "/close-query")
         .handler(BodyHandler.create(false))
         .handler(new CloseQueryHandler(server));
@@ -227,7 +227,7 @@ public class ServerVerticle extends AbstractVerticle {
         (ksqlRequest, apiSecurityContext) ->
             endpoints
                 .executeKsqlRequest(ksqlRequest, server.getWorkerExecutor(),
-                    DefaultApiSecurityContext.create(routingContext))
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -236,7 +236,7 @@ public class ServerVerticle extends AbstractVerticle {
         (request, apiSecurityContext) ->
             endpoints
                 .executeTerminate(request, server.getWorkerExecutor(),
-                    DefaultApiSecurityContext.create(routingContext))
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -250,7 +250,7 @@ public class ServerVerticle extends AbstractVerticle {
             endpoints
                 .executeQueryRequest(
                     request, server.getWorkerExecutor(), connectionClosedFuture,
-                    DefaultApiSecurityContext.create(routingContext),
+                    DefaultApiSecurityContext.create(routingContext, server),
                     isInternalRequest(routingContext),
                     getContentType(routingContext),
                     metricsCallbackHolder,
@@ -263,21 +263,22 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleInfoRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeInfo(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeInfo(DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleClusterStatusRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeClusterStatus(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeClusterStatus(DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleHeartbeatRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, HeartbeatMessage.class, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeHeartbeat(request, DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeHeartbeat(
+                request, DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -289,7 +290,7 @@ public class ServerVerticle extends AbstractVerticle {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (r, apiSecurityContext) ->
             endpoints.executeStatus(type, entity, action,
-                DefaultApiSecurityContext.create(routingContext))
+                DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -307,28 +308,30 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleAllStatusesRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (r, apiSecurityContext) ->
-            endpoints.executeAllStatuses(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeAllStatuses(DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleLagReportRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, LagReportingMessage.class, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeLagReport(request, DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeLagReport(
+                request, DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleHealthcheckRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeCheckHealth(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeCheckHealth(DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleServerMetadataRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeServerMetadata(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeServerMetadata(
+                DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -336,7 +339,8 @@ public class ServerVerticle extends AbstractVerticle {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
             endpoints
-                .executeServerMetadataClusterId(DefaultApiSecurityContext.create(routingContext))
+                .executeServerMetadataClusterId(
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -348,7 +352,8 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleWebsocket(final RoutingContext routingContext) {
-    final ApiSecurityContext apiSecurityContext = DefaultApiSecurityContext.create(routingContext);
+    final ApiSecurityContext apiSecurityContext =
+        DefaultApiSecurityContext.create(routingContext, server);
     final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
     endpoints
         .executeWebsocketStream(serverWebSocket, routingContext.request().params(),

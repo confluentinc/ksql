@@ -84,7 +84,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
         queryStreamArgs.get().sessionVariables, queryStreamArgs.get().requestProperties,
         context, server.getWorkerExecutor(),
-        DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder)
+        DefaultApiSecurityContext.create(routingContext, server), metricsCallbackHolder)
         .thenAccept(queryPublisher -> {
 
           final QueryResponseMetadata metadata;

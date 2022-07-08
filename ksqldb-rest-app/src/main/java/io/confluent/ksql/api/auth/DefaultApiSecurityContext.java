@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.auth;
 
+
+import io.confluent.ksql.api.server.Server;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
@@ -25,13 +27,17 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
   private final Optional<Principal> principal;
   private final Optional<String> authToken;
 
-  public static DefaultApiSecurityContext create(final RoutingContext routingContext) {
+  public static DefaultApiSecurityContext create(final RoutingContext routingContext,
+      final Server server) {
     final User user = routingContext.user();
     if (user != null && !(user instanceof ApiUser)) {
       throw new IllegalStateException("Not an ApiUser: " + user);
     }
     final ApiUser apiUser = (ApiUser) user;
-    final String authToken = routingContext.request().getHeader("Authorization");
+    String authToken = null;
+    if (server.getAuthenticationPlugin().isPresent()) {
+      authToken = server.getAuthenticationPlugin().get().getAuthToken(routingContext);
+    }
     return new DefaultApiSecurityContext(apiUser != null ? apiUser.getPrincipal() : null,
         authToken);
   }

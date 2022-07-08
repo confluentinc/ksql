@@ -20,6 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.QueryMask;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,10 +49,12 @@ public interface KsqlParser {
   final class ParsedStatement {
     private final String statementText;
     private final SingleStatementContext statement;
+    private final String maskedStatementText;
 
     private ParsedStatement(final String statementText, final SingleStatementContext statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
       this.statement = Objects.requireNonNull(statement, "statement");
+      maskedStatementText = QueryMask.getMaskedStatement(statementText);
     }
 
     public static ParsedStatement of(
@@ -59,6 +62,15 @@ public interface KsqlParser {
         final SingleStatementContext statement
     ) {
       return new ParsedStatement(statementText, statement);
+    }
+
+    /**
+     * Use masked statement for logging and other output places it could be read by human. It
+     * masked sensitive information such as passwords, keys etc.
+     * @return Masked statement text
+     */
+    public String getMaskedStatementText() {
+      return maskedStatementText;
     }
 
     public String getStatementText() {
@@ -76,10 +88,12 @@ public interface KsqlParser {
 
     private final String statementText;
     private final T statement;
+    private String maskedStatementText;
 
     private PreparedStatement(final String statementText, final T statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
       this.statement = Objects.requireNonNull(statement, "statement");
+      maskedStatementText = QueryMask.getMaskedStatement(statementText);
     }
 
     public static <T extends Statement> PreparedStatement<T> of(
@@ -87,6 +101,15 @@ public interface KsqlParser {
         final T statement
     ) {
       return new PreparedStatement<>(statementText, statement);
+    }
+
+    /**
+     * Use masked statement for logging and other output places it could be read by human. It
+     * masked sensitive information such as passwords, keys etc.
+     * @return Masked statement text
+     */
+    public String getMaskedStatementText() {
+      return maskedStatementText;
     }
 
     public String getStatementText() {

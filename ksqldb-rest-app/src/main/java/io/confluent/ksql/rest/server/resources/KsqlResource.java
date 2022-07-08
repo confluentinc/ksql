@@ -66,6 +66,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
 import java.time.Duration;
@@ -273,7 +274,7 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    final String maskedQuery = new QueryMask(request).getMaskedQuery();
+    final String maskedQuery = QueryMask.getMaskedStatement(request.getKsql());
     final String maskedRequest = request.toMaskedString(maskedQuery);
     LOG.info("Received: " + maskedRequest);
 
@@ -311,9 +312,9 @@ public class KsqlResource implements KsqlConfigurable {
       statements.forEach(s -> {
         if (s.getStatementText().toLowerCase().contains("terminate")
             || s.getStatementText().toLowerCase().contains("drop")) {
-          QueryLogger.info("Query terminated", s.getStatementText());
+          QueryLogger.info("Query terminated", s.getMaskedStatementText());
         } else {
-          QueryLogger.info("Query created", s.getStatementText());
+          QueryLogger.info("Query created", s.getMaskedStatementText());
         }
       });
 

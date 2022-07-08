@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
-import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
@@ -432,13 +431,9 @@ public final class RestIntegrationTestUtil {
     try {
       httpClient = vertx.createHttpClient();
 
-<<<<<<< HEAD
-      final String uri = baseUri.toString() + "/ws/query?request=" + buildStreamingRequest(sql);
-=======
       final String uri = baseUri.toString() + "/ws/query?request="
-          + buildStreamingRequest(sql, overrides, requestProperties)
+          + buildStreamingRequest(sql)
           + "&access_token=" + buildBasicAuthHeader(credentials.get());
->>>>>>> b6fc8d9115 (fix: add getAuthToken method to AuthenticationPlugin interface (#9239))
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 

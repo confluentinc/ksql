@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertSchemaCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertTopicCommand;
@@ -98,6 +99,23 @@ public class CommandParserTest {
   }
 
   @Test
+  public void shouldParseInsertValuesStatementWithoutSpaces() {
+    // When:
+    List<SqlCommand> commands = parse("INSERT INTO `foo`(col1, col2) VALUES(55, '40');");
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
+    final SqlInsertValues insertValues = (SqlInsertValues) commands.get(0);
+
+    assertThat(insertValues.getSourceName(), is("`foo`"));
+    assertThat(insertValues.getColumns(), is(ImmutableList.of("COL1", "COL2")));
+    assertThat(insertValues.getValues().size(), is(2));
+    assertThat(toFieldType(insertValues.getValues().get(0)), is(55));
+    assertThat(toFieldType(insertValues.getValues().get(1)), is("40"));
+  }
+
+  @Test
   public void shouldParseInsertValuesStatementWithExplicitQuoting() {
     // When:
     List<SqlCommand> commands = parse("INSERT INTO `foo` (`col1`) VALUES (55);");
@@ -142,18 +160,18 @@ public class CommandParserTest {
         () -> parse("insert into foo values (this_should_not_here) ('val');"));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Failed to parse INSERT VALUES statement"));
+    assertThat(e.getMessage(), containsString("Failed to parse the statement"));
   }
 
   @Test
   public void shouldParseInsertIntoStatement() {
     // When:
-    List<SqlCommand> commands = parse("INSERT INTO FOO SELECT VALUES FROM BAR;");
+    List<SqlCommand> commands = parse("INSERT INTO FOO SELECT * FROM BAR;");
 
     // Then:
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlStatement.class));
-    assertThat(commands.get(0).getCommand(), is("INSERT INTO FOO SELECT VALUES FROM BAR;"));
+    assertThat(commands.get(0).getCommand(), is("INSERT INTO FOO SELECT * FROM BAR;"));
   }
 
   @Test
@@ -375,13 +393,20 @@ public class CommandParserTest {
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
 
-    // When:
+
+            // When:
     List<SqlCommand> commands = parse(createConnector, ImmutableMap.of("url", "'jdbc:postgresql://localhost:5432/my.db'", "name", "`jdbc_connector`"));
 
     // Then:
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlCreateConnectorStatement.class));
-    assertThat(commands.get(0).getCommand(), is(createConnector));
+    assertThat(commands.get(0).getCommand(), is("CREATE SOURCE CONNECTOR `jdbc_connector` WITH(\n"
+            + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
+            + "    \"connection.url\"='jdbc:postgresql://localhost:5432/my.db',\n"
+            + "    \"mode\"='bulk',\n"
+            + "    \"topic.prefix\"='jdbc-',\n"
+            + "    \"table.whitelist\"='users',\n"
+            + "    \"key\"='username');"));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getName(), is("`jdbc_connector`"));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).isSource(), is(true));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().size(), is(6));
@@ -411,7 +436,13 @@ public class CommandParserTest {
     // Then:
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlCreateConnectorStatement.class));
-    assertThat(commands.get(0).getCommand(), is(createConnector));
+    assertThat(commands.get(0).getCommand(), is("CREATE SOURCE CONNECTOR IF NOT EXISTS `jdbc_connector` WITH(\n"
+            + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
+            + "    \"connection.url\"='jdbc:postgresql://localhost:5432/my.db',\n"
+            + "    \"mode\"='bulk',\n"
+            + "    \"topic.prefix\"='jdbc-',\n"
+            + "    \"table.whitelist\"='users',\n"
+            + "    \"key\"='username');"));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getName(), is("`jdbc_connector`"));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).isSource(), is(true));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().size(), is(6));
@@ -647,7 +678,7 @@ public class CommandParserTest {
     assertThat(((SqlAssertTopicCommand) commands.get(0)).getExists(), is(true));
     assertThat(((SqlAssertTopicCommand) commands.get(0)).getTimeout(), is(Optional.empty()));
 
-    assertThat(commands.get(1).getCommand(), is( " assert not exists topic 'abcd' with (foo=2, bar=3) timeout 4 minutes;"));
+    assertThat(commands.get(1).getCommand(), is( "assert not exists topic 'abcd' with (foo=2, bar=3) timeout 4 minutes;"));
     assertThat(commands.get(1), instanceOf(SqlAssertTopicCommand.class));
     assertThat(((SqlAssertTopicCommand) commands.get(1)).getTopic(), is("abcd"));
     assertThat(((SqlAssertTopicCommand) commands.get(1)).getConfigs().size(), is(2));
@@ -656,7 +687,7 @@ public class CommandParserTest {
     assertThat(((SqlAssertTopicCommand) commands.get(1)).getExists(), is(false));
     assertThat(((SqlAssertTopicCommand) commands.get(1)).getTimeout().get(), is(Duration.ofMinutes(4)));
 
-    assertThat(commands.get(2).getCommand(), is( "assert topic ${topic} with (replicas=${replicas}, partitions=${partitions}) timeout 10 seconds;"));
+    assertThat(commands.get(2).getCommand(), is( "assert topic name with (replicas=3, partitions=5) timeout 10 seconds;"));
     assertThat(commands.get(2), instanceOf(SqlAssertTopicCommand.class));
     assertThat(((SqlAssertTopicCommand) commands.get(2)).getTopic(), is("name"));
     assertThat(((SqlAssertTopicCommand) commands.get(2)).getConfigs().size(), is(2));
@@ -684,14 +715,14 @@ public class CommandParserTest {
     assertThat(((SqlAssertSchemaCommand) commands.get(0)).getExists(), is(true));
     assertThat(((SqlAssertSchemaCommand) commands.get(0)).getTimeout(), is(Optional.empty()));
 
-    assertThat(commands.get(1).getCommand(), is( " assert not exists schema subject 'abcd' timeout 4 minutes;"));
+    assertThat(commands.get(1).getCommand(), is( "assert not exists schema subject 'abcd' timeout 4 minutes;"));
     assertThat(commands.get(1), instanceOf(SqlAssertSchemaCommand.class));
     assertThat(((SqlAssertSchemaCommand) commands.get(1)).getSubject().get(), is("abcd"));
     assertThat(((SqlAssertSchemaCommand) commands.get(1)).getId(), is(Optional.empty()));
     assertThat(((SqlAssertSchemaCommand) commands.get(1)).getExists(), is(false));
     assertThat(((SqlAssertSchemaCommand) commands.get(1)).getTimeout().get(), is(Duration.ofMinutes(4)));
 
-    assertThat(commands.get(2).getCommand(), is( "assert schema subject ${subject} id ${id} timeout 10 seconds;"));
+    assertThat(commands.get(2).getCommand(), is( "assert schema subject name id 4 timeout 10 seconds;"));
     assertThat(commands.get(2), instanceOf(SqlAssertSchemaCommand.class));
     assertThat(((SqlAssertSchemaCommand) commands.get(2)).getSubject().get(), is("name"));
     assertThat(((SqlAssertSchemaCommand) commands.get(2)).getId().get(), is(4));

@@ -30,27 +30,23 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.metastore.TypeRegistryImpl;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.parser.tree.AssertSchema;
-import io.confluent.ksql.parser.tree.AssertTopic;
-import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
-import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlStatementException;
+import org.apache.kafka.common.quota.ClientQuotaAlteration;
+
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -59,37 +55,8 @@ import java.util.stream.Collectors;
 public final class CommandParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
-  private static final Pattern SET_PROPERTY = Pattern.compile(
-      "\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
-      Pattern.CASE_INSENSITIVE);
-  private static final Pattern UNSET_PROPERTY = Pattern.compile(
-      "\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*", Pattern.CASE_INSENSITIVE);
-  private static final Pattern DROP_CONNECTOR = Pattern.compile(
-      "\\s*DROP\\s+CONNECTOR\\s+(IF\\s+EXISTS\\s+)?(.*?)\\s*;\\s*", Pattern.CASE_INSENSITIVE);
-  private static final Pattern DEFINE_VARIABLE = Pattern.compile(
-      "\\s*DEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
-      Pattern.CASE_INSENSITIVE);
-  private static final Pattern UNDEFINE_VARIABLE = Pattern.compile(
-      "\\s*UNDEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*;\\s*", Pattern.CASE_INSENSITIVE);
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
-  private static final String ASSERT = "ASSERT";
-  private static final String TOPIC = "TOPIC";
-  private static final String SCHEMA = "SCHEMA";
-  private static final String NOT = "NOT";
-  private static final String EXISTS = "EXISTS";
-  private static final String INSERT = "INSERT";
-  private static final String INTO = "INTO";
-  private static final String VALUES = "VALUES";
   private static final String SELECT = "SELECT";
-  private static final String CREATE = "CREATE";
-  private static final String SINK = "SINK";
-  private static final String SOURCE = "SOURCE";
-  private static final String DROP = "DROP";
-  private static final String CONNECTOR = "CONNECTOR";
-  private static final String SET = "SET";
-  private static final String UNSET = "UNSET";
-  private static final String DEFINE = "DEFINE";
-  private static final String UNDEFINE = "UNDEFINE";
   private static final String DESCRIBE = "DESCRIBE";
   private static final String EXPLAIN = "EXPLAIN";
   private static final String PRINT = "PRINT";
@@ -108,16 +75,30 @@ public final class CommandParser {
   );
 
   private enum StatementType {
-    INSERT_VALUES,
-    CREATE_CONNECTOR,
-    DROP_CONNECTOR,
-    STATEMENT,
-    SET_PROPERTY,
-    UNSET_PROPERTY,
-    DEFINE_VARIABLE,
-    UNDEFINE_VARIABLE,
-    ASSERT_TOPIC,
-    ASSERT_SCHEMA
+    INSERT_VALUES(InsertValues.class),
+    CREATE_CONNECTOR(CreateConnector.class),
+    DROP_CONNECTOR(DropConnector.class),
+    STATEMENT(Statement.class),
+    SET_PROPERTY(SetProperty.class),
+    UNSET_PROPERTY(UnsetProperty.class),
+    DEFINE_VARIABLE(DefineVariable.class),
+    UNDEFINE_VARIABLE(UndefineVariable.class),
+    ASSERT_TOPIC(AssertTopic.class),
+    ASSERT_SCHEMA(AssertSchema.class);
+
+    private final Class<? extends Statement> statementClass;
+
+    <T extends Statement> StatementType(
+            final Class<T> statementClass) {
+      this.statementClass = Objects.requireNonNull(statementClass, "statementClass");
+    }
+
+    public static StatementType get(Class<? extends Statement> statementClass) {
+      Optional<StatementType> type = Arrays.stream(StatementType.values())
+              .filter(statementType -> statementType.statementClass.equals(statementClass))
+              .findFirst();
+      return type.orElse(StatementType.STATEMENT);
+    }
   }
 
   private CommandParser() {
@@ -221,167 +202,123 @@ public final class CommandParser {
   */
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static SqlCommand transformToSqlCommand(
-      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-      final String sql, final Map<String, String> variables) {
+          // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+          final String sql, final Map<String, String> variables) {
 
-    // Splits the sql string into tokens(uppercased keyowords, identifiers and strings)
-    final List<String> tokens = Arrays
-        .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
-        .filter(s -> !s.isEmpty())
-        .collect(Collectors.toList());
-    switch (getStatementType(tokens)) {
+    validateSupportedStatementType(sql);
+    final String substituted;
+    try {
+      substituted = VariableSubstitutor.substitute( KSQL_PARSER.parse(sql).get(0), variables);
+    } catch (ParseFailedException e) {
+      throw new MigrationException(String.format(
+          "Failed to parse the statement. Statement: %s. Reason: %s",
+          sql, e.getMessage()));
+    }
+    final Class<? extends Statement> statementClass = KSQL_PARSER.prepare
+            (KSQL_PARSER.parse(substituted).get(0), TypeRegistry.EMPTY).getStatement().getClass();
+
+    switch (StatementType.get(statementClass)) {
       case INSERT_VALUES:
-        return getInsertValuesStatement(sql, variables);
+        return getInsertValuesStatement(substituted);
       case CREATE_CONNECTOR:
-        return getCreateConnectorStatement(sql, variables);
+        return getCreateConnectorStatement(substituted);
       case DROP_CONNECTOR:
-        return getDropConnectorStatement(sql);
+        return getDropConnectorStatement(substituted);
       case STATEMENT:
         return new SqlStatement(sql);
       case SET_PROPERTY:
-        return getSetPropertyCommand(sql, variables);
+        return getSetPropertyCommand(substituted);
       case UNSET_PROPERTY:
-        return getUnsetPropertyCommand(sql, variables);
+        return getUnsetPropertyCommand(substituted);
       case DEFINE_VARIABLE:
-        return getDefineVariableCommand(sql, variables);
+        return getDefineVariableCommand(substituted);
       case UNDEFINE_VARIABLE:
         return getUndefineVariableCommand(sql);
       case ASSERT_SCHEMA:
-        return getAssertSchemaCommand(sql, variables);
+        return getAssertSchemaCommand(substituted);
       case ASSERT_TOPIC:
-        return getAssertTopicCommand(sql, variables);
+        return getAssertTopicCommand(substituted);
       default:
         throw new IllegalStateException();
     }
   }
 
-  private static SqlInsertValues getInsertValuesStatement(
-      final String sql, final Map<String, String> variables) {
-    final InsertValues parsedStatement;
-    try {
-      final String substituted = VariableSubstitutor.substitute(
-          KSQL_PARSER.parse(sql).get(0),
-          variables
-      );
-      parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
+  private static SqlInsertValues getInsertValuesStatement(final String substituted) {
+    final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
           .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    } catch (ParseFailedException e) {
-      throw new MigrationException(String.format(
-          "Failed to parse INSERT VALUES statement. Statement: %s. Reason: %s",
-          sql, e.getMessage()));
-    }
     return new SqlInsertValues(
-        sql,
+        substituted,
         preserveCase(parsedStatement.getTarget().text()),
         parsedStatement.getValues(),
         parsedStatement.getColumns().stream()
             .map(ColumnName::text).collect(Collectors.toList()));
   }
 
-  private static SqlCreateConnectorStatement getCreateConnectorStatement(
-      final String sql,
-      final Map<String, String> variables
-  ) {
-    final CreateConnector createConnector;
-    try {
-      final String substituted = VariableSubstitutor.substitute(
-          KSQL_PARSER.parse(sql).get(0),
-          variables
-      );
-      createConnector = (CreateConnector) new AstBuilder(TypeRegistry.EMPTY)
+  private static SqlCreateConnectorStatement getCreateConnectorStatement(final String substituted) {
+    final CreateConnector createConnector = (CreateConnector) new AstBuilder(TypeRegistry.EMPTY)
           .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    } catch (ParseFailedException e) {
-      throw new MigrationException(String.format(
-          "Failed to parse CREATE CONNECTOR statement. Statement: %s. Reason: %s",
-          sql, e.getMessage()));
-    }
     return new SqlCreateConnectorStatement(
-        sql,
-        preserveCase(createConnector.getName()),
-        createConnector.getType() == Type.SOURCE,
-        createConnector.getConfig().entrySet().stream()
-            .collect(Collectors.toMap(Entry::getKey, e -> toFieldType(e.getValue()))),
-        createConnector.ifNotExists()
+            substituted,
+            preserveCase(createConnector.getName()),
+            createConnector.getType() == Type.SOURCE,
+            createConnector.getConfig().entrySet().stream()
+                    .collect(Collectors.toMap(Entry::getKey, e -> toFieldType(e.getValue()))),
+            createConnector.ifNotExists()
     );
   }
 
-  private static SqlDropConnectorStatement getDropConnectorStatement(final String sql) {
-    final Matcher dropConnectorMatcher = DROP_CONNECTOR.matcher(sql);
-    if (!dropConnectorMatcher.matches()) {
-      throw new MigrationException("Invalid DROP CONNECTOR command: " + sql);
-    }
+  private static SqlDropConnectorStatement getDropConnectorStatement(final String substituted) {
+    final DropConnector dropConnector = (DropConnector) new AstBuilder(TypeRegistry.EMPTY)
+            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
     return new SqlDropConnectorStatement(
-        sql,
-        dropConnectorMatcher.group(2),
-        dropConnectorMatcher.group(1) != null
+            substituted,
+            preserveCase(dropConnector.getConnectorName()),
+            dropConnector.getIfExists()
     );
   }
 
-  private static SqlPropertyCommand getSetPropertyCommand(
-      final String sql, final Map<String, String> variables) {
-    final Matcher setPropertyMatcher = SET_PROPERTY.matcher(sql);
-    if (!setPropertyMatcher.matches()) {
-      throw new MigrationException("Invalid SET command: " + sql);
-    }
+  private static SqlPropertyCommand getSetPropertyCommand(final String substituted) {
+    final SetProperty setProperty = (SetProperty) new AstBuilder(TypeRegistry.EMPTY)
+            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
     return new SqlPropertyCommand(
-        sql,
+        substituted,
         true,
-        VariableSubstitutor.substitute(setPropertyMatcher.group(1), variables),
-        Optional.of(VariableSubstitutor.substitute(setPropertyMatcher.group(2), variables))
+        setProperty.getPropertyName(),
+        Optional.of(setProperty.getPropertyValue())
     );
   }
 
-  private static SqlPropertyCommand getUnsetPropertyCommand(
-      final String sql, final Map<String, String> variables) {
-    final Matcher unsetPropertyMatcher = UNSET_PROPERTY.matcher(sql);
-    if (!unsetPropertyMatcher.matches()) {
-      throw new MigrationException("Invalid UNSET command: " + sql);
-    }
+  private static SqlPropertyCommand getUnsetPropertyCommand(final String substituted) {
+    final UnsetProperty unsetProperty = (UnsetProperty) new AstBuilder(TypeRegistry.EMPTY)
+            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
     return new SqlPropertyCommand(
-        sql,
+        substituted,
         false,
-        VariableSubstitutor.substitute(unsetPropertyMatcher.group(1), variables),
+        unsetProperty.getPropertyName(),
         Optional.empty());
   }
 
-  private static SqlDefineVariableCommand getDefineVariableCommand(
-      final String sql, final Map<String, String> variables) {
-    final Matcher defineVariableMatcher = DEFINE_VARIABLE.matcher(sql);
-    if (!defineVariableMatcher.matches()) {
-      throw new MigrationException("Invalid DEFINE command: " + sql);
-    }
+  private static SqlDefineVariableCommand getDefineVariableCommand(final String substituted) {
+    final DefineVariable defineVariable = (DefineVariable) new AstBuilder(TypeRegistry.EMPTY)
+            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
     return new SqlDefineVariableCommand(
-        sql,
-        defineVariableMatcher.group(1),
-        VariableSubstitutor.substitute(defineVariableMatcher.group(2), variables)
+            substituted,
+            defineVariable.getVariableName(),
+            defineVariable.getVariableValue()
     );
   }
 
-  private static SqlUndefineVariableCommand getUndefineVariableCommand(final String sql) {
-    final Matcher undefineVariableMatcher = UNDEFINE_VARIABLE.matcher(sql);
-    if (!undefineVariableMatcher.matches()) {
-      throw new MigrationException("Invalid UNDEFINE command: " + sql);
-    }
-    return new SqlUndefineVariableCommand(sql, undefineVariableMatcher.group(1));
+  private static SqlUndefineVariableCommand getUndefineVariableCommand(final String substituted) {
+    final UndefineVariable undefineVariable = (UndefineVariable) new AstBuilder(TypeRegistry.EMPTY)
+            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
+    return new SqlUndefineVariableCommand(substituted, undefineVariable.getVariableName());
   }
 
-  private static SqlAssertSchemaCommand getAssertSchemaCommand(
-      final String sql, final Map<String, String> variables) {
-    final AssertSchema assertSchema;
-    try {
-      final String substituted = VariableSubstitutor.substitute(
-          KSQL_PARSER.parse(sql).get(0),
-          variables
-      );
-      assertSchema = (AssertSchema) new AstBuilder(TypeRegistry.EMPTY)
+  private static SqlAssertSchemaCommand getAssertSchemaCommand(final String substituted) {
+    final AssertSchema assertSchema = (AssertSchema) new AstBuilder(TypeRegistry.EMPTY)
           .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    } catch (ParseFailedException e) {
-      throw new MigrationException(String.format(
-          "Failed to parse ASSERT SCHEMA statement. Statement: %s. Reason: %s",
-          sql, e.getMessage()));
-    }
     return new SqlAssertSchemaCommand(
-        sql,
+        substituted,
         assertSchema.getSubject(),
         assertSchema.getId(),
         assertSchema.checkExists(),
@@ -391,26 +328,13 @@ public final class CommandParser {
     );
   }
 
-  private static SqlAssertTopicCommand getAssertTopicCommand(
-      final String sql, final Map<String, String> variables) {
-    final AssertTopic assertTopic;
-    final Map<String, Integer> configs;
-    try {
-      final String substituted = VariableSubstitutor.substitute(
-          KSQL_PARSER.parse(sql).get(0),
-          variables
-      );
-      assertTopic = (AssertTopic) new AstBuilder(TypeRegistry.EMPTY)
+  private static SqlAssertTopicCommand getAssertTopicCommand(final String substituted) {
+    final AssertTopic assertTopic = (AssertTopic) new AstBuilder(TypeRegistry.EMPTY)
           .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-      configs = assertTopic.getConfig().entrySet().stream()
+    final Map<String, Integer> configs = assertTopic.getConfig().entrySet().stream()
           .collect(Collectors.toMap(e -> e.getKey(), e -> (Integer) e.getValue().getValue()));
-    } catch (ParseFailedException e) {
-      throw new MigrationException(String.format(
-          "Failed to parse ASSERT TOPIC statement. Statement: %s. Reason: %s",
-          sql, e.getMessage()));
-    }
     return new SqlAssertTopicCommand(
-        sql,
+        substituted,
         assertTopic.getTopic(),
         configs,
         assertTopic.checkExists(),
@@ -420,94 +344,6 @@ public final class CommandParser {
     );
   }
 
-  /**
-   * Determines if a statement is supported and the type of command it is based on a list of tokens.
-   */
-  private static StatementType getStatementType(final List<String> tokens) {
-    if (isInsertValuesStatement(tokens)) {
-      return StatementType.INSERT_VALUES;
-    } else if (isCreateConnectorStatement(tokens)) {
-      return StatementType.CREATE_CONNECTOR;
-    } else if (isDropConnectorStatement(tokens)) {
-      return StatementType.DROP_CONNECTOR;
-    } else if (isSetStatement(tokens)) {
-      return StatementType.SET_PROPERTY;
-    } else if (isUnsetStatement(tokens)) {
-      return StatementType.UNSET_PROPERTY;
-    } else if (isDefineStatement(tokens)) {
-      return StatementType.DEFINE_VARIABLE;
-    } else if (isUndefineStatement(tokens)) {
-      return StatementType.UNDEFINE_VARIABLE;
-    } else if (isAssertSchema(tokens)) {
-      return StatementType.ASSERT_SCHEMA;
-    } else if (isAssertTopic(tokens)) {
-      return StatementType.ASSERT_TOPIC;
-    } else {
-      validateSupportedStatementType(tokens);
-      return StatementType.STATEMENT;
-    }
-  }
-
-  private static boolean isAssertTopic(final List<String> tokens) {
-    return checkAssert(tokens, TOPIC);
-  }
-
-  private static boolean isAssertSchema(final List<String> tokens) {
-    return checkAssert(tokens, SCHEMA);
-  }
-
-  private static boolean checkAssert(final List<String> tokens, final String assertType) {
-    if (tokens.size() >= 1 && tokens.get(0).equals(ASSERT)) {
-      final boolean notExists =
-          tokens.size() >= 4 && tokens.get(1).equals(NOT) && tokens.get(2).equals(EXISTS);
-      if (notExists) {
-        return tokens.get(3).equals(assertType);
-      } else {
-        return tokens.get(1).equals(assertType);
-      }
-    }
-    return false;
-  }
-
-  private static boolean isInsertValuesStatement(final List<String> tokens) {
-    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    return tokens.size() > 3
-        && tokens.get(0).equals(INSERT)
-        && tokens.get(1).equals(INTO)
-        && !tokens.get(3).equals(SELECT)
-        && tokens.contains(VALUES);
-    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
-  }
-
-
-  private static boolean isCreateConnectorStatement(final List<String> tokens) {
-    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    return tokens.size() > 2
-        && tokens.get(0).equals(CREATE)
-        && (tokens.get(1).equals(SINK) || tokens.get(1).equals(SOURCE))
-        && tokens.get(2).equals(CONNECTOR);
-    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
-  }
-
-  private static boolean isDropConnectorStatement(final List<String> tokens) {
-    return tokens.size() > 1 && tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR);
-  }
-
-  private static boolean isSetStatement(final List<String> tokens) {
-    return tokens.size() > 0 && tokens.get(0).equals(SET);
-  }
-
-  private static boolean isUnsetStatement(final List<String> tokens) {
-    return tokens.size() > 0 && tokens.get(0).equals(UNSET);
-  }
-
-  private static boolean isDefineStatement(final List<String> tokens) {
-    return tokens.size() > 0 && tokens.get(0).equals(DEFINE);
-  }
-
-  private static boolean isUndefineStatement(final List<String> tokens) {
-    return tokens.size() > 0 && tokens.get(0).equals(UNDEFINE);
-  }
 
   /**
    * Validates that the sql statement represented by the list of input tokens
@@ -515,11 +351,15 @@ public final class CommandParser {
    * is not unsupported by the migrations tool. Assumes that tokens have already
    * been upper-cased.
    *
-   * @param tokens components that make up the sql statement. Each component is
+   * @param sql components that make up the sql statement. Each component is
    *               either a keyword separated by whitespace or a string enclosed
    *               in single quotes. Assumes that tokens have already been upper-cased.
    */
-  private static void validateSupportedStatementType(final List<String> tokens) {
+  private static void validateSupportedStatementType(final String sql) {
+    final List<String> tokens = Arrays
+            .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toList());
     if (tokens.size() > 0 && UNSUPPORTED_STATEMENTS.contains(tokens.get(0))) {
       throw new MigrationException("'" + tokens.get(0) + "' statements are not supported.");
     }

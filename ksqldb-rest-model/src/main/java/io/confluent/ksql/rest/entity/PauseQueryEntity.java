@@ -24,33 +24,24 @@ import java.util.Objects;
 public class PauseQueryEntity extends KsqlEntity {
 
   private final String queryId;
-  private final boolean wasPaused;
 
   @JsonCreator
   public PauseQueryEntity(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("queryId") final String queryId,
-      @JsonProperty("wasPaused") final boolean wasPaused
+      @JsonProperty("queryId") final String queryId
   ) {
     super(statementText);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.wasPaused =
-        wasPaused;
   }
 
   public String getQueryId() {
     return queryId;
   }
 
-  public boolean getWasPaused() {
-    return wasPaused;
-  }
-
   @Override
   public String toString() {
     return "PauseQueryEntity{"
         + "queryId='" + queryId + '\''
-        + "wasPausedLocally='" + wasPaused + '\''
         + '}';
   }
 

@@ -24,33 +24,24 @@ import java.util.Objects;
 public class ResumeQueryEntity extends KsqlEntity {
 
   private final String queryId;
-  private final boolean wasResumed;
 
   @JsonCreator
   public ResumeQueryEntity(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("queryId") final String queryId,
-      @JsonProperty("wasResumed") final boolean wasResumed
+      @JsonProperty("queryId") final String queryId
   ) {
     super(statementText);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.wasResumed =
-        wasResumed;
   }
 
   public String getQueryId() {
     return queryId;
   }
 
-  public boolean getWasResumed() {
-    return wasResumed;
-  }
-
   @Override
   public String toString() {
     return "ResumeQueryEntity{"
         + "queryId='" + queryId + '\''
-        + "wasResumedLocally='" + wasResumed + '\''
         + '}';
   }
 

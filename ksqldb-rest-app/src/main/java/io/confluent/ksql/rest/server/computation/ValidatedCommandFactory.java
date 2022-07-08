@@ -222,7 +222,7 @@ public final class ValidatedCommandFactory {
       final KsqlExecutionContext context
   ) {
     final ResumeQuery resumeQuery = (ResumeQuery) statement.getStatement();
-    final Optional<QueryId> queryId = terminateQuery.getQueryId();
+    final Optional<QueryId> queryId = resumeQuery.getQueryId();
 
     if (!queryId.isPresent()) {
       context.getPersistentQueries().forEach(PersistentQueryMetadata::resume);

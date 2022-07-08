@@ -265,12 +265,12 @@ public class PauseResumeIntegrationTest {
 
     List <KsqlEntity> showQueries = RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
         + "QUERIES;");
-    System.out.println("Show queries " + showQueries2.stream().map( q ->
+    System.out.println("Show queries " + showQueries.stream().map( q ->
             ((Queries)q).getQueries().get(0).getStatusCount().toString())
         .collect(Collectors.joining("\n")));
 
     // This failing shows that the command topic isn't being read completely?
-    return ((Queries) showQueries2.get(0)).getQueries().get(0).getStatusCount().getStatuses()
+    return ((Queries) showQueries.get(0)).getQueries().get(0).getStatusCount().getStatuses()
         .get(status);
     } catch (Exception e) {
       return 0;

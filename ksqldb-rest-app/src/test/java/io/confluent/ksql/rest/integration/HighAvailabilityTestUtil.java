@@ -460,9 +460,7 @@ class HighAvailabilityTestUtil {
         sql,
         Optional.of(mediaType),
         Optional.of(contentType),
-        Optional.of(credentials),
-        overrides,
-        requestProperties
+        Optional.of(credentials)
     );
   }
 }

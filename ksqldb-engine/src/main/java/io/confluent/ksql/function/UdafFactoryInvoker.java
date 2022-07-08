@@ -85,7 +85,7 @@ class UdafFactoryInvoker implements FunctionSignature {
   }
 
   @SuppressFBWarnings({"EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", "REC_CATCH_EXCEPTION"})
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs,
       final List<SqlArgument> argTypeList) {
     final Object[] factoryArgs = initArgs.args().toArray();

@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -70,9 +71,9 @@ public class GenericSerdeFactoryTest {
   @Mock
   private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
-  private ProcessingLogger processingLogger;
+  private ProcessingLogger processingLoggerWithoutQueryId;
   @Mock
-  private ProcessingLogger otherProcessingLogger;
+  private ProcessingLogger processingLoggerWithQueryId;
   @Mock
   private Serializer<String> formatSerializer;
   @Mock
@@ -98,7 +99,8 @@ public class GenericSerdeFactoryTest {
         .thenThrow(new RuntimeException("deserializer error"));
 
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(any())).thenReturn(otherProcessingLogger);
+    when(processingLoggerFactory.getLogger(any())).thenReturn(processingLoggerWithoutQueryId);
+    when(processingLoggerFactory.getLogger(any(), any())).thenReturn(processingLoggerWithQueryId);
   }
 
   @Test
@@ -163,9 +165,6 @@ public class GenericSerdeFactoryTest {
   @Test
   public void shouldWrapSerializerWithLoggingSerializer() {
     // Given:
-    when(processingLoggerFactory.getLogger("prefix.serializer")).thenReturn(processingLogger);
-
-    // When:
     final Serde<String> result = serdeFactory
         .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext);
 
@@ -178,13 +177,13 @@ public class GenericSerdeFactoryTest {
         )
     );
 
-    verify(processingLogger).error(any());
+    verify(processingLoggerWithoutQueryId).error(any());
   }
 
   @Test
   public void shouldWrapDeserializerWithLoggingSerializer() {
     // Given:
-    when(processingLoggerFactory.getLogger("prefix.deserializer")).thenReturn(processingLogger);
+    when(processingLoggerFactory.getLogger("prefix.deserializer")).thenReturn(processingLoggerWithoutQueryId);
 
     // When:
     final Serde<String> result = serdeFactory
@@ -199,6 +198,24 @@ public class GenericSerdeFactoryTest {
         )
     );
 
-    verify(processingLogger).error(any());
+    verify(processingLoggerWithoutQueryId).error(any());
+  }
+
+  @Test
+  public void shouldReturnProcessingLoggerWithQueryId() {
+   // When:
+    final Serde<String> result = serdeFactory
+        .wrapInLoggingSerde(formatSerde, "prefix", processingLogContext, Optional.of("query-id"));
+
+    // Then:
+    assertThrows(
+        RuntimeException.class,
+        () -> result.deserializer().deserialize(
+            "topicName",
+            "this call will cause error to be logged".getBytes(StandardCharsets.UTF_8)
+        )
+    );
+
+    verify(processingLoggerWithQueryId).error(any());
   }
 }

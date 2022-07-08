@@ -23,13 +23,10 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.parser.tree.DefineVariable;
-import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URL;
 import java.util.Arrays;
@@ -45,9 +42,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class VariableExecutorTest {
-  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
-      new DefaultConnectServerErrors());
-
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
 
@@ -60,8 +54,8 @@ public class VariableExecutorTest {
   }
 
   private void executeDefineVariable(final String sql) {
-    final Optional<KsqlEntity> response = CUSTOM_EXECUTORS.defineVariable().execute(
-        (ConfiguredStatement<DefineVariable>) engine.configure(sql),
+    final Optional<KsqlEntity> response = CustomExecutors.DEFINE_VARIABLE.execute(
+        engine.configure(sql),
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
@@ -70,8 +64,8 @@ public class VariableExecutorTest {
   }
 
   private Optional<KsqlEntity> executeUndefineVariable(final String sql) {
-    return CUSTOM_EXECUTORS.undefineVariable().execute(
-        (ConfiguredStatement<UndefineVariable>) engine.configure(sql),
+    return CustomExecutors.UNDEFINE_VARIABLE.execute(
+        engine.configure(sql),
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()

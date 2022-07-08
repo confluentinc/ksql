@@ -292,7 +292,7 @@ public class CreateSourceFactoryTest {
 
 
     // When:
-    final CreateTableCommand result = createSourceFactory.createTableCommand(outputNode);
+    final CreateTableCommand result = createSourceFactory.createTableCommand(outputNode, Optional.empty());
 
     // Then:
     assertThat(result.getSourceName(), is(SOME_NAME));
@@ -849,7 +849,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA.name())));
-    assertThat(cmd.getWindowInfo(), is(Optional.of(WindowInfo.of(SESSION, Optional.empty()))));
+    assertThat(cmd.getWindowInfo(), is(Optional.of(WindowInfo.of(SESSION, Optional.empty(), Optional.empty()))));
   }
 
   @Test
@@ -871,7 +871,7 @@ public class CreateSourceFactoryTest {
     assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA.name())));
     assertThat(
         cmd.getWindowInfo(),
-        is(Optional.of(WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1)))))
+        is(Optional.of(WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1)), Optional.empty())))
     );
   }
 
@@ -894,7 +894,7 @@ public class CreateSourceFactoryTest {
     assertThat(cmd.getFormats().getKeyFormat(), is(FormatInfo.of(KAFKA.name())));
     assertThat(
         cmd.getWindowInfo(),
-        is(Optional.of(WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2)))))
+        is(Optional.of(WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2)), Optional.empty())))
     );
   }
 

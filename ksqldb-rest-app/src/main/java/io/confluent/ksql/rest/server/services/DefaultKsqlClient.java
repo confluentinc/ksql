@@ -150,7 +150,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .properties(configOverrides);
 
     final CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>> response =
-        getTarget(target, authHeader)
+        getTarget(target)
         .postQueryRequestStreamedAsync(sql, requestProperties);
 
     return response.thenApply(resp -> {

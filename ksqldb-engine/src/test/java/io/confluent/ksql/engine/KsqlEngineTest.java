@@ -311,6 +311,25 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldThrowForBadSumAggregate() {
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.executeQuery(
+            serviceContext,
+            ksqlEngine,
+            "SELECT 'dummy', SUM(CAST(col1 AS STRING)) FROM test1 GROUP BY 'dummy' EMIT CHANGES;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
+        "No SUM aggregate function with STRING argument type exists!")));
+  }
+
+  @Test
   public void shouldThrowOnInsertIntoStreamWithTableResult() {
     KsqlEngineTestUtil.execute(
         serviceContext,
@@ -2290,6 +2309,25 @@ public class KsqlEngineTest {
     final Object valueAfter = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
     assertThat(valueAfter, not(equalTo(valueBefore)));
     assertThat(valueAfter, equalTo("3000"));
+  }
+
+  @Test
+  public void shouldThrowIfConfigureNotCalledWithAppServerConfig() {
+    // When/Then:
+    assertThrows(IllegalArgumentException.class, () -> ksqlEngine.configure(KsqlConfig.empty()));
+  }
+
+  @Test
+  public void shouldConfigure() {
+    // Given:
+    final KsqlConfig config
+        = new KsqlConfig(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "foo:bar//"));
+
+    // When:
+    ksqlEngine.configure(config);
+
+    // Then:
+    assertThat(ksqlEngine.getKsqlConfig(), is(config));
   }
 
   @Test

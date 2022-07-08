@@ -332,7 +332,7 @@ public class TopicInfoCache {
       return KeyFormat.windowed(
           keyFormat.getFormatInfo(),
           keyFormat.getFeatures(),
-          WindowInfo.of(windowType, duration)
+          WindowInfo.of(windowType, duration, Optional.empty())
       );
     }
   }

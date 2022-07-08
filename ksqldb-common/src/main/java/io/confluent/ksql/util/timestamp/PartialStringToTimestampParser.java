@@ -33,6 +33,7 @@ public class PartialStringToTimestampParser {
       + "Required format is: \"" + KsqlConstants.DATE_TIME_PATTERN + "\", "
       + "with an optional numeric 4-digit timezone, for example: "
       + "'2020-05-26T23:59:58.000' or with tz: '2020-05-26T23:59:58.000+0200'. "
+      + "A trailing 'Z' instead of tz indicates the zero UTC offset. "
       + "Partials are also supported, for example \"2020-05-26\"";
 
   private static final StringToTimestampParser PARSER =
@@ -51,11 +52,10 @@ public class PartialStringToTimestampParser {
 
     if (text.contains("T")) {
       date = text.substring(0, text.indexOf('T'));
-      final String withTimezone = completeTime(
-          text.substring(text.indexOf('T') + 1)
-      );
+      final String withTimezone = text.substring(text.indexOf('T') + 1);
       timezone = getTimezone(withTimezone);
-      time = completeTime(withTimezone.substring(0, withTimezone.length() - timezone.length()));
+      time = completeTime(withTimezone.substring(0, withTimezone.length() - timezone.length())
+              .replaceAll("Z$",""));
     } else {
       date = completeDate(text);
       time = completeTime("");

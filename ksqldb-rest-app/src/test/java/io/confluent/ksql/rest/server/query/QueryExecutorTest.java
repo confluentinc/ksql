@@ -145,6 +145,7 @@ public class QueryExecutorTest {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)).thenReturn(true);
     when(ksqlRestConfig.getInt(KsqlRestConfig.MAX_PUSH_QUERIES)).thenReturn(Integer.MAX_VALUE);
     when(ksqlEngine.analyzeQueryWithNoOutputTopic(any(), any(), any())).thenReturn(mockAnalysis);
+    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
     when(mockAnalysis.getFrom()).thenReturn(mockAliasedDataSource);
     when(mockAliasedDataSource.getDataSource()).thenReturn(mockDataSource);
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);

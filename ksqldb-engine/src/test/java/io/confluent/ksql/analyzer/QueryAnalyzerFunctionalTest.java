@@ -17,12 +17,9 @@ package io.confluent.ksql.analyzer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metastore.MetaStore;
@@ -31,8 +28,6 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.io.File;
@@ -80,20 +75,16 @@ public class QueryAnalyzerFunctionalTest {
   }
 
   @Test
-  public void shouldThrowIfUdafsAndNoGroupBy() {
+  public void shouldAnalyseAggregateFunctions() {
     // Given:
-    final Query query = givenQuery("select itemid, sum(orderunits) from orders EMIT CHANGES;");
+    final Query query = givenQuery("SELECT ID, COUNT(ARR1) FROM SENSOR_READINGS EMIT CHANGES;");
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> queryAnalyzer.analyze(query, Optional.empty())
-    );
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Use of aggregate function SUM requires a GROUP BY clause."
-    ));
+    assertThat(analysis.getAggregateFunctions(), hasSize(1));
+    assertThat(analysis.getAggregateFunctions().get(0).getName().text(), equalTo("COUNT"));
   }
 
   @Test

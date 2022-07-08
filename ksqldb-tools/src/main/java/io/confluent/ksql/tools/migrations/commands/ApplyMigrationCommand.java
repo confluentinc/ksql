@@ -34,6 +34,8 @@ import io.confluent.ksql.parser.VariableParser;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertSchemaCommand;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertTopicCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDefineVariableCommand;
@@ -50,6 +52,7 @@ import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -414,11 +417,13 @@ public class ApplyMigrationCommand extends BaseCommand {
   /**
    * Executes everything besides define/undefine commands
    */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private void executeNonVariableCommands(
       final SqlCommand command,
       final Client ksqlClient,
       final Map<String, Object> properties
   ) throws ExecutionException, InterruptedException {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (command instanceof SqlStatement) {
       ksqlClient.executeStatement(command.getCommand(), new HashMap<>(properties)).get();
     } else if (command instanceof SqlInsertValues) {
@@ -452,6 +457,76 @@ public class ApplyMigrationCommand extends BaseCommand {
       } else {
         properties.remove(((SqlPropertyCommand) command).getProperty());
       }
+    } else if (command instanceof SqlAssertTopicCommand) {
+      if (((SqlAssertTopicCommand) command).getTimeout().isPresent()) {
+        ksqlClient.assertTopic(
+            ((SqlAssertTopicCommand) command).getTopic(),
+            ((SqlAssertTopicCommand) command).getConfigs(),
+            ((SqlAssertTopicCommand) command).getExists(),
+            ((SqlAssertTopicCommand) command).getTimeout().get()
+        ).get();
+      } else {
+        ksqlClient.assertTopic(
+            ((SqlAssertTopicCommand) command).getTopic(),
+            ((SqlAssertTopicCommand) command).getConfigs(),
+            ((SqlAssertTopicCommand) command).getExists()
+        ).get();
+      }
+    } else if (command instanceof SqlAssertSchemaCommand) {
+      executeAsssertSchema(
+          ((SqlAssertSchemaCommand) command).getSubject(),
+          ((SqlAssertSchemaCommand) command).getId(),
+          ((SqlAssertSchemaCommand) command).getTimeout(),
+          ((SqlAssertSchemaCommand) command).getExists(),
+          ksqlClient
+      );
+    }
+  }
+
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  private void executeAsssertSchema(
+      final Optional<String> subject,
+      final Optional<Integer> id,
+      final Optional<Duration> timeout,
+      final boolean exists,
+      final Client ksqlClient
+  ) throws ExecutionException, InterruptedException {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+    if (subject.isPresent() && id.isPresent() && timeout.isPresent()) {
+      ksqlClient.assertSchema(
+          subject.get(),
+          id.get(),
+          exists,
+          timeout.get()
+      ).get();
+    } else if (!subject.isPresent() && id.isPresent() && timeout.isPresent()) {
+      ksqlClient.assertSchema(
+          id.get(),
+          exists,
+          timeout.get()
+      ).get();
+    } else if (subject.isPresent() && !id.isPresent() && timeout.isPresent()) {
+      ksqlClient.assertSchema(
+          subject.get(),
+          exists,
+          timeout.get()
+      ).get();
+    } else if (subject.isPresent() && id.isPresent() && !timeout.isPresent()) {
+      ksqlClient.assertSchema(
+          subject.get(),
+          id.get(),
+          exists
+      ).get();
+    } else if (!subject.isPresent() && id.isPresent() && !timeout.isPresent()) {
+      ksqlClient.assertSchema(
+          id.get(),
+          exists
+      ).get();
+    } else if (subject.isPresent() && !id.isPresent() && !timeout.isPresent()) {
+      ksqlClient.assertSchema(
+          subject.get(),
+          exists
+      ).get();
     }
   }
 

@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udaf.sum;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.ParameterInfo;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -32,6 +33,10 @@ public class DecimalSumKudaf
     implements TableAggregationFunction<BigDecimal, BigDecimal, BigDecimal> {
 
   private final MathContext context;
+  private final BigDecimal maxValue;
+  private final int precision;
+  private final int scale;
+  private final int digits;
 
   DecimalSumKudaf(
       final String functionName,
@@ -48,6 +53,10 @@ public class DecimalSumKudaf
         "Computes the sum of decimal values for a key, resulting in a decimal with the same "
             + "precision and scale.");
     context = new MathContext(outputSchema.getPrecision());
+    precision = outputSchema.getPrecision();
+    scale = outputSchema.getScale();
+    digits = outputSchema.getPrecision() - outputSchema.getScale();
+    maxValue = BigDecimal.valueOf(Math.pow(10, digits));
   }
 
   @Override
@@ -56,7 +65,19 @@ public class DecimalSumKudaf
       return aggregateValue;
     }
 
-    return aggregateValue.add(currentValue, context);
+    final BigDecimal value = aggregateValue.add(currentValue, context);
+
+    if (maxValue.compareTo(value.abs()) < 1) {
+      throw new KsqlFunctionException(
+          String.format("Numeric field overflow: A field with precision %d and scale %d "
+                  + "must round to an absolute value less than 10^%d. Got %s",
+              precision,
+              scale,
+              digits,
+              value.toPlainString()));
+    }
+
+    return value;
   }
 
   @Override

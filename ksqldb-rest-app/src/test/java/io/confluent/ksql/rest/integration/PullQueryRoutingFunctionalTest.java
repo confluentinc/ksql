@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
@@ -98,6 +99,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -115,6 +117,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @Category({IntegrationTest.class})
+@Ignore
 public class PullQueryRoutingFunctionalTest {
   private static final Logger LOG = LoggerFactory.getLogger(PullQueryRoutingFunctionalTest.class);
 
@@ -338,6 +341,38 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
+  }
+
+//  @Ignore
+  @Test
+  public void shouldQueryWS() throws Exception {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.standBy.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+
+    final Credentials credentials =  new Credentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+    // When:
+    List<String> rows_0 =
+        makePullQueryWsRequest(clusterFormation.router.getApp().getWsListener(), sql, "", "", credentials, Optional.empty(), Optional.empty());
+
+    // Then:
+    // websocket pull query returns a header, the value row, and an error row indicating that it is done
+    assertThat(rows_0, hasSize(HEADER + 2));
   }
 
   @Test
@@ -711,7 +746,7 @@ public class PullQueryRoutingFunctionalTest {
         WorkerExecutor workerExecutor) {
       if (getAuthToken(routingContext) == null){
         routingContext.fail(HttpResponseStatus.UNAUTHORIZED.code(),
-            new KsqlApiException("Unauthorized", HttpResponseStatus.UNAUTHORIZED.code()));
+            new KsqlApiException("Unauthorized", ERROR_CODE_UNAUTHORIZED));
         return CompletableFuture.completedFuture(null);
       }
       return CompletableFuture.completedFuture(new StringPrincipal(USER_WITH_ACCESS));
@@ -725,7 +760,8 @@ public class PullQueryRoutingFunctionalTest {
       }
       return authToken;
     }
-
+  }
+  
   public static class StaticStreamsTaskAssignor implements TaskAssignor {
     public StaticStreamsTaskAssignor() { }
 

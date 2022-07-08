@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -21,14 +20,11 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricValueProvider;
 import org.apache.kafka.common.metrics.Metrics;
-import org.codehaus.janino.Java;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,6 +56,7 @@ public class StorageUtilizationMetricsReporterTest {
   private ArgumentCaptor<MetricValueProvider<?>> metricValueProvider;
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     listener = new StorageUtilizationMetricsReporter();
     listener.configure(
@@ -67,7 +64,7 @@ public class StorageUtilizationMetricsReporterTest {
             KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics
         )
     );
-    when(metrics.metricName(any(), any(), (Map<String, String>) any())).thenAnswer(
+    when(metrics.metricName(any(), any(), any(Map.class))).thenAnswer(
       a -> new MetricName(a.getArgument(0), a.getArgument(1), "", a.getArgument(2)));
     StorageUtilizationMetricsReporter.setTags(BASE_TAGS);
   }
@@ -88,7 +85,7 @@ public class StorageUtilizationMetricsReporterTest {
     final File f = new File("/tmp/storage-test/");
     f.getParentFile().mkdirs();
     f.createNewFile();
-    listener.configureShared(f, metrics, BASE_TAGS);
+    StorageUtilizationMetricsReporter.configureShared(f, metrics, BASE_TAGS);
 
     // When:
     final Gauge<?> storageFreeGauge = verifyAndGetRegisteredMetric("node_storage_free_bytes", BASE_TAGS);
@@ -328,26 +325,26 @@ public class StorageUtilizationMetricsReporterTest {
     
     // Then:
     BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage(metrics);
-    assertTrue(maxVal.equals(BigInteger.valueOf(5)));
+    assertEquals(maxVal, BigInteger.valueOf(5));
   }
 
   @Test
   public void shouldRecordMaxTaskUsageWithNoTasks() {
     // Given:
-    when(metrics.metrics()).thenReturn(Collections.EMPTY_MAP);
+    when(metrics.metrics()).thenReturn(Collections.emptyMap());
 
     // When:
 
     // Then:
     BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage(metrics);
-    assertTrue(maxVal.equals(BigInteger.valueOf(0)));
+    assertEquals(maxVal, BigInteger.valueOf(0));
   }
   
   @Test
   public void shouldRecordNumStatefulTasks() {
     // Given:
     final File f = new File("/tmp/storage-test/");
-    listener.configureShared(f, metrics, BASE_TAGS);
+    StorageUtilizationMetricsReporter.configureShared(f, metrics, BASE_TAGS);
     final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
 
     // When:

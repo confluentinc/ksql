@@ -64,7 +64,7 @@ public class IntegerMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf integerMaxKudaf = getMaxComparableKudaf();
+    final MaxKudaf<Integer> integerMaxKudaf = getMaxComparableKudaf();
     final Merger<GenericKey, Integer> merger = integerMaxKudaf.getMerger();
     final Integer mergeResult1 = merger.apply(null, 10, 12);
     assertThat(mergeResult1, equalTo(12));
@@ -72,15 +72,15 @@ public class IntegerMaxKudafTest {
     assertThat(mergeResult2, equalTo(10));
     final Integer mergeResult3 = merger.apply(null, -10, 0);
     assertThat(mergeResult3, equalTo(0));
-
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MaxKudaf<Integer> getMaxComparableKudaf() {
+    final KsqlAggregateFunction<Integer, Integer, Integer> aggregateFunction =
+        (KsqlAggregateFunction<Integer, Integer, Integer>) new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Integer>) aggregateFunction;
   }
-
 }

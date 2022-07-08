@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Collections;
@@ -83,6 +84,11 @@ public interface KsqlExecutionContext {
    * @param propertyValue the value we want to change the property to.
    */
   void alterSystemProperty(String propertyName, String propertyValue);
+
+  /**
+   * Updates properties in existing runtimes and restarts them
+   */
+  void updateStreamsPropertiesAndRestartRuntime();
 
   /**
    * @return the service context used for this execution context
@@ -216,6 +222,22 @@ public interface KsqlExecutionContext {
       QueryPlannerOptions queryPlannerOptions,
       Context context,
       Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
+  );
+
+  /**
+   * For analyzing queries that you know won't have an output topic, such as pull queries.
+   */
+  ImmutableAnalysis analyzeQueryWithNoOutputTopic(
+      Query query,
+      String queryText,
+      Map<String, Object> configOverrides
+  );
+
+  StreamPullQueryMetadata createStreamPullQuery(
+      ServiceContext serviceContext,
+      ImmutableAnalysis analysis,
+      ConfiguredStatement<Query> statementOrig,
+      boolean excludeTombstones
   );
 
   /**

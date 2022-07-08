@@ -68,6 +68,7 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -77,6 +78,7 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -207,6 +209,12 @@ public final class SqlFormatter {
 
       builder.append("*");
 
+      return null;
+    }
+
+    @Override
+    protected Void visitStructAll(final StructAll node, final Integer context) {
+      builder.append(node.getBaseStruct() + KsqlConstants.STRUCT_FIELD_REF + "*");
       return null;
     }
 

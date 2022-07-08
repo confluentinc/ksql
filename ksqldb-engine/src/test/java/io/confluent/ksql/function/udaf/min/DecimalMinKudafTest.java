@@ -68,7 +68,7 @@ public class DecimalMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf decimalMinKudaf = getDecimalMinKudaf(3);
+    final MinKudaf<BigDecimal> decimalMinKudaf = getDecimalMinKudaf(3);
     final Merger<GenericKey, BigDecimal> merger = decimalMinKudaf.getMerger();
     final BigDecimal mergeResult1 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(12.0));
     assertThat(mergeResult1, equalTo(new BigDecimal(10.0, new MathContext(3))));
@@ -78,13 +78,13 @@ public class DecimalMinKudafTest {
     assertThat(mergeResult3, equalTo(new BigDecimal(-10.0, new MathContext(3))));
   }
 
-
-  private MinKudaf getDecimalMinKudaf(final int precision) {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MinKudaf<BigDecimal> getDecimalMinKudaf(final int precision) {
+    final KsqlAggregateFunction<BigDecimal, BigDecimal, BigDecimal> aggregateFunction =
+        (KsqlAggregateFunction<BigDecimal, BigDecimal, BigDecimal>) new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1))),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return  (MinKudaf<BigDecimal>) aggregateFunction;
   }
-
 }

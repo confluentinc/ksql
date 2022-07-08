@@ -54,6 +54,9 @@
       "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM INPUT (id int KEY, age int KEY, name STRING) WITH (kafka_topic='test_topic', format='JSON');", "CREATE STREAM OUTPUT AS SELECT age, id, NAME FROM INPUT;" ],
+    "properties" : {
+      "ksql.new.query.planner.enabled" : "false"
+    },
     "post" : {
       "sources" : [ {
         "name" : "INPUT",

@@ -15,19 +15,26 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
-
 import java.util.Collections;
 import java.util.HashMap;
-import org.apache.kafka.common.KafkaFuture;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
@@ -35,16 +42,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SharedKafkaStreamsRuntimeImplTest {
@@ -65,12 +62,10 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private NamedTopology namedTopology;
     @Mock
     private AddNamedTopologyResult addNamedTopologyResult;
-    @Mock
-    private KafkaFuture<Void> future;
 
     private final QueryId queryId = new QueryId("query-1");
     private final QueryId queryId2= new QueryId("query-2");
-    private Map<String, Object> streamProps = new HashMap();
+    private final Map<String, Object> streamProps = new HashMap<>();
 
     private final StreamsException query1Exception =
         new StreamsException("query down!", new TaskId(0, 0, queryId.toString()));
@@ -87,6 +82,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void setUp() throws Exception {
         when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
         streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "runtime");
+        streamProps.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "old");
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             queryErrorClassifier,
@@ -112,14 +108,14 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void overrideStreamsPropertiesShouldReplaceProperties() {
         // Given:
         final Map<String, Object> newProps = new HashMap<>();
-        newProps.put("Test", "Test");
+        newProps.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "notused");
 
         // When:
         sharedKafkaStreamsRuntimeImpl.overrideStreamsProperties(newProps);
 
         // Then:
         final Map<String, Object> properties = sharedKafkaStreamsRuntimeImpl.streamsProperties;
-        assertThat(properties.get("Test"), equalTo("Test"));
+        assertThat(properties.get(StreamsConfig.APPLICATION_SERVER_CONFIG), equalTo("old"));
         assertThat(properties.size(), equalTo(1));
     }
 
@@ -232,7 +228,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
         //Then:
         verify(kafkaStreamsNamedTopologyWrapper).close();
-        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(namedTopology);
+        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(any());
         verify(kafkaStreamsNamedTopologyWrapper2).start();
         verify(kafkaStreamsNamedTopologyWrapper2).setUncaughtExceptionHandler((StreamsUncaughtExceptionHandler) any());
     }

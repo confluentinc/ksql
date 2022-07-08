@@ -30,6 +30,8 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -144,6 +146,11 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .handler(BodyHandler.create(false))
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
+    // Add a separate route for KSQL_V1_PROTOBUF. See https://github.com/confluentinc/ksql/pull/9145
+    router.route(HttpMethod.POST, "/query-stream")
+        .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())
+        .handler(BodyHandler.create(false))
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
@@ -177,6 +184,11 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, true));
+    // Add a separate route for KSQL_V1_PROTOBUF. See https://github.com/confluentinc/ksql/pull/9145
+    router.route(HttpMethod.POST, "/query")
+        .handler(BodyHandler.create(false))
+        .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, true));
     router.route(HttpMethod.GET, "/info")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
@@ -308,7 +320,7 @@ public class ServerVerticle extends AbstractVerticle {
         (ksqlRequest, apiSecurityContext) ->
             endpoints
                 .executeIsValidProperty(property, server.getWorkerExecutor(),
-                    DefaultApiSecurityContext.create(routingContext))
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -358,10 +370,30 @@ public class ServerVerticle extends AbstractVerticle {
         .setStatusCode(TEMPORARY_REDIRECT.code()).end();
   }
 
+  private static final class VertexHandler implements Handler<AsyncResult<ServerWebSocket>> {
+    ServerWebSocket serverWebSocket;
+
+    @Override
+    public void handle(final AsyncResult<ServerWebSocket> event) {
+      serverWebSocket = event.result();
+    }
+
+    ServerWebSocket getServerWebSocket() {
+      if (serverWebSocket == null) {
+        throw new IllegalStateException();
+      }
+      return serverWebSocket;
+    }
+  }
+
   private void handleWebsocket(final RoutingContext routingContext) {
     final ApiSecurityContext apiSecurityContext =
         DefaultApiSecurityContext.create(routingContext, server);
-    final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
+
+    final VertexHandler handler = new VertexHandler();
+    routingContext.request().toWebSocket(handler);
+    final ServerWebSocket serverWebSocket = handler.getServerWebSocket();
+
     endpoints
         .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
             server.getWorkerExecutor(), apiSecurityContext, context);

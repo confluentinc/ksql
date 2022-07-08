@@ -128,6 +128,15 @@ public final class KsLocator implements Locator {
       metadata = getMetadataForAllPartitions(filterPartitions, keySet);
     }
 
+    if (metadata.isEmpty()) {
+      final MaterializationException materializationException = new MaterializationException(
+          "Cannot determine which host contains the required partitions to serve the pull query. \n"
+              + "The underlying persistent query may be restarting (e.g. as a result of "
+              + "ALTER SYSTEM) view the status of your by issuing <DESCRIBE foo>.");
+      LOG.debug(materializationException.getMessage());
+      throw materializationException;
+    }
+
     // Go through the metadata and group them by partition.
     for (PartitionMetadata partitionMetadata : metadata) {
       LOG.debug("Handling pull query for partition {} of state store {}.",

@@ -64,7 +64,7 @@ public class LongMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf longMaxKudaf = getMaxComparableKudaf();
+    final MaxKudaf<Long> longMaxKudaf = getMaxComparableKudaf();
     final Merger<GenericKey, Long> merger = longMaxKudaf.getMerger();
     final Long mergeResult1 = merger.apply(null, 10L, 12L);
     assertThat(mergeResult1, equalTo(12L));
@@ -72,15 +72,15 @@ public class LongMaxKudafTest {
     assertThat(mergeResult2, equalTo(10L));
     final Long mergeResult3 = merger.apply(null, -10L, 0L);
     assertThat(mergeResult3, equalTo(0L));
-
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MaxKudaf<Long> getMaxComparableKudaf() {
+    final KsqlAggregateFunction<Long, Long, Long> aggregateFunction =
+        (KsqlAggregateFunction<Long, Long, Long>) new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Long>) aggregateFunction;
   }
-
 }

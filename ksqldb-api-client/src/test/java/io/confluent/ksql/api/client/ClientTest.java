@@ -52,6 +52,8 @@ import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.AssertSchemaEntity;
+import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -59,7 +61,6 @@ import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -1191,25 +1192,6 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldFailOnErrorEntityFromExecuteStatement() {
-    // Given
-    final ErrorEntity entity = new ErrorEntity("create connector;", "error msg");
-    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
-
-    // When
-    final Exception e = assertThrows(
-        ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> javaClient.executeStatement("create connector;").get()
-    );
-
-    // Then
-    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
-    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
-    assertThat(e.getCause().getMessage(),
-        containsString("Use the createConnector, dropConnector, describeConnector or listConnectors methods instead"));
-  }
-
-  @Test
   public void shouldListStreams() throws Exception {
     // Given
     final List<SourceInfo.Stream> expectedStreams = new ArrayList<>();
@@ -1816,6 +1798,110 @@ public class ClientTest extends BaseApiTest {
     for (final Entry<String, String> header : REQUEST_HEADERS.entrySet()) {
       assertThat(requestHeaders, hasItems(entry(header)));
     }
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithSubjectAndId() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.of("name"), Optional.of(3), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema("name", 3, true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema subject 'name' id 3;"));
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithSubject() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.of("name"), Optional.empty(), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema("name", true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema subject 'name';"));
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithId() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.empty(), Optional.of(3), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema(3, true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema id 3;"));
+  }
+
+  @Test
+  public void shouldSendAssertNotExistSchema() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.of("name"), Optional.empty(), false);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema("name", false).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert not exists schema subject 'name';"));
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithTimeout() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.empty(), Optional.of(3), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema(3, true, Duration.ofSeconds(10)).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema id 3 timeout 10 seconds;"));
+  }
+
+  @Test
+  public void shouldSendAssertTopic() throws Exception {
+    // Given
+    final AssertTopicEntity entity = new AssertTopicEntity("assert topic;", "name", true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertTopic("name", true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert topic 'name';"));
+  }
+
+  @Test
+  public void shouldSendAssertTopicWithConfigs() throws Exception {
+    // Given
+    final AssertTopicEntity entity = new AssertTopicEntity("assert topic;", "name", true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertTopic("name", ImmutableMap.of("foo", 3, "bar", 5),true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert topic 'name' with (foo=3,bar=5);"));
+  }
+
+  @Test
+  public void shouldSendAssertNotExistsTopicWithTimeout() throws Exception {
+    // Given
+    final AssertTopicEntity entity = new AssertTopicEntity("assert topic;", "name", false);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertTopic("name",false, Duration.ofSeconds(10)).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert not exists topic 'name' timeout 10 seconds;"));
   }
 
   protected Client createJavaClient() {

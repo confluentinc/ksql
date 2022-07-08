@@ -323,30 +323,30 @@ public class InsertValuesExecutor {
         true
     );
 
-    final Serde<GenericKey> keySerde = keySerdeFactory.create(
+    try (Serde<GenericKey> keySerde = keySerdeFactory.create(
         formatInfo,
         physicalSchema.keySchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
         NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
-
-    final String topicName = dataSource.getKafkaTopicName();
-    try {
-      return keySerde
-          .serializer()
-          .serialize(topicName, keyValue);
-    } catch (final Exception e) {
-      maybeThrowSchemaRegistryAuthError(
-          FormatFactory.fromName(dataSource.getKsqlTopic().getKeyFormat().getFormat()),
-          topicName,
-          true,
-          AclOperation.WRITE,
-          e);
-      LOG.error("Could not serialize key.", e);
-      throw new KsqlException("Could not serialize key: " + keyValue, e);
+        Optional.empty())
+    ) {
+      final String topicName = dataSource.getKafkaTopicName();
+      try {
+        return keySerde
+            .serializer()
+            .serialize(topicName, keyValue);
+      } catch (final Exception e) {
+        maybeThrowSchemaRegistryAuthError(
+            FormatFactory.fromName(dataSource.getKsqlTopic().getKeyFormat().getFormat()),
+            topicName,
+            true,
+            AclOperation.WRITE,
+            e);
+        LOG.error("Could not serialize key.", e);
+        throw new KsqlException("Could not serialize key: " + keyValue, e);
+      }
     }
   }
 
@@ -456,29 +456,29 @@ public class InsertValuesExecutor {
         false
     );
 
-    final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
+    try (Serde<GenericRow> valueSerde = valueSerdeFactory.create(
         formatInfo,
         physicalSchema.valueSchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
         NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
+        Optional.empty())
+    ) {
+      final String topicName = dataSource.getKafkaTopicName();
 
-    final String topicName = dataSource.getKafkaTopicName();
-
-    try {
-      return valueSerde.serializer().serialize(topicName, row);
-    } catch (final Exception e) {
-      maybeThrowSchemaRegistryAuthError(
-          FormatFactory.fromName(dataSource.getKsqlTopic().getValueFormat().getFormat()),
-          topicName,
-          false,
-          AclOperation.WRITE,
-          e);
-      LOG.error("Could not serialize value.", e);
-      throw new KsqlException("Could not serialize value: " + row + ". " + e.getMessage(), e);
+      try {
+        return valueSerde.serializer().serialize(topicName, row);
+      } catch (final Exception e) {
+        maybeThrowSchemaRegistryAuthError(
+            FormatFactory.fromName(dataSource.getKsqlTopic().getValueFormat().getFormat()),
+            topicName,
+            false,
+            AclOperation.WRITE,
+            e);
+        LOG.error("Could not serialize value.", e);
+        throw new KsqlException("Could not serialize value: " + row + ". " + e.getMessage(), e);
+      }
     }
   }
 
@@ -513,7 +513,7 @@ public class InsertValuesExecutor {
 
       // Add SUBJECT_NAME only on supported SR formats
       if (supportedProperties.contains(ConnectProperties.SUBJECT_NAME)) {
-        final ImmutableMap.Builder propertiesBuilder = ImmutableMap.builder();
+        final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
         propertiesBuilder.putAll(formatInfo.getProperties());
 
         propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,

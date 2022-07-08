@@ -142,12 +142,6 @@ public class KsqlConfig extends AbstractConfig {
       "Custom extension to allow for more fine-grained control of connector requests made by "
           + "ksqlDB. Extensions should implement the ConnectRequestHeadersExtension interface.";
 
-  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER =
-      KSQL_CONNECT_PREFIX + "error.handler";
-  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT = null;
-  private static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC =
-      "A class that allows the ksqlDB server to customize error handling from connector requests.";
-
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
   public static final String KSQL_EXT_DIR = "ksql.extension.dir";
@@ -526,7 +520,7 @@ public class KsqlConfig extends AbstractConfig {
       + "KSQL metastore backup files are located.";
 
   public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
-  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = true;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
@@ -667,6 +661,27 @@ public class KsqlConfig extends AbstractConfig {
   private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
   private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
       = "Migrates the /query endpoint to use the same handler as /query-stream.";
+  public static final String KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS
+      = "ksql.assert.topic.default.timeout.ms";
+  private static final int KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DEFAULT = 1000;
+  private static final String KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DOC
+      = "The default timeout for ASSERT TOPIC statements if no timeout is specified "
+      + "in the statement.";
+  public static final String KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS
+      = "ksql.assert.schema.default.timeout.ms";
+  private static final int KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DEFAULT = 1000;
+  private static final String KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DOC
+      = "The default timeout for ASSERT SCHEMA statements if no timeout is specified "
+      + "in the statement.";
+
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
+      = "ksql.websocket.connection.max.timeout.ms";
+  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 0;
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+      = "If this config is set to a positive number, then ksqlDB will terminate websocket"
+      + " connections after a timeout. The timeout will be the lower of the auth token's "
+      + "lifespan (if present) and the value of this config. If this config is set to 0, then "
+      + "ksqlDB will not close websockets even if the token has an expiration time.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -1407,13 +1422,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_HEADERS_COLUMNS_ENABLED_DOC
         )
         .define(
-            KSQL_CONNECT_SERVER_ERROR_HANDLER,
-            Type.CLASS,
-            KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT,
-            Importance.LOW,
-            KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC
-        )
-        .define(
             KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG,
             Type.BOOLEAN,
             KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT,
@@ -1440,6 +1448,27 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT,
             Importance.LOW,
             KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
+        )
+        .define(
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS,
+            Type.INT,
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS,
+            Type.INT,
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
         )
         .withClientSslSupport();
 
@@ -1784,6 +1813,18 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, String> getStringAsMap(final String key) {
     final String value = getString(key).trim();
     return parseStringAsMap(key, value);
+  }
+
+  public static Map<String, String> getStringAsMap(
+      final String key,
+      final Map<String, ?> configMap
+  ) {
+    final String value = (String) configMap.get(key);
+    if (value != null) {
+      return parseStringAsMap(key, value);
+    } else {
+      return Collections.emptyMap();
+    }
   }
 
   public static Map<String, String> parseStringAsMap(final String key, final String value) {

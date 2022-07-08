@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -319,6 +320,19 @@ public class KsqlParserTest {
     assertThat(singleColumn0.getExpression(), instanceOf(DereferenceExpression.class));
     assertThat(singleColumn0.getExpression().toString(), is("ITEMINFO->CATEGORY->NAME"));
     assertThat(singleColumn1.getExpression().toString(), is("ADDRESS->STREET"));
+  }
+
+  @Test
+  public void shouldParseStartOnStructCorrectly() {
+    final String simpleQuery = "SELECT iteminfo->* FROM orders WHERE address->state = 'CA';";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getSelect().getSelectItems(), hasSize(1));
+    final StructAll allFields = (StructAll) query.getSelect().getSelectItems().get(0);
+    assertThat(allFields.getBaseStruct(), instanceOf(Expression.class));
+    assertThat(allFields.getBaseStruct().toString(), is("ITEMINFO"));
   }
 
   @Test

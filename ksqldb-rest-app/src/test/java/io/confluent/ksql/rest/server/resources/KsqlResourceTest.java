@@ -143,7 +143,6 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
-import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -314,8 +313,6 @@ public class KsqlResourceTest {
   @Mock
   private Errors errorsHandler;
   @Mock
-  private ConnectServerErrors connectErrorHandler;
-  @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private Supplier<String> commandRunnerWarning;
@@ -450,7 +447,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -483,7 +479,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -2513,7 +2508,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -2551,6 +2545,21 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(response.getStatus(), equalTo(400));
+  }
+
+  @Test
+  public void shouldNotBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
+    givenKsqlConfigWith(ImmutableMap.of(
+        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
+    ));
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.streams.auto.offset.reset");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(200));
   }
 
   @Test
@@ -2623,7 +2632,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );

@@ -19,7 +19,8 @@
         {"topic": "S2", "key": 0,"value": "2"},
         {"topic": "S2", "key": 100,"value": "1"}
       ]
-    },{
+    },
+    {
       "name": "count star",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, ignored STRING) WITH (kafka_topic='input_topic', value_format='DELIMITED');",

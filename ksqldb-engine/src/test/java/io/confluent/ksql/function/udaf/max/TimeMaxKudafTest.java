@@ -67,7 +67,7 @@ public class TimeMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf timeMaxKudaf = getMaxComparableKudaf();
+    final MaxKudaf<Time> timeMaxKudaf = getMaxComparableKudaf();
     final Merger<GenericKey, Time> merger = timeMaxKudaf.getMerger();
     final Time mergeResult1 = merger.apply(null, new Time(10), new Time(12));
     assertThat(mergeResult1, equalTo(new Time(12)));
@@ -75,15 +75,14 @@ public class TimeMaxKudafTest {
     assertThat(mergeResult2, equalTo(new Time(10)));
     final Time mergeResult3 = merger.apply(null, new Time(-10), new Time(0));
     assertThat(mergeResult3, equalTo(new Time(0)));
-
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MaxKudaf<Time> getMaxComparableKudaf() {
+    final KsqlAggregateFunction<Time, Time, Time> aggregateFunction = (KsqlAggregateFunction<Time, Time, Time>) new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.TIME)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Time>) aggregateFunction;
   }
-
 }

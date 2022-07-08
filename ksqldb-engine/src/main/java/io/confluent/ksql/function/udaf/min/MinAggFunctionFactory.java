@@ -51,17 +51,23 @@ public class MinAggFunctionFactory extends AggregateFunctionFactory {
       case DATE:
       case TIME:
       case TIMESTAMP:
+      case STRING:
+      case BYTES:
         return new MinKudaf(FUNCTION_NAME, initArgs.udafIndex(), argSchema);
       default:
-        throw new KsqlException("No MIN aggregate function with " + argTypeList.get(0) + " "
-            + "argument type exists!");
-
+        throw new KsqlException(
+          String.format(
+            "No %s aggregate function with %s argument type exists!",
+            FUNCTION_NAME,
+            argTypeList.get(0)
+          )
+        );
     }
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "NUMERICAL_TIME is ImmutableList")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "COMPARABLE_ARGS is ImmutableList")
   public List<List<ParamType>> supportedArgs() {
-    return NUMERICAL_TIME;
+    return COMPARABLE_ARGS;
   }
 }

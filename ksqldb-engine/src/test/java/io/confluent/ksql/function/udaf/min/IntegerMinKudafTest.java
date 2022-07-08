@@ -64,7 +64,7 @@ public class IntegerMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf integerMinKudaf = getIntegerMinKudaf();
+    final MinKudaf<Integer> integerMinKudaf = getIntegerMinKudaf();
     final Merger<GenericKey, Integer> merger = integerMinKudaf.getMerger();
     final Integer mergeResult1 = merger.apply(null, 10, 12);
     assertThat(mergeResult1, equalTo(10));
@@ -72,15 +72,15 @@ public class IntegerMinKudafTest {
     assertThat(mergeResult2, equalTo(-12));
     final Integer mergeResult3 = merger.apply(null, -10, 0);
     assertThat(mergeResult3, equalTo(-10));
-
   }
 
-
-  private MinKudaf getIntegerMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
+  @SuppressWarnings("unchecked")
+  private MinKudaf<Integer> getIntegerMinKudaf() {
+    final KsqlAggregateFunction<Integer, Integer, Integer> aggregateFunction =
+        (KsqlAggregateFunction<Integer, Integer, Integer>) new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return  (MinKudaf<Integer>) aggregateFunction;
   }
 }

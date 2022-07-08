@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -40,6 +42,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
@@ -53,7 +56,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryMetadataImpl implements QueryMetadata {
-
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
 
   private final String statementString;
@@ -71,6 +73,8 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final TimeBoundedQueue queryErrors;
   private final RetryEvent retryEvent;
   private final Listener listener;
+  private final ProcessingLoggerFactory loggerFactory;
+
   private volatile boolean everStarted = false;
   private volatile KafkaStreams kafkaStreams;
   // These fields don't need synchronization because they are initialized in initialize() before
@@ -103,7 +107,8 @@ public class QueryMetadataImpl implements QueryMetadata {
       final int maxQueryErrorsQueueSize,
       final long baseWaitingTimeMs,
       final long retryBackoffMaxMs,
-      final Listener listener
+      final Listener listener,
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -132,6 +137,7 @@ public class QueryMetadataImpl implements QueryMetadata {
         retryBackoffMaxMs,
         CURRENT_TIME_MILLIS_TICKER
     );
+    this.loggerFactory = Objects.requireNonNull(loggerFactory, "loggerFactory");
   }
 
   // Used for sandboxing
@@ -165,6 +171,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     );
     this.listener
         = Objects.requireNonNull(listener, "stopListeners");
+    this.loggerFactory = other.loggerFactory;
   }
 
   public void initialize() {
@@ -204,7 +211,7 @@ public class QueryMetadataImpl implements QueryMetadata {
           e
       );
     }
-    retryEvent.backOff();
+    retryEvent.backOff(Thread.currentThread().getName());
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
   }
 
@@ -352,6 +359,7 @@ public class QueryMetadataImpl implements QueryMetadata {
    * schemas, etc...).
    */
   public void close() {
+    loggerFactory.getLoggersWithPrefix(queryId.toString()).forEach(ProcessingLogger::close);
     doClose(true);
     listener.onClose(this);
   }
@@ -417,7 +425,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     private final Ticker ticker;
     private final QueryId queryId;
 
-    private int numRetries = 0;
+    private Map<String, Integer> numRetries = new ConcurrentHashMap<>();
     private long waitingTimeMs;
     private long expiryTimeMs;
     private long retryBackoffMaxMs;
@@ -442,13 +450,11 @@ public class QueryMetadataImpl implements QueryMetadata {
       return expiryTimeMs;
     }
 
-    public int getNumRetries() {
-      return numRetries;
+    public int getNumRetries(final String threadName) {
+      return numRetries.getOrDefault(threadName, 0);
     }
 
-    public void backOff() {
-      numRetries++;
-
+    public void backOff(final String threadName) {
       final long now = ticker.read();
 
       this.waitingTimeMs = getWaitingTimeMs();
@@ -459,7 +465,13 @@ public class QueryMetadataImpl implements QueryMetadata {
         Thread.currentThread().interrupt();
       }
 
-      LOG.info("Restarting query {} (attempt #{})", queryId, numRetries);
+      final int retries = numRetries.merge(threadName, 1, Integer::sum);
+
+      LOG.info(
+          "Restarting query {} thread {} (attempt #{})",
+          queryId,
+          threadName,
+          retries);
 
       // Math.max() prevents overflow if now is Long.MAX_VALUE (found just in tests)
       this.expiryTimeMs = Math.max(now, now + waitingTimeMs);

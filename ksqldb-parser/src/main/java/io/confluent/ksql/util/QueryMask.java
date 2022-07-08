@@ -15,6 +15,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
+import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementsContext;
@@ -50,15 +51,17 @@ public class QueryMask {
       could be spaces around equal sign.
      */
     final StringBuffer sb = new StringBuffer();
-    final Pattern pattern = Pattern.compile("('[^']+')\\s*=\\s*('[^']*')");
+    final Pattern pattern = Pattern.compile("('[^']+'|\"[^\"]+\")\\s*=\\s*('[^']*')",
+        Pattern.DOTALL | Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
     final Matcher matcher = pattern.matcher(query);
 
     while (matcher.find()) {
       final String matchedString = matcher.group(0);
+      final char quote = matcher.group(1).charAt(0);
       final String key = matcher.group(1).substring(1, matcher.group(1).length() - 1);
 
       if (!ALLOWED_KEYS.contains(key)) {
-        final String replacement = "\"" + key + "\"=" + MASKED_VALUE;
+        final String replacement = quote + key + quote + "=" + MASKED_VALUE;
         matcher.appendReplacement(sb, replacement);
       } else {
         matcher.appendReplacement(sb, matchedString);
@@ -117,7 +120,8 @@ public class QueryMask {
         stringBuilder.append(" IF NOT EXISTS");
       }
 
-      stringBuilder.append(" connector ");
+      stringBuilder.append(" ").append(context.identifier().getText());
+
 
       // mask properties
       if (context.tableProperties() != null) {
@@ -136,20 +140,26 @@ public class QueryMask {
       // Mask everything except "connector.class"
       for (final TablePropertyContext prop : context.tableProperty()) {
         final StringBuilder formattedProp = new StringBuilder();
+        final String unquotedLowerKey;
+        final String key;
+
         if (prop.identifier() != null) {
-          formattedProp.append(ParserUtil.getIdentifierText(prop.identifier()));
+          key = prop.identifier().getText();
+          unquotedLowerKey = ParserUtil.getIdentifierText(prop.identifier()).toLowerCase();
         } else {
-          formattedProp.append(prop.STRING().getText());
+          key = prop.STRING().getText();
+          unquotedLowerKey = key.substring(1, key.length() - 1).toLowerCase();
         }
-        final String lowerKey = formattedProp.toString().toLowerCase();
-        final String value = ALLOWED_KEYS.contains(lowerKey) ? prop.literal().getText() :
+
+        formattedProp.append(key);
+        final String value = ALLOWED_KEYS.contains(unquotedLowerKey) ? prop.literal().getText() :
             MASKED_VALUE;
         formattedProp.append("=").append(value);
         tableProperties.add(formattedProp.toString());
       }
 
       masked = true;
-      return String.format("WITH (%s)", StringUtils.join(tableProperties, ", "));
+      return String.format(" WITH (%s)", StringUtils.join(tableProperties, ", "));
     }
   }
 }

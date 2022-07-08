@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.util;
 
+import static io.confluent.ksql.execution.util.ColumnExtractor.detectColumns;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
@@ -85,6 +87,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ExpressionTypeManager {
 
@@ -528,11 +531,19 @@ public class ExpressionTypeManager {
     ) {
       // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       if (functionRegistry.isAggregate(node.getName())) {
-        final List<SqlType> schema = node.getArguments().isEmpty()
-            ? Collections.singletonList(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
-            : node.getArguments().stream().filter(ColumnExtractor::detectColumns).map(
-                    (arg) -> getExpressionSqlType(arg, context.getLambdaSqlTypeMapping())
-              ).collect(Collectors.toList());
+        final List<Expression> args = node.getArguments();
+        List<SqlType> schema = IntStream.range(0, args.size())
+                .filter((index) -> index == 0 || detectColumns(args.get(index)))
+                .mapToObj(
+                        (index) -> getExpressionSqlType(
+                                args.get(index),
+                                context.getLambdaSqlTypeMapping()
+                        )
+                ).collect(Collectors.toList());
+
+        if (schema.isEmpty()) {
+          schema = Collections.singletonList(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA);
+        }
 
         // use an empty KsqlConfig here because the expression type
         // of an aggregate function does not depend on the configuration

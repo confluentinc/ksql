@@ -38,15 +38,6 @@ public class QueryStatusCount {
   // Use a EnumMap so toString() will always return the same string
   private final EnumMap<KsqlQueryStatus, Integer> statuses;
 
-  public static QueryStatusCount fromStreamsStateCounts(
-      final Map<KafkaStreams.State, Integer> states) {
-    final Map<KsqlQueryStatus, Integer> ksqlQueryStatus = states.entrySet().stream()
-        .collect(Collectors.toMap(
-            e -> KsqlConstants.fromStreamsState(e.getKey()),
-            Map.Entry::getValue));
-    return new QueryStatusCount(ksqlQueryStatus);
-  }
-
   public QueryStatusCount() {
     this(Collections.emptyMap());
   }

@@ -364,8 +364,8 @@ public class ListSourceExecutorTest {
         ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
-    final QueryStatusCount queryStatusCount = QueryStatusCount.fromStreamsStateCounts(
-        Collections.singletonMap(metadata.getState(), 1));
+    final QueryStatusCount queryStatusCount =
+            new QueryStatusCount(Collections.singletonMap(KsqlConstants.fromStreamsState(metadata.getState()), 1));
 
     assertThat(
         sourceDescription.getSourceDescription(),

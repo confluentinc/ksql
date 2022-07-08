@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -64,7 +63,6 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private static final Logger LOG = LoggerFactory
       .getLogger(BinPackedPersistentQueryMetadataImpl.class);
 
-  private final AtomicBoolean isPaused = new AtomicBoolean(false);
   private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final String statementString;
   private final String executionPlan;
@@ -89,6 +87,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   private final ProcessingLoggerFactory loggerFactory;
   public boolean everStarted = false;
+  private boolean isPaused = false;
   private boolean corruptionCommandTopic = false;
 
 
@@ -421,7 +420,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public KsqlQueryStatus getQueryStatus() {
-    if (isPaused.get()) {
+    if (isPaused) {
       return KsqlQueryStatus.PAUSED;
     } else {
       return KsqlConstants.fromStreamsState(getState());
@@ -431,13 +430,13 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public void pause() {
     sharedKafkaStreamsRuntime.getKafkaStreams().pauseNamedTopology(topology.name());
-    isPaused.set(true);
+    isPaused = true;
   }
 
   @Override
   public void resume() {
     sharedKafkaStreamsRuntime.getKafkaStreams().resumeNamedTopology(topology.name());
-    isPaused.set(false);
+    isPaused = false;
   }
 
   @Override

@@ -136,7 +136,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     kafkaStreams.close();
     kafkaStreams.cleanUp();
   }
-  
+
   @Override
   public void start(final QueryId queryId) {
   }

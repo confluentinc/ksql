@@ -2362,8 +2362,8 @@ public class KsqlResourceTest {
                 ? ImmutableSet.of(md.getResultTopic().get().getKafkaTopicName())
                 : ImmutableSet.of(),
             md.getQueryId(),
-            QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(md.getState(), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
+            new QueryStatusCount(Collections.singletonMap(KsqlConstants.fromStreamsState(md.getState()), 1)),
+            KsqlConstants.KsqlQueryType.PERSISTENT)
     ).collect(Collectors.toList());
   }
 

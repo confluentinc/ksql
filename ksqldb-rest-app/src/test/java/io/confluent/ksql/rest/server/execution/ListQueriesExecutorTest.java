@@ -169,10 +169,11 @@ public class ListQueriesExecutorTest {
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
-    
+
+    // new QueryStatusCount(Collections.singletonMap(q.getQueryStatus(), 1))
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
-        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(ERROR_QUERY_STATE, 1))));
+            new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.ERROR, 1))));
 
 
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
@@ -208,7 +209,7 @@ public class ListQueriesExecutorTest {
     
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
-        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(RUNNING_QUERY_STATE, 1))));
+            new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.RUNNING, 1))));
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
     when(ksqlEntityList.get(anyInt())).thenReturn(remoteQueries);
     when(response.getResponse()).thenReturn(ksqlEntityList);

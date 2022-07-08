@@ -46,50 +46,11 @@ public class StructuredDataSourceTest {
       .build();
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsRowTime() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    new TestStructuredDataSource(schema);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnDuplicateColumnNames() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("dup"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("dup"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    new TestStructuredDataSource(schema);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsWindowStart() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.STRING)
-        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    new TestStructuredDataSource(schema);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsWindowEnd() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 
@@ -119,7 +80,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
         "sql",
@@ -127,7 +89,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
 
     // When:
@@ -147,7 +110,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
         "sql",
@@ -155,7 +119,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.of(new TimestampColumn(ColumnName.of("foo"), Optional.empty())),
         true,
-        topic
+        topic,
+        false
     );
 
     // When:
@@ -175,7 +140,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
         "sql",
@@ -183,7 +149,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic2
+        topic2,
+        false
     );
 
     // When:
@@ -203,7 +170,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
     final KsqlTable<String> streamB = new KsqlTable<>(
         "sql",
@@ -211,7 +179,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
 
     // When:
@@ -369,7 +338,8 @@ public class StructuredDataSourceTest {
           Optional.empty(),
           DataSourceType.KSTREAM,
           false,
-          topic
+          topic,
+          false
       );
     }
 

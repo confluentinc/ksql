@@ -9,12 +9,14 @@
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": "0,zero,00:01:05Lit,HH:mm:ss'Lit'"},
         {"topic": "test_topic", "key": "1", "value": "1,zero,11/05/19,HH/mm/ss"},
-        {"topic": "test_topic", "key": "2", "value": "2,zero,01:00:00 PM,hh:mm:ss a"}
+        {"topic": "test_topic", "key": "2", "value": "2,zero,01:00:00 PM,hh:mm:ss a"},
+        {"topic": "test_topic", "key": "3", "value": "3,zero,01:00:00 Pm,hh:mm:ss a"}
       ],
       "outputs": [
         {"topic": "TS", "key": "0", "value": "0,65000"},
         {"topic": "TS", "key": "1", "value": "1,39919000"},
-        {"topic": "TS", "key": "2", "value": "2,46800000"}
+        {"topic": "TS", "key": "2", "value": "2,46800000"},
+        {"topic": "TS", "key": "3", "value": "3,46800000"}
       ]
     }
   ]

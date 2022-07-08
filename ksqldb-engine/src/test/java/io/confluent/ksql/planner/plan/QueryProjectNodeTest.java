@@ -55,6 +55,7 @@ public class QueryProjectNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final ColumnName K = ColumnName.of("K");
+  private static final ColumnName H = ColumnName.of("H");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName ALIAS = ColumnName.of("GRACE");
   private static final SourceName SOURCE_NAME = SourceName.of("SOURCE");
@@ -70,6 +71,7 @@ public class QueryProjectNodeTest {
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
       .valueColumn(K, SqlTypes.STRING)
+      .headerColumn(H, Optional.empty())
       .build();
 
   @Mock
@@ -103,6 +105,7 @@ public class QueryProjectNodeTest {
     when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test
@@ -126,7 +129,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false);
+    final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, false, true);
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -151,7 +155,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(true);
+    final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, true, true);;
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -160,6 +165,7 @@ public class QueryProjectNodeTest {
     // Given:
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ALIAS));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -175,7 +181,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    assertThat(INPUT_SCHEMA, is(projectNode.getIntermediateSchema()));
+    assertThat(INPUT_SCHEMA.withoutPseudoAndKeyColsInValue(),
+        is(projectNode.getIntermediateSchema()));
   }
 
   @Test
@@ -183,6 +190,7 @@ public class QueryProjectNodeTest {
     // Given:
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(K)));
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(K));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -219,6 +227,8 @@ public class QueryProjectNodeTest {
         .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
         .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
         .add((new SingleColumn(K_REF, Optional.of(K)))).build();
+    when(analysis.getSelectColumnNames()).thenReturn(
+        ImmutableSet.of(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWEND_NAME, K));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -257,6 +267,8 @@ public class QueryProjectNodeTest {
         .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
         .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
         .add((new SingleColumn(COL0_REF, Optional.of(COL0)))).build();
+    when(analysis.getSelectColumnNames()).thenReturn(
+        ImmutableSet.of(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWEND_NAME, COL0));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -303,8 +315,9 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = INPUT_SCHEMA;
-    assertThat(expectedSchema.withPseudoAndKeyColsInValue(false),
-        is(projectNode.getIntermediateSchema()));
+    final LogicalSchema expectedIntermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, false, true);
+    assertThat(expectedIntermediateSchema, is(projectNode.getIntermediateSchema()));
     assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
     assertThrows(
         IllegalStateException.class,

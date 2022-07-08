@@ -1,0 +1,110 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [left])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> L_LeftSourceKeyed-SelectKey
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: L_LeftSourceKeyed-SelectKey (stores: [])
+      --> PrependAliasL_Left
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: PrependAliasL_Left (stores: [])
+      --> L_Join-left-repartition-filter
+      <-- L_LeftSourceKeyed-SelectKey
+    Processor: L_Join-left-repartition-filter (stores: [])
+      --> L_Join-left-repartition-sink
+      <-- PrependAliasL_Left
+    Sink: L_Join-left-repartition-sink (topic: L_Join-left-repartition)
+      <-- L_Join-left-repartition-filter
+
+  Sub-topology: 1
+    Source: KSTREAM-SOURCE-0000000004 (topics: [right])
+      --> KSTREAM-TRANSFORMVALUES-0000000005
+    Processor: KSTREAM-TRANSFORMVALUES-0000000005 (stores: [])
+      --> L_RightSourceKeyed-SelectKey
+      <-- KSTREAM-SOURCE-0000000004
+    Processor: L_RightSourceKeyed-SelectKey (stores: [])
+      --> PrependAliasL_Right
+      <-- KSTREAM-TRANSFORMVALUES-0000000005
+    Processor: PrependAliasL_Right (stores: [])
+      --> L_Join-right-repartition-filter
+      <-- L_RightSourceKeyed-SelectKey
+    Processor: L_Join-right-repartition-filter (stores: [])
+      --> L_Join-right-repartition-sink
+      <-- PrependAliasL_Right
+    Sink: L_Join-right-repartition-sink (topic: L_Join-right-repartition)
+      <-- L_Join-right-repartition-filter
+
+  Sub-topology: 2
+    Source: L_Join-left-repartition-source (topics: [L_Join-left-repartition])
+      --> L_Join-this-windowed
+    Source: L_Join-right-repartition-source (topics: [L_Join-right-repartition])
+      --> L_Join-other-windowed
+    Processor: L_Join-other-windowed (stores: [KSTREAM-JOINOTHER-0000000017-store])
+      --> L_Join-other-join
+      <-- L_Join-right-repartition-source
+    Processor: L_Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000016-store])
+      --> L_Join-this-join
+      <-- L_Join-left-repartition-source
+    Processor: L_Join-other-join (stores: [KSTREAM-JOINTHIS-0000000016-store])
+      --> L_Join-merge
+      <-- L_Join-other-windowed
+    Processor: L_Join-this-join (stores: [KSTREAM-JOINOTHER-0000000017-store])
+      --> L_Join-merge
+      <-- L_Join-this-windowed
+    Processor: L_Join-merge (stores: [])
+      --> LeftSourceKeyed-SelectKey
+      <-- L_Join-this-join, L_Join-other-join
+    Processor: LeftSourceKeyed-SelectKey (stores: [])
+      --> Join-left-repartition-filter
+      <-- L_Join-merge
+    Processor: Join-left-repartition-filter (stores: [])
+      --> Join-left-repartition-sink
+      <-- LeftSourceKeyed-SelectKey
+    Sink: Join-left-repartition-sink (topic: Join-left-repartition)
+      <-- Join-left-repartition-filter
+
+  Sub-topology: 3
+    Source: Join-left-repartition-source (topics: [Join-left-repartition])
+      --> Join-this-windowed
+    Source: Join-right-repartition-source (topics: [Join-right-repartition])
+      --> Join-other-windowed
+    Processor: Join-other-windowed (stores: [KSTREAM-JOINOTHER-0000000033-store])
+      --> Join-other-join
+      <-- Join-right-repartition-source
+    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000032-store])
+      --> Join-this-join
+      <-- Join-left-repartition-source
+    Processor: Join-other-join (stores: [KSTREAM-JOINTHIS-0000000032-store])
+      --> Join-merge
+      <-- Join-other-windowed
+    Processor: Join-this-join (stores: [KSTREAM-JOINOTHER-0000000033-store])
+      --> Join-merge
+      <-- Join-this-windowed
+    Processor: Join-merge (stores: [])
+      --> Project
+      <-- Join-this-join, Join-other-join
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000036
+      <-- Join-merge
+    Sink: KSTREAM-SINK-0000000036 (topic: OUTPUT)
+      <-- Project
+
+  Sub-topology: 4
+    Source: KSTREAM-SOURCE-0000000020 (topics: [right2])
+      --> KSTREAM-TRANSFORMVALUES-0000000021
+    Processor: KSTREAM-TRANSFORMVALUES-0000000021 (stores: [])
+      --> RightSourceKeyed-SelectKey
+      <-- KSTREAM-SOURCE-0000000020
+    Processor: RightSourceKeyed-SelectKey (stores: [])
+      --> PrependAliasRight
+      <-- KSTREAM-TRANSFORMVALUES-0000000021
+    Processor: PrependAliasRight (stores: [])
+      --> Join-right-repartition-filter
+      <-- RightSourceKeyed-SelectKey
+    Processor: Join-right-repartition-filter (stores: [])
+      --> Join-right-repartition-sink
+      <-- PrependAliasRight
+    Sink: Join-right-repartition-sink (topic: Join-right-repartition)
+      <-- Join-right-repartition-filter
+

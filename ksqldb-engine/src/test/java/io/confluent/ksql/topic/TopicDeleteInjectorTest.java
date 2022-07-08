@@ -46,7 +46,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -291,12 +291,12 @@ public class TopicDeleteInjectorTest {
     // Given:
     when(topic.getKeyFormat())
         .thenReturn(KeyFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo")),
+            FormatFactory.AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "foo")),
             SerdeFeatures.of(),
             Optional.empty()));
     when(topic.getValueFormat())
         .thenReturn(ValueFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo")),
+            FormatFactory.AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "foo")),
             SerdeFeatures.of()));
 
     doThrow(new RestClientException("Subject not found.", 404, 40401))
@@ -306,6 +306,22 @@ public class TopicDeleteInjectorTest {
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
+  }
+
+  @Test
+  public void shouldThrowOnDeleteTopicIfSourceIsReadOnly() {
+    // Given:
+    when(source.isSource()).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> deleteInjector.inject(DROP_WITH_DELETE_TOPIC)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("" +
+        "Cannot delete topic for read-only source: SOMETHING"));
   }
 
   private static DataSource givenSource(final SourceName name, final String topicName) {

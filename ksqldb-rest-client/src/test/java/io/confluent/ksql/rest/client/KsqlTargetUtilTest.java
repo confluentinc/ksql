@@ -5,7 +5,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.Column;
@@ -14,7 +17,10 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.vertx.core.buffer.Buffer;
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -25,6 +31,12 @@ public class KsqlTargetUtilTest {
 
   @Mock
   private KsqlEntityList entities;
+
+  @BeforeClass
+  public static void setupClass() {
+    // Have to know how to deserialize types!
+    ApiJsonMapper.INSTANCE.get().registerModule(new KsqlTypesDeserializationModule());
+  }
 
   @Before
   public void setUp() {
@@ -84,5 +96,46 @@ public class KsqlTargetUtilTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Couldn't parse message: [34"));
+  }
+
+  @Test
+  public void toRows() {
+    // When:
+    final List<StreamedRow> rows =  KsqlTargetUtil.toRows(Buffer.buffer(
+        "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
+        + "{\"row\":{\"columns\":[\"Row1\"]}},\n"
+        + "{\"row\":{\"columns\":[\"Row2\"]}},\n"));
+
+    // Then:
+    assertThat(rows.size(), is(3));
+    final StreamedRow row = rows.get(0);
+    assertThat(row.getHeader().isPresent(), is(true));
+    assertThat(row.getHeader().get().getQueryId().toString(), is("query_id_10"));
+    assertThat(row.getHeader().get().getSchema().key(), is(Collections.emptyList()));
+    assertThat(row.getHeader().get().getSchema().value().size(), is(1));
+    assertThat(row.getHeader().get().getSchema().value().get(0),
+        is (Column.of(ColumnName.of("col1"), SqlTypes.STRING, Namespace.VALUE, 0)));
+    final StreamedRow row2 = rows.get(1);
+    assertThat(row2.getRow().isPresent(), is(true));
+    assertThat(row2.getRow().get().getColumns(), is(ImmutableList.of("Row1")));
+    final StreamedRow row3 = rows.get(2);
+    assertThat(row3.getRow().isPresent(), is(true));
+    assertThat(row3.getRow().get().getColumns(), is(ImmutableList.of("Row2")));
+
+  }
+
+  @Test
+  public void toRows_errorParsingNotAtEnd() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlRestClientException.class,
+        () -> KsqlTargetUtil.toRows(Buffer.buffer(
+            "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
+                + "{\"row\":{\"columns\"\n"
+                + "{\"row\":{\"columns\":[\"Row2\"]}},\n"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is(("Failed to deserialise object")));
   }
 }

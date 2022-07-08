@@ -37,8 +37,6 @@ public final class AvroFormat extends ConnectFormat {
       SerdeFeature.UNWRAP_SINGLES
   );
 
-  public static final String FULL_SCHEMA_NAME = AvroProperties.FULL_SCHEMA_NAME;
-
   public static final String NAME = "AVRO";
 
   @Override
@@ -81,9 +79,7 @@ public final class AvroFormat extends ConnectFormat {
     // Ensure schema is compatible by converting to Avro schema:
     getConnectSchemaTranslator(formatProps).fromConnectSchema(connectSchema);
 
-    final String schemaFullName = new AvroProperties(formatProps).getFullSchemaName();
-
-    return new KsqlAvroSerdeFactory(schemaFullName)
+    return new KsqlAvroSerdeFactory(new AvroProperties(formatProps))
         .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 

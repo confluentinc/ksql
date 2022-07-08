@@ -19,6 +19,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -27,14 +29,24 @@ public class CommandStatusEntity extends KsqlEntity {
   private final CommandStatus commandStatus;
   private final long commandSequenceNumber;
 
+  public CommandStatusEntity(
+      final String statementText,
+      final CommandId commandId,
+      final CommandStatus commandStatus,
+      final Long commandSequenceNumber
+  ) {
+    this(statementText, commandId, commandStatus, commandSequenceNumber, Collections.emptyList());
+  }
+
   @JsonCreator
   public CommandStatusEntity(
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("commandId") final CommandId commandId,
       @JsonProperty("commandStatus") final CommandStatus commandStatus,
-      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber,
+      @JsonProperty("warnings") final List<KsqlWarning> warnings
   ) {
-    super(statementText);
+    super(statementText, warnings);
     this.commandId = Objects.requireNonNull(commandId, "commandId");
     this.commandStatus = Objects.requireNonNull(commandStatus, "commandStatus");
     this.commandSequenceNumber = commandSequenceNumber == null ? -1 : commandSequenceNumber;

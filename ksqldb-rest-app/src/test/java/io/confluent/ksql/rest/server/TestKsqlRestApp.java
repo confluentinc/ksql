@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
@@ -35,8 +36,11 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.server.NetworkDisruptorClient.NetworkState;
 import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
+import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory;
+import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory.InternalSimpleKsqlClientFactory;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
@@ -101,6 +105,7 @@ public class TestKsqlRestApp extends ExternalResource {
   protected KsqlRestConfig ksqlRestConfig;
   protected KsqlRestApplication ksqlRestApplication;
   protected long lastCommandSequenceNumber = -1L;
+  protected InternalSimpleKsqlClientFactory internalSimpleKsqlClientFactory;
 
   static {
     // Increase the default - it's low (100)
@@ -111,12 +116,14 @@ public class TestKsqlRestApp extends ExternalResource {
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
-      final Optional<BasicCredentials> credentials
+      final Optional<BasicCredentials> credentials,
+      final InternalSimpleKsqlClientFactory internalSimpleKsqlClientFactory
   ) {
     this.baseConfig = buildBaseConfig(additionalProps);
     this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.credentials = requireNonNull(credentials, "credentials");
+    this.internalSimpleKsqlClientFactory = internalSimpleKsqlClientFactory;
   }
 
   public KsqlExecutionContext getEngine() {
@@ -215,13 +222,21 @@ public class TestKsqlRestApp extends ExternalResource {
 
   public Set<String> getPersistentQueries() {
     try (final KsqlRestClient client = buildKsqlClient()) {
-      return getPersistentQueries(client);
+      return getPersistentQueries(client)
+          .stream()
+          .map(RunningQuery::getId)
+          .map(QueryId::toString)
+          .collect(Collectors.toSet());
     }
   }
 
   public Set<String> getTransientQueries() {
     try (final KsqlRestClient client = buildKsqlClient()) {
-      return getTransientQueries(client);
+      return getTransientQueries(client)
+          .stream()
+          .map(RunningQuery::getId)
+          .map(QueryId::toString)
+          .collect(Collectors.toSet());
     }
   }
 
@@ -231,7 +246,14 @@ public class TestKsqlRestApp extends ExternalResource {
 
   public void closePersistentQueries(final Optional<BasicCredentials> credentials) {
     try (final KsqlRestClient client = buildKsqlClient(credentials)) {
-      terminateQueries(getPersistentQueries(client), client);
+      // Filter source tables queries because they cannot be terminated manually
+      final Set<String> queriesToTerminate = getPersistentQueries(client).stream()
+          .filter(query -> !query.getQueryString().startsWith("CREATE SOURCE TABLE"))
+          .map(RunningQuery::getId)
+          .map(QueryId::toString)
+          .collect(Collectors.toSet());
+
+      terminateQueries(queriesToTerminate, client);
     }
   }
 
@@ -314,11 +336,16 @@ public class TestKsqlRestApp extends ExternalResource {
           3,
           serviceContext.get(),
           () -> serviceContext.get().getSchemaRegistryClient(),
+          (authHeader, userPrincipal) -> serviceContext.get().getConnectClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
               PropertiesUtil.toMapStrings(ksqlRestConfig.originals()),
               SocketAddress::inetSocketAddress,
-              vertx));
+              vertx),
+          TestRestServiceContextFactory.createDefault(internalSimpleKsqlClientFactory),
+          TestRestServiceContextFactory.createUser(internalSimpleKsqlClientFactory),
+          new MetricCollectors()
+      );
 
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
@@ -354,15 +381,16 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private Set<String> getPersistentQueries(final KsqlRestClient client) {
+  private Set<RunningQuery> getPersistentQueries(final KsqlRestClient client) {
     return getQueries(client, KsqlQueryType.PERSISTENT);
   }
 
-  private Set<String> getTransientQueries(final KsqlRestClient client) {
+  private Set<RunningQuery> getTransientQueries(final KsqlRestClient client) {
     return getQueries(client, KsqlQueryType.PUSH);
   }
 
-  private Set<String> getQueries(final KsqlRestClient client, final KsqlQueryType queryType) {
+  private Set<RunningQuery> getQueries(final KsqlRestClient client,
+                                 final KsqlQueryType queryType) {
     final RestResponse<KsqlEntityList> response = makeKsqlRequest(client, "SHOW QUERIES;");
     if (response.isErroneous()) {
       throw new AssertionError("Failed to get persistent queries."
@@ -372,8 +400,6 @@ public class TestKsqlRestApp extends ExternalResource {
     final Queries queries = (Queries) response.getResponse().get(0);
     return queries.getQueries().stream()
         .filter(query -> query.getQueryType() == queryType)
-        .map(RunningQuery::getId)
-        .map(QueryId::toString)
         .collect(Collectors.toSet());
   }
 
@@ -552,6 +578,7 @@ public class TestKsqlRestApp extends ExternalResource {
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
     configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
     configMap.put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, false);
+    configMap.put(KsqlConfig.KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS, 500L);
     configMap.putAll(additionalProps);
     return configMap;
   }
@@ -577,11 +604,14 @@ public class TestKsqlRestApp extends ExternalResource {
 
     private Optional<BasicCredentials> credentials = Optional.empty();
 
+    private InternalSimpleKsqlClientFactory internalSimpleKsqlClientFactory;
+
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
               DisabledKsqlClient::instance);
+      this.internalSimpleKsqlClientFactory = TestDefaultKsqlClientFactory::instance;
     }
 
     @SuppressWarnings("unused") // Part of public API
@@ -608,6 +638,13 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public Builder withEnabledKsqlClient() {
       withEnabledKsqlClient(SocketAddress::inetSocketAddress);
+      return this;
+    }
+
+    public Builder withNetworkDisruptorInternalKsqlClient(NetworkState networkState) {
+      internalSimpleKsqlClientFactory = (authHeader, ksqlClient) ->
+          new NetworkDisruptorClient(
+              TestDefaultKsqlClientFactory.instance(authHeader, ksqlClient), networkState);
       return this;
     }
 
@@ -645,7 +682,8 @@ public class TestKsqlRestApp extends ExternalResource {
           bootstrapServers,
           additionalProps,
           serviceContext,
-          credentials
+          credentials,
+          internalSimpleKsqlClientFactory
       );
     }
 
@@ -655,7 +693,8 @@ public class TestKsqlRestApp extends ExternalResource {
           additionalProps,
           serviceContext,
           credentials,
-          latch
+          latch,
+          internalSimpleKsqlClientFactory
       );
     }
   }

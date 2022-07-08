@@ -29,4 +29,10 @@ public interface PushDataSourceOperator {
 
   // If rows have been dropped.
   boolean droppedRows();
+
+  // If an error has occurred.
+  boolean hasError();
+
+  // Number of rows read
+  long getRowsReadCount();
 }

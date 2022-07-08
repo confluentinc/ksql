@@ -1,0 +1,19 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [test_topic])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> WhereFilter
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: WhereFilter (stores: [])
+      --> FlatMap
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: FlatMap (stores: [])
+      --> Project
+      <-- WhereFilter
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000005
+      <-- FlatMap
+    Sink: KSTREAM-SINK-0000000005 (topic: OUTPUT)
+      <-- Project
+

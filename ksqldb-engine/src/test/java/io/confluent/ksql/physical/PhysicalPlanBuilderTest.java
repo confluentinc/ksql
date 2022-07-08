@@ -33,6 +33,7 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -99,7 +100,8 @@ public class PhysicalPlanBuilderTest {
     engineMetastore = new MetaStoreImpl(new InternalFunctionRegistry());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        engineMetastore
+        engineMetastore,
+        new MetricCollectors()
     );
   }
 
@@ -124,7 +126,7 @@ public class PhysicalPlanBuilderTest {
   public void shouldHaveKStreamDataSource() {
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) buildQuery(
         "CREATE STREAM FOO AS " + simpleSelectFilter);
-    assertThat(metadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(metadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test
@@ -195,11 +197,11 @@ public class PhysicalPlanBuilderTest {
     Assert.assertEquals(lines[1],
         "\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE | Logger: INSERTQUERY_1.Project");
     Assert.assertEquals(lines[2],
-        "\t\t\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWKEY STRING | Logger: INSERTQUERY_1.KsqlTopic.Source");
+        "\t\t\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWPARTITION INTEGER, ROWOFFSET BIGINT, ROWKEY STRING | Logger: INSERTQUERY_1.KsqlTopic.Source");
     assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
-    assertThat(persistentQuery.getResultTopic().getValueFormat().getFormat(),
+    assertThat(persistentQuery.getResultTopic().get().getValueFormat().getFormat(),
         equalTo(FormatFactory.DELIMITED.name()));
   }
 
@@ -227,7 +229,7 @@ public class PhysicalPlanBuilderTest {
         "> [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 INTEGER"));
 
     assertThat(lines[2], containsString(
-        "> [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 INTEGER, ROWTIME BIGINT, ROWKEY STRING"));
+        "> [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 INTEGER, ROWTIME BIGINT, ROWPARTITION INTEGER, ROWOFFSET BIGINT, ROWKEY STRING"));
   }
 
   @Test

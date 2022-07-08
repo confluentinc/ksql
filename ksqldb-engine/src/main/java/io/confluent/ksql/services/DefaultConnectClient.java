@@ -21,12 +21,15 @@ import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.vertx.core.http.HttpHeaders;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,7 +37,13 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
@@ -42,7 +51,9 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -64,25 +75,33 @@ public class DefaultConnectClient implements ConnectClient {
   private static final String CONNECTORS = "/connectors";
   private static final String STATUS = "/status";
   private static final String TOPICS = "/topics";
+  private static final String VALIDATE_CONNECTOR = CONNECTOR_PLUGINS + "/%s/config/validate";
   private static final int DEFAULT_TIMEOUT_MS = 5_000;
   private static final int MAX_ATTEMPTS = 3;
 
   private final URI connectUri;
-  private final Optional<String> authHeader;
+  private final Header[] requestHeaders;
+  private final CloseableHttpClient httpClient;
 
   public DefaultConnectClient(
       final String connectUri,
-      final Optional<String> authHeader
+      final Optional<String> authHeader,
+      final Map<String, String> additionalRequestHeaders,
+      final Optional<SSLContext> sslContext,
+      final boolean verifySslHostname
   ) {
     Objects.requireNonNull(connectUri, "connectUri");
-    this.authHeader = Objects.requireNonNull(authHeader, "authHeader");
-
+    Objects.requireNonNull(authHeader, "authHeader");
+    Objects.requireNonNull(additionalRequestHeaders, "additionalRequestHeaders");
+    Objects.requireNonNull(sslContext, "sslContext");
     try {
       this.connectUri = new URI(connectUri);
     } catch (final URISyntaxException e) {
       throw new KsqlException(
           "Could not initialize connect client due to invalid URI: " + connectUri, e);
     }
+    this.requestHeaders = buildHeaders(authHeader, additionalRequestHeaders);
+    this.httpClient = buildHttpClient(sslContext, verifySslHostname);
   }
 
   @Override
@@ -97,8 +116,8 @@ public class DefaultConnectClient implements ConnectClient {
           config);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
-          .post(connectUri.resolve(CONNECTORS))
-          .setHeaders(headers())
+          .post(resolveUri(CONNECTORS))
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .bodyString(
@@ -108,7 +127,7 @@ public class DefaultConnectClient implements ConnectClient {
                       "config", config)),
               ContentType.APPLICATION_JSON
           )
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_CREATED, new TypeReference<ConnectorInfo>() {},
                   Function.identity())));
@@ -122,6 +141,39 @@ public class DefaultConnectClient implements ConnectClient {
     }
   }
 
+  @Override
+  public ConnectResponse<ConfigInfos> validate(
+      final String plugin,
+      final Map<String, String> config) {
+    try {
+      LOG.debug("Issuing validate request to Kafka Connect at URI {} for plugin {} and config {}",
+          connectUri,
+          plugin,
+          config);
+
+      final ConnectResponse<ConfigInfos> connectResponse = withRetries(() -> Request
+          .put(resolveUri(String.format(VALIDATE_CONNECTOR, plugin)))
+          .setHeaders(requestHeaders)
+          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .bodyString(MAPPER.writeValueAsString(config), ContentType.APPLICATION_JSON)
+          .execute(httpClient)
+          .handleResponse(
+              createHandler(HttpStatus.SC_OK, new TypeReference<ConfigInfos>() {},
+                  Function.identity())));
+
+      connectResponse.error()
+          .ifPresent(error ->
+              LOG.warn("Did not VALIDATE connector configuration for plugin {} and config {}: {}",
+              plugin, config, error));
+
+      return connectResponse;
+
+    } catch (final Exception e) {
+      throw new KsqlServerException(e);
+    }
+  }
+
   @SuppressWarnings("unchecked")
   @Override
   public ConnectResponse<List<String>> connectors() {
@@ -129,11 +181,11 @@ public class DefaultConnectClient implements ConnectClient {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connectors", connectUri);
 
       final ConnectResponse<List<String>> connectResponse = withRetries(() -> Request
-          .get(connectUri.resolve(CONNECTORS))
-          .setHeaders(headers())
+          .get(resolveUri(CONNECTORS))
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<List<String>>() {},
                   Function.identity())));
@@ -154,11 +206,11 @@ public class DefaultConnectClient implements ConnectClient {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connector plugins", connectUri);
 
       final ConnectResponse<List<ConnectorPluginInfo>> connectResponse = withRetries(() -> Request
-          .get(connectUri.resolve(CONNECTOR_PLUGINS))
-          .setHeaders(headers())
+          .get(resolveUri(CONNECTOR_PLUGINS))
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<List<ConnectorPluginInfo>>() {},
                   Function.identity())));
@@ -180,11 +232,11 @@ public class DefaultConnectClient implements ConnectClient {
           connector);
 
       final ConnectResponse<ConnectorStateInfo> connectResponse = withRetries(() -> Request
-          .get(connectUri.resolve(CONNECTORS + "/" + connector + STATUS))
-          .setHeaders(headers())
+          .get(resolveUri(CONNECTORS + "/" + connector + STATUS))
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorStateInfo>() {},
                   Function.identity())));
@@ -206,11 +258,11 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
-          .get(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
-          .setHeaders(headers())
+          .get(resolveUri(String.format("%s/%s", CONNECTORS, connector)))
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorInfo>() {},
                   Function.identity())));
@@ -232,11 +284,11 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<String> connectResponse = withRetries(() -> Request
-          .delete(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
-          .setHeaders(headers())
+          .delete(resolveUri(String.format("%s/%s", CONNECTORS, connector)))
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_NO_CONTENT, new TypeReference<Object>() {},
                   foo -> connector)));
@@ -258,11 +310,11 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<Map<String, Map<String, List<String>>>> connectResponse = withRetries(
-          () -> Request.get(connectUri.resolve(CONNECTORS + "/" + connector + TOPICS))
-              .setHeaders(headers())
+          () -> Request.get(resolveUri(CONNECTORS + "/" + connector + TOPICS))
+              .setHeaders(requestHeaders)
               .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
               .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-              .execute()
+              .execute(httpClient)
               .handleResponse(
                   createHandler(HttpStatus.SC_OK,
                       new TypeReference<Map<String, Map<String, List<String>>>>() {},
@@ -278,10 +330,76 @@ public class DefaultConnectClient implements ConnectClient {
     }
   }
 
-  private Header[] headers() {
-    return authHeader.isPresent()
-        ? new Header[]{new BasicHeader(HttpHeaders.AUTHORIZATION.toString(), authHeader.get())}
-        : new Header[]{};
+  @VisibleForTesting
+  public Header[] getRequestHeaders() {
+    return requestHeaders.clone();
+  }
+
+  private String resolveUri(final String relativePath) {
+    try {
+      return new URI(
+          connectUri.getScheme(),
+          connectUri.getUserInfo(),
+          connectUri.getHost(),
+          connectUri.getPort(),
+          // concatenate relative path to existing path in order to support relative resolution;
+          // in contrast, URI.resolve() will resolve a path such as `/connectors` as an
+          // absolute path only.
+          Paths.get(connectUri.getPath(), relativePath).toString(),
+          connectUri.getQuery(),
+          connectUri.getFragment()).toString();
+    } catch (URISyntaxException e) {
+      throw new KsqlServerException("Failed to resolve URI", e);
+    }
+  }
+
+  private static Header[] buildHeaders(
+      final Optional<String> authHeader,
+      final Map<String, String> additionalRequestHeaders
+  ) {
+    final List<Header> headers = new ArrayList<>();
+
+    authHeader.ifPresent(header -> headers.add(
+        new BasicHeader(HttpHeaders.AUTHORIZATION.toString(), authHeader.get())));
+
+    if (!additionalRequestHeaders.isEmpty()) {
+      final List<Header> additionalHeaders = additionalRequestHeaders.entrySet().stream()
+          .map(e -> new BasicHeader(e.getKey(), e.getValue()))
+          .collect(Collectors.toList());
+      headers.addAll(additionalHeaders);
+    }
+
+    return headers.toArray(new Header[0]);
+  }
+
+  /**
+   * Uses defaults from Request.execute(), except with an explicit SSLSocketFactory to pass
+   * custom SSL configs. Link to default below:
+   * https://github.com/apache/httpcomponents-client/blob/3734aaa038a58c17af638e9fa29019cacb22e82c/httpclient5-fluent/src/main/java/org/apache/hc/client5/http/fluent/Executor.java#L62-L72
+   */
+  private static CloseableHttpClient buildHttpClient(
+      final Optional<SSLContext> sslContext,
+      final boolean verifySslHostname
+  ) {
+    final PoolingHttpClientConnectionManagerBuilder connectionManagerBuilder =
+        PoolingHttpClientConnectionManagerBuilder.create();
+    sslContext.ifPresent(ctx -> {
+      final SSLConnectionSocketFactory socketFactory = verifySslHostname
+          ? new SSLConnectionSocketFactory(ctx)
+          : new SSLConnectionSocketFactory(ctx, (hostname, session) -> true);
+      connectionManagerBuilder.setSSLSocketFactory(socketFactory);
+    });
+
+    return HttpClientBuilder.create()
+        .setConnectionManager(connectionManagerBuilder
+            .setMaxConnPerRoute(100)
+            .setMaxConnTotal(200)
+            .setValidateAfterInactivity(TimeValue.ofSeconds(10L))
+            .build())
+        .useSystemProperties()
+        .evictExpiredConnections()
+        .evictIdleConnections(TimeValue.ofMinutes(1L))
+        .build();
   }
 
   @SuppressWarnings("unchecked")

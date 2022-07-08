@@ -18,10 +18,14 @@ package io.confluent.ksql.function.udaf.offset;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BOOLEAN;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BYTES;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DATE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DOUBLE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_INTEGER;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_LONG;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_STRING;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_TIME;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_TIMESTAMP;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.VAL_FIELD;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -30,6 +34,10 @@ import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.util.KsqlConstants;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -65,13 +73,13 @@ public final class LatestByOffset {
     return latest(STRUCT_INTEGER, ignoreNulls, getComparator(ignoreNulls));
   }
 
-  @UdafFactory(description = "return the latest N value of an integer column",
+  @UdafFactory(description = "return the latest N values of an integer column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL INT>>")
   public static Udaf<Integer, List<Struct>, List<Integer>> latestIntegers(final int latestN) {
     return latestIntegers(latestN, true);
   }
 
-  @UdafFactory(description = "return the latest N value of an integer column",
+  @UdafFactory(description = "return the latest N values of an integer column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL INT>>")
   public static Udaf<Integer, List<Struct>, List<Integer>> latestIntegers(
       final int latestN,
@@ -92,13 +100,13 @@ public final class LatestByOffset {
     return latest(STRUCT_LONG, ignoreNulls, getComparator(ignoreNulls));
   }
 
-  @UdafFactory(description = "return the latest N value of an big integer column",
+  @UdafFactory(description = "return the latest N values of an big integer column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>")
   public static Udaf<Long, List<Struct>, List<Long>> latestLongs(final int latestN) {
     return latestLongs(latestN, true);
   }
 
-  @UdafFactory(description = "return the latest N value of an big integer column",
+  @UdafFactory(description = "return the latest N values of an big integer column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>")
   public static Udaf<Long, List<Struct>, List<Long>> latestLongs(
       final int latestN,
@@ -146,13 +154,13 @@ public final class LatestByOffset {
     return latest(STRUCT_BOOLEAN, ignoreNulls, getComparator(ignoreNulls));
   }
 
-  @UdafFactory(description = "return the latest N value of a boolean column",
+  @UdafFactory(description = "return the latest N values of a boolean column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>")
   public static Udaf<Boolean, List<Struct>, List<Boolean>> latestBooleans(final int latestN) {
     return latestBooleans(latestN, true);
   }
 
-  @UdafFactory(description = "return the latest N value of a boolean column",
+  @UdafFactory(description = "return the latest N values of a boolean column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>")
   public static Udaf<Boolean, List<Struct>, List<Boolean>> latestBooleans(
       final int latestN,
@@ -173,19 +181,127 @@ public final class LatestByOffset {
     return latest(STRUCT_STRING, ignoreNulls, getComparator(ignoreNulls));
   }
 
-  @UdafFactory(description = "return the latest N value of a string column",
+  @UdafFactory(description = "return the latest N values of a string column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL STRING>>")
   public static Udaf<String, List<Struct>, List<String>> latestStrings(final int latestN) {
     return latestStrings(latestN, true);
   }
 
-  @UdafFactory(description = "return the latest N value of a string column",
+  @UdafFactory(description = "return the latest N values of a string column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL STRING>>")
   public static Udaf<String, List<Struct>, List<String>> latestStrings(
       final int latestN,
       final boolean ignoreNulls
   ) {
     return latestN(STRUCT_STRING, latestN, ignoreNulls, getComparator(ignoreNulls));
+  }
+
+  @UdafFactory(description = "return the latest value of a timestamp column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL TIMESTAMP>")
+  public static Udaf<Timestamp, Struct, Timestamp> latestTimestamp() {
+    return latestTimestamp(true);
+  }
+
+  @UdafFactory(description = "return the latest value of a timestamp column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL TIMESTAMP>")
+  public static Udaf<Timestamp, Struct, Timestamp> latestTimestamp(final boolean ignoreNulls) {
+    return latest(STRUCT_TIMESTAMP, ignoreNulls, getComparator(ignoreNulls));
+  }
+
+  @UdafFactory(description = "return the latest N values of a timestamp column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIMESTAMP>>")
+  public static Udaf<Timestamp, List<Struct>, List<Timestamp>> latestTimestamps(final int latestN) {
+    return latestTimestamps(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N values of a timestamp column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIMESTAMP>>")
+  public static Udaf<Timestamp, List<Struct>, List<Timestamp>> latestTimestamps(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_TIMESTAMP, latestN, ignoreNulls, getComparator(ignoreNulls));
+  }
+
+  @UdafFactory(description = "return the latest value of a date column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL DATE>")
+  public static Udaf<Date, Struct, Date> latestDate() {
+    return latestDate(true);
+  }
+
+  @UdafFactory(description = "return the latest value of a date column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL DATE>")
+  public static Udaf<Date, Struct, Date> latestDate(final boolean ignoreNulls) {
+    return latest(STRUCT_DATE, ignoreNulls, getComparator(ignoreNulls));
+  }
+
+  @UdafFactory(description = "return the latest N values of a date column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DATE>>")
+  public static Udaf<Date, List<Struct>, List<Date>> latestDates(final int latestN) {
+    return latestDates(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N values of a date column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DATE>>")
+  public static Udaf<Date, List<Struct>, List<Date>> latestDates(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_DATE, latestN, ignoreNulls, getComparator(ignoreNulls));
+  }
+
+  @UdafFactory(description = "return the latest value of a time column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL TIME>")
+  public static Udaf<Time, Struct, Time> latestTime() {
+    return latestTime(true);
+  }
+
+  @UdafFactory(description = "return the latest value of a time column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL TIME>")
+  public static Udaf<Time, Struct, Time> latestTime(final boolean ignoreNulls) {
+    return latest(STRUCT_TIME, ignoreNulls, getComparator(ignoreNulls));
+  }
+
+  @UdafFactory(description = "return the latest N values of a time column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIME>>")
+  public static Udaf<Time, List<Struct>, List<Time>> latestTimes(final int latestN) {
+    return latestTimes(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N values of a time column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIME>>")
+  public static Udaf<Time, List<Struct>, List<Time>> latestTimes(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_TIME, latestN, ignoreNulls, getComparator(ignoreNulls));
+  }
+
+  @UdafFactory(description = "return the latest value of a bytes column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BYTES>")
+  public static Udaf<ByteBuffer, Struct, ByteBuffer> latestBytes() {
+    return latestBytes(true);
+  }
+
+  @UdafFactory(description = "return the latest value of a bytes column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BYTES>")
+  public static Udaf<ByteBuffer, Struct, ByteBuffer> latestBytes(final boolean ignoreNulls) {
+    return latest(STRUCT_BYTES, ignoreNulls, getComparator(ignoreNulls));
+  }
+
+  @UdafFactory(description = "return the latest N values of a bytes column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BYTES>>")
+  public static Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> latestBytes(final int latestN) {
+    return latestBytes(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N values of a bytes column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BYTES>>")
+  public static Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> latestBytes(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_BYTES, latestN, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @VisibleForTesting

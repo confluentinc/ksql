@@ -49,7 +49,8 @@ public class SourceNodeTest {
       Optional.of(KeyFormatNodeTest.INSTANCE),
       Optional.of("JSON"),
       Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES)),
-      Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES))
+      Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES)),
+      Optional.empty()
   );
 
   private static final SourceNode INSTANCE_WITHOUT_SERDE_FEATURES = new SourceNode(
@@ -58,6 +59,7 @@ public class SourceNodeTest {
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
       Optional.of("JSON"),
+      Optional.empty(),
       Optional.empty(),
       Optional.empty()
   );
@@ -69,7 +71,19 @@ public class SourceNodeTest {
       Optional.of(KeyFormatNodeTest.INSTANCE),
       Optional.of("JSON"),
       Optional.of(ImmutableSet.of()),
-      Optional.of(ImmutableSet.of())
+      Optional.of(ImmutableSet.of()),
+      Optional.empty()
+  );
+
+  private static final SourceNode SOURCE_STREAM_INSTANCE = new SourceNode(
+      "bob",
+      "stream",
+      Optional.of("ROWKEY INT KEY, NAME STRING"),
+      Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
+      Optional.of(ImmutableSet.of()),
+      Optional.of(ImmutableSet.of()),
+      Optional.of(true)
   );
 
   @Test
@@ -85,6 +99,11 @@ public class SourceNodeTest {
   @Test
   public void shouldRoundTripWithEmptySerdeFeatures() {
     ModelTester.assertRoundTrip(INSTANCE_WITH_EMPTY_SERDE_FEATURES);
+  }
+
+  @Test
+  public void shouldRoundTripSourceStreamInstance() {
+    ModelTester.assertRoundTrip(SOURCE_STREAM_INSTANCE);
   }
 
   @Test
@@ -126,7 +145,8 @@ public class SourceNodeTest {
         )),
         Optional.of("DELIMITED"),
         Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES)),
-        Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES))
+        Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES)),
+        Optional.of(false)
     )));
   }
 }

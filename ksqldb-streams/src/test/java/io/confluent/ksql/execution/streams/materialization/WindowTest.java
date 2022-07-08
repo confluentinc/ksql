@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.Window;
 import java.time.Instant;
 import org.junit.Test;
 

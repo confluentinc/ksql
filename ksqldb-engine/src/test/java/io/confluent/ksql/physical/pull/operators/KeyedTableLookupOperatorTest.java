@@ -23,15 +23,19 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.KeyConstraint;
+import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -56,13 +60,13 @@ public class KeyedTableLookupOperatorTest {
   @Mock
   private DataSourceNode logicalNode;
   @Mock
-  private KsqlKey KEY1;
+  private KeyConstraint KEY1;
   @Mock
-  private KsqlKey KEY2;
+  private KeyConstraint KEY2;
   @Mock
-  private KsqlKey KEY3;
+  private KeyConstraint KEY3;
   @Mock
-  private KsqlKey KEY4;
+  private KeyConstraint KEY4;
   @Mock
   private GenericKey GKEY1;
   @Mock
@@ -84,6 +88,13 @@ public class KeyedTableLookupOperatorTest {
     when(KEY2.getKey()).thenReturn(GKEY2);
     when(KEY3.getKey()).thenReturn(GKEY3);
     when(KEY4.getKey()).thenReturn(GKEY4);
+    when(KEY1.getOperator()).thenReturn(ConstraintOperator.EQUAL);
+    when(KEY2.getOperator()).thenReturn(ConstraintOperator.EQUAL);
+    when(KEY3.getOperator()).thenReturn(ConstraintOperator.EQUAL);
+    when(KEY4.getOperator()).thenReturn(ConstraintOperator.EQUAL);
+    when(ROW1.key()).thenReturn(GKEY1);
+    when(ROW3.key()).thenReturn(GKEY3);
+    when(ROW4.key()).thenReturn(GKEY4);
   }
 
   @Test
@@ -111,9 +122,9 @@ public class KeyedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(ROW1));
-    assertThat(lookupOperator.next(), is(ROW3));
-    assertThat(lookupOperator.next(), is(ROW4));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(3L));
   }
@@ -136,10 +147,57 @@ public class KeyedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(ROW1));
-    assertThat(lookupOperator.next(), is(ROW3));
-    assertThat(lookupOperator.next(), is(ROW4));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(3L));
+  }
+
+  @Test
+  public void shouldLookupRowsForRangeKeySinglePartition() {
+    //Given:
+    when(KEY3.getOperator()).thenReturn(ConstraintOperator.LESS_THAN_OR_EQUAL);
+    final List<KsqlPartitionLocation> singleKeyPartitionLocations = new ArrayList<>();
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+      Optional.of(ImmutableSet.of(KEY1, KEY3)), 1, ImmutableList.of(node1)));
+
+    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
+    when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
+    when(materialization.nonWindowed().get(1,null, GKEY3)).thenReturn(Arrays.asList(ROW1, ROW3).iterator());
+
+    lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
+    lookupOperator.open();
+
+    //Then:
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(lookupOperator.getReturnedRowCount(), is(2L));
+  }
+
+  @Test
+  public void shouldLookupRowsForRangeKeyMultiplePartitions() {
+    //Given:
+    when(KEY2.getOperator()).thenReturn(ConstraintOperator.LESS_THAN_OR_EQUAL);
+    when(KEY3.getOperator()).thenReturn(ConstraintOperator.LESS_THAN_OR_EQUAL);
+    final List<KsqlPartitionLocation> multipleKeysPartitionLocations = new ArrayList<>();
+    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
+      Optional.of(ImmutableSet.of(KEY1, KEY2)), 1, ImmutableList.of(node1)));
+    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
+      Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
+
+    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
+    when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
+    when(materialization.nonWindowed().get(1,null, GKEY2)).thenReturn(Arrays.asList(ROW1).iterator());
+    when(materialization.nonWindowed().get(3,null, GKEY3)).thenReturn(Arrays.asList(ROW3).iterator());
+
+    lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
+    lookupOperator.open();
+
+    //Then:
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(2L));
   }
 }

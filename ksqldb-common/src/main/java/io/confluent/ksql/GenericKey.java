@@ -48,6 +48,10 @@ public final class GenericKey {
     return builder(columns.size()).appendAll(columns).build();
   }
 
+  public static GenericKey fromArray(final Object[] columns) {
+    return fromList(Arrays.asList(columns));
+  }
+
   private GenericKey(final List<Object> values) {
     this.values = Collections.unmodifiableList(values);
   }

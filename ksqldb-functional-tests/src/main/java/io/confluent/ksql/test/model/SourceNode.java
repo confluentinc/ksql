@@ -54,6 +54,7 @@ public final class SourceNode {
   private final Optional<String> valueFormat;
   private final Optional<Set<SerdeFeature>> keyFeatures;
   private final Optional<Set<SerdeFeature>> valueFeatures;
+  private final Optional<Boolean> isSource;
 
   public SourceNode(
       final String name,
@@ -62,7 +63,8 @@ public final class SourceNode {
       final Optional<KeyFormatNode> keyFormat,
       final Optional<String> valueFormat,
       final Optional<Set<SerdeFeature>> keyFeatures,
-      final Optional<Set<SerdeFeature>> valueFeatures
+      final Optional<Set<SerdeFeature>> valueFeatures,
+      final Optional<Boolean> isSource
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
@@ -71,6 +73,7 @@ public final class SourceNode {
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
     this.keyFeatures = Objects.requireNonNull(keyFeatures, "keyFeatures");
     this.valueFeatures = Objects.requireNonNull(valueFeatures, "valueFeatures");
+    this.isSource = Objects.requireNonNull(isSource, "isSource");
 
     if (this.name.isEmpty()) {
       throw new InvalidFieldException("name", "missing or empty");
@@ -108,6 +111,10 @@ public final class SourceNode {
   @JsonInclude(Include.NON_EMPTY)
   public Optional<Set<SerdeFeature>> getValueFeatures() {
     return valueFeatures;
+  }
+
+  public Optional<Boolean> getIsSource() {
+    return isSource;
   }
 
   @SuppressWarnings("unchecked")
@@ -148,6 +155,11 @@ public final class SourceNode {
         .map(MetaStoreMatchers::hasValueSerdeFeatures)
         .orElse(null);
 
+    final Matcher<DataSource> isSourceMatcher = isSource
+        .map(Matchers::is)
+        .map(MetaStoreMatchers::isSourceMatches)
+        .orElse(null);
+
     final Matcher<DataSource>[] matchers = Stream.of(
         nameMatcher,
         typeMatcher,
@@ -155,14 +167,17 @@ public final class SourceNode {
         keyFmtMatcher,
         valueFmtMatcher,
         keyFeatsMatcher,
-        valFeatsMatcher
+        valFeatsMatcher,
+        isSourceMatcher
     ).filter(Objects::nonNull).toArray(Matcher[]::new);
 
     return allOf(matchers);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object o) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (this == o) {
       return true;
     }
@@ -176,12 +191,14 @@ public final class SourceNode {
         && keyFormat.equals(that.keyFormat)
         && keyFeatures.equals(that.keyFeatures)
         && valueFormat.equals(that.valueFormat)
-        && valueFeatures.equals(that.valueFeatures);
+        && valueFeatures.equals(that.valueFeatures)
+        && isSource.equals(that.isSource);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type, schema, keyFormat, valueFormat, keyFeatures, valueFeatures);
+    return Objects.hash(name, type, schema, keyFormat, valueFormat,
+        keyFeatures, valueFeatures, isSource);
   }
 
   private static Class<? extends DataSource> toType(final String type) {
@@ -230,6 +247,8 @@ public final class SourceNode {
       final Optional<Set<SerdeFeature>> valueFeatures = JsonParsingUtil
           .getOptional("valueFeatures", node, jp, new TypeReference<Set<SerdeFeature>>() {
           });
+      final Optional<Boolean> isSource = JsonParsingUtil
+          .getOptional("isSource", node, jp, Boolean.class);
 
       return new SourceNode(
           name,
@@ -238,7 +257,8 @@ public final class SourceNode {
           keyFormat,
           valueFormat,
           keyFeatures,
-          valueFeatures
+          valueFeatures,
+          isSource
       );
     }
   }
@@ -251,7 +271,8 @@ public final class SourceNode {
         Optional.of(KeyFormatNode.fromKeyFormat(dataSource.getKsqlTopic().getKeyFormat())),
         Optional.of(dataSource.getKsqlTopic().getValueFormat().getFormatInfo().getFormat()),
         Optional.of(dataSource.getKsqlTopic().getKeyFormat().getFeatures().all()),
-        Optional.of(dataSource.getKsqlTopic().getValueFormat().getFeatures().all())
+        Optional.of(dataSource.getKsqlTopic().getValueFormat().getFeatures().all()),
+        Optional.of(dataSource.isSource())
     );
   }
 }

@@ -32,16 +32,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
-import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
@@ -58,14 +58,16 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
-import io.vertx.core.Context;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -83,12 +85,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
-import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,9 +99,13 @@ public class RestTestExecutor implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
+  private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(30);
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
   private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(30);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
+  private static final String QUERY_KEY = "query";
+  private static final String ROW_KEY = "row";
+  private static final String COLUMNS_KEY = "columns";
 
   private final KsqlExecutionContext engine;
   private final KsqlRestClient restClient;
@@ -150,26 +156,24 @@ public class RestTestExecutor implements Closeable {
         return;
       }
 
-      final boolean waitForQueryHeaderToProduceInput = testCase.getInputConditions().isPresent()
-          && testCase.getInputConditions().get().getWaitForQueryHeader();
-      final Optional<Runnable> postQueryHeaderRunnable;
-      if (!waitForQueryHeaderToProduceInput) {
+      final boolean waitForActivePushQueryToProduceInput = testCase.getInputConditions().isPresent()
+          && testCase.getInputConditions().get().getWaitForActivePushQuery();
+      final Optional<InputConditionsParameters> postInputConditionRunnable;
+      if (!waitForActivePushQueryToProduceInput) {
         produceInputs(testCase.getInputsByTopic());
-        postQueryHeaderRunnable = Optional.empty();
+        postInputConditionRunnable = Optional.empty();
       } else {
-        postQueryHeaderRunnable = Optional.of(() -> produceInputs(testCase.getInputsByTopic()));
+        postInputConditionRunnable = Optional.of(new InputConditionsParameters(
+            this::waitForActivePushQuery, () -> produceInputs(testCase.getInputsByTopic())));
       }
 
       if (!testCase.expectedError().isPresent()
           && testCase.getExpectedResponses().size() > statements.admin.size()) {
         waitForPersistentQueriesToProcessInputs();
-        if (waitForQueryHeaderToProduceInput) {
-          waitForRunningPushQueries(statements.queries);
-        }
       }
 
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
-          postQueryHeaderRunnable);
+          postInputConditionRunnable);
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);
       }
@@ -180,7 +184,9 @@ public class RestTestExecutor implements Closeable {
           .build();
 
       verifyOutput(testCase);
-      verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements());
+      final boolean verifyOrder = testCase.getOutputConditions().isPresent()
+        && testCase.getOutputConditions().get().getVerifyOrder();
+      verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements(), verifyOrder);
 
     } finally {
       testCase.getProperties().keySet().forEach(restClient::unsetProperty);
@@ -254,7 +260,8 @@ public class RestTestExecutor implements Closeable {
                 null,
                 record.timestamp().orElse(0L),
                 record.key(),
-                record.value()
+                record.value(),
+                record.headersAsHeaders().orElse(ImmutableList.of())
             ))
             .map(producer::send)
             .collect(Collectors.toList());
@@ -325,20 +332,20 @@ public class RestTestExecutor implements Closeable {
   private List<RqttResponse> sendQueryStatements(
       final RestTestCase testCase,
       final List<String> statements,
-      final Optional<Runnable> afterHeader
+      final Optional<InputConditionsParameters> inputConditionsParameters
   ) {
     // We only produce inputs after the first query at the moment to simplify things
-    final boolean[] runAfterHeader = new boolean[1];
+    final boolean[] runAfterInputConditions = new boolean[1];
     return statements.stream()
         .map(stmt -> {
-          if (afterHeader.isPresent() && !runAfterHeader[0]) {
-            runAfterHeader[0] = true;
+          if (inputConditionsParameters.isPresent() && !runAfterInputConditions[0]) {
+            runAfterInputConditions[0] = true;
             Optional<List<StreamedRow>> rows =
-                sendQueryStatement(testCase, stmt, afterHeader.get());
+                sendQueryStatement(testCase, stmt, inputConditionsParameters.get());
             return rows;
-          } else if (afterHeader.isPresent() && runAfterHeader[0]) {
+          } else if (inputConditionsParameters.isPresent() && runAfterInputConditions[0]) {
             throw new AssertionError(
-                "Can only have one query when using waitForQueryHeader");
+                "Can only have one query when using inputConditions");
           }
           return sendQueryStatement(testCase, stmt);
         })
@@ -365,7 +372,7 @@ public class RestTestExecutor implements Closeable {
   private Optional<List<StreamedRow>> sendQueryStatement(
       final RestTestCase testCase,
       final String sql,
-      final Runnable afterHeader
+      final InputConditionsParameters inputConditionsParameters
   ) {
     final RestResponse<StreamPublisher<StreamedRow>> resp
         = restClient.makeQueryRequestStreamed(sql, null);
@@ -375,12 +382,12 @@ public class RestTestExecutor implements Closeable {
       return Optional.empty();
     }
 
-    return handleRowPublisher(resp.getResponse(), afterHeader);
+    return handleRowPublisher(resp.getResponse(), inputConditionsParameters);
   }
 
   private Optional<List<StreamedRow>> handleRowPublisher(
       final StreamPublisher<StreamedRow> publisher,
-      final Runnable afterHeader
+      final InputConditionsParameters inputConditionsParameters
   ) {
     final CompletableFuture<List<StreamedRow>> future = new CompletableFuture<>();
     final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
@@ -390,7 +397,8 @@ public class RestTestExecutor implements Closeable {
 
     try {
       header.get();
-      afterHeader.run();
+      inputConditionsParameters.getWaitForInputConditionsToBeMet().run();
+      inputConditionsParameters.getAfterInputConditions().run();
       return Optional.of(future.get());
     } catch (Exception e) {
       LOG.error("Error waiting on header, calling afterHeader, or waiting on rows", e);
@@ -398,6 +406,31 @@ public class RestTestExecutor implements Closeable {
     } finally {
       subscriber.close();
       publisher.close();
+    }
+  }
+
+  private void waitForActivePushQuery() {
+    final long queryRunningThreshold = System.currentTimeMillis()
+        + MAX_QUERY_RUNNING_CHECK.toMillis();
+    while (System.currentTimeMillis() < queryRunningThreshold) {
+      int num = 0;
+      for (QueryMetadata queryMetadata : engine.getAllLiveQueries()) {
+        if (queryMetadata instanceof TransientQueryMetadata
+            && ((TransientQueryMetadata) queryMetadata).isRunning()) {
+          num++;
+        }
+      }
+      for (PersistentQueryMetadata queryMetadata : engine.getPersistentQueries()) {
+        if (queryMetadata.getScalablePushRegistry().isPresent()
+            && queryMetadata.getScalablePushRegistry().get().numRegistered() > 0) {
+          num += queryMetadata.getScalablePushRegistry().get().numRegistered();
+        }
+      }
+      if (num == 0) {
+        threadYield();
+      } else {
+        break;
+      }
     }
   }
 
@@ -448,7 +481,8 @@ public class RestTestExecutor implements Closeable {
   private static void verifyResponses(
       final List<RqttResponse> actualResponses,
       final List<Response> expectedResponses,
-      final List<String> statements
+      final List<String> statements,
+      final boolean verifyOrder
   ) {
     assertThat(
         "Not enough responses",
@@ -465,7 +499,7 @@ public class RestTestExecutor implements Closeable {
       final Object expectedPayload = expectedResponse.values().iterator().next();
 
       final RqttResponse actualResponse = actualResponses.get(idx);
-      actualResponse.verify(expectedType, expectedPayload, statements, idx);
+      actualResponse.verify(expectedType, expectedPayload, statements, idx, verifyOrder);
     }
   }
 
@@ -569,10 +603,34 @@ public class RestTestExecutor implements Closeable {
    * pull queries.
    */
   private void waitForPersistentQueriesToProcessInputs() {
+    // First wait for the queries to be in the RUNNING state
+    boolean allRunning = false;
+    final long queryRunningThreshold = System.currentTimeMillis()
+        + MAX_QUERY_RUNNING_CHECK.toMillis();
+    while (System.currentTimeMillis() < queryRunningThreshold) {
+      boolean notReady = false;
+      for (PersistentQueryMetadata persistentQueryMetadata : engine.getPersistentQueries()) {
+        if (persistentQueryMetadata.getState() != State.RUNNING) {
+          notReady = true;
+        }
+      }
+      if (notReady) {
+        threadYield();
+      } else {
+        allRunning = true;
+        break;
+      }
+    }
+    if (!allRunning) {
+      throw new AssertionError("Timed out while trying to wait for queries to begin running");
+    }
+
+    // Collect all application ids
     List<String> queryApplicationIds = engine.getPersistentQueries().stream()
         .map(QueryMetadata::getQueryApplicationId)
         .collect(Collectors.toList());
 
+    // Collect all possible source topic names for each application id
     Map<String, Set<String>> possibleTopicNamesByAppId = engine.getPersistentQueries().stream()
         .collect(Collectors.toMap(
             QueryMetadata::getQueryApplicationId,
@@ -594,6 +652,8 @@ public class RestTestExecutor implements Closeable {
     // Every topic is either internal or not, so we expect to match exactly half of them.
     int expectedTopics = possibleTopicNames.size() / 2;
 
+    // Find the intersection of possible topic names and real topic names, and wait until the
+    // expected number are all there
     final Set<String> topics = new HashSet<>();
     boolean foundTopics = false;
     final long topicThreshold = System.currentTimeMillis() + MAX_TOPIC_NAME_LOOKUP.toMillis();
@@ -693,47 +753,6 @@ public class RestTestExecutor implements Closeable {
     return topics;
   }
 
-
-private void waitForRunningPushQueries(
-      final List<String> queries
-  ) {
-    for (int i = 0; i != queries.size(); ++i) {
-      final String queryStatement = queries.get(i);
-      waitForRunningPush(queryStatement);
-    }
-  }
-
-  private void waitForRunningPush(
-      final String querySql
-  ) {
-    // Make sure push queries are ready to run if they're counting on running before data is
-    // produced.  This is most relevant for scalable push queries since their underlying
-    // persistent queries must be ready. If they're not, we'll get an error.
-
-    if (!(querySql.contains("EMIT CHANGES"))) {
-      // Not a scalable push query, so not needed
-      return;
-    }
-
-    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
-    while (System.currentTimeMillis() < threshold) {
-      final RestResponse<StreamPublisher<StreamedRow>> resp
-          = restClient.makeQueryRequestStreamed(querySql, null);
-      if (resp.isErroneous()) {
-        final KsqlErrorMessage errorMessage = resp.getErrorMessage();
-        LOG.info("Server responded with an error code to a scalable push query. "
-            + "This could be because the persistent query hasn't started yet"
-            + System.lineSeparator() + errorMessage);
-        threadYield();
-      } else {
-        resp.getResponse().close();
-        threadYield();
-        return;
-      }
-    }
-    LOG.info("Timed out waiting for non error");
-  }
-
   private static void threadYield() {
     try {
       // More reliable than Thread.yield
@@ -743,13 +762,34 @@ private void waitForRunningPushQueries(
     }
   }
 
+  private static void verifyResponseFields(final LinkedHashMap<Object, Integer> actualRecords, final LinkedHashMap<Object, Integer> expectedRecords, final HashMap<Object, String> pathIndex){
+    for (final Object actualKey : actualRecords.keySet()){
+      if (!expectedRecords.containsKey(actualKey)){
+        final String reason = pathIndex.get(actualKey);
+        if (expectedRecords.size() == 1){
+          final Object expectedKey = expectedRecords.keySet().iterator().next();
+          assertThat(reason, actualKey, is(expectedKey));
+        } else {
+          assertThat(reason, actualKey, is(""));
+        }
+      } else if (!actualRecords.get(actualKey).equals(expectedRecords.get(actualKey))){
+        final String reason = "Uneven occurrence of expected vs actual for row " + actualKey;
+        assertThat(reason, actualRecords.get(actualKey), is(expectedRecords.get(actualKey)));
+      }
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static void matchResponseFields(
       final Map<String, Object> actual,
       final Map<String, Object> expected,
       final List<String> statements,
       final int idx,
-      final String path
+      final String path,
+      final HashMap<Object, Integer> actualRecords,
+      final HashMap<Object, Integer> expectedRecords,
+      final HashMap<Object, String> pathIndex,
+      final boolean verifyOrder
   ) {
     // Expected does not need to include everything, only keys that need to be tested:
     for (final Entry<String, Object> e : expected.entrySet()) {
@@ -773,7 +813,11 @@ private void waitForRunningPushQueries(
             (Map<String, Object>) expectedValue,
             statements,
             idx,
-            newPath
+            newPath,
+            actualRecords,
+            expectedRecords,
+            pathIndex,
+            verifyOrder
         );
       } else {
         if (operator == MatchOperator.STARTS_WITH) {
@@ -782,7 +826,14 @@ private void waitForRunningPushQueries(
           assertThat("Response mismatch at " + newPath,
               (String) actualValue, startsWith((String) expectedValue));
         } else {
-          assertThat("Response mismatch at " + newPath, actualValue, is(expectedValue));
+          final String reason = "Response mismatch at " + newPath;
+          if (!verifyOrder && newPath.contains(QUERY_KEY) && newPath.contains(ROW_KEY) && expectedKey.equalsIgnoreCase(COLUMNS_KEY)){
+            actualRecords.merge(actualValue, 1, Integer::sum);
+            expectedRecords.merge(expectedValue, 1, Integer::sum);
+            pathIndex.put(actualValue, reason);
+          } else {
+            assertThat(reason, actualValue, is(expectedValue));
+          }
         }
       }
     }
@@ -804,7 +855,8 @@ private void waitForRunningPushQueries(
         String expectedType,
         Object expectedPayload,
         List<String> statements,
-        int idx
+        int idx,
+        boolean verifyOrder
     );
   }
 
@@ -826,7 +878,8 @@ private void waitForRunningPushQueries(
         final String expectedType,
         final Object expectedPayload,
         final List<String> statements,
-        final int idx
+        final int idx,
+        final boolean verifyOrder
     ) {
       assertThat("Expected admin response", expectedType, is("admin"));
       assertThat("Admin payload should be JSON object", expectedPayload, is(instanceOf(Map.class)));
@@ -835,7 +888,11 @@ private void waitForRunningPushQueries(
 
       final Map<String, Object> actualPayload = asJson(entity, PAYLOAD_TYPE);
 
-      matchResponseFields(actualPayload, expected, statements, idx, "responses[" + idx + "]->admin");
+      final LinkedHashMap<Object, Integer> actualRecords = new LinkedHashMap<>();
+      final LinkedHashMap<Object, Integer> expectedRecords = new LinkedHashMap<>();
+      final HashMap<Object, String> pathIndex = new HashMap<>();
+      matchResponseFields(actualPayload, expected, statements, idx, "responses[" + idx + "]->admin", actualRecords, expectedRecords, pathIndex, verifyOrder);
+      verifyResponseFields(actualRecords, expectedRecords, pathIndex);
     }
   }
 
@@ -860,7 +917,8 @@ private void waitForRunningPushQueries(
         final String expectedType,
         final Object expectedPayload,
         final List<String> statements,
-        final int idx
+        final int idx,
+        final boolean verifyOrder
     ) {
       assertThat("Expected query response", expectedType, is("query"));
       assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
@@ -884,6 +942,9 @@ private void waitForRunningPushQueries(
           hasSize(expectedRows.size())
       );
 
+      final LinkedHashMap<Object, Integer> actualRecords = new LinkedHashMap<>();
+      final LinkedHashMap<Object, Integer> expectedRecords = new LinkedHashMap<>();
+      final HashMap<Object, String> pathIndex = new HashMap<>();
       for (int i = 0; i != rows.size(); ++i) {
         assertThat(
             "Each row should be JSON object",
@@ -894,8 +955,11 @@ private void waitForRunningPushQueries(
         final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
         final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
         matchResponseFields(actual, expected, statements, idx,
-            "responses[" + idx + "]->query[" + i + "]");
+          "responses[" + idx + "]->query[" + i + "]",
+          actualRecords, expectedRecords, pathIndex, verifyOrder);
       }
+
+      verifyResponseFields(actualRecords, expectedRecords, pathIndex);
     }
   }
 
@@ -914,63 +978,30 @@ private void waitForRunningPushQueries(
     }
   }
 
-  private static final class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
-
-    private final CompletableFuture<List<StreamedRow>> future;
-    private final CompletableFuture<StreamedRow> header;
-    private boolean closed;
-    private List<StreamedRow> rows = new ArrayList<>();
-
-    QueryStreamSubscriber(
-        final Context context,
-        final CompletableFuture<List<StreamedRow>> future,
-        final CompletableFuture<StreamedRow> header
-    ) {
-      super(context);
-      this.future = Objects.requireNonNull(future);
-      this.header = Objects.requireNonNull(header);
-    }
-
-    @Override
-    protected void afterSubscribe(final Subscription subscription) {
-      makeRequest(1);
-    }
-
-    @Override
-    protected synchronized void handleValue(final StreamedRow row) {
-      if (closed) {
-        return;
-      }
-      rows.add(row);
-      if (row.isTerminal()) {
-        future.complete(rows);
-        return;
-      }
-      if (row.getHeader().isPresent()) {
-        header.complete(row);
-      }
-      makeRequest(1);
-    }
-
-    @Override
-    protected void handleComplete() {
-      future.complete(rows);
-    }
-
-    @Override
-    protected void handleError(final Throwable t) {
-      header.completeExceptionally(t);
-      future.completeExceptionally(t);
-    }
-
-    private void close() {
-      closed = true;
-      context.runOnContext(v -> cancel());
-    }
-  }
-
   private enum MatchOperator {
     EQUALS,
     STARTS_WITH
+  }
+
+  private static class InputConditionsParameters {
+
+    private final Runnable waitForInputConditionsToBeMet;
+    private final Runnable afterInputConditions;
+
+    public InputConditionsParameters(
+        final Runnable waitForInputConditionsToBeMet,
+        final Runnable afterInputConditions
+    ) {
+      this.waitForInputConditionsToBeMet = waitForInputConditionsToBeMet;
+      this.afterInputConditions = afterInputConditions;
+    }
+
+    public Runnable getWaitForInputConditionsToBeMet() {
+      return waitForInputConditionsToBeMet;
+    }
+
+    public Runnable getAfterInputConditions() {
+      return afterInputConditions;
+    }
   }
 }

@@ -22,20 +22,19 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import java.util.Optional;
 
 @Immutable
 public class CreateTable extends CreateSource implements ExecutableDdlStatement {
-
   public CreateTable(
       final SourceName name,
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
-      final CreateSourceProperties properties
+      final CreateSourceProperties properties,
+      final boolean isSource
   ) {
-    this(Optional.empty(), name, elements, orReplace, notExists, properties);
+    this(Optional.empty(), name, elements, orReplace, notExists, properties, isSource);
   }
 
   public CreateTable(
@@ -44,11 +43,17 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
-      final CreateSourceProperties properties
+      final CreateSourceProperties properties,
+      final boolean isSource
   ) {
-    super(location, name, elements, orReplace, notExists, properties);
+    super(location, name, elements, orReplace, notExists, properties, isSource);
 
     throwOnNonPrimaryKeys(elements);
+  }
+
+  @Override
+  public SourceType getSourceType() {
+    return SourceType.TABLE;
   }
 
   @Override
@@ -62,7 +67,8 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         elements,
         isOrReplace(),
         isNotExists(),
-        properties);
+        properties,
+        isSource());
   }
 
   @Override
@@ -89,12 +95,13 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         .add("orReplace", isOrReplace())
         .add("notExists", isNotExists())
         .add("properties", getProperties())
+        .add("isSource", isSource())
         .toString();
   }
 
   private static void throwOnNonPrimaryKeys(final TableElements elements) {
     final Optional<TableElement> wrongKey = elements.stream()
-        .filter(e -> e.getNamespace().isKey() && e.getNamespace() != Namespace.PRIMARY_KEY)
+        .filter(e -> e.getConstraints().isKey())
         .findFirst();
 
     wrongKey.ifPresent(col -> {

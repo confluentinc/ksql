@@ -51,6 +51,16 @@ public class JsonSchemaFormat extends ConnectFormat {
   }
 
   @Override
+  public Set<String> getSupportedProperties() {
+    return JsonSchemaProperties.SUPPORTED_PROPERTIES;
+  }
+
+  @Override
+  public Set<String> getInheritableProperties() {
+    return JsonSchemaProperties.INHERITABLE_PROPERTIES;
+  }
+
+  @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {
@@ -67,7 +77,7 @@ public class JsonSchemaFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    return new KsqlJsonSerdeFactory(true)
+    return new KsqlJsonSerdeFactory(new JsonSchemaProperties(formatProps))
         .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

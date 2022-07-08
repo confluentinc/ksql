@@ -89,6 +89,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );
@@ -136,7 +137,7 @@ public class TestExecutorUtilTest {
     assertThat(topologyTestDriverContainer.getSourceTopicNames().size(), equalTo(1));
     assertThat(topologyTestDriverContainer.getSourceTopicNames().iterator().next(),
         equalTo("test_topic"));
-    assertThat(topologyTestDriverContainer.getSinkTopicName(), equalTo("S1"));
+    assertThat(topologyTestDriverContainer.getSinkTopicName(), equalTo(Optional.of("S1")));
     assertThat(topologyTestDriverContainer.getTopologyTestDriver(), notNullValue());
   }
 
@@ -149,6 +150,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );
@@ -169,6 +171,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );

@@ -75,23 +75,28 @@ public class GenericRecordFactory {
               + ". Got " + expressions);
     }
 
-    final LogicalSchema schemaWithRowTime = withRowTime(schema);
+    final LogicalSchema schemaWithPseudoColumns = withPseudoColumns(schema, config);
     for (ColumnName col : columns) {
-      if (!schemaWithRowTime.findColumn(col).isPresent()) {
+
+      if (!schemaWithPseudoColumns.findColumn(col).isPresent()) {
         throw new KsqlException("Column name " + col + " does not exist.");
+      }
+
+      if (SystemColumns.isDisallowedForInsertValues(col, config)) {
+        throw new KsqlException("Inserting into column " + col + " is not allowed.");
       }
     }
 
     final Map<ColumnName, Object> values = resolveValues(
         columns,
         expressions,
-        schemaWithRowTime,
+        schemaWithPseudoColumns,
         functionRegistry,
         config
     );
 
     if (dataSourceType == DataSourceType.KTABLE) {
-      final String noValue = schemaWithRowTime.key().stream()
+      final String noValue = schemaWithPseudoColumns.key().stream()
           .map(Column::name)
           .filter(colName -> !values.containsKey(colName))
           .map(ColumnName::text)
@@ -120,12 +125,26 @@ public class GenericRecordFactory {
         .collect(Collectors.toList());
   }
 
-  private static LogicalSchema withRowTime(final LogicalSchema schema) {
-    // The set of columns users can supply values for includes the ROWTIME pseudocolumn,
-    // so include it in the schema:
-    return schema.asBuilder()
-        .valueColumn(SystemColumns.ROWTIME_NAME, SystemColumns.ROWTIME_TYPE)
-        .build();
+  private static LogicalSchema withPseudoColumns(
+      final LogicalSchema schema,
+      final KsqlConfig ksqlConfig) {
+    // The set of columns users can supply values for includes pseudocolumns,
+    // so include them in the schema based on pseudoColumnVersion
+
+    final LogicalSchema.Builder builder = schema.asBuilder();
+
+    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
+
+    if (pseudoColumnVersion >= 0) {
+      builder.valueColumn(SystemColumns.ROWTIME_NAME, SystemColumns.ROWTIME_TYPE);
+    }
+
+    if (pseudoColumnVersion >= 1) {
+      builder.valueColumn(SystemColumns.ROWPARTITION_NAME, SystemColumns.ROWPARTITION_TYPE);
+      builder.valueColumn(SystemColumns.ROWOFFSET_NAME, SystemColumns.ROWOFFSET_TYPE);
+    }
+
+    return builder.build();
   }
 
   private static Map<ColumnName, Object> resolveValues(

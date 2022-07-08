@@ -31,22 +31,34 @@ public class FieldInfo {
 
   public enum FieldType {
     SYSTEM, // To be removed in the future. 0.9 saw this value no longer used.
-    KEY
+    KEY,
+    HEADER
   }
 
   private final String name;
   private final SchemaInfo schema;
   private final Optional<FieldType> type;
+  private final Optional<String> headerKey;
+
+  public FieldInfo(
+      final String name,
+      final SchemaInfo schema,
+      final Optional<FieldType> type
+  ) {
+    this(name, schema, type, Optional.empty());
+  }
 
   @JsonCreator
   public FieldInfo(
       @JsonProperty(value = "name", required = true) final String name,
       @JsonProperty(value = "schema", required = true) final SchemaInfo schema,
-      @JsonProperty("fieldType") final Optional<FieldType> type
+      @JsonProperty("fieldType") final Optional<FieldType> type,
+      @JsonProperty("headerKey") final Optional<String> headerKey
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.type = Objects.requireNonNull(type, "type");
+    this.headerKey = Objects.requireNonNull(headerKey, "headerKey");
   }
 
   public String getName() {
@@ -61,17 +73,22 @@ public class FieldInfo {
     return type;
   }
 
+  public Optional<String> getHeaderKey() {
+    return headerKey;
+  }
+
   @Override
   public boolean equals(final Object other) {
     return other instanceof FieldInfo
         && Objects.equals(name, ((FieldInfo) other).name)
         && Objects.equals(schema, ((FieldInfo) other).schema)
-        && Objects.equals(type, ((FieldInfo) other).type);
+        && Objects.equals(type, ((FieldInfo) other).type)
+        && Objects.equals(headerKey, ((FieldInfo) other).headerKey);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, schema, type);
+    return Objects.hash(name, schema, type, headerKey);
   }
 
   @Override
@@ -80,6 +97,7 @@ public class FieldInfo {
         + "name='" + name + '\''
         + ", schema=" + schema
         + ", type=" + type
+        + ", headerKey=" + headerKey
         + '}';
   }
 }

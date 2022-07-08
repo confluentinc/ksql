@@ -15,23 +15,43 @@
 
 package io.confluent.ksql.api.auth;
 
-import java.security.Principal;
+import io.confluent.ksql.security.KsqlPrincipal;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Principal implementation created when authenticating with the JaasAuthProvider
  */
-class JaasPrincipal implements Principal {
+class JaasPrincipal implements KsqlPrincipal {
 
   private final String name;
+  private final String token;
 
-  JaasPrincipal(final String name) {
-    this.name = Objects.requireNonNull(name);
+  JaasPrincipal(final String name, final String password) {
+    this.name = Objects.requireNonNull(name, "name");
+    this.token = createToken(name, Objects.requireNonNull(password));
   }
 
   @Override
   public String getName() {
     return name;
+  }
+
+  @Override
+  public Map<String, Object> getUserProperties() {
+    return Collections.emptyMap();
+  }
+
+  private String createToken(final String name, final String secret) {
+    return Base64.getEncoder().encodeToString((name + ":" + secret)
+        .getBytes(StandardCharsets.ISO_8859_1));
+  }
+
+  public String getToken() {
+    return token;
   }
 }
 

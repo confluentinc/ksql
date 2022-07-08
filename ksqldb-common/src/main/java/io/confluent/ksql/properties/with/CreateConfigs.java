@@ -31,8 +31,6 @@ public final class CreateConfigs {
 
   public static final String WINDOW_TYPE_PROPERTY = "WINDOW_TYPE";
   public static final String WINDOW_SIZE_PROPERTY = "WINDOW_SIZE";
-  public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
-  public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
   public static final String SOURCE_CONNECTOR = "SOURCE_CONNECTOR";
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
@@ -55,18 +53,6 @@ public final class CreateConfigs {
               + "contains a ``WINDOW`` clause and the window is a HOPPING or TUMBLING window, "
               + "then the property should be used to provide the window size, "
               + "for example: '20 SECONDS'."
-      ).define(
-          KEY_SCHEMA_ID,
-          ConfigDef.Type.INT,
-          null,
-          Importance.LOW,
-          "Undocumented feature"
-      ).define(
-          VALUE_SCHEMA_ID,
-          ConfigDef.Type.INT,
-          null,
-          Importance.LOW,
-          "Undocumented feature"
       ).define(
           SOURCE_CONNECTOR,
           Type.STRING,

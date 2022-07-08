@@ -44,6 +44,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
@@ -106,6 +107,7 @@ public class ApiIntegrationTest {
       .withProperties(ClientTrustStore.trustStoreProps())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
+      .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @ClassRule
@@ -165,7 +167,7 @@ public class ApiIntegrationTest {
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
         new JsonArray().add("K").add("STR").add("LONG").add("DEC").add("BYTES_").add("ARRAY")
-            .add("MAP").add("STRUCT").add("COMPLEX")));
+            .add("MAP").add("STRUCT").add("COMPLEX").add("TIMESTAMP").add("DATE").add("TIME").add("HEAD")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
         new JsonArray().add("STRUCT<`F1` ARRAY<STRING>>").add("STRING").add("BIGINT")
             .add("DECIMAL(4, 2)").add("BYTES").add("ARRAY<STRING>").add("MAP<STRING, STRING>")
@@ -173,7 +175,8 @@ public class ApiIntegrationTest {
             .add("STRUCT<`DECIMAL` DECIMAL(2, 1), `STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, "
                 + "`ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, `ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, "
                 + "`ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, `MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, "
-                + "`MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>")));
+                + "`MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>")
+            .add("TIMESTAMP").add("DATE").add("TIME").add("BYTES")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 
@@ -304,7 +307,7 @@ public class ApiIntegrationTest {
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
-    assertThat(response.responseObject.getString("queryId"), is(nullValue()));
+    assertThat(response.responseObject.getString("queryId"), startsWith("query_"));
     assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0), is("a")); // rowkey
     assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }
@@ -333,7 +336,7 @@ public class ApiIntegrationTest {
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
-    assertThat(response.responseObject.getString("queryId"), is(nullValue()));
+    assertThat(response.responseObject.getString("queryId"), startsWith("query_"));
     assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0), is("a")); // rowkey
     assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }
@@ -357,26 +360,6 @@ public class ApiIntegrationTest {
 
     // Then:
     shouldFailToExecuteQuery(sql, "Expected exactly one KSQL statement; found 2 instead");
-  }
-
-  @Test
-  public void shouldFailPullQueryWithNoWhereClause() {
-
-    // Given:
-    String sql = "SELECT * from " + AGG_TABLE + ";";
-
-    // Then:
-    shouldFailToExecuteQuery(sql, "Missing WHERE clause.");
-  }
-
-  @Test
-  public void shouldFailPullQueryWithNonKeyLookup() {
-
-    // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE LONG=12345;";
-
-    // Then:
-    shouldFailToExecuteQuery(sql, "WHERE clause missing key column for disjunct: (LONG = 12345).");
   }
 
   @Test
@@ -533,7 +516,8 @@ public class ApiIntegrationTest {
         .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because stream name is invalid
-    shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: " + target);
+    shouldRejectInsertRequest(target, row,
+        "Cannot insert values into an unknown stream/table: " + target);
   }
 
   @Test
@@ -552,7 +536,8 @@ public class ApiIntegrationTest {
         .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because stream name is invalid
-    shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: `" + TEST_STREAM.toLowerCase() + "`");
+    shouldRejectInsertRequest(target, row,
+        "Cannot insert values into an unknown stream/table: `" + TEST_STREAM.toLowerCase() + "`");
   }
 
   @Test

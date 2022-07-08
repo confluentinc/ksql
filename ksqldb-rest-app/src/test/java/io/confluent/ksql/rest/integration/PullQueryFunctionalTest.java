@@ -238,7 +238,6 @@ public class PullQueryFunctionalTest {
 
     // When:
     final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
-    System.out.println("-----> Final result= " + rows_0);
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:

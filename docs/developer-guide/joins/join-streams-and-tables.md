@@ -158,18 +158,22 @@ the following table. In the table, each row represents a new incoming
 record. The following assumptions apply:
 
 -   All records have the same key.
--   All records belong to a single join window.
 -   All records are processed in timestamp order.
+-   The join window is 15 seconds, and the grace period is 5 seconds.
 
 When new input is received, the join is triggered under the conditions
 listed in the table. Input records with a NULL key or a NULL value are
 ignored and don't trigger the join.
 
-| Timestamp | Left Stream | Right Stream | INNER JOIN                     | LEFT JOIN                      | RIGHT JOIN                     |
+!!! important
+    If you don't specify a grace period, left/outer join results are emitted eagerly,
+    and the observed result might differ from the result shown below.
+
+| Timestamp | Left Stream | Right Stream | INNER JOIN                     | LEFT JOIN                      | OUTER JOIN                     |
 |-----------|-------------|--------------|--------------------------------|--------------------------------|--------------------------------|
 | 1         | null        |              |                                |                                |                                |
 | 2         |             | null         |                                |                                |                                |
-| 3         | A           |              |                                | [A, null]                      | [A, null]                      |
+| 3         | A           |              |                                |                                |                                |
 | 4         |             | a            | [A, a]                         | [A, a]                         | [A, a]                         |
 | 5         | B           |              | [B, a]                         | [B, a]                         | [B, a]                         |
 | 6         |             | b            | [A, b], [B, b]                 | [A, b], [B, b]                 | [A, b], [B, b]                 |
@@ -182,6 +186,14 @@ ignored and don't trigger the join.
 | 13        |             | null         |                                |                                |                                |
 | 14        |             | d            | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         |
 | 15        | D           |              | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] |
+| ...       |             |              |                                |                                |                                |
+| 40        | E           |              |                                |                                |                                |
+| ...       |             |              |                                |                                |                                |
+| 60        | F           |              |                                | [E,null]                       | [E,null]                       |
+| ...       |             |              |                                |                                |                                |
+| 80        |             | f            |                                | [F,null]                       | [F,null]                       |
+| ...       |             |              |                                |                                |                                |
+| 100       | G           |              |                                |                                | [null,f]                       |
 
 Stream-Table Joins
 ------------------

@@ -17,10 +17,14 @@ package io.confluent.ksql.function.udaf.offset;
 
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BOOLEAN;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BYTES;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DATE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DOUBLE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_INTEGER;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_LONG;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_STRING;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_TIME;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_TIMESTAMP;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.VAL_FIELD;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -29,6 +33,10 @@ import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.util.KsqlConstants;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -184,6 +192,116 @@ public final class EarliestByOffset {
       final boolean ignoreNulls
   ) {
     return earliestN(STRUCT_STRING, earliestN, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the earliest value of a timestamp column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL TIMESTAMP>")
+  public static Udaf<Timestamp, Struct, Timestamp> earliestTimestamp() {
+    return earliestTimestamp(true);
+  }
+
+  @UdafFactory(description = "return the earliest value of a timestamp column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL TIMESTAMP>")
+  public static Udaf<Timestamp, Struct, Timestamp> earliestTimestamp(final boolean ignoreNulls) {
+    return earliest(STRUCT_TIMESTAMP, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the earliest N values of a timestamp column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIMESTAMP>>")
+  public static Udaf<Timestamp, List<Struct>, List<Timestamp>> earliestTimestamps(
+      final int earliestN) {
+    return earliestTimestamps(earliestN, true);
+  }
+
+  @UdafFactory(description = "return the earliest N values of a timestamp column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIMESTAMP>>")
+  public static Udaf<Timestamp, List<Struct>, List<Timestamp>> earliestTimestamps(
+      final int earliestN,
+      final boolean ignoreNulls
+  ) {
+    return earliestN(STRUCT_TIMESTAMP, earliestN, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the earliest value of a time column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL TIME>")
+  public static Udaf<Time, Struct, Time> earliestTime() {
+    return earliestTime(true);
+  }
+
+  @UdafFactory(description = "return the earliest value of a time column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL TIME>")
+  public static Udaf<Time, Struct, Time> earliestTime(final boolean ignoreNulls) {
+    return earliest(STRUCT_TIME, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the earliest N values of a time column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIME>>")
+  public static Udaf<Time, List<Struct>, List<Time>> earliestTimes(final int earliestN) {
+    return earliestTimes(earliestN, true);
+  }
+
+  @UdafFactory(description = "return the earliest N values of a time column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIME>>")
+  public static Udaf<Time, List<Struct>, List<Time>> earliestTimes(
+      final int earliestN,
+      final boolean ignoreNulls
+  ) {
+    return earliestN(STRUCT_TIME, earliestN, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the earliest value of a date column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL DATE>")
+  public static Udaf<Date, Struct, Date> earliestDate() {
+    return earliestDate(true);
+  }
+
+  @UdafFactory(description = "return the earliest value of a date column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL DATE>")
+  public static Udaf<Date, Struct, Date> earliestDate(final boolean ignoreNulls) {
+    return earliest(STRUCT_DATE, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the earliest N values of a date column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DATE>>")
+  public static Udaf<Date, List<Struct>, List<Date>> earliestDates(final int earliestN) {
+    return earliestDates(earliestN, true);
+  }
+
+  @UdafFactory(description = "return the earliest N values of a date column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DATE>>")
+  public static Udaf<Date, List<Struct>, List<Date>> earliestDates(
+      final int earliestN,
+      final boolean ignoreNulls
+  ) {
+    return earliestN(STRUCT_DATE, earliestN, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the earliest value of a bytes column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BYTES>")
+  public static Udaf<ByteBuffer, Struct, ByteBuffer> earliestBytes() {
+    return earliestBytes(true);
+  }
+
+  @UdafFactory(description = "return the earliest value of a bytes column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BYTES>")
+  public static Udaf<ByteBuffer, Struct, ByteBuffer> earliestBytes(final boolean ignoreNulls) {
+    return earliest(STRUCT_BYTES, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the earliest N values of a bytes column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BYTES>>")
+  public static Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> earliestBytes(
+      final int earliestN) {
+    return earliestBytes(earliestN, true);
+  }
+
+  @UdafFactory(description = "return the earliest N values of a bytes column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BYTES>>")
+  public static Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> earliestBytes(
+      final int earliestN,
+      final boolean ignoreNulls
+  ) {
+    return earliestN(STRUCT_BYTES, earliestN, ignoreNulls);
   }
 
   @VisibleForTesting

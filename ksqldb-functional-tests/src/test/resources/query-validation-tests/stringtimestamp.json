@@ -12,11 +12,13 @@
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": "0,zero,2018-05-11T21:58:33Z"},
         {"topic": "test_topic", "key": "0", "value": "0,zero,2019-05-11T21:58:33Z"},
-        {"topic": "test_topic", "key": "0", "value": "0,zero,2020-05-11T21:58:33Z"}
+        {"topic": "test_topic", "key": "0", "value": "0,zero,2020-05-11T21:58:33Z"},
+        {"topic": "test_topic", "key": "0", "value": "0,zero,2020-05-11T21:58:33z"}
       ],
       "outputs": [
         {"topic": "TS", "key": "0", "value": "0,1526075913000"},
         {"topic": "TS", "key": "0", "value": "0,1557611913000"},
+        {"topic": "TS", "key": "0", "value": "0,1589234313000"},
         {"topic": "TS", "key": "0", "value": "0,1589234313000"}
       ]
     },

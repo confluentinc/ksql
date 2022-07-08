@@ -21,6 +21,13 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
+## ALTER property
+Change a property value.
+
+```sql
+ALTER 'auto.offset.reset'='earliest';
+```
+
 ## ALTER STREAM
 Add new columns to a stream. This is not supported for streams defined using queries
 (`CREATE STREAM ... AS`).
@@ -60,6 +67,13 @@ Alias a column, expression, or type. For more information, see
 ```sql hl_lines="1"
 SELECT column_name AS column_alias
   FROM stream_name | table_name
+```
+
+## ASSERT
+Assert values, stream, table, or tombstones.
+
+```sql
+ASSERT NULL VALUES sourceName (columns)? KEY values            
 ```
 
 ## BETWEEN
@@ -120,6 +134,9 @@ FROM orders
 EMIT CHANGES;
 ```
 
+!!! Tip "See CASE in action"
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
+
 ## CAST
 Change the type of an expression to a different type.
 
@@ -149,6 +166,11 @@ CREATE SOURCE | SINK CONNECTOR connector_name
   WITH( property_name = expression [, ...]);
 ```
 
+!!! Tip "See CREATE CONNECTOR in action"
+    - [Materialized cache - Start the Debezium source connector](/tutorials/materialized/#start-the-debezium-connector)
+    - [Streaming ETL pipeline - Start the source connectors](/tutorials/etl#start-the-postgres-and-mongodb-debezium-source-connectors)
+    - [Streaming ETL pipeline- Start the Elasticsearch sink connector](/tutorials/etl/#start-the-elasticsearch-sink-connector)
+
 ## CREATE STREAM
 Register a stream on a {{ site.ak }} topic. For more information, see
 [CREATE STREAM](../../ksqldb-reference/create-stream).
@@ -168,9 +190,10 @@ CREATE STREAM stream_name
   [WITH ( property_name = expression [, ...] )]
   AS SELECT  select_expr [, ...]
   FROM from_stream
-  [[ LEFT | FULL | INNER ] JOIN [join_table | join_stream]
-    [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
-    ON join_criteria]* 
+  [[ LEFT | FULL | INNER ]
+    JOIN [join_table | join_stream]
+      [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
+    ON join_criteria]*
   [ WHERE condition ]
   [PARTITION BY new_key_expr [, ...]]
   EMIT CHANGES;
@@ -213,7 +236,7 @@ CREATE TYPE <type_name> AS <type>;
 
 ## DEFINE
 
-Defines a variable.
+Defines a variable. For more information, see [DEFINE](define.md).
 
 ```sql
 DEFINE <name> = '<value>';
@@ -306,6 +329,17 @@ SELECT column_name(s)
    ON <stream_name1|table_name1>.column_name=<stream_name2|table_name2>.column_name
 ```
 
+## GRACE PERIOD
+Allow events to be accepted for a time period after a window ends. For more
+information, see [Out-of-order events](../../../concepts/time-and-windows-in-ksqldb-queries#out-of-order-events)
+
+```sql hl_lines="2"
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
+```
+
 ## GROUP BY
 Group records in a window. Required by the WINDOW clause. Windowing queries
 must group by the keys that are selected in the query. For more information,
@@ -327,6 +361,22 @@ SELECT column_name, aggregate_function(column_name)
   WHERE column_name operator value
   GROUP BY column_name
   HAVING aggregate_function(column_name) operator value
+```
+## HEADER
+
+Populate a column with the {{ site.ak }} record's last header that matches the key.
+
+```sql
+CREATE STREAM S (column_name BYTES HEADER('key'))
+WITH (kafka_topic='s', format='json');
+```
+
+## HEADERS
+Populate a column with the full list of the {{ site.ak }} record's headers.
+
+```sql
+CREATE STREAM S (column_name ARRAY<STRUCT<key STRING, value BYTES>> HEADERS)
+WITH (kafka_topic='s', format='json');
 ```
 
 ## HOPPING
@@ -378,6 +428,12 @@ SELECT column_name(s)
    ON <stream_name1|table_name1>.column_name=<stream_name2|table_name2>.column_name
 ```
 
+!!! Tip "See INNER_JOIN in action"
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
+    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#execute-ksqldb-code)
+    - [Notify passengers of flight updates](https://developer.confluent.io/tutorials/aviation/confluent.html#execute-ksqldb-code)
+    - [Streaming ETL pipeline](/tutorials/etl/#join-the-streams-together)
+
 ## INSERT INTO
 Stream the result of a SELECT query into an existing stream and its underlying
 {{ site.ak }} topic. For more information, see [INSERT INTO](../../ksqldb-reference/insert-into).
@@ -386,9 +442,10 @@ Stream the result of a SELECT query into an existing stream and its underlying
 INSERT INTO stream_name
   SELECT select_expr [, ...]
   FROM from_stream
-  [ LEFT | FULL | INNER ] JOIN [join_table | join_stream]
-    [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
-    ON join_criteria
+  [ LEFT | FULL | INNER ]
+      JOIN [join_table | join_stream]
+        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
+      ON join_criteria
   [ WHERE condition ]
   [ PARTITION BY new_key_expr [, ...] ]
   EMIT CHANGES;
@@ -474,9 +531,10 @@ information, see [SELECT (Pull Query)](../../ksqldb-reference/select-pull-query)
 
 ```sql
 SELECT select_expr [, ...]
-  FROM aggregate_table
-  WHERE key_column=key
-  [AND window_bounds];
+  FROM from_item
+  [ WHERE where_condition ]
+  [ AND window_bounds ]
+  [ LIMIT count ];
 ```
 
 ## SELECT (Push Query)
@@ -486,7 +544,10 @@ information, see [SELECT (Push Query)](../../ksqldb-reference/select-push-query)
 ```sql
 SELECT select_expr [, ...]
   FROM from_item
-  [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
+  [[ LEFT | FULL | INNER ]
+      JOIN join_item
+        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
+      ON join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE condition ]
   [ GROUP BY grouping_expression [, ...] ]
@@ -504,6 +565,13 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   FROM from_stream
   WINDOW SESSION window_expression
   EMIT CHANGES;
+```
+
+## SET property
+Assign a property value.
+
+```sql
+SET 'auto.offset.reset'='earliest';
 ```
 
 ## SHOW CONNECTORS
@@ -598,7 +666,7 @@ SPOOL <file_name|OFF>
 ```
 
 ## TERMINATE
-End a persistent query. For more information, see [SPOOL](../../ksqldb-reference/terminate).
+End a query. For more information, see [TERMINATE](../../ksqldb-reference/terminate).
 
 ```sql
 TERMINATE query_id;
@@ -622,6 +690,13 @@ Undefines a variable.
 
 ```sql
 UNDEFINE name;
+```
+
+## UNSET property
+Unassign a property value.
+
+```sql
+UNSET 'auto.offset.reset';
 ```
 
 ## WHERE
@@ -656,6 +731,10 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   WINDOW window_expression
   EMIT CHANGES;
 ```
+
+!!! Tip "See WINDOWSTART in action"
+    - [Detect unusual credit card activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 
 ## NULLIF
 Returns NULL if two expressions are equal, otherwise it returns the first expression.

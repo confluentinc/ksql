@@ -23,6 +23,7 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.Window;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.KsqlMaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.KsqlMaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;

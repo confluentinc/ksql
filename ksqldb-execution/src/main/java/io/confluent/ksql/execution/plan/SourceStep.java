@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.plan;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -78,9 +77,6 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
     return topicName;
   }
 
-  //Jsonignore here until KLIP-50 (add rowpartition and rowoffset pseudocolumns) is live.
-  //For now, we don't want to write pseudoColumnVersion to the command topic
-  @JsonIgnore
   public int getPseudoColumnVersion() {
     return pseudoColumnVersion;
   }

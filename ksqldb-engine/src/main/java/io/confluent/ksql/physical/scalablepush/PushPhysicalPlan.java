@@ -16,16 +16,19 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
-import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,9 +49,11 @@ public class PushPhysicalPlan {
 
   private final LogicalSchema schema;
   private final QueryId queryId;
+  private final String catchupConsumerGroupId;
   private final ScalablePushRegistry scalablePushRegistry;
   private final PushDataSourceOperator dataSourceOperator;
   private final Context context;
+  private final QuerySourceType querySourceType;
   private volatile boolean closed = false;
   private long timer = -1;
 
@@ -57,21 +62,32 @@ public class PushPhysicalPlan {
       final AbstractPhysicalOperator root,
       final LogicalSchema schema,
       final QueryId queryId,
+      final String catchupConsumerGroupId,
       final ScalablePushRegistry scalablePushRegistry,
       final PushDataSourceOperator dataSourceOperator,
-      final Context context
+      final Context context,
+      final QuerySourceType querySourceType
   ) {
     this.root = Objects.requireNonNull(root, "root");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
+    this.catchupConsumerGroupId =
+        Objects.requireNonNull(catchupConsumerGroupId, "catchupConsumerGroupId");
     this.scalablePushRegistry =
         Objects.requireNonNull(scalablePushRegistry, "scalablePushRegistry");
     this.dataSourceOperator = dataSourceOperator;
-    this.context = context;
+    this.context = Objects.requireNonNull(context, "context");
+    this.querySourceType = Objects.requireNonNull(querySourceType, "querySourceType");
   }
 
-  public BufferedPublisher<List<?>> execute() {
+  public BufferedPublisher<QueryRow> execute() {
+    return subscribeAndExecute(Optional.empty());
+  }
+
+  // for testing only
+  BufferedPublisher<QueryRow> subscribeAndExecute(final Optional<Subscriber<QueryRow>> subscriber) {
     final Publisher publisher = new Publisher(context);
+    subscriber.ifPresent(publisher::subscribe);
     context.runOnContext(v -> open(publisher));
     return publisher;
   }
@@ -81,15 +97,12 @@ public class PushPhysicalPlan {
   }
 
   private void maybeNext(final Publisher publisher) {
-    List<?> row;
-    while ((row = (List<?>)next()) != null) {
-      if (dataSourceOperator.droppedRows()) {
-        closeInternal();
-        publisher.reportDroppedRows();
-        break;
-      } else {
-        publisher.accept(row);
-      }
+    QueryRow row;
+    while (!isErrored(publisher) && (row = (QueryRow) next(publisher)) != null) {
+      publisher.accept(row);
+    }
+    if (publisher.isFailed()) {
+      return;
     }
     if (!closed) {
       if (timer >= 0) {
@@ -103,16 +116,38 @@ public class PushPhysicalPlan {
     }
   }
 
-  private void open(final Publisher publisher) {
-    VertxUtils.checkContext(context);
-    dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
-    root.open();
-    maybeNext(publisher);
+  private boolean isErrored(final Publisher publisher) {
+    if (dataSourceOperator.droppedRows()) {
+      closeInternal();
+      publisher.reportDroppedRows();
+      return true;
+    } else if (dataSourceOperator.hasError()) {
+      closeInternal();
+      publisher.reportHasError();
+      return true;
+    }
+    return false;
   }
 
-  private Object next() {
+  private void open(final Publisher publisher) {
     VertxUtils.checkContext(context);
-    return root.next();
+    try {
+      dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
+      root.open();
+      maybeNext(publisher);
+    } catch (Throwable t) {
+      publisher.sendException(t);
+    }
+  }
+
+  private Object next(final Publisher publisher) {
+    VertxUtils.checkContext(context);
+    try {
+      return root.next();
+    } catch (final Throwable t) {
+      publisher.sendException(t);
+      return null;
+    }
   }
 
   public void close() {
@@ -121,8 +156,10 @@ public class PushPhysicalPlan {
 
   private void closeInternal() {
     VertxUtils.checkContext(context);
-    closed = true;
-    root.close();
+    if (!closed) {
+      closed = true;
+      root.close();
+    }
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
@@ -138,11 +175,29 @@ public class PushPhysicalPlan {
     return schema;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ScalablePushRegistry getScalablePushRegistry() {
     return scalablePushRegistry;
   }
 
-  public static class Publisher extends BufferedPublisher<List<?>> {
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public Context getContext() {
+    return context;
+  }
+
+  public QuerySourceType getSourceType() {
+    return querySourceType;
+  }
+
+  public long getRowsReadFromDataSource() {
+    return dataSourceOperator.getRowsReadCount();
+  }
+
+  public String getCatchupConsumerGroupId() {
+    return catchupConsumerGroupId;
+  }
+
+  public static class Publisher extends BufferedPublisher<QueryRow> {
 
     public Publisher(final Context ctx) {
       super(ctx, CAPACITY);
@@ -150,6 +205,18 @@ public class PushPhysicalPlan {
 
     public void reportDroppedRows() {
       sendError(new RuntimeException("Dropped rows"));
+    }
+
+    public void reportHasError() {
+      sendError(new RuntimeException("Internal error occurred"));
+    }
+
+    public void sendException(final Throwable e) {
+      sendError(e);
+    }
+
+    public boolean isFailed() {
+      return super.isFailed();
     }
   }
 }

@@ -47,6 +47,10 @@ public class DefaultKsqlParser implements KsqlParser {
           .map(DefaultKsqlParser::parsedStatement)
           .collect(Collectors.toList());
 
+    } catch (final ParsingException e) {
+      // ParsingException counts lines starting from 1
+      final String failedLine =  sql.split(System.lineSeparator())[e.getLineNumber() - 1];
+      throw new ParseFailedException(e.getMessage(), failedLine, e);
     } catch (final Exception e) {
       throw new ParseFailedException(e.getMessage(), sql, e);
     }

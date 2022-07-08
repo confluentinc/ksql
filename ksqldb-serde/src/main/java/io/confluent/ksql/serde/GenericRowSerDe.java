@@ -39,7 +39,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
    * Additional capacity added to each created `GenericRow` in an attempt to avoid later resizes,
    * and associated array copies, when the row has additional elements appended to the end during
    * processing, e.g. to match columns added by
-   * {@link io.confluent.ksql.schema.ksql.LogicalSchema#withPseudoAndKeyColsInValue(boolean)}
+   * {@link io.confluent.ksql.schema.ksql.LogicalSchema#withPseudoAndKeyColsInValue(boolean, int)}
    *
    * <p>The number is optimised for a single key column, as this is the most common case.
    *

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.functional;
 
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.util.Collection;
 import java.util.Objects;
@@ -77,6 +78,7 @@ public class ImmutabilityTest {
         .withKnownImmutableType(KGroupedTable.class)
         .withKnownImmutableType(Serde.class)
         .withKnownImmutableType(Windows.class)
+        .withKnownImmutableType(BytesLiteral.class)
         .test(modelClass);
   }
 }

@@ -49,7 +49,7 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 public class PersistentQueryMetadataImpl
     extends QueryMetadataImpl implements PersistentQueryMetadata {
   private final KsqlConstants.PersistentQueryType persistentQueryType;
-  private final DataSource sinkDataSource;
+  private final Optional<DataSource> sinkDataSource;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
   private final ExecutionStep<?> physicalPlan;
@@ -67,7 +67,7 @@ public class PersistentQueryMetadataImpl
       final String statementString,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
-      final DataSource sinkDataSource,
+      final Optional<DataSource> sinkDataSource,
       final String executionPlan,
       final QueryId id,
       final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
@@ -105,7 +105,7 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        listener
+        new QueryListenerWrapper(listener, scalablePushRegistry)
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
@@ -163,16 +163,19 @@ public class PersistentQueryMetadataImpl
     return response;
   }
 
-  public DataSourceType getDataSourceType() {
-    return sinkDataSource.getDataSourceType();
+  @Override
+  public Optional<DataSourceType> getDataSourceType() {
+    return sinkDataSource.map(DataSource::getDataSourceType);
   }
 
-  public KsqlTopic getResultTopic() {
-    return sinkDataSource.getKsqlTopic();
+  @Override
+  public Optional<KsqlTopic> getResultTopic() {
+    return sinkDataSource.map(DataSource::getKsqlTopic);
   }
 
-  public SourceName getSinkName() {
-    return sinkDataSource.getName();
+  @Override
+  public Optional<SourceName> getSinkName() {
+    return sinkDataSource.map(DataSource::getName);
   }
 
   public QuerySchemas getQuerySchemas() {
@@ -187,17 +190,13 @@ public class PersistentQueryMetadataImpl
     return physicalPlan;
   }
 
-  public DataSource getSink() {
+  @Override
+  public Optional<DataSource> getSink() {
     return sinkDataSource;
   }
 
   public KsqlConstants.PersistentQueryType getPersistentQueryType() {
     return persistentQueryType;
-  }
-
-  @VisibleForTesting
-  public Optional<MaterializationProvider> getMaterializationProvider() {
-    return materializationProvider;
   }
 
   @VisibleForTesting
@@ -223,7 +222,12 @@ public class PersistentQueryMetadataImpl
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
   }
 
+  public void stop(final boolean resetOffsets) {
+    stop();
+  }
+
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
   }
+
 }

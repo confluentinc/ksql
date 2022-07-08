@@ -26,18 +26,26 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamQueryResponseHandler
     extends QueryResponseHandler<CompletableFuture<StreamedQueryResult>> {
+  private static final Logger LOG = LoggerFactory.getLogger(StreamQueryResponseHandler.class);
 
   private StreamedQueryResultImpl queryResult;
   private Map<String, Integer> columnNameToIndex;
   private boolean paused;
+  private AtomicReference<String> serializedConsistencyVector;
 
   StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
-      final CompletableFuture<StreamedQueryResult> cf) {
+      final CompletableFuture<StreamedQueryResult> cf,
+      final AtomicReference<String> serializedCV) {
     super(context, recordParser, cf);
+    this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
   }
 
   @Override
@@ -57,10 +65,10 @@ public class StreamQueryResponseHandler
     if (queryResult == null) {
       throw new IllegalStateException("handleRow called before metadata processed");
     }
-
     final Object json = buff.toJson();
+    final Row row;
     if (json instanceof JsonArray) {
-      final Row row = new RowImpl(
+      row = new RowImpl(
           queryResult.columnNames(),
           queryResult.columnTypes(),
           (JsonArray) json,
@@ -73,10 +81,18 @@ public class StreamQueryResponseHandler
         paused = true;
       }
     } else if (json instanceof JsonObject) {
-      final JsonObject error = (JsonObject) json;
-      queryResult.handleError(new KsqlException(
-          error.getString("message")
-      ));
+      final JsonObject jsonObject = (JsonObject) json;
+      // This is the serialized consistency vector
+      // Don't add it to the publisher's buffer since the user should not see it
+      if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken")) {
+        LOG.info("Response contains consistency vector " + jsonObject);
+        serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
+            "consistencyToken"));
+      } else {
+        queryResult.handleError(new KsqlException(
+            jsonObject.getString("message")
+        ));
+      }
     } else {
       throw new RuntimeException("Could not decode JSON: " + json);
     }

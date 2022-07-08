@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
@@ -361,7 +362,7 @@ public class SerdeFeaturesFactoryTest {
     // Given:
     final FormatInfo formatInfo = FormatInfo.of(
         AvroFormat.NAME,
-        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.Foo"));
+        ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.Foo"));
     final KeyFormat format = KeyFormat.nonWindowed(
         formatInfo,
         SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));

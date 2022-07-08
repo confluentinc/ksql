@@ -43,7 +43,12 @@ public final class AnalysisTestUtil {
       final String queryStr,
       final MetaStore metaStore
   ) {
-    final Analyzer analyzer = new Analyzer(queryStr, metaStore);
+    final boolean rowpartitionRowoffsetEnabled =
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+    final boolean pullLimitClauseEnabled =
+            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
+
+    final Analyzer analyzer = new Analyzer(queryStr, metaStore, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
 
     final LogicalPlanner logicalPlanner =
         new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
@@ -55,10 +60,16 @@ public final class AnalysisTestUtil {
 
     private final Analysis analysis;
 
-    private Analyzer(final String queryStr, final MetaStore metaStore) {
+    private Analyzer(
+        final String queryStr,
+        final MetaStore metaStore,
+        final boolean rowpartitionRowoffsetEnabled,
+        final boolean pullLimitClauseEnabled
+    ) {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-          metaStore, "");
-      final Statement statement = parseStatement(queryStr, metaStore);
+          metaStore, "", rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
+      final Statement statement =
+          parseStatement(queryStr, metaStore, rowpartitionRowoffsetEnabled);
       final Query query = statement instanceof QueryContainer
           ? ((QueryContainer) statement).getQuery()
           : (Query) statement;
@@ -72,10 +83,11 @@ public final class AnalysisTestUtil {
 
     private static Statement parseStatement(
         final String queryStr,
-        final MetaStore metaStore
+        final MetaStore metaStore,
+        final boolean rowpartitionRowoffsetEnabled
     ) {
       final List<PreparedStatement<?>> statements =
-          KsqlParserTestUtil.buildAst(queryStr, metaStore);
+          KsqlParserTestUtil.buildAst(queryStr, metaStore, rowpartitionRowoffsetEnabled);
       assertThat(statements, hasSize(1));
       return statements.get(0).getStatement();
     }

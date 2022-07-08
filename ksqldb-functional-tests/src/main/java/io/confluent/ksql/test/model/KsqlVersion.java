@@ -25,11 +25,26 @@ import java.util.OptionalLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("checkstyle:AtclauseOrder")
 @Immutable
 public final class KsqlVersion implements Comparable<KsqlVersion> {
-
-  private static final Pattern VERSION_PATTERN = Pattern
-      .compile("(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-([A-Za-z0-9]+|\\d+))?");
+  /**
+   * A KsqlVersion must have a major and minor version such as: 7.1
+   *  A KsqlVersion can have a patch version such as: 7.1.2
+   *  This is captured by the first part of the regex as:
+   *  (?<major>\d+)\.(?<minor>\d+)(?<patch>.\d+)?
+   *  A KsqlVersion can also have a SNAPSHOT artifact such as: 5.4.1-SNAPSHOT
+   *  A KsqlVersion can also have a nanoversioned artifact such as: 5.4.1-0
+   *  This is captured by the second part of the regex as:
+   *  (?:-([A-Za-z0-9]+|\d+))*
+   *  A KsqlVersion can also have a stabilization artifact such as: 7.1.0-ksqldb-rest-app.21-496-rc1
+   *  The ".21-496-rc1" is captured by the third part of the regex as:
+   *  (\.\d+-\d+)?(-rc\d*)?
+  */
+  private static final Pattern VERSION_PATTERN = Pattern.compile(
+          "(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?"
+              + "(?:-([A-Za-z0-9]+|\\d+))*"
+              + "(\\.\\d+-\\d+)?(-rc\\d*)?");
 
   @EffectivelyImmutable
   private static final Comparator<KsqlVersion> COMPARATOR =

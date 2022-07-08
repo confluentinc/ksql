@@ -19,8 +19,13 @@ import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_FULL_NAME;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
@@ -41,6 +46,7 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
@@ -129,10 +135,26 @@ public class CreateSourceAsPropertiesTest {
 
     // When:
     final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME)
-        .get(AvroFormat.FULL_SCHEMA_NAME);
+        .get(ConnectProperties.FULL_SCHEMA_NAME);
 
     // Then:
     assertThat(avroSchemaName, is("io.confluent.ksql.avro_schemas.NameKey"));
+  }
+
+  @Test
+  public void shouldSetAvroSchemaNameForKey() {
+    // Given:
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
+        ImmutableMap.of(KEY_FORMAT_PROPERTY, new StringLiteral("AVRO"),
+            KEY_SCHEMA_FULL_NAME, new StringLiteral("KeySchemaName"))
+    );
+
+    // When:
+    final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME)
+        .get(ConnectProperties.FULL_SCHEMA_NAME);
+
+    // Then:
+    assertThat(avroSchemaName, is("KeySchemaName"));
   }
 
   @Test
@@ -144,7 +166,7 @@ public class CreateSourceAsPropertiesTest {
 
     // When:
     final String avroSchemaName = properties.getKeyFormatProperties("name", JsonFormat.NAME)
-        .get(AvroFormat.FULL_SCHEMA_NAME);
+        .get(ConnectProperties.FULL_SCHEMA_NAME);
 
     // Then:
     assertThat(avroSchemaName, nullValue());
@@ -154,10 +176,39 @@ public class CreateSourceAsPropertiesTest {
   public void shouldSetValidAvroSchemaName() {
     // When:
     final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
-        ImmutableMap.of(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
+        ImmutableMap.of(VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
 
     // Then:
-    assertThat(properties.getValueFormatProperties("avro").get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormatProperties(AvroFormat.NAME).get(ConnectProperties.FULL_SCHEMA_NAME),
+        is("schema"));
+  }
+
+  @Test
+  public void shouldSetValueFullSchemaName() {
+    // When:
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .put(CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("Protobuf"))
+            .put(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME, new StringLiteral("schema"))
+            .build());
+
+    // Then:
+    assertThat(properties.getValueFormatProperties(ProtobufFormat.NAME),
+        hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "schema"));
+  }
+
+  @Test
+  public void shouldSetKeyFullSchemaName() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .put(FORMAT_PROPERTY, new StringLiteral("Json_sr"))
+            .put(KEY_SCHEMA_FULL_NAME, new StringLiteral("KeySchema"))
+            .build());
+
+    // Then:
+    assertThat(props.getKeyFormatProperties("json_sr", "foo"),
+        hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "KeySchema"));
   }
 
   @Test
@@ -238,7 +289,7 @@ public class CreateSourceAsPropertiesTest {
   @Test
   public void shouldProperlyImplementEqualsAndHashCode() {
     final ImmutableMap<String, Literal> someConfig = ImmutableMap
-        .of(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"));
+        .of(VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"));
 
     new EqualsTester()
         .addEqualityGroup(
@@ -297,6 +348,23 @@ public class CreateSourceAsPropertiesTest {
   }
 
   @Test
+  public void shouldThrowIfValueSchemaNameAndAvroSchemaNameProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceAsProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .put(VALUE_SCHEMA_FULL_NAME, new StringLiteral("value_schema"))
+                .put(VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("value_schema"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Cannot supply both 'VALUE_AVRO_SCHEMA_FULL_NAME' "
+        + "and 'VALUE_SCHEMA_FULL_NAME' properties. Please only set 'VALUE_SCHEMA_FULL_NAME'."));
+  }
+
+  @Test
   public void shouldThrowIfKeyFormatAndFormatProvided() {
     // When:
     final Exception e = assertThrows(
@@ -312,6 +380,22 @@ public class CreateSourceAsPropertiesTest {
     assertThat(e.getMessage(), containsString("Cannot supply both 'KEY_FORMAT' and 'FORMAT' properties, "
         + "as 'FORMAT' sets both key and value formats."));
     assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
+  }
+
+  @Test
+  public void shouldGetKeyAndValueSchemaIdFromFormat() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .put(FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .put(KEY_SCHEMA_ID, new IntegerLiteral(123))
+            .put(VALUE_SCHEMA_ID, new IntegerLiteral(456))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormatProperties("foo", "Avro"),
+        hasEntry(ConnectProperties.SCHEMA_ID, "123"));
+    assertThat(props.getValueFormatProperties(AvroFormat.NAME), hasEntry(ConnectProperties.SCHEMA_ID, "456"));
   }
 
   @Test

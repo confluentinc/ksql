@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.api.auth;
 
-import java.security.Principal;
+import io.confluent.ksql.security.KsqlPrincipal;
 import java.util.Optional;
 
 public interface ApiSecurityContext {
 
-  Optional<Principal> getPrincipal();
+  Optional<KsqlPrincipal> getPrincipal();
 
   Optional<String> getAuthToken();
 }

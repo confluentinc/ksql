@@ -348,7 +348,7 @@ public class KsqlClientTest {
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Optional.of(321L));
+        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -373,7 +373,7 @@ public class KsqlClientTest {
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Optional.of(321L));
+        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -396,7 +396,7 @@ public class KsqlClientTest {
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Optional.of(321L));
+        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));

@@ -32,6 +32,7 @@ import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.AssertTable;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -106,6 +107,7 @@ public class KsqlTesterTest {
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
       .put(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 0L)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
+      .put(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @Rule
@@ -162,6 +164,7 @@ public class KsqlTesterTest {
     this.formatInjector = new DefaultFormatInjector();
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
+    final MetricCollectors metricCollectors = new MetricCollectors();
     this.engine = new KsqlEngine(
         serviceContext,
         NoopProcessingLogContext.INSTANCE,
@@ -179,7 +182,8 @@ public class KsqlTesterTest {
                 closeDriver(driverAndProperties.driver, driverAndProperties.properties, false);
               }
             }
-        )
+        ),
+        metricCollectors
     );
 
     this.expectedException = null;
@@ -261,7 +265,9 @@ public class KsqlTesterTest {
         .map(ds -> new TopicInfo(ds.getKafkaTopicName(), keySerde(ds), valueSerde(ds)))
         .collect(Collectors.toList());
 
-    final DataSource output = engine.getMetaStore().getSource(query.getSinkName());
+    // Sink may be Optional for source tables. Once source table query execution is supported, then
+    // we would need have a condition to not create an output topic info
+    final DataSource output = engine.getMetaStore().getSource(query.getSinkName().get());
     final TopicInfo outputInfo = new TopicInfo(
         output.getKafkaTopicName(),
         keySerde(output),

@@ -23,9 +23,11 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
+import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
 import io.confluent.ksql.services.ConnectClient;
+import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -41,8 +43,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.Arrays;
 import java.util.Optional;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_CONNECT_SERVER_ERROR_HANDLER;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,6 +60,9 @@ public class ListConnectorPluginsTest {
         ConnectorType.SOURCE,
         "2.1"
     );
+
+    private static final ListConnectorPluginsExecutor EXECUTOR =
+        new ListConnectorPluginsExecutor(new DefaultConnectServerErrors());
 
     @Mock
     private KsqlExecutionContext engine;
@@ -81,8 +90,10 @@ public class ListConnectorPluginsTest {
                 SessionConfig.of(ksqlConfig, ImmutableMap.of()));
 
         // When:
-        final Optional<KsqlEntity> entity = ListConnectorPluginsExecutor
-            .execute(statement, mock(SessionProperties.class), engine, serviceContext);
+        final Optional<KsqlEntity> entity = EXECUTOR.execute(statement,
+            mock(SessionProperties.class),
+            engine,
+            serviceContext).getEntity();
 
         // Then:
         assertThat("expected response!", entity.isPresent());
@@ -98,5 +109,91 @@ public class ListConnectorPluginsTest {
                     "2.1")
             )
         )));
+    }
+
+    @Test
+    public void shouldReturnPluggableForbiddenError() {
+        //Given:
+        when(connectClient.connectorPlugins())
+            .thenReturn(
+                ConnectResponse.failure("FORBIDDEN", HttpStatus.SC_FORBIDDEN));
+
+        final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
+        final ConfiguredStatement<ListConnectorPlugins> statement = ConfiguredStatement
+            .of(KsqlParser.PreparedStatement.of("", new ListConnectorPlugins(Optional.empty())),
+                SessionConfig.of(new KsqlConfig(ImmutableMap.of()), ImmutableMap.of()));
+
+        // When:
+        final Optional<KsqlEntity> entity = new ListConnectorPluginsExecutor(connectErrorHandler)
+            .execute(statement,
+                mock(SessionProperties.class),
+                null,
+                serviceContext).getEntity();
+
+        // Then:
+        assertThat("Expected non-empty response", entity.isPresent());
+        assertThat(entity.get(), instanceOf(ErrorEntity.class));
+        assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
+            is(DummyConnectServerErrors.FORBIDDEN_ERR));
+    }
+
+    @Test
+    public void shouldReturnPluggableUnauthorizedError() {
+        //Given:
+        when(connectClient.connectorPlugins())
+            .thenReturn(
+                ConnectResponse.failure("UNAUTHORIZED", HttpStatus.SC_UNAUTHORIZED));
+
+        final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
+        final ConfiguredStatement<ListConnectorPlugins> statement = ConfiguredStatement
+            .of(KsqlParser.PreparedStatement.of("", new ListConnectorPlugins(Optional.empty())),
+                SessionConfig.of(new KsqlConfig(ImmutableMap.of()), ImmutableMap.of()));
+
+        // When:
+        final Optional<KsqlEntity> entity = new ListConnectorPluginsExecutor(connectErrorHandler)
+            .execute(statement,
+                mock(SessionProperties.class),
+                null,
+                serviceContext).getEntity();
+
+        // Then:
+        assertThat("Expected non-empty response", entity.isPresent());
+        assertThat(entity.get(), instanceOf(ErrorEntity.class));
+        assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
+            is(DummyConnectServerErrors.UNAUTHORIZED_ERR));
+    }
+
+    @Test
+    public void shouldReturnDefaultPluggableErrorOnUnknownCode() {
+        //Given:
+        when(connectClient.connectorPlugins())
+            .thenReturn(
+                ConnectResponse.failure("NOT ACCEPTABLE", HttpStatus.SC_NOT_ACCEPTABLE));
+
+        final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
+        final ConfiguredStatement<ListConnectorPlugins> statement = ConfiguredStatement
+            .of(KsqlParser.PreparedStatement.of("", new ListConnectorPlugins(Optional.empty())),
+                SessionConfig.of(new KsqlConfig(ImmutableMap.of()), ImmutableMap.of()));
+
+        // When:
+        final Optional<KsqlEntity> entity = new ListConnectorPluginsExecutor(connectErrorHandler)
+            .execute(statement,
+                mock(SessionProperties.class),
+                null,
+                serviceContext).getEntity();
+
+        // Then:
+        assertThat("Expected non-empty response", entity.isPresent());
+        assertThat(entity.get(), instanceOf(ErrorEntity.class));
+        assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
+            is(DummyConnectServerErrors.DEFAULT_ERR));
+    }
+
+    private ConnectServerErrors givenCustomConnectErrorHandler() {
+        final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+            KSQL_CONNECT_SERVER_ERROR_HANDLER, DummyConnectServerErrors.class));
+        return config.getConfiguredInstance(
+            KSQL_CONNECT_SERVER_ERROR_HANDLER,
+            ConnectServerErrors.class);
     }
 }

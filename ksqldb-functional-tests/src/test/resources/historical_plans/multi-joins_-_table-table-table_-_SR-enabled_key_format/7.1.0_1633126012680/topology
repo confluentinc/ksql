@@ -1,0 +1,125 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000001 (topics: [left])
+      --> KTABLE-SOURCE-0000000002
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> KTABLE-TOSTREAM-0000000005
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: KTABLE-TOSTREAM-0000000005 (stores: [])
+      --> L_LeftSourceKeyed-SelectKey-Mapper
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+    Processor: L_LeftSourceKeyed-SelectKey-Mapper (stores: [])
+      --> L_LeftSourceKeyed-SelectKey-repartition-filter
+      <-- KTABLE-TOSTREAM-0000000005
+    Processor: L_LeftSourceKeyed-SelectKey-repartition-filter (stores: [])
+      --> L_LeftSourceKeyed-SelectKey-repartition-sink
+      <-- L_LeftSourceKeyed-SelectKey-Mapper
+    Sink: L_LeftSourceKeyed-SelectKey-repartition-sink (topic: L_LeftSourceKeyed-SelectKey-repartition)
+      <-- L_LeftSourceKeyed-SelectKey-repartition-filter
+
+  Sub-topology: 1
+    Source: L_LeftSourceKeyed-SelectKey-repartition-source (topics: [L_LeftSourceKeyed-SelectKey-repartition])
+      --> L_LeftSourceKeyed-SelectKey
+    Source: L_RightSourceKeyed-SelectKey-repartition-source (topics: [L_RightSourceKeyed-SelectKey-repartition])
+      --> L_RightSourceKeyed-SelectKey
+    Processor: L_LeftSourceKeyed-SelectKey (stores: [L_LeftSourceKeyed-Materialize])
+      --> PrependAliasL_Left
+      <-- L_LeftSourceKeyed-SelectKey-repartition-source
+    Processor: L_RightSourceKeyed-SelectKey (stores: [L_RightSourceKeyed-Materialize])
+      --> PrependAliasL_Right
+      <-- L_RightSourceKeyed-SelectKey-repartition-source
+    Processor: PrependAliasL_Left (stores: [])
+      --> KTABLE-JOINTHIS-0000000025
+      <-- L_LeftSourceKeyed-SelectKey
+    Processor: PrependAliasL_Right (stores: [])
+      --> KTABLE-JOINOTHER-0000000026
+      <-- L_RightSourceKeyed-SelectKey
+    Source: RightSourceKeyed-SelectKey-repartition-source (topics: [RightSourceKeyed-SelectKey-repartition])
+      --> RightSourceKeyed-SelectKey
+    Processor: KTABLE-JOINOTHER-0000000026 (stores: [L_LeftSourceKeyed-Materialize])
+      --> KTABLE-MERGE-0000000024
+      <-- PrependAliasL_Right
+    Processor: KTABLE-JOINTHIS-0000000025 (stores: [L_RightSourceKeyed-Materialize])
+      --> KTABLE-MERGE-0000000024
+      <-- PrependAliasL_Left
+    Processor: RightSourceKeyed-SelectKey (stores: [RightSourceKeyed-Materialize])
+      --> PrependAliasRight
+      <-- RightSourceKeyed-SelectKey-repartition-source
+    Processor: KTABLE-MERGE-0000000024 (stores: [])
+      --> KTABLE-JOINTHIS-0000000040
+      <-- KTABLE-JOINTHIS-0000000025, KTABLE-JOINOTHER-0000000026
+    Processor: PrependAliasRight (stores: [])
+      --> KTABLE-JOINOTHER-0000000041
+      <-- RightSourceKeyed-SelectKey
+    Processor: KTABLE-JOINOTHER-0000000041 (stores: [L_LeftSourceKeyed-Materialize, L_RightSourceKeyed-Materialize])
+      --> KTABLE-MERGE-0000000039
+      <-- PrependAliasRight
+    Processor: KTABLE-JOINTHIS-0000000040 (stores: [RightSourceKeyed-Materialize])
+      --> KTABLE-MERGE-0000000039
+      <-- KTABLE-MERGE-0000000024
+    Processor: KTABLE-MERGE-0000000039 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000042
+      <-- KTABLE-JOINTHIS-0000000040, KTABLE-JOINOTHER-0000000041
+    Processor: KTABLE-TRANSFORMVALUES-0000000042 (stores: [Project-Last])
+      --> KTABLE-TOSTREAM-0000000043
+      <-- KTABLE-MERGE-0000000039
+    Processor: KTABLE-TOSTREAM-0000000043 (stores: [])
+      --> KSTREAM-SINK-0000000044
+      <-- KTABLE-TRANSFORMVALUES-0000000042
+    Sink: KSTREAM-SINK-0000000044 (topic: OUTPUT)
+      <-- KTABLE-TOSTREAM-0000000043
+
+  Sub-topology: 2
+    Source: KSTREAM-SOURCE-0000000013 (topics: [right])
+      --> KTABLE-SOURCE-0000000014
+    Processor: KTABLE-SOURCE-0000000014 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000015
+      <-- KSTREAM-SOURCE-0000000013
+    Processor: KTABLE-TRANSFORMVALUES-0000000015 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000016
+      <-- KTABLE-SOURCE-0000000014
+    Processor: KTABLE-TRANSFORMVALUES-0000000016 (stores: [])
+      --> KTABLE-TOSTREAM-0000000017
+      <-- KTABLE-TRANSFORMVALUES-0000000015
+    Processor: KTABLE-TOSTREAM-0000000017 (stores: [])
+      --> L_RightSourceKeyed-SelectKey-Mapper
+      <-- KTABLE-TRANSFORMVALUES-0000000016
+    Processor: L_RightSourceKeyed-SelectKey-Mapper (stores: [])
+      --> L_RightSourceKeyed-SelectKey-repartition-filter
+      <-- KTABLE-TOSTREAM-0000000017
+    Processor: L_RightSourceKeyed-SelectKey-repartition-filter (stores: [])
+      --> L_RightSourceKeyed-SelectKey-repartition-sink
+      <-- L_RightSourceKeyed-SelectKey-Mapper
+    Sink: L_RightSourceKeyed-SelectKey-repartition-sink (topic: L_RightSourceKeyed-SelectKey-repartition)
+      <-- L_RightSourceKeyed-SelectKey-repartition-filter
+
+  Sub-topology: 3
+    Source: KSTREAM-SOURCE-0000000028 (topics: [right2])
+      --> KTABLE-SOURCE-0000000029
+    Processor: KTABLE-SOURCE-0000000029 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000030
+      <-- KSTREAM-SOURCE-0000000028
+    Processor: KTABLE-TRANSFORMVALUES-0000000030 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000031
+      <-- KTABLE-SOURCE-0000000029
+    Processor: KTABLE-TRANSFORMVALUES-0000000031 (stores: [])
+      --> KTABLE-TOSTREAM-0000000032
+      <-- KTABLE-TRANSFORMVALUES-0000000030
+    Processor: KTABLE-TOSTREAM-0000000032 (stores: [])
+      --> RightSourceKeyed-SelectKey-Mapper
+      <-- KTABLE-TRANSFORMVALUES-0000000031
+    Processor: RightSourceKeyed-SelectKey-Mapper (stores: [])
+      --> RightSourceKeyed-SelectKey-repartition-filter
+      <-- KTABLE-TOSTREAM-0000000032
+    Processor: RightSourceKeyed-SelectKey-repartition-filter (stores: [])
+      --> RightSourceKeyed-SelectKey-repartition-sink
+      <-- RightSourceKeyed-SelectKey-Mapper
+    Sink: RightSourceKeyed-SelectKey-repartition-sink (topic: RightSourceKeyed-SelectKey-repartition)
+      <-- RightSourceKeyed-SelectKey-repartition-filter
+

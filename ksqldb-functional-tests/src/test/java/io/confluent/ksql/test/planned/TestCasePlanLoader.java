@@ -162,7 +162,7 @@ public final class TestCasePlanLoader {
 
   /**
    * Create a TestCasePlan for all saved plans for a test case
-   * @param testCase the test case to load saved lans for
+   * @param testCase the test case to load saved plans for
    * @return a list of the loaded plans.
    */
   public static List<TestCasePlan> allForTestCase(final TestCase testCase) {

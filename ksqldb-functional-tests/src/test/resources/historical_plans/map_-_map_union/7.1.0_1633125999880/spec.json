@@ -1,0 +1,181 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125999880,
+  "path" : "query-validation-tests/map.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "map_union",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "MAP_1" : {
+          "foo" : 10,
+          "bar" : 20,
+          "baz" : 30
+        },
+        "MAP_2" : {
+          "foo" : 99,
+          "apple" : -1
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "MAP_1" : {
+          "foo" : 10,
+          "bar" : 20
+        },
+        "MAP_2" : {
+          "foo" : null
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r3",
+      "value" : {
+        "MAP_1" : {
+          "foo" : 10,
+          "bar" : 20
+        },
+        "MAP_2" : { }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r4",
+      "value" : {
+        "MAP_1" : { },
+        "MAP_2" : { }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r5",
+      "value" : {
+        "MAP_1" : null,
+        "MAP_2" : {
+          "foo" : null
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "COMBINED" : {
+          "foo" : 99,
+          "bar" : 20,
+          "baz" : 30,
+          "apple" : -1
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "COMBINED" : {
+          "foo" : null,
+          "bar" : 20
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r3",
+      "value" : {
+        "COMBINED" : {
+          "foo" : 10,
+          "bar" : 20
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r4",
+      "value" : {
+        "COMBINED" : { }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r5",
+      "value" : {
+        "COMBINED" : {
+          "foo" : null
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, map_1 MAP<STRING, INT>, map_2 MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, map_union(map_1, map_2) as combined FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -21,6 +21,8 @@ public interface QueryPlannerOptions {
 
   boolean getInterpreterEnabled();
 
+  boolean getRangeScansEnabled();
+
   /**
    * @return a human readable representation of the {@code QueryPlannerOptions},
    *         used to debug requests

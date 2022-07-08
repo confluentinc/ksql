@@ -11,11 +11,13 @@
       ],
       "inputs": [
         {"topic": "test_topic", "key": null, "value": "21,IQ=="},
-        {"topic": "test_topic", "key": null, "value": "23,Iw=="}
+        {"topic": "test_topic", "key": null, "value": "23,Iw=="},
+        {"topic": "test_topic", "key": null, "value": "1aB2,GrI="}
       ],
       "outputs": [
         {"topic": "TS", "key": null, "value": "21,IQ==,21"},
-        {"topic": "TS", "key": null, "value": "23,Iw==,23"}
+        {"topic": "TS", "key": null, "value": "23,Iw==,23"},
+        {"topic": "TS", "key": null, "value": "1AB2,GrI=,1AB2"}
       ],
       "post": {
         "sources": [
@@ -80,6 +82,42 @@
       "post": {
         "sources": [
           {"name": "TS", "type": "stream", "schema": "base64 STRING, b1 BYTES, s1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "convert bytes to INT, BIGINT, and DOUBLE using BIG ENDIAN",
+      "statements": [
+        "CREATE STREAM TEST (a BYTES, b BYTES, c BYTES) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TS AS select INT_FROM_BYTES(a) as a, BIGINT_FROM_BYTES(b) as b, DOUBLE_FROM_BYTES(c) AS c from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": null, "value": "AAAH5Q==,AAAAASoF8gA=,QICm/ZvJ9YI="}
+      ],
+      "outputs": [
+        {"topic": "TS", "key": null, "value": "2021,5000000000,532.8738323"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "TS", "type": "stream", "schema": "a INT, b BIGINT, c DOUBLE"}
+        ]
+      }
+    },
+    {
+      "name": "convert bytes to INT, BIGINT, and DOUBLE using LITTLE ENDIAN",
+      "statements": [
+        "CREATE STREAM TEST (a BYTES, b BYTES, c BYTES) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TS AS select INT_FROM_BYTES(a, 'LITTLE_ENDIAN') as a, BIGINT_FROM_BYTES(b, 'LITTLE_ENDIAN') as b, DOUBLE_FROM_BYTES(c, 'LITTLE_ENDIAN') AS c from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": null, "value": "5QcAAA==,APIFKgEAAAA=,gvXJm/2mgEA="}
+      ],
+      "outputs": [
+        {"topic": "TS", "key": null, "value": "2021,5000000000,532.8738323"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "TS", "type": "stream", "schema": "a INT, b BIGINT, c DOUBLE"}
         ]
       }
     }

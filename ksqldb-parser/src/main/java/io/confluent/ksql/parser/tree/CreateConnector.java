@@ -56,9 +56,9 @@ public class CreateConnector extends Statement {
       final String name,
       final Map<String, Literal> config,
       final Type type,
-      final boolean notExisits
+      final boolean notExists
   ) {
-    this(Optional.empty(), name, config, type, notExisits);
+    this(Optional.empty(), name, config, type, notExists);
   }
 
 

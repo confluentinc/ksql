@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector.Interval;
+import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Collections;
@@ -64,11 +65,14 @@ public class RocksDBMetricsCollectorTest {
 
   @Before
   public void setup() {
-    collector = new RocksDBMetricsCollector(metrics);
+    collector = new RocksDBMetricsCollector();
     when(metrics.metricName(any(), any())).thenAnswer(
         a -> new MetricName(a.getArgument(0), a.getArgument(1), "", Collections.emptyMap()));
     collector.configure(
-        ImmutableMap.of(RocksDBMetricsCollector.UPDATE_INTERVAL_CONFIG, UPDATE_INTERVAL)
+        ImmutableMap.of(
+            RocksDBMetricsCollector.UPDATE_INTERVAL_CONFIG, UPDATE_INTERVAL,
+            KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics
+        )
     );
   }
 
@@ -226,7 +230,7 @@ public class RocksDBMetricsCollectorTest {
   @Test
   public void shouldNotUpdateIfWithinInterval() {
     // Given:
-    final RocksDBMetricsCollector collector = new RocksDBMetricsCollector(metrics);
+    final RocksDBMetricsCollector collector = new RocksDBMetricsCollector();
     final KafkaMetric metric = mockMetric(
         StreamsMetricsImpl.STATE_STORE_LEVEL_GROUP,
         RocksDBMetricsCollector.BLOCK_CACHE_USAGE,
@@ -234,7 +238,12 @@ public class RocksDBMetricsCollectorTest {
         BigInteger.valueOf(2)
     );
     collector.metricChange(metric);
-    collector.configure(ImmutableMap.of(RocksDBMetricsCollector.UPDATE_INTERVAL_CONFIG, 3600));
+    collector.configure(
+        ImmutableMap.of(
+            RocksDBMetricsCollector.UPDATE_INTERVAL_CONFIG, 3600,
+            KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics
+        )
+    );
     final Gauge<?> gauge = verifyAndGetRegisteredMetric(
         RocksDBMetricsCollector.BLOCK_CACHE_USAGE + "-total");
 

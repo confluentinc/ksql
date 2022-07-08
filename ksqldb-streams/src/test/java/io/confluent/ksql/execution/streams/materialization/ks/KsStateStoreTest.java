@@ -42,6 +42,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
@@ -65,6 +66,8 @@ public class KsStateStoreTest {
       .build();
 
   @Mock
+  private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
+  @Mock
   private KafkaStreams kafkaStreams;
   @Mock
   private KsqlConfig ksqlConfig;
@@ -73,7 +76,7 @@ public class KsStateStoreTest {
 
   @Before
   public void setUp() {
-    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, ksqlConfig);
+    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, ksqlConfig, "queryId");
     when(kafkaStreams.state()).thenReturn(State.RUNNING);
   }
 

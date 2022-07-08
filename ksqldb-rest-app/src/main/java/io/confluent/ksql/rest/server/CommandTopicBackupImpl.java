@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
@@ -54,24 +55,27 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   private List<Pair<byte[], byte[]>> latestReplay;
   private int latestReplayIdx;
   private boolean corruptionDetected;
+  private KafkaTopicClient kafkaTopicClient;
 
   public CommandTopicBackupImpl(
       final String location,
-      final String topicName
+      final String topicName,
+      final KafkaTopicClient kafkaTopicClient
   ) {
-    this(location, topicName, System::currentTimeMillis);
+    this(location, topicName, System::currentTimeMillis, kafkaTopicClient);
   }
 
   @VisibleForTesting
   CommandTopicBackupImpl(
       final String location,
       final String topicName,
-      final Supplier<Long> ticker
+      final Supplier<Long> ticker,
+      final KafkaTopicClient kafkaTopicClient
   ) {
     this.backupLocation = new File(Objects.requireNonNull(location, "location"));
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.ticker = Objects.requireNonNull(ticker, "ticker");
-
+    this.kafkaTopicClient = Objects.requireNonNull(kafkaTopicClient, "kafkaTopicClient");
     ensureDirectoryExists(backupLocation);
   }
 
@@ -91,6 +95,11 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
     latestReplayIdx = 0;
     corruptionDetected = false;
+
+    if (!kafkaTopicClient.isTopicExists(topicName)
+        && latestReplay.size() > 0) {
+      corruptionDetected = true;
+    }
     LOG.info("Command topic will be backup on file: {}", replayFile.getPath());
   }
 

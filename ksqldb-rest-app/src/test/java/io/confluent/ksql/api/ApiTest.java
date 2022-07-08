@@ -50,9 +50,12 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ApiTest extends BaseApiTest {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ApiTest.class);
   protected static final List<JsonObject> DEFAULT_INSERT_ROWS = generateInsertRows();
 
   @Test
@@ -112,7 +115,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
     assertThat(server.getQueryIDs(), hasSize(0));
     String queryId = queryResponse.responseObject.getString("queryId");
-    assertThat(queryId, is(nullValue()));
+    assertThat(queryId, is("queryId"));
   }
 
   @Test
@@ -139,7 +142,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
     assertThat(server.getQueryIDs(), hasSize(0));
     String queryId = queryResponse.responseObject.getString("queryId");
-    assertThat(queryId, is(nullValue()));
+    assertThat(queryId, is("queryId"));
   }
 
   @Test
@@ -483,7 +486,7 @@ public class ApiTest extends BaseApiTest {
   @Test
   @CoreApiTest
   public void shouldStreamInserts() throws Exception {
-
+    LOG.info("Starting shouldStreamInserts");
     // Given
     JsonObject params = new JsonObject().put("target", "test-stream");
 
@@ -518,7 +521,9 @@ public class ApiTest extends BaseApiTest {
     });
 
     // Wait for the response to complete
+    LOG.info("Awaiting response from inserts");
     HttpResponse<Void> response = fut.get();
+    LOG.info("Got response from inserts");
 
     // Then
 
@@ -535,12 +540,15 @@ public class ApiTest extends BaseApiTest {
 
     // Make sure all inserts made it to the server
     TestInsertsSubscriber insertsSubscriber = testEndpoints.getInsertsSubscriber();
+    LOG.info("Checking all rows inserted");
     assertThatEventually(insertsSubscriber::getRowsInserted, is(rows));
+    LOG.info("Checking got completion marker");
     assertThatEventually(insertsSubscriber::isCompleted, is(true));
 
     // Ensure we received at least some of the response before all the request body was written
     // Yay HTTP2!
     assertThat(readStream.getLastSentTime() > writeStream.getFirstReceivedTime(), is(true));
+    LOG.info("ShouldStreamInserts complete");
   }
 
   @Test

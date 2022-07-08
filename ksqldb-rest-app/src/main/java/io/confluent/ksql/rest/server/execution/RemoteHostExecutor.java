@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.tree.StatementWithExtendedClause;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -67,7 +66,7 @@ public final class RemoteHostExecutor {
   }
 
   public static RemoteHostExecutor create(
-      final ConfiguredStatement<? extends StatementWithExtendedClause> statement,
+      final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final SimpleKsqlClient ksqlClient

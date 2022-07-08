@@ -11,7 +11,7 @@ npm install -g conventional-changelog-cli
 
 ## Generate changelog
 
-Assuming you've completed the one-time setup above, steps for generating a changelog are as follows.
+Assuming you've completed the one-time setup above, steps for generating a changelog are as follows. Make sure that you pull from master first and that your predecessor has added their release to the changelog already.
 
 Suppose you're interested in generating a changelog of all changes in ksqlDB 0.8.0 that are new as of ksqlDB 0.7.0. Refer to these versions as `NEW_VERSION` and `OLD_VERSION`, respectively. The same process applies for other new/old ksqlDB version combinations as well (e.g., 0.8.1 and 0.8.0, or 0.8.0 and 0.7.1).
 

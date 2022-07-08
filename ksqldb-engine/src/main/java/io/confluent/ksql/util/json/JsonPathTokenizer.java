@@ -86,7 +86,7 @@ public class JsonPathTokenizer
   }
 
   private static boolean isUnquotedPathCharacter(final char c) {
-    return c == ':' || isUnquotedSubscriptCharacter(c);
+    return c == ':' || c == '@' || isUnquotedSubscriptCharacter(c);
   }
 
   private String matchUnquotedSubscript() {

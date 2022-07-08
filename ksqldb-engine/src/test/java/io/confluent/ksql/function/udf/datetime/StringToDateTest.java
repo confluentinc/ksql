@@ -45,6 +45,15 @@ public class StringToDateTest {
   }
 
   @Test
+  public void shouldConvertCaseInsensitiveStringToDate() {
+    // When:
+    final int result = udf.stringToDate("01-dec-2021", "dd-MMM-yyyy");
+
+    // Then:
+    assertThat(result, is(18962));
+  }
+
+  @Test
   public void shouldSupportEmbeddedChars() {
     // When:
     final Object result = udf.stringToDate("2021-12-01Fred", "yyyy-MM-dd'Fred'");

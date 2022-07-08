@@ -21,6 +21,8 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SchemaTranslationPolicies;
+import io.confluent.ksql.serde.SchemaTranslationPolicy;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeUtils;
@@ -52,12 +54,22 @@ import org.apache.kafka.connect.errors.DataException;
  */
 public abstract class ConnectFormat implements Format {
 
+  public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
+  public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
+
   @Override
   public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties) {
+    return getSchemaTranslator(formatProperties,
+        SchemaTranslationPolicies.of(SchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
+  }
+
+  @Override
+  public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties,
+      final SchemaTranslationPolicies policies) {
     return new ConnectFormatSchemaTranslator(
         this,
         formatProperties,
-        ConnectSchemaUtil::toKsqlSchema
+        new ConnectKsqlSchemaTranslator(policies)
     );
   }
 

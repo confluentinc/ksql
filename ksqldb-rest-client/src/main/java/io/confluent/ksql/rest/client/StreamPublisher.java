@@ -40,7 +40,7 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
         end -= 1;
       }
     }
-    if (responseLine.getByte(end) == (byte) ',') {
+    if (end > 0 && responseLine.getByte(end) == (byte) ',') {
       end -= 1;
     }
     return responseLine.slice(start, end + 1);
@@ -72,6 +72,7 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
           }
         })
         .endHandler(v -> complete());
+    response.request().connection().closeHandler(v ->  complete());
   }
 
   public void close() {

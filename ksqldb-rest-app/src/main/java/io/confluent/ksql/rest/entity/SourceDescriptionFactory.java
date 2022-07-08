@@ -42,7 +42,8 @@ public final class SourceDescriptionFactory {
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription,
       final List<QueryOffsetSummary> queryOffsetSummaries,
-      final List<String> sourceConstraints
+      final List<String> sourceConstraints,
+      final MetricCollectors metricCollectors
   ) {
     return create(
         dataSource,
@@ -54,7 +55,8 @@ public final class SourceDescriptionFactory {
         sourceConstraints,
         Stream.empty(),
         Stream.empty(),
-        new KsqlHostInfo("", 0)
+        new KsqlHostInfo("", 0),
+        metricCollectors
     );
   }
 
@@ -69,15 +71,16 @@ public final class SourceDescriptionFactory {
       final List<String> sourceConstraints,
       final Stream<QueryHostStat> stats,
       final Stream<QueryHostStat> errorStats,
-      final KsqlHostInfo host
+      final KsqlHostInfo host,
+      final MetricCollectors metricCollectors
   ) {
     final KsqlHostInfoEntity hostEntity = new KsqlHostInfoEntity(host);
 
-    final Stream<QueryHostStat> localStats = MetricCollectors
+    final Stream<QueryHostStat> localStats = metricCollectors
         .getStatsFor(dataSource.getKafkaTopicName(), false)
         .stream()
         .map((stat) -> QueryHostStat.fromStat(stat, hostEntity));
-    final Stream<QueryHostStat> localErrorStats = MetricCollectors
+    final Stream<QueryHostStat> localErrorStats = metricCollectors
         .getStatsFor(dataSource.getKafkaTopicName(), true)
         .stream()
         .map((stat) -> QueryHostStat.fromStat(stat, hostEntity));
@@ -93,10 +96,10 @@ public final class SourceDescriptionFactory {
             .map(TimestampColumn::getColumn)
             .map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         (extended
-            ? MetricCollectors.getAndFormatStatsFor(
+            ? metricCollectors.getAndFormatStatsFor(
             dataSource.getKafkaTopicName(), false) : ""),
         (extended
-            ? MetricCollectors.getAndFormatStatsFor(
+            ? metricCollectors.getAndFormatStatsFor(
             dataSource.getKafkaTopicName(), true) : ""),
         extended,
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),

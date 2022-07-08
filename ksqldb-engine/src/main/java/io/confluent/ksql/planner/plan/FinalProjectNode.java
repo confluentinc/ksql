@@ -35,6 +35,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.GrammaticalJoiner;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.HashMap;
@@ -64,13 +65,14 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
       final PlanNode source,
       final List<SelectItem> selectItems,
       final Optional<Analysis.Into> into,
-      final MetaStore metaStore
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig
   ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
     this.into = into;
 
-    final Pair<LogicalSchema, List<SelectExpression>> result = build(metaStore);
+    final Pair<LogicalSchema, List<SelectExpression>> result = build(metaStore, ksqlConfig);
     this.schema = result.left;
     this.selectExpressions = ImmutableList.copyOf(result.right);
 
@@ -99,7 +101,10 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
         .map(DataSource::getSchema);
   }
 
-  private Pair<LogicalSchema, List<SelectExpression>> build(final MetaStore metaStore) {
+  private Pair<LogicalSchema, List<SelectExpression>> build(
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig
+  ) {
     final LogicalSchema parentSchema = getSource().getSchema();
     final Optional<LogicalSchema> targetSchema = getTargetSchema(metaStore);
 
@@ -148,7 +153,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
 
     final LogicalSchema nodeSchema;
     if (into.isPresent()) {
-      nodeSchema = schema.withoutPseudoAndKeyColsInValue();
+      nodeSchema = schema.withoutPseudoAndKeyColsInValue(ksqlConfig);
     } else {
       // Transient queries return key columns in the value, so the projection includes them, and
       // the schema needs to include them too:

@@ -27,6 +27,7 @@ values.
 | `DOUBLE`  | `double`, `java.lang.Double`          |
 | `DECIMAL` | `java.math.BigDecimal`                |
 | `VARCHAR` | `java.lang.String`                    |
+| `BYTES`   | `java.nio.ByteBuffer`                 |
 | `TIME`    | `java.sql.Time`                       |
 | `DATE`    | `java.sql.Date`                       |
 |`TIMESTAMP`| `java.sql.Timestamp`                  |

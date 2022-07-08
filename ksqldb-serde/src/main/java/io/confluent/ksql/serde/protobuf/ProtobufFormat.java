@@ -49,9 +49,15 @@ public class ProtobufFormat extends ConnectFormat {
     return SUPPORTED_FEATURES;
   }
 
+
   @Override
   public Set<String> getSupportedProperties() {
     return ProtobufProperties.SUPPORTED_PROPERTIES;
+  }
+
+  @Override
+  public Set<String> getInheritableProperties() {
+    return ProtobufProperties.INHERITABLE_PROPERTIES;
   }
 
   @Override

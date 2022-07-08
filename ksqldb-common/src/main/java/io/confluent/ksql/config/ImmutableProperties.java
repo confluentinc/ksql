@@ -33,6 +33,8 @@ public final class ImmutableProperties {
       .add(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)
       .add(KsqlConfig.KSQL_HIDDEN_TOPICS_CONFIG)
       .add(KsqlConfig.KSQL_READONLY_TOPICS_CONFIG)
+      .add(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED)
+      .add(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 

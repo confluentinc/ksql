@@ -1,0 +1,203 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125949989,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`F2` STRING KEY, `F1` INTEGER KEY, `F3` INTEGER, `F4` STRING, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`F2` STRING KEY, `F1` INTEGER KEY, `F1` INTEGER, `F2` STRING, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`ID` INTEGER KEY, `F1` INTEGER, `F2` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `F1` INTEGER, `F2` STRING",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`F2` STRING KEY, `F1` INTEGER KEY, `F1` INTEGER, `F2` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`F2` STRING KEY, `F1` INTEGER KEY, `F3` INTEGER, `F4` STRING, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Prepare" : {
+      "schema" : "`ID` INTEGER KEY, `F1` INTEGER, `F2` STRING, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "fields - copied into value (table->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,a"
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : "2,b"
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,b"
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : null
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,a"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "a,1",
+      "value" : "1,a,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b,2",
+      "value" : "2,b,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a,1",
+      "value" : "1,a,0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b,1",
+      "value" : "1,b,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b,2",
+      "value" : "2,b,0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "b,1",
+      "value" : "1,b,0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a,1",
+      "value" : "1,a,1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT f1, f2, AS_VALUE(f1) AS F3, AS_VALUE(F2) AS F4, COUNT(*) FROM TEST GROUP BY f2, f1;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`F2` STRING KEY, `F1` INTEGER KEY, `F3` INTEGER, `F4` STRING, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "DELIMITED"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `F1` INTEGER, `F2` STRING",
+        "keyFormat" : {
+          "format" : "DELIMITED"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "DELIMITED"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "DELIMITED"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "DELIMITED"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "DELIMITED"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "DELIMITED"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        } ]
+      }
+    }
+  }
+}

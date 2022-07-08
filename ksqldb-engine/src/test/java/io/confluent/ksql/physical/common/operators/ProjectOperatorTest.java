@@ -24,15 +24,15 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.Window;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
-import io.confluent.ksql.execution.streams.materialization.Row;
-import io.confluent.ksql.execution.streams.materialization.Window;
-import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory.SelectValueMapperFactorySupplier;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.physical.common.QueryRow;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -41,8 +41,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -87,10 +86,6 @@ public class ProjectOperatorTest {
   private static final long A_ROWTIME = 12335L;
 
   private static final Window A_WINDOW = Window.of(Instant.now(), Instant.now().plusMillis(10));
-  private static final TimeWindow STREAM_WINDOW = new TimeWindow(
-      A_WINDOW.start().toEpochMilli(),
-      A_WINDOW.end().toEpochMilli()
-  );
 
   @Mock
   private ProcessingLogger logger;
@@ -114,9 +109,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final Row row = Row.of(
+    final QueryRowImpl row = QueryRowImpl.of(
         INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
+        Optional.empty(),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
@@ -129,13 +125,13 @@ public class ProjectOperatorTest {
     projectOperator.open();
 
     // When:
-    Object result = projectOperator.next();
+    QueryRow result = (QueryRow) projectOperator.next();
 
     // Then:
     final List<Object> expected = new ArrayList<>(row.key().values());
     expected.add("a");
     expected.add("b");
-    assertThat(result, is(expected));
+    assertThat(result.value().values(), is(expected));
   }
 
   @Test
@@ -147,9 +143,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final WindowedRow windowedRow = WindowedRow.of(
+    final QueryRowImpl windowedRow = QueryRowImpl.of(
         WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
-        new Windowed<>(A_KEY, STREAM_WINDOW),
+        A_KEY,
+        Optional.of(A_WINDOW),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );
@@ -162,7 +159,7 @@ public class ProjectOperatorTest {
     projectOperator.open();
 
     // When:
-    Object result = projectOperator.next();
+    QueryRow result = (QueryRow) projectOperator.next();
 
     // Then:
     final List<Object> expected = new ArrayList<>(windowedRow.key().values());
@@ -170,7 +167,7 @@ public class ProjectOperatorTest {
     expected.add(windowedRow.window().get().end().toEpochMilli());
     expected.add("a");
     expected.add("b");
-    assertThat(result, is(expected));
+    assertThat(result.value().values(), is(expected));
   }
 
   @Test
@@ -184,9 +181,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final Row row = Row.of(
+    final QueryRowImpl row = QueryRowImpl.of(
         INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
+        Optional.empty(),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
@@ -216,9 +214,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final WindowedRow windowedRow = WindowedRow.of(
+    final QueryRowImpl windowedRow = QueryRowImpl.of(
         WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
-        new Windowed<>(A_KEY, STREAM_WINDOW),
+        A_KEY,
+        Optional.of(A_WINDOW),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );
@@ -254,9 +253,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final Row row = Row.of(
+    final QueryRowImpl row = QueryRowImpl.of(
         INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
+        Optional.empty(),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
@@ -269,10 +269,10 @@ public class ProjectOperatorTest {
     projectOperator.open();
 
     // When:
-    Object result = projectOperator.next();
+    QueryRow result = (QueryRow) projectOperator.next();
 
     // Then:
-    assertThat(result, is(row.key().values()));
+    assertThat(result.value().values(), is(row.key().values()));
   }
 
   @Test
@@ -289,9 +289,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final Row row = Row.of(
+    final QueryRowImpl row = QueryRowImpl.of(
         INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
+        Optional.empty(),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
@@ -304,10 +305,10 @@ public class ProjectOperatorTest {
     projectOperator.open();
 
     // When:
-    Object result = projectOperator.next();
+    QueryRow result = (QueryRow) projectOperator.next();
 
     // Then:
-    assertThat(result, is(ImmutableList.of("b")));
+    assertThat(result.value().values(), is(ImmutableList.of("b")));
   }
 
   @Test
@@ -324,9 +325,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final WindowedRow windowedRow = WindowedRow.of(
+    final QueryRowImpl windowedRow = QueryRowImpl.of(
         WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
-        new Windowed<>(A_KEY, STREAM_WINDOW),
+        A_KEY,
+        Optional.of(A_WINDOW),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );
@@ -339,10 +341,10 @@ public class ProjectOperatorTest {
     projectOperator.open();
 
     // When:
-    Object result = projectOperator.next();
+    QueryRow result = (QueryRow) projectOperator.next();
 
     // Then:
-    assertThat(result, is(ImmutableList.of(A_WINDOW.start().toEpochMilli())));
+    assertThat(result.value().values(), is(ImmutableList.of(A_WINDOW.start().toEpochMilli())));
   }
 
 
@@ -361,9 +363,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final Row row = Row.of(
+    final QueryRowImpl row = QueryRowImpl.of(
         INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
+        Optional.empty(),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
@@ -376,12 +379,12 @@ public class ProjectOperatorTest {
     projectOperator.open();
 
     // When:
-    Object result = projectOperator.next();
+    QueryRow result = (QueryRow) projectOperator.next();
 
     // Then:
     final List<Object> expected = new ArrayList<>(row.key().values());
     expected.add(row.value().values().get(1));
-    assertThat(result, is(expected));
+    assertThat(result.value().values(), is(expected));
   }
 
   @Test
@@ -399,9 +402,10 @@ public class ProjectOperatorTest {
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    final WindowedRow windowedRow = WindowedRow.of(
+    final QueryRowImpl windowedRow = QueryRowImpl.of(
         WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
-        new Windowed<>(A_KEY, STREAM_WINDOW),
+        A_KEY,
+        Optional.of(A_WINDOW),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );
@@ -417,11 +421,11 @@ public class ProjectOperatorTest {
     projectOperator.open();
 
     // When:
-    Object result = projectOperator.next();
+    QueryRow result = (QueryRow) projectOperator.next();
 
     // Then:
     final List<Object> expected = new ArrayList<>(windowedRow.key().values());
     expected.add(windowedRow.value().values().get(1));
-    assertThat(result, is(expected));
+    assertThat(result.value().values(), is(expected));
   }
 }

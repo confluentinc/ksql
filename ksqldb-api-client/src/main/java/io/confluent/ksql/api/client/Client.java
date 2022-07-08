@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client;
 
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
 import java.io.Closeable;
@@ -282,6 +283,19 @@ public interface Client extends Closeable {
   CompletableFuture<ConnectorDescription> describeConnector(String connectorName);
 
   /**
+   * A factory to construct {@link HttpRequest} objects. Instances of {@link HttpRequest} are
+   * used to make direct HTTP requests to ksqlDB server's REST API.
+   *
+   * @param method the http verb (for example, "get", "put"). the input is case-sensitive and may
+   *               not be null.
+   * @param path   a non-null URL path
+   *
+   * @return a future that completes with a {@link HttpResponse} if the http request completes
+   *         or throws an exception for low level network errors
+   */
+  HttpRequest buildRequest(String method, String path);
+
+  /**
    * Define a session variable which can be referenced in sql commands by wrapping the variable name
    * with {@code ${}}.
    *
@@ -318,5 +332,141 @@ public interface Client extends Closeable {
 
   static Client create(ClientOptions clientOptions, Vertx vertx) {
     return new ClientImpl(clientOptions, vertx);
+  }
+
+  /**
+   * Instances of {@link HttpRequest} are used to make direct HTTP requests
+   * to ksqlDB server's REST API.
+   */
+  interface HttpRequest {
+
+    /**
+     * Add a key and value in the payload map. If an entry already exists with this key, it is
+     * replaced.
+     *
+     * @param key   a String key
+     * @param value the value
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest payload(String key, Object value);
+
+    /**
+     * Add all entries from the input map into the payload map. If any of the entries already exist,
+     * it is replaced with the new one.
+     *
+     * @param payload a non-null input map
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest payload(Map<String, Object> payload);
+
+    /**
+     * @return a non-null payload map constructed so far for this request.
+     */
+    Map<String, Object> payload();
+
+    /**
+     * Set a property. If an entry already exists with this key, it is
+     * replaced.
+     *
+     * @param key   a String key
+     * @param value the value
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest property(String key, Object value);
+
+    /**
+     * @return a non-null properties map constructed so far for this request.
+     */
+    Map<String, Object> properties();
+
+    /**
+     * Add all properties from the given map. If an entry already exists with this key, it is
+     * replaced.
+     *
+     * @param properties a non-null input map
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest properties(Map<String, Object> properties);
+
+    /**
+     * Set the key to be used for properties map in the request. If not set, all properties are
+     * keyed to a <strong>"properties"</strong> when sent in the request body. This is useful
+     * as certain endpoints (for example, the /ksql endpoint) in ksqlDB's API look for
+     * properties in a top-level "streamProperties" object, whereas others look for this
+     * in this top-level "properties" object.
+     */
+    HttpRequest propertiesKey(String propertiesKey);
+
+    /**
+     * @return the key the properties are associated with in the final request payload.
+     */
+    String propertiesKey();
+
+    /**
+     * @return the URL path for this request.
+     */
+    String path();
+
+    /**
+     * @return the HTTP method this request will execute.
+     */
+    String method();
+
+    /**
+     * Complete the HTTP request. This method combines the payload key-value pairs, properties and
+     * session variables (set with {@link #define(String, Object)} above) into a json payload that
+     * is sent to the server in the request body. For example, invoking the API as follows:
+     *
+     * <pre>
+     *   client.define("s1", "v1");
+     *   client.request("POST", "/some/path")
+     *     .payload("k1", "v1").
+     *     .payload(singletonMap("k2", "v2"))
+     *     .property("p1", "v1")
+     *     .properties(singletonMap("p2", "v2"))
+     *     .propertiesKey("streamProperties")
+     *     .send().get();
+     * </pre>
+     *
+     * <p>will create the following request body:
+     *
+     * <pre>
+     *   {
+     *     "k1": "v1",
+     *     "streamProperties": {
+     *       "p1": "v1",
+     *       "p2": "v2"
+     *     }, sessionVariables: {
+     *       "s1": "v1"
+     *     }
+     *   }
+     * </pre>
+     *
+     * @return a future that completes once the server response is received and parsed into
+     *         an {@link HttpResponse} or with an exception if the request failed to complete.
+     */
+    CompletableFuture<HttpResponse> send();
+  }
+
+  interface HttpResponse {
+
+    /**
+     * @return the status code of the HTTP response.
+     */
+    int status();
+
+    /**
+     * @return response payload as a byte array.
+     */
+    byte[] body();
+
+    /**
+     * Parse and return JSON response as a {@link Map}.
+     *
+     * @param <T> the type of the values in the returned map.
+     * @return the parsed response
+     * @throws KsqlClientException if response could not be parsed.
+     */
+    <T> Map<String, T> bodyAsMap();
   }
 }

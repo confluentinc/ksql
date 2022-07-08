@@ -17,7 +17,9 @@ package io.confluent.ksql.api.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
@@ -61,10 +63,34 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   }
 
   @Override
+  public QueryStreamResponseWriter writeContinuationToken(
+      final PushContinuationToken pushContinuationToken) {
+    response.write(ServerUtils.serializeObject(pushContinuationToken).appendString("\n"));
+    return this;
+  }
+
+  @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
     response.write(ServerUtils.serializeObject(error).appendString("\n"));
     return this;
   }
+
+  @Override
+  public QueryStreamResponseWriter writeConsistencyToken(final ConsistencyToken consistencyToken) {
+    response.write(ServerUtils.serializeObject(consistencyToken).appendString("\n"));
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeLimitMessage() {
+    return this;
+  }
+
 
   @Override
   public void end() {

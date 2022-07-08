@@ -26,10 +26,12 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
@@ -51,6 +53,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ListPropertiesExecutorTest {
 
+  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
+      new DefaultConnectServerErrors()
+  );
+
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
 
@@ -65,18 +71,48 @@ public class ListPropertiesExecutorTest {
   }
 
   @Test
-  public void shouldListProperties() {
+  public void shouldContainAllowField() {
     // When:
-    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        engine.configure("LIST PROPERTIES;"),
+    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
+        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(toMap(properties).get("ksql.streams.commit.interval.ms").getEditable(), equalTo(true));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).getEditable(), equalTo(false));
+  }
+
+  @Test
+  public void shouldContainLevelField() {
+    // When:
+    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
+        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;"),
+        mock(SessionProperties.class),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getLevel(), equalTo("SERVER"));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE).getLevel(), equalTo("QUERY"));
+  }
+
+  @Test
+  public void shouldListProperties() {
+    // When:
+    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
+        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;"),
+        mock(SessionProperties.class),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
-        toMap(properties),
+        toStringMap(properties),
         equalTo(engine.getKsqlConfig().getAllConfigPropsWithSecretsObfuscated()));
     assertThat(properties.getOverwrittenProperties(), is(empty()));
   }
@@ -84,13 +120,13 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldListPropertiesWithOverrides() {
     // When:
-    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        engine.configure("LIST PROPERTIES;")
+    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
+        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;")
             .withConfigOverrides(ImmutableMap.of("ksql.streams.auto.offset.reset", "latest")),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -102,12 +138,12 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldNotListSslProperties() {
     // When:
-    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        engine.configure("LIST PROPERTIES;"),
+    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
+        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -118,14 +154,14 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldListUnresolvedStreamsTopicProperties() {
     // When:
-    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        engine.configure("LIST PROPERTIES;")
+    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
+        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;")
             .withConfig(new KsqlConfig(ImmutableMap.of(
                 "ksql.streams.topic.min.insync.replicas", "2"))),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -148,14 +184,14 @@ public class ListPropertiesExecutorTest {
     );
 
     // When:
-    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        engine.configure("LIST PROPERTIES;")
+    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
+        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;")
             .withConfig(new KsqlConfig(ImmutableMap.of(
                 "ksql.connect.worker.config", connectPropsFile))),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -178,7 +214,15 @@ public class ListPropertiesExecutorTest {
     }
   }
 
-  private static Map<String, String> toMap(final PropertiesList properties) {
+  private static Map<String, Property> toMap(final PropertiesList properties) {
+    final Map<String, Property> map = new HashMap<>();
+    for (final Property property : properties.getProperties()) {
+      map.put(property.getName(), property);
+    }
+    return map;
+  }
+
+  private static Map<String, String> toStringMap(final PropertiesList properties) {
     final Map<String, String> map = new HashMap<>();
     for (final Property property : properties.getProperties()) {
       map.put(property.getName(), property.getValue());

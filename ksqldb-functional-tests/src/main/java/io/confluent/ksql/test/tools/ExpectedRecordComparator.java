@@ -22,13 +22,16 @@ import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.test.model.TestHeader;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.connect.data.Struct;
 
 public final class ExpectedRecordComparator {
@@ -45,6 +48,21 @@ public final class ExpectedRecordComparator {
 
   private ExpectedRecordComparator() {
   }
+
+  public static boolean matches(
+      final Header[] actualHeaders, final List<TestHeader> expectedHeaders) {
+    if (actualHeaders.length != expectedHeaders.size()) {
+      return false;
+    }
+    for (int i = 0; i < actualHeaders.length; i++) {
+      if (!actualHeaders[i].key().equals(expectedHeaders.get(i).key())
+          || !Arrays.equals(actualHeaders[i].value(), expectedHeaders.get(i).value())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
 
   public static boolean matches(final Object actualValue, final JsonNode expectedValue) {
     return comparator(expectedValue).test(actualValue, expectedValue);

@@ -41,8 +41,6 @@ public class AllHostsLocatorTest {
         () -> ImmutableList.of(metadata1, metadata2),
         new URL("http://localhost:8088")
     );
-    when(metadata1.getState()).thenReturn(State.RUNNING);
-    when(metadata2.getState()).thenReturn(State.RUNNING);
     when(metadata1.getAllMetadata())
         .thenReturn(ImmutableList.of(streamsMetadata1, streamsMetadata2));
     when(metadata2.getAllMetadata())

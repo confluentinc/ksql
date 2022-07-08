@@ -56,7 +56,8 @@ public interface Endpoints {
       Map<String, Object> properties,
       Map<String, Object> sessionVariables, Map<String, Object> requestProperties,
       Context context, WorkerExecutor workerExecutor,
-      ApiSecurityContext apiSecurityContext, MetricsCallbackHolder metricsCallbackHolder);
+      ApiSecurityContext apiSecurityContext, MetricsCallbackHolder metricsCallbackHolder,
+      Optional<Boolean> isInternalRequest);
 
   /**
    * Create a subscriber which will receive a stream of inserts from the API server and process

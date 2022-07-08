@@ -33,6 +33,7 @@ import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.io.FileNotFoundException;
@@ -203,7 +204,7 @@ public class SerdeBenchmark {
       if (AvroFormat.NAME.equals(formatName)) {
         return FormatInfo.of(
             FormatFactory.AVRO.name(),
-            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "benchmarkSchema")
+            ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "benchmarkSchema")
         );
       }
 

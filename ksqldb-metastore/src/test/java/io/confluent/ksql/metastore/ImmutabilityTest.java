@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.util.Collection;
 import java.util.Objects;
@@ -75,6 +76,7 @@ public class ImmutabilityTest {
         .withKnownImmutableType(KGroupedStream.class)
         .withKnownImmutableType(KGroupedTable.class)
         .withKnownImmutableType(Serde.class)
+        .withKnownImmutableType(BytesLiteral.class)
         .test(modelClass);
   }
 }

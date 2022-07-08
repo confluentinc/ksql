@@ -44,6 +44,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.net.URI;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.clients.admin.Admin;
@@ -97,7 +98,7 @@ public class HealthCheckAgentTest {
     when(serviceContext.getAdminClient()).thenReturn(adminClient);
 
     final DescribeTopicsResult topicsResult = mock(DescribeTopicsResult.class);
-    when(adminClient.describeTopics(any(), any())).thenReturn(topicsResult);
+    givenDescribeTopicsReturns(topicsResult);
     when(topicsResult.all()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
 
@@ -139,7 +140,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnUnhealthyIfKafkaCheckFails() {
     // Given:
-    doThrow(KafkaResponseGetFailedException.class).when(adminClient).describeTopics(any(), any());
+    givenDescribeTopicsThrows(KafkaResponseGetFailedException.class);
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -165,7 +166,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnHealthyIfKafkaCheckFailsWithAuthorizationException() {
     // Given:
-    doThrow(KsqlTopicAuthorizationException.class).when(adminClient).describeTopics(any(), any());
+    givenDescribeTopicsThrows(KsqlTopicAuthorizationException.class);
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -178,7 +179,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnHealthyIfKafkaCheckFailsWithUnknownTopicOrPartitionExceptionAsRootCause() {
     // Given:
-    when(adminClient.describeTopics(any(), any())).thenThrow(new RuntimeException(new UnknownTopicOrPartitionException()));
+    givenDescribeTopicsThrows(new RuntimeException(new UnknownTopicOrPartitionException()));
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -191,7 +192,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnHealthyIfKafkaCheckFailsWithUnknownTopicOrPartitionException() {
     // Given:
-    when(adminClient.describeTopics(any(), any())).thenThrow(new UnknownTopicOrPartitionException());
+    givenDescribeTopicsThrows(new UnknownTopicOrPartitionException());
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -199,5 +200,21 @@ public class HealthCheckAgentTest {
     // Then:
     assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getIsHealthy(), is(true));
+  }
+
+  // isolate suppressed calls to their own methods
+  @SuppressWarnings("unchecked")
+  private void givenDescribeTopicsReturns(final DescribeTopicsResult topicsResult) {
+    when(adminClient.describeTopics(any(Collection.class), any())).thenReturn(topicsResult);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void givenDescribeTopicsThrows(final Class<? extends Throwable> clazz) {
+    doThrow(clazz).when(adminClient).describeTopics(any(Collection.class), any());
+  }
+
+  @SuppressWarnings("unchecked")
+  private void givenDescribeTopicsThrows(final Throwable t) {
+    doThrow(t).when(adminClient).describeTopics(any(Collection.class), any());
   }
 }

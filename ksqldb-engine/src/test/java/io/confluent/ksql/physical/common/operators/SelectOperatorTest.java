@@ -25,12 +25,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.streams.materialization.Row;
-import io.confluent.ksql.execution.streams.materialization.Window;
+import io.confluent.ksql.Window;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -80,10 +81,6 @@ public class SelectOperatorTest {
   private static final long A_ROWTIME = 12335L;
 
   private static final Window A_WINDOW = Window.of(Instant.now(), Instant.now().plusMillis(10));
-  private static final TimeWindow STREAM_WINDOW = new TimeWindow(
-      A_WINDOW.start().toEpochMilli(),
-      A_WINDOW.end().toEpochMilli()
-  );
 
   @Mock
   private ProcessingLogger logger;
@@ -109,17 +106,19 @@ public class SelectOperatorTest {
         logger,
         predicateFactory);
     selectOperator.addChild(child);
-    final Row row = Row.of(
+    final QueryRowImpl row = QueryRowImpl.of(
         OUTPUT_SCHEMA,
         A_KEY,
+        Optional.empty(),
         GenericRow.genericRow("a", "b"),
         A_ROWTIME
     );
     when(child.next()).thenReturn(row);
     when(sqlPredicate.getTransformer(logger)).thenReturn(transformer);
-    final Row intermediateRow = Row.of(
+    final QueryRowImpl intermediateRow = QueryRowImpl.of(
         INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
+        Optional.empty(),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
@@ -139,24 +138,25 @@ public class SelectOperatorTest {
     // Given:
     when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
     when(logicalNode.getIntermediateSchema()).thenReturn(WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO);
-    when(logicalNode.isWindowed()).thenReturn(true);
     when(predicateFactory.create(any(), any())).thenReturn(sqlPredicate);
     final SelectOperator selectOperator = new SelectOperator(
         logicalNode,
         logger,
         predicateFactory);
     selectOperator.addChild(child);
-    final WindowedRow windowedRow = WindowedRow.of(
+    final QueryRowImpl windowedRow = QueryRowImpl.of(
         WINDOWED_OUTPUT_SCHEMA,
-        new Windowed<>(A_KEY, STREAM_WINDOW),
+        A_KEY,
+        Optional.of(A_WINDOW),
         GenericRow.genericRow("a", "b"),
         A_ROWTIME
     );
     when(child.next()).thenReturn(windowedRow);
     when(sqlPredicate.getTransformer(logger)).thenReturn(transformer);
-    final WindowedRow intermediateWindowedRow = WindowedRow.of(
+    final QueryRowImpl intermediateWindowedRow = QueryRowImpl.of(
         WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
-        new Windowed<>(A_KEY, STREAM_WINDOW),
+        A_KEY,
+        Optional.of(A_WINDOW),
         GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );

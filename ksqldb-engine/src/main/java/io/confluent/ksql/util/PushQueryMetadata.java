@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -35,6 +36,8 @@ public interface PushQueryMetadata {
   BlockingRowQueue getRowQueue();
 
   void setLimitHandler(LimitHandler limitHandler);
+
+  void setCompletionHandler(CompletionHandler completionHandler);
 
   void setUncaughtExceptionHandler(StreamsUncaughtExceptionHandler handler);
 

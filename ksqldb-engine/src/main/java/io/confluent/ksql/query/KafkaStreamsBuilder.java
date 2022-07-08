@@ -18,7 +18,10 @@ package io.confluent.ksql.query;
 import java.util.Map;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 
 public interface KafkaStreamsBuilder {
   KafkaStreams build(Topology topology, Map<String, Object> conf);
+
+  KafkaStreamsNamedTopologyWrapper buildNamedTopologyWrapper(Map<String, Object> conf);
 }

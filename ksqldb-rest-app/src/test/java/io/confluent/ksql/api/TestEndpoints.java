@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
@@ -55,7 +56,7 @@ public class TestEndpoints implements Endpoints {
 
   private Supplier<RowGenerator> rowGeneratorFactory;
   private TestInsertsSubscriber insertsSubscriber;
-  private List<KsqlEntity> ksqlEndpointResponse;
+  private KsqlEntityList ksqlEndpointResponse;
   private String lastSql;
   private JsonObject lastProperties;
   private JsonObject lastSessionVariables;
@@ -77,7 +78,8 @@ public class TestEndpoints implements Endpoints {
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
-      final MetricsCallbackHolder metricsCallbackHolder) {
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final Optional<Boolean> isInternalRequest) {
     CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
     if (createQueryPublisherException != null) {
       createQueryPublisherException.fillInStackTrace();
@@ -241,7 +243,7 @@ public class TestEndpoints implements Endpoints {
   }
 
   public synchronized void setKsqlEndpointResponse(final List<KsqlEntity> entities) {
-    this.ksqlEndpointResponse = ImmutableList.copyOf(entities);
+    this.ksqlEndpointResponse = new KsqlEntityList(ImmutableList.copyOf(entities));
   }
 
   public synchronized String getLastSql() {

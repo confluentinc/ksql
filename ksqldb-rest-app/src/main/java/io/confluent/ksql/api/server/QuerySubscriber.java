@@ -20,12 +20,16 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,21 +38,27 @@ import org.slf4j.LoggerFactory;
  * This is a reactive streams subscriber which receives a stream of results from a publisher which
  * is implemented by the back-end. The results are then written to the HTTP2 response.
  */
-public class QuerySubscriber extends BaseSubscriber<KeyValue<List<?>, GenericRow>> {
+public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, GenericRow>> {
 
   private static final Logger log = LoggerFactory.getLogger(QuerySubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 200;
 
   private final HttpServerResponse response;
   private final QueryStreamResponseWriter queryStreamResponseWriter;
+  private final Optional<String> completionMessage;
+  private final Supplier<Boolean> hitLimit;
   private int tokens;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QuerySubscriber(final Context context, final HttpServerResponse response,
-      final QueryStreamResponseWriter queryStreamResponseWriter) {
+      final QueryStreamResponseWriter queryStreamResponseWriter,
+      final Optional<String> completionMessage,
+      final Supplier<Boolean> hitLimit) {
     super(context);
     this.response = Objects.requireNonNull(response);
     this.queryStreamResponseWriter = Objects.requireNonNull(queryStreamResponseWriter);
+    this.completionMessage = completionMessage;
+    this.hitLimit = hitLimit;
   }
 
   @Override
@@ -57,8 +67,19 @@ public class QuerySubscriber extends BaseSubscriber<KeyValue<List<?>, GenericRow
   }
 
   @Override
-  public void handleValue(final KeyValue<List<?>, GenericRow> row) {
-    queryStreamResponseWriter.writeRow(row.value());
+  public void handleValue(final KeyValueMetadata<List<?>, GenericRow> row) {
+    if (row.getRowMetadata().isPresent()) {
+      // Only one of the metadata are present at a time
+      if (row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
+        queryStreamResponseWriter.writeContinuationToken(new PushContinuationToken(
+            row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
+      } else if (row.getRowMetadata().get().getConsistencyOffsetVector().isPresent()) {
+        queryStreamResponseWriter.writeConsistencyToken(new ConsistencyToken(
+            row.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
+      }
+    } else {
+      queryStreamResponseWriter.writeRow(row.getKeyValue().value());
+    }
     tokens--;
     if (response.writeQueueFull()) {
       response.drainHandler(v -> checkMakeRequest());
@@ -84,6 +105,11 @@ public class QuerySubscriber extends BaseSubscriber<KeyValue<List<?>, GenericRow
 
   @Override
   public void handleComplete() {
+    if (hitLimit.get()) {
+      queryStreamResponseWriter.writeLimitMessage();
+    } else {
+      completionMessage.ifPresent(queryStreamResponseWriter::writeCompletionMessage);
+    }
     queryStreamResponseWriter.end();
   }
 

@@ -1,0 +1,156 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126016773,
+  "path" : "query-validation-tests/project-filter.json",
+  "schemas" : {
+    "CSAS_S3_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S3_0.S3" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Json Multi Dimensional Array",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 1,
+        "array_col" : [ [ [ "item_000_1", "item_001_1" ], [ "item_010_1", "item_011_1" ] ], [ [ "item_100_1", "item_101_1" ], [ "item_110_1", "item_111_1" ] ] ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 2,
+        "array_col" : [ [ [ "item_000_2", "item_001_2" ], [ "item_010_2", "item_011_2" ] ], [ [ "item_100_2", "item_101_2" ], [ "item_110_2", "item_111_2" ] ] ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 3,
+        "array_col" : [ [ [ "item_000_3", "item_001_3" ], [ "item_010_3", "item_011_3" ] ], [ [ "item_100_3", "item_101_3" ], [ "item_110_3", "item_111_3" ] ] ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 4,
+        "array_col" : [ [ [ "item_000_4", "item_001_4" ], [ "item_010_4", "item_011_4" ] ], [ [ "item_100_4", "item_101_4" ], [ "item_110_4", "item_111_4" ] ] ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 5,
+        "array_col" : [ [ [ "item_000_5", "item_001_5" ], [ "item_010_5", "item_011_5" ] ], [ [ "item_100_5", "item_101_5" ], [ "item_110_5", "item_111_5" ] ] ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S3",
+      "key" : "0",
+      "value" : {
+        "ID" : 1,
+        "ARRAY_ITEM" : "item_000_1"
+      }
+    }, {
+      "topic" : "S3",
+      "key" : "0",
+      "value" : {
+        "ID" : 2,
+        "ARRAY_ITEM" : "item_000_2"
+      }
+    }, {
+      "topic" : "S3",
+      "key" : "0",
+      "value" : {
+        "ID" : 3,
+        "ARRAY_ITEM" : "item_000_3"
+      }
+    }, {
+      "topic" : "S3",
+      "key" : "0",
+      "value" : {
+        "ID" : 4,
+        "ARRAY_ITEM" : "item_000_4"
+      }
+    }, {
+      "topic" : "S3",
+      "key" : "0",
+      "value" : {
+        "ID" : 5,
+        "ARRAY_ITEM" : "item_000_5"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "S3",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM array_array (K STRING KEY, ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<VARCHAR>>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S3 as SELECT K, ID, ARRAY_COL[1][1][1] AS array_item FROM array_array;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "ARRAY_ARRAY",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S3",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S3",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

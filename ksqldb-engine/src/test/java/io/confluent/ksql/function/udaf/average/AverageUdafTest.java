@@ -151,4 +151,18 @@ public class AverageUdafTest {
     assertThat(4L, equalTo(agg.getInt64(SUM)));
   }
 
+  @Test
+  public void undoShouldHandleNull() {
+    final TableUdaf<Long, Struct, Double> udaf = AverageUdaf.averageLong();
+    Struct agg = udaf.initialize();
+    final Long[] values = new Long[] {1L, 1L, 1L, 1L, null};
+    for (final Long thisValue : values) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+
+    agg = udaf.undo(null, agg);
+    assertThat(4L, equalTo(agg.getInt64(COUNT)));
+    assertThat(4L, equalTo(agg.getInt64(SUM)));
+  }
+
 }

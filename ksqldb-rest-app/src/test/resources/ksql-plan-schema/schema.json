@@ -69,6 +69,10 @@
         "orReplace" : {
           "type" : "boolean",
           "default" : false
+        },
+        "isSource" : {
+          "type" : "boolean",
+          "default" : false
         }
       },
       "title" : "createStreamV1",
@@ -181,6 +185,10 @@
         "orReplace" : {
           "type" : "boolean",
           "default" : false
+        },
+        "isSource" : {
+          "type" : "boolean",
+          "default" : false
         }
       },
       "title" : "createTableV1",
@@ -278,9 +286,12 @@
         },
         "queryId" : {
           "type" : "string"
+        },
+        "runtimeId" : {
+          "type" : "string"
         }
       },
-      "required" : [ "sources", "sink", "physicalPlan", "queryId" ]
+      "required" : [ "sources", "physicalPlan", "queryId" ]
     },
     "StreamAggregate" : {
       "type" : "object",
@@ -580,10 +591,13 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
         }
       },
       "title" : "streamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "pseudoColumnVersion" ]
     },
     "WindowedStreamSource" : {
       "type" : "object",
@@ -611,10 +625,13 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
         }
       },
       "title" : "windowedStreamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema", "pseudoColumnVersion" ]
     },
     "StreamStreamJoin" : {
       "type" : "object",
@@ -729,7 +746,7 @@
       "title" : "streamWindowedAggregateV1",
       "required" : [ "@type", "properties", "source", "internalFormats", "nonAggregateColumns", "aggregationFunctions", "windowExpression" ]
     },
-    "TableSource" : {
+    "TableSourceV1" : {
       "type" : "object",
       "additionalProperties" : false,
       "properties" : {
@@ -755,10 +772,47 @@
         },
         "forceChangelog" : {
           "type" : "boolean"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
         }
       },
       "title" : "tableSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "pseudoColumnVersion" ]
+    },
+    "TableSource" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableSourceV2" ],
+          "default" : "tableSourceV2"
+        },
+        "properties" : {
+          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
+        },
+        "topicName" : {
+          "type" : "string"
+        },
+        "formats" : {
+          "$ref" : "#/definitions/Formats"
+        },
+        "timestampColumn" : {
+          "$ref" : "#/definitions/TimestampColumn"
+        },
+        "sourceSchema" : {
+          "type" : "string"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
+        },
+        "stateStoreFormats" : {
+          "$ref" : "#/definitions/Formats"
+        }
+      },
+      "title" : "tableSourceV2",
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "pseudoColumnVersion", "stateStoreFormats" ]
     },
     "WindowedTableSource" : {
       "type" : "object",
@@ -786,10 +840,13 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
         }
       },
       "title" : "windowedTableSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema", "pseudoColumnVersion" ]
     },
     "TableAggregate" : {
       "type" : "object",
@@ -1066,6 +1123,9 @@
         "leftJoinColumnName" : {
           "type" : "string"
         },
+        "leftJoinExpression" : {
+          "type" : "string"
+        },
         "formats" : {
           "$ref" : "#/definitions/Formats"
         },
@@ -1074,9 +1134,6 @@
         },
         "rightSource" : {
           "$ref" : "#/definitions/ExecutionStep"
-        },
-        "leftJoinExpression" : {
-          "type" : "string"
         }
       },
       "title" : "fkTableTableJoinV1",
@@ -1124,6 +1181,8 @@
         "$ref" : "#/definitions/StreamTableJoin"
       }, {
         "$ref" : "#/definitions/StreamWindowedAggregate"
+      }, {
+        "$ref" : "#/definitions/TableSourceV1"
       }, {
         "$ref" : "#/definitions/TableSource"
       }, {

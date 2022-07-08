@@ -818,6 +818,7 @@
     },
     {
       "name": "DECIMAL - key - no inference",
+      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (K DECIMAL(4,2) KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -833,6 +834,7 @@
     },
     {
       "name": "DECIMAL - key - inference",
+      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -859,6 +861,7 @@
     },
     {
       "name": "DECIMAL - key - inference - default precision",
+      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"

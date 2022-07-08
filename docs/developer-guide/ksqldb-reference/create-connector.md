@@ -42,3 +42,8 @@ CREATE SOURCE CONNECTOR `jdbc-connector` WITH(
     "table.whitelist"='users',
     "key"='username');
 ```
+
+!!! Tip "See CREATE CONNECTOR in action"
+    - [Materialized cache - Start the Debezium source connector](/tutorials/materialized/#start-the-debezium-connector)
+    - [Streaming ETL pipeline - Start the source connectors](/tutorials/etl#start-the-postgres-and-mongodb-debezium-source-connectors)
+    - [Streaming ETL pipeline- Start the Elasticsearch sink connector](/tutorials/etl/#start-the-elasticsearch-sink-connector)

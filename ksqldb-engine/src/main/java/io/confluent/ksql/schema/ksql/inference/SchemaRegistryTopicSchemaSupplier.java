@@ -27,6 +27,8 @@ import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslationPolicies;
+import io.confluent.ksql.serde.SchemaTranslationPolicy;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
@@ -62,7 +64,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
   @Override
   public SchemaResult getKeySchema(
-      final String topicName,
+      final Optional<String> topicName,
       final Optional<Integer> schemaId,
       final FormatInfo expectedFormat,
       final SerdeFeatures serdeFeatures
@@ -72,7 +74,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
   @Override
   public SchemaResult getValueSchema(
-      final String topicName,
+      final Optional<String> topicName,
       final Optional<Integer> schemaId,
       final FormatInfo expectedFormat,
       final SerdeFeatures serdeFeatures
@@ -80,54 +82,65 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
     return getSchema(topicName, schemaId, expectedFormat, serdeFeatures, false);
   }
 
-  private SchemaResult getSchema(
-      final String topicName,
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
+  public SchemaResult getSchema(
+      final Optional<String> topicName,
       final Optional<Integer> schemaId,
       final FormatInfo expectedFormat,
       final SerdeFeatures serdeFeatures,
       final boolean isKey
   ) {
-    try {
-      final String subject = getSRSubject(topicName, isKey);
+    if (!topicName.isPresent() && !schemaId.isPresent()) {
+      throw new IllegalArgumentException("One of topicName and schemaId should be provided");
+    }
 
+    try {
       final int id;
+      final String subject;
       if (schemaId.isPresent()) {
+        subject = topicName.map(s -> getSRSubject(s, isKey)).orElse(null);
         id = schemaId.get();
       } else {
+        subject = getSRSubject(topicName.get(), isKey);
         id = srClient.getLatestSchemaMetadata(subject).getId();
       }
 
       final ParsedSchema schema = srClient.getSchemaBySubjectAndId(subject, id);
-      return fromParsedSchema(topicName, id, schema, expectedFormat, serdeFeatures, isKey);
+      return fromParsedSchema(topicName, id, schemaId, schema, expectedFormat, serdeFeatures,
+          isKey);
     } catch (final RestClientException e) {
       switch (e.getStatus()) {
         case HttpStatus.SC_NOT_FOUND:
         case HttpStatus.SC_UNAUTHORIZED:
         case HttpStatus.SC_FORBIDDEN:
-          return notFound(topicName, isKey);
+          return notFound(topicName, schemaId, isKey);
         default:
-          throw new KsqlException("Schema registry fetch for topic " + (isKey ? "key" : "value")
-              + " request failed. Topic: " + topicName, e);
+          throw new KsqlException(fetchExceptionMessage(topicName, schemaId, isKey), e);
       }
     } catch (final Exception e) {
-      throw new KsqlException("Schema registry fetch for topic " + (isKey ? "key" : "value")
-          + " request failed. Topic: " + topicName, e);
+      throw new KsqlException(fetchExceptionMessage(topicName, schemaId, isKey), e);
     }
   }
 
   private SchemaResult fromParsedSchema(
-      final String topic,
+      final Optional<String> topic,
       final int id,
+      final Optional<Integer> schemaId,
       final ParsedSchema parsedSchema,
       final FormatInfo expectedFormat,
       final SerdeFeatures serdeFeatures,
       final boolean isKey
   ) {
     final Format format = formatFactory.apply(expectedFormat);
-    final SchemaTranslator translator = format.getSchemaTranslator(expectedFormat.getProperties());
+    // Topic existence means schema id is not provided original so that default
+    // policy should be used
+    final SchemaTranslator translator =
+        schemaId.isPresent() ? format.getSchemaTranslator(expectedFormat.getProperties(),
+            SchemaTranslationPolicies.of(SchemaTranslationPolicy.ORIGINAL_FIELD_NAME))
+            : format.getSchemaTranslator(expectedFormat.getProperties());
 
     if (!parsedSchema.schemaType().equals(translator.name())) {
-      return incorrectFormat(topic, translator.name(), parsedSchema.schemaType(), isKey);
+      return incorrectFormat(topic, schemaId, translator.name(), parsedSchema.schemaType(), isKey);
     }
 
     final List<SimpleColumn> columns;
@@ -138,18 +151,19 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
           isKey
       );
     } catch (final Exception e) {
-      return notCompatible(topic, parsedSchema.canonicalString(), e, isKey);
+      return notCompatible(topic, schemaId, parsedSchema.canonicalString(), e, isKey);
     }
 
     if (isKey && columns.size() > 1) {
-      return multiColumnKeysNotSupported(topic, parsedSchema.canonicalString());
+      return multiColumnKeysNotSupported(topic, schemaId, parsedSchema.canonicalString());
     }
 
-    return SchemaResult.success(SchemaAndId.schemaAndId(columns, id));
+    return SchemaResult.success(SchemaAndId.schemaAndId(columns, parsedSchema, id));
   }
 
   private static SchemaResult incorrectFormat(
-      final String topic,
+      final Optional<String> topic,
+      final Optional<Integer> schemaId,
       final String expectedFormat,
       final String actualFormat,
       final boolean isKey
@@ -161,56 +175,80 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
         (isKey ? "Key" : "Value") + " schema is not in the expected format. "
             + "You may want to set " + config + " to '" + actualFormat + "'."
             + System.lineSeparator()
-            + "topic: " + topic
+            + sourceMsg(topic, schemaId)
             + System.lineSeparator()
             + "expected format: " + expectedFormat
             + System.lineSeparator()
-            + "actual format: " + actualFormat
+            + "actual format from Schema Registry: " + actualFormat
     ));
   }
 
-  private static SchemaResult notFound(final String topicName, final boolean isKey) {
-    final String subject = getSRSubject(topicName, isKey);
+  private static SchemaResult notFound(
+      final Optional<String> topicName,
+      final Optional<Integer> schemaId,
+      final boolean isKey
+  ) {
+    final String suffixMsg = "- Messages on the topic have not been serialized using a Confluent "
+        + "Schema Registry supported serializer"
+        + System.lineSeparator()
+        + "\t-> See " + DocumentationLinks.SR_SERIALISER_DOC_URL
+        + System.lineSeparator()
+        + "- The schema is registered on a different instance of the Schema Registry"
+        + System.lineSeparator()
+        + "\t-> Use the REST API to list available subjects"
+        + "\t" + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL
+        + System.lineSeparator()
+        + "- You do not have permissions to access the Schema Registry."
+        + System.lineSeparator()
+        + "\t-> See " + DocumentationLinks.SCHEMA_REGISTRY_SECURITY_DOC_URL;
+    final String schemaIdMsg =
+        schemaId.map(integer -> "Schema Id: " + integer + System.lineSeparator()).orElse("");
+
+    if (topicName.isPresent()) {
+      final String subject = getSRSubject(topicName.get(), isKey);
+      return SchemaResult.failure(new KsqlException(
+          "Schema for message " + (isKey ? "keys" : "values") + " on topic '" + topicName.get()
+              + "'"
+              + " does not exist in the Schema Registry."
+              + System.lineSeparator()
+              + "Subject: " + subject
+              + System.lineSeparator()
+              + schemaIdMsg
+              + "Possible causes include:"
+              + System.lineSeparator()
+              + "- The topic itself does not exist"
+              + System.lineSeparator()
+              + "\t-> Use SHOW TOPICS; to check"
+              + System.lineSeparator()
+              + "- Messages on the topic are not serialized using a format Schema Registry supports"
+              + System.lineSeparator()
+              + "\t-> Use PRINT '" + topicName.get() + "' FROM BEGINNING; to verify"
+              + System.lineSeparator()
+              + suffixMsg));
+    }
     return SchemaResult.failure(new KsqlException(
-        "Schema for message " + (isKey ? "keys" : "values") +  " on topic '" + topicName + "'"
+        "Schema for message " + (isKey ? "keys" : "values") + " on schema id'" + schemaId.get()
             + " does not exist in the Schema Registry."
             + System.lineSeparator()
-            + "Subject: " + subject
-            + System.lineSeparator()
+            + schemaIdMsg
             + "Possible causes include:"
             + System.lineSeparator()
-            + "- The topic itself does not exist"
+            + "- Schema Id " + schemaId
             + System.lineSeparator()
-            + "\t-> Use SHOW TOPICS; to check"
-            + System.lineSeparator()
-            + "- Messages on the topic are not serialized using a format Schema Registry supports"
-            + System.lineSeparator()
-            + "\t-> Use PRINT '" + topicName + "' FROM BEGINNING; to verify"
-            + System.lineSeparator()
-            + "- Messages on the topic have not been serialized using a Confluent Schema "
-            + "Registry supported serializer"
-            + System.lineSeparator()
-            + "\t-> See " + DocumentationLinks.SR_SERIALISER_DOC_URL
-            + System.lineSeparator()
-            + "- The schema is registered on a different instance of the Schema Registry"
-            + System.lineSeparator()
-            + "\t-> Use the REST API to list available subjects"
-            + "\t" + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL
-            + System.lineSeparator()
-            + "- You do not have permissions to access the Schema Registry."
-            + System.lineSeparator()
-            + "\t-> See " + DocumentationLinks.SCHEMA_REGISTRY_SECURITY_DOC_URL));
+            + suffixMsg));
   }
 
   private static SchemaResult notCompatible(
-      final String topicName,
+      final Optional<String> topicName,
+      final Optional<Integer> schemaId,
       final String schema,
       final Exception cause,
       final boolean isKey
   ) {
     return SchemaResult.failure(new KsqlException(
-        "Unable to verify if the " + (isKey ? "key" : "value") + " schema for topic "
-            + topicName + " is compatible with ksqlDB."
+        "Unable to verify if the " + (isKey ? "key" : "value") + " schema for "
+            + sourceMsg(topicName, schemaId)
+            + " is compatible with ksqlDB."
             + System.lineSeparator()
             + "Reason: " + cause.getMessage()
             + System.lineSeparator()
@@ -225,13 +263,38 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   }
 
   private static SchemaResult multiColumnKeysNotSupported(
-      final String topicName,
+      final Optional<String> topic,
+      final Optional<Integer> schemaId,
       final String schema
   ) {
     return SchemaResult.failure(new KsqlException(
-        "The key schema for topic " + topicName
+        "The key schema for " + sourceMsg(topic, schemaId)
             + " contains multiple columns, which is not supported by ksqlDB at this time."
             + System.lineSeparator()
             + "Schema:" + schema));
+  }
+
+  private static String fetchExceptionMessage(
+      final Optional<String> topicName,
+      final Optional<Integer> schemaId,
+      final boolean isKey
+  ) {
+    return "Schema registry fetch for topic " + (isKey ? "key" : "value") + " request failed for "
+        + sourceMsg(topicName, schemaId);
+  }
+
+  private static String sourceMsg(
+      final Optional<String> topicName,
+      final Optional<Integer> schemaId
+  ) {
+    String msg = "";
+    if (topicName.isPresent()) {
+      msg += ("topic: " + topicName.get());
+    }
+    if (schemaId.isPresent()) {
+      msg += (msg.isEmpty() ? ("schema id: " + schemaId.get())
+          : (", schema id: " + schemaId.get()));
+    }
+    return msg;
   }
 }

@@ -70,6 +70,7 @@ import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourceType;
@@ -354,6 +355,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param keySerializer the serializer to use to serialize keys.
    * @param valueSerializer the serializer to use to serialize values.
    * @param timestampSupplier supplier of timestamps.
+   * @param headersSupplier supplier of headers.
    * @return the map of produced rows, with an iteration order that matches produce order.
    */
   public <K, V> Multimap<K, RecordMetadata> produceRows(
@@ -361,7 +363,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       final Collection<Entry<K, V>> recordsToPublish,
       final Serializer<K> keySerializer,
       final Serializer<V> valueSerializer,
-      final Supplier<Long> timestampSupplier
+      final Supplier<Long> timestampSupplier,
+      final Supplier<List<Header>> headersSupplier
   ) {
     try (KafkaProducer<K, V> producer = new KafkaProducer<>(
         producerConfig(),
@@ -374,8 +377,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
         final K key = entry.getKey();
         final V value = entry.getValue();
         final Long timestamp = timestampSupplier.get();
+        final List<Header> headers = headersSupplier.get();
         final Future<RecordMetadata> f = producer
-            .send(new ProducerRecord<>(topic, null, timestamp, key, value));
+            .send(new ProducerRecord<>(topic, null, timestamp, key, value, headers));
         futures.put(key, f);
       });
 
@@ -576,8 +580,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Need to know where ZK is:
     config.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
     config.put(AclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-    // Do not require tests to explicitly create tests:
-    config.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
     // Default to small number of partitions for auto-created topics:
     config.put(KafkaConfig.NumPartitionsProp(), 1);
     // Allow tests to delete topics:
@@ -694,6 +696,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
           true);
       brokerConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
+      brokerConfig.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
+    }
+
+    public Builder withoutAutoCreateTopics() {
+      // Create topics explicitly when needed to avoid a race which
+      // automatically recreates deleted topic:
+      brokerConfig.put(KafkaConfig.AutoCreateTopicsEnableProp(), false);
+      return this;
     }
 
     public Builder withoutPlainListeners() {

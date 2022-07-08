@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.query;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -24,6 +25,8 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -33,6 +36,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import org.apache.kafka.common.TopicPartition;
 
 /**
  * Interface for building and managing queries.
@@ -79,6 +83,28 @@ public interface QueryRegistry {
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
   /**
+   * Create a transient query
+   */
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  TransientQueryMetadata createStreamPullQuery(
+      SessionConfig config,
+      ServiceContext serviceContext,
+      ProcessingLogContext processingLogContext,
+      MetaStore metaStore,
+      String statementText,
+      QueryId queryId,
+      Set<SourceName> sources,
+      ExecutionStep<?> physicalPlan,
+      String planSummary,
+      LogicalSchema schema,
+      OptionalInt limit,
+      Optional<WindowInfo> windowInfo,
+      boolean excludeTombstones,
+      ImmutableMap<TopicPartition, Long> endOffsets
+  );
+  // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+
+  /**
    * Create a persistent query, and possibly replace an existing query if one exists with the same
    * ID. Replacement will fail if migration from the current to the new physical plan is not
    * supported.
@@ -91,11 +117,12 @@ public interface QueryRegistry {
       MetaStore metaStore,
       String statementText,
       QueryId queryId,
-      DataSource sinkDataSource,
-      Set<SourceName> sources,
+      Optional<DataSource> sinkDataSource,
+      Set<DataSource> sources,
       ExecutionStep<?> physicalPlan,
       String planSummary,
-      boolean createAsQuery
+      KsqlConstants.PersistentQueryType persistentQueryType,
+      Optional<String> sharedRuntimeId
   );
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
@@ -105,6 +132,13 @@ public interface QueryRegistry {
    * @return The query with ID queryID, if such a query is registered.
    */
   Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
+
+  /**
+   * Get any query by ID
+   * @param queryId The ID of the query to get
+   * @return The query with ID queryID, if such a query is registered.
+   */
+  Optional<QueryMetadata> getQuery(QueryId queryId);
 
   /**
    * Get all persistent queries
@@ -133,6 +167,11 @@ public interface QueryRegistry {
   Optional<QueryMetadata> getCreateAsQuery(SourceName sourceName);
 
   /**
+   * Updates streams properties and restarts the streams runtimes
+   */
+  void updateStreamsPropertiesAndRestartRuntime(KsqlConfig config, ProcessingLogContext logContext);
+
+  /**
    * Get all insert queries that write into or read from a given source.
    * @param sourceName The source name to fetch queries for.
    * @param filterQueries A predicate to apply to filter the returned list of queries
@@ -157,4 +196,9 @@ public interface QueryRegistry {
    *                        will be stopped by calling stop(). Transient queries are always closed.
    */
   void close(boolean closePersistent);
+
+  /**
+   * Close all shared runtimes in this registry
+   */
+  void closeRuntimes();
 }

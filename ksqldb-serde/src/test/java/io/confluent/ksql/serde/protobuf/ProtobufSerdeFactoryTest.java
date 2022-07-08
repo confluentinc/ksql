@@ -17,11 +17,12 @@ package io.confluent.ksql.serde.protobuf;
 
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 
-import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -41,13 +42,9 @@ public class ProtobufSerdeFactoryTest {
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
 
-  private ProtobufSerdeFactory serdeFactory;
-
   @Before
   public void setUp() throws Exception {
     when(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)).thenReturn("http://localhost:8088");
-
-    serdeFactory = new ProtobufSerdeFactory(new ProtobufProperties(Collections.emptyMap()));
   }
 
   @Test
@@ -58,7 +55,8 @@ public class ProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    serdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
+    new ProtobufSerdeFactory(ImmutableMap.of()).createSerde(schema, config,
+        srClientFactory, Struct.class, false);
 
     // Then (did not throw)
   }
@@ -71,7 +69,8 @@ public class ProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    serdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
+    new ProtobufSerdeFactory(ImmutableMap.of()).createSerde(schema, config, srClientFactory,
+        Struct.class, false);
 
     // Then (did not throw)
   }

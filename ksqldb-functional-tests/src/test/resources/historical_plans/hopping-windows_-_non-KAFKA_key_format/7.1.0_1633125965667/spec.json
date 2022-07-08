@@ -1,0 +1,207 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125965667,
+  "path" : "query-validation-tests/hopping-windows.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`A` DECIMAL(4, 2) KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`A` DECIMAL(4, 2) KEY, `A` DECIMAL(4, 2), `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`A` DECIMAL(4, 2)",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`A` DECIMAL(4, 2) KEY, `A` DECIMAL(4, 2), `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`A` DECIMAL(4, 2) KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ],
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 30.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "non-KAFKA key format",
+    "inputs" : [ {
+      "topic" : "INPUT",
+      "key" : null,
+      "value" : {
+        "A" : 12.30
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "INPUT",
+      "key" : null,
+      "value" : {
+        "A" : 12.30
+      },
+      "timestamp" : 11
+    }, {
+      "topic" : "INPUT",
+      "key" : null,
+      "value" : {
+        "A" : 1.00
+      },
+      "timestamp" : 12
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 12.30,
+      "value" : {
+        "COUNT" : 1
+      },
+      "timestamp" : 10,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 12.30,
+      "value" : {
+        "COUNT" : 2
+      },
+      "timestamp" : 11,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1.00,
+      "value" : {
+        "COUNT" : 1
+      },
+      "timestamp" : 12,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "INPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (A DECIMAL(4,2)) WITH (kafka_topic='INPUT', format='JSON');", "CREATE TABLE OUTPUT AS SELECT A, COUNT() AS COUNT FROM INPUT WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 15 SECONDS) group by A;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`A` DECIMAL(4, 2)",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`A` DECIMAL(4, 2) KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON",
+          "windowType" : "HOPPING",
+          "windowSize" : 30000
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "INPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ],
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ],
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

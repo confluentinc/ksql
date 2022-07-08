@@ -7,7 +7,7 @@
       "name": "only key column",
       "statements": [
         "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT K FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -15,7 +15,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -35,7 +35,7 @@
       "name": "only value column",
       "statements": [
         "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT ID FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -43,7 +43,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -63,7 +63,7 @@
       "name": "only literal",
       "statements": [
         "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT 1 AS I FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -71,7 +71,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -91,7 +91,7 @@
       "name": "explicit ROWTIME",
       "statements": [
         "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT ROWTIME, K, ID FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -99,7 +99,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -119,7 +119,7 @@
       "name": "non-windowed stream - STRING key",
       "statements": [
         "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -127,7 +127,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -147,7 +147,7 @@
       "name": "non-windowed stream - INT key",
       "statements": [
         "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -155,7 +155,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -175,7 +175,7 @@
       "name": "non-windowed stream - BIGINT key",
       "statements": [
         "CREATE STREAM I (K BIGINT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -183,7 +183,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -203,7 +203,7 @@
       "name": "non-windowed stream - DOUBLE key",
       "statements": [
         "CREATE STREAM I (K DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -211,7 +211,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11.0, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -239,7 +239,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -267,7 +267,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -295,7 +295,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -323,7 +323,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11.1, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -343,14 +343,14 @@
       "name": "imported windowed stream - BIGINT KEY",
       "statements": [
         "CREATE STREAM I (K BIGINT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 34555, "key": 11, "value": {"id": 100}, "window": {"start": 12345, "end": 34555, "type": "session"}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -377,7 +377,7 @@
         {"topic": "test_topic", "timestamp": 1580223282456, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -397,7 +397,7 @@
       "name": "key and rowtime in projection",
       "statements": [
         "CREATE STREAM I (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT rowtime, k FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -405,7 +405,7 @@
         {"topic": "test_topic", "key": 1, "value": {}, "timestamp": 13251}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -425,14 +425,14 @@
       "name": "zero limit",
       "statements": [
         "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 0;"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -450,7 +450,7 @@
       "name": "out-of-order columns",
       "statements": [
         "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT ID, K FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -458,7 +458,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -478,7 +478,7 @@
       "name": "streams without key columns",
       "statements": [
         "CREATE STREAM I (K STRING, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT K, ID FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -486,7 +486,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "should be ignored", "value": {"k": "b", "id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -506,7 +506,7 @@
       "name": "non-windowed stream - non-KAFKA key format",
       "statements": [
         "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -514,7 +514,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -535,7 +535,7 @@
       "notes": "messages with a null value are deemed invalid and ignored",
       "statements": [
         "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 3;"
       ],
       "inputs": [
@@ -546,7 +546,7 @@
         {"topic": "test_topic", "timestamp": 5, "key": 11, "value": {"id": 111}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -567,7 +567,7 @@
       "name": "NULL Arithmetic Behavior - INTEGER addition",
       "statements": [
         "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT 1 + NULL FROM INPUT EMIT CHANGES;"
       ],
       "properties": {
@@ -583,7 +583,7 @@
       "name": "NULL Arithmetic Behavior - MAP addition",
       "statements": [
         "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT MAP(1 := 'cat') + NULL FROM INPUT EMIT CHANGES;"
       ],
       "properties": {
@@ -599,7 +599,7 @@
       "name": "NULL Arithmetic Behavior - ARRAY addition",
       "statements": [
         "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT Array[1,2,3] + NULL FROM INPUT EMIT CHANGES;"
       ],
       "properties": {
@@ -615,7 +615,7 @@
       "name": "NULL Arithmetic Behavior - DECIMAL division",
       "statements": [
         "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT 5.0 / NULL FROM INPUT EMIT CHANGES;"
       ],
       "properties": {
@@ -631,7 +631,7 @@
       "name": "NULL Arithmetic Behavior - NULL NULL multiplication",
       "statements": [
         "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT NULL * NULL FROM INPUT EMIT CHANGES;"
       ],
       "properties": {
@@ -647,7 +647,7 @@
       "name": "FILTER - key equals",
       "statements": [
         "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT WHERE K = 11 EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -659,7 +659,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -679,7 +679,7 @@
       "name": "FILTER - key comparison",
       "statements": [
         "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT WHERE K > 11 EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -689,7 +689,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -709,7 +709,7 @@
       "name": "FILTER - value comparison",
       "statements": [
         "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT WHERE ID <= 102 EMIT CHANGES LIMIT 4;"
       ],
       "inputs": [
@@ -721,7 +721,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -743,7 +743,7 @@
       "name": "FILTER - multi column comparison",
       "statements": [
         "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "CREATE STREAM INPUT AS SELECT * FROM I;",
         "SELECT * FROM INPUT WHERE K <= 12 AND ID > 100 EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
@@ -755,7 +755,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"

@@ -26,7 +26,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import org.junit.Test;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -35,7 +35,7 @@ public class ValueFormatTest {
   private static final FormatInfo FORMAT_INFO =
       FormatInfo.of(
           AVRO.name(),
-          ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something")
+          ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something")
       );
 
   @Test

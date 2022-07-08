@@ -325,7 +325,8 @@ class KafkaEmbedded {
   public Map<String, Integer> getPartitionCount(final Collection<String> topics) {
     try (AdminClient adminClient = adminClient()) {
       final DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(topics);
-      final Map<String, TopicDescription> topicDescriptionMap = describeTopicsResult.all().get();
+      final Map<String, TopicDescription> topicDescriptionMap =
+          describeTopicsResult.allTopicNames().get();
       return topicDescriptionMap
           .entrySet()
           .stream()

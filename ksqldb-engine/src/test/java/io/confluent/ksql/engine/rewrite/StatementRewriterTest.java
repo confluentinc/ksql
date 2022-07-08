@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstNode;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -56,7 +57,6 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -74,8 +74,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class StatementRewriterTest {
-
-  private static final ColumnName COL2 = ColumnName.of("Bob");
 
   @Mock
   private BiFunction<Expression, Object, Expression> expressionRewriter;
@@ -524,7 +522,7 @@ public class StatementRewriterTest {
   private static TableElement givenTableElement(final String name) {
     final TableElement element = mock(TableElement.class);
     when(element.getName()).thenReturn(ColumnName.of(name));
-    when(element.getNamespace()).thenReturn(Namespace.VALUE);
+    when(element.getConstraints()).thenReturn(ColumnConstraints.NO_COLUMN_CONSTRAINTS);
     return element;
   }
 
@@ -541,7 +539,8 @@ public class StatementRewriterTest {
         TableElements.of(tableElement1, tableElement2),
         false,
         false,
-        sourceProperties
+        sourceProperties,
+        false
     );
     when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
     when(mockRewriter.apply(tableElement2, context)).thenReturn(rewrittenTableElement2);
@@ -559,7 +558,8 @@ public class StatementRewriterTest {
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
                 false,
                 false,
-                sourceProperties
+                sourceProperties,
+                false
             )
         )
     );
@@ -659,7 +659,8 @@ public class StatementRewriterTest {
         TableElements.of(tableElement1, tableElement2),
         false,
         false,
-        sourceProperties
+        sourceProperties,
+        false
     );
     when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
     when(mockRewriter.apply(tableElement2, context)).thenReturn(rewrittenTableElement2);
@@ -677,7 +678,8 @@ public class StatementRewriterTest {
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
                 false,
                 false,
-                sourceProperties
+                sourceProperties,
+                false
             )
         )
     );

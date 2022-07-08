@@ -1,5 +1,8 @@
 package io.confluent.ksql.query;
 
+import static io.confluent.ksql.util.KsqlConstants.PersistentQueryType.CREATE_AS;
+import static io.confluent.ksql.util.KsqlConstants.PersistentQueryType.CREATE_SOURCE;
+import static io.confluent.ksql.util.KsqlConstants.PersistentQueryType.INSERT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -13,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryEventListener;
@@ -20,34 +24,46 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryError.Type;
-import io.confluent.ksql.query.QueryRegistryImpl.QueryExecutorFactory;
+import io.confluent.ksql.query.QueryRegistryImpl.QueryBuilderFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Parameterized.class)
 public class QueryRegistryImplTest {
   @Mock
   private SessionConfig config;
+  @Mock
+  private KsqlConfig ksqlConfig;
   @Mock
   private ProcessingLogContext logContext;
   @Mock
@@ -57,31 +73,49 @@ public class QueryRegistryImplTest {
   @Mock
   private QueryEventListener sandboxListener;
   @Mock
-  private QueryExecutor executor;
+  private QueryBuilder queryBuilder;
   @Mock
-  private QueryExecutorFactory executorFactory;
+  private QueryBuilderFactory executorFactory;
   @Mock
   private ServiceContext serviceContext;
   @Mock
   private MetaStore metaStore;
+  @Mock
+  private DataSource source;
   @Captor
   private ArgumentCaptor<QueryMetadata.Listener> queryListenerCaptor;
+  @SuppressWarnings("Unused")
+  @Rule
+  public MockitoRule rule = MockitoJUnit.rule();
 
   private QueryRegistryImpl registry;
 
+  @SuppressWarnings("deprecation")
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Boolean> data() {
+    return Arrays.asList(
+        true, false
+    );
+  }
+
+  @Parameterized.Parameter
+  public boolean sharedRuntimes;
+
   @Before
   public void setup() {
-    when(executorFactory.create(any(), any(), any(), any())).thenReturn(executor);
+    rule.strictness(Strictness.WARN);
+    when(executorFactory.create(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(queryBuilder);
     when(listener1.createSandbox()).thenReturn(Optional.of(sandboxListener));
     when(listener2.createSandbox()).thenReturn(Optional.empty());
-    registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), executorFactory);
+    registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), executorFactory, new MetricCollectors());
   }
 
   @Test
   public void shouldGetAllLiveQueries() {
     // Given:
     final Set<QueryMetadata> queries = ImmutableSet.of(
-        givenCreate(registry, "q1", "source", "sink", true),
+        givenCreate(registry, "q1", "source1", Optional.of("sink"), CREATE_AS),
+        givenCreate(registry, "q2", "source2", Optional.empty(), CREATE_SOURCE),
         givenCreateTransient(registry, "transient1")
     );
 
@@ -94,9 +128,37 @@ public class QueryRegistryImplTest {
   }
 
   @Test
+  public void shouldNotIncludeStreamPullInLiveQueries() {
+    // Given:
+    final Set<QueryMetadata> queries = ImmutableSet.of(
+        givenCreate(registry, "q1", "source1", Optional.of("sink"), CREATE_AS),
+        givenCreate(registry, "q2", "source2", Optional.empty(), CREATE_SOURCE),
+        givenCreateTransient(registry, "transient1")
+    );
+    givenStreamPull(registry, "streamPull1");
+
+    // When:
+    final Set<QueryMetadata> listed
+        = ImmutableSet.<QueryMetadata>builder().addAll(registry.getAllLiveQueries()).build();
+
+    // Then:
+    assertThat(listed, equalTo(queries));
+  }
+
+  @Test
+  public void shouldNotUseGlobalConfigIfQueryPlanOverrides() {
+    // Given:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(!sharedRuntimes);
+    QueryMetadata query = givenCreate(registry, "q1", "source", Optional.of("sink"), CREATE_AS);
+
+    verify(listener1).onCreate(serviceContext, metaStore, query);
+  }
+
+  @Test
   public void shouldGetAllLiveQueriesSandbox() {
     // Given:
-    givenCreate(registry, "q1", "source", "sink", true);
+    givenCreate(registry, "q1", "source", Optional.of("sink"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.empty(), CREATE_SOURCE);
     givenCreateTransient(registry, "transient1");
     final QueryRegistry sandbox = registry.createSandbox();
 
@@ -108,30 +170,56 @@ public class QueryRegistryImplTest {
     final Set<String> ids = listed.stream()
         .map(q -> q.getQueryId().toString())
         .collect(Collectors.toSet());
-    assertThat(ids, contains("q1", "transient1"));
+    assertThat(ids, contains("q1", "q2", "transient1"));
   }
 
   @Test
   public void shouldGetPersistentQueries() {
     // Given:
-    final PersistentQueryMetadata q1 = givenCreate(registry, "q1", "source", "sink1", true);
-    final PersistentQueryMetadata q2 = givenCreate(registry, "q2", "source", "sink2", false);
+    final PersistentQueryMetadata q1 = givenCreate(registry, "q1", "source",
+        Optional.of("sink1"), CREATE_AS);
+    final PersistentQueryMetadata q2 = givenCreate(registry, "q2", "source",
+        Optional.of("sink2"), INSERT);
+    final PersistentQueryMetadata q3 = givenCreate(registry, "q3", "source",
+        Optional.empty(), CREATE_SOURCE);
 
     // When:
     final Map<QueryId, PersistentQueryMetadata> persistent = registry.getPersistentQueries();
 
     // Then:
-    assertThat(persistent.size(), is(2));
+    assertThat(persistent.size(), is(3));
     assertThat(persistent.get(new QueryId("q1")), is(q1));
     assertThat(persistent.get(new QueryId("q2")), is(q2));
+    assertThat(persistent.get(new QueryId("q3")), is(q3));
+  }
+
+  @Test
+  public void shouldGetQuery() {
+    // Given:
+    final TransientQueryMetadata q1 = givenCreateTransient(registry, "transient1");
+    final PersistentQueryMetadata q2 = givenCreate(registry, "q1", "source",
+        Optional.of("sink1"), CREATE_AS);
+    final PersistentQueryMetadata q3 = givenCreate(registry, "q2", "source",
+        Optional.empty(), CREATE_SOURCE);
+
+    // When:
+    final QueryMetadata queryMetadata1 = registry.getQuery(q1.getQueryId()).get();
+    final QueryMetadata queryMetadata2 = registry.getQuery(q2.getQueryId()).get();
+    final QueryMetadata queryMetadata3 = registry.getQuery(q3.getQueryId()).get();
+
+    // Then:
+    assertThat(queryMetadata1, is(q1));
+    assertThat(queryMetadata2, is(q2));
+    assertThat(queryMetadata3, is(q3));
   }
 
   @Test
   public void shouldGetQueriesWithSink() {
     // Given:
-    givenCreate(registry, "q1", "source", "sink1", true);
-    givenCreate(registry, "q2", "source", "sink1", false);
-    givenCreate(registry, "q3", "source", "sink2", false);
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.of("sink1"), INSERT);
+    givenCreate(registry, "q3", "source", Optional.of("sink2"), INSERT);
+    givenCreate(registry, "q4", "source", Optional.empty(), CREATE_SOURCE);
 
     // When:
     final Set<QueryId> queries = registry.getQueriesWithSink(SourceName.of("sink1"));
@@ -143,9 +231,10 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldGetQueriesWithSinkFromSandbox() {
     // Given:
-    givenCreate(registry, "q1", "source", "sink1", true);
-    givenCreate(registry, "q2", "source", "sink1", false);
-    givenCreate(registry, "q3", "source", "sink2", false);
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.of("sink1"), INSERT);
+    givenCreate(registry, "q3", "source", Optional.of("sink2"), INSERT);
+    givenCreate(registry, "q4", "source", Optional.empty(), CREATE_SOURCE);
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
@@ -158,9 +247,10 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldGetQueryThatCreatedSource() {
     // Given:
-    final QueryMetadata query = givenCreate(registry, "q1", "source", "sink1", true);
-    givenCreate(registry, "q2", "source", "sink1", false);
-    givenCreate(registry, "q3", "source", "sink2", false);
+    final QueryMetadata query = givenCreate(registry, "q1", "source",
+        Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.of("sink1"), INSERT);
+    givenCreate(registry, "q3", "source", Optional.of("sink2"), INSERT);
 
     // When:
     final Optional<QueryMetadata> found = registry.getCreateAsQuery(SourceName.of("sink1"));
@@ -172,9 +262,9 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldGetQueryThatCreatedSourceOnSandbox() {
     // Given:
-    givenCreate(registry, "q1", "source", "sink1", true);
-    givenCreate(registry, "q2", "source", "sink1", false);
-    givenCreate(registry, "q3", "source", "sink2", false);
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.of("sink1"), INSERT);
+    givenCreate(registry, "q3", "source", Optional.of("sink2"), INSERT);
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
@@ -186,10 +276,10 @@ public class QueryRegistryImplTest {
 
   @Test
   public void shouldGetQueriesInsertingIntoOrReadingFromSource() {
-    givenCreate(registry, "q1", "source", "sink1", true);
-    givenCreate(registry, "q2", "source", "sink1", false);
-    givenCreate(registry, "q3", "source", "sink1", false);
-    givenCreate(registry, "q4", "sink1", "sink2", false);
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.of("sink1"), INSERT);
+    givenCreate(registry, "q3", "source", Optional.of("sink1"), INSERT);
+    givenCreate(registry, "q4", "sink1", Optional.of("sink2"), INSERT);
 
     // When:
     final Set<QueryId> queries = registry.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
@@ -201,50 +291,85 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldRemoveQueryFromCreateAsQueriesWhenTerminatingCreateAsQuery() {
     // Given:
-    givenCreate(registry, "q1", "source", "sink1", true);
-    givenCreate(registry, "i1", "source", "sink1", false);
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.empty(), CREATE_SOURCE);
+    givenCreate(registry, "i1", "source", Optional.of("sink1"), INSERT);
     final QueryRegistry sandbox = registry.createSandbox();
     final QueryMetadata q1 = sandbox.getPersistentQuery(new QueryId("q1")).get();
+    final QueryMetadata q2 = sandbox.getPersistentQuery(new QueryId("q2")).get();
     final QueryMetadata i1 = sandbox.getPersistentQuery(new QueryId("i1")).get();
 
     // When:
     q1.close();
     final Optional<QueryMetadata> createAsQueries =
         sandbox.getCreateAsQuery(SourceName.of("sink1"));
+    final Optional<QueryMetadata> createSourceQueries =
+        sandbox.getCreateAsQuery(SourceName.of("source"));
     final Set<QueryId> insertQueries =
         sandbox.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
 
     // Then:
     assertThat(createAsQueries, equalTo(Optional.empty()));
+    assertThat(createSourceQueries, equalTo(Optional.of(q2)));
     assertThat(insertQueries, contains(i1.getQueryId()));
   }
 
   @Test
   public void shouldRemoveQueryFromInsertQueriesWhenTerminatingInsertQuery() {
     // Given:
-    givenCreate(registry, "q1", "source", "sink1", true);
-    givenCreate(registry, "i1", "source", "sink1", false);
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.empty(), CREATE_SOURCE);
+    givenCreate(registry, "i1", "source", Optional.of("sink1"), INSERT);
     final QueryRegistry sandbox = registry.createSandbox();
     final QueryMetadata q1 = sandbox.getPersistentQuery(new QueryId("q1")).get();
+    final QueryMetadata q2 = sandbox.getPersistentQuery(new QueryId("q2")).get();
     final QueryMetadata i1 = sandbox.getPersistentQuery(new QueryId("i1")).get();
 
     // When:
     i1.close();
     final QueryMetadata createAsQueries = sandbox.getCreateAsQuery(SourceName.of("sink1")).get();
+    final QueryMetadata createSourceQueries =
+        sandbox.getCreateAsQuery(SourceName.of("source")).get();
     final Set<QueryId> insertQueries =
         sandbox.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
 
     // Then:
     assertThat(createAsQueries, equalTo(q1));
+    assertThat(createSourceQueries, equalTo(q2));
     assertThat(insertQueries, empty());
+  }
+
+  @Test
+  public void shouldRemoveQueryFromCreateAsQueriesWhenTerminatingCreateSourceQuery() {
+    // Given:
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.empty(), CREATE_SOURCE);
+    givenCreate(registry, "i1", "source", Optional.of("sink1"), INSERT);
+    final QueryRegistry sandbox = registry.createSandbox();
+    final QueryMetadata q1 = sandbox.getPersistentQuery(new QueryId("q1")).get();
+    final QueryMetadata q2 = sandbox.getPersistentQuery(new QueryId("q2")).get();
+    final QueryMetadata i1 = sandbox.getPersistentQuery(new QueryId("i1")).get();
+
+    // When:
+    q2.close();
+    final QueryMetadata createAsQueries = sandbox.getCreateAsQuery(SourceName.of("sink1")).get();
+    final Optional<QueryMetadata> createSourceQueries =
+        sandbox.getCreateAsQuery(SourceName.of("source"));
+    final Set<QueryId> insertQueries =
+        sandbox.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
+
+    // Then:
+    assertThat(createAsQueries, equalTo(q1));
+    assertThat(createSourceQueries, equalTo(Optional.empty()));
+    assertThat(insertQueries, contains(i1.getQueryId()));
   }
 
   @Test
   public void shouldCopyInsertsOnSandbox() {
     // Given:
-    givenCreate(registry, "q1", "source", "sink1", true);
-    givenCreate(registry, "q2", "source", "sink1", false);
-    givenCreate(registry, "q3", "source", "sink1", false);
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    givenCreate(registry, "q2", "source", Optional.of("sink1"), INSERT);
+    givenCreate(registry, "q3", "source", Optional.of("sink1"), INSERT);
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
@@ -257,7 +382,8 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldCallListenerOnCreate() {
     // Given/When:
-    final QueryMetadata query = givenCreate(registry, "q1", "source", "sink1", true);
+    final QueryMetadata query = givenCreate(registry, "q1", "source",
+        Optional.of("sink1"), CREATE_AS);
 
     // Then:
     verify(listener1).onCreate(serviceContext, metaStore, query);
@@ -313,7 +439,8 @@ public class QueryRegistryImplTest {
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
-    final PersistentQueryMetadata q = givenCreate(sandbox, "q1", "source", "sink1", true);
+    final PersistentQueryMetadata q = givenCreate(sandbox, "q1", "source",
+        Optional.of("sink1"), CREATE_AS);
 
     // Then:
     verify(sandboxListener).onCreate(serviceContext, metaStore, q);
@@ -324,7 +451,7 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldCallSandboxOnCloseOld() {
     // Given:
-    givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
     final QueryRegistry sandbox = registry.createSandbox();
     final QueryMetadata sandboxQuery = sandbox.getPersistentQuery(new QueryId("q1")).get();
 
@@ -360,33 +487,52 @@ public class QueryRegistryImplTest {
       final QueryRegistry registry,
       final String id
   ) {
-    givenCreate(registry, id, "source", "sink1", true);
-    verify(executor).buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+    givenCreate(registry, id, "source", Optional.of("sink1"), CREATE_AS);
+    if (!sharedRuntimes) {
+      verify(queryBuilder).buildPersistentQueryInDedicatedRuntime(
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any(), any());
+    } else {
+      verify(queryBuilder).buildPersistentQueryInSharedRuntime(
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any(), any());
+    }
     return queryListenerCaptor.getValue();
+  }
+
+  private DataSource toSource(final String name) {
+    final DataSource source = Mockito.mock(DataSource.class);
+    return source;
   }
 
   private PersistentQueryMetadata givenCreate(
       final QueryRegistry registry,
       final String id,
       final String source,
-      final String sink,
-      boolean createAs
+      final Optional<String> sink,
+      KsqlConstants.PersistentQueryType persistentQueryType
   ) {
     final QueryId queryId = new QueryId(id);
     final PersistentQueryMetadata query = mock(PersistentQueryMetadataImpl.class);
     final DataSource sinkSource = mock(DataSource.class);
-    when(sinkSource.getName()).thenReturn(SourceName.of(sink));
+
+    sink.ifPresent(s -> {
+      when(sinkSource.getName()).thenReturn(SourceName.of(s));
+      when(query.getSinkName()).thenReturn(Optional.of(SourceName.of(s)));
+    });
+
     when(query.getQueryId()).thenReturn(queryId);
-    when(query.getSinkName()).thenReturn(SourceName.of(sink));
-    when(query.getSink()).thenReturn(sinkSource);
+    when(query.getSink()).thenReturn(Optional.of(sinkSource));
     when(query.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
-    when(query.getPersistentQueryType()).thenReturn(createAs
-        ? KsqlConstants.PersistentQueryType.CREATE_AS
-        : KsqlConstants.PersistentQueryType.INSERT);
-    when(executor.buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), any())
-    ).thenReturn(query);
+    when(query.getPersistentQueryType()).thenReturn(persistentQueryType);
+    if (sharedRuntimes) {
+      when(queryBuilder.buildPersistentQueryInSharedRuntime(
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+      ).thenReturn(query);
+    } else {
+      when(queryBuilder.buildPersistentQueryInDedicatedRuntime(
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+      ).thenReturn(query);
+    }
+    when(config.getConfig(true)).thenReturn(ksqlConfig);
     registry.createOrReplacePersistentQuery(
         config,
         serviceContext,
@@ -394,11 +540,12 @@ public class QueryRegistryImplTest {
         metaStore,
         "sql",
         queryId,
-        sinkSource,
-        ImmutableSet.of(SourceName.of(source)),
+        Optional.of(sinkSource),
+        ImmutableSet.of(toSource(source)),
         mock(ExecutionStep.class),
         "plan-summary",
-        createAs
+        persistentQueryType,
+        sharedRuntimes ? Optional.of("applicationId") : Optional.empty()
     );
     return query;
   }
@@ -410,9 +557,10 @@ public class QueryRegistryImplTest {
     final QueryId queryId = new QueryId(id);
     final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
     when(query.getQueryId()).thenReturn(queryId);
-    when(executor.buildTransientQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any())
+    when(queryBuilder.buildTransientQuery(
+        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any(), any())
     ).thenReturn(query);
+    when(query.isInitialized()).thenReturn(true);
     registry.createTransientQuery(
         config,
         serviceContext,
@@ -427,6 +575,36 @@ public class QueryRegistryImplTest {
         OptionalInt.of(123),
         Optional.empty(),
         false
+    );
+    return query;
+  }
+
+  private TransientQueryMetadata givenStreamPull(
+      final QueryRegistry registry,
+      final String id
+  ) {
+    final QueryId queryId = new QueryId(id);
+    final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
+    when(query.getQueryId()).thenReturn(queryId);
+    when(queryBuilder.buildTransientQuery(
+        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any(), any())
+    ).thenReturn(query);
+    when(query.isInitialized()).thenReturn(true);
+    registry.createStreamPullQuery(
+        config,
+        serviceContext,
+        logContext,
+        metaStore,
+        "sql",
+        queryId,
+        ImmutableSet.of(SourceName.of("some-source")),
+        mock(ExecutionStep.class),
+        "plan-summary",
+        mock(LogicalSchema.class),
+        OptionalInt.of(123),
+        Optional.empty(),
+        false,
+        ImmutableMap.<TopicPartition, Long> builder().build()
     );
     return query;
   }

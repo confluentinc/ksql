@@ -263,7 +263,7 @@ public class PauseResumeIntegrationTest {
   private int getCount(KsqlQueryStatus status) {
     try {
 
-    List <KsqlEntity> showQueries2 = RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
+    List <KsqlEntity> showQueries = RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
         + "QUERIES;");
     System.out.println("Show queries " + showQueries2.stream().map( q ->
             ((Queries)q).getQueries().get(0).getStatusCount().toString())

@@ -221,7 +221,7 @@ public final class ValidatedCommandFactory {
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext context
   ) {
-    final ResumeQuery terminateQuery = (ResumeQuery) statement.getStatement();
+    final ResumeQuery resumeQuery = (ResumeQuery) statement.getStatement();
     final Optional<QueryId> queryId = terminateQuery.getQueryId();
 
     if (!queryId.isPresent()) {

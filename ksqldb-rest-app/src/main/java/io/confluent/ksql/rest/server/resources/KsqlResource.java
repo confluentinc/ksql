@@ -22,7 +22,6 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.rewrite.QueryMask;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -310,11 +309,11 @@ public class KsqlResource implements KsqlConfigurable {
 
       // log validated statements for query anonymization
       statements.forEach(s -> {
-        if (s.getStatementText().toLowerCase().contains("terminate")
-            || s.getStatementText().toLowerCase().contains("drop")) {
-          QueryLogger.info("Query terminated", s.getMaskedStatementText());
+        if (s.getUnMaskedStatementText().toLowerCase().contains("terminate")
+            || s.getUnMaskedStatementText().toLowerCase().contains("drop")) {
+          QueryLogger.info("Query terminated", s.getStatementText());
         } else {
-          QueryLogger.info("Query created", s.getMaskedStatementText());
+          QueryLogger.info("Query created", s.getStatementText());
         }
       });
 

@@ -66,14 +66,20 @@ public interface KsqlParser {
 
     /**
      * Use masked statement for logging and other output places it could be read by human. It
-     * masked sensitive information such as passwords, keys etc.
+     * masked sensitive information such as passwords, keys etc. For normal processing which
+     * needs unmasked statement text, please use {@code getUnMaskedStatementText}
      * @return Masked statement text
      */
-    public String getMaskedStatementText() {
+    public String getStatementText() {
       return maskedStatementText;
     }
 
-    public String getStatementText() {
+    /**
+     * This method returns unmasked statement text which can be used for processing. For logging
+     * and other output purposed for debugging etc, please use {@code getStatementText}
+     * @return Masked statement text
+     */
+    public String getUnMaskedStatementText() {
       return statementText;
     }
 
@@ -88,7 +94,7 @@ public interface KsqlParser {
 
     private final String statementText;
     private final T statement;
-    private String maskedStatementText;
+    private final String maskedStatementText;
 
     private PreparedStatement(final String statementText, final T statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -104,16 +110,22 @@ public interface KsqlParser {
     }
 
     /**
-     * Use masked statement for logging and other output places it could be read by human. It
-     * masked sensitive information such as passwords, keys etc.
+     * This method returns unmasked statement text which can be used for processing. For logging
+     * and other output purposed for debugging etc, please use {@code getStatementText}
      * @return Masked statement text
      */
-    public String getMaskedStatementText() {
-      return maskedStatementText;
+    public String getUnMaskedStatementText() {
+      return statementText;
     }
 
+    /**
+     * Use masked statement for logging and other output places it could be read by human. It
+     * masked sensitive information such as passwords, keys etc. For normal processing which
+     * needs unmasked statement text, please use {@code getUnMaskedStatementText}
+     * @return Masked statement text
+     */
     public String getStatementText() {
-      return statementText;
+      return maskedStatementText;
     }
 
     public T getStatement() {
@@ -122,7 +134,7 @@ public interface KsqlParser {
 
     @Override
     public String toString() {
-      return statementText;
+      return maskedStatementText;
     }
 
     @Override

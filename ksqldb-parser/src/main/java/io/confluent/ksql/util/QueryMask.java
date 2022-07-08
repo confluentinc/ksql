@@ -45,13 +45,12 @@ public class QueryMask {
   private static String maskConnectProperties(final String query) {
     /*
       Failed to parse statement. Mask disallowed keys by string replacing. This is a best effort
-      attempt. The assumption is that properties are in right format:
-      "(\"[^\"]+\")\\s*=\\s*('[^']*'|\"[^\"]*\")") i.e. it matches key wrapped in double quotes
-      equals value wrapped in double or single quotes. Key and value could be empty and there could
-      be spaces around equal sign.
+      attempt. The assumption is that properties are in right format: it matches key wrapped in
+      single quotes equals value wrapped in single quotes. Key and value could be empty and there
+      could be spaces around equal sign.
      */
     final StringBuffer sb = new StringBuffer();
-    final Pattern pattern = Pattern.compile("(\"[^\"]+\")\\s*=\\s*('[^']*'|\"[^\"]*\")");
+    final Pattern pattern = Pattern.compile("('[^']+')\\s*=\\s*('[^']*')");
     final Matcher matcher = pattern.matcher(query);
 
     while (matcher.find()) {
@@ -67,8 +66,7 @@ public class QueryMask {
     }
 
     matcher.appendTail(sb);
-
-    return "";
+    return sb.toString();
   }
 
   private static final class Visitor extends SqlBaseBaseVisitor<String> {

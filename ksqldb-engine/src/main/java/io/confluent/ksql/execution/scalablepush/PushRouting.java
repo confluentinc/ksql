@@ -393,7 +393,7 @@ public class PushRouting implements AutoCloseable {
         .getKsqlClient()
         .makeQueryRequestStreamed(
             owner.location(),
-            statement.getStatementText(),
+            statement.getUnMaskedStatementText(),
             statement.getSessionConfig().getOverrides(),
             requestProperties
         );

@@ -110,7 +110,7 @@ public class QueryEndpoint {
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
       publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics,
-          statement.getPreparedStatement().getStatementText()), true, false);
+          statement.getPreparedStatement().getUnMaskedStatementText()), true, false);
 
       // Start from the worker thread so that errors can bubble up, and we can get a proper response
       // code rather than waiting until later after the header has been written and all we can do

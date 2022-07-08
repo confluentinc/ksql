@@ -573,7 +573,7 @@ final class EngineExecutor {
     final MutableMetaStore tempMetastore = new MetaStoreImpl(new InternalFunctionRegistry());
     final Formats formats = ddlCommand.getFormats();
     tempMetastore.putSource(new KsqlTable<>(
-        statement.getStatementText(),
+        statement.getUnMaskedStatementText(),
         createTable.getName(),
         ddlCommand.getSchema(),
         Optional.empty(),
@@ -613,7 +613,7 @@ final class EngineExecutor {
     );
 
     return KsqlPlan.queryPlanCurrent(
-        statement.getStatementText(),
+        statement.getUnMaskedStatementText(),
         Optional.of(ddlCommand),
         queryPlan);
   }
@@ -650,7 +650,7 @@ final class EngineExecutor {
           );
 
           return KsqlPlan.ddlPlanCurrent(
-              statement.getStatementText(),
+              statement.getUnMaskedStatementText(),
               ddlCommand);
         }
       }
@@ -690,7 +690,7 @@ final class EngineExecutor {
       );
 
       return KsqlPlan.queryPlanCurrent(
-          statement.getStatementText(),
+          statement.getUnMaskedStatementText(),
           ddlCommand,
           queryPlan
       );
@@ -809,7 +809,7 @@ final class EngineExecutor {
       );
 
       final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-          statement.getStatementText(),
+          statement.getUnMaskedStatementText(),
           Optional.of(outputNode)
       );
 
@@ -957,7 +957,7 @@ final class EngineExecutor {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
         .buildQueryLogicalPlan(queryPlannerOptions, isScalablePush);
     return new LogicalPlanNode(
-        statement.getStatementText(),
+        statement.getUnMaskedStatementText(),
         Optional.of(outputNode)
     );
   }

@@ -15,7 +15,6 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
-import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementsContext;
@@ -29,10 +28,12 @@ import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.StringUtils;
 
-public class QueryMask {
+public final class QueryMask {
 
   private static final ImmutableSet<String> ALLOWED_KEYS = ImmutableSet.of("connector.class");
   private static final String MASKED_VALUE = "'[string]'";
+
+  private QueryMask() {}
 
   public static String getMaskedStatement(final String query) {
     try {

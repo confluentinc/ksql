@@ -273,8 +273,6 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    final String maskedQuery = QueryMask.getMaskedStatement(request.getKsql());
-    request.setMaskedKsql(maskedQuery);
     LOG.info("Received: " + request);
 
     throwIfNotConfigured();

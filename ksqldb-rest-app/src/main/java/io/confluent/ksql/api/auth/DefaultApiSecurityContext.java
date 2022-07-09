@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.auth;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
@@ -29,13 +30,19 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
   private final Optional<String> authToken;
   private final List<Entry<String, String>> requestHeaders;
 
-  public static DefaultApiSecurityContext create(final RoutingContext routingContext) {
+  public static DefaultApiSecurityContext create(final RoutingContext routingContext,
+      final Server server) {
     final User user = routingContext.user();
     if (user != null && !(user instanceof ApiUser)) {
       throw new IllegalStateException("Not an ApiUser: " + user);
     }
     final ApiUser apiUser = (ApiUser) user;
-    final String authToken = routingContext.request().getHeader("Authorization");
+
+    String authToken = null;
+    if (server.getAuthenticationPlugin().isPresent()) {
+      authToken = server.getAuthenticationPlugin().get().getAuthToken(routingContext);
+    }
+
     final List<Entry<String, String>> requestHeaders = routingContext.request().headers().entries();
     final String ipAddress = routingContext.request().remoteAddress().host();
     return new DefaultApiSecurityContext(

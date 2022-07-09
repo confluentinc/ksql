@@ -31,6 +31,7 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.ConfigKey;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.StreamsConfig.InternalConfig;
 
 /**
  * Resolves Ksql and streams property name to a ConfigItem.
@@ -132,11 +133,21 @@ public class KsqlConfigResolver implements ConfigResolver {
 
     final String keyNoPrefix = stripPrefix(propertyName, prefix);
     final ConfigKey configKey = def.configKeys().get(keyNoPrefix);
-    if (configKey == null) {
-      return Optional.empty();
+    if (configKey != null) {
+      return Optional.of(ConfigItem.resolved(configKey));
     }
 
-    return Optional.of(ConfigItem.resolved(configKey));
+    if (isInternalStreamsConfig(keyNoPrefix)) {
+      return Optional.of(ConfigItem.unresolved(keyNoPrefix));
+    }
+
+    return Optional.empty();
+  }
+
+  private static boolean isInternalStreamsConfig(final String key) {
+    // add more internal configs on demand
+    return key.equals(InternalConfig.EMIT_INTERVAL_MS_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX)
+        || key.equals(InternalConfig.EMIT_INTERVAL_MS_KSTREAMS_WINDOWED_AGGREGATION);
   }
 
   private static String stripPrefix(final String maybePrefixedKey, final String prefix) {

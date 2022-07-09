@@ -100,7 +100,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         request.sql, request.configOverrides, request.sessionProperties,
         request.requestProperties,
         context, server.getWorkerExecutor(),
-        DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder,
+        DefaultApiSecurityContext.create(routingContext, server), metricsCallbackHolder,
         internalRequest)
         .thenAccept(queryPublisher -> {
           handleQueryPublisher(

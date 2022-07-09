@@ -376,6 +376,37 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
+  public void shouldQueryWS() throws Exception {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.standBy.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+
+    final Credentials credentials =  new Credentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+    // When:
+    List<String> rows_0 =
+        makePullQueryWsRequest(clusterFormation.router.getApp().getWsListener(), sql, "", "", credentials, Optional.empty(), Optional.empty());
+
+    // Then:
+    // websocket pull query returns a header, the value row, and an error row indicating that it is done
+    assertThat(rows_0, hasSize(HEADER + 2));
+  }
+
+
   public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
@@ -729,9 +760,8 @@ public class PullQueryRoutingFunctionalTest {
       }
       return authToken;
     }
-
   }
-
+  
   public static class StaticStreamsTaskAssignor implements TaskAssignor {
     public StaticStreamsTaskAssignor() { }
 

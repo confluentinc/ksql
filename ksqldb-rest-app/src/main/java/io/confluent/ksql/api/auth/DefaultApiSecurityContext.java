@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.auth;
 
-import io.confluent.ksql.api.server.Server;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.security.KsqlPrincipal;

@@ -481,7 +481,7 @@ public class DataSourceNodeTest {
 
     final KeyFormat keyFormat = windowed
         ? KeyFormat
-        .windowed(format, SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty()))
+        .windowed(format, SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty()))
         : KeyFormat.nonWindowed(format, SerdeFeatures.of());
 
     when(topic.getKeyFormat()).thenReturn(keyFormat);

@@ -91,7 +91,7 @@ public class RuntimeBuildContextTest {
           ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "io.confluent.ksql"));
 
   private static final WindowInfo WINDOW_INFO = WindowInfo
-      .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)));
+      .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)), Optional.empty());
 
   @Mock
   private StreamsBuilder streamsBuilder;

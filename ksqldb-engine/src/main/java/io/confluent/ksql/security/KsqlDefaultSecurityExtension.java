@@ -39,6 +39,11 @@ public class KsqlDefaultSecurityExtension implements KsqlSecurityExtension {
   }
 
   @Override
+  public Optional<KsqlAuthTokenProvider> getAuthTokenProvider() {
+    return Optional.empty();
+  }
+
+  @Override
   public void close() {
   }
 }

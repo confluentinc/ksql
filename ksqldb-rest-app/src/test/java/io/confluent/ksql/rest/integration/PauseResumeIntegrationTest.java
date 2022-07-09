@@ -35,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -119,12 +120,11 @@ public class PauseResumeIntegrationTest {
     assertThatEventually(supplier, equalTo(9));
 
     // When:
-    // JNH: factor out?
     String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
         + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
 
-    assertThat(getPausedCount(), equalTo(1));
+    assertThat(getPausedCount(), equalTo(1L));
 
     // Produce more records
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON,
@@ -139,7 +139,7 @@ public class PauseResumeIntegrationTest {
 
     // 5 more records have been produced
     assertThatEventually(supplier, equalTo(14));
-    assertThat(getRunningCount(), equalTo(1));
+    assertThat(getRunningCount(), equalTo(1L));
   }
 
   @Test
@@ -160,8 +160,8 @@ public class PauseResumeIntegrationTest {
     String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
         + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
-    assertThat(getPausedCount(), equalTo(1));
-    assertThat(getRunningCount(), equalTo(1));
+    assertThatEventually(this::getPausedCount, equalTo(1L));
+    assertThatEventually(this::getRunningCount, equalTo(1L));
 
     // Produce more records
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON,
@@ -181,7 +181,7 @@ public class PauseResumeIntegrationTest {
         + "QUERIES;");
     assertThat(((Queries) showQueries3.get(0)).getQueries().get(0).getStatusCount().getStatuses()
         .get(KsqlQueryStatus.RUNNING), equalTo(1));
-    assertThat(getRunningCount(), equalTo(2));
+    assertThat(getRunningCount(), equalTo(2L));
   }
 
   @Test
@@ -203,6 +203,7 @@ public class PauseResumeIntegrationTest {
     String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
         + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
+    assertThatEventually(this::getPausedCount, equalTo(1L));
     assertThatEventually(supplier, equalTo(9));
 
     // Restart server
@@ -210,8 +211,8 @@ public class PauseResumeIntegrationTest {
     REST_APP.start();
 
     // Verify PAUSED state -- eventually
-    assertThatEventually(this::getPausedCount, equalTo(1));
-    //assertThatEventually(this::getRunningCount, equalTo(1));
+    assertThatEventually(this::getPausedCount, equalTo(1L));
+    assertThatEventually(this::getRunningCount, equalTo(1L));
 
     // Adding more after restart.
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON, System::currentTimeMillis);
@@ -222,8 +223,8 @@ public class PauseResumeIntegrationTest {
 
     // Then:
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "RESUME " + queryId + ";");
-    assertThatEventually(this::getPausedCount, equalTo(0));
-    assertThatEventually(this::getRunningCount, equalTo(2));
+    assertThatEventually(this::getPausedCount, equalTo(0L));
+    assertThatEventually(this::getRunningCount, equalTo(2L));
     assertThatEventually(supplier, equalTo(14));
   }
 
@@ -243,27 +244,22 @@ public class PauseResumeIntegrationTest {
         "select * from " + SINK_STREAM + streamNumber + ";",Optional.empty()).size();
   }
 
-  private int getPausedCount() {
+  private long getPausedCount() {
     return getCount(KsqlQueryStatus.PAUSED);
   }
 
-  private int getRunningCount() {
+  private long getRunningCount() {
     return getCount(KsqlQueryStatus.RUNNING);
   }
 
-  // JNH: Fix this.
-  private int getCount(KsqlQueryStatus status) {
+  private long getCount(KsqlQueryStatus status) {
     try {
-
-    List <KsqlEntity> showQueries = RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
-        + "QUERIES;");
-    System.out.println("Show queries " + showQueries.stream().map( q ->
-            ((Queries)q).getQueries().get(0).getStatusCount().toString())
-        .collect(Collectors.joining("\n")));
-
-    // This failing shows that the command topic isn't being read completely?
-    return ((Queries) showQueries.get(0)).getQueries().get(0).getStatusCount().getStatuses()
-        .get(status);
+      List <KsqlEntity> showQueries = RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW QUERIES;");
+      return showQueries.stream().map(entity -> (Queries)entity)
+              .flatMap(queries -> queries.getQueries().stream())
+              .map(rq -> rq.getStatusCount().getStatuses().get(status)).filter(Objects::nonNull)
+              .collect(Collectors.summarizingInt(Integer::intValue))
+              .getSum();
     } catch (Exception e) {
       return 0;
     }

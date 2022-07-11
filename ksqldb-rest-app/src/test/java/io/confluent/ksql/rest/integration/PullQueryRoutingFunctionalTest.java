@@ -709,7 +709,7 @@ public class PullQueryRoutingFunctionalTest {
     @Override
     public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
         WorkerExecutor workerExecutor) {
-      if (getAuthToken(routingContext) == null){
+      if (getAuthToken(routingContext) == null) {
         routingContext.fail(HttpResponseStatus.UNAUTHORIZED.code(),
             new KsqlApiException("Unauthorized", HttpResponseStatus.UNAUTHORIZED.code()));
         return CompletableFuture.completedFuture(null);
@@ -725,6 +725,7 @@ public class PullQueryRoutingFunctionalTest {
       }
       return authToken;
     }
+  }
 
   public static class StaticStreamsTaskAssignor implements TaskAssignor {
     public StaticStreamsTaskAssignor() { }

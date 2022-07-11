@@ -301,7 +301,7 @@ public class ServerVerticle extends AbstractVerticle {
         (ksqlRequest, apiSecurityContext) ->
             endpoints
                 .executeIsValidProperty(property, server.getWorkerExecutor(),
-                    DefaultApiSecurityContext.create(routingContext))
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 

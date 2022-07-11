@@ -25,6 +25,7 @@ import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -164,6 +165,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       if (!ksqlRequest.isPresent()) {
         return null;
       }
+      // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
+      ApiServerUtils.setMaskedSql(ksqlRequest.get());
       sql = ksqlRequest.get().getUnmaskedKsql();
       configOverrides = ksqlRequest.get().getConfigOverrides();
       sessionProperties = ksqlRequest.get().getSessionVariables();

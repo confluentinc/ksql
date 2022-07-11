@@ -85,11 +85,8 @@ public class OldApiUtilsTest {
         + "\"table.whitelist\"='[string]', "
         + "\"key\"='[string]');";
 
-    final AtomicReference<String> actual = new AtomicReference<String>();
-
     OldApiUtils.handleOldApiRequest(server, routingContext, KsqlRequest.class, Optional.empty(),
         (ksqlRequest, securityContext) -> {
-      actual.set(ksqlRequest.getMaskedKsql());
       assertThat(ksqlRequest.getMaskedKsql(), is(expected));
       final VertxCompletableFuture<EndpointResponse> vcf = new VertxCompletableFuture<>();
       vcf.complete(EndpointResponse.failed(1));

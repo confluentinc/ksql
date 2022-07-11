@@ -19,6 +19,7 @@ import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -269,20 +270,12 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
-  private void setMaskedSqlIfNeeded(final KsqlRequest request) {
-    try {
-      request.getMaskedKsql();
-    } catch (final NullPointerException e) {
-      request.setMaskedKsql(QueryMask.getMaskedStatement(request.getUnmaskedKsql()));
-    }
-  }
-
   public EndpointResponse handleKsqlStatements(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
     // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
-    setMaskedSqlIfNeeded(request);
+    ApiServerUtils.setMaskedSqlIfNeeded(request);
 
     LOG.info("Received: " + request);
     throwIfNotConfigured();

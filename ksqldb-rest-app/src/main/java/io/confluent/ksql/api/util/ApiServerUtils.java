@@ -16,9 +16,11 @@
 package io.confluent.ksql.api.util;
 
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.FileWatcher;
 import io.confluent.ksql.util.FileWatcher.Callback;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
@@ -49,6 +51,17 @@ public final class ApiServerUtils {
   private ApiServerUtils() {
   }
 
+  public static void setMaskedSqlIfNeeded(final KsqlRequest request) {
+    try {
+      request.getMaskedKsql();
+    } catch (final NullPointerException e) {
+      request.setMaskedKsql(QueryMask.getMaskedStatement(request.getUnmaskedKsql()));
+    }
+  }
+
+  public static void setMaskedSql(final KsqlRequest request) {
+    request.setMaskedKsql(QueryMask.getMaskedStatement(request.getUnmaskedKsql()));
+  }
 
   public static void unhandledExceptionHandler(final Throwable t) {
     if (t instanceof ClosedChannelException) {

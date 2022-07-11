@@ -21,6 +21,7 @@ import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -69,7 +70,7 @@ public final class OldApiUtils {
       requestObject = optRequestObject.get();
       if (requestObject instanceof KsqlRequest) {
         final KsqlRequest request = (KsqlRequest) requestObject;
-        request.setMaskedKsql(QueryMask.getMaskedStatement(request.getUnmaskedKsql()));
+        ApiServerUtils.setMaskedSql(request);
       }
     } else {
       requestObject = null;

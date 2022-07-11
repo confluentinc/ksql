@@ -17,9 +17,34 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import org.junit.Test;
 
 public class QueryMaskTest {
+
+  @Test
+  public void shouldMaskConfigMap() {
+    // Given
+    final ImmutableMap<String, String> config = ImmutableMap.of(
+        "connector.class", "someclass",
+        "model", "somemode",
+        "key", "somekey"
+    );
+
+    // When
+    final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
+
+    // Then
+    final ImmutableMap<String, String> expectedConfig = ImmutableMap.of(
+        "connector.class", "someclass",
+        "model", "'[string]'",
+        "key", "'[string]'"
+    );
+
+    assertThat(maskedConfig, is(expectedConfig));
+  }
 
   @Test
   public void shouldMaskIfNotExistSourceConnector() {

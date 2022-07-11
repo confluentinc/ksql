@@ -27,10 +27,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class KsqlRequest {
+
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlRequest.class);
+
   private final String ksql;
   private final ImmutableMap<String, Object> configOverrides;
   private final ImmutableMap<String, Object> requestProperties;
@@ -70,7 +75,7 @@ public class KsqlRequest {
   }
 
   public String getMaskedKsql() {
-    Objects.requireNonNull(maskedKsql, "maskedKsql");
+    Objects.requireNonNull(maskedKsql);
     return maskedKsql;
   }
 
@@ -127,8 +132,13 @@ public class KsqlRequest {
 
   @Override
   public String toString() {
+    final String sql = Objects.isNull(maskedKsql) ? ksql : maskedKsql;
+    if (Objects.isNull(maskedKsql)) {
+      LOG.warn("maskedKsql is not set, default to unmasked one for toString which "
+          + "may leak sensitive information");
+    }
     return "KsqlRequest{"
-        + "ksql='" + getMaskedKsql() + '\''
+        + "ksql='" + sql + '\''
         + ", configOverrides=" + configOverrides
         + ", requestProperties=" + requestProperties
         + ", sessionVariables=" + sessionVariables

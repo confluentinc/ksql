@@ -22,8 +22,11 @@ import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.StringUtils;
@@ -44,12 +47,21 @@ public final class QueryMask {
     }
   }
 
+  public static Map<String, String> getMaskedConnectConfig(final Map<String, String> config) {
+    return config.entrySet().stream().collect(Collectors.toMap(Entry::getKey, e -> {
+      if (ALLOWED_KEYS.contains(e.getKey())) {
+        return e.getValue();
+      }
+      return MASKED_VALUE;
+    }));
+  }
+
   private static String maskConnectProperties(final String query) {
     /*
       Failed to parse statement. Mask disallowed keys by string replacing. This is a best effort
       attempt. The assumption is that properties are in right format: it matches key wrapped in
-      single quotes equals value wrapped in single quotes. Key and value could be empty and there
-      could be spaces around equal sign.
+      single/double/back quotes equals value wrapped in single quotes. Value could be
+      empty and there could be spaces around equal sign.
      */
     final StringBuffer sb = new StringBuffer();
     final Pattern pattern = Pattern.compile("('[^']+'|\"[^\"]+\"|`[^`]+`)\\s*=\\s*('[^']*')",

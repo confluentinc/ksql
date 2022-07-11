@@ -65,6 +65,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
 import java.time.Duration;
@@ -268,12 +269,22 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
+  private void setMaskedSqlIfNeeded(final KsqlRequest request) {
+    try {
+      request.getMaskedKsql();
+    } catch (final NullPointerException e) {
+      request.setMaskedKsql(QueryMask.getMaskedStatement(request.getUnmaskedKsql()));
+    }
+  }
+
   public EndpointResponse handleKsqlStatements(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    LOG.info("Received: " + request);
+    // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
+    setMaskedSqlIfNeeded(request);
 
+    LOG.info("Received: " + request);
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -289,7 +300,7 @@ public class KsqlResource implements KsqlConfigurable {
 
       final KsqlRequestConfig requestConfig =
           new KsqlRequestConfig(request.getRequestProperties());
-      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+      final List<ParsedStatement> statements = ksqlEngine.parse(request.getUnmaskedKsql());
 
       validator.validate(
           SandboxedServiceContext.create(securityContext.getServiceContext()),
@@ -301,7 +312,7 @@ public class KsqlResource implements KsqlConfigurable {
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
               request.getSessionVariables()
           ),
-          request.getKsql()
+          request.getUnmaskedKsql()
       );
 
       // log validated statements for query anonymization

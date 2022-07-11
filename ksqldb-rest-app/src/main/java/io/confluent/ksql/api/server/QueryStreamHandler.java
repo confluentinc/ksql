@@ -164,7 +164,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       if (!ksqlRequest.isPresent()) {
         return null;
       }
-      sql = ksqlRequest.get().getKsql();
+      sql = ksqlRequest.get().getUnmaskedKsql();
       configOverrides = ksqlRequest.get().getConfigOverrides();
       sessionProperties = ksqlRequest.get().getSessionVariables();
       requestProperties = ksqlRequest.get().getRequestProperties();

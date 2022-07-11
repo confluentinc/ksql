@@ -15,26 +15,33 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -56,7 +63,7 @@ public class OldApiUtilsTest {
   }
 
   @Test
-  public void shouldMaskKsqlRequestQuery() {
+  public void shouldMaskKsqlRequestQuery() throws ExecutionException, InterruptedException {
     // Given
     final String query = "--this is a comment. \n"
         + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
@@ -78,12 +85,34 @@ public class OldApiUtilsTest {
         + "\"table.whitelist\"='[string]', "
         + "\"key\"='[string]');";
 
+    final AtomicReference<String> actual = new AtomicReference<String>();
+
     OldApiUtils.handleOldApiRequest(server, routingContext, KsqlRequest.class, Optional.empty(),
         (ksqlRequest, securityContext) -> {
+      actual.set(ksqlRequest.getMaskedKsql());
       assertThat(ksqlRequest.getMaskedKsql(), is(expected));
       final VertxCompletableFuture<EndpointResponse> vcf = new VertxCompletableFuture<>();
       vcf.complete(EndpointResponse.failed(1));
       return vcf;
     });
+  }
+
+  @Test
+  public void shouldReturnEmbeddedResponseForKsqlRestException() {
+    final EndpointResponse response = EndpointResponse.failed(400);
+    assertThat(
+        OldApiUtils.mapException(new KsqlRestException(response)),
+        sameInstance(response));
+  }
+
+  @Test
+  public void shouldReturnCorrectResponseForUnspecificException() {
+    final EndpointResponse response = OldApiUtils
+        .mapException(new Exception("error msg"));
+    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage) response.getEntity();
+    assertThat(errorMessage.getMessage(), equalTo("error msg"));
+    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
+    assertThat(response.getStatus(), equalTo(INTERNAL_SERVER_ERROR.code()));
   }
 }

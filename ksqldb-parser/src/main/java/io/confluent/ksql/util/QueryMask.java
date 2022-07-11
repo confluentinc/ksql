@@ -39,7 +39,7 @@ public final class QueryMask {
     try {
       final ParseTree tree = DefaultKsqlParser.getParseTree(query);
       return new Visitor().visit(tree);
-    } catch (final Exception e) {
+    } catch (final Exception | StackOverflowError e) {
       return maskConnectProperties(query);
     }
   }
@@ -52,7 +52,7 @@ public final class QueryMask {
       could be spaces around equal sign.
      */
     final StringBuffer sb = new StringBuffer();
-    final Pattern pattern = Pattern.compile("('[^']+'|\"[^\"]+\")\\s*=\\s*('[^']*')",
+    final Pattern pattern = Pattern.compile("('[^']+'|\"[^\"]+\"|`[^`]+`)\\s*=\\s*('[^']*')",
         Pattern.DOTALL | Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
     final Matcher matcher = pattern.matcher(query);
 
@@ -149,7 +149,7 @@ public final class QueryMask {
           unquotedLowerKey = ParserUtil.getIdentifierText(prop.identifier()).toLowerCase();
         } else {
           key = prop.STRING().getText();
-          unquotedLowerKey = key.substring(1, key.length() - 1).toLowerCase();
+          unquotedLowerKey = ParserUtil.unquote(key, "'");
         }
 
         formattedProp.append(key);

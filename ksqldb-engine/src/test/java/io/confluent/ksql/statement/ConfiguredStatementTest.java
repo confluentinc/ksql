@@ -1,6 +1,7 @@
 package io.confluent.ksql.statement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -32,6 +33,10 @@ public class ConfiguredStatementTest {
         + "\"table.whitelist\"='[string]', "
         + "\"key\"='[string]');";
 
+    final String maskedToString = "ConfiguredStatement{"
+        + "statement=" + masked
+        + ", config=";
+
     final PreparedStatement<CreateConnector> preparedStatement =
         PreparedStatement.of(query, mock(CreateConnector.class));
     // when
@@ -41,5 +46,6 @@ public class ConfiguredStatementTest {
     // Then
     assertThat(configuredStatement.getStatementText(), is(masked));
     assertThat(configuredStatement.getUnMaskedStatementText(), is(query));
+    assertThat(configuredStatement.toString(), containsString(maskedToString));
   }
 }

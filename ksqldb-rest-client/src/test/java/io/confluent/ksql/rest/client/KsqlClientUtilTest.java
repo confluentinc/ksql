@@ -184,8 +184,7 @@ public class KsqlClientUtilTest {
     // Then:
     assertThat(buff, is(notNullValue()));
     String expectedJson = "{\"ksql\":\"some ksql\",\"streamsProperties\":{\"auto.offset.reset\":\""
-        + "latest\"},\"requestProperties\":{},\"commandSequenceNumber\":21345,\"sessionVariables\":{},"
-        + "\"maskedKsql\":null}";
+        + "latest\"},\"requestProperties\":{},\"commandSequenceNumber\":21345,\"sessionVariables\":{}}";
     assertThat(new JsonObject(buff), is(new JsonObject(expectedJson)));
 
     // When:

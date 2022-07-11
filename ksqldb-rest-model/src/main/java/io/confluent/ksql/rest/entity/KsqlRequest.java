@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -35,6 +36,7 @@ public class KsqlRequest {
   private final ImmutableMap<String, Object> requestProperties;
   private final ImmutableMap<String, Object> sessionVariables;
   private final Optional<Long> commandSequenceNumber;
+  @JsonIgnore
   private String maskedKsql;
 
   public KsqlRequest(
@@ -67,16 +69,18 @@ public class KsqlRequest {
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
-  public String getKsql() {
-    return ksql;
-  }
-
   public String getMaskedKsql() {
+    Objects.requireNonNull(maskedKsql, "maskedKsql");
     return maskedKsql;
   }
 
+  @JsonProperty("ksql")
+  public String getUnmaskedKsql() {
+    return ksql;
+  }
+
   public void setMaskedKsql(final String maskedKsql) {
-    this.maskedKsql = maskedKsql;
+    this.maskedKsql = Objects.requireNonNull(maskedKsql, "maskedKsql");
   }
 
   @JsonProperty("streamsProperties")
@@ -124,7 +128,7 @@ public class KsqlRequest {
   @Override
   public String toString() {
     return "KsqlRequest{"
-        + "ksql='" + maskedKsql + '\''
+        + "ksql='" + getMaskedKsql() + '\''
         + ", configOverrides=" + configOverrides
         + ", requestProperties=" + requestProperties
         + ", sessionVariables=" + sessionVariables

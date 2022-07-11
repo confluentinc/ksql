@@ -22,12 +22,12 @@ import org.junit.Test;
 public class QueryMaskTest {
 
   @Test
-  public void shouldMaskSourceConnector() {
+  public void shouldMaskIfNotExistSourceConnector() {
     // Given:
-    final String query = "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+    final String query = "CREATE SOURCE CONNECTOR IF NOT EXISTS testconnector WITH ("
         + "    \"connector.class\" = 'PostgresSource', \n"
         + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
-        + "    \"mode\"='bulk',\n"
+        + "    `mode`='bulk',\n"
         + "    \"topic.prefix\"='jdbc-',\n"
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
@@ -36,13 +36,39 @@ public class QueryMaskTest {
     final String maskedQuery = QueryMask.getMaskedStatement(query);
 
     // Then
-        final String expected = "CREATE SOURCE CONNECTOR `test-connector` WITH "
-            + "(\"connector.class\"='PostgresSource', "
-            + "'connection.url'='[string]', "
-            + "\"mode\"='[string]', "
-            + "\"topic.prefix\"='[string]', "
-            + "\"table.whitelist\"='[string]', "
-            + "\"key\"='[string]');";
+    final String expected = "CREATE SOURCE CONNECTOR IF NOT EXISTS testconnector WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "`mode`='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
+
+    assertThat(maskedQuery, is(expected));
+  }
+
+  @Test
+  public void shouldMaskSourceConnector() {
+    // Given:
+    final String query = "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    `mode`='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    // When
+    final String maskedQuery = QueryMask.getMaskedStatement(query);
+
+    // Then
+    final String expected = "CREATE SOURCE CONNECTOR `test-connector` WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "`mode`='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
 
     assertThat(maskedQuery, is(expected));
   }
@@ -80,7 +106,7 @@ public class QueryMaskTest {
     final String query = "CREATE Sink CONNECTO `test-connector` WITH ("
         + "    \"connector.class\" = 'PostgresSource', \n"
         + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
-        + "    \"mode\"='bulk',\n"
+        + "    `mode`='bulk',\n"
         + "    \"topic.prefix\"='jdbc-',\n"
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
@@ -92,7 +118,7 @@ public class QueryMaskTest {
     final String expected = "CREATE Sink CONNECTO `test-connector` WITH ("
         + "    \"connector.class\" = 'PostgresSource', \n"
         + "    'connection.url'='[string]',\n"
-        + "    \"mode\"='[string]',\n"
+        + "    `mode`='[string]',\n"
         + "    \"topic.prefix\"='[string]',\n"
         + "    \"table.whitelist\"='[string]',\n"
         + "    \"key\"='[string]');";
@@ -138,7 +164,7 @@ public class QueryMaskTest {
     // When
     final String maskedQuery = QueryMask.getMaskedStatement(query);
 
-    // Then
+    // Then: we are replacing key which is not in ALLOWED_KEYS if the statement is invalid and we do regex matching
     final String expected  = "CREATE STREAM `stream` (id varchar) WIT ('format'='[string]', \"kafka_topic\"='[string]', partitions=3);";
     assertThat(maskedQuery, is(expected));
   }
@@ -165,6 +191,63 @@ public class QueryMaskTest {
         + "\"topic.prefix\"='[string]', "
         + "\"table.whitelist\"='[string]', "
         + "\"key\"='[string]');";
+
+    assertThat(maskedQuery, is(expected));
+  }
+
+  @Test
+  public void shouldMaskMultipleValidStatements() {
+    // Given:
+    // Typo in "WITH" => "WIT"
+    final String query = "CREATE SOURCE CONNECTOR test_connector WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    `mode`='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');\n"
+        + "CREATE STREAM `stream` (id varchar) WITH ('format' = 'avro', \"kafka_topic\" = 'test_topic', partitions=3);";
+
+    // When
+    final String maskedQuery = QueryMask.getMaskedStatement(query);
+
+    // Then
+    final String expected = "CREATE SOURCE CONNECTOR test_connector WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "`mode`='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');\n"
+        + "CREATE STREAM `stream` (id varchar) WITH ('format' = 'avro', \"kafka_topic\" = 'test_topic', partitions=3);";
+
+    assertThat(maskedQuery, is(expected));
+  }
+
+  @Test
+  public void shouldMaskMixedValidInvalidStatements() {
+    // Given:
+    // Typo in "WITH" => "WIT"
+    final String query = "CREATE SOURCE CONNECTOR test_connector WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    `mode`='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');\n"
+        + "CREATE STREAM `stream` (id varchar) WIT ('format' = 'avro', \"kafka_topic\" = 'test_topic', partitions=3);";
+
+    // When
+    final String maskedQuery = QueryMask.getMaskedStatement(query);
+
+    // Then
+    final String expected = "CREATE SOURCE CONNECTOR test_connector WITH (    \"connector.class\" = 'PostgresSource', \n    "
+        + "'connection.url'='[string]',\n    "
+        + "`mode`='[string]',\n    "
+        + "\"topic.prefix\"='[string]',\n    "
+        + "\"table.whitelist\"='[string]',\n    "
+        + "\"key\"='[string]');\n"
+        + "CREATE STREAM `stream` (id varchar) WIT ('format'='[string]', \"kafka_topic\"='[string]', partitions=3);";
 
     assertThat(maskedQuery, is(expected));
   }

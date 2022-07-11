@@ -30,25 +30,37 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.TypeRegistry;
-import io.confluent.ksql.metastore.TypeRegistryImpl;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.exception.ParseFailedException;
+
+import io.confluent.ksql.parser.tree.CreateConnector.Type;
+import io.confluent.ksql.parser.tree.AssertSchema;
+import io.confluent.ksql.parser.tree.AssertTopic;
+import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.DefineVariable;
+import io.confluent.ksql.parser.tree.DropConnector;
+import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.UndefineVariable;
+import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.VariableSubstitutor;
-import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.parser.tree.*;
-import io.confluent.ksql.parser.tree.CreateConnector.Type;
-import io.confluent.ksql.tools.migrations.MigrationException;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlStatementException;
-import org.apache.kafka.common.quota.ClientQuotaAlteration;
+
+
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -88,13 +100,12 @@ public final class CommandParser {
 
     private final Class<? extends Statement> statementClass;
 
-    <T extends Statement> StatementType(
-            final Class<T> statementClass) {
+    <T extends Statement> StatementType(final Class<T> statementClass) {
       this.statementClass = Objects.requireNonNull(statementClass, "statementClass");
     }
 
-    public static StatementType get(Class<? extends Statement> statementClass) {
-      Optional<StatementType> type = Arrays.stream(StatementType.values())
+    public static StatementType get(final Class<? extends Statement> statementClass) {
+      final Optional<StatementType> type = Arrays.stream(StatementType.values())
               .filter(statementType -> statementType.statementClass.equals(statementClass))
               .findFirst();
       return type.orElse(StatementType.STATEMENT);
@@ -208,14 +219,14 @@ public final class CommandParser {
     validateSupportedStatementType(sql);
     final String substituted;
     try {
-      substituted = VariableSubstitutor.substitute( KSQL_PARSER.parse(sql).get(0), variables);
+      substituted = VariableSubstitutor.substitute(KSQL_PARSER.parse(sql).get(0), variables);
     } catch (ParseFailedException e) {
       throw new MigrationException(String.format(
           "Failed to parse the statement. Statement: %s. Reason: %s",
           sql, e.getMessage()));
     }
-    final Class<? extends Statement> statementClass = KSQL_PARSER.prepare
-            (KSQL_PARSER.parse(substituted).get(0), TypeRegistry.EMPTY).getStatement().getClass();
+    final Class<? extends Statement> statementClass = KSQL_PARSER.prepare(
+            KSQL_PARSER.parse(substituted).get(0), TypeRegistry.EMPTY).getStatement().getClass();
 
     switch (StatementType.get(statementClass)) {
       case INSERT_VALUES:

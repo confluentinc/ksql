@@ -63,9 +63,9 @@ statement
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE identifier                                                  #terminateQuery
     | TERMINATE ALL                                                         #terminateQuery
-    | SET (VARIABLE | STRING) EQ (VARIABLE | STRING)                        #setProperty
+    | SET STRING EQ STRING                                                  #setProperty
     | ALTER SYSTEM STRING EQ STRING                                         #alterSystemProperty
-    | UNSET (VARIABLE | STRING)                                             #unsetProperty
+    | UNSET STRING                                                          #unsetProperty
     | DEFINE variableName EQ variableValue                                  #defineVariable
     | UNDEFINE variableName                                                 #undefineVariable
     | CREATE (OR REPLACE)? (SOURCE)? STREAM (IF NOT EXISTS)? sourceName

@@ -33,12 +33,13 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-
-import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.AssertSchema;
 import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.InsertValues;
@@ -47,11 +48,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.VariableSubstitutor;
-
-
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;

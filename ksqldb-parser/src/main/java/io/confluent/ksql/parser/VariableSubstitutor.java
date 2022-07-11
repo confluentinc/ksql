@@ -158,6 +158,19 @@ public final class VariableSubstitutor {
       return null;
     }
 
+    @Override
+    public Void visitSetProperty(final SqlBaseParser.SetPropertyContext context) {
+      lookupVariables(context.STRING(0).getText());
+      lookupVariables(context.STRING(1).getText());
+      return null;
+    }
+
+    @Override
+    public Void visitUnsetProperty(final SqlBaseParser.UnsetPropertyContext context) {
+      lookupVariables(context.STRING().getText());
+      return null;
+    }
+
     private String getIdentifierText(final String value) {
       final char firstChar = value.charAt(0);
       final char lastChar = value.charAt(value.length() - 1);

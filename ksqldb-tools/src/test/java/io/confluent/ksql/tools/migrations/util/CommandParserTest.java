@@ -196,7 +196,7 @@ public class CommandParserTest {
         ImmutableMap.of("name", "foo.property", "value", "bar"));
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(0).getCommand(), is("SET '${name}'='${value}';"));
+    assertThat(commands.get(0).getCommand(), is("SET 'foo.property'='bar';"));
     assertThat(((SqlPropertyCommand) commands.get(0)).isSetCommand(), is(true));
     assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
     assertThat(((SqlPropertyCommand) commands.get(0)).getValue().get(), is("bar"));

@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.not;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.api.AuthTest.StringPrincipal;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.server.KsqlApiException;
@@ -350,8 +349,8 @@ public class PullQueryRoutingFunctionalTest {
         makePullQueryWsRequest(clusterFormation.router.getApp().getWsListener(), sql, "", "", credentials, Optional.empty(), Optional.empty());
 
     // Then:
-    // websocket pull query returns a header, the value row, and an error row indicating that it is done
-    assertThat(rows_0, hasSize(HEADER + 2));
+    // websocket pull query returns a header, the value row
+    assertThat(rows_0, hasSize(HEADER + 1));
   }
 
   @Test

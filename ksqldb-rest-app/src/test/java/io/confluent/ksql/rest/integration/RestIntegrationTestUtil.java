@@ -19,6 +19,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
+import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
@@ -573,7 +574,7 @@ public final class RestIntegrationTestUtil {
     final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 
     credentials.ifPresent(
-        creds -> headers.add(AUTHORIZATION.toString(), "Basic " + buildBasicAuthHeader(creds)));
+        creds -> headers.add(AUTHORIZATION, "Basic " + buildBasicAuthHeader(creds)));
 
     mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
     contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));

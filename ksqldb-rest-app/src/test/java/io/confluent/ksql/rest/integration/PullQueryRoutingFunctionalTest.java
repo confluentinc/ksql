@@ -36,7 +36,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.api.AuthTest.StringPrincipal;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.server.KsqlApiException;
@@ -705,7 +704,7 @@ public class PullQueryRoutingFunctionalTest {
     @Override
     public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
         WorkerExecutor workerExecutor) {
-      if (getAuthToken(routingContext) == null){
+      if (getAuthToken(routingContext) == null) {
         routingContext.fail(HttpResponseStatus.UNAUTHORIZED.code(),
             new KsqlApiException("Unauthorized", HttpResponseStatus.UNAUTHORIZED.code()));
         return CompletableFuture.completedFuture(null);
@@ -721,6 +720,7 @@ public class PullQueryRoutingFunctionalTest {
       }
       return authToken;
     }
+  }
 
   public static class StaticStreamsTaskAssignor implements TaskAssignor {
     public StaticStreamsTaskAssignor() { }

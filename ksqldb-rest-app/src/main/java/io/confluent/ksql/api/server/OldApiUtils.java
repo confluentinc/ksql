@@ -68,7 +68,7 @@ public final class OldApiUtils {
       }
       requestObject = optRequestObject.get();
       if (requestObject instanceof KsqlRequest) {
-        KsqlRequest request = (KsqlRequest) requestObject;
+        final KsqlRequest request = (KsqlRequest) requestObject;
         request.setMaskedKsql(QueryMask.getMaskedStatement(request.getKsql()));
       }
     } else {

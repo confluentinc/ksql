@@ -27,7 +27,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
@@ -47,20 +46,13 @@ public class OldApiUtilsTest {
   @Mock
   private HttpServerRequest request;
   @Mock
-  private HttpServerResponse response;
-  @Mock
   private RoutingContext routingContext;
-  @Captor
-  private ArgumentCaptor<Handler<Void>> endHandler;
-
 
   @Before
   public void setUp() {
     when(routingContext.request()).thenReturn(request);
-    when(request.version()).thenReturn(HttpVersion.HTTP_2);
     when(request.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
     when(request.remoteAddress()).thenReturn(SocketAddress.inetSocketAddress(9000, "remote"));
-    when(response.endHandler(endHandler.capture())).thenReturn(response);
   }
 
   @Test

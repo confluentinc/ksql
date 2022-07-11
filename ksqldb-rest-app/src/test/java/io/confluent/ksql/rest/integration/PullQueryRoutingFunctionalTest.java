@@ -375,7 +375,6 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 2));
   }
 
-  @Test
   public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
@@ -729,9 +728,8 @@ public class PullQueryRoutingFunctionalTest {
       }
       return authToken;
     }
-
   }
-
+  
   public static class StaticStreamsTaskAssignor implements TaskAssignor {
     public StaticStreamsTaskAssignor() { }
 

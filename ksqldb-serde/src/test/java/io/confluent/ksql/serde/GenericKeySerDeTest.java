@@ -65,9 +65,9 @@ public class GenericKeySerDeTest {
   private static final String LOGGER_PREFIX = "bob";
   private static final String queryId = "query";
   private static final WindowInfo TIMED_WND = WindowInfo
-      .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)));
+      .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)), Optional.empty());
   private static final WindowInfo SESSION_WND = WindowInfo
-      .of(WindowType.SESSION, Optional.empty());
+      .of(WindowType.SESSION, Optional.empty(), Optional.empty());
   private static final ColumnName COLUMN_NAME = ColumnName.of("foo");
 
   @Mock

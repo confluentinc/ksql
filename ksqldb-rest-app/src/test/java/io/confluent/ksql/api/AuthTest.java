@@ -647,7 +647,7 @@ public class AuthTest extends ApiTest {
     void run() throws Exception;
   }
 
-  private static class StringPrincipal implements Principal {
+  public static class StringPrincipal implements Principal {
 
     private final String name;
 

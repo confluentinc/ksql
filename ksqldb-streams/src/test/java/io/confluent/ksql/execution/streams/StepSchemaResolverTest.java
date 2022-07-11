@@ -358,7 +358,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         "foo",
         formats,
-        WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
+        WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123)), Optional.empty()),
         Optional.empty(),
         SCHEMA,
         OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)

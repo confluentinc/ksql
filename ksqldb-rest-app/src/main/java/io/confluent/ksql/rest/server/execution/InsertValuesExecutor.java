@@ -37,7 +37,16 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.serde.*;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.GenericKeySerDe;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
@@ -233,7 +242,8 @@ public class InsertValuesExecutor {
 
     if (dataSource.isSource()) {
       throw new KsqlException(String.format("Cannot insert values into read-only %s: %s",
-              dataSource.getDataSourceType().getKsqlType().toLowerCase(), dataSource.getName().text()));
+              dataSource.getDataSourceType().getKsqlType().toLowerCase(),
+              dataSource.getName().text()));
     }
 
     return dataSource;
@@ -460,7 +470,9 @@ public class InsertValuesExecutor {
     }
   }
 
-  private boolean isValueSchemaEvolved(PersistenceSchema valueSchema, DataSource dataSource, ServiceContext serviceContext) {
+  private boolean isValueSchemaEvolved(
+          final PersistenceSchema valueSchema, final DataSource dataSource,
+          final ServiceContext serviceContext) {
     final ValueFormat valueFormat = dataSource.getKsqlTopic().getValueFormat();
     final Format format = FormatFactory.fromName(valueFormat.getFormat());
     if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {

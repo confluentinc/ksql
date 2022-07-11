@@ -39,8 +39,11 @@ public class InsertionIntegrationTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(InsertionIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private  static final String TOPIC_NAME = "sample_topic";
-  private  static final String STREAM_NAME = "source_stream";
+  private  static final String SIMPLE_TOPIC = "simple_topic";
+  private  static final String EVOLVING_TOPIC = "evolving_topic";
+
+  private  static final String SIMPLE_STREAM = "simple_stream";
+  private  static final String EVOLVING_STREAM = "evolving_stream";
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -60,27 +63,47 @@ public class InsertionIntegrationTest {
   @Before
   public void setupRun() {
     ksqlRestClient = REST_APP.buildKsqlClient(Optional.empty());
+
+    ksqlRestClient.makeKsqlRequest
+            ("CREATE STREAM " + SIMPLE_STREAM + " (K0 INT KEY, K1 STRING KEY,V0 BOOLEAN, V1 INT) " +
+                    "WITH (KAFKA_TOPIC = '" + SIMPLE_TOPIC + "', VALUE_FORMAT = 'AVRO', " +
+                    "KEY_FORMAT = 'AVRO', PARTITIONS = 1);");
+
+    ksqlRestClient.makeKsqlRequest
+            ("CREATE STREAM " + EVOLVING_STREAM + " (K0 INT KEY, V0 BOOLEAN) " +
+                    "WITH (KAFKA_TOPIC = '" + EVOLVING_TOPIC + "', VALUE_FORMAT = 'AVRO', " +
+                    "PARTITIONS = 1);");
   }
 
   @After
   public void afterRun() {
-    TEST_HARNESS.deleteTopics(Arrays.asList(TOPIC_NAME));
   }
 
   @Test
   public void shouldAvoidNewSchemaRegistrationWithInsertValues() {
-    ksqlRestClient.makeKsqlRequest
-            ("CREATE STREAM " + STREAM_NAME + " (K0 INT KEY, K1 STRING KEY,V0 BOOLEAN, V1 INT) " +
-                    "WITH (KAFKA_TOPIC = '" + TOPIC_NAME + "', VALUE_FORMAT = 'AVRO', " +
-                    "KEY_FORMAT = 'AVRO', PARTITIONS = 1);");
 
     ksqlRestClient.makeKsqlRequest
-            ("INSERT INTO " + STREAM_NAME + " (K0, K1, V0, V1) VALUES (1,'foo', true, 3);");
+            ("INSERT INTO " + SIMPLE_STREAM + " (K0, K1, V0, V1) VALUES (1,'foo', true, 3);");
 
-    String key = KsqlConstants.getSRSubject(TOPIC_NAME, true);
-    String value = KsqlConstants.getSRSubject(TOPIC_NAME, false);
+    String key = KsqlConstants.getSRSubject(SIMPLE_TOPIC, true);
+    String value = KsqlConstants.getSRSubject(SIMPLE_TOPIC, false);
 
     assertThat(TEST_HARNESS.getLatestSchemaVersion(key), is(1));
     assertThat(TEST_HARNESS.getLatestSchemaVersion(value), is(1));
+  }
+  @Test
+  public void shouldSupportEvolvingSchemasOnInsert() {
+
+    ksqlRestClient.makeKsqlRequest
+            ("CREATE OR REPLACE STREAM " + EVOLVING_STREAM + " (K0 INT KEY, V0 BOOLEAN, V1 STRING) " +
+                    "WITH (KAFKA_TOPIC = '" + EVOLVING_TOPIC + "', VALUE_FORMAT = 'AVRO', " +
+                    "PARTITIONS = 1);");
+
+    ksqlRestClient.makeKsqlRequest
+            ("INSERT INTO " + EVOLVING_STREAM + " (K0, V0, V1) VALUES (1, true, 'foo');");
+
+    String value = KsqlConstants.getSRSubject(EVOLVING_TOPIC, false);
+
+    assertThat(TEST_HARNESS.getLatestSchemaVersion(value), is(2));
   }
 }

@@ -911,7 +911,7 @@ public class JoinNodeTest {
   @Test
   public void shouldThrowIfProjectionDoesNotIncludeAnyJoinColumns() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left, right,
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right,
         empty(),"KAFKA");
 
     when(joinKey.getAllViableKeys(any()))
@@ -929,7 +929,7 @@ public class JoinNodeTest {
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `sink` "
         + "must include the join expressions expression1, expression1 or expression2 "
-        + "in its projection."));
+        + "in its projection (eg, SELECT expression1..."));
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})

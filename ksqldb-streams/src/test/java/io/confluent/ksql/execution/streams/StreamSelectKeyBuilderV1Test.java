@@ -79,6 +79,7 @@ public class StreamSelectKeyBuilderV1Test {
       .valueColumn(ColumnName.of(SystemColumns.ROWTIME_NAME.text()), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of(SystemColumns.ROWPARTITION_NAME.text()), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of(SystemColumns.ROWOFFSET_NAME.text()), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of(SystemColumns.ROWID_NAME.text()), SqlTypes.BYTES)
       .valueColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .build();
 
@@ -116,7 +117,7 @@ public class StreamSelectKeyBuilderV1Test {
   @SuppressWarnings({"unchecked", "rawtypes"})
   public void init() {
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));
+    when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_ROWID_ENABLED, true)));
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(

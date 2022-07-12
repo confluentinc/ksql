@@ -1,4 +1,59 @@
 # Change Log
+## [0.27.0](https://github.com/confluentinc/ksql/releases/tag/v0.27.0-ksqldb) (2022-07-12)
+
+### Features
+
+* add assert methods to java client ([#9099](https://github.com/confluentinc/ksql/pull/9099)) ([e7109f6](https://github.com/confluentinc/ksql/commit/e7109f6599620a60426d2fcd8b38090d2b98fcb0))
+* add ASSERT SCHEMA statement ([#9091](https://github.com/confluentinc/ksql/pull/9091)) ([4b450ec](https://github.com/confluentinc/ksql/commit/4b450ec5c8469202ca7d15fc3b4e57416f841ee9))
+* add ASSERT TOPIC command ([#9066](https://github.com/confluentinc/ksql/pull/9066)) ([cd5254f](https://github.com/confluentinc/ksql/commit/cd5254f9214fe0faadb98d505664f866805aedf0))
+* add metric for query restarts ([#9045](https://github.com/confluentinc/ksql/pull/9045)) ([b016139](https://github.com/confluentinc/ksql/commit/b01613963a90d3be284f7d673ee9b5e08799a7d5))
+* add metric that's emitted when processing log emits an error ([#9035](https://github.com/confluentinc/ksql/pull/9035)) ([3f0a0ad](https://github.com/confluentinc/ksql/commit/3f0a0ad341d5ec12d8609f46bb9cdc2fa832c011))
+* add ProtoBuf as a content type for pull queries over /query-stream endpoint ([#9103](https://github.com/confluentinc/ksql/pull/9103)) ([e64e284](https://github.com/confluentinc/ksql/commit/e64e284d21cbbafb583d4f73b6aaee150f167ee7))
+* add support for assert statements to migration tool ([#9107](https://github.com/confluentinc/ksql/pull/9107)) ([81a0b47](https://github.com/confluentinc/ksql/commit/81a0b47c69f7053103e55641851c2d71a613fb9f))
+* assert not exists topic ([#9086](https://github.com/confluentinc/ksql/pull/9086)) ([4b57b55](https://github.com/confluentinc/ksql/commit/4b57b550d0d1ee6c6367433f7ad6a65498c08d65))
+* automatically build confluent cloud image on every master merge ([#9096](https://github.com/confluentinc/ksql/pull/9096)) ([07161e1](https://github.com/confluentinc/ksql/commit/07161e11dfb283d567e919c6738559e6a8145189))
+* clean up processing log metric ([#9105](https://github.com/confluentinc/ksql/pull/9105)) ([926e440](https://github.com/confluentinc/ksql/commit/926e4406f9feba5d53793d579c6ef770d79d6306))
+* close websocket connections with expired tokens ([#9147](https://github.com/confluentinc/ksql/pull/9147)) ([eeb8324](https://github.com/confluentinc/ksql/commit/eeb83245464957a59af895a6b22695335fe64eda))
+* cull the list of API consumable/editable properties ([#9134](https://github.com/confluentinc/ksql/pull/9134)) ([8b808ca](https://github.com/confluentinc/ksql/commit/8b808ca029c2429d94229f249a598218212bea20))
+* enable max/min udaf for string & bytes data types ([030f214](https://github.com/confluentinc/ksql/commit/030f214714074b178734ce48b980e08512972cfd))
+* introduce ATTR aggregation function ([#9168](https://github.com/confluentinc/ksql/pull/9168)) ([2e1c457](https://github.com/confluentinc/ksql/commit/2e1c457fbfe177d3efe3ae1fe8d3fa1ba1d87d11))
+* migrate java client to use application/vnd.ksql.v1+json format ([1bb24c3](https://github.com/confluentinc/ksql/commit/1bb24c31b6959840f5cd0a6a646eb8aca7e339a3))
+* Support all wildcard (*) on struct reference syntax ([#9120](https://github.com/confluentinc/ksql/pull/9120)) ([ff9b28b](https://github.com/confluentinc/ksql/commit/ff9b28bc68457094436968c58f6a80e7c305815c))
+* Support BYTES and time types for TopKDistinct, Greatest, and Least ([#9202](https://github.com/confluentinc/ksql/pull/9202)) ([6824f23](https://github.com/confluentinc/ksql/commit/6824f23e3c70d7c2b17475665770840027936900)), closes [#9125](https://github.com/confluentinc/ksql/issues/9125) [#9125](https://github.com/confluentinc/ksql/issues/9125)
+* support checking preconditions before starting core app ([#9026](https://github.com/confluentinc/ksql/pull/9026)) ([33a6a04](https://github.com/confluentinc/ksql/commit/33a6a04ebdbc2904b052720096f46e58f474938c))
+* allow aggregations without group bys ([#8986](https://github.com/confluentinc/ksql/pull/8986)) ([3721a1e](https://github.com/confluentinc/ksql/commit/3721a1e9a260b0a49a97814efc4f8d1f2d4539f5))
+* allow STREAMS with no key ([#8949](https://github.com/confluentinc/ksql/pull/8949)) ([ffb1b38](https://github.com/confluentinc/ksql/commit/ffb1b3821a175e9251b74b8dbefa8cee2bd52ceb))
+
+
+
+### Bug Fixes
+
+* convert topic tag name and add consumer group member id tag to ThroughputTotalMetrics ([#9215](https://github.com/confluentinc/ksql/pull/9215)) ([67b4e17](https://github.com/confluentinc/ksql/commit/67b4e1780810ccf74400c96fb817b0516c5de51c))
+* add BYTES support for KAFKA format ([#9180](https://github.com/confluentinc/ksql/pull/9180)) ([844d275](https://github.com/confluentinc/ksql/commit/844d275d3de1326df2576e4f5c73e2c2243160a9))
+* Allows results from CAST to compared. ([#9186](https://github.com/confluentinc/ksql/pull/9186)) ([3defb6b](https://github.com/confluentinc/ksql/commit/3defb6b2cd5596c634814171aa59b8e100e5c499))
+* ambiguous reference to close issue ([#9167](https://github.com/confluentinc/ksql/pull/9167)) ([2e7d0db](https://github.com/confluentinc/ksql/commit/2e7d0db0472db5c0caff7008802d2a32e32bb25f))
+* change group name and extend CumulativeSum in ThroughputMetricsReporter ([#9211](https://github.com/confluentinc/ksql/pull/9211)) ([6bcd47f](https://github.com/confluentinc/ksql/commit/6bcd47fe92c66cd752e3809e478d52735f38d798))
+* classify KsqlFunctionException as USER error ([f2877e8](https://github.com/confluentinc/ksql/commit/f2877e8d3e2aaa1db4662ac1c15a85901f0f91a2))
+* classify SR missing subject and access rights query errors as USER errors ([#9072](https://github.com/confluentinc/ksql/pull/9072)) ([90a609d](https://github.com/confluentinc/ksql/commit/90a609d1591d7c206bd5ede78684b13365c03fa5))
+* fix the interval check in RocksDBMetricCollectorTest ([#9210](https://github.com/confluentinc/ksql/pull/9210)) ([6fee500](https://github.com/confluentinc/ksql/commit/6fee500b7cbfc85260d8e40b0d65de5ad37b5e90))
+* Fixes a few null handling bugs ([#9127](https://github.com/confluentinc/ksql/pull/9127)) ([bd90347](https://github.com/confluentinc/ksql/commit/bd9034774cf11693f751472ef168f6fe9c99515d))
+* move misplaced query-level configs to the correct list ([#9144](https://github.com/confluentinc/ksql/pull/9144)) ([86d4fbb](https://github.com/confluentinc/ksql/commit/86d4fbbe8f438044aa0f43542fe1809d36174978))
+* re fetch streams for each materializationProviderBuilder ([#9036](https://github.com/confluentinc/ksql/pull/9036)) ([4340dfa](https://github.com/confluentinc/ksql/commit/4340dfa839a06e0033e4a9715b3d1d238e9e8caa))
+* reset collector before reconfiguring ([#9205](https://github.com/confluentinc/ksql/pull/9205)) ([a641a0b](https://github.com/confluentinc/ksql/commit/a641a0b1ec646d704842725f0a3990ee68b2d774))
+* revert default `/query-stream` Content-Type to `application/vnd.ksqlapi.delimited.v1` from `application/vnd.ksql.v1+protobuf` ([#9145](https://github.com/confluentinc/ksql/pull/9145)) ([3e3322e](https://github.com/confluentinc/ksql/commit/3e3322e5961f3f21155c864d60ba711d8689141e))
+* throw KsqlFunctionException while aggregating in sum udaf [#9052](https://github.com/confluentinc/ksql/issues/9052) ([9e9d10e](https://github.com/confluentinc/ksql/commit/9e9d10e7b7088b904fcb6e62e3bcf03e53772ee8))
+* use the engine's KsqlConfig to build queries ([#9040](https://github.com/confluentinc/ksql/pull/9040)) ([503e4cd](https://github.com/confluentinc/ksql/commit/503e4cd1baa00038491313527fac37972575e64e))
+* fail validation on CREATE CONNECTOR if connector already exists ([#9014](https://github.com/confluentinc/ksql/pull/9014)) ([94a74fa](https://github.com/confluentinc/ksql/commit/94a74fa5b2e337a9a7d2381797812248a1cfb643))
+* Improved/fixed aggregate function error messages. ([#8977](https://github.com/confluentinc/ksql/pull/8977)) ([57f3596](https://github.com/confluentinc/ksql/commit/57f3596ba3030029a8a08ed38c69952fd5d1dad9)), closes [#8976](https://github.com/confluentinc/ksql/issues/8976)
+* include header columns when injecting schemas ([#9023](https://github.com/confluentinc/ksql/pull/9023)) ([4b5feb0](https://github.com/confluentinc/ksql/commit/4b5feb08342403b5863f1045e1f97b52b3484744))
+* move create connector validation to validate phase ([#8999](https://github.com/confluentinc/ksql/pull/8999)) ([73e5463](https://github.com/confluentinc/ksql/commit/73e54639b1c0b7e7d89294692bb0bc02f3825441))
+* register state listener after restarting runtime ([#9032](https://github.com/confluentinc/ksql/pull/9032)) ([1f7a09a](https://github.com/confluentinc/ksql/commit/1f7a09a05990127091427b383a49b1027fc3636c))
+* remove ErrorEntity and throw on connector error instead ([#8998](https://github.com/confluentinc/ksql/pull/8998)) ([6e55521](https://github.com/confluentinc/ksql/commit/6e55521a34edb20fc646712b700d0778b150ec18))
+* Repartition RHS of a FK join if it uses SR schema ([#8926](https://github.com/confluentinc/ksql/pull/8926)) ([09c7bbe](https://github.com/confluentinc/ksql/commit/09c7bbe2e68f6bdd9195946073f2d551b20ffb51))
+* Revert "chore: upgrade vertx to 4.2 ([#8975](https://github.com/confluentinc/ksql/pull/8975))" ([#9003](https://github.com/confluentinc/ksql/issues/9003)) ([d4214de](https://github.com/confluentinc/ksql/commit/d4214de8a5eb91935af29899c0fc825efa052ce8))
+* shared runtimes calculate cache size for validation properly ([#8923](https://github.com/confluentinc/ksql/pull/8923)) ([979d4a5](https://github.com/confluentinc/ksql/commit/979d4a5392543e861114afe1e0415eb2ebb8b4c6))
+* wait longer while waiting for expected spq ([#8973](https://github.com/confluentinc/ksql/pull/8973)) ([3ce54f1](https://github.com/confluentinc/ksql/commit/3ce54f1d396ff25ae96573db1772e110414313d6))
+
 
 ## [0.26.0](https://github.com/confluentinc/ksql/releases/tag/v0.26.0-ksqldb) (2022-04-28)
 
@@ -494,12 +549,12 @@ It's worth noting that queries which relied on this vague implicit casting were 
   For example, given:
   `sql -- source stream: CREATE STREAM FOO (ID INT KEY, VAL INT) WITH (...); -- aggregate into a table: CREATE TABLE BAR AS SELECT ID, SUM(VAL) AS SUM FROM FOO GROUP BY ID HAVING SUM(VAL) > 0; -- insert some values into the stream: INSERT INTO FOO VALUES(1, -5); INSERT INTO FOO VALUES(1, 6); INSERT INTO FOO VALUES(1, -2); INSERT INTO FOO VALUES(1, -1); `
   Where previously the contents of the sink topic `BAR` would have contained records:
-  | Key | Value | Notes |
-  |:----|:--------|:------------------------------------------------------------------------------------------------|
-  | 1. | null. | Spurious tombstone: the table does not contain a row with key `1`, so no tombstone is required. |
-  | 1. | {sum=1} | Row added as HAVING criteria now met |
-  | 1. | null. | Row deleted as HAVING criteria now not met |
-  | 1. | null. | Spurious tombstone: the table does not contain a row with key `1`, so no tombstone is required. |
+| Key | Value   | Notes                                                                                           |
+|:----|:--------|:------------------------------------------------------------------------------------------------|
+| 1.  | null.   | Spurious tombstone: the table does not contain a row with key `1`, so no tombstone is required. |
+| 1.  | {sum=1} | Row added as HAVING criteria now met                                                            |
+| 1.  | null.   | Row deleted as HAVING criteria now not met                                                      |
+| 1.  | null.   | Spurious tombstone: the table does not contain a row with key `1`, so no tombstone is required. |
 
             The topic will now contain:
 

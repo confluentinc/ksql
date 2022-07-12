@@ -106,7 +106,6 @@
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
         <apache.httpcomponents.version>5.0.3</apache.httpcomponents.version>
         <confluent.maven.repo>https://packages.confluent.io/maven/</confluent.maven.repo>
-        <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
@@ -115,8 +114,6 @@
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
         <lang3.version>3.5</lang3.version>
-        <guava.version>30.1.1-jre</guava.version>
-        <protobuf.version>3.19.4</protobuf.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
@@ -141,7 +138,6 @@
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.44.v20210927</jetty.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
-        <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.3.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>

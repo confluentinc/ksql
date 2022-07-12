@@ -540,7 +540,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_ROWID_ENABLED =
       "ksql.rowid..enabled";
-  public static final Boolean KSQL_ROWID_ENABLED_DEFAULT = true;
+  public static final Boolean KSQL_ROWID_ENABLED_DEFAULT = false;
   public static final String KSQL_ROWID_ENABLED_DOC =
       "Feature flag for ROWID pseudocolumns. If enabled, new queries will be"
           + "built with ROWID pseudocolumns. If off, they will not be.";

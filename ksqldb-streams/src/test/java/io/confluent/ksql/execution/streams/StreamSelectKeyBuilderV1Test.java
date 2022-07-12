@@ -62,12 +62,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StreamSelectKeyBuilderV1Test {
 
+  private static final KsqlConfig KSQL_CONFIG =
+      new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_ROWID_ENABLED, true));
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
-      .withPseudoAndKeyColsInValue(false, new KsqlConfig(ImmutableMap.of()));
+      .withPseudoAndKeyColsInValue(false, KSQL_CONFIG);
 
   private static final UnqualifiedColumnReferenceExp KEY =
       new UnqualifiedColumnReferenceExp(ColumnName.of("BOI"));
@@ -117,7 +119,7 @@ public class StreamSelectKeyBuilderV1Test {
   @SuppressWarnings({"unchecked", "rawtypes"})
   public void init() {
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_ROWID_ENABLED, true)));
+    when(buildContext.getKsqlConfig()).thenReturn(KSQL_CONFIG);
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(

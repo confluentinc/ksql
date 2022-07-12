@@ -16,6 +16,8 @@ package io.confluent.ksql.execution.streams;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -26,17 +28,22 @@ import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -393,12 +400,49 @@ final class SourceBuilderUtils {
             row.append(offset);
           }
 
+          if (pseudoColumnVersion >= SystemColumns.ROWID_PSEUDOCOLUMN_VERSION) {
+//            processorContext.appConfigs().put(
+//                StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Bytes().getClass().getName());
+//            if (key instanceof GenericKey) {
+//              final Serde<GenericKey> serde = getKeySerde();
+//            }
+//            final byte[] id = Serdes.Long().serializer().serialize(processorContext.topic(), (Long) key);
+//            Serdes.serdeFrom().serializer().serialize(processorContext.topic(), key);
+//            final byte[] id = processorContext.keySerde().serializer().serialize(processorContext.topic(), key);
+            final ByteBuffer id = ByteBuffer.wrap(key.toString().getBytes(StandardCharsets.UTF_8));
+            final int hash = key.hashCode();
+            row.append(id);
+
+          }
+
           row.appendAll(keyColumns);
           return row;
         }
 
         @Override
         public void close() {
+        }
+
+        private Serde<GenericKey> getGenericKeySerde(
+            final LogicalSchema schema,
+            final String formatName
+        ) {
+          final FormatInfo formatInfo = FormatInfo.of(formatName);
+
+          final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
+
+          final PersistenceSchema persistenceSchema = PersistenceSchema
+              .from(schema.key(), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+          return new GenericKeySerDe().create(
+              formatInfo,
+              persistenceSchema,
+              new KsqlConfig(Collections.emptyMap()),
+              () -> srClient,
+              "benchmark",
+              ProcessingLogContext.create(),
+              Optional.empty()
+          );
         }
       };
     }

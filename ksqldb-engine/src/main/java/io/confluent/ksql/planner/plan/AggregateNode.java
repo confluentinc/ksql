@@ -27,10 +27,10 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
@@ -50,7 +50,6 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -169,18 +168,18 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
 
   @Override
   public void validateKeyPresent(final SourceName sinkName) {
-    final List<Expression> missing = new ArrayList<>(groupBy.getGroupingExpressions());
-
-    selectExpressions.stream()
-        .map(SelectExpression::getExpression)
-        .forEach(missing::remove);
-    if (!missing.isEmpty()) {
-      if (missing.contains(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))) {
-        throw new KsqlException("CREATE TABLE AS SELECT statement does not support "
-            + "aggregate function " + functionList +  " without a GROUP BY clause.");
-      }
-      throwKeysNotIncludedError(sinkName, "grouping expression", missing);
-    }
+//    final List<Expression> missing = new ArrayList<>(groupBy.getGroupingExpressions());
+//
+//    selectExpressions.stream()
+//        .map(SelectExpression::getExpression)
+//        .forEach(missing::remove);
+//    if (!missing.isEmpty()) {
+//      if (missing.contains(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))) {
+//        throw new KsqlException("CREATE TABLE AS SELECT statement does not support "
+//            + "aggregate function " + functionList +  " without a GROUP BY clause.");
+//      }
+//      throwKeysNotIncludedError(sinkName, "grouping expression", missing);
+//    }
   }
 
   private SchemaKStream<?> selectRequiredInputColumns(
@@ -242,6 +241,10 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)
         .collect(Collectors.toList());
+
+    if (this.groupBy.getGroupingExpressions().contains(new IntegerLiteral(1))) {
+      keyColumnNames.add(ColumnName.of("ROWID"));
+    }
 
     return aggregated.select(
         keyColumnNames,

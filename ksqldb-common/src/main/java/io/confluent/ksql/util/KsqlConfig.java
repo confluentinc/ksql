@@ -538,6 +538,13 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag for ROWPARTITION and ROWOFFSET pseudocolumns. If enabled, new queries will be"
           + "built with ROWPARTITION and ROWOFFSET pseudocolumns. If off, they will not be.";
 
+  public static final String KSQL_ROWID_ENABLED =
+      "ksql.rowid.enabled";
+  public static final Boolean KSQL_ROWID_ENABLED_DEFAULT = true;
+  public static final String KSQL_ROWID_ENABLED_DOC =
+      "Feature flag for ROWID pseudocolumns. If enabled, new queries will be"
+          + "built with ROWID pseudocolumns. If off, they will not be.";
+
   public static final String KSQL_HEADERS_COLUMNS_ENABLED =
       "ksql.headers.columns.enabled";
   public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = true;
@@ -1378,6 +1385,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ROWPARTITION_ROWOFFSET_DEFAULT,
             Importance.LOW,
             KSQL_ROWPARTITION_ROWOFFSET_DOC
+        ).define(
+            KSQL_ROWID_ENABLED,
+            Type.BOOLEAN,
+            KSQL_ROWID_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_ROWID_ENABLED_DOC
         )
         .define(
             KSQL_SHARED_RUNTIME_ENABLED,

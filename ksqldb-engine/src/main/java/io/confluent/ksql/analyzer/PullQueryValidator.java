@@ -119,7 +119,8 @@ public class PullQueryValidator implements QueryValidator {
         .map(ColumnExtractor::extractColumns)
         .flatMap(Collection::stream)
         .map(ColumnReferenceExp::getColumnName)
-        .filter(name -> disallowedInPullQueries(name, analysis.getRowpartitionRowoffsetEnabled()))
+        .filter(name -> disallowedInPullQueries(name, analysis.getRowpartitionRowoffsetEnabled(),
+            analysis.getRowIdEnabled()))
         .map(Name::toString)
         .collect(Collectors.joining(", "));
 
@@ -142,7 +143,8 @@ public class PullQueryValidator implements QueryValidator {
     final String disallowedColumns = ColumnExtractor.extractColumns(expression.get())
         .stream()
         .map(ColumnReferenceExp::getColumnName)
-        .filter(name -> disallowedInPullQueries(name, analysis.getRowpartitionRowoffsetEnabled()))
+        .filter(name -> disallowedInPullQueries(name, analysis.getRowpartitionRowoffsetEnabled(),
+            analysis.getRowIdEnabled()))
         .map(Name::toString)
         .collect(Collectors.joining(", "));
 
@@ -157,10 +159,11 @@ public class PullQueryValidator implements QueryValidator {
 
   private static boolean disallowedInPullQueries(
       final ColumnName columnName,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled
   ) {
     final int pseudoColumnVersion = SystemColumns
-        .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
+        .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled, rowIdEnabled);
     return SystemColumns.isDisallowedInPullOrScalablePushQueries(columnName, pseudoColumnVersion);
   }
 

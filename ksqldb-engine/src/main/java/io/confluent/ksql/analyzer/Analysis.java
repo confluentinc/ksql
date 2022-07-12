@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.analyzer.SourceSchemas.SourceSchemasFactory;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -52,14 +53,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class Analysis implements ImmutableAnalysis {
 
   private final Optional<RefinementInfo> refinementInfo;
-  private final BiFunction<Map<SourceName, LogicalSchema>, Boolean, SourceSchemas>
-      sourceSchemasFactory;
+  private final SourceSchemasFactory sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> allDataSources = new ArrayList<>();
   private final List<JoinInfo> joinInfo = new ArrayList<>();
@@ -76,27 +75,31 @@ public class Analysis implements ImmutableAnalysis {
   private final List<FunctionCall> aggregateFunctions = new ArrayList<>();
   private boolean orReplace = false;
   private final boolean rowpartitionRowoffsetEnabled;
+  private final boolean rowIdEnabled;
   private boolean pullLimitClauseEnabled = true;
 
   public Analysis(
       final Optional<RefinementInfo> refinementInfo,
       final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled,
       final boolean pullLimitClauseEnabled
   ) {
-    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
+    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled,
+        rowIdEnabled, pullLimitClauseEnabled);
   }
 
   @VisibleForTesting
   Analysis(
       final Optional<RefinementInfo> refinementInfo,
-      final BiFunction<Map<SourceName, LogicalSchema>, Boolean, SourceSchemas>
-          sourceSchemasFactory,
+      final SourceSchemasFactory sourceSchemasFactory,
       final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled,
       final boolean pullLimitClauseEnabled
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
+    this.rowIdEnabled = rowIdEnabled;
     this.pullLimitClauseEnabled  = pullLimitClauseEnabled;
   }
 
@@ -211,7 +214,7 @@ public class Analysis implements ImmutableAnalysis {
             ads -> buildStreamsSchema(ads, postAggregate)
         ));
 
-    return sourceSchemasFactory.apply(schemaBySource, rowpartitionRowoffsetEnabled);
+    return sourceSchemasFactory.create(schemaBySource, rowpartitionRowoffsetEnabled, rowIdEnabled);
   }
 
   Optional<AliasedDataSource> getSourceByAlias(final SourceName name) {
@@ -287,6 +290,10 @@ public class Analysis implements ImmutableAnalysis {
     return rowpartitionRowoffsetEnabled;
   }
 
+  public boolean getRowIdEnabled() {
+    return rowIdEnabled;
+  }
+
   public boolean getPullLimitClauseEnabled() {
     return pullLimitClauseEnabled;
   }
@@ -308,7 +315,8 @@ public class Analysis implements ImmutableAnalysis {
         .getSchema()
         .withPseudoAndKeyColsInValue(
             windowedSource || windowedGroupBy,
-            rowpartitionRowoffsetEnabled);
+            rowpartitionRowoffsetEnabled,
+            rowIdEnabled);
   }
 
   @Immutable

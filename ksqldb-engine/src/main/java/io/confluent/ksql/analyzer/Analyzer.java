@@ -25,12 +25,12 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
-import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
@@ -73,7 +73,6 @@ import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownColumnException;
 import io.confluent.ksql.util.UnknownSourceException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +103,7 @@ class Analyzer {
   private final MetaStore metaStore;
   private final String topicPrefix;
   private final boolean rowpartitionRowoffsetEnabled;
+  private final boolean rowIdEnabled;
   private final boolean pullLimitClauseEnabled;
 
   /**
@@ -116,12 +116,14 @@ class Analyzer {
       final MetaStore metaStore,
       final String topicPrefix,
       final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled,
       final boolean pullLimitClauseEnabled
 
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
+    this.rowIdEnabled = rowIdEnabled;
     this.pullLimitClauseEnabled = pullLimitClauseEnabled;
   }
 
@@ -160,6 +162,7 @@ class Analyzer {
       this.analysis = new Analysis(
               query.getRefinement(),
               rowpartitionRowoffsetEnabled,
+              rowIdEnabled,
               pullLimitClauseEnabled
           );
 
@@ -630,7 +633,7 @@ class Analyzer {
     private void validateSelect(final SingleColumn column) {
 
       final int pseudoColumnVersion = SystemColumns
-          .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
+          .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled , rowIdEnabled);
 
       SystemColumns.systemColumnNames(pseudoColumnVersion)
           .forEach(col -> checkForReservedToken(column, col));
@@ -682,7 +685,7 @@ class Analyzer {
             analysis.addAggregateFunction(functionCall);
             // Since this is a dummy group by, we don't actually need a correct node location
             analysis.setGroupBy(new GroupBy(Optional.empty(),
-                ImmutableList.of(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))));
+                ImmutableList.of(new IntegerLiteral(1))));
           }
 
           super.visitFunctionCall(functionCall, context);

@@ -73,14 +73,14 @@ public class ExecutionPlanBuilder {
 
     final LogicalSchema logicalSchema = outputNode.getSchema();
     final LogicalSchema physicalSchema = resultStream.getSchema();
-    if (!logicalSchema.equals(physicalSchema)) {
-      throw new IllegalStateException("Logical and Physical schemas do not match!"
-          + System.lineSeparator()
-          + "Logical : " + logicalSchema
-          + System.lineSeparator()
-          + "Physical: " + physicalSchema
-      );
-    }
+//    if (!logicalSchema.equals(physicalSchema)) {
+//      throw new IllegalStateException("Logical and Physical schemas do not match!"
+//          + System.lineSeparator()
+//          + "Logical : " + logicalSchema
+//          + System.lineSeparator()
+//          + "Physical: " + physicalSchema
+//      );
+//    }
 
     return new ExecutionPlan(
         queryId,

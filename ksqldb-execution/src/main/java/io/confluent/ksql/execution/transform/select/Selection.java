@@ -69,9 +69,10 @@ public final class Selection<K> {
     final ImmutableList<ColumnName> selectedKeyColumns = selectedKeys.orElse(keyCols.stream()
         .map(Column::name)
         .collect(ImmutableList.toImmutableList()));
+//    final ImmutableList<ColumnName> selectedKeyColumns = selectedKeys.orElse(null);
 
     for (int i = 0; i != keyCols.size(); ++i) {
-      if (selectedKeyColumns.contains(keyCols.get(i).name())) {
+      if (selectedKeyColumns != null && selectedKeyColumns.contains(keyCols.get(i).name())) {
         schemaBuilder.keyColumn(
             keyNames.get(i),
             keyCols.get(i).type()

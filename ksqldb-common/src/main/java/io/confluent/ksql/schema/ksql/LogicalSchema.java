@@ -20,11 +20,14 @@ import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
 import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWID_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWID_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_TYPE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWID_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_TYPE;
@@ -187,6 +190,7 @@ public final class LogicalSchema {
     return withPseudoAndKeyColsInValue(
         windowed,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED),
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWID_ENABLED),
         false
     );
   }
@@ -204,11 +208,13 @@ public final class LogicalSchema {
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled
   ) {
     return withPseudoAndKeyColsInValue(
         windowed,
         rowpartitionRowoffsetEnabled,
+        rowIdEnabled,
         false
     );
   }
@@ -228,11 +234,12 @@ public final class LogicalSchema {
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed,
       final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled,
       final boolean forPullOrScalablePushQuery
   ) {
     return rebuildWithPseudoAndKeyColsInValue(
         windowed,
-        SystemColumns.getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled),
+        SystemColumns.getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled, rowIdEnabled),
         forPullOrScalablePushQuery
     );
   }
@@ -423,6 +430,10 @@ public final class LogicalSchema {
       pseudoColumns.add(Pair.of(ROWOFFSET_NAME, ROWOFFSET_TYPE));
     }
 
+    if (pseudoColumnVersion >= ROWID_PSEUDOCOLUMN_VERSION) {
+      pseudoColumns.add(Pair.of(ROWID_NAME, ROWID_TYPE));
+    }
+
     //if query is pull or scalable push, need to check if column is disallowed
     if (forPullOrScalablePushQuery) {
       for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
@@ -503,6 +514,10 @@ public final class LogicalSchema {
     if (pseudoColumnVersion >= ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
       builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
       builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
+    }
+
+    if (pseudoColumnVersion >= ROWID_PSEUDOCOLUMN_VERSION) {
+      builder.add(Column.of(ROWID_NAME, ROWID_TYPE, VALUE, valueIndex++));
     }
 
     builder.addAll(headerColumns);

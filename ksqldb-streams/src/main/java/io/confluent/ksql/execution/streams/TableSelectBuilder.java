@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.execution.streams;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.GenericKey.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -23,11 +26,14 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Optional;
@@ -54,6 +60,7 @@ public final class TableSelectBuilder {
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext = step.getProperties().getQueryContext();
+    final Optional<ImmutableList<ColumnName>> selectedKeys = step.getSelectedKeys();
 
     final Selection<K> selection = Selection.of(
         sourceSchema,
@@ -63,6 +70,18 @@ public final class TableSelectBuilder {
         buildContext.getKsqlConfig(),
         buildContext.getFunctionRegistry()
     );
+
+    final ImmutableList.Builder<Integer> keyIndexBuilder = ImmutableList.builder();
+    if (selectedKeys.isPresent()) {
+      final ImmutableList<ColumnName> keyNames = sourceSchema.key().stream()
+          .map(Column::name)
+          .collect(ImmutableList.toImmutableList());
+
+      for (final ColumnName keyName : selectedKeys.get()) {
+        keyIndexBuilder.add(keyNames.indexOf(keyName));
+      }
+    }
+    final ImmutableList<Integer> keyIndices = keyIndexBuilder.build();
 
     final SelectValueMapper<K> selectMapper = selection.getMapper();
 
@@ -128,20 +147,102 @@ public final class TableSelectBuilder {
       valSerde = null;
     }
 
-    final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
-        () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
-        Materialized.with(keySerde, valSerde),
-        selectName
-    );
+    if (!selectedKeys.isPresent() || (selectedKeys.isPresent() && !selectedKeys.get().containsAll(
+        sourceSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList())
+    ))) {
 
-    final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
-        pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
-            selection.getSchema(),
-            queryContext)
-    );
 
-    return table
-            .withTable(transFormedTable, selection.getSchema())
-            .withMaterialization(materialization);
+      final KTable<K, GenericRow> transFormedTable =
+          table
+              .getTable()
+              .toStream()
+//              .toTable()
+//              .toStream()
+              .transform(
+              () -> new KsTransformer<>(
+//                  (r, v, c) -> {
+//                    return r;
+//                  },
+                  (readOnlyKey, value, ctx) -> {
+                    if (keyIndices.isEmpty()) {
+//                         figure out what the index of rowid is, and get(i)
+                      // schema.findColumn(Column.of("ROWID")
+//                      System.out.println(value.get(value.values().indexOf("ROWID")));
+//                      return  (K) value.get(value.values().indexOf("ROWID"));
+//                      return null;
+                    }
+
+                    if (readOnlyKey instanceof GenericKey) {
+                      final GenericKey keys = (GenericKey) readOnlyKey;
+                      final Builder resultKeys = GenericKey.builder(keyIndices.size());
+
+                      for (final int keyIndex : keyIndices) {
+                        resultKeys.append(keys.get(keyIndex));
+                      }
+                      return (K) resultKeys.build();
+                    } else {
+                      throw new UnsupportedOperationException();
+                    }
+                  },
+                  selectMapper.getTransformer(logger)
+              ),
+              selectName
+          ).toTable(Named.as("materialize-keyserde"), Materialized.with(keySerde, valSerde)
+              )
+//              .transformValues(
+//          () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
+//          Materialized.with(keySerde, valSerde),
+//              Named.as("materialize-keyserde")
+//      )
+          ;
+
+//      final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
+//          () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
+//          Materialized.with(keySerde, valSerde),
+//          selectName
+//      );
+
+      final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
+          pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+          selection.getSchema(),
+          queryContext)
+      );
+
+      return table
+          .withTable(transFormedTable, selection.getSchema())
+          .withMaterialization(materialization);
+
+    } else {
+      final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
+          () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
+          Materialized.with(keySerde, valSerde),
+          selectName
+      );
+
+      final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
+          pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+              selection.getSchema(),
+              queryContext)
+      );
+
+      return table
+              .withTable(transFormedTable, selection.getSchema())
+              .withMaterialization(materialization);
+    }
+//    final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
+//        () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
+//        Materialized.with(keySerde, valSerde),
+//        selectName
+//    );
+//
+//      final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
+//          pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+//              selection.getSchema(),
+//              queryContext)
+//      );
+//
+//    return table
+//            .withTable(transFormedTable, selection.getSchema())
+//            .withMaterialization(materialization);
   }
 }

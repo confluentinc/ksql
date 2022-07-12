@@ -21,13 +21,13 @@ import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
 import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWID_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWID_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWID_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_TYPE;
-import static io.confluent.ksql.schema.ksql.SystemColumns.ROWID_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_TYPE;
@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 /**
  * Immutable KSQL logical schema.
  */
+@SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
 @Immutable
 public final class LogicalSchema {
 

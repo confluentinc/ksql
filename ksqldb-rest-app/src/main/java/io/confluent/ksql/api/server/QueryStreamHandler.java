@@ -166,7 +166,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         return null;
       }
       // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
-      ApiServerUtils.setMaskedSql(ksqlRequest.get());
+      ApiServerUtils.setMaskedSqlIfNeeded(ksqlRequest.get());
       sql = ksqlRequest.get().getUnmaskedKsql();
       configOverrides = ksqlRequest.get().getConfigOverrides();
       sessionProperties = ksqlRequest.get().getSessionVariables();

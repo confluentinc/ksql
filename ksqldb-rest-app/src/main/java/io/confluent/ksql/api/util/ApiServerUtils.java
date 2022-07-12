@@ -55,7 +55,7 @@ public final class ApiServerUtils {
     try {
       request.getMaskedKsql();
     } catch (final Exception e) {
-      request.setMaskedKsql(QueryMask.getMaskedStatement(request.getUnmaskedKsql()));
+      ApiServerUtils.setMaskedSql(request);
     }
   }
 

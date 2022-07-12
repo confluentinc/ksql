@@ -135,7 +135,9 @@ public class KsqlRequest {
     final String sql = Objects.isNull(maskedKsql) ? ksql : maskedKsql;
     if (Objects.isNull(maskedKsql)) {
       LOG.warn("maskedKsql is not set, default to unmasked one for toString which "
-          + "may leak sensitive information");
+          + "may leak sensitive information, If this is seen in a test, it may be expected "
+          + "depending on how the KsqlRequest was created. If seen in production, "
+          + "this is not expected. Please file a Github issue.");
     }
     return "KsqlRequest{"
         + "ksql='" + sql + '\''

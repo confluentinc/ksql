@@ -34,6 +34,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AssertSchema;
@@ -44,7 +45,6 @@ import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.SetProperty;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.tools.migrations.MigrationException;
@@ -83,24 +83,25 @@ public final class CommandParser {
   );
 
   private enum StatementType {
-    INSERT_VALUES(InsertValues.class),
-    CREATE_CONNECTOR(CreateConnector.class),
-    DROP_CONNECTOR(DropConnector.class),
-    STATEMENT(Statement.class),
-    SET_PROPERTY(SetProperty.class),
-    UNSET_PROPERTY(UnsetProperty.class),
-    DEFINE_VARIABLE(DefineVariable.class),
-    UNDEFINE_VARIABLE(UndefineVariable.class),
-    ASSERT_TOPIC(AssertTopic.class),
-    ASSERT_SCHEMA(AssertSchema.class);
+    INSERT_VALUES(SqlBaseParser.InsertValuesContext.class),
+    CREATE_CONNECTOR(SqlBaseParser.CreateConnectorContext.class),
+    DROP_CONNECTOR(SqlBaseParser.DropConnectorContext.class),
+    STATEMENT(SqlBaseParser.StatementContext.class),
+    SET_PROPERTY(SqlBaseParser.SetPropertyContext.class),
+    UNSET_PROPERTY(SqlBaseParser.UnsetPropertyContext.class),
+    DEFINE_VARIABLE(SqlBaseParser.DefineVariableContext.class),
+    UNDEFINE_VARIABLE(SqlBaseParser.UndefineVariableContext.class),
+    ASSERT_TOPIC(SqlBaseParser.AssertTopicContext.class),
+    ASSERT_SCHEMA(SqlBaseParser.AssertSchemaContext.class);
 
-    private final Class<? extends Statement> statementClass;
+    private final Class<? extends SqlBaseParser.StatementContext> statementClass;
 
-    <T extends Statement> StatementType(final Class<T> statementClass) {
-      this.statementClass = Objects.requireNonNull(statementClass, "statementClass");
+    <T extends SqlBaseParser.StatementContext> StatementType(final Class<T> statementClass) {
+      this.statementClass = Objects.requireNonNull(statementClass, "statementType");
     }
 
-    public static StatementType get(final Class<? extends Statement> statementClass) {
+    public static StatementType get(
+            final Class<? extends SqlBaseParser.StatementContext> statementClass) {
       final Optional<StatementType> type = Arrays.stream(StatementType.values())
               .filter(statementType -> statementType.statementClass.equals(statementClass))
               .findFirst();
@@ -221,10 +222,10 @@ public final class CommandParser {
           "Failed to parse the statement. Statement: %s. Reason: %s",
           sql, e.getMessage()));
     }
-    final Class<? extends Statement> statementClass = KSQL_PARSER.prepare(
-            KSQL_PARSER.parse(substituted).get(0), TypeRegistry.EMPTY).getStatement().getClass();
+    final Class<? extends SqlBaseParser.StatementContext> statementContext =
+            KSQL_PARSER.parse(substituted).get(0).getStatement().statement().getClass();
 
-    switch (StatementType.get(statementClass)) {
+    switch (StatementType.get(statementContext)) {
       case INSERT_VALUES:
         return getInsertValuesStatement(substituted);
       case CREATE_CONNECTOR:

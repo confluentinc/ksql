@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertSchemaCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertTopicCommand;

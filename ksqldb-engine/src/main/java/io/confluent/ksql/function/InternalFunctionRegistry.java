@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
-import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.name.FunctionName;
@@ -243,9 +241,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addUdafFunctions() {
-      functionRegistry.addAggregateFunctionFactory(new MaxAggFunctionFactory());
-      functionRegistry.addAggregateFunctionFactory(new MinAggFunctionFactory());
-
       functionRegistry.addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
       functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
     }

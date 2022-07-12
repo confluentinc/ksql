@@ -18,6 +18,7 @@ import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterial
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.createHeaderData;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.extractHeader;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static java.util.Objects.requireNonNull;
 
@@ -96,6 +97,9 @@ final class SourceBuilder extends SourceBuilderBase {
         .getStreamsBuilder()
         .table(streamSource.getTopicName(), consumed);
 
+    final Serde<GenericKey> keySerde =
+        getKeySerde(streamSource, getPhysicalSchema(streamSource), buildContext);
+
     final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
 
     final KTable<K, GenericRow> maybeMaterialized;
@@ -109,7 +113,8 @@ final class SourceBuilder extends SourceBuilderBase {
       maybeMaterialized = source.transformValues(
           new AddPseudoColumnsToMaterialize<>(
               streamSource.getPseudoColumnVersion(),
-              streamSource.getSourceSchema().headers()),
+              streamSource.getSourceSchema().headers(),
+              keySerde),
           materialized);
     } else {
       // if we know this table source is repartitioned later in the topology,
@@ -124,7 +129,8 @@ final class SourceBuilder extends SourceBuilderBase {
       maybeMaterialized = source.transformValues(
           new AddPseudoColumnsToMaterialize<>(
               streamSource.getPseudoColumnVersion(),
-              streamSource.getSourceSchema().headers()));
+              streamSource.getSourceSchema().headers(),
+              keySerde));
     }
 
     return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
@@ -189,10 +195,12 @@ final class SourceBuilder extends SourceBuilderBase {
     private final int pseudoColumnVersion;
     private final int numPseudoColumnsToMaterialize;
     private final List<Column> headerColumns;
+    private final Serde<GenericKey> keySerde;
 
     AddPseudoColumnsToMaterialize(
         final int pseudoColumnVersion,
-        final List<Column> headerColumns
+        final List<Column> headerColumns,
+        final Serde<GenericKey> keySerde
     ) {
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.numPseudoColumnsToMaterialize =
@@ -201,6 +209,7 @@ final class SourceBuilder extends SourceBuilderBase {
           .filter(SystemColumns::mustBeMaterializedForTableJoins)
           .count() + headerColumns.size();
       this.headerColumns = headerColumns;
+      this.keySerde = keySerde;
     }
 
     @Override
@@ -236,10 +245,10 @@ final class SourceBuilder extends SourceBuilderBase {
             row.append(offset);
           }
 
-          // how do i get the key/ do i even need the real key??
           if (pseudoColumnVersion >= SystemColumns.ROWID_PSEUDOCOLUMN_VERSION) {
-            final byte[] id = (byte[]) key;
-            row.append(id);
+            final byte[] id2 = keySerde.serializer()
+                .serialize(processorContext.topic(), (GenericKey) key);
+            row.append(id2);
           }
           return row;
         }

@@ -15,48 +15,47 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.function.TableAggregationFunction;
-import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.ParameterInfo;
-import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.udaf.TableUdaf;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.Collections;
-import java.util.function.Function;
-import org.apache.kafka.streams.kstream.Merger;
+import java.util.List;
+import java.util.Optional;
 
-public class DecimalSumKudaf
-    extends BaseAggregateFunction<BigDecimal, BigDecimal, BigDecimal>
-    implements TableAggregationFunction<BigDecimal, BigDecimal, BigDecimal> {
+public class DecimalSumKudaf implements TableUdaf<BigDecimal, BigDecimal, BigDecimal> {
+  private SqlDecimal resultSchema;
+  private MathContext context;
+  private BigDecimal maxValue;
+  private int precision;
+  private int scale;
+  private int digits;
 
-  private final MathContext context;
-  private final BigDecimal maxValue;
-  private final int precision;
-  private final int scale;
-  private final int digits;
-
-  DecimalSumKudaf(
-      final String functionName,
-      final int argIndexInValue,
-      final SqlDecimal outputSchema
-  ) {
-    super(
-        functionName,
-        argIndexInValue,
-        () -> BigDecimal.ZERO,
-        outputSchema,
-        outputSchema,
-        Collections.singletonList(new ParameterInfo("val", ParamTypes.DECIMAL, "", false)),
-        "Computes the sum of decimal values for a key, resulting in a decimal with the same "
-            + "precision and scale.");
-    context = new MathContext(outputSchema.getPrecision());
-    precision = outputSchema.getPrecision();
-    scale = outputSchema.getScale();
-    digits = outputSchema.getPrecision() - outputSchema.getScale();
+  @Override
+  public void initializeTypeArguments(List<SqlArgument> argTypeList) {
+    resultSchema = (SqlDecimal) argTypeList.get(0).getSqlTypeOrThrow();
+    context = new MathContext(resultSchema.getPrecision());
+    precision = resultSchema.getPrecision();
+    scale = resultSchema.getScale();
+    digits = resultSchema.getPrecision() - resultSchema.getScale();
     maxValue = BigDecimal.valueOf(Math.pow(10, digits));
+  }
+
+  @Override
+  public BigDecimal initialize() {
+    return BigDecimal.ZERO;
+  }
+
+  @Override
+  public Optional<SqlType> getAggregateSqlType() {
+    return Optional.of(resultSchema);
+  }
+
+  @Override
+  public Optional<SqlType> getReturnSqlType() {
+    return Optional.of(resultSchema);
   }
 
   @Override
@@ -81,13 +80,13 @@ public class DecimalSumKudaf
   }
 
   @Override
-  public Merger<GenericKey, BigDecimal> getMerger() {
-    return (key, agg1, agg2) -> agg1.add(agg2, context);
+  public BigDecimal merge(BigDecimal aggOne, BigDecimal aggTwo) {
+    return aggOne.add(aggTwo, context);
   }
 
   @Override
-  public Function<BigDecimal, BigDecimal> getResultMapper() {
-    return Function.identity();
+  public BigDecimal map(BigDecimal agg) {
+    return agg;
   }
 
   @Override

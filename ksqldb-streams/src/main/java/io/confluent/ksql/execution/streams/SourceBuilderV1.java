@@ -100,7 +100,8 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         source,
         buildContext,
         consumed,
-        nonWindowedKeyGenerator(source.getSourceSchema())
+        nonWindowedKeyGenerator(source.getSourceSchema()),
+        keySerde
     );
 
     return new KStreamHolder<>(
@@ -140,7 +141,8 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         source,
         buildContext,
         consumed,
-        windowedKeyGenerator(source.getSourceSchema())
+        windowedKeyGenerator(source.getSourceSchema()),
+        keySerde
     );
 
     return new KStreamHolder<>(
@@ -288,14 +290,16 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         .transformValues(new AddKeyAndPseudoColumns<>(
             keyGenerator,
             streamSource.getPseudoColumnVersion(),
-            streamSource.getSourceSchema().headers()));
+            streamSource.getSourceSchema().headers(),
+            keySerde));
   }
 
   private <K> KStream<K, GenericRow> buildKStream(
       final SourceStep<?> streamSource,
       final RuntimeBuildContext buildContext,
       final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> keyGenerator
+      final Function<K, Collection<?>> keyGenerator,
+      final Serde<K> keySerde
   ) {
     final KStream<K, GenericRow> stream = buildContext.getStreamsBuilder()
         .stream(streamSource.getTopicName(), consumed);
@@ -303,7 +307,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
     final int pseudoColumnVersion = streamSource.getPseudoColumnVersion();
     return stream
         .transformValues(new AddKeyAndPseudoColumns<>(
-            keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()));
+            keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers(), keySerde));
   }
 
   private static Function<GenericKey, Collection<?>> nonWindowedKeyGenerator(

@@ -37,7 +37,6 @@ import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -340,15 +339,18 @@ final class SourceBuilderUtils {
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
     private final List<Column> headerColumns;
+    private final Serde<K> keySerde;
 
     AddKeyAndPseudoColumns(
         final Function<K, Collection<?>> keyGenerator,
         final int pseudoColumnVersion,
-        final List<Column> headerColumns
+        final List<Column> headerColumns,
+        final Serde<K> keySerde
     ) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.headerColumns = headerColumns;
+      this.keySerde = keySerde;
     }
 
     @Override
@@ -394,9 +396,9 @@ final class SourceBuilderUtils {
             row.append(offset);
           }
 
-          // how do i get the key/ do i even need the real key??
           if (pseudoColumnVersion >= SystemColumns.ROWID_PSEUDOCOLUMN_VERSION) {
-            final byte[] id = processorContext.applicationId().getBytes(StandardCharsets.UTF_8);
+            final ByteBuffer id = ByteBuffer.wrap(keySerde.serializer()
+                .serialize(processorContext.topic(), key));
             row.append(id);
           }
 

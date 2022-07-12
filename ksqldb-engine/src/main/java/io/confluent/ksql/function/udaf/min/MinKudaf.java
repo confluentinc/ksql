@@ -32,47 +32,47 @@ import java.sql.Timestamp;
         author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class MinKudaf<T extends Comparable<? super T>> extends BaseComparableKudaf<T> {
-  @UdafFactory(description = "Computes the maximum value for an integer key.")
+  @UdafFactory(description = "Computes the minimum value for an integer key.")
   public static Udaf<Integer, Integer, Integer> createMinInt() {
     return new MinKudaf<>();
   }
 
-  @UdafFactory(description = "Computes the maximum value for a long key.")
+  @UdafFactory(description = "Computes the minimum value for a long key.")
   public static Udaf<Long, Long, Long> createMinLong() {
     return new MinKudaf<>();
   }
 
-  @UdafFactory(description = "Computes the maximum value for a double key.")
+  @UdafFactory(description = "Computes the minimum value for a double key.")
   public static Udaf<Double, Double, Double> createMinDouble() {
     return new MinKudaf<>();
   }
 
-  @UdafFactory(description = "Computes the maximum value for a decimal key.")
+  @UdafFactory(description = "Computes the minimum value for a decimal key.")
   public static Udaf<BigDecimal, BigDecimal, BigDecimal> createMinDecimal() {
     return new MinKudaf<>();
   }
 
-  @UdafFactory(description = "Computes the maximum value for a date key.")
+  @UdafFactory(description = "Computes the minimum value for a date key.")
   public static Udaf<Date, Date, Date> createMinDate() {
     return new MinKudaf<>();
   }
 
-  @UdafFactory(description = "Computes the maximum value for a time key.")
+  @UdafFactory(description = "Computes the minimum value for a time key.")
   public static Udaf<Time, Time, Time> createMinTime() {
     return new MinKudaf<>();
   }
 
-  @UdafFactory(description = "Computes the maximum value for a timestamp key.")
+  @UdafFactory(description = "Computes the minimum value for a timestamp key.")
   public static Udaf<Timestamp, Timestamp, Timestamp> createMinTimestamp() {
     return new MinKudaf<>();
   }
 
-  @UdafFactory(description = "Computes the maximum value for a string key.")
+  @UdafFactory(description = "Computes the minimum value for a string key.")
   public static Udaf<String, String, String> createMinString() {
     return new MinKudaf<>();
   }
 
-  @UdafFactory(description = "Computes the maximum value for a bytes key.")
+  @UdafFactory(description = "Computes the minimum value for a bytes key.")
   public static Udaf<ByteBuffer, ByteBuffer, ByteBuffer> createMinBytes() {
     return new MinKudaf<>();
   }

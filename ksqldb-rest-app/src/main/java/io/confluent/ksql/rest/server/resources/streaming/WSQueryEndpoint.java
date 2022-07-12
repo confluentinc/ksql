@@ -237,7 +237,8 @@ public class WSQueryEndpoint {
 
     attachCloseHandler(info.websocket, streamSubscriber);
 
-    final PreparedStatement<Query> statement = PreparedStatement.of(info.request.getUnmaskedKsql(), query);
+    final PreparedStatement<Query> statement = PreparedStatement.of(
+        info.request.getUnmaskedKsql(), query);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final QueryMetadataHolder queryMetadataHolder
         = queryExecutor.handleStatement(info.securityContext.getServiceContext(),

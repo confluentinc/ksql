@@ -573,7 +573,7 @@ final class EngineExecutor {
     final MutableMetaStore tempMetastore = new MetaStoreImpl(new InternalFunctionRegistry());
     final Formats formats = ddlCommand.getFormats();
     tempMetastore.putSource(new KsqlTable<>(
-        statement.getUnMaskedStatementText(),
+        statement.getStatementText(),
         createTable.getName(),
         ddlCommand.getSchema(),
         Optional.empty(),
@@ -613,7 +613,7 @@ final class EngineExecutor {
     );
 
     return KsqlPlan.queryPlanCurrent(
-        statement.getUnMaskedStatementText(),
+        statement.getStatementText(),
         Optional.of(ddlCommand),
         queryPlan);
   }
@@ -650,7 +650,7 @@ final class EngineExecutor {
           );
 
           return KsqlPlan.ddlPlanCurrent(
-              statement.getUnMaskedStatementText(),
+              statement.getStatementText(),
               ddlCommand);
         }
       }
@@ -690,7 +690,7 @@ final class EngineExecutor {
       );
 
       return KsqlPlan.queryPlanCurrent(
-          statement.getUnMaskedStatementText(),
+          statement.getStatementText(),
           ddlCommand,
           queryPlan
       );
@@ -808,10 +808,7 @@ final class EngineExecutor {
           statement.getStatementText()
       );
 
-      final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-          statement.getStatementText(),
-          Optional.of(outputNode)
-      );
+      final LogicalPlanNode logicalPlan = new LogicalPlanNode(Optional.of(outputNode));
 
       final QueryId queryId = QueryIdUtil.buildId(
           statement.getStatement(),
@@ -956,10 +953,7 @@ final class EngineExecutor {
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
         .buildQueryLogicalPlan(queryPlannerOptions, isScalablePush);
-    return new LogicalPlanNode(
-        statement.getUnMaskedStatementText(),
-        Optional.of(outputNode)
-    );
+    return new LogicalPlanNode(Optional.of(outputNode));
   }
 
   private PushPhysicalPlan buildScalablePushPhysicalPlan(

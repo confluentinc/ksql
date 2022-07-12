@@ -75,7 +75,8 @@ public class LogicalSchemaTest {
   private static final ColumnName H0 = ColumnName.of("h0");
   private static final ColumnName H1 = ColumnName.of("h1");
   private static final ColumnName VALUE = ColumnName.of("value");
-  private static final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
+  private static final KsqlConfig ksqlConfig =
+      new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_ROWID_ENABLED, true));
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .valueColumn(F0, STRING)

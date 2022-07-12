@@ -36,7 +36,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -194,7 +193,7 @@ final class SourceBuilder extends SourceBuilderBase {
     private final int pseudoColumnVersion;
     private final int numPseudoColumnsToMaterialize;
     private final List<Column> headerColumns;
-    private final Serde<GenericKey> keySerde;
+    private final Serde<K> keySerde;
 
     AddPseudoColumnsToMaterialize(
         final int pseudoColumnVersion,
@@ -208,7 +207,7 @@ final class SourceBuilder extends SourceBuilderBase {
           .filter(SystemColumns::mustBeMaterializedForTableJoins)
           .count() + headerColumns.size();
       this.headerColumns = headerColumns;
-      this.keySerde = (Serde<GenericKey>) keySerde;
+      this.keySerde = keySerde;
     }
 
     @Override

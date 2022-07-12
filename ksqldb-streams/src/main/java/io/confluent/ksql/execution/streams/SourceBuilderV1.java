@@ -200,6 +200,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         consumed,
         windowedKeyGenerator(source.getSourceSchema()),
         materialized,
+        keySerde,
         valueSerde,
         stateStoreName,
         planInfo
@@ -236,6 +237,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
       final Consumed<K, GenericRow> consumed,
       final Function<K, Collection<?>> keyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde,
       final String stateStoreName,
       final PlanInfo planInfo

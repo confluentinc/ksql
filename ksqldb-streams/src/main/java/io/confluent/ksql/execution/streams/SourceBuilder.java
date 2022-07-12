@@ -18,7 +18,6 @@ import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterial
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.createHeaderData;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.extractHeader;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static java.util.Objects.requireNonNull;
 
@@ -89,6 +88,7 @@ final class SourceBuilder extends SourceBuilderBase {
       final Consumed<K, GenericRow> consumed,
       final Function<K, Collection<?>> keyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde,
       final String stateStoreName,
       final PlanInfo planInfo
@@ -96,9 +96,6 @@ final class SourceBuilder extends SourceBuilderBase {
     final KTable<K, GenericRow> source = buildContext
         .getStreamsBuilder()
         .table(streamSource.getTopicName(), consumed);
-
-    final Serde<GenericKey> keySerde =
-        getKeySerde(streamSource, getPhysicalSchema(streamSource), buildContext);
 
     final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
 
@@ -195,12 +192,12 @@ final class SourceBuilder extends SourceBuilderBase {
     private final int pseudoColumnVersion;
     private final int numPseudoColumnsToMaterialize;
     private final List<Column> headerColumns;
-    private final Serde<GenericKey> keySerde;
+    private final Serde<K> keySerde;
 
     AddPseudoColumnsToMaterialize(
         final int pseudoColumnVersion,
         final List<Column> headerColumns,
-        final Serde<GenericKey> keySerde
+        final Serde<K> keySerde
     ) {
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.numPseudoColumnsToMaterialize =
@@ -246,9 +243,9 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           if (pseudoColumnVersion >= SystemColumns.ROWID_PSEUDOCOLUMN_VERSION) {
-            final byte[] id2 = keySerde.serializer()
-                .serialize(processorContext.topic(), (GenericKey) key);
-            row.append(id2);
+            final byte[] id = keySerde.serializer()
+                .serialize(processorContext.topic(), key);
+            row.append(id);
           }
           return row;
         }

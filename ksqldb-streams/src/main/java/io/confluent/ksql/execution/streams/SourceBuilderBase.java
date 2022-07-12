@@ -87,6 +87,7 @@ abstract class SourceBuilderBase {
         consumed,
         GenericKey::values,
         materialized,
+        keySerde,
         valueSerde,
         stateStoreName,
         planInfo
@@ -119,6 +120,7 @@ abstract class SourceBuilderBase {
       Consumed<K, GenericRow> consumed,
       Function<K, Collection<?>> keyGenerator,
       Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      Serde<K> keySerde,
       Serde<GenericRow> valueSerde,
       String stateStoreName,
       PlanInfo planInfo

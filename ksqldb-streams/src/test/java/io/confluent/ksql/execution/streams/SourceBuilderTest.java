@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -458,7 +457,7 @@ public class SourceBuilderTest {
     tableSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(buildContext, atLeastOnce()).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         keyFormatInfo,
         PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
         ctx

@@ -23,7 +23,7 @@
 * support checking preconditions before starting core app ([#9026](https://github.com/confluentinc/ksql/pull/9026)) ([33a6a04](https://github.com/confluentinc/ksql/commit/33a6a04ebdbc2904b052720096f46e58f474938c))
 * allow aggregations without group bys ([#8986](https://github.com/confluentinc/ksql/pull/8986)) ([3721a1e](https://github.com/confluentinc/ksql/commit/3721a1e9a260b0a49a97814efc4f8d1f2d4539f5))
 * allow STREAMS with no key ([#8949](https://github.com/confluentinc/ksql/pull/8949)) ([ffb1b38](https://github.com/confluentinc/ksql/commit/ffb1b3821a175e9251b74b8dbefa8cee2bd52ceb))
-
+* Add PROTOBUF_NOSR format and fix multi-format rtests ([#9078](https://github.com/confluentinc/ksql/pull/9078)) ([53afd8a](https://github.com/confluentinc/ksql/commit/53afd8acbde305b83b02d1046b36dc610cb3f999))
 
 
 ### Bug Fixes

@@ -117,11 +117,12 @@ public class TestEndpoints implements Endpoints {
       final KsqlRequest request,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    this.lastSql = request.getKsql();
-    this.lastProperties = new JsonObject(request.getRequestProperties());
+    this.lastSql = request.getUnmaskedKsql();
+    this.lastProperties = new JsonObject(request.getConfigOverrides());
     this.lastApiSecurityContext = apiSecurityContext;
-    if (request.getKsql().toLowerCase().equals("show streams;")) {
-      final StreamsList entity = new StreamsList(request.getKsql(), Collections.emptyList());
+    if (request.getUnmaskedKsql().toLowerCase().equals("show streams;")) {
+      final StreamsList entity = new StreamsList(request.getUnmaskedKsql(),
+          Collections.emptyList());
       return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
     } else {
       return null;

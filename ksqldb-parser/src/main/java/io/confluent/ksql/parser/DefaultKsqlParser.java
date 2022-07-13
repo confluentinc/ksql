@@ -89,7 +89,7 @@ public class DefaultKsqlParser implements KsqlParser {
     }
   }
 
-  private static SqlBaseParser.StatementsContext getParseTree(final String sql) {
+  public static SqlBaseParser.StatementsContext getParseTree(final String sql) {
 
     final SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(
         new CaseInsensitiveStream(CharStreams.fromString(sql)));

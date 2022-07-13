@@ -103,8 +103,9 @@ public class QueryProjectNode extends ProjectNode {
           source.getSchema().withoutPseudoAndKeyColsInValue(),
           addAdditionalColumnsToIntermediateSchema,
           isWindowed,
-          ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-      );
+          ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED),
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWID_ENABLED)
+        );
     this.compiledSelectExpressions = isSelectStar
         ? ImmutableList.of()
         : selectExpressions

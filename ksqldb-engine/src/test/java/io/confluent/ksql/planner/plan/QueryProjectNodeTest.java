@@ -130,7 +130,7 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-        INPUT_SCHEMA, true, false, true);
+        INPUT_SCHEMA, true, false, true, false);
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -156,7 +156,7 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-        INPUT_SCHEMA, true, true, true);;
+        INPUT_SCHEMA, true, true, true, false);;
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -316,7 +316,7 @@ public class QueryProjectNodeTest {
     // Then:
     final LogicalSchema expectedSchema = INPUT_SCHEMA;
     final LogicalSchema expectedIntermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-        INPUT_SCHEMA, true, false, true);
+        INPUT_SCHEMA, true, false, true, false);
     assertThat(expectedIntermediateSchema, is(projectNode.getIntermediateSchema()));
     assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
     assertThrows(

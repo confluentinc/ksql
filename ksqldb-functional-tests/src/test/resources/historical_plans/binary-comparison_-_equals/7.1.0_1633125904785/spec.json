@@ -1,0 +1,148 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125904785,
+  "path" : "query-validation-tests/binary-comparison.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` BOOLEAN, `C` BIGINT, `D` DOUBLE, `E` DECIMAL(4, 3), `F` STRING, `G` ARRAY<INTEGER>, `H` MAP<STRING, INTEGER>, `I` STRUCT<`ID` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` BOOLEAN, `KSQL_COL_5` BOOLEAN, `KSQL_COL_6` BOOLEAN, `KSQL_COL_7` BOOLEAN, `KSQL_COL_8` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "equals",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "B" : true,
+        "C" : 11,
+        "D" : 1.1,
+        "E" : 1.20,
+        "F" : "foo",
+        "G" : [ 1, 2 ],
+        "H" : {
+          "a" : 1
+        },
+        "I" : {
+          "id" : 2
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "B" : false,
+        "C" : 10,
+        "D" : 1.0,
+        "E" : 1.21,
+        "F" : "Foo",
+        "G" : [ 1 ],
+        "H" : {
+          "b" : 1
+        },
+        "I" : {
+          "id" : 3
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "KSQL_COL_0" : true,
+        "KSQL_COL_1" : true,
+        "KSQL_COL_2" : true,
+        "KSQL_COL_3" : true,
+        "KSQL_COL_4" : true,
+        "KSQL_COL_5" : true,
+        "KSQL_COL_6" : true,
+        "KSQL_COL_7" : true,
+        "KSQL_COL_8" : true
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "KSQL_COL_0" : false,
+        "KSQL_COL_1" : false,
+        "KSQL_COL_2" : false,
+        "KSQL_COL_3" : false,
+        "KSQL_COL_4" : false,
+        "KSQL_COL_5" : false,
+        "KSQL_COL_6" : false,
+        "KSQL_COL_7" : false,
+        "KSQL_COL_8" : false
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (A INT KEY, B BOOLEAN, C BIGINT, D DOUBLE, E DECIMAL(4,3), F STRING, G ARRAY<INT>, H MAP<STRING, INT>, I STRUCT<ID INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT A, A = 1, B = true, C = 11, D = 1.1, E = 1.20, F = 'foo', G = ARRAY[1,2], H = MAP('a':=1), I = STRUCT(ID:=2) FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` BOOLEAN, `C` BIGINT, `D` DOUBLE, `E` DECIMAL(4, 3), `F` STRING, `G` ARRAY<INTEGER>, `H` MAP<STRING, INTEGER>, `I` STRUCT<`ID` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` BOOLEAN, `KSQL_COL_5` BOOLEAN, `KSQL_COL_6` BOOLEAN, `KSQL_COL_7` BOOLEAN, `KSQL_COL_8` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

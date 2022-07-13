@@ -29,7 +29,7 @@ import java.util.Optional;
 
 @UdafDescription(
         name = "topk",
-        description = "Computes the maximum value for a key.",
+        description = "Computes the top k values for a column, per key.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class TopkKudaf<T extends Comparable<? super T>> implements Udaf<T, List<T>, List<T>> {

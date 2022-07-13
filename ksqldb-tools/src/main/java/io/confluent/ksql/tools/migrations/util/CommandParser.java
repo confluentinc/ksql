@@ -16,8 +16,6 @@
 package io.confluent.ksql.tools.migrations.util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -30,33 +28,18 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.TypeRegistry;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.parser.tree.AssertSchema;
-import io.confluent.ksql.parser.tree.AssertTopic;
-import io.confluent.ksql.parser.tree.CreateConnector;
-import io.confluent.ksql.parser.tree.CreateConnector.Type;
-import io.confluent.ksql.parser.tree.DefineVariable;
-import io.confluent.ksql.parser.tree.DropConnector;
-import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.parser.tree.SetProperty;
-import io.confluent.ksql.parser.tree.UndefineVariable;
-import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -79,46 +62,20 @@ public final class CommandParser {
   private static final char SINGLE_QUOTE = '\'';
   private static final char SEMICOLON = ';';
   private static final List<String> UNSUPPORTED_STATEMENTS = ImmutableList.of(
-      DESCRIBE, EXPLAIN, SELECT, PRINT, SHOW, LIST
+          DESCRIBE, EXPLAIN, SELECT, PRINT, SHOW, LIST
   );
 
-  private enum StatementType {
-    INSERT_VALUES(SqlBaseParser.InsertValuesContext.class),
-    CREATE_CONNECTOR(SqlBaseParser.CreateConnectorContext.class),
-    DROP_CONNECTOR(SqlBaseParser.DropConnectorContext.class),
-    STATEMENT(SqlBaseParser.StatementContext.class),
-    SET_PROPERTY(SqlBaseParser.SetPropertyContext.class),
-    UNSET_PROPERTY(SqlBaseParser.UnsetPropertyContext.class),
-    DEFINE_VARIABLE(SqlBaseParser.DefineVariableContext.class),
-    UNDEFINE_VARIABLE(SqlBaseParser.UndefineVariableContext.class),
-    ASSERT_TOPIC(SqlBaseParser.AssertTopicContext.class),
-    ASSERT_SCHEMA(SqlBaseParser.AssertSchemaContext.class);
-
-    private final Class<? extends SqlBaseParser.StatementContext> statementClass;
-
-    <T extends SqlBaseParser.StatementContext> StatementType(final Class<T> statementClass) {
-      this.statementClass = Objects.requireNonNull(statementClass, "statementType");
-    }
-
-    public static StatementType get(
-            final Class<? extends SqlBaseParser.StatementContext> statementClass) {
-      final Optional<StatementType> type = Arrays.stream(StatementType.values())
-              .filter(statementType -> statementType.statementClass.equals(statementClass))
-              .findFirst();
-      return type.orElse(StatementType.STATEMENT);
-    }
-  }
 
   private CommandParser() {
   }
 
   /**
-  * Splits a string of sql commands into a list of commands and filters out the comments.
-  * Note that escaped strings are not handled, because they end up getting split into two adjacent
-  * strings and are pieced back together afterwards.
-  *
-  * @return list of commands with comments removed
-  */
+   * Splits a string of sql commands into a list of commands and filters out the comments.
+   * Note that escaped strings are not handled, because they end up getting split into two adjacent
+   * strings and are pieced back together afterwards.
+   *
+   * @return list of commands with comments removed
+   */
   public static List<String> splitSql(final String sql) {
     final List<String> commands = new ArrayList<>();
     StringBuilder current = new StringBuilder();
@@ -148,7 +105,7 @@ public final class CommandParser {
 
     if (!current.toString().trim().isEmpty()) {
       throw new MigrationException(String.format(
-          "Unmatched command at end of file; missing semicolon: '%s'", current
+              "Unmatched command at end of file; missing semicolon: '%s'", current
       ));
     }
 
@@ -156,8 +113,8 @@ public final class CommandParser {
   }
 
   /**
-  * Converts an expression into a Java object.
-  */
+   * Converts an expression into a Java object.
+   */
   private static void validateToken(final String token, final int index) {
     if (index < 0) {
       throw new MigrationException("Invalid sql - failed to find closing token '" + token + "'");
@@ -165,8 +122,8 @@ public final class CommandParser {
   }
 
   /**
-  * Converts a generic expression into the proper Java type.
-  */
+   * Converts a generic expression into the proper Java type.
+   */
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static Object toFieldType(final Expression expressionValue) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
@@ -186,30 +143,27 @@ public final class CommandParser {
       return null;
     } else if (expressionValue instanceof CreateArrayExpression) {
       return ((CreateArrayExpression) expressionValue)
-          .getValues()
-          .stream()
-          .map(CommandParser::toFieldType).collect(Collectors.toList());
+              .getValues()
+              .stream()
+              .map(CommandParser::toFieldType).collect(Collectors.toList());
     } else if (expressionValue instanceof CreateMapExpression) {
       final Map<Object, Object> resolvedMap = new HashMap<>();
       ((CreateMapExpression) expressionValue).getMap()
-          .forEach((k, v) -> resolvedMap.put(toFieldType(k), toFieldType(v)));
+              .forEach((k, v) -> resolvedMap.put(toFieldType(k), toFieldType(v)));
       return resolvedMap;
     } else if (expressionValue instanceof CreateStructExpression) {
       final Map<Object, Object> resolvedStruct = new HashMap<>();
       ((CreateStructExpression) expressionValue)
-          .getFields().forEach(
-              field -> resolvedStruct.put(field.getName(), toFieldType(field.getValue())));
+              .getFields().forEach(
+                      field -> resolvedStruct.put(field.getName(), toFieldType(field.getValue())));
       return resolvedStruct;
     }
     throw new IllegalStateException("Expression type not recognized: "
-        + expressionValue.toString());
+            + expressionValue.toString());
   }
 
-  /**
-  * Determines the type of command a sql string is and returns a SqlCommand.
-  */
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  public static SqlCommand transformToSqlCommand(
+
+  public static ParsedCommand parse(
           // CHECKSTYLE_RULES.ON: CyclomaticComplexity
           final String sql, final Map<String, String> variables) {
 
@@ -219,137 +173,12 @@ public final class CommandParser {
       substituted = VariableSubstitutor.substitute(KSQL_PARSER.parse(sql).get(0), variables);
     } catch (ParseFailedException e) {
       throw new MigrationException(String.format(
-          "Failed to parse the statement. Statement: %s. Reason: %s",
-          sql, e.getMessage()));
+              "Failed to parse the statement. Statement: %s. Reason: %s",
+              sql, e.getMessage()));
     }
-    final Class<? extends SqlBaseParser.StatementContext> statementContext =
-            KSQL_PARSER.parse(substituted).get(0).getStatement().statement().getClass();
 
-    switch (StatementType.get(statementContext)) {
-      case INSERT_VALUES:
-        return getInsertValuesStatement(substituted);
-      case CREATE_CONNECTOR:
-        return getCreateConnectorStatement(substituted);
-      case DROP_CONNECTOR:
-        return getDropConnectorStatement(substituted);
-      case STATEMENT:
-        return new SqlStatement(sql);
-      case SET_PROPERTY:
-        return getSetPropertyCommand(substituted);
-      case UNSET_PROPERTY:
-        return getUnsetPropertyCommand(substituted);
-      case DEFINE_VARIABLE:
-        return getDefineVariableCommand(substituted);
-      case UNDEFINE_VARIABLE:
-        return getUndefineVariableCommand(sql);
-      case ASSERT_SCHEMA:
-        return getAssertSchemaCommand(substituted);
-      case ASSERT_TOPIC:
-        return getAssertTopicCommand(substituted);
-      default:
-        throw new IllegalStateException();
-    }
-  }
-
-  private static SqlInsertValues getInsertValuesStatement(final String substituted) {
-    final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
-          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    return new SqlInsertValues(
-        substituted,
-        preserveCase(parsedStatement.getTarget().text()),
-        parsedStatement.getValues(),
-        parsedStatement.getColumns().stream()
-            .map(ColumnName::text).collect(Collectors.toList()));
-  }
-
-  private static SqlCreateConnectorStatement getCreateConnectorStatement(final String substituted) {
-    final CreateConnector createConnector = (CreateConnector) new AstBuilder(TypeRegistry.EMPTY)
-          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    return new SqlCreateConnectorStatement(
-            substituted,
-            preserveCase(createConnector.getName()),
-            createConnector.getType() == Type.SOURCE,
-            createConnector.getConfig().entrySet().stream()
-                    .collect(Collectors.toMap(Entry::getKey, e -> toFieldType(e.getValue()))),
-            createConnector.ifNotExists()
-    );
-  }
-
-  private static SqlDropConnectorStatement getDropConnectorStatement(final String substituted) {
-    final DropConnector dropConnector = (DropConnector) new AstBuilder(TypeRegistry.EMPTY)
-            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    return new SqlDropConnectorStatement(
-            substituted,
-            preserveCase(dropConnector.getConnectorName()),
-            dropConnector.getIfExists()
-    );
-  }
-
-  private static SqlPropertyCommand getSetPropertyCommand(final String substituted) {
-    final SetProperty setProperty = (SetProperty) new AstBuilder(TypeRegistry.EMPTY)
-            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    return new SqlPropertyCommand(
-        substituted,
-        true,
-        setProperty.getPropertyName(),
-        Optional.of(setProperty.getPropertyValue())
-    );
-  }
-
-  private static SqlPropertyCommand getUnsetPropertyCommand(final String substituted) {
-    final UnsetProperty unsetProperty = (UnsetProperty) new AstBuilder(TypeRegistry.EMPTY)
-            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    return new SqlPropertyCommand(
-        substituted,
-        false,
-        unsetProperty.getPropertyName(),
-        Optional.empty());
-  }
-
-  private static SqlDefineVariableCommand getDefineVariableCommand(final String substituted) {
-    final DefineVariable defineVariable = (DefineVariable) new AstBuilder(TypeRegistry.EMPTY)
-            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    return new SqlDefineVariableCommand(
-            substituted,
-            defineVariable.getVariableName(),
-            defineVariable.getVariableValue()
-    );
-  }
-
-  private static SqlUndefineVariableCommand getUndefineVariableCommand(final String substituted) {
-    final UndefineVariable undefineVariable = (UndefineVariable) new AstBuilder(TypeRegistry.EMPTY)
-            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    return new SqlUndefineVariableCommand(substituted, undefineVariable.getVariableName());
-  }
-
-  private static SqlAssertSchemaCommand getAssertSchemaCommand(final String substituted) {
-    final AssertSchema assertSchema = (AssertSchema) new AstBuilder(TypeRegistry.EMPTY)
-          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    return new SqlAssertSchemaCommand(
-        substituted,
-        assertSchema.getSubject(),
-        assertSchema.getId(),
-        assertSchema.checkExists(),
-        assertSchema.getTimeout().isPresent()
-            ? Optional.of(assertSchema.getTimeout().get().toDuration())
-            : Optional.empty()
-    );
-  }
-
-  private static SqlAssertTopicCommand getAssertTopicCommand(final String substituted) {
-    final AssertTopic assertTopic = (AssertTopic) new AstBuilder(TypeRegistry.EMPTY)
-          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
-    final Map<String, Integer> configs = assertTopic.getConfig().entrySet().stream()
-          .collect(Collectors.toMap(e -> e.getKey(), e -> (Integer) e.getValue().getValue()));
-    return new SqlAssertTopicCommand(
-        substituted,
-        assertTopic.getTopic(),
-        configs,
-        assertTopic.checkExists(),
-        assertTopic.getTimeout().isPresent()
-            ? Optional.of(assertTopic.getTimeout().get().toDuration())
-            : Optional.empty()
-    );
+    return new ParsedCommand(substituted, new AstBuilder(TypeRegistry.EMPTY)
+            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement()));
   }
 
 
@@ -380,284 +209,20 @@ public final class CommandParser {
     return "`" + fieldOrSourceName + "`";
   }
 
-  public abstract static class SqlCommand {
+  public static class ParsedCommand {
     private final String command;
+    private final Statement statement;
 
-    SqlCommand(final String command) {
+    ParsedCommand(final String command, final Statement statement) {
       this.command = command;
+      this.statement = statement;
     }
 
     public String getCommand() {
       return command;
     }
-  }
-
-  /**
-   * Represents ksqlDB `INSERT INTO ... VALUES ...;` statements
-   */
-  public static class SqlInsertValues extends SqlCommand {
-    private final String sourceName;
-    private final ImmutableList<String> columns;
-    private final ImmutableList<Expression> values;
-
-    SqlInsertValues(
-        final String command,
-        final String sourceName,
-        final List<Expression> values,
-        final List<String> columns
-    ) {
-      super(command);
-      this.sourceName = sourceName;
-      this.values = ImmutableList.copyOf(values);
-      this.columns = ImmutableList.copyOf(columns);
-    }
-
-    public String getSourceName() {
-      return sourceName;
-    }
-
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "values is ImmutableList")
-    public List<Expression> getValues() {
-      return values;
-    }
-
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is ImmutableList")
-    public List<String> getColumns() {
-      return columns;
-    }
-  }
-
-  /**
-  * Represents commands that can be sent directly to the Java client's `executeStatement` method
-  */
-  public static class SqlStatement extends SqlCommand {
-    SqlStatement(final String command) {
-      super(command);
-    }
-  }
-
-  /**
-   * Represents ksqlDB CREATE CONNECTOR statements.
-   */
-  public static class SqlCreateConnectorStatement extends SqlCommand {
-    final String name;
-    final boolean isSource;
-    final ImmutableMap<String, Object> properties;
-    final boolean ifNotExist;
-
-    SqlCreateConnectorStatement(
-        final String command,
-        final String name,
-        final boolean isSource,
-        final Map<String, Object> properties,
-        final boolean ifNotExist
-    ) {
-      super(command);
-      this.name = Objects.requireNonNull(name);
-      this.isSource = isSource;
-      this.properties = ImmutableMap.copyOf(Objects.requireNonNull(properties));
-      this.ifNotExist = ifNotExist;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public boolean isSource() {
-      return isSource;
-    }
-
-    public boolean getIfNotExists() {
-      return ifNotExist;
-    }
-
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "properties is ImmutableMap")
-    public Map<String, Object> getProperties() {
-      return properties;
-    }
-  }
-
-  /**
-   * Represents ksqlDB DROP CONNECTOR statements.
-   */
-  public static class SqlDropConnectorStatement extends SqlCommand {
-    final String name;
-    final boolean ifExists;
-
-    SqlDropConnectorStatement(
-        final String command,
-        final String name,
-        final boolean ifExists
-    ) {
-      super(command);
-      this.name = Objects.requireNonNull(name);
-      this.ifExists = ifExists;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public boolean getIfExists() {
-      return ifExists;
-    }
-  }
-
-  /**
-   * Represents set/unset property commands.
-   */
-  public static class SqlPropertyCommand extends SqlCommand {
-    private final boolean set;
-    private final String property;
-    private final Optional<String> value;
-
-    SqlPropertyCommand(
-        final String command,
-        final boolean set,
-        final String property,
-        final Optional<String> value
-    ) {
-      super(command);
-      this.set = set;
-      this.property = Objects.requireNonNull(property);
-      this.value = Objects.requireNonNull(value);
-    }
-
-    public boolean isSetCommand() {
-      return set;
-    }
-
-    public String getProperty() {
-      return property;
-    }
-
-    public Optional<String> getValue() {
-      return value;
-    }
-  }
-
-  /**
-   * Represents ksqlDB DEFINE commands.
-   */
-  public static class SqlDefineVariableCommand extends SqlCommand {
-    private final String variable;
-    private final String value;
-
-    SqlDefineVariableCommand(
-        final String command,
-        final String variable,
-        final String value
-    ) {
-      super(command);
-      this.variable = Objects.requireNonNull(variable);
-      this.value = Objects.requireNonNull(value);
-    }
-
-    public String getVariable() {
-      return variable;
-    }
-
-    public String getValue() {
-      return value;
-    }
-  }
-
-  /**
-   * Represents ksqlDB UNDEFINE commands.
-   */
-  public static class SqlUndefineVariableCommand extends SqlCommand {
-    private final String variable;
-
-    SqlUndefineVariableCommand(
-        final String command,
-        final String variable
-    ) {
-      super(command);
-      this.variable = Objects.requireNonNull(variable);
-    }
-
-    public String getVariable() {
-      return variable;
-    }
-  }
-
-  /**
-   * Represents ksqlDB ASSERT TOPIC commands.
-   */
-  public static class SqlAssertTopicCommand extends SqlCommand {
-    private final String topic;
-    private final ImmutableMap<String, Integer> configs;
-    private final boolean exists;
-    private final Optional<Duration> timeout;
-
-    SqlAssertTopicCommand(
-        final String command,
-        final String topic,
-        final Map<String, Integer> configs,
-        final boolean exists,
-        final Optional<Duration> timeout
-    ) {
-      super(command);
-      this.topic = Objects.requireNonNull(topic);
-      this.configs = ImmutableMap.copyOf(Objects.requireNonNull(configs));
-      this.exists = exists;
-      this.timeout = Objects.requireNonNull(timeout);
-    }
-
-    public String getTopic() {
-      return topic;
-    }
-
-    public Map<String, Integer> getConfigs() {
-      return configs;
-    }
-
-    public boolean getExists() {
-      return exists;
-    }
-
-    public Optional<Duration> getTimeout() {
-      return timeout;
-    }
-  }
-
-  /**
-   * Represents ksqlDB ASSERT SCHEMA commands.
-   */
-  public static class SqlAssertSchemaCommand extends SqlCommand {
-    private final Optional<String> subject;
-    private final Optional<Integer> id;
-    private final boolean exists;
-    private final Optional<Duration> timeout;
-
-    SqlAssertSchemaCommand(
-        final String command,
-        final Optional<String> subject,
-        final Optional<Integer> id,
-        final boolean exists,
-        final Optional<Duration> timeout
-    ) {
-      super(command);
-      this.subject = Objects.requireNonNull(subject);
-      this.id = Objects.requireNonNull(id);
-      this.exists = exists;
-      this.timeout = Objects.requireNonNull(timeout);
-    }
-
-    public Optional<String> getSubject() {
-      return subject;
-    }
-
-    public Optional<Integer> getId() {
-      return id;
-    }
-
-    public boolean getExists() {
-      return exists;
-    }
-
-    public Optional<Duration> getTimeout() {
-      return timeout;
+    public Statement getStatement() {
+      return statement;
     }
   }
 }

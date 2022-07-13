@@ -30,20 +30,24 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.FieldInfo;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.AstBuilder;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.VariableParser;
+import io.confluent.ksql.parser.tree.AssertSchema;
+import io.confluent.ksql.parser.tree.AssertTopic;
+import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.DefineVariable;
+import io.confluent.ksql.parser.tree.DropConnector;
+import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.UndefineVariable;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertSchemaCommand;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlAssertTopicCommand;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDefineVariableCommand;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlUndefineVariableCommand;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
@@ -61,6 +65,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.common.protocol.types.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -370,8 +376,11 @@ public class ApplyMigrationCommand extends BaseCommand {
       try {
         final Map<String, String> variables = ksqlClient.getVariables().entrySet()
             .stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
+        CommandParser.ParsedCommand parsedCommand = CommandParser.parse(command, variables);
+
         executeCommand(
-            CommandParser.transformToSqlCommand(command, variables),
+                parsedCommand.getStatement(),
+                parsedCommand.getCommand(),
             ksqlClient,
             properties,
             validateOnly
@@ -397,20 +406,22 @@ public class ApplyMigrationCommand extends BaseCommand {
   }
 
   private void executeCommand(
-      final SqlCommand command,
-      final Client ksqlClient,
-      final Map<String, Object> properties,
-      final boolean defineUndefineOnly
+          final Statement statement,
+          String sql,
+          final Client ksqlClient,
+          final Map<String, Object> properties,
+          final boolean defineUndefineOnly
   ) throws ExecutionException, InterruptedException {
-    if (command instanceof SqlDefineVariableCommand) {
+
+    if (statement instanceof DefineVariable) {
       ksqlClient.define(
-          ((SqlDefineVariableCommand) command).getVariable(),
-          ((SqlDefineVariableCommand) command).getValue()
+          ((DefineVariable) statement).getVariableName(),
+          ((DefineVariable) statement).getVariableValue()
       );
-    } else if (command instanceof SqlUndefineVariableCommand) {
-      ksqlClient.undefine(((SqlUndefineVariableCommand) command).getVariable());
+    } else if (statement instanceof UndefineVariable) {
+      ksqlClient.undefine(((UndefineVariable) statement).getVariableName());
     } else if (!defineUndefineOnly) {
-      executeNonVariableCommands(command, ksqlClient, properties);
+      executeNonVariableCommands(statement, sql, ksqlClient, properties);
     }
   }
 
@@ -419,67 +430,75 @@ public class ApplyMigrationCommand extends BaseCommand {
    */
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private void executeNonVariableCommands(
-      final SqlCommand command,
+      final Statement statement,
+      final String sql,
       final Client ksqlClient,
       final Map<String, Object> properties
   ) throws ExecutionException, InterruptedException {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    if (command instanceof SqlStatement) {
-      ksqlClient.executeStatement(command.getCommand(), new HashMap<>(properties)).get();
-    } else if (command instanceof SqlInsertValues) {
-      final List<FieldInfo> fields =
-          ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
-      ksqlClient.insertInto(
-          ((SqlInsertValues) command).getSourceName(),
-          getRow(
-              fields,
-              ((SqlInsertValues) command).getColumns(),
-              ((SqlInsertValues) command).getValues())).get();
-    } else if (command instanceof SqlCreateConnectorStatement) {
+    if (statement instanceof InsertValues) {
+        final List<FieldInfo> fields =
+                ksqlClient.describeSource(preserveCase(((InsertValues) statement).getTarget().text())).get().fields();
+        ksqlClient.insertInto(
+                preserveCase(((InsertValues) statement).getTarget().text()),
+                getRow(
+                        fields,
+                        ((InsertValues) statement).getColumns().stream()
+                                .map(ColumnName::text).collect(Collectors.toList()),
+                        ((InsertValues) statement).getValues())).get();
+    } else if (statement instanceof CreateConnector) {
       ksqlClient.createConnector(
-          ((SqlCreateConnectorStatement) command).getName(),
-          ((SqlCreateConnectorStatement) command).isSource(),
-          ((SqlCreateConnectorStatement) command).getProperties(),
-          ((SqlCreateConnectorStatement) command).getIfNotExists()
+          ((CreateConnector) statement).getName(),
+          ((CreateConnector) statement).getType() == CreateConnector.Type.SOURCE,
+          ((CreateConnector) statement).getConfig().entrySet().stream()
+                  .collect(Collectors.toMap(Map.Entry::getKey, e -> CommandParser.toFieldType(e.getValue()))),
+          ((CreateConnector) statement).ifNotExists()
       ).get();
-    } else if (command instanceof SqlDropConnectorStatement) {
+    } else if (statement instanceof DropConnector) {
       ksqlClient.dropConnector(
-          ((SqlDropConnectorStatement) command).getName(),
-          ((SqlDropConnectorStatement) command).getIfExists()
+           CommandParser.preserveCase(((DropConnector) statement).getConnectorName()),
+          ((DropConnector) statement).getIfExists()
       ).get();
-    } else if (command instanceof SqlPropertyCommand) {
-      if (((SqlPropertyCommand) command).isSetCommand()
-          && ((SqlPropertyCommand) command).getValue().isPresent()) {
+    } else if (statement instanceof SetProperty) {
         properties.put(
-            ((SqlPropertyCommand) command).getProperty(),
-            ((SqlPropertyCommand) command).getValue().get()
+            ((SetProperty) statement).getPropertyName(),
+            ((SetProperty) statement).getPropertyValue()
         );
-      } else {
-        properties.remove(((SqlPropertyCommand) command).getProperty());
-      }
-    } else if (command instanceof SqlAssertTopicCommand) {
-      if (((SqlAssertTopicCommand) command).getTimeout().isPresent()) {
+    } else if (statement instanceof UnsetProperty){
+        properties.remove(((UnsetProperty) statement).getPropertyName());
+    } else if (statement instanceof AssertTopic) {
+      final AssertTopic assertTopic = (AssertTopic) statement;
+      final Map<String, Integer> configs = assertTopic.getConfig().entrySet().stream()
+              .collect(Collectors.toMap(e -> e.getKey(), e -> (Integer) e.getValue().getValue()));
+      if (((AssertTopic) statement).getTimeout().isPresent()) {
         ksqlClient.assertTopic(
-            ((SqlAssertTopicCommand) command).getTopic(),
-            ((SqlAssertTopicCommand) command).getConfigs(),
-            ((SqlAssertTopicCommand) command).getExists(),
-            ((SqlAssertTopicCommand) command).getTimeout().get()
+            ((AssertTopic) statement).getTopic(),
+            configs,
+            ((AssertTopic) statement).checkExists(),
+                (Duration) (assertTopic.getTimeout().isPresent()
+                    ? Optional.of(assertTopic.getTimeout().get().toDuration())
+                    : Optional.empty()).get()
         ).get();
       } else {
         ksqlClient.assertTopic(
-            ((SqlAssertTopicCommand) command).getTopic(),
-            ((SqlAssertTopicCommand) command).getConfigs(),
-            ((SqlAssertTopicCommand) command).getExists()
+            assertTopic.getTopic(),
+            configs,
+            assertTopic.checkExists()
         ).get();
       }
-    } else if (command instanceof SqlAssertSchemaCommand) {
+    } else if (statement instanceof AssertSchema) {
+      final AssertSchema assertSchema = (AssertSchema) statement;
       executeAsssertSchema(
-          ((SqlAssertSchemaCommand) command).getSubject(),
-          ((SqlAssertSchemaCommand) command).getId(),
-          ((SqlAssertSchemaCommand) command).getTimeout(),
-          ((SqlAssertSchemaCommand) command).getExists(),
+              assertSchema.getSubject(),
+              assertSchema.getId(),
+              assertSchema.getTimeout().isPresent()
+                      ? Optional.of(assertSchema.getTimeout().get().toDuration())
+                      : Optional.empty(),
+              assertSchema.checkExists(),
           ksqlClient
       );
+    } else  {
+      ksqlClient.executeStatement(sql, new HashMap<>(properties)).get();
     }
   }
 

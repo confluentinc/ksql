@@ -36,6 +36,7 @@ public class QueryAnalyzer {
       final MetaStore metaStore,
       final String outputTopicPrefix,
       final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled,
       final boolean pullLimitClauseEnabled
   ) {
     this(
@@ -43,6 +44,7 @@ public class QueryAnalyzer {
                 metaStore,
                 outputTopicPrefix,
                 rowpartitionRowoffsetEnabled,
+                rowIdEnabled,
                 pullLimitClauseEnabled),
 
         new PullQueryValidator(),

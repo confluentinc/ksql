@@ -36,17 +36,28 @@ public final class SourceSchemas {
 
   private final ImmutableMap<SourceName, LogicalSchema> sourceSchemas;
   private final boolean rowpartitionRowoffsetEnabled;
+  private final boolean rowIdEnabled;
 
   SourceSchemas(
       final Map<SourceName, LogicalSchema> sourceSchemas,
-      final boolean rowpartitionRowoffsetEnabled) {
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
+    this.rowIdEnabled = rowIdEnabled;
 
     // This will fail
     if (sourceSchemas.isEmpty()) {
       throw new IllegalArgumentException("Must supply at least one schema");
     }
+  }
+
+  public interface SourceSchemasFactory {
+    SourceSchemas create(
+        Map<SourceName, LogicalSchema> sourceSchemas,
+        boolean rowpartitionRowoffsetEnabled,
+        boolean rowIdEnabled
+    );
   }
 
   /**
@@ -100,7 +111,7 @@ public final class SourceSchemas {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
           .anyMatch(schema ->
-              SystemColumns.isPseudoColumn(column, rowpartitionRowoffsetEnabled)
+              SystemColumns.isPseudoColumn(column, rowpartitionRowoffsetEnabled, rowIdEnabled)
                   || schema.isKeyColumn(column));
     }
 
@@ -111,6 +122,6 @@ public final class SourceSchemas {
     }
 
     return sourceSchema.isKeyColumn(column)
-        || SystemColumns.isPseudoColumn(column, rowpartitionRowoffsetEnabled);
+        || SystemColumns.isPseudoColumn(column, rowpartitionRowoffsetEnabled, rowIdEnabled);
   }
 }

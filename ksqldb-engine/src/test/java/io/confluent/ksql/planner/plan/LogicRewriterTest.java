@@ -3,7 +3,6 @@ package io.confluent.ksql.planner.plan;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -151,7 +150,7 @@ public class LogicRewriterTest {
 
   private Expression getWhereExpression(final String table, String expression) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, true)
+        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, true, true)
         .getStatement();
 
     assertThat(statement.getWhere().isPresent(), is(true));

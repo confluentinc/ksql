@@ -45,10 +45,13 @@ public final class AnalysisTestUtil {
   ) {
     final boolean rowpartitionRowoffsetEnabled =
         ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+    final boolean rowIdEnabled =
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWID_ENABLED);
     final boolean pullLimitClauseEnabled =
             ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
 
-    final Analyzer analyzer = new Analyzer(queryStr, metaStore, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
+    final Analyzer analyzer = new Analyzer(
+        queryStr, metaStore, rowpartitionRowoffsetEnabled, rowIdEnabled, pullLimitClauseEnabled);
 
     final LogicalPlanner logicalPlanner =
         new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
@@ -64,12 +67,14 @@ public final class AnalysisTestUtil {
         final String queryStr,
         final MetaStore metaStore,
         final boolean rowpartitionRowoffsetEnabled,
+        final boolean rowIdEnabled,
         final boolean pullLimitClauseEnabled
     ) {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-          metaStore, "", rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
+          metaStore, "", rowpartitionRowoffsetEnabled, rowIdEnabled,
+          pullLimitClauseEnabled);
       final Statement statement =
-          parseStatement(queryStr, metaStore, rowpartitionRowoffsetEnabled);
+          parseStatement(queryStr, metaStore, rowpartitionRowoffsetEnabled, rowIdEnabled);
       final Query query = statement instanceof QueryContainer
           ? ((QueryContainer) statement).getQuery()
           : (Query) statement;
@@ -84,10 +89,12 @@ public final class AnalysisTestUtil {
     private static Statement parseStatement(
         final String queryStr,
         final MetaStore metaStore,
-        final boolean rowpartitionRowoffsetEnabled
+        final boolean rowpartitionRowoffsetEnabled,
+        final boolean rowIdEnabled
     ) {
       final List<PreparedStatement<?>> statements =
-          KsqlParserTestUtil.buildAst(queryStr, metaStore, rowpartitionRowoffsetEnabled);
+          KsqlParserTestUtil.buildAst(
+              queryStr, metaStore, rowpartitionRowoffsetEnabled, rowIdEnabled);
       assertThat(statements, hasSize(1));
       return statements.get(0).getStatement();
     }

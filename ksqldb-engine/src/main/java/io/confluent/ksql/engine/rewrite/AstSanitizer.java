@@ -69,18 +69,21 @@ public final class AstSanitizer {
   public static Statement sanitize(
       final Statement node,
       final MetaStore metaStore,
-      final boolean rowpartitionRowoffsetEnabled) {
-    return sanitize(node, metaStore, true, rowpartitionRowoffsetEnabled);
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled
+  ) {
+    return sanitize(node, metaStore, true, rowpartitionRowoffsetEnabled, rowIdEnabled);
   }
 
   public static Statement sanitize(
       final Statement node,
       final MetaStore metaStore,
       final Boolean lambdaEnabled,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean rowIdEnabled
   ) {
     final DataSourceExtractor dataSourceExtractor =
-        new DataSourceExtractor(metaStore, rowpartitionRowoffsetEnabled);
+        new DataSourceExtractor(metaStore, rowpartitionRowoffsetEnabled, rowIdEnabled);
     dataSourceExtractor.extractDataSources(node);
 
     final RewriterPlugin rewriterPlugin =

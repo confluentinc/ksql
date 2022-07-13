@@ -57,7 +57,7 @@ public class DateTopKDistinctKudafTest {
     final List<Date> array1 = ImmutableList.of(new Date(50), new Date(45), new Date(25));
     final List<Date> array2 = ImmutableList.of(new Date(60), new Date(50), new Date(48));
 
-    assertThat("Invalid results.", dateTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", dateTopkDistinctKudaf.merge(array1, array2),
             equalTo(ImmutableList.of(new Date(60), new Date(50), new Date(48))));
   }
 
@@ -66,7 +66,7 @@ public class DateTopKDistinctKudafTest {
     final List<Date> array1 = ImmutableList.of(new Date(50), new Date(45));
     final List<Date> array2 = ImmutableList.of(new Date(60));
 
-    assertThat("Invalid results.", dateTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", dateTopkDistinctKudaf.merge(array1, array2),
             equalTo(ImmutableList.of(new Date(60), new Date(50), new Date(45))));
   }
 
@@ -75,7 +75,7 @@ public class DateTopKDistinctKudafTest {
     final List<Date> array1 = ImmutableList.of(new Date(50), new Date(45));
     final List<Date> array2 = ImmutableList.of(new Date(60), new Date(50));
 
-    assertThat("Invalid results.", dateTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", dateTopkDistinctKudaf.merge(array1, array2),
             equalTo(ImmutableList.of(new Date(60), new Date(50), new Date(45))));
   }
 
@@ -84,7 +84,7 @@ public class DateTopKDistinctKudafTest {
     final List<Date> array1 = ImmutableList.of(new Date(60));
     final List<Date> array2 = ImmutableList.of(new Date(60));
 
-    assertThat("Invalid results.", dateTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", dateTopkDistinctKudaf.merge(array1, array2),
             equalTo(ImmutableList.of(new Date(60))));
   }
 }

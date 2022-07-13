@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.QueryMask;
 import io.vertx.core.http.HttpHeaders;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -115,10 +116,11 @@ public class DefaultConnectClient implements ConnectClient {
       final Map<String, String> config
   ) {
     try {
+      final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
       LOG.debug("Issuing create request to Kafka Connect at URI {} with name {} and config {}",
           connectUri,
           connector,
-          config);
+          maskedConfig);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .post(resolveUri(CONNECTORS))
@@ -151,10 +153,11 @@ public class DefaultConnectClient implements ConnectClient {
       final String plugin,
       final Map<String, String> config) {
     try {
+      final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
       LOG.debug("Issuing validate request to Kafka Connect at URI {} for plugin {} and config {}",
           connectUri,
           plugin,
-          config);
+          maskedConfig);
 
       final ConnectResponse<ConfigInfos> connectResponse = withRetries(() -> Request
           .put(resolveUri(String.format(VALIDATE_CONNECTOR, plugin)))
@@ -170,7 +173,7 @@ public class DefaultConnectClient implements ConnectClient {
       connectResponse.error()
           .ifPresent(error ->
               LOG.warn("Did not VALIDATE connector configuration for plugin {} and config {}: {}",
-              plugin, config, error));
+              plugin, maskedConfig, error));
 
       return connectResponse;
 

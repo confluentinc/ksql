@@ -279,7 +279,7 @@ public class WSQueryEndpoint {
 
       final KsqlRequest request = ApiJsonMapper.INSTANCE.get()
           .readValue(jsonRequest, KsqlRequest.class);
-      if (request.getKsql().isEmpty()) {
+      if (request.getUnmaskedKsql().isEmpty()) {
         throw new IllegalArgumentException("\"ksql\" field of \"request\" must be populated");
       }
       // To validate props:
@@ -292,7 +292,7 @@ public class WSQueryEndpoint {
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
     try {
-      return statementParser.parseSingleStatement(request.getKsql());
+      return statementParser.parseSingleStatement(request.getUnmaskedKsql());
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing query: " + e.getMessage(), e);
     }
@@ -320,7 +320,8 @@ public class WSQueryEndpoint {
 
     attachCloseHandler(info.websocket, streamSubscriber);
 
-    final PreparedStatement<Query> statement = PreparedStatement.of(info.request.getKsql(), query);
+    final PreparedStatement<Query> statement = PreparedStatement.of(info.request.getUnmaskedKsql(),
+        query);
 
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, clientLocalProperties));

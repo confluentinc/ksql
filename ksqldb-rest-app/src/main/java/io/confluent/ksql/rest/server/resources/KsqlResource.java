@@ -19,6 +19,7 @@ import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -259,8 +260,10 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    LOG.info("Received: " + request);
+    // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
+    ApiServerUtils.setMaskedSqlIfNeeded(request);
 
+    LOG.info("Received: " + request);
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -276,7 +279,7 @@ public class KsqlResource implements KsqlConfigurable {
 
       final KsqlRequestConfig requestConfig =
           new KsqlRequestConfig(request.getRequestProperties());
-      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+      final List<ParsedStatement> statements = ksqlEngine.parse(request.getUnmaskedKsql());
 
       validator.validate(
           SandboxedServiceContext.create(securityContext.getServiceContext()),
@@ -288,13 +291,13 @@ public class KsqlResource implements KsqlConfigurable {
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
               request.getSessionVariables()
           ),
-          request.getKsql()
+          request.getUnmaskedKsql()
       );
 
       // log validated statements for query anonymization
       statements.forEach(s -> {
-        if (s.getStatementText().toLowerCase().contains("terminate")
-            || s.getStatementText().toLowerCase().contains("drop")) {
+        if (s.getUnMaskedStatementText().toLowerCase().contains("terminate")
+            || s.getUnMaskedStatementText().toLowerCase().contains("drop")) {
           QueryLogger.info("Query terminated", s.getStatementText());
         } else {
           QueryLogger.info("Query created", s.getStatementText());
@@ -330,7 +333,7 @@ public class KsqlResource implements KsqlConfigurable {
     } catch (final Exception e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
       return errorHandler.generateResponse(
-          e, Errors.serverErrorForStatement(e, request.getKsql()));
+          e, Errors.serverErrorForStatement(e, request.getMaskedKsql()));
     }
   }
 

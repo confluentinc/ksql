@@ -24,6 +24,7 @@ import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.QueryMask;
 import io.vertx.core.http.HttpHeaders;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -90,11 +91,12 @@ public class DefaultConnectClient implements ConnectClient {
       final String connector,
       final Map<String, String> config
   ) {
+    final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
     try {
       LOG.debug("Issuing create request to Kafka Connect at URI {} with name {} and config {}",
           connectUri,
           connector,
-          config);
+          maskedConfig);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .post(connectUri.resolve(CONNECTORS))

@@ -348,7 +348,7 @@ public final class HARouting implements AutoCloseable {
           .getKsqlClient()
           .makeQueryRequest(
               owner.location(),
-              statement.getStatementText(),
+              statement.getUnMaskedStatementText(),
               statement.getSessionConfig().getOverrides(),
               requestProperties,
               streamedRowsHandler(owner, pullQueryQueue, rowFactory, outputSchema)

@@ -301,7 +301,8 @@ public class WSQueryEndpoint {
 
     attachCloseHandler(info.websocket, streamSubscriber);
 
-    final PreparedStatement<Query> statement = PreparedStatement.of(info.request.getUnmaskedKsql(), query);
+    final PreparedStatement<Query> statement = PreparedStatement.of(info.request.getUnmaskedKsql(),
+        query);
 
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, clientLocalProperties));

@@ -126,15 +126,7 @@ public final class QueryMask {
         stringBuilder.append(" SINK");
       }
 
-      stringBuilder.append(" CONNECTOR");
-
-      // optional if not exists
-      if (context.EXISTS() != null) {
-        stringBuilder.append(" IF NOT EXISTS");
-      }
-
-      stringBuilder.append(" ").append(context.identifier().getText());
-
+      stringBuilder.append(" CONNECTOR ").append(context.identifier().getText());
 
       // mask properties
       if (context.tableProperties() != null) {

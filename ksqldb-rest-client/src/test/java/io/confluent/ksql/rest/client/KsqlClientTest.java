@@ -465,7 +465,7 @@ public class KsqlClientTest {
     RestResponse<KsqlEntityList> resp = target.postKsqlRequest("ssl test", Collections.emptyMap(), Optional.of(123L));
 
     // Then:
-    assertThat(getKsqlRequest().getUnMaskedKsql(), is("ssl test"));
+    assertThat(getKsqlRequest().getUnmaskedKsql(), is("ssl test"));
     assertThat(expectedResponse, is(resp.getResponse()));
   }
 

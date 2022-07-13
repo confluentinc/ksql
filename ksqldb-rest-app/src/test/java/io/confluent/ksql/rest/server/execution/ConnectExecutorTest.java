@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -63,7 +64,7 @@ public class ConnectExecutorTest {
   private static final ConfiguredStatement<CreateConnector> CREATE_CONNECTOR_CONFIGURED =
       ConfiguredStatement.of(
           PreparedStatement.of(
-              "CREATE SOURCE CONNECTOR foo WITH ('foo'='bar');",
+              "CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='bar');",
               CREATE_CONNECTOR),
           ImmutableMap.of(),
           CONFIG);
@@ -102,6 +103,7 @@ public class ConnectExecutorTest {
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='bar');"));
     assertThat(entity.get(), instanceOf(CreateConnectorEntity.class));
   }
 
@@ -116,6 +118,7 @@ public class ConnectExecutorTest {
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='bar');"));
     assertThat(entity.get(), instanceOf(ErrorEntity.class));
   }
 

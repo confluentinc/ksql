@@ -103,7 +103,7 @@ public final class ExplainExecutor {
     }
 
     final PreparedStatement<?> preparedStatement = PreparedStatement.of(
-        explain.getStatementText().substring("EXPLAIN ".length()),
+        explain.getUnMaskedStatementText().substring("EXPLAIN ".length()),
         statement);
 
     final QueryMetadata metadata;

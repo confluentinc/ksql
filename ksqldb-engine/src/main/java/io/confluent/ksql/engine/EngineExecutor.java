@@ -419,10 +419,7 @@ final class EngineExecutor {
         engineContext.getMetaStore(),
         ksqlConfig
     );
-    final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-        statement.getStatementText(),
-        Optional.of(outputNode)
-    );
+    final LogicalPlanNode logicalPlan = new LogicalPlanNode(Optional.of(outputNode));
     final QueryId queryId = QueryIdUtil.buildId(
         engineContext,
         engineContext.idGenerator(),
@@ -454,10 +451,7 @@ final class EngineExecutor {
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
         .buildQueryLogicalPlan(queryPlannerOptions, isScalablePush);
-    return new LogicalPlanNode(
-        statement.getStatementText(),
-        Optional.of(outputNode)
-    );
+    return new LogicalPlanNode(Optional.of(outputNode));
   }
 
   private PushPhysicalPlan buildScalablePushPhysicalPlan(

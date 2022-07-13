@@ -431,7 +431,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
     statements.stream().map(this::substituteVariables).forEach(parsed -> {
       final StatementContext statementContext = parsed.getStatement().statement();
-      final String statementText = parsed.getStatementText();
+      final String statementText = parsed.getUnMaskedStatementText();
 
       final Handler2<StatementContext, Cli, String> handler = STATEMENT_HANDLERS
           .get(statementContext.getClass());

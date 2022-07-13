@@ -40,7 +40,7 @@ public final class CommandStoreUtil {
       final long seqNum = request.getCommandSequenceNumber().orElse(-1L);
       final String errorMsg = "Interrupted while waiting for command with the supplied "
           + "sequence number to execute. sequence number: " + seqNum
-          + ", request: " + request.getKsql();
+          + ", request: " + request.getMaskedKsql();
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
     } catch (final TimeoutException e) {

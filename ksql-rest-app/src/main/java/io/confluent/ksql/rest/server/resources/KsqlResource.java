@@ -19,6 +19,7 @@ import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -197,6 +198,8 @@ public class KsqlResource implements KsqlConfigurable {
       @Context final ServiceContext serviceContext,
       final KsqlRequest request
   ) {
+    // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
+    ApiServerUtils.setMaskedSqlIfNeeded(request);
     LOG.info("Received: " + request);
 
     throwIfNotConfigured();
@@ -209,12 +212,12 @@ public class KsqlResource implements KsqlConfigurable {
           request,
           distributedCmdResponseTimeout);
 
-      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+      final List<ParsedStatement> statements = ksqlEngine.parse(request.getUnmaskedKsql());
       validator.validate(
           SandboxedServiceContext.create(serviceContext),
           statements,
           request.getStreamsProperties(),
-          request.getKsql()
+          request.getUnmaskedKsql()
       );
 
       final KsqlEntityList entities = handler.execute(
@@ -232,7 +235,7 @@ public class KsqlResource implements KsqlConfigurable {
           e, Errors.badRequest(e));
     } catch (final Exception e) {
       return ErrorResponseUtil.generateResponse(
-          e, Errors.serverErrorForStatement(e, request.getKsql()));
+          e, Errors.serverErrorForStatement(e, request.getMaskedKsql()));
     }
   }
 

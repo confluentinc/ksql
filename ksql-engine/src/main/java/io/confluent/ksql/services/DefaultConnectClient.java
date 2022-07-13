@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.QueryMask;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -86,10 +87,11 @@ public class DefaultConnectClient implements ConnectClient {
       final Map<String, String> config
   ) {
     try {
+      final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
       LOG.debug("Issuing create request to Kafka Connect at URI {} with name {} and config {}",
           connectUri,
           connector,
-          config);
+          maskedConfig);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .Post(connectUri.resolve(CONNECTORS))

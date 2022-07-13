@@ -184,7 +184,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         UnsupportedOperationException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, false, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE, false, true, true)
     );
 
     // Then:

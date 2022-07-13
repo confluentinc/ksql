@@ -258,7 +258,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenNonWindowedStream();
     givenExistingQueryWithOldPseudoColumnVersion(streamSource);
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -276,7 +276,7 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateNonWindowedStreamSourceWithNewPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenNonWindowedStream();
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -295,7 +295,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenWindowedStream();
     givenExistingQueryWithOldPseudoColumnVersion(windowedStreamSource);
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -313,7 +313,7 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateWindowedStreamSourceWithNewPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenWindowedStream();
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -331,7 +331,7 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateNonWindowedTableSourceV2WithNewPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenNonWindowedTable();
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -354,7 +354,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenNonWindowedTable();
     givenExistingQueryWithOldPseudoColumnVersion(tableSource);
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -372,7 +372,7 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateNonWindowedTableSourceV1WithOldPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenNonWindowedTable();
-    givenOnOldPseudoColumnVersion();
+    givenOnLegacyPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -391,7 +391,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenNonWindowedTable();
     givenExistingQueryWithOldPseudoColumnVersion(tableSourceV1);
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -410,7 +410,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenWindowedTable();
     givenExistingQueryWithOldPseudoColumnVersion(windowedTableSource);
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -428,7 +428,7 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateWindowedTableSourceWithNewPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenWindowedTable();
-    givenOnNewPseudoColumnVersion();
+    givenOnCurrentPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -496,11 +496,13 @@ public class SchemaKSourceFactoryTest {
     when(step.getPseudoColumnVersion()).thenReturn(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
-  private void givenOnNewPseudoColumnVersion() {
+  private void givenOnCurrentPseudoColumnVersion() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWID_ENABLED)).thenReturn(true);
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
-  private void givenOnOldPseudoColumnVersion() {
+  private void givenOnLegacyPseudoColumnVersion() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWID_ENABLED)).thenReturn(false);
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
   }
 

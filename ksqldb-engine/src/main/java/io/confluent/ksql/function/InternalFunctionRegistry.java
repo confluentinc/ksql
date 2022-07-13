@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -35,10 +34,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   private final Map<String, AggregateFunctionFactory> udafs = new HashMap<>();
   private final Map<String, TableFunctionFactory> udtfs = new HashMap<>();
   private final ParserKeywordValidatorUtil functionNameValidator = new ParserKeywordValidatorUtil();
-
-  public InternalFunctionRegistry() {
-    new BuiltInInitializer(this).init();
-  }
 
   @Override
   public synchronized UdfFactory getUdfFactory(final FunctionName functionName) {
@@ -219,26 +214,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       throw new KsqlException(functionName + " is not a valid function name."
           + " Function names must be valid java identifiers and not a KSQL reserved word"
       );
-    }
-  }
-
-  // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-  private static final class BuiltInInitializer {
-    // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-
-    private final InternalFunctionRegistry functionRegistry;
-
-    private BuiltInInitializer(
-        final InternalFunctionRegistry functionRegistry
-    ) {
-      this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    }
-
-    private void init() {
-      addUdafFunctions();
-    }
-
-    private void addUdafFunctions() {
     }
   }
 }

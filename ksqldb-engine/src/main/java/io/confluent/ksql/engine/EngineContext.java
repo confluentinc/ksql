@@ -194,7 +194,7 @@ final class EngineContext {
       final PreparedStatement<?> preparedStatement =
           parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
       return PreparedStatement.of(
-          preparedStatement.getStatementText(),
+          preparedStatement.getUnMaskedStatementText(),
           AstSanitizer.sanitize(
               preparedStatement.getStatement(),
               metaStore,

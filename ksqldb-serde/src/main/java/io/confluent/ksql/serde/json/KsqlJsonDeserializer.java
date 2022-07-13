@@ -30,11 +30,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.schema.connect.SchemaWalker;
-import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.serde.SerdeUtils;
-import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
@@ -55,12 +52,10 @@ import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
-import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
-import org.apache.kafka.connect.storage.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,24 +87,15 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       .build();
 
   private final Schema schema;
-  private final boolean isJsonSchema;
   private final Class<T> targetType;
-  private final Converter converter;
-  private final DataTranslator translator;
   private String target = "?";
 
   KsqlJsonDeserializer(
       final Schema schema,
-      final boolean isJsonSchema,
-      final Class<T> targetType,
-      final Converter converter,
-      final DataTranslator translator
+      final Class<T> targetType
   ) {
-    this.schema = validateSchema(Objects.requireNonNull(schema, "schema"));
-    this.isJsonSchema = isJsonSchema;
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.targetType = Objects.requireNonNull(targetType, "targetType");
-    this.converter = Objects.requireNonNull(converter, "converter");
-    this.translator = Objects.requireNonNull(translator, "translator");
 
     SerdeUtils.throwOnSchemaJavaTypeMismatch(schema, targetType);
   }
@@ -126,18 +112,11 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
         return null;
       }
 
-      final Object coerced;
-      if (isJsonSchema) {
-        final SchemaAndValue schemaAndValue = converter.toConnectData(topic, bytes);
-        coerced = translator.toKsqlRow(schemaAndValue.schema(), schemaAndValue.value());
-      } else {
-        final JsonNode jsonNode = MAPPER.readTree(bytes);
-        coerced = enforceFieldType(
-            "$",
-            new JsonValueContext(jsonNode, schema)
-        );
-      }
-
+      final JsonNode jsonNode = MAPPER.readTree(bytes);
+      final Object coerced = enforceFieldType(
+          "$",
+          new JsonValueContext(jsonNode, schema)
+      );
 
       if (LOG.isTraceEnabled()) {
         LOG.trace("Deserialized {}. topic:{}, row:{}", target, topic, coerced);
@@ -366,26 +345,5 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
     public String getPath() {
       return path;
     }
-  }
-
-  private static Schema validateSchema(final Schema schema) {
-
-    class SchemaValidator implements Visitor<Void, Void> {
-
-      @Override
-      public Void visitMap(final Schema mapSchema, final Void key, final Void value) {
-        if (mapSchema.keySchema().type() != Type.STRING) {
-          throw new KsqlException("JSON only supports MAP types with STRING keys");
-        }
-        return null;
-      }
-
-      public Void visitSchema(final Schema schema11) {
-        return null;
-      }
-    }
-
-    SchemaWalker.visit(schema, new SchemaValidator());
-    return schema;
   }
 }

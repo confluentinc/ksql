@@ -19,16 +19,18 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.json.JsonSchemaConverterConfig;
-import io.confluent.connect.json.JsonSchemaDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
+import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -71,6 +73,8 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
       final Class<T> targetType,
       final boolean isKey
   ) {
+    validateSchema(schema);
+
     final Optional<Schema> physicalSchema;
     if (useSchemaRegistryFormat) {
       physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
@@ -130,13 +134,18 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
       final ConnectDataTranslator dataTranslator,
       final Converter converter
   ) {
-    return new KsqlJsonDeserializer<>(
-        schema,
-        useSchemaRegistryFormat,
-        targetType,
-        converter,
-        dataTranslator
-    );
+    if (useSchemaRegistryFormat) {
+      return new KsqlConnectDeserializer<>(
+          converter,
+          dataTranslator,
+          targetType
+      );
+    } else {
+      return new KsqlJsonDeserializer<>(
+          schema,
+          targetType
+      );
+    }
   }
 
   private static Converter getConverter() {
@@ -168,12 +177,30 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
     }
     config.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name());
 
-    // Makes naming of unions consistent between all SR formats (i.e. connect_union_field_0)
-    config.put(JsonSchemaDataConfig.GENERALIZED_SUM_TYPE_SUPPORT_CONFIG, true);
-
     final Converter converter = new JsonSchemaConverter(schemaRegistryClient);
     converter.configure(config, isKey);
 
     return converter;
+  }
+
+  private static Schema validateSchema(final Schema schema) {
+
+    class SchemaValidator implements SchemaWalker.Visitor<Void, Void> {
+
+      @Override
+      public Void visitMap(final Schema mapSchema, final Void key, final Void value) {
+        if (mapSchema.keySchema().type() != Schema.Type.STRING) {
+          throw new KsqlException("JSON only supports MAP types with STRING keys");
+        }
+        return null;
+      }
+
+      public Void visitSchema(final Schema schema11) {
+        return null;
+      }
+    }
+
+    SchemaWalker.visit(schema, new SchemaValidator());
+    return schema;
   }
 }

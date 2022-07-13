@@ -33,8 +33,7 @@ public class JsonSchemaTranslator implements ConnectSchemaTranslator {
 
   private final JsonSchemaData jsonData = new JsonSchemaData(new JsonSchemaDataConfig(
       ImmutableMap.of(
-          JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name(),
-          JsonSchemaDataConfig.GENERALIZED_SUM_TYPE_SUPPORT_CONFIG, true
+          JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name()
       )
   ));
 

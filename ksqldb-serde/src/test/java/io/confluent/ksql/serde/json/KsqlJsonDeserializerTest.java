@@ -41,7 +41,6 @@ import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.serde.SerdeUtils;
-import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -63,8 +62,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
-import org.apache.kafka.connect.json.JsonConverter;
-import org.apache.kafka.connect.storage.Converter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -132,14 +129,9 @@ public class KsqlJsonDeserializerTest {
 
   private Struct expectedOrder;
   private KsqlJsonDeserializer<Struct> deserializer;
-  private Converter converter;
-  private ConnectDataTranslator dataTranslator;
 
   @Before
   public void before() throws Exception {
-    converter = new JsonConverter();
-    dataTranslator = new ConnectDataTranslator(ORDER_SCHEMA);
-
     expectedOrder = new Struct(ORDER_SCHEMA)
         .put(ORDERTIME, 1511897796092L)
         .put(ORDERID, 1L)
@@ -905,65 +897,6 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldThrowOnMapSchemaWithNonStringKeys() {
-    // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder
-        .struct()
-        .field("f0", SchemaBuilder
-            .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-            .optional()
-            .build())
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> new KsqlJsonDeserializer<>(
-            schema,
-            false,
-            Struct.class,
-            converter,
-            dataTranslator
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "JSON only supports MAP types with STRING keys"));
-  }
-
-  @Test
-  public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
-    // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder
-        .struct()
-        .field("f0", SchemaBuilder
-            .struct()
-            .field("f1", SchemaBuilder
-                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-                .optional()
-                .build())
-            .build())
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> new KsqlJsonDeserializer<>(
-            schema,
-            false,
-            Struct.class,
-            converter,
-            dataTranslator
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "JSON only supports MAP types with STRING keys"));
-  }
-
-  @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
     final KsqlJsonDeserializer<Long> deserializer = 
@@ -1109,11 +1042,8 @@ public class KsqlJsonDeserializerTest {
       final Class<T> type
   ) {
     return new KsqlJsonDeserializer<>(
-        (ConnectSchema) schema,
-        false,
-        type,
-        converter,
-        dataTranslator
+        schema,
+        type
     );
   }
 

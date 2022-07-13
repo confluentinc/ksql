@@ -120,7 +120,7 @@ public class TestEndpoints implements Endpoints {
       final KsqlRequest request,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    this.lastSql = request.getKsql();
+    this.lastSql = request.getUnmaskedKsql();
     this.lastProperties = new JsonObject(request.getConfigOverrides());
     this.lastApiSecurityContext = apiSecurityContext;
     CompletableFuture<EndpointResponse> cf = new CompletableFuture<>();

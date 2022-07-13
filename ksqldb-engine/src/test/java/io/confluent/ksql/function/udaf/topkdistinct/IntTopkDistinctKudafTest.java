@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -143,6 +144,10 @@ public class IntTopkDistinctKudafTest {
     System.out.println(took + "ms, " + ((double)took)/iterations);
   }
 
+  @SuppressFBWarnings(
+          value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
+          justification = "Testing performance so merge result not needed"
+  )
   //@Test
   public void testMergePerformance() {
     final int iterations = 1_000_000_000;

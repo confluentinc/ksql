@@ -34,7 +34,7 @@ public class DecimalSumKudaf implements TableUdaf<BigDecimal, BigDecimal, BigDec
   private int digits;
 
   @Override
-  public void initializeTypeArguments(List<SqlArgument> argTypeList) {
+  public void initializeTypeArguments(final List<SqlArgument> argTypeList) {
     resultSchema = (SqlDecimal) argTypeList.get(0).getSqlTypeOrThrow();
     context = new MathContext(resultSchema.getPrecision());
     precision = resultSchema.getPrecision();
@@ -80,12 +80,12 @@ public class DecimalSumKudaf implements TableUdaf<BigDecimal, BigDecimal, BigDec
   }
 
   @Override
-  public BigDecimal merge(BigDecimal aggOne, BigDecimal aggTwo) {
+  public BigDecimal merge(final BigDecimal aggOne, final BigDecimal aggTwo) {
     return aggOne.add(aggTwo, context);
   }
 
   @Override
-  public BigDecimal map(BigDecimal agg) {
+  public BigDecimal map(final BigDecimal agg) {
     return agg;
   }
 

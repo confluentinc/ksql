@@ -31,12 +31,12 @@ public class IntegerSumKudaf extends SumKudaf<Integer> {
   }
 
   @Override
-  public Integer merge(Integer aggOne, Integer aggTwo) {
+  public Integer merge(final Integer aggOne, final Integer aggTwo) {
     return aggOne + aggTwo;
   }
 
   @Override
-  public Integer map(Integer agg) {
+  public Integer map(final Integer agg) {
     return agg;
   }
 

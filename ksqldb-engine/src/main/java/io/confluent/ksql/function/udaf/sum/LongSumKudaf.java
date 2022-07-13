@@ -31,12 +31,12 @@ public class LongSumKudaf extends SumKudaf<Long> {
   }
 
   @Override
-  public Long merge(Long aggOne, Long aggTwo) {
+  public Long merge(final Long aggOne, final Long aggTwo) {
     return aggOne + aggTwo;
   }
 
   @Override
-  public Long map(Long agg) {
+  public Long map(final Long agg) {
     return agg;
   }
 

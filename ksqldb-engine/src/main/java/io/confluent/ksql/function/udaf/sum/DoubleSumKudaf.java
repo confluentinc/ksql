@@ -31,12 +31,12 @@ public class DoubleSumKudaf extends SumKudaf<Double> {
   }
 
   @Override
-  public Double merge(Double aggOne, Double aggTwo) {
+  public Double merge(final Double aggOne, final Double aggTwo) {
     return aggOne + aggTwo;
   }
 
   @Override
-  public Double map(Double agg) {
+  public Double map(final Double agg) {
     return agg;
   }
 

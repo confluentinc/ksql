@@ -33,7 +33,7 @@ public abstract class BaseComparableKudaf<T extends Comparable<? super T>> imple
   }
 
   @Override
-  public void initializeTypeArguments(List<SqlArgument> argTypeList) {
+  public void initializeTypeArguments(final List<SqlArgument> argTypeList) {
     inputSchema = argTypeList.get(0).getSqlTypeOrThrow();
   }
 
@@ -53,7 +53,7 @@ public abstract class BaseComparableKudaf<T extends Comparable<? super T>> imple
   }
 
   @Override
-  public T aggregate(T current, T aggregate) {
+  public T aggregate(final T current, final T aggregate) {
     if (current == null) {
       return aggregate;
     }
@@ -66,12 +66,12 @@ public abstract class BaseComparableKudaf<T extends Comparable<? super T>> imple
   }
 
   @Override
-  public T merge(T aggOne, T aggTwo) {
+  public T merge(final T aggOne, final T aggTwo) {
     return aggregate(aggOne, aggTwo);
   }
 
   @Override
-  public T map(T agg) {
+  public T map(final T agg) {
     return agg;
   }
 }

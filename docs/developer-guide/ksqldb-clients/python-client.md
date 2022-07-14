@@ -17,6 +17,7 @@ The client sends queries to the [`/query-stream` endpoint](../../developer-guide
 The client is compatible only with ksqlDB deployments that are on version 0.xx.0 or later.
 
 Use the Python client to:
+
 - [Receive query results one row at a time asynchronously (stream_query_async())](#stream-query-async)
 - [Receive query results in a single batch asynchronously (execute_query_async())](#execute-query-async)
 

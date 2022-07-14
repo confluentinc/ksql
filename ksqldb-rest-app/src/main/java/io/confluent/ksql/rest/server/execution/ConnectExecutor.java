@@ -50,7 +50,7 @@ public final class ConnectExecutor {
     final String maskedStatementText = QueryMask.getMaskedStatement(statement.getStatementText());
 
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
-        statement, createConnector, client);
+        maskedStatementText, createConnector, client);
     if (connectorsResponse.isPresent()) {
       return connectorsResponse;
     }
@@ -72,7 +72,8 @@ public final class ConnectExecutor {
     }
 
     if (createConnector.ifNotExists()) {
-      final Optional<KsqlEntity> connectors = handleIfNotExists(statement, createConnector, client);
+      final Optional<KsqlEntity> connectors = handleIfNotExists(maskedStatementText,
+          createConnector, client);
 
       if (connectors.isPresent()) {
         return connectors;
@@ -84,11 +85,10 @@ public final class ConnectExecutor {
   }
 
   private static Optional<KsqlEntity> handleIfNotExists(
-      final ConfiguredStatement<CreateConnector> statement,
+      final String maskedStatementText,
       final CreateConnector createConnector,
       final ConnectClient client) {
     if (createConnector.ifNotExists()) {
-      final String maskedStatementText = QueryMask.getMaskedStatement(statement.getStatementText());
       final ConnectResponse<List<String>> connectorsResponse = client.connectors();
       if (connectorsResponse.error().isPresent()) {
         return connectorsResponse.error()

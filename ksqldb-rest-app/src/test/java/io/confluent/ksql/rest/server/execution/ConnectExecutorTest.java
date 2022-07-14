@@ -145,7 +145,7 @@ public class ConnectExecutorTest {
             mock(SessionProperties.class), null, serviceContext);
     //Then
     assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR IF NOT EXIST foo WITH ('foo'='[string]');"));
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR IF NOT EXISTS foo WITH ('foo'='[string]');"));
     assertThat(entity.get(), instanceOf(WarningEntity.class));
   }
 

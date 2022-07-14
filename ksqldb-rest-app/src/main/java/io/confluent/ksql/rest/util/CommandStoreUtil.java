@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -37,10 +38,11 @@ public final class CommandStoreUtil {
     try {
       waitForCommandSequenceNumber(commandQueue, request, timeout);
     } catch (final InterruptedException e) {
+      ApiServerUtils.setMaskedSqlIfNeeded(request);
       final long seqNum = request.getCommandSequenceNumber().orElse(-1L);
       final String errorMsg = "Interrupted while waiting for command with the supplied "
           + "sequence number to execute. sequence number: " + seqNum
-          + ", request: " + request.getKsql();
+          + ", request: " + request.getMaskedKsql();
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
     } catch (final TimeoutException e) {

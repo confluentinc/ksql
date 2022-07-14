@@ -28,6 +28,7 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.QueryMask;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -46,9 +47,10 @@ public final class ConnectExecutor {
   ) {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
+    final String maskedStatementText = QueryMask.getMaskedStatement(statement.getStatementText());
 
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
-        statement, createConnector, client);
+        maskedStatementText, createConnector, client);
     if (connectorsResponse.isPresent()) {
       return connectorsResponse;
     }
@@ -63,14 +65,15 @@ public final class ConnectExecutor {
     if (response.datum().isPresent()) {
       return Optional.of(
           new CreateConnectorEntity(
-              statement.getStatementText(),
+              maskedStatementText,
               response.datum().get()
           )
       );
     }
 
     if (createConnector.ifNotExists()) {
-      final Optional<KsqlEntity> connectors = handleIfNotExists(statement, createConnector, client);
+      final Optional<KsqlEntity> connectors = handleIfNotExists(maskedStatementText,
+          createConnector, client);
 
       if (connectors.isPresent()) {
         return connectors;
@@ -78,22 +81,22 @@ public final class ConnectExecutor {
     }
 
     return response.error()
-        .map(err -> new ErrorEntity(statement.getStatementText(), err));
+        .map(err -> new ErrorEntity(maskedStatementText, err));
   }
 
   private static Optional<KsqlEntity> handleIfNotExists(
-      final ConfiguredStatement<CreateConnector> statement,
+      final String maskedStatementText,
       final CreateConnector createConnector,
       final ConnectClient client) {
     if (createConnector.ifNotExists()) {
       final ConnectResponse<List<String>> connectorsResponse = client.connectors();
       if (connectorsResponse.error().isPresent()) {
         return connectorsResponse.error()
-            .map(err -> new ErrorEntity(statement.getStatementText(), err));
+            .map(err -> new ErrorEntity(maskedStatementText, err));
       }
 
       if (checkIfConnectorExists(createConnector, connectorsResponse)) {
-        return Optional.of(new WarningEntity(statement.getStatementText(),
+        return Optional.of(new WarningEntity(maskedStatementText,
             String.format("Connector %s already exists", createConnector.getName())));
       }
     }

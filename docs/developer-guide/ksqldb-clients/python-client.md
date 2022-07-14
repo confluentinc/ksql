@@ -6,7 +6,7 @@ description: Send requests to ksqlDB from your Python app
 keywords: ksqlDB, python, client
 ---
 
-The Python clients enables sending requests easily to a ksqlDB server
+The Python client enables sending requests easily to a ksqlDB server
 from within your Python application, as an alternative to using the [REST API](../api.md).
 The client only supports pull and push queries.
 

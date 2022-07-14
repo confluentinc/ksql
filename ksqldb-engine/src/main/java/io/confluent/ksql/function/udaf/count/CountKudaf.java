@@ -21,7 +21,7 @@ import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.util.KsqlConstants;
 
 @UdafDescription(
-        name = "count",
+        name = "COUNT",
         description = CountKudaf.DESCRIPTION,
         author = KsqlConstants.CONFLUENT_AUTHOR
 )

@@ -21,7 +21,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.math.BigDecimal;
 
 @UdafDescription(
-        name = "sum",
+        name = "SUM",
         description = "Computes the sum for a key.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )

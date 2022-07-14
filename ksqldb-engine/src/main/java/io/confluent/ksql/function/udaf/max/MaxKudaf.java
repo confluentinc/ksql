@@ -27,7 +27,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 
 @UdafDescription(
-        name = "max",
+        name = "MAX",
         description = "Computes the maximum value for a key.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )

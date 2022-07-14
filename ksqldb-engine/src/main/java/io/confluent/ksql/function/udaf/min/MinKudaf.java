@@ -27,7 +27,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 
 @UdafDescription(
-        name = "min",
+        name = "MIN",
         description = "Computes the minimum value for a key.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )

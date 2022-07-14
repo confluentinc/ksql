@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Optional;
 
 @UdafDescription(
-        name = "topk",
+        name = "TOPK",
         description = "Computes the top k values for a column, per key.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )

@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Optional;
 
 @UdafDescription(
-        name = "topkdistinct",
+        name = "TOPKDISTINCT",
         description = "Computes the top k distinct values for a column, per key.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -66,7 +67,7 @@ public class ConnectExecutorTest {
 
   private static final ConfiguredStatement<CreateConnector> CREATE_CONNECTOR_CONFIGURED =
       ConfiguredStatement.of(PreparedStatement.of(
-          "CREATE SOURCE CONNECTOR foo WITH ('foo'='bar');",
+          "CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='bar');",
           CREATE_CONNECTOR), SessionConfig.of(CONFIG, ImmutableMap.of()));
 
   private static final CreateConnector CREATE_DUPLICATE_CONNECTOR = new CreateConnector(
@@ -114,6 +115,7 @@ public class ConnectExecutorTest {
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='[string]');"));
     assertThat(entity.get(), instanceOf(CreateConnectorEntity.class));
   }
 
@@ -128,6 +130,7 @@ public class ConnectExecutorTest {
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='[string]');"));
     assertThat(entity.get(), instanceOf(ErrorEntity.class));
   }
 
@@ -142,6 +145,7 @@ public class ConnectExecutorTest {
             mock(SessionProperties.class), null, serviceContext);
     //Then
     assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR IF NOT EXISTS foo WITH ('foo'='[string]');"));
     assertThat(entity.get(), instanceOf(WarningEntity.class));
   }
 
@@ -158,6 +162,7 @@ public class ConnectExecutorTest {
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='[string]');"));
     assertThat(entity.get(), instanceOf(ErrorEntity.class));
   }
 

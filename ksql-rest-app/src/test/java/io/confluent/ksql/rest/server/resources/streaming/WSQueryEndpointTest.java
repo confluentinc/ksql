@@ -294,7 +294,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(statementParser).parseSingleStatement(VALID_REQUEST.getKsql());
+    verify(statementParser).parseSingleStatement(VALID_REQUEST.getUnmaskedKsql());
   }
 
   @Test
@@ -306,7 +306,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(statementParser).parseSingleStatement(VALID_REQUEST.getKsql());
+    verify(statementParser).parseSingleStatement(VALID_REQUEST.getUnmaskedKsql());
   }
 
   @Test
@@ -371,7 +371,7 @@ public class WSQueryEndpointTest {
 
     // Then:
     final ConfiguredStatement<Query> configuredStatement = ConfiguredStatement.of(
-        PreparedStatement.of(VALID_REQUEST.getKsql(), query),
+        PreparedStatement.of(VALID_REQUEST.getUnmaskedKsql(), query),
         VALID_REQUEST.getStreamsProperties(),
         ksqlConfig);
 
@@ -396,7 +396,7 @@ public class WSQueryEndpointTest {
 
     // Then:
     final ConfiguredStatement<Query> configuredStatement = ConfiguredStatement.of(
-        PreparedStatement.of(VALID_REQUEST.getKsql(), query),
+        PreparedStatement.of(VALID_REQUEST.getUnmaskedKsql(), query),
         VALID_REQUEST.getStreamsProperties(),
         ksqlConfig);
 

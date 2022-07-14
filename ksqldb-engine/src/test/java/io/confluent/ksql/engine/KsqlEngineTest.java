@@ -335,7 +335,7 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(e, rawMessage(containsString(
-        "Function 'sum' does not accept parameters (STRING).")));
+        "Function 'SUM' does not accept parameters (STRING).")));
   }
 
   @Test

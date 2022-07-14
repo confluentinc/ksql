@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -30,15 +31,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class KsqlRequest {
   private static final PropertyParser PROPERTY_PARSER = new LocalPropertyParser();
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlRequest.class);
 
   private final String ksql;
   private final ImmutableMap<String, Object> streamsProperties;
   private final Optional<Long> commandSequenceNumber;
+  @JsonIgnore
+  private String maskedKsql;
 
   @JsonCreator
   public KsqlRequest(
@@ -53,12 +59,22 @@ public class KsqlRequest {
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
-  public String getKsql() {
+  public String getMaskedKsql() {
+    Objects.requireNonNull(maskedKsql);
+    return maskedKsql;
+  }
+
+  @JsonProperty("ksql")
+  public String getUnmaskedKsql() {
     return ksql;
   }
 
   public Map<String, Object> getStreamsProperties() {
     return coerceTypes(streamsProperties);
+  }
+
+  public void setMaskedKsql(final String maskedKsql) {
+    this.maskedKsql = Objects.requireNonNull(maskedKsql, "maskedKsql");
   }
 
   public Optional<Long> getCommandSequenceNumber() {
@@ -88,8 +104,15 @@ public class KsqlRequest {
 
   @Override
   public String toString() {
+    final String sql = Objects.isNull(maskedKsql) ? ksql : maskedKsql;
+    if (Objects.isNull(maskedKsql)) {
+      LOG.warn("maskedKsql is not set, default to unmasked one for toString which "
+          + "may leak sensitive information, If this is seen in a test, it may be expected "
+          + "depending on how the KsqlRequest was created. If seen in production, "
+          + "this is not expected. Please file a Github issue.");
+    }
     return "KsqlRequest{"
-        + "ksql='" + ksql + '\''
+        + "ksql='" + sql + '\''
         + ", streamsProperties=" + streamsProperties
         + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';

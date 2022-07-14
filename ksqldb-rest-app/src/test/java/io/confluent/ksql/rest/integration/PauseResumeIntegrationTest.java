@@ -183,6 +183,8 @@ public class PauseResumeIntegrationTest {
   public void pausedQueriesShouldBePausedOnRestart()  {
     // Given:
     createQuery("1");
+    String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
+            + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
     createQuery("2");
 
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
@@ -195,8 +197,6 @@ public class PauseResumeIntegrationTest {
     assertThatEventually(supplier2, equalTo(9));
 
     // When:
-    String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
-        + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
     assertThatEventually(this::getPausedCount, equalTo(1L));
     assertThatEventually(supplier, equalTo(9));

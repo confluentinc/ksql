@@ -170,7 +170,6 @@ public class ListQueriesExecutorTest {
     when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
 
-    // new QueryStatusCount(Collections.singletonMap(q.getQueryStatus(), 1))
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
             new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.ERROR, 1))));

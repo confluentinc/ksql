@@ -11,7 +11,7 @@ from within your Python application, as an alternative to using the [REST API](.
 The client only supports pull and push queries.
 
 !!! tip
-    [View the Python client API documentation](api/BLAHBLAHNEEDTOCHANGE.html)
+    [View the Python client API documentation](python-client-api/index.html)
 
 The client sends queries to the [`/query-stream` endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#executing-pull-or-push-queries).
 The client is compatible only with ksqlDB deployments that are on version 0.xx.0 or later.

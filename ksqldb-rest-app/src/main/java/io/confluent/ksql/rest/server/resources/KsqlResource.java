@@ -210,7 +210,6 @@ public class KsqlResource implements KsqlConfigurable {
       @Context final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
     ApiServerUtils.setMaskedSqlIfNeeded(request);
     LOG.info("Received: " + request);
 

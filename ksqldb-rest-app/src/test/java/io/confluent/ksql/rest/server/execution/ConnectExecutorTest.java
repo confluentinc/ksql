@@ -102,7 +102,7 @@ public class ConnectExecutorTest {
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='bar');"));
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='[string]');"));
     assertThat(entity.get(), instanceOf(CreateConnectorEntity.class));
   }
 
@@ -117,7 +117,7 @@ public class ConnectExecutorTest {
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='bar');"));
+    assertThat(entity.get().getStatementText(), is("CREATE SOURCE CONNECTOR foo WITH (\"connector.class\"='someclass', 'foo'='[string]');"));
     assertThat(entity.get(), instanceOf(ErrorEntity.class));
   }
 

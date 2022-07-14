@@ -176,11 +176,6 @@ public class PauseResumeIntegrationTest {
     // 5 more records have been produced
     assertThatEventually(supplier, equalTo(14));
     assertThatEventually(supplier2, equalTo(14));
-
-    List <KsqlEntity> showQueries3 = RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
-        + "QUERIES;");
-    assertThat(((Queries) showQueries3.get(0)).getQueries().get(0).getStatusCount().getStatuses()
-        .get(KsqlQueryStatus.RUNNING), equalTo(1));
     assertThat(getRunningCount(), equalTo(2L));
   }
 
@@ -261,7 +256,7 @@ public class PauseResumeIntegrationTest {
               .collect(Collectors.summarizingInt(Integer::intValue))
               .getSum();
     } catch (Exception e) {
-      return 0;
+      return -1;
     }
   }
 }

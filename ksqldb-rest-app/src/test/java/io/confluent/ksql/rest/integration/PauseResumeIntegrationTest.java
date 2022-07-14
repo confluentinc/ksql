@@ -146,6 +146,8 @@ public class PauseResumeIntegrationTest {
   public void shouldPauseAndResumeMultipleQueries() {
     // Given:
     createQuery("1");
+    String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
+            + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
     createQuery("2");
 
     Supplier<Integer> supplier = getSupplier(1);
@@ -157,8 +159,6 @@ public class PauseResumeIntegrationTest {
     assertThatEventually(supplier2, equalTo(9));
 
     // When:
-    String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
-        + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
     assertThatEventually(this::getPausedCount, equalTo(1L));
     assertThatEventually(this::getRunningCount, equalTo(1L));

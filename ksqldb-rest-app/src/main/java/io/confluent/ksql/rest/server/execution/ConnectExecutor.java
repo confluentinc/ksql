@@ -27,6 +27,7 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.QueryMask;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
@@ -42,6 +43,7 @@ public final class ConnectExecutor {
   ) {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
+    final String maskedStatement = QueryMask.getMaskedStatement(statement.getStatementText());
 
     final ConnectResponse<ConnectorInfo> response = client.create(
         createConnector.getName(),
@@ -53,13 +55,13 @@ public final class ConnectExecutor {
     if (response.datum().isPresent()) {
       return Optional.of(
           new CreateConnectorEntity(
-              statement.getStatementText(),
+              maskedStatement,
               response.datum().get()
           )
       );
     }
 
     return response.error()
-        .map(err -> new ErrorEntity(statement.getStatementText(), err));
+        .map(err -> new ErrorEntity(maskedStatement, err));
   }
 }

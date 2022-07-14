@@ -157,6 +157,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -299,6 +300,8 @@ public class KsqlResourceTest {
 
   @Before
   public void setUp() throws IOException, RestClientException {
+    VALID_EXECUTABLE_REQUEST.setMaskedKsql(QueryMask.getMaskedStatement(VALID_EXECUTABLE_REQUEST.getUnmaskedKsql()));
+
     commandStatus = new QueuedCommandStatus(
         0, new CommandStatusFuture(new CommandId(TOPIC, "whateva", CREATE)));
 

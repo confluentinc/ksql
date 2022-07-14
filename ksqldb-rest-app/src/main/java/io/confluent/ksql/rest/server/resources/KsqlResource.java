@@ -272,8 +272,6 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    LOG.info("Received: " + request);
-
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -326,7 +324,6 @@ public class KsqlResource implements KsqlConfigurable {
           )
       );
 
-      LOG.info("Processed successfully: " + request);
       addCommandRunnerWarning(
           entities,
           commandRunnerWarning);

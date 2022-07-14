@@ -16,6 +16,7 @@ package io.confluent.ksql.function;
 
 import java.io.File;
 import java.util.Optional;
+import java.util.Set;
 
 public class UserFunctionLoaderTestUtil {
 
@@ -23,6 +24,16 @@ public class UserFunctionLoaderTestUtil {
     final UserFunctionLoader loader = new UserFunctionLoader(functionRegistry, new File(""),
             Thread.currentThread().getContextClassLoader(),
             s -> false,
+            Optional.empty(), true
+    );
+    loader.load();
+  }
+
+  public static void loadUserFunctions(final MutableFunctionRegistry functionRegistry,
+                                       final Set<String> classes) {
+    final UserFunctionLoader loader = new UserFunctionLoader(functionRegistry, new File(""),
+            Thread.currentThread().getContextClassLoader(),
+            (className) -> !classes.contains(className),
             Optional.empty(), true
     );
     loader.load();

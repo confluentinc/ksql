@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.security.KsqlAuthTokenProvider;
-import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Clock;
 import java.util.Objects;
@@ -31,19 +30,16 @@ public class AuthenticationUtil {
   }
 
   public Optional<Long> getTokenTimeout(
-      final Optional<KsqlPrincipal> principal,
+      final Optional<String> token,
       final KsqlConfig ksqlConfig,
       final Optional<KsqlAuthTokenProvider> authTokenProvider
   ) {
     final long maxTimeout =
         ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS);
     if (maxTimeout > 0) {
-      if (authTokenProvider.isPresent()
-          && principal.isPresent()
-          && authTokenProvider.get().getLifetimeMs(principal.get()).isPresent()
-      ) {
-        final long tokenTimeout = authTokenProvider.get().getLifetimeMs(principal.get()).get()
-            - clock.millis();
+      if (authTokenProvider.isPresent() && token.isPresent()) {
+        final long tokenTimeout = Math.max(authTokenProvider.get().getLifetimeMs(token.get())
+            - clock.millis(), 0);
         return Optional.of(Math.min(tokenTimeout, maxTimeout));
       } else {
         return Optional.of(maxTimeout);

@@ -61,4 +61,9 @@ public class GrammaticalJoinerTest {
   public void shouldBuildWithAnd() {
     assertThat(GrammaticalJoiner.and().join(Arrays.asList(1, 2, 3)), is("1, 2 and 3"));
   }
+
+  @Test
+  public void shouldBuildWithComma() {
+    assertThat(GrammaticalJoiner.comma().join(Arrays.asList(1, 2, 3)), is("1, 2, 3"));
+  }
 }

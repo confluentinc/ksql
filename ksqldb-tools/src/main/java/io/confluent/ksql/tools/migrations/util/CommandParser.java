@@ -31,6 +31,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
@@ -40,6 +41,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -68,6 +71,35 @@ public final class CommandParser {
 
   private CommandParser() {
   }
+
+  private enum StatementType {
+    INSERT_VALUES(SqlBaseParser.InsertValuesContext.class),
+    CREATE_CONNECTOR(SqlBaseParser.CreateConnectorContext.class),
+    DROP_CONNECTOR(SqlBaseParser.DropConnectorContext.class),
+    STATEMENT(SqlBaseParser.StatementContext.class),
+    SET_PROPERTY(SqlBaseParser.SetPropertyContext.class),
+    UNSET_PROPERTY(SqlBaseParser.UnsetPropertyContext.class),
+    DEFINE_VARIABLE(SqlBaseParser.DefineVariableContext.class),
+    UNDEFINE_VARIABLE(SqlBaseParser.UndefineVariableContext.class),
+    ASSERT_TOPIC(SqlBaseParser.AssertTopicContext.class),
+    ASSERT_SCHEMA(SqlBaseParser.AssertSchemaContext.class);
+
+    private final Class<? extends SqlBaseParser.StatementContext> statementClass;
+
+    <T extends SqlBaseParser.StatementContext> StatementType(final Class<T> statementClass) {
+      this.statementClass = Objects.requireNonNull(statementClass, "statementType");
+    }
+
+    public static StatementType get(
+            final Class<? extends SqlBaseParser.StatementContext> statementClass) {
+      final Optional<StatementType> type = Arrays.stream(StatementType.values())
+              .filter(statementType -> statementType.statementClass.equals(statementClass))
+              .findFirst();
+
+      return type.orElse(StatementType.STATEMENT);
+    }
+  }
+
 
   /**
    * Splits a string of sql commands into a list of commands and filters out the comments.
@@ -176,9 +208,13 @@ public final class CommandParser {
               "Failed to parse the statement. Statement: %s. Reason: %s",
               sql, e.getMessage()));
     }
-
-    return new ParsedCommand(substituted, new AstBuilder(TypeRegistry.EMPTY)
-            .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement()));
+    final SqlBaseParser.SingleStatementContext statementContext = KSQL_PARSER.parse(substituted)
+            .get(0).getStatement();
+    final boolean isStatement = StatementType.get(statementContext.statement().getClass())
+            == StatementType.STATEMENT;
+    return new ParsedCommand(substituted,
+            isStatement ? Optional.empty() : Optional.of(new AstBuilder(TypeRegistry.EMPTY)
+            .buildStatement(statementContext)));
   }
 
 
@@ -211,9 +247,9 @@ public final class CommandParser {
 
   public static class ParsedCommand {
     private final String command;
-    private final Statement statement;
+    private final Optional<Statement> statement;
 
-    ParsedCommand(final String command, final Statement statement) {
+    ParsedCommand(final String command, final Optional<Statement> statement) {
       this.command = command;
       this.statement = statement;
     }
@@ -221,7 +257,8 @@ public final class CommandParser {
     public String getCommand() {
       return command;
     }
-    public Statement getStatement() {
+
+    public Optional<Statement> getStatement() {
       return statement;
     }
   }

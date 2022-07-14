@@ -260,7 +260,7 @@ public class ApplyMigrationCommandTest {
       inOrder.verify(ksqlClient).executeStatement(COMMAND, new HashMap<>());
       inOrder.verify(ksqlClient).define("pre", "a");
       inOrder.verify(ksqlClient).define("str", "abc");
-      inOrder.verify(ksqlClient).executeStatement(eq("CREATE STREAM ${str} AS SELECT * FROM FOO;"), propCaptor.capture());
+      inOrder.verify(ksqlClient).executeStatement(eq("CREATE STREAM abc AS SELECT * FROM FOO;"), propCaptor.capture());
       assertThat(propCaptor.getValue().size(), is(1));
       assertThat(propCaptor.getValue().get("abc"), is("yay"));
       inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "abc")));

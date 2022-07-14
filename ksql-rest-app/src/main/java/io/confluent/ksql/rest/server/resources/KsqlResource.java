@@ -198,7 +198,7 @@ public class KsqlResource implements KsqlConfigurable {
       @Context final ServiceContext serviceContext,
       final KsqlRequest request
   ) {
-    ApiServerUtils.setMaskedSqlIfNeeded(request);
+    ApiServerUtils.setMaskedSql(request);
     LOG.info("Received: " + request);
 
     throwIfNotConfigured();

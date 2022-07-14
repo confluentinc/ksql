@@ -27,7 +27,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 
@@ -86,15 +86,21 @@ public abstract class AggregateFunctionFactory {
     return metadata.getName();
   }
 
-  public void eachFunction(final Consumer<KsqlAggregateFunction<?, ?, ?>> consumer) {
+  public void eachFunction(final BiConsumer<FunctionSignature, String> consumer) {
     supportedArgs()
         .stream()
         .map(args -> args
             .stream()
             .map(AggregateFunctionFactory::getSampleSqlType)
-            .map(arg -> SqlArgument.of(arg))
+            .map(SqlArgument::of)
             .collect(Collectors.toList()))
-        .forEach(args -> consumer.accept(createAggregateFunction(args, getDefaultArguments())));
+        .forEach(args -> {
+          final KsqlAggregateFunction<?, ?, ?> function = createAggregateFunction(
+                  args,
+                  getDefaultArguments()
+          );
+          consumer.accept(function, function.getDescription());
+        });
   }
 
   /**

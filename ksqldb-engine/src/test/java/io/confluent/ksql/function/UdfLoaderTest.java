@@ -1292,22 +1292,20 @@ public class UdfLoaderTest {
   @Test
   public void shouldThrowIfMissingOutputTypeSchema() throws Exception {
     // When:
-    UdafFactoryInvoker invoker = createUdafLoader().createUdafFactoryInvoker(
-        UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
-        of("test"),
-        "desc",
-        "",
-        "",
-        ""
-    );
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> invoker.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS,
-            Collections.emptyList())
+        () -> createUdafLoader().createUdafFactoryInvoker(
+                UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
+                of("test"),
+                "desc",
+                "",
+                "",
+                ""
+        )
     );
 
     // Then:
-    assertThat(e.getCause().getMessage(), containsString("Must specify 'returnSchema' for STRUCT"
+    assertThat(e.getMessage(), containsString("Must specify 'returnSchema' for STRUCT"
         + " parameter in @UdafFactory or implement getAggregateSqlType()/getReturnSqlType()."));
   }
 

@@ -98,9 +98,11 @@ public class TemporaryEngine extends ExternalResource {
             .put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
             .build()
     );
+
+
     UserFunctionLoaderTestUtil.loadUserFunctions(
             functionRegistry,
-            ImmutableSet.of("TestUdf1", "MaxKudaf", "TestUdtf1", "TestUdtf2")
+            ImmutableSet.of("TestUdf1", "MaxKudaf", "LatestByOffset", "TestUdtf1", "TestUdtf2")
     );
   }
 

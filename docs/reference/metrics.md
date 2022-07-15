@@ -139,7 +139,7 @@ io.confluent.ksql.metrics:type=ksql-queries
 
 ### Attributes
 
-**ksqlDB query tatus**
+**ksqlDB query status**
 
 `ksql-query-status`
 

@@ -19,13 +19,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class StringMinKudafTest {
@@ -65,21 +62,19 @@ public class StringMinKudafTest {
   @Test
   public void shouldFindCorrectMinForMerge() {
     final MinKudaf<String> stringMinKudaf = getStringMinKudaf();
-    final Merger<GenericKey, String> merger = stringMinKudaf.getMerger();
-    final String mergeResult1 = merger.apply(null, "B", "D");
+    final String mergeResult1 = stringMinKudaf.merge("B", "D");
     assertThat(mergeResult1, equalTo("B"));
-    final String mergeResult2 = merger.apply(null, "P", "F");
+    final String mergeResult2 = stringMinKudaf.merge("P", "F");
     assertThat(mergeResult2, equalTo("F"));
-    final String mergeResult3 = merger.apply(null, "A", "K");
+    final String mergeResult3 = stringMinKudaf.merge("A", "K");
     assertThat(mergeResult3, equalTo("A"));
   }
 
-  @SuppressWarnings("unchecked")
   private MinKudaf<String> getStringMinKudaf() {
-    final KsqlAggregateFunction<String, String , String> aggregateFunction =
-        (KsqlAggregateFunction<String, String , String>) new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+    final Udaf<String, String , String> aggregateFunction = MinKudaf.createMinString();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.STRING))
+    );
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
     return  (MinKudaf<String>) aggregateFunction;
   }

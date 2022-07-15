@@ -60,7 +60,7 @@ public class TimestampTopKDistinctKudafTest {
             new Timestamp(48));
 
     assertThat("Invalid results.",
-            timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            timestampTopkDistinctKudaf.merge(array1, array2),
             equalTo(ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(48))));
   }
 
@@ -70,7 +70,7 @@ public class TimestampTopKDistinctKudafTest {
     final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60));
 
     assertThat("Invalid results.",
-            timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            timestampTopkDistinctKudaf.merge(array1, array2),
             equalTo(ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(45))));
   }
 
@@ -80,7 +80,7 @@ public class TimestampTopKDistinctKudafTest {
     final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60), new Timestamp(50));
 
     assertThat("Invalid results.",
-            timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            timestampTopkDistinctKudaf.merge(array1, array2),
             equalTo(ImmutableList.of(new Timestamp(60), new Timestamp(50), new Timestamp(45))));
   }
 
@@ -90,7 +90,7 @@ public class TimestampTopKDistinctKudafTest {
     final List<Timestamp> array2 = ImmutableList.of(new Timestamp(60));
 
     assertThat("Invalid results.",
-            timestampTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+            timestampTopkDistinctKudaf.merge(array1, array2),
             equalTo(ImmutableList.of(new Timestamp(60))));
   }
 }

@@ -19,9 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udf.string.FromBytes;
 import io.confluent.ksql.function.udf.string.ToBytes;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -29,7 +27,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.BytesUtils.Encoding;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -95,36 +92,31 @@ public class BytesMinKudafTest {
   @Test
   public void shouldFindCorrectMinForMerge() {
     final MinKudaf<ByteBuffer> bytesMinKudaf = getBytesMinKudaf();
-    final Merger<GenericKey, ByteBuffer> merger = bytesMinKudaf.getMerger();
     final String mergeResult1 = fromBytesUDF.fromBytes(
-        merger.apply(
-            null,
+        bytesMinKudaf.merge(
             toBytesUDF.toBytes("B", Encoding.ASCII.toString()),
             toBytesUDF.toBytes("D", Encoding.ASCII.toString())),
         Encoding.ASCII.toString());
     assertThat(mergeResult1, equalTo("B"));
     final String mergeResult2 = fromBytesUDF.fromBytes(
-        merger.apply(
-            null,
+        bytesMinKudaf.merge(
             toBytesUDF.toBytes("P", Encoding.ASCII.toString()),
             toBytesUDF.toBytes("F", Encoding.ASCII.toString())),
         Encoding.ASCII.toString());
     assertThat(mergeResult2, equalTo("F"));
     final String mergeResult3 = fromBytesUDF.fromBytes(
-        merger.apply(
-            null,
+        bytesMinKudaf.merge(
             toBytesUDF.toBytes("A", Encoding.ASCII.toString()),
             toBytesUDF.toBytes("K", Encoding.ASCII.toString())),
         Encoding.ASCII.toString());
     assertThat(mergeResult3, equalTo("A"));
   }
 
-  @SuppressWarnings("unchecked")
   private MinKudaf<ByteBuffer> getBytesMinKudaf() {
-    final KsqlAggregateFunction<ByteBuffer, ByteBuffer, ByteBuffer> aggregateFunction =
-        (KsqlAggregateFunction<ByteBuffer, ByteBuffer, ByteBuffer>) new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BYTES)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+    final Udaf<ByteBuffer, ByteBuffer, ByteBuffer> aggregateFunction = MinKudaf.createMinBytes();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.BYTES))
+    );
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
     return  (MinKudaf<ByteBuffer>) aggregateFunction;
   }

@@ -19,13 +19,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class LongMinKudafTest {
@@ -65,21 +62,19 @@ public class LongMinKudafTest {
   @Test
   public void shouldFindCorrectMinForMerge() {
     final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
-    final Merger<GenericKey, Long> merger = longMinKudaf.getMerger();
-    final Long mergeResult1 = merger.apply(null, 10L, 12L);
+    final Long mergeResult1 = longMinKudaf.merge(10L, 12L);
     assertThat(mergeResult1, equalTo(10L));
-    final Long mergeResult2 = merger.apply(null, 10L, -12L);
+    final Long mergeResult2 = longMinKudaf.merge(10L, -12L);
     assertThat(mergeResult2, equalTo(-12L));
-    final Long mergeResult3 = merger.apply(null, -10L, 0L);
+    final Long mergeResult3 = longMinKudaf.merge(-10L, 0L);
     assertThat(mergeResult3, equalTo(-10L));
   }
 
-  @SuppressWarnings("unchecked")
   private MinKudaf<Long> getLongMinKudaf() {
-    final KsqlAggregateFunction<Long, Long, Long> aggregateFunction =
-        (KsqlAggregateFunction<Long, Long, Long>) new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+    final Udaf<Long, Long, Long> aggregateFunction = MinKudaf.createMinLong();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT))
+    );
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
     return  (MinKudaf<Long>) aggregateFunction;
   }

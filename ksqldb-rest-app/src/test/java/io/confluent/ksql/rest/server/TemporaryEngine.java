@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.config.SessionConfig;
@@ -24,11 +25,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.KsqlScalarFunction;
-import io.confluent.ksql.function.UdafLoader;
-import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.function.UdtfLoader;
-import io.confluent.ksql.function.udaf.offset.LatestByOffset;
+import io.confluent.ksql.function.UserFunctionLoaderTestUtil;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -36,7 +33,6 @@ import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -46,7 +42,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -64,7 +59,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.common.metrics.Metrics;
 import org.junit.rules.ExternalResource;
 
 public class TemporaryEngine extends ExternalResource {
@@ -105,15 +99,11 @@ public class TemporaryEngine extends ExternalResource {
             .build()
     );
 
-    final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
-    final Optional<Metrics> noMetrics = Optional.empty();
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry, noMetrics, typeParser, true);
-    udfLoader.loadUdfFromClass(TestUdf1.class, "test");
-    final UdafLoader udafLoader = new UdafLoader(functionRegistry, noMetrics, typeParser);
-    udafLoader.loadUdafFromClass(LatestByOffset.class, KsqlScalarFunction.INTERNAL_PATH);
-    final UdtfLoader udtfLoader = new UdtfLoader(functionRegistry, noMetrics, typeParser, true);
-    udtfLoader.loadUdtfFromClass(TestUdtf1.class, "whatever");
-    udtfLoader.loadUdtfFromClass(TestUdtf2.class, "whatever");
+
+    UserFunctionLoaderTestUtil.loadUserFunctions(
+            functionRegistry,
+            ImmutableSet.of("TestUdf1", "MaxKudaf", "LatestByOffset", "TestUdtf1", "TestUdtf2")
+    );
   }
 
   public TemporaryEngine withConfigs(final Map<String, Object> configs) {

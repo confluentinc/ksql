@@ -762,18 +762,18 @@ public class KsqlRestConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_SERVER_SNI_CHECK_ENABLE_DOC
         ).define(
-        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG,
-        Type.DOUBLE,
-        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT,
-        Importance.LOW,
-        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
-      ).define(
-        KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS,
-        Type.LONG,
-        30000L,
-        Importance.MEDIUM,
-        KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC
-      );
+            KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG,
+            Type.DOUBLE,
+            KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT,
+            Importance.LOW,
+            KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
+        ).define(
+            KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS,
+            Type.LONG,
+            5000L,
+            Importance.MEDIUM,
+            KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC
+        );
   }
 
   public KsqlRestConfig(final Map<?, ?> props) {

@@ -403,6 +403,11 @@ public class KsqlRestConfig extends AbstractConfig {
   private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC = 
       "Sets the number of statements that can be executed against the command topic per second";
 
+  public static final String KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS =
+      KSQL_CONFIG_PREFIX + "server.precondition.max.backoff.ms";
+  protected static final String KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC =
+      "The maximum amount of time to wait before checking the KSQL server preconditions again.";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -762,6 +767,12 @@ public class KsqlRestConfig extends AbstractConfig {
         KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT,
         Importance.LOW,
         KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
+      ).define(
+        KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS,
+        Type.LONG,
+        30000L,
+        Importance.MEDIUM,
+        KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC
       );
   }
 

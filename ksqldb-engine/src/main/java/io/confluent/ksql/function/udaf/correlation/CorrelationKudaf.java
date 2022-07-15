@@ -14,56 +14,29 @@
 
 package io.confluent.ksql.function.udaf.correlation;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.ParameterInfo;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.UdafDescription;
+import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.function.udaf.VariadicArgs;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
-import java.util.List;
-import java.util.function.Function;
-import org.apache.kafka.streams.kstream.Merger;
 
+@UdafDescription(
+        name = "CORRELATION",
+        description = "Testing multiple and variadic arguments",
+        author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class CorrelationKudaf
-        extends BaseAggregateFunction<Pair<Double, VariadicArgs<Double>>, Double, Double> {
+        implements Udaf<Pair<Double, VariadicArgs<Double>>, Double, Double> {
 
-  CorrelationKudaf(
-          final String functionName,
-          final List<Integer> argIndicesInValue
-  ) {
-    super(
-            functionName,
-            argIndicesInValue,
-            () -> 0.0,
-            SqlTypes.DOUBLE,
-            SqlTypes.DOUBLE,
-            ImmutableList.of(
-                    new ParameterInfo(
-                            "value",
-                            SchemaConverters.sqlToFunctionConverter()
-                                    .toFunctionType(SqlTypes.DOUBLE),
-                            "the value to aggregate",
-                            false
-                    ),
-                    new ParameterInfo(
-                            "value2",
-                            SchemaConverters.sqlToFunctionConverter()
-                                    .toFunctionType(SqlTypes.DOUBLE),
-                            "the value to aggregate",
-                            true
-                    )
-            ),
-            "Computes the maximum " + SqlTypes.DOUBLE.toString(FormatOptions.none())
-                    + " value for a key."
-    );
+  @UdafFactory(description = "Testing factory")
+  public static Udaf<Pair<Double, VariadicArgs<Double>>, Double, Double> createCorrelation() {
+    return new CorrelationKudaf();
   }
 
   @Override
-  public List<Integer> getArgIndicesInValue() {
-    return super.getArgIndicesInValue();
+  public Double initialize() {
+    return 0.0;
   }
 
   @Override
@@ -73,12 +46,12 @@ public class CorrelationKudaf
   }
 
   @Override
-  public Merger<GenericKey, Double> getMerger() {
-    return (key, a, b) -> a + b;
+  public Double merge(Double aggOne, Double aggTwo) {
+    return aggOne + aggTwo;
   }
 
   @Override
-  public Function<Double, Double> getResultMapper() {
-    return Function.identity();
+  public Double map(Double agg) {
+    return agg;
   }
 }

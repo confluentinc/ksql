@@ -45,12 +45,11 @@ class UdafFactoryInvoker implements FunctionSignature {
   private final Optional<Metrics> metrics;
   private final List<ParamType> paramTypes;
   private final List<ParameterInfo> params;
+  private final ParamType aggregateReturnType;
   private final Method method;
   private final String description;
   private final UdafTypes types;
   private final String aggregateSchema;
-  private final String outputSchema;
-  private ParamType aggregateReturnType;
 
   UdafFactoryInvoker(
       final Method method,
@@ -76,10 +75,10 @@ class UdafFactoryInvoker implements FunctionSignature {
     this.types = new UdafTypes(method, functionName, typeParser);
     this.functionName = Objects.requireNonNull(functionName);
     this.aggregateSchema = aggregateSchema; // This can be null if the annotation is not used.
-    this.outputSchema = outputSchema;       // This can be null if the annotation is not used.
     this.metrics = Objects.requireNonNull(metrics);
     this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
+    this.aggregateReturnType = types.getOutputSchema(Objects.requireNonNull(outputSchema));
     this.method = Objects.requireNonNull(method);
     this.description = Objects.requireNonNull(description);
   }
@@ -103,9 +102,7 @@ class UdafFactoryInvoker implements FunctionSignature {
       final SqlType returnSqlType = (SqlType) udaf.getReturnSqlType()
           .orElseGet(() ->
               SchemaConverters.functionToSqlConverter()
-                  .toSqlType(types.getOutputSchema(outputSchema)));
-      this.aggregateReturnType =
-          SchemaConverters.sqlToFunctionConverter().toFunctionType(returnSqlType);
+                  .toSqlType(aggregateReturnType));
 
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
@@ -163,6 +160,10 @@ class UdafFactoryInvoker implements FunctionSignature {
   @Override
   public boolean isVariadic() {
     return false;
+  }
+
+  public String getDescription() {
+    return description;
   }
 
 }

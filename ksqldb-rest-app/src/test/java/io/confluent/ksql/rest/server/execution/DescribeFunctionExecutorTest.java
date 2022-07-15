@@ -93,6 +93,32 @@ public class DescribeFunctionExecutorTest {
   }
 
   @Test
+  public void shouldDescribeUDAFWithInitialArgs() {
+    // When:
+    final FunctionDescriptionList functionList = (FunctionDescriptionList)
+            CustomExecutors.DESCRIBE_FUNCTION.execute(
+                    engine.configure("DESCRIBE FUNCTION LATEST_BY_OFFSET;"),
+                    mock(SessionProperties.class),
+                    engine.getEngine(),
+                    engine.getServiceContext()
+            ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
+      @Override
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
+        return functionList.getName().equals("LATEST_BY_OFFSET")
+                && functionList.getType().equals(FunctionType.AGGREGATE);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(functionList.getName());
+      }
+    });
+  }
+
+  @Test
   public void shouldDescribeUDTF() {
     // When:
     final FunctionDescriptionList functionList = (FunctionDescriptionList)

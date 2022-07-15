@@ -171,9 +171,6 @@ markdown_extensions:
     - pymdownx.superfences
     - def_list
     - attr_list
-    - mdx_gh_links:
-        user: confluentinc
-        repo: ksql
     - mdx_truly_sane_lists
 
 plugins:

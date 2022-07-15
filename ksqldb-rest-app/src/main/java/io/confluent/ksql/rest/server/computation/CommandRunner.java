@@ -34,6 +34,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -338,16 +339,16 @@ public class CommandRunner implements Closeable {
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
-    final String commandStatement =
-        queuedCommand.getAndDeserializeCommand(commandDeserializer).getStatement();
-    LOG.info("Executing statement: " + commandStatement);
+    LOG.info("Executing statement"
+        + Base64.getEncoder().encodeToString(queuedCommand.getCommandId()));
 
     final Runnable task = () -> {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        LOG.info("Executed statement: " + commandStatement);
+        LOG.info("Executed statement"
+            + Base64.getEncoder().encodeToString(queuedCommand.getCommandId()));
       }
     };
 

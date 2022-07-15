@@ -46,4 +46,9 @@ public class KsqlStatementException extends KsqlException {
   private static String buildMessage(final String message, final String sqlStatement) {
     return message + System.lineSeparator() + "Statement: " + sqlStatement;
   }
+
+  @Override
+  public String toString() {
+    return buildMessage(rawMessage, "<retracted>");
+  }
 }

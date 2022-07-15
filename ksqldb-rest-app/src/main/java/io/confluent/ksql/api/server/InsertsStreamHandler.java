@@ -170,14 +170,14 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       final JsonObject row;
       try {
         row = new JsonObject(buff);
-        LOG.debug("({}) Handling insert stream row: {}", uuid, row);
+        LOG.debug("({}) Handling insert stream row: <retracted>", uuid);
       } catch (DecodeException e) {
         final InsertError errorResponse = new InsertError(
             seq,
             ERROR_CODE_BAD_REQUEST,
             "Invalid JSON in inserts stream");
         LOG.warn("({}) Failed to process row at sequence {} ({})",
-            uuid, sendSequence, buff.toString(), e);
+            uuid, sendSequence, e);
         insertsStreamResponseWriter.writeError(errorResponse).end();
         acksSubscriber.cancel();
         return;

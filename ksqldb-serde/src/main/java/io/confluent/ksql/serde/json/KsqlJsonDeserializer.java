@@ -87,14 +87,17 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       .build();
 
   private final Schema schema;
+  private final boolean isJsonSchema;
   private final Class<T> targetType;
   private String target = "?";
 
   KsqlJsonDeserializer(
       final Schema schema,
+      final boolean isJsonSchema,
       final Class<T> targetType
   ) {
     this.schema = Objects.requireNonNull(schema, "schema");
+    this.isJsonSchema = isJsonSchema;
     this.targetType = Objects.requireNonNull(targetType, "targetType");
 
     SerdeUtils.throwOnSchemaJavaTypeMismatch(schema, targetType);
@@ -112,10 +115,16 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
         return null;
       }
 
-      final JsonNode jsonNode = MAPPER.readTree(bytes);
+      // don't use the JsonSchemaConverter to read this data because
+      // we require that the MAPPER enables USE_BIG_DECIMAL_FOR_FLOATS,
+      // which is not currently available in the standard converters
+      final JsonNode value = isJsonSchema
+          ? JsonSerdeUtils.readJsonSR(bytes, MAPPER, JsonNode.class)
+          : MAPPER.readTree(bytes);
+
       final Object coerced = enforceFieldType(
           "$",
-          new JsonValueContext(jsonNode, schema)
+          new JsonValueContext(value, schema)
       );
 
       if (LOG.isTraceEnabled()) {

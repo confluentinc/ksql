@@ -49,10 +49,12 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -65,10 +67,12 @@ import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @SuppressWarnings("rawtypes")
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Parameterized.class)
 public class KsqlJsonDeserializerTest {
 
   private static final String SOME_TOPIC = "bob";
@@ -126,6 +130,17 @@ public class KsqlJsonDeserializerTest {
           .addSerializer(java.sql.Time.class, new DateSerializer())
           .addSerializer(java.sql.Date.class, new EpochDaySerializer())
       );
+
+  @Parameters(name = "{0}")
+  public static Collection<Object[]> data() {
+    return Arrays.asList(new Object[][]{{"Plain JSON", false}, {"Magic byte prefixed", true}});
+  }
+
+  @Parameter
+  public String suiteName;
+
+  @Parameter(1)
+  public boolean useSchemas;
 
   private Struct expectedOrder;
   private KsqlJsonDeserializer<Struct> deserializer;
@@ -1043,6 +1058,7 @@ public class KsqlJsonDeserializerTest {
   ) {
     return new KsqlJsonDeserializer<>(
         schema,
+        useSchemas,
         type
     );
   }
@@ -1056,7 +1072,11 @@ public class KsqlJsonDeserializerTest {
   }
 
   private byte[] addMagic(final byte[] json) {
-    return json;
+    if (useSchemas) {
+      return ArrayUtils.addAll(new byte[]{/*magic*/ 0x00, /*schema*/ 0x00, 0x00, 0x00, 0x01}, json);
+    } else {
+      return json;
+    }
   }
 
   public static class EpochDaySerializer extends JsonSerializer<java.sql.Date> {

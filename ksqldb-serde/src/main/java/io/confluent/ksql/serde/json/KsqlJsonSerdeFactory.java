@@ -44,10 +44,13 @@ import org.apache.kafka.connect.json.DecimalFormat;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
 import org.apache.kafka.connect.storage.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 @Immutable
 class KsqlJsonSerdeFactory implements SerdeFactory {
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonSerdeFactory.class);
 
   private final boolean useSchemaRegistryFormat;
   private final JsonSchemaProperties properties;
@@ -100,6 +103,7 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
     );
 
     final Deserializer<T> deserializer = createDeserializer(
+        ksqlConfig,
         schema,
         targetType,
         dataTranslator,
@@ -129,20 +133,30 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
   }
 
   private <T> Deserializer<T> createDeserializer(
+      final KsqlConfig ksqlConfig,
       final Schema schema,
       final Class<T> targetType,
       final ConnectDataTranslator dataTranslator,
       final Converter converter
   ) {
-    if (useSchemaRegistryFormat) {
+    if (useSchemaRegistryFormat
+        && ksqlConfig.getBoolean(KsqlConfig.KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED)) {
       return new KsqlConnectDeserializer<>(
           converter,
           dataTranslator,
           targetType
       );
     } else {
+      if (useSchemaRegistryFormat) {
+        LOG.info("The JsonSchemaConverter for deserialization is disabled for JSON_SR.");
+      }
+
       return new KsqlJsonDeserializer<>(
           schema,
+          // This parameter should be removed once KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
+          // is completely deprecated and removed from the code. The KsqlJsonDeserializer class
+          // should only be used for JSON (no JSON_SR) formats after that.
+          useSchemaRegistryFormat,
           targetType
       );
     }

@@ -139,11 +139,20 @@ io.confluent.ksql.metrics:type=ksql-queries
 
 ### Attributes
 
+**ksqlDB query tatus**
+
+`ksql-query-status`
+
+The current ksqlDB status of the given query.   
+The metric `query-status` shows the Kafka Streams application state.  
+The `PAUSE` / `RESUME` commands do not impact the Kafka Streams state, so this new metric shows when a query is paused.
+
 **Query status**
 
 `query-status`
 
-The current status of the given query.
+The current Kafka Streams status of the given query.  
+Note that `ksql-query-status` has been added to show the ksqlDB query status.
 
 **Error status**
 

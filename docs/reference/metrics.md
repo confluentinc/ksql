@@ -151,7 +151,7 @@ The `PAUSE` / `RESUME` commands do not impact the {{ site.kstreams }} state, so 
 
 `query-status`
 
-The current Kafka Streams status of the given query.  
+The current {{ site.kstreams }} status of the given query.  
 The `ksql-query-status` metric has been added to show the ksqlDB query status.
 
 **Error status**

@@ -57,7 +57,7 @@ public class PreconditionChecker implements Executable {
 
   private static final Logger LOG = LoggerFactory.getLogger(PreconditionChecker.class);
 
-  final ServiceContext serviceContext;
+  final Supplier<ServiceContext> serviceContextSupplier;
   final KsqlRestConfig restConfig;
   final Supplier<Map<String, String>> propertiesLoader;
   final KafkaTopicClient topicClient;
@@ -74,7 +74,7 @@ public class PreconditionChecker implements Executable {
     this.propertiesLoader = Objects.requireNonNull(propertiesLoader, "propertiesLoader");
     final Map<String, String> properties = propertiesLoader.get();
     this.restConfig = new KsqlRestConfig(properties);
-    this.serviceContext = buildServiceContext(propertiesLoader);
+    this.serviceContextSupplier = () -> buildServiceContext(propertiesLoader);
     this.serverState = Objects.requireNonNull(serverState, "serverState");
     this.topicClient = new KafkaTopicClientImpl(
         () -> createCommandTopicAdminClient(
@@ -97,7 +97,7 @@ public class PreconditionChecker implements Executable {
   @VisibleForTesting
   PreconditionChecker(
       final Supplier<Map<String, String>> propertiesLoader,
-      final ServiceContext serviceContext,
+      final Supplier<ServiceContext> serviceContextSupplier,
       final KsqlRestConfig restConfig,
       final KafkaTopicClient topicClient,
       final Vertx vertx,
@@ -106,7 +106,8 @@ public class PreconditionChecker implements Executable {
       final ServerState state
   ) {
     this.propertiesLoader = Objects.requireNonNull(propertiesLoader, "propertiesLoader");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.serviceContextSupplier = Objects.requireNonNull(
+        serviceContextSupplier, "serviceContextSupplier");
     this.restConfig = Objects.requireNonNull(restConfig, "restConfig");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.vertx = Objects.requireNonNull(vertx, "vertx");
@@ -117,7 +118,7 @@ public class PreconditionChecker implements Executable {
 
   private boolean shouldCheckPreconditions() {
     return preconditions.stream()
-        .map(p -> p.checkPrecondition(propertiesLoader.get(), serviceContext, topicClient))
+        .map(p -> p.checkPrecondition(propertiesLoader.get(), serviceContextSupplier.get(), topicClient))
         .peek(
             r -> r.ifPresent(rr -> LOG.info("Precondition failed: {}", rr))
         )
@@ -184,7 +185,7 @@ public class PreconditionChecker implements Executable {
     for (final KsqlServerPrecondition precondition : preconditions) {
       final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
           propertiesLoader.get(),
-          serviceContext,
+          serviceContextSupplier.get(),
           topicClient
       );
       if (error.isPresent()) {

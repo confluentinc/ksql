@@ -169,10 +169,10 @@ public class ListQueriesExecutorTest {
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
-    
+
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
-        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(ERROR_QUERY_STATE, 1))));
+            new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.ERROR, 1))));
 
 
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
@@ -208,7 +208,7 @@ public class ListQueriesExecutorTest {
     
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
-        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(RUNNING_QUERY_STATE, 1))));
+            new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.RUNNING, 1))));
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
     when(ksqlEntityList.get(anyInt())).thenReturn(remoteQueries);
     when(response.getResponse()).thenReturn(ksqlEntityList);
@@ -473,6 +473,7 @@ public class ListQueriesExecutorTest {
     when(sinkTopic.getKafkaTopicName()).thenReturn(id);
     when(metadata.getResultTopic()).thenReturn(Optional.of(sinkTopic));
     when(metadata.getTaskMetadata()).thenReturn(tasksMetadata);
+    when(metadata.getQueryStatus()).thenReturn(KsqlConstants.fromStreamsState(state));
 
     return metadata;
   }

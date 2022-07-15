@@ -2267,6 +2267,21 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldBeAbleToPreparePauseAndResume() {
+    // Given:
+    givenSqlAlreadyExecuted("CREATE STREAM FOO AS SELECT * FROM TEST1;");
+
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "PAUSE CSAS_FOO_0;"
+            + "RESUME CSAS_FOO_0;");
+
+    // When:
+    parsed.forEach(ksqlEngine::prepare);
+
+    // Then: did not throw.
+  }
+
+  @Test
   public void shouldIgnoreLegacyDeleteTopicPartOfDropCommand() {
     // Given:
     final QueryMetadata query = KsqlEngineTestUtil.execute(

@@ -283,6 +283,26 @@ public class CommandParserTest {
   }
 
   @Test
+  public void shouldParsePauseStatement() {
+    // When:
+    List<CommandParser.ParsedCommand> commands = parse("pause some_query_id;");
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).getCommand(), is("pause some_query_id;"));
+  }
+
+  @Test
+  public void shouldParseResumeStatement() {
+    // When:
+    List<CommandParser.ParsedCommand> commands = parse("resume some_query_id;");
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).getCommand(), is("resume some_query_id;"));
+  }
+
+  @Test
   public void shouldParseDropSourceStatement() {
     // When:
     List<CommandParser.ParsedCommand> commands = parse("drop stream foo;");

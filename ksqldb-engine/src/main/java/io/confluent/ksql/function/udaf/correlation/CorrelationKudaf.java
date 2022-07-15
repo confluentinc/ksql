@@ -42,7 +42,9 @@ public class CorrelationKudaf
   @Override
   public Double aggregate(final Pair<Double, VariadicArgs<Double>> currentValue,
                           final Double aggregateValue) {
-    return aggregateValue + currentValue.getLeft() + currentValue.getRight().get(0);
+    return aggregateValue + currentValue.getLeft() + currentValue.getRight()
+            .stream()
+            .reduce(0.0, Double::sum);
   }
 
   @Override

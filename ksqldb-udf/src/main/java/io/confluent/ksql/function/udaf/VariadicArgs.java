@@ -15,9 +15,11 @@
 package io.confluent.ksql.function.udaf;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
-public class VariadicArgs<T> {
+public class VariadicArgs<T> implements Iterable<T> {
   private final ImmutableList<T> values;
 
   public VariadicArgs(final List<T> values) {
@@ -30,5 +32,14 @@ public class VariadicArgs<T> {
 
   public int size() {
     return values.size();
+  }
+
+  public Stream<T> stream() {
+    return values.stream();
+  }
+
+  @Override
+  public Iterator<T> iterator() {
+    return values.iterator();
   }
 }

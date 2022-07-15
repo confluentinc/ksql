@@ -105,8 +105,8 @@ class UdafTypes {
 
     final Type inputWrapperType = type.getActualTypeArguments()[0];
 
-    if (TUPLE_TYPES.contains(inputWrapperType)) {
-      this.inputTypes = type.getActualTypeArguments();
+    if (TUPLE_TYPES.contains(getRawType(inputWrapperType))) {
+      this.inputTypes = ((ParameterizedType) inputWrapperType).getActualTypeArguments();
     } else {
       this.inputTypes = new Type[]{inputWrapperType};
     }

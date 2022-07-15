@@ -58,6 +58,8 @@ public class PreconditionCheckerTest {
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
+  private Supplier<KafkaTopicClient> topicClientSupplier;
+  @Mock
   private ServerState serverState;
   @Mock
   private Supplier<Map<String, String>> propertiesLoader;
@@ -72,7 +74,7 @@ public class PreconditionCheckerTest {
         propertiesLoader,
         serviceContextSupplier,
         restConfig,
-        topicClient,
+        topicClientSupplier,
         vertx,
         ImmutableList.of(precondition1, precondition2),
         server,
@@ -83,6 +85,7 @@ public class PreconditionCheckerTest {
     when(server.started()).thenReturn(true);
     when(propertiesLoader.get()).thenReturn(PROPERTIES);
     when(serviceContextSupplier.get()).thenReturn(serviceContext);
+    when(topicClientSupplier.get()).thenReturn(topicClient);
   }
 
   @Test
@@ -92,7 +95,7 @@ public class PreconditionCheckerTest {
         propertiesLoader,
         serviceContextSupplier,
         restConfig,
-        topicClient,
+        topicClientSupplier,
         vertx,
         ImmutableList.of(),
         server,

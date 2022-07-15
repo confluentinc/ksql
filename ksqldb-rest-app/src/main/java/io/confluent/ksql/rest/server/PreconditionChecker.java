@@ -60,7 +60,7 @@ public class PreconditionChecker implements Executable {
   final Supplier<ServiceContext> serviceContextSupplier;
   final KsqlRestConfig restConfig;
   final Supplier<Map<String, String>> propertiesLoader;
-  final KafkaTopicClient topicClient;
+  final Supplier<KafkaTopicClient> topicClientSupplier;
   final Vertx vertx;
   final List<KsqlServerPrecondition> preconditions;
   final PreconditionServer server;
@@ -76,7 +76,7 @@ public class PreconditionChecker implements Executable {
     this.restConfig = new KsqlRestConfig(properties);
     this.serviceContextSupplier = () -> buildServiceContext(propertiesLoader);
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.topicClient = new KafkaTopicClientImpl(
+    this.topicClientSupplier = () -> new KafkaTopicClientImpl(
         () -> createCommandTopicAdminClient(
             new KsqlRestConfig(propertiesLoader.get()), new KsqlConfig(propertiesLoader.get())));
     this.preconditions = restConfig.getConfiguredInstances(
@@ -99,7 +99,7 @@ public class PreconditionChecker implements Executable {
       final Supplier<Map<String, String>> propertiesLoader,
       final Supplier<ServiceContext> serviceContextSupplier,
       final KsqlRestConfig restConfig,
-      final KafkaTopicClient topicClient,
+      final Supplier<KafkaTopicClient> topicClientSupplier,
       final Vertx vertx,
       final List<KsqlServerPrecondition> preconditions,
       final PreconditionServer server,
@@ -109,7 +109,8 @@ public class PreconditionChecker implements Executable {
     this.serviceContextSupplier = Objects.requireNonNull(
         serviceContextSupplier, "serviceContextSupplier");
     this.restConfig = Objects.requireNonNull(restConfig, "restConfig");
-    this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
+    this.topicClientSupplier = Objects.requireNonNull(
+        topicClientSupplier, "topicClientSupplier");
     this.vertx = Objects.requireNonNull(vertx, "vertx");
     this.preconditions = Objects.requireNonNull(preconditions, "preconditions");
     this.server = Objects.requireNonNull(server, "server");
@@ -118,7 +119,10 @@ public class PreconditionChecker implements Executable {
 
   private boolean shouldCheckPreconditions() {
     return preconditions.stream()
-        .map(p -> p.checkPrecondition(propertiesLoader.get(), serviceContextSupplier.get(), topicClient))
+        .map(p -> p.checkPrecondition(
+            propertiesLoader.get(),
+            serviceContextSupplier.get(),
+            topicClientSupplier.get()))
         .peek(
             r -> r.ifPresent(rr -> LOG.info("Precondition failed: {}", rr))
         )
@@ -186,7 +190,7 @@ public class PreconditionChecker implements Executable {
       final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
           propertiesLoader.get(),
           serviceContextSupplier.get(),
-          topicClient
+          topicClientSupplier.get()
       );
       if (error.isPresent()) {
         LOG.info("Precondition failed: {}", error.get());

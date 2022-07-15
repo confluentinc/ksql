@@ -159,7 +159,7 @@ class UdafFactoryInvoker implements FunctionSignature {
 
   @Override
   public boolean isVariadic() {
-    return false;
+    return types.isVariadic();
   }
 
   public String getDescription() {

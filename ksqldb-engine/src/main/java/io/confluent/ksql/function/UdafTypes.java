@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.function.UdfUtil;
+import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udaf.VariadicArgs;
 import io.confluent.ksql.name.FunctionName;
@@ -145,12 +146,21 @@ class UdafTypes {
 
     final int lastParamIndex = paramTypes.size() - 1;
     final List<ParameterInfo> paramInfos = IntStream.range(0, paramTypes.size())
-            .mapToObj((paramIndex) -> new ParameterInfo(
-                    "val" + (paramIndex + 1),
-                    paramTypes.get(paramIndex),
-                    "",
-                    isVariadic && paramIndex == lastParamIndex
-            )).collect(Collectors.toList());
+            .mapToObj((paramIndex) -> {
+              final boolean paramVariadic = isVariadic && paramIndex == lastParamIndex;
+
+              ParamType paramType = paramTypes.get(paramIndex);
+              if (paramVariadic) {
+                paramType = ArrayType.of(paramType);
+              }
+
+              return new ParameterInfo(
+                      "val" + (paramIndex + 1),
+                      paramType,
+                      "",
+                      paramVariadic
+              );
+            }).collect(Collectors.toList());
 
     return ImmutableList.<ParameterInfo>builder()
         .addAll(paramInfos)
@@ -166,6 +176,10 @@ class UdafTypes {
   ParamType getOutputSchema(final String outSchema) {
     validateStructAnnotation(outputType, outSchema, "returnSchema");
     return getSchemaFromType(outputType, outSchema);
+  }
+
+  boolean isVariadic() {
+    return isVariadic;
   }
 
   private void validateType(final Type t) {

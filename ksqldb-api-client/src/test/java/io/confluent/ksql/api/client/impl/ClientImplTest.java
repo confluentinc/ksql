@@ -87,7 +87,7 @@ public class ClientImplTest {
     client.streamQuery("SELECT * from STREAM1 EMIT CHANGES;");
     assertThat(headers.size(), is(2));
     assertThat(headers.containsKey(USER_AGENT.toString()), is(true));
-    assertThat(headers.get(USER_AGENT.toString()).matches("ksqlDB Java Client v\\d*\\.\\d*\\.\\d*.*"),
+    assertThat(headers.get(USER_AGENT.toString()).matches("ksqlDB Java Client v\\d+\\.\\d+\\.\\d+.*"),
         is(true));
 
     assertThat(headers.containsKey(ACCEPT.toString()), is(true));

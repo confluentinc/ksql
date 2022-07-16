@@ -169,7 +169,8 @@ public class PreconditionChecker implements Executable {
     RetryUtil.retryWithBackoff(
         Integer.MAX_VALUE,
         1000,
-        30000,
+        Math.toIntExact(restConfig.getLong(
+            KsqlRestConfig.KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS)),
         this::checkPreconditions,
         terminatedFuture::isDone,
         predicates

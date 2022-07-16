@@ -57,11 +57,14 @@ public final class ServerUtils {
     } catch (JsonParseException | MismatchedInputException e) {
       routingContext
           .fail(BAD_REQUEST.code(),
-              new KsqlApiException("Invalid JSON in request: " + e.getMessage(),
-                  ERROR_CODE_BAD_REQUEST));
+              new KsqlApiException(
+                  "Invalid JSON in request",
+                  ERROR_CODE_BAD_REQUEST,
+                  e.getMessage()
+              ));
       return Optional.empty();
     } catch (IOException e) {
-      throw new RuntimeException("Failed to deserialize buffer", e);
+      throw new RuntimeException("Failed to deserialize buffer" + e.getMessage());
     }
   }
 
@@ -70,7 +73,7 @@ public final class ServerUtils {
       final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(t);
       return Buffer.buffer(bytes);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to serialize buffer", e);
+      throw new RuntimeException("Failed to serialize buffer" + e.getMessage());
     }
   }
 

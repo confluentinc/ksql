@@ -186,6 +186,7 @@ public class QueryStateMetricsReportingListenerTest {
   @Test
   public void shouldUpdateToNewState() {
     // When:
+    when(query.getQueryStatus()).thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING);
     listener.onCreate(serviceContext, metaStore, query);
     listener.onStateChange(query, State.REBALANCING, State.RUNNING);
 
@@ -196,6 +197,7 @@ public class QueryStateMetricsReportingListenerTest {
   @Test
   public void shouldUpdateOnError() {
     // When:
+    when(query.getQueryStatus()).thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING);
     listener.onCreate(serviceContext, metaStore, query);
     listener.onError(query, new QueryError(1, "foo", Type.USER));
 

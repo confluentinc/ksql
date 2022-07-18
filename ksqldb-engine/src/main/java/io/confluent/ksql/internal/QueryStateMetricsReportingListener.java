@@ -88,6 +88,15 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     final PerQueryListener listener = perQuery.get(query.getQueryId());
     if (listener != null) {
       listener.onChange(before, after);
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
+    }
+  }
+
+  @Override
+  public void onKsqlStateChange(final QueryMetadata query) {
+    final PerQueryListener listener = perQuery.get(query.getQueryId());
+    if (listener != null) {
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
     }
   }
 
@@ -98,6 +107,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     final PerQueryListener listener = perQuery.get(query.getQueryId());
     if (listener != null) {
       listener.onError(error);
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
     }
   }
 
@@ -114,10 +124,12 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     private final MetricName stateMetricName;
     private final MetricName errorMetricName;
     private final MetricName queryRestartMetricName;
+    private final MetricName ksqlQueryStatusMetricName;
     private final CumulativeSum queryRestartSum;
     private final Ticker ticker;
 
     private volatile String state = "-";
+    private volatile String ksqlQueryState = "-";
     private volatile String error = NO_ERROR;
 
     PerQueryListener(
@@ -150,7 +162,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       this.stateMetricName = metrics.metricName(
           "query-status",
           groupPrefix + "ksql-queries",
-          "The current status of the given query.",
+          "The current Kafka Streams status of the given query.",
           tagsForStateAndError
       );
 
@@ -169,10 +181,20 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
           QUERY_RESTART_METRIC_DESCRIPTION,
           restartTags
       );
+
+      ksqlQueryStatusMetricName = metrics.metricName(
+              "ksql-query-status",
+              groupPrefix + "ksql-queries",
+              "The current ksqlDB status of the given query.",
+              tagsForStateAndError
+      );
+
       this.queryRestartSum = new CumulativeSum();
       this.metrics.addMetric(stateMetricName, (Gauge<String>) (config, now) -> state);
       this.metrics.addMetric(errorMetricName, (Gauge<String>) (config, now) -> error);
       this.metrics.addMetric(queryRestartMetricName, queryRestartSum);
+      this.metrics.addMetric(ksqlQueryStatusMetricName,
+              (Gauge<String>) (config, now) -> ksqlQueryState);
     }
 
     public void onChange(final State newState, final State oldState) {
@@ -181,6 +203,10 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       if (newState != State.ERROR) {
         error = NO_ERROR;
       }
+    }
+
+    public void setKsqlQueryState(final String ksqlQueryState) {
+      this.ksqlQueryState = ksqlQueryState;
     }
 
     public void onError(final QueryError observedError) {
@@ -192,6 +218,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       metrics.removeMetric(stateMetricName);
       metrics.removeMetric(errorMetricName);
       metrics.removeMetric(queryRestartMetricName);
+      metrics.removeMetric(ksqlQueryStatusMetricName);
     }
   }
 }

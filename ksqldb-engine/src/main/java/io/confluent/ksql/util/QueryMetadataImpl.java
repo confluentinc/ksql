@@ -436,12 +436,14 @@ public class QueryMetadataImpl implements QueryMetadata {
   public void pause() {
     kafkaStreams.pause();
     isPaused.set(true);
+    listener.onPause(this);
   }
 
   @Override
   public void resume() {
     kafkaStreams.resume();
     isPaused.set(false);
+    listener.onResume(this);
   }
 
   public static class RetryEvent implements QueryMetadata.RetryEvent {

@@ -107,6 +107,10 @@ public interface QueryMetadata {
         KafkaStreams.State before,
         KafkaStreams.State after);
 
+    void onPause(QueryMetadata queryMetadata);
+
+    void onResume(QueryMetadata queryMetadata);
+
     void onClose(QueryMetadata queryMetadata);
   }
 }

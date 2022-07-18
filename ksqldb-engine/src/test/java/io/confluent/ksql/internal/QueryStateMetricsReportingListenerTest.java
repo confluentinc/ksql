@@ -207,17 +207,22 @@ public class QueryStateMetricsReportingListenerTest {
   public void shouldReportKsqlQueryStatus() {
     // When:
     listener.onCreate(serviceContext, metaStore, query);
-    listener.onStateChange(query, State.REBALANCING, State.RUNNING);
 
     when(query.getQueryStatus())
             .thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING)
             .thenReturn(KsqlConstants.KsqlQueryStatus.PAUSED)
-            .thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING);
+            .thenReturn(KsqlConstants.KsqlQueryStatus.UNRESPONSIVE)
+            .thenReturn(KsqlConstants.KsqlQueryStatus.ERROR);
 
     // Then:
+    listener.onKsqlStateChange(query);
     assertThat(currentGaugeValue(METRIC_NAME_4), is("RUNNING"));
+    listener.onKsqlStateChange(query);
     assertThat(currentGaugeValue(METRIC_NAME_4), is("PAUSED"));
-    assertThat(currentGaugeValue(METRIC_NAME_4), is("RUNNING"));
+    listener.onKsqlStateChange(query);
+    assertThat(currentGaugeValue(METRIC_NAME_4), is("UNRESPONSIVE"));
+    listener.onKsqlStateChange(query);
+    assertThat(currentGaugeValue(METRIC_NAME_4), is("ERROR"));
   }
 
   @Test

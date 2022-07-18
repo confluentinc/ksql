@@ -128,7 +128,6 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     private final CumulativeSum queryRestartSum;
     private final Ticker ticker;
 
-    private volatile QueryMetadata queryMetadata;
     private volatile String state = "-";
     private volatile String ksqlQueryState = "-";
     private volatile String error = NO_ERROR;
@@ -196,10 +195,6 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       this.metrics.addMetric(queryRestartMetricName, queryRestartSum);
       this.metrics.addMetric(ksqlQueryStatusMetricName,
               (Gauge<String>) (config, now) -> ksqlQueryState);
-    }
-
-    public void setQueryMetadata(final QueryMetadata queryMetadata) {
-      this.queryMetadata = queryMetadata;
     }
 
     public void onChange(final State newState, final State oldState) {

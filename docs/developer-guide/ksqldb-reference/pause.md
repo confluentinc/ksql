@@ -3,7 +3,7 @@ layout: page
 title: PAUSE
 tagline:  ksqlDB PAUSE statement
 description: Syntax for the PAUSE statement in ksqlDB
-keywords: ksqlDB, query, end, stop
+keywords: ksqlDB, query, pause
 ---
 
 PAUSE

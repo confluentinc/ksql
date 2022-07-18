@@ -3,7 +3,7 @@ layout: page
 title: RESUME
 tagline:  ksqlDB RESUME statement
 description: Syntax for the RESUME statement in ksqlDB
-keywords: ksqlDB, query, end, stop
+keywords: ksqlDB, query, resume
 ---
 
 RESUME

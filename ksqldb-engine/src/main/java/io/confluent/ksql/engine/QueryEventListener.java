@@ -55,7 +55,7 @@ public interface QueryEventListener {
   }
 
   /**
-   * Called when the state of the ksqlDB query metadata changes
+   * Called when the ksqlDB query is paused or resumed.
    * @param query the query whose state has changed
    */
   default void onKsqlStateChange(

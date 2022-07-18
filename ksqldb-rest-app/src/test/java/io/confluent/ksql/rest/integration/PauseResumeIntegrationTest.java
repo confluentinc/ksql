@@ -127,13 +127,7 @@ public class PauseResumeIntegrationTest {
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
 
     assertThat(getPausedCount(), equalTo(1L));
-    REST_APP.getEngine().metricCollectors().getMetrics();
-    final MetricName key = REST_APP.getEngine().metricCollectors().getMetrics().metrics().keySet()
-            .stream()
-            .filter(metricName -> metricName.name().contains("ksql-query-status"))
-            .findFirst().get();
-    final KafkaMetric metric = REST_APP.getEngine().metricCollectors().getMetrics().metric(key);
-    assertThat((String)metric.metricValue(), equalTo("PAUSED"));
+    assertThat(getFirstKsqlDbQueryState(), equalTo("PAUSED"));
 
     // Produce more records
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON,
@@ -143,12 +137,12 @@ public class PauseResumeIntegrationTest {
     assertThatEventually(supplier, equalTo(9));
 
     // Then:
-    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "RESUME "
-        + queryId + ";");
+    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "RESUME " + queryId + ";");
 
     // 5 more records have been produced
     assertThatEventually(supplier, equalTo(14));
     assertThat(getRunningCount(), equalTo(1L));
+    assertThat(getFirstKsqlDbQueryState(), equalTo("RUNNING"));
   }
 
   @Test
@@ -267,5 +261,14 @@ public class PauseResumeIntegrationTest {
     } catch (Exception e) {
       return -1;
     }
+  }
+
+  private String getFirstKsqlDbQueryState() {
+    final MetricName key = REST_APP.getEngine().metricCollectors().getMetrics().metrics().keySet()
+            .stream()
+            .filter(metricName -> metricName.name().contains("ksql-query-status"))
+            .findFirst().get();
+    final KafkaMetric metric = REST_APP.getEngine().metricCollectors().getMetrics().metric(key);
+    return (String) metric.metricValue();
   }
 }

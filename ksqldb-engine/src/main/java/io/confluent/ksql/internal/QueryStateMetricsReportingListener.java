@@ -87,8 +87,16 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     // may time out. when ths happens, the shutdown thread in streams may call this method.
     final PerQueryListener listener = perQuery.get(query.getQueryId());
     if (listener != null) {
-      listener.setQueryMetadata(query);
       listener.onChange(before, after);
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
+    }
+  }
+
+  @Override
+  public void onKsqlStateChange(final QueryMetadata query) {
+    final PerQueryListener listener = perQuery.get(query.getQueryId());
+    if (listener != null) {
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
     }
   }
 
@@ -99,6 +107,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     final PerQueryListener listener = perQuery.get(query.getQueryId());
     if (listener != null) {
       listener.onError(error);
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
     }
   }
 
@@ -121,6 +130,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
 
     private volatile QueryMetadata queryMetadata;
     private volatile String state = "-";
+    private volatile String ksqlQueryState = "-";
     private volatile String error = NO_ERROR;
 
     PerQueryListener(
@@ -184,13 +194,8 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       this.metrics.addMetric(stateMetricName, (Gauge<String>) (config, now) -> state);
       this.metrics.addMetric(errorMetricName, (Gauge<String>) (config, now) -> error);
       this.metrics.addMetric(queryRestartMetricName, queryRestartSum);
-      this.metrics.addMetric(ksqlQueryStatusMetricName, (Gauge<String>) (config, now) -> {
-        if (queryMetadata != null) {
-          return queryMetadata.getQueryStatus().toString();
-        } else {
-          return "-";
-        }
-      });
+      this.metrics.addMetric(ksqlQueryStatusMetricName,
+              (Gauge<String>) (config, now) -> ksqlQueryState);
     }
 
     public void setQueryMetadata(final QueryMetadata queryMetadata) {
@@ -203,6 +208,10 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       if (newState != State.ERROR) {
         error = NO_ERROR;
       }
+    }
+
+    public void setKsqlQueryState(final String ksqlQueryState) {
+      this.ksqlQueryState = ksqlQueryState;
     }
 
     public void onError(final QueryError observedError) {

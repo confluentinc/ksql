@@ -26,6 +26,8 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.KafkaMetric;
 import org.jetbrains.annotations.NotNull;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -125,6 +127,13 @@ public class PauseResumeIntegrationTest {
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
 
     assertThat(getPausedCount(), equalTo(1L));
+    REST_APP.getEngine().metricCollectors().getMetrics();
+    final MetricName key = REST_APP.getEngine().metricCollectors().getMetrics().metrics().keySet()
+            .stream()
+            .filter(metricName -> metricName.name().contains("ksql-query-status"))
+            .findFirst().get();
+    final KafkaMetric metric = REST_APP.getEngine().metricCollectors().getMetrics().metric(key);
+    assertThat((String)metric.metricValue(), equalTo("PAUSED"));
 
     // Produce more records
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON,

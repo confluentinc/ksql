@@ -431,12 +431,14 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   public void pause() {
     sharedKafkaStreamsRuntime.getKafkaStreams().pauseNamedTopology(topology.name());
     isPaused = true;
+    listener.onPause(this);
   }
 
   @Override
   public void resume() {
     sharedKafkaStreamsRuntime.getKafkaStreams().resumeNamedTopology(topology.name());
     isPaused = false;
+    listener.onPause(this);
   }
 
   @Override

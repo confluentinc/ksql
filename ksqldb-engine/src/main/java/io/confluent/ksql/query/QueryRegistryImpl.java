@@ -584,6 +584,16 @@ public class QueryRegistryImpl implements QueryRegistry {
     }
 
     @Override
+    public void onPause(final QueryMetadata queryMetadata) {
+      eventListeners.forEach(l -> l.onKsqlStateChange(queryMetadata));
+    }
+
+    @Override
+    public void onResume(final QueryMetadata queryMetadata) {
+      eventListeners.forEach(l -> l.onKsqlStateChange(queryMetadata));
+    }
+
+    @Override
     public void onClose(final QueryMetadata queryMetadata) {
       unregisterQuery(queryMetadata);
       eventListeners.forEach(l -> l.onClose(queryMetadata));

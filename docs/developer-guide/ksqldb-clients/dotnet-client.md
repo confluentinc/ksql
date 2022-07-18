@@ -108,10 +108,9 @@ public interface IClient {
 Due to C#'s built in async/await functionality, we can write async code without a lot of the
 complexity that in other clients.  All of our API methods return [Task](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1) objects and can be awaited.
 
-To consume records one-at-a-time in a synchronous fashion, use the `poll()` method on the query result object.
-If `poll()` is called with no arguments, it blocks until a new row becomes available or the query is terminated.
-You can also pass a `Duration` argument to `poll()`, which causes `poll()` to return `null` if no new rows are received by the time the duration has elapsed.
-For more information, see the [API reference](api/io/confluent/ksql/api/client/StreamedQueryResult.html#poll(java.time.Duration)).
+To consume records one-at-a-time, use the `PollAsync()` method on the query result object.
+To check for successful completion, the property `IsComplete` can be used.  If a failure
+has occurred, the property `IsFailed` is true and the next call to `PollAsync()` will throw an exception.
 
 ```csharp
 IClient client = ClientBuilder
@@ -132,7 +131,7 @@ while (!result.IsComplete)
     IRow row = await result.PollAsync();
     if (row == null)
     {
-    continue;
+        continue;
     }
   
     await Console.Out.WriteLineAsync("Row " + row);

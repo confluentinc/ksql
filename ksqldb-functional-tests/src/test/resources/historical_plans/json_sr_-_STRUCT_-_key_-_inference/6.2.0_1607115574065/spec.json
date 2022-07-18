@@ -86,8 +86,7 @@
             "oneOf" : [ {
               "type" : "null"
             }, {
-              "type" : "string",
-              "connect.type" : "string"
+              "type" : "string"
             } ]
           }
         }
@@ -153,8 +152,7 @@
                 "oneOf" : [ {
                   "type" : "null"
                 }, {
-                  "type" : "string",
-                  "connect.type" : "string"
+                  "type" : "string"
                 } ]
               }
             }

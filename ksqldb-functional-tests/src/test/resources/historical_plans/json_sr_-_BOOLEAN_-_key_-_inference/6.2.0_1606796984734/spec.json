@@ -58,8 +58,7 @@
         "oneOf" : [ {
           "type" : "null"
         }, {
-          "type" : "boolean",
-          "connect.type" : "boolean"
+          "type" : "boolean"
         } ]
       },
       "valueSchema" : {
@@ -119,8 +118,7 @@
             "oneOf" : [ {
               "type" : "null"
             }, {
-              "type" : "boolean",
-              "connect.type" : "boolean"
+              "type" : "boolean"
             } ]
           },
           "valueSchema" : {

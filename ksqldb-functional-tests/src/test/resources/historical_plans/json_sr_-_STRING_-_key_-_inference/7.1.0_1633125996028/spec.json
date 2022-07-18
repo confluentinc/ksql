@@ -62,8 +62,7 @@
         "oneOf" : [ {
           "type" : "null"
         }, {
-          "type" : "string",
-          "connect.type" : "string"
+          "type" : "string"
         } ]
       },
       "valueSchema" : {
@@ -125,8 +124,7 @@
             "oneOf" : [ {
               "type" : "null"
             }, {
-              "type" : "string",
-              "connect.type" : "string"
+              "type" : "string"
             } ]
           },
           "valueSchema" : {

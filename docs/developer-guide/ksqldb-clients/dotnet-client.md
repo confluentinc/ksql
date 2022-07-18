@@ -106,7 +106,7 @@ public interface IClient {
 ### Asynchronous Usage ###
 
 Due to C#'s built in async/await functionality, we can write async code without a lot of the
-complexity that in other clients.  All of our API methods return `Task` objects and can be awaited.
+complexity that in other clients.  All of our API methods return [Task](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1) objects and can be awaited.
 
 To consume records one-at-a-time in a synchronous fashion, use the `poll()` method on the query result object.
 If `poll()` is called with no arguments, it blocks until a new row becomes available or the query is terminated.

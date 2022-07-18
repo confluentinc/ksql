@@ -165,8 +165,8 @@ public class ApplyMigrationCommandTest {
     when(ksqlClient.describeSource("`FOO`")).thenReturn(fooDescriptionCf);
     when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, false)).thenReturn(voidCf);
     when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, true)).thenReturn(voidCf);
-    when(ksqlClient.dropConnector("WOOF", false)).thenReturn(voidCf);
-    when(ksqlClient.dropConnector("WOOF", true)).thenReturn(voidCf);
+    when(ksqlClient.dropConnector("`WOOF`", false)).thenReturn(voidCf);
+    when(ksqlClient.dropConnector("`WOOF`", true)).thenReturn(voidCf);
     when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
     when(statementResultCf.get()).thenReturn(statementResult);
     when(fooDescriptionCf.get()).thenReturn(fooDescription);
@@ -260,7 +260,7 @@ public class ApplyMigrationCommandTest {
       inOrder.verify(ksqlClient).executeStatement(COMMAND, new HashMap<>());
       inOrder.verify(ksqlClient).define("pre", "a");
       inOrder.verify(ksqlClient).define("str", "abc");
-      inOrder.verify(ksqlClient).executeStatement(eq("CREATE STREAM ${str} AS SELECT * FROM FOO;"), propCaptor.capture());
+      inOrder.verify(ksqlClient).executeStatement(eq("CREATE STREAM abc AS SELECT * FROM FOO;"), propCaptor.capture());
       assertThat(propCaptor.getValue().size(), is(1));
       assertThat(propCaptor.getValue().get("abc"), is("yay"));
       inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "abc")));
@@ -683,7 +683,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).dropConnector("WOOF", false));
+        () -> inOrder.verify(ksqlClient).dropConnector("`WOOF`", false));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -705,7 +705,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).dropConnector("WOOF", true));
+        () -> inOrder.verify(ksqlClient).dropConnector("`WOOF`", true));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }

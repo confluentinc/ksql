@@ -54,13 +54,16 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -87,6 +90,36 @@ public class AstBuilderTest {
   @Before
   public void setup() {
     builder = new AstBuilder(META_STORE);
+  }
+
+  @Test
+  public void shouldParsePause() {
+    // Given:
+    final SingleStatementContext allStmt = givenQuery("PAUSE ALL;");
+    final SingleStatementContext oneStmt = givenQuery("PAUSE QUERY1;");
+
+    // When:
+    final PauseQuery allResult = (PauseQuery) builder.buildStatement(allStmt);
+    final PauseQuery oneResult = (PauseQuery) builder.buildStatement(oneStmt);
+
+    // Then:
+    assertThat(allResult.getQueryId(), is(Optional.empty()));
+    assertThat(oneResult.getQueryId(), is(Optional.of(new QueryId("QUERY1"))));
+  }
+
+  @Test
+  public void shouldParseResume() {
+    // Given:
+    final SingleStatementContext allStmt = givenQuery("RESUME ALL;");
+    final SingleStatementContext oneStmt = givenQuery("RESUME QUERY1;");
+
+    // When:
+    final ResumeQuery allResult = (ResumeQuery) builder.buildStatement(allStmt);
+    final ResumeQuery oneResult = (ResumeQuery) builder.buildStatement(oneStmt);
+
+    // Then:
+    assertThat(allResult.getQueryId(), is(Optional.empty()));
+    assertThat(oneResult.getQueryId(), is(Optional.of(new QueryId("QUERY1"))));
   }
 
   @Test

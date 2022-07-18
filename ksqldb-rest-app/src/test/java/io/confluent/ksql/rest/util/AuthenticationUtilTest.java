@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.security.KsqlAuthTokenProvider;
-import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Clock;
 import java.time.Instant;
@@ -39,14 +38,13 @@ public class AuthenticationUtilTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private KsqlAuthTokenProvider authTokenProvider;
-  @Mock
-  private KsqlPrincipal ksqlPrincipal;
+  private static final String TOKEN = "TOKEN";
   private final AuthenticationUtil authenticationUtil
       = new AuthenticationUtil(Clock.fixed(Instant.ofEpochMilli(0), ZoneId.of("UTC")));
 
   @Before
   public void init() {
-    when(authTokenProvider.getLifetimeMs(ksqlPrincipal)).thenReturn(Optional.of(50000L));
+    when(authTokenProvider.getLifetimeMs(TOKEN)).thenReturn(50000L);
     when(ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS)).thenReturn(60000L);
   }
 
@@ -56,7 +54,7 @@ public class AuthenticationUtilTest {
     when(ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS)).thenReturn(0L);
 
     // Then:
-    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.empty()));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.empty()));
   }
 
   @Test
@@ -66,29 +64,29 @@ public class AuthenticationUtilTest {
 
   @Test
   public void shouldReturnDefaultWhenNoAuthTokenProviderPresent() {
-    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.empty()), equalTo(Optional.of(60000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.empty()), equalTo(Optional.of(60000L)));
   }
 
   @Test
-  public void shouldReturnDefaultWhenPrincipalHasNoExpiry() {
+  public void shouldReturnZeroWhenPrincipalHasTooLowExpiryTime() {
     // Given:
-    when(authTokenProvider.getLifetimeMs(ksqlPrincipal)).thenReturn(Optional.empty());
+    when(authTokenProvider.getLifetimeMs(TOKEN)).thenReturn(-10L);
 
     // Then:
-    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(0L)));
   }
 
   @Test
   public void shouldReturnTokenExpiryTime() {
-    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(50000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(50000L)));
   }
 
   @Test
   public void shouldReturnMaxTimeout() {
     // Given:
-    when(authTokenProvider.getLifetimeMs(ksqlPrincipal)).thenReturn(Optional.of(50000000L));
+    when(authTokenProvider.getLifetimeMs(TOKEN)).thenReturn(50000000L);
 
     // Then:
-    assertThat(authenticationUtil.getTokenTimeout(Optional.of(ksqlPrincipal), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
   }
 }

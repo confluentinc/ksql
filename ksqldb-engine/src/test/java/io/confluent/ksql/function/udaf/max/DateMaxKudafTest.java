@@ -19,14 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.sql.Date;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class DateMaxKudafTest {
@@ -68,21 +65,19 @@ public class DateMaxKudafTest {
   @Test
   public void shouldFindCorrectMaxForMerge() {
     final MaxKudaf<Date> dateMaxKudaf = getMaxComparableKudaf();
-    final Merger<GenericKey, Date> merger = dateMaxKudaf.getMerger();
-    final Date mergeResult1 = merger.apply(null, new Date(10), new Date(12));
+    final Date mergeResult1 = dateMaxKudaf.merge(new Date(10), new Date(12));
     assertThat(mergeResult1, equalTo(new Date(12)));
-    final Date mergeResult2 = merger.apply(null, new Date(10), new Date(-12));
+    final Date mergeResult2 = dateMaxKudaf.merge(new Date(10), new Date(-12));
     assertThat(mergeResult2, equalTo(new Date(10)));
-    final Date mergeResult3 = merger.apply(null, new Date(-10), new Date(0));
+    final Date mergeResult3 = dateMaxKudaf.merge(new Date(-10), new Date(0));
     assertThat(mergeResult3, equalTo(new Date(0)));
   }
 
-  @SuppressWarnings("unchecked")
   private MaxKudaf<Date> getMaxComparableKudaf() {
-    final KsqlAggregateFunction<Date, Date, Date> aggregateFunction =
-        (KsqlAggregateFunction<Date, Date, Date>) new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DATE)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+    final Udaf<Date, Date, Date> aggregateFunction = MaxKudaf.createMaxDate();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.DATE))
+    );
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
     return  (MaxKudaf<Date>) aggregateFunction;
   }

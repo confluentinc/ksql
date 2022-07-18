@@ -19,36 +19,21 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Before;
 import org.junit.Test;
 
-@SuppressWarnings("unchecked")
 public class StringTopkKudafTest {
   private final List<String> valueArray = ImmutableList.of("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
       "Test", "123", "432");
-  private TopKAggregateFunctionFactory topKFactory;
-  private List<SqlArgument> argumentType;
-
-  private final AggregateFunctionInitArguments args =
-      new AggregateFunctionInitArguments(0, 3);
-
-  @Before
-  public void setup() {
-    topKFactory = new TopKAggregateFunctionFactory();
-    argumentType = Collections.singletonList(SqlArgument.of(SqlTypes.STRING));
-  }
 
   @Test
   public void shouldAggregateTopK() {
-    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.createAggregateFunction(argumentType, args);
+    final Udaf<String, List<String>, List<String>> topkKudaf = createUdaf();
     List<String> currentVal = new ArrayList<>();
     for (final String value : valueArray) {
       currentVal = topkKudaf.aggregate(value , currentVal);
@@ -59,8 +44,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.createAggregateFunction(argumentType, args);
+    final Udaf<String, List<String>, List<String>> topkKudaf = createUdaf();
     List<String> currentVal = new ArrayList<>();
     currentVal = topkKudaf.aggregate("why", currentVal);
 
@@ -69,34 +53,37 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.createAggregateFunction(argumentType, args);
+    final Udaf<String, List<String>, List<String>> topkKudaf = createUdaf();
     final List<String> array1 = ImmutableList.of("paper", "Hello", "123");
     final List<String> array2 = ImmutableList.of("Zzz", "Hi", "456");
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", topkKudaf.merge(array1, array2),
         equalTo(ImmutableList.of("paper", "Zzz", "Hi")));
   }
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.createAggregateFunction(argumentType, args);
+    final Udaf<String, List<String>, List<String>> topkKudaf = createUdaf();
     final List<String> array1 = ImmutableList.of("50", "45");
     final List<String> array2 = ImmutableList.of("60");
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", topkKudaf.merge(array1, array2),
         equalTo(ImmutableList.of("60", "50", "45")));
   }
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.createAggregateFunction(argumentType, args);
+    final Udaf<String, List<String>, List<String>> topkKudaf = createUdaf();
     final List<String> array1 = ImmutableList.of("50");
     final List<String> array2 = ImmutableList.of("60");
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", topkKudaf.merge(array1, array2),
         equalTo(ImmutableList.of("60", "50")));
+  }
+
+  private Udaf<String, List<String>, List<String>> createUdaf() {
+    Udaf<String, List<String>, List<String>> udaf = TopkKudaf.createTopKString(3);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
+    return udaf;
   }
 }

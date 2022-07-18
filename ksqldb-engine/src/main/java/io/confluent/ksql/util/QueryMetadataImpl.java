@@ -34,6 +34,7 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Collection;
@@ -44,6 +45,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -57,7 +59,7 @@ import org.slf4j.LoggerFactory;
 
 public class QueryMetadataImpl implements QueryMetadata {
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
-
+  private final AtomicBoolean isPaused = new AtomicBoolean(false);
   private final String statementString;
   private final String executionPlan;
   private final String queryApplicationId;
@@ -419,6 +421,27 @@ public class QueryMetadataImpl implements QueryMetadata {
     everStarted = true;
     listener.onStateChange(this, kafkaStreams.state(), kafkaStreams.state());
     kafkaStreams.start();
+  }
+
+  @Override
+  public KsqlQueryStatus getQueryStatus() {
+    if (isPaused.get()) {
+      return KsqlQueryStatus.PAUSED;
+    } else {
+      return KsqlConstants.fromStreamsState(getState());
+    }
+  }
+
+  @Override
+  public void pause() {
+    kafkaStreams.pause();
+    isPaused.set(true);
+  }
+
+  @Override
+  public void resume() {
+    kafkaStreams.resume();
+    isPaused.set(false);
   }
 
   public static class RetryEvent implements QueryMetadata.RetryEvent {

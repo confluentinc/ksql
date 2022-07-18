@@ -9,7 +9,7 @@ keywords: ksqlDB, .NET, dotnet, client
 ksqlDB has a .NET client that enables sending requests easily to a ksqlDB server
 from within your .NET application, as an alternative to using the [REST API](../api.md).
 The client supports pull and push queries. Future versions may include the
-creation of streams and tables, as well as amdmin operations.
+creation of streams and tables, as well as admin operations.
 
 The client sends requests using HTTP 1.1 with pull and push queries served by
 the [`/query-stream` endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#executing-pull-or-push-queries),

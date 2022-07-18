@@ -10,8 +10,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.connect.json.JsonSchemaConverter;
-import io.confluent.connect.json.JsonSchemaDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
@@ -23,9 +21,6 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.json.DecimalFormat;
-import org.apache.kafka.connect.json.JsonConverterConfig;
-import org.apache.kafka.connect.storage.Converter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,10 +76,8 @@ public class KsqlJsonSchemaDeserializerTest {
       .put(TIMESTAMPFIELD, new java.sql.Timestamp(1000))
       .put(BYTESFIELD, ByteBuffer.wrap(new byte[] {123}));
 
-  private Struct expectedOrder;
   private Serializer<Struct> serializer;
   private Deserializer<Struct> deserializer;
-  private Converter converter;
   private SchemaRegistryClient schemaRegistryClient;
   private ParsedSchema schema;
 
@@ -94,26 +87,6 @@ public class KsqlJsonSchemaDeserializerTest {
 
     schemaRegistryClient = mock(SchemaRegistryClient.class);
     when(schemaRegistryClient.getSchemaBySubjectAndId(anyString(), anyInt())).thenReturn(schema);
-
-    converter = new JsonSchemaConverter(schemaRegistryClient);
-    converter.configure(ImmutableMap.of(
-        "schema.registry.url", "dummyhost",
-        JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name(),
-        JsonSchemaDataConfig.GENERALIZED_SUM_TYPE_SUPPORT_CONFIG, true
-    ), false);
-
-    expectedOrder = new Struct(ORDER_SCHEMA)
-        .put(ORDERTIME, 1511897796092L)
-        .put(ORDERID, 1L)
-        .put(ITEMID, "Item_1")
-        .put(ORDERUNITS, 10.0)
-        .put(ARRAYCOL, ImmutableList.of(10.0, 20.0))
-        .put(MAPCOL, ImmutableMap.of("key1", 10.0))
-        .put(CASE_SENSITIVE_FIELD, 1L)
-        .put(TIMEFIELD, new java.sql.Time(1000))
-        .put(DATEFIELD, new java.sql.Date(864000000L))
-        .put(TIMESTAMPFIELD, new java.sql.Timestamp(1000))
-        .put(BYTESFIELD, ByteBuffer.wrap(new byte[] {123}));
 
     final KsqlJsonSerdeFactory jsonSerdeFactory =
         new KsqlJsonSerdeFactory(new JsonSchemaProperties(ImmutableMap.of()));
@@ -139,7 +112,7 @@ public class KsqlJsonSchemaDeserializerTest {
     final Struct result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
-    assertThat(result, is(expectedOrder));
+    assertThat(result, is(AN_ORDER));
   }
 
   @Test

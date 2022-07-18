@@ -9,10 +9,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlDecimal;
-import io.confluent.ksql.serde.SerdeFeatures;
 import java.io.IOException;
 import java.math.BigDecimal;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -30,12 +26,7 @@ public class ValueSpecJsonSchemaSerdeSupplierTest {
   @Test
   public void shouldSerializeAndDeserializeDecimalsWithOutStrippingTrailingZeros() throws RestClientException, IOException {
     // Given:
-    final ValueSpecJsonSchemaSerdeSupplier srSerde = new ValueSpecJsonSchemaSerdeSupplier(
-        LogicalSchema.builder()
-            .valueColumn(ColumnName.of("B"), SqlDecimal.of(3, 1))
-            .build(),
-        SerdeFeatures.of()
-    );
+    final ValueSpecJsonSchemaSerdeSupplier srSerde = new ValueSpecJsonSchemaSerdeSupplier();
 
     final Serializer<Object> serializer = srSerde.getSerializer(srClient, false);
     final Deserializer<Object> deserializer = srSerde.getDeserializer(srClient, false);

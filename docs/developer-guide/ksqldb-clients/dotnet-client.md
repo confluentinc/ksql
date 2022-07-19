@@ -81,7 +81,7 @@ method instead.
 
 Query properties can be passed as an optional second argument along with a cancellation token 
 as an optional third argument. For more information, see the
-[client API reference](dotnet-client-api/api/Confluent.KsqlDb.IClient.html#Confluent_KsqlDb_IClient_StreamQueryAsync_System_String_CancellationToken_)).
+[client API reference](dotnet-client-api/api/Confluent.KsqlDb.IClient.html#Confluent_KsqlDb_IClient_StreamQueryAsync_System_String_CancellationToken_).
 
 By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
 set the `auto.offset.reset` property to `earliest`.
@@ -161,7 +161,7 @@ use the [`StreamQueryAsync()`](#stream-query) method instead.
 
 Query properties can be passed as an optional second argument along with a cancellation token
 as an optional third argument. For more information, see the 
-[client API reference](dotnet-client-api/api/Confluent.KsqlDb.IClient.html#Confluent_KsqlDb_IClient_ExecuteQueryAsync_System_String_CancellationToken_)).
+[client API reference](dotnet-client-api/api/Confluent.KsqlDb.IClient.html#Confluent_KsqlDb_IClient_ExecuteQueryAsync_System_String_CancellationToken_).
 
 By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
 set the `auto.offset.reset` property to `earliest`.

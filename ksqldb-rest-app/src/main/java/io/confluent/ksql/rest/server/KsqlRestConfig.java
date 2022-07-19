@@ -408,6 +408,15 @@ public class KsqlRestConfig extends AbstractConfig {
   protected static final String KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC =
       "The maximum amount of time to wait before checking the KSQL server preconditions again.";
 
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_ENABLE =
+      KSQL_CONFIG_PREFIX + "server.command.topic.migration.enabled";
+  public static final boolean KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DEFAULT = false;
+  protected static final String KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DOC =
+      "Whether or not to migrate the command topic to another Kafka cluster. If the command topic doesn't exist "
+          + "on the Kafka the command producer/consumer are reading from, the server then checks for the existence "
+          + "of the command topic on the broker that the server is connected to in the bootstrap.servers config. "
+          + "If it exists, ";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -773,6 +782,12 @@ public class KsqlRestConfig extends AbstractConfig {
             5000L,
             Importance.MEDIUM,
             KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC
+        ).define(
+            KSQL_COMMAND_TOPIC_MIGRATION_ENABLE,
+            Type.BOOLEAN,
+            KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DOC
         );
   }
 

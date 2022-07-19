@@ -1045,6 +1045,12 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopic = commandStore.getCommandTopicName();
 
+    // migration code
+    if (internalTopicClient.isTopicExists(commandTopic)
+        && restConfig.getBoolean(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_ENABLE)) {
+
+    }
+
     if (CommandTopicBackupUtil.commandTopicMissingWithValidBackup(
         commandTopic,
         internalTopicClient,

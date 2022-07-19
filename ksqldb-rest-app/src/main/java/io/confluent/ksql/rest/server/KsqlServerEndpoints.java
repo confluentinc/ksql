@@ -312,7 +312,7 @@ public class KsqlServerEndpoints implements Endpoints {
             ksqlSecurityContext,
             context,
             new AuthenticationUtil(Clock.systemUTC())
-                .getTokenTimeout(apiSecurityContext.getAuthToken(), ksqlConfig, authTokenProvider)
+                .getTokenTimeout(apiSecurityContext.getAuthHeader(), ksqlConfig, authTokenProvider)
         );
       } finally {
         ksqlSecurityContext.getServiceContext().close();

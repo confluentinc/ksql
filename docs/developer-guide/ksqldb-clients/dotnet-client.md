@@ -11,6 +11,9 @@ from within your .NET application, as an alternative to using the [REST API](../
 The client supports pull and push queries. Future versions may include the
 creation of streams and tables, as well as admin operations.
 
+!!! tip
+[View the .NET client API documentation](dotnet-client-api/api/Confluent.KsqlDb.html)
+
 The client sends requests using HTTP 1.1 with pull and push queries served by
 the [`/query-stream` endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#executing-pull-or-push-queries),
 The client is compatible only with ksqlDB deployments that are on version 0.24.0 or later.
@@ -77,7 +80,8 @@ For pull queries, consider using the [`ExecuteQueryAsync()`](#execute-query)
 method instead.
 
 Query properties can be passed as an optional second argument along with a cancellation token 
-as an optional third argument.
+as an optional third argument. For more information, see the
+[client API reference](dotnet-client-api/api/Confluent.KsqlDb.IClient.html#Confluent_KsqlDb_IClient_StreamQueryAsync_System_String_CancellationToken_)).
 
 By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
 set the `auto.offset.reset` property to `earliest`.
@@ -103,7 +107,7 @@ public interface IClient {
 }
 ```
 
-### Asynchronous Usage ###
+### Example Usage ###
 
 Due to C#'s built in async/await functionality, we can write async code without a lot of the
 complexity that in other clients.  All of our API methods return [Task](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1) objects and can be awaited.
@@ -140,8 +144,6 @@ while (!result.IsComplete)
 client.Close();
 ```
 
-### Synchronous Usage ###
-
 Because all of these methods return a [Task](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1),
 you can use any number of methods and properties to block the current thread to
 get the result, including reading the `task.Result` property or using the various
@@ -158,7 +160,8 @@ for example, queries that have a `LIMIT` clause. For non-terminating push querie
 use the [`StreamQueryAsync()`](#stream-query) method instead.
 
 Query properties can be passed as an optional second argument along with a cancellation token
-as an optional third argument.
+as an optional third argument. For more information, see the 
+[client API reference](dotnet-client-api/api/Confluent.KsqlDb.IClient.html#Confluent_KsqlDb_IClient_ExecuteQueryAsync_System_String_CancellationToken_)).
 
 By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
 set the `auto.offset.reset` property to `earliest`.
@@ -205,6 +208,12 @@ foreach (IRow row in result.Rows)
     await Console.Out.WriteLineAsync("Row " + row);
 }
 ```
+
+Similar to the streaming version, because all of these methods return a
+[Task](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1),
+you can use any number of methods and properties to block the current thread to
+get the result, including reading the `task.Result` property or using the various
+`task.Wait(...)` methods.
 
 Connect to a {{ site.ccloud }} ksqlDB cluster <a name="connect-to-cloud"></a>
 -----------------------------------------------------------------------------

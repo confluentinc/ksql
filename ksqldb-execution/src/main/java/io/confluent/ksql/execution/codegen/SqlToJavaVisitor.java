@@ -1079,13 +1079,14 @@ public class SqlToJavaVisitor {
 
         case MAP:
           final SqlMap map = (SqlMap) internalSchema;
+          final String baseCode = process(node.getBase(), context).getLeft();
           final String mapCode = String.format(
               "((%s) (%s == null ? null : ((%s)%s).get(%s)))",
               SchemaConverters.sqlToJavaConverter()
                   .toJavaType(map.getValueType()).getSimpleName(),
-              process(node.getBase(), context).getLeft(),
+              baseCode,
               internalSchemaJavaType,
-              process(node.getBase(), context).getLeft(),
+              baseCode,
               process(node.getIndex(), context).getLeft());
           return new Pair<>(mapCode, map.getValueType()
           );

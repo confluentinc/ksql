@@ -724,7 +724,7 @@ public class PullQueryRoutingFunctionalTest {
     public String getAuthHeader(RoutingContext routingContext) {
       String authHeader = routingContext.request().getHeader("Authorization");
       if (authHeader == null) {
-        authHeader = "Bearer " + routingContext.request().getParam("access_token");
+        authHeader = routingContext.request().getParam("access_token");
       }
       return authHeader;
     }

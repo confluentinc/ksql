@@ -68,7 +68,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   @Override
   public synchronized
       Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
-      getFunction(List<SqlType> argTypeList) {
+      getFunction(final List<SqlType> argTypeList) {
 
     final List<SqlArgument> args = argTypeList.stream()
             .map((type) -> type == null ? null : SqlArgument.of(type))
@@ -89,7 +89,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
 
     /* There can only be one variadic argument, so we know either the column args are bounded
     or the initial args are bounded. */
-    int numInitArgs;
+    final int numInitArgs;
     if (isFactoryVariadic) {
       numInitArgs = argTypeList.size() - creator.parameterInfo().size();
     } else {

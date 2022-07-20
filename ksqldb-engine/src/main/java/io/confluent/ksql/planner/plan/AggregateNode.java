@@ -324,12 +324,12 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         return ImmutableList.of();
       }
 
-      int numInitArgs = functionRegistry.getAggregateFactory(functionName).getFunction(
+      final int numInitArgs = functionRegistry.getAggregateFactory(functionName).getFunction(
               params.stream()
                       .map(sourceTypeManager::getExpressionSqlType)
                       .collect(Collectors.toList())
       ).getLeft();
-      int numColArgs = params.size() - numInitArgs;
+      final int numColArgs = params.size() - numInitArgs;
 
       final List<Expression> internalParams = new ArrayList<>(params.size());
 

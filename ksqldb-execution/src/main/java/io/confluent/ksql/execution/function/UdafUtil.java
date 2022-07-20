@@ -56,7 +56,7 @@ public final class UdafUtil {
               .map(expressionTypeManager::getExpressionSqlType)
               .collect(Collectors.toList());
 
-      Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
+      final Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
               func = functionRegistry.getAggregateFactory(functionCall.getName()).getFunction(args);
 
       final int totalArgs = functionCall.getArguments().size();
@@ -65,7 +65,7 @@ public final class UdafUtil {
       final List<Integer> argIndices = functionCall.getArguments().stream()
               .limit(totalArgs - func.getLeft())
               .map((arg) -> {
-                Optional<Column> column;
+                final Optional<Column> column;
 
                 if (arg instanceof UnqualifiedColumnReferenceExp) {
                   final UnqualifiedColumnReferenceExp colRef =

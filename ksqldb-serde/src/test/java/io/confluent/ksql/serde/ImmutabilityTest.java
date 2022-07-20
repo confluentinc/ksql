@@ -28,7 +28,6 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
 
 /**
  * Test that any type annotated as immutable _is_ immutable
@@ -76,7 +75,6 @@ public class ImmutabilityTest {
         .withKnownImmutableType(KGroupedStream.class)
         .withKnownImmutableType(KGroupedTable.class)
         .withKnownImmutableType(Serde.class)
-        .withKnownImmutableType(Logger.class)
         .test(modelClass);
   }
 }

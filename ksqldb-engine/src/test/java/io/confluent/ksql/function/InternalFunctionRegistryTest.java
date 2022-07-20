@@ -39,11 +39,14 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -374,9 +377,15 @@ public class InternalFunctionRegistryTest {
   private AggregateFunctionFactory createAggregateFunctionFactory() {
     return new AggregateFunctionFactory("my_aggregate") {
       @Override
-      public KsqlAggregateFunction createAggregateFunction(final List<SqlArgument> argTypeList,
-                                                           final AggregateFunctionInitArguments initArgs) {
-        return mockAggFun;
+      public SqlType resolveReturnType(List<SqlType> argumentTypes) {
+        return mockAggFun.returnType();
+      }
+
+      @Override
+      public Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
+          getFunction(List<SqlType> argTypeList) {
+
+        return Pair.of(0, (initArgs) -> mockAggFun);
       }
 
       @Override

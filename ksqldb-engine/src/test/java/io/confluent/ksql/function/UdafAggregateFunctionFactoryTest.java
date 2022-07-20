@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -57,15 +58,10 @@ public class UdafAggregateFunctionFactoryTest {
   }
 
   @Test
-  public void shouldAppendInitParamTypesWhenLookingUpFunction() {
+  public void shouldNotAppendInitParamTypesWhenLookingUpFunction() {
     // When:
-    functionFactory.createAggregateFunction(
-        ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
-        new AggregateFunctionInitArguments(
-                Collections.singletonList(0),
-                ImmutableMap.of(),
-                ImmutableList.of(1)
-        )
+    functionFactory.getFunction(
+        ImmutableList.of(SqlTypes.STRING, SqlTypes.INTEGER)
     );
 
     // Then:
@@ -75,14 +71,13 @@ public class UdafAggregateFunctionFactoryTest {
   @Test
   public void shouldHandleNullLiteralParams() {
     // When:
-    functionFactory.createAggregateFunction(
-        ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
-        new AggregateFunctionInitArguments(
-                Collections.singletonList(0),
-                ImmutableMap.of(),
-                Arrays.asList(null, 5L)
-        )
-    );
+    functionFactory.getFunction(
+        Arrays.asList(SqlTypes.STRING, null, SqlTypes.BIGINT)
+    ).getRight().apply(new AggregateFunctionInitArguments(
+            Collections.singletonList(0),
+            ImmutableMap.of(),
+            Arrays.asList(null, 5L)
+    ));
 
     // Then:
     verify(functionIndex).getFunction(Arrays.asList(SqlArgument.of(SqlTypes.STRING), null, SqlArgument.of(SqlTypes.BIGINT)));
@@ -91,14 +86,14 @@ public class UdafAggregateFunctionFactoryTest {
   @Test
   public void shouldHandleInitParamsOfAllPrimitiveTypes() {
     // When:
-    functionFactory.createAggregateFunction(
-        ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
-        new AggregateFunctionInitArguments(
-                Collections.singletonList(0),
-                ImmutableMap.of(),
-                ImmutableList.of(true, 1, 1L, 1.0d, "s")
-        )
-    );
+    functionFactory.getFunction(
+        ImmutableList.of(SqlTypes.STRING, SqlTypes.BOOLEAN, SqlTypes.INTEGER, SqlTypes.BIGINT,
+                SqlTypes.DOUBLE, SqlTypes.STRING)
+    ).getRight().apply(new AggregateFunctionInitArguments(
+            Collections.singletonList(0),
+            ImmutableMap.of(),
+            ImmutableList.of(true, 1, 1L, 1.0d, "s")
+    ));
 
     // Then: did not throw.
   }
@@ -107,14 +102,13 @@ public class UdafAggregateFunctionFactoryTest {
   public void shouldThrowOnUnsupportedInitParamType() {
     // When:
     final Exception e = assertThrows(KsqlFunctionException.class,
-        () -> functionFactory.createAggregateFunction(
-            ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
-            new AggregateFunctionInitArguments(
-                    Collections.singletonList(0),
-                    ImmutableMap.of(),
-                    ImmutableList.of(BigDecimal.ONE)
-            )
-        )
+        () -> functionFactory.getFunction(
+            ImmutableList.of(SqlTypes.STRING, SqlDecimal.of(1, 0))
+        ).getRight().apply(new AggregateFunctionInitArguments(
+                Collections.singletonList(0),
+                ImmutableMap.of(),
+                ImmutableList.of(BigDecimal.ONE)
+        ))
     );
 
     // Then:

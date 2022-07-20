@@ -182,6 +182,10 @@ class UdafTypes {
     return isVariadic;
   }
 
+  List<ParameterInfo> literalParams() {
+    return ImmutableList.copyOf(literalParams);
+  }
+
   private void validateType(final Type t) {
     if (!(t instanceof TypeVariable) && isUnsupportedType((Class<?>) getRawType(t))) {
       throw new KsqlException(String.format(invalidClassErrorMsg, t));

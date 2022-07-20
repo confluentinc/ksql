@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -104,14 +103,8 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       final List<SqlType> argumentTypes,
       final AggregateFunctionInitArguments initArgs
   ) {
-    final AggregateFunctionFactory udafFactory = udafs.get(functionName.text().toUpperCase());
-    if (udafFactory == null) {
-      throw new KsqlException("No aggregate function with name " + functionName + " exists!");
-    }
-    return udafFactory.createAggregateFunction(
-            argumentTypes.stream().map(SqlArgument::of).collect(Collectors.toList()),
-        initArgs
-    );
+    final AggregateFunctionFactory udafFactory = getAggregateFactory(functionName);
+    return udafFactory.getFunction(argumentTypes).getRight().apply(initArgs);
   }
 
   @Override

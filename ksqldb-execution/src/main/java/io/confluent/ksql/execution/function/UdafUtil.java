@@ -29,13 +29,13 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public final class UdafUtil {
 
@@ -52,63 +52,44 @@ public final class UdafUtil {
       final ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
 
-      // UDAFs only support one non-constant argument, and that argument must be a column reference
-      final List<Integer> argIndices = functionCall.getArguments().stream().map((arg) -> {
-        final Optional<Column> possibleValueColumn = arg instanceof UnqualifiedColumnReferenceExp
-                ? schema.findValueColumn(((UnqualifiedColumnReferenceExp) arg).getColumnName())
-                // assume that it is a column reference with no alias
-                : schema.findValueColumn(ColumnName.of(arg.toString()));
-
-        return possibleValueColumn.orElse(null);
-      }).filter(Objects::nonNull).map(Column::index).collect(Collectors.toList());
-
-      final List<SqlType> argumentTypes = functionCall.getArguments().stream()
+      final List<SqlType> args = functionCall.getArguments().stream()
               .map(expressionTypeManager::getExpressionSqlType)
               .collect(Collectors.toList());
 
-      return functionRegistry.getAggregateFunction(
-              functionCall.getName(),
-              argumentTypes,
-              createAggregateFunctionInitArgs(
-                      argumentTypes.size() - argIndices.size(),
-                      argIndices,
-                      functionCall,
-                      config
-              )
-      );
+      Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
+              func = functionRegistry.getAggregateFactory(functionCall.getName()).getFunction(args);
+
+      final int totalArgs = functionCall.getArguments().size();
+
+      // All non-constant UDAF arguments must be column references
+      final List<Integer> argIndices = functionCall.getArguments().stream()
+              .limit(totalArgs - func.getLeft())
+              .map((arg) -> {
+                Optional<Column> column;
+
+                if (arg instanceof UnqualifiedColumnReferenceExp) {
+                  final UnqualifiedColumnReferenceExp colRef =
+                          (UnqualifiedColumnReferenceExp) arg;
+                  column = schema.findValueColumn(colRef.getColumnName());
+                } else {
+                  // assume that it is a column reference with no alias
+                  column = schema.findValueColumn(ColumnName.of(arg.toString()));
+                }
+
+                return column.orElseThrow(
+                        () -> new KsqlException("Could not find column for expression: " + arg)
+                );
+              }).map(Column::index).collect(Collectors.toList());
+
+      return func.getRight().apply(createAggregateFunctionInitArgs(
+              func.getLeft(),
+              argIndices,
+              functionCall,
+              config
+      ));
     } catch (final Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
     }
-  }
-
-  /**
-   * Creates the initial arguments for a dummy aggregate function that will not
-   * actually be called. For example, this is useful for retrieving the return type
-   * in the {@link ExpressionTypeManager}.
-   * @param numRegularArgs  number of regular, column-dependent arguments. It is not
-   *                        always possible to compute this from the number of initial
-   *                        arguments and the number of arguments to the function call
-   *                        in case a default argument is provided when the user does
-   *                        not provided any of their own arguments.
-   * @param numInitArgs     number of initial arguments. This is necessary as there
-   *                        is the potential for the {@link FunctionRegistry} to
-   *                        resolve different functions based on the number of initial
-   *                        arguments.
-   * @param functionCall    the call to the function whose initial arguments should be
-   *                        created
-   * @return initial arguments for a dummy aggregate function
-   */
-  public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
-          final int numRegularArgs,
-          final int numInitArgs,
-          final FunctionCall functionCall
-  ) {
-    return createAggregateFunctionInitArgs(
-            numInitArgs,
-            IntStream.range(0, numRegularArgs).boxed().collect(Collectors.toList()),
-            functionCall,
-            KsqlConfig.empty()
-    );
   }
 
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(

@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.execution.util;
 
-import static io.confluent.ksql.execution.util.ColumnExtractor.detectColumns;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
@@ -60,11 +58,9 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
-import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
@@ -87,7 +83,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class ExpressionTypeManager {
 
@@ -532,31 +527,19 @@ public class ExpressionTypeManager {
       // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       if (functionRegistry.isAggregate(node.getName())) {
         final List<Expression> args = node.getArguments();
-        List<SqlType> schema = IntStream.range(0, args.size())
-                .filter((index) -> index == 0 || detectColumns(args.get(index)))
-                .mapToObj(
-                        (index) -> getExpressionSqlType(
-                                args.get(index),
-                                context.getLambdaSqlTypeMapping()
-                        )
-                ).collect(Collectors.toList());
+        List<SqlType> schema = args.stream().map(
+                (arg) -> getExpressionSqlType(arg, context.getLambdaSqlTypeMapping())
+        ).collect(Collectors.toList());
 
         if (schema.isEmpty()) {
           schema = Collections.singletonList(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA);
         }
 
-        // use an empty KsqlConfig here because the expression type
-        // of an aggregate function does not depend on the configuration
-        final AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
-                schema.size(),
-                Math.max(0, node.getArguments().size() - schema.size()),
-                node
-        );
+        final AggregateFunctionFactory factory = functionRegistry
+            .getAggregateFactory(node.getName());
 
-        final KsqlAggregateFunction<?,?,?> aggFunc = functionRegistry
-            .getAggregateFunction(node.getName(), schema, initArgs);
-
-        context.setSqlType(aggFunc.returnType());
+        final SqlType outputSchema = factory.resolveReturnType(schema);
+        context.setSqlType(outputSchema);
         return null;
       }
 

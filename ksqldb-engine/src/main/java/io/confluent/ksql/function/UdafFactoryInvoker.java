@@ -162,6 +162,10 @@ class UdafFactoryInvoker implements FunctionSignature {
     return types.isVariadic();
   }
 
+  public List<ParameterInfo> literalParams() {
+    return types.literalParams();
+  }
+
   public String getDescription() {
     return description;
   }

@@ -19,6 +19,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -37,6 +38,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -175,6 +177,8 @@ public final class SchemaConverters {
 
   public interface FunctionToSqlConverter {
     SqlType toSqlType(ParamType paramType);
+
+    SqlType toSqlType(ParamType paramType, Map<GenericType, SqlType> reservedGenerics);
   }
 
   public interface FunctionToSqlBaseConverter {
@@ -410,7 +414,17 @@ public final class SchemaConverters {
             .build();
 
     @Override
-    public SqlType toSqlType(final ParamType paramType) {
+    public SqlType toSqlType(
+            final ParamType paramType
+    ) {
+      return toSqlType(paramType, Collections.emptyMap());
+    }
+
+    @Override
+    public SqlType toSqlType(
+            final ParamType paramType,
+            final Map<GenericType, SqlType> reservedGenerics
+    ) {
       final SqlType sqlType = FUNCTION_TO_SQL.get(paramType);
       if (sqlType != null) {
         return sqlType;
@@ -432,6 +446,14 @@ public final class SchemaConverters {
         ((StructType) paramType).getSchema()
             .forEach((name, type) -> struct.field(name, toSqlType(type)));
         return struct.build();
+      }
+
+      if (paramType instanceof GenericType) {
+        final GenericType genericType = (GenericType) paramType;
+        final SqlType realType = reservedGenerics.get(genericType);
+        if (realType != null) {
+          return realType;
+        }
       }
 
       throw new KsqlException("Cannot convert param type to sql type: " + paramType);

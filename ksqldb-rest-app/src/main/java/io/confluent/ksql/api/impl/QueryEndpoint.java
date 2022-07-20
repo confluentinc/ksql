@@ -17,6 +17,7 @@ package io.confluent.ksql.api.impl;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.KsqlLang;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
@@ -45,6 +46,8 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
+import org.apache.calcite.rel.RelRoot;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -90,6 +93,8 @@ public class QueryEndpoint {
       final Optional<Boolean> isInternalRequest) {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
+
+    RelRoot logicalPlan = new KsqlLang().getLogicalPlan(sql);
 
     final ConfiguredStatement<Query> statement = createStatement(
         sql, properties, sessionVariables);

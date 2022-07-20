@@ -71,7 +71,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
       getFunction(List<SqlType> argTypeList) {
 
     final List<SqlArgument> args = argTypeList.stream()
-            .map(SqlArgument::of)
+            .map((type) -> type == null ? null : SqlArgument.of(type))
             .collect(Collectors.toList());
 
     final UdafFactoryInvoker creator = udfIndex.getFunction(args);

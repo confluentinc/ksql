@@ -84,6 +84,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
@@ -251,6 +252,22 @@ public class KsqlTesterTest {
 
     // is DDL statement
     if (!result.getQuery().isPresent()) {
+      final DataSource input = engine.getMetaStore().getSource(((CreateSource) injected.getStatement()).getName());
+      final Topology topology = new Topology();
+      topology.addSource(input.getKafkaTopicName(), input.getKafkaTopicName());
+      final Properties properties = new Properties();
+      properties.put(StreamsConfig.STATE_DIR_CONFIG, tmpFolder.getRoot().getAbsolutePath());
+      properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+      properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+
+      final TopologyTestDriver driver = new TopologyTestDriver(topology, properties);
+      final TopicInfo inputTopic = new TopicInfo(
+          input.getKafkaTopicName(),
+          keySerde(input),
+          valueSerde(input)
+      );
+
+      driverPipeline.addDdlTopic(driver, inputTopic);
       return;
     }
 

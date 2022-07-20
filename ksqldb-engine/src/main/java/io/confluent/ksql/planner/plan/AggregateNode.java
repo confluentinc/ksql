@@ -82,7 +82,9 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   private final ValueFormat valueFormat;
   private final LogicalSchema schema;
   private final KsqlConfig ksqlConfig;
+  private final ExpressionTypeManager sourceTypeManager;
 
+  @SuppressWarnings("checkstyle:ParameterNumber")
   public AggregateNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -93,7 +95,8 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final AggregateAnalysisResult rewrittenAggregateAnalysis,
       final List<SelectExpression> projectionExpressions,
       final boolean persistentQuery,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final LogicalSchema sourceSchema
   ) {
     super(id, DataSourceType.KTABLE, Optional.empty(), source);
 
@@ -132,6 +135,8 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         .getDataSource()
         .getKsqlTopic()
         .getValueFormat();
+
+    this.sourceTypeManager = new ExpressionTypeManager(sourceSchema, functionRegistry);
   }
 
   @Override
@@ -156,7 +161,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
             requiredColumns,
             aggregateFunctionArguments,
             buildContext.getFunctionRegistry(),
-            schema
+            sourceTypeManager
     );
 
     final SchemaKStream<?> preSelected = selectRequiredInputColumns(
@@ -272,18 +277,18 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
     private final List<SelectExpression> aggArgExpansions = new ArrayList<>();
     private final Map<String, ColumnName> expressionToInternalColumnName = new HashMap<>();
     private final FunctionRegistry functionRegistry;
-    private final ExpressionTypeManager expressionTypeManager;
+    private final ExpressionTypeManager sourceTypeManager;
 
     InternalSchema(
         final List<ColumnReferenceExp> requiredColumns,
         final List<Expression> aggregateFunctionArguments,
         final FunctionRegistry functionRegistry,
-        final LogicalSchema schema
+        final ExpressionTypeManager sourceTypeManager
     ) {
       collectAggregateArgExpressions(requiredColumns);
       collectAggregateArgExpressions(aggregateFunctionArguments);
       this.functionRegistry = functionRegistry;
-      this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+      this.sourceTypeManager = sourceTypeManager;
     }
 
     private void collectAggregateArgExpressions(
@@ -321,7 +326,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
 
       int numInitArgs = functionRegistry.getAggregateFactory(functionName).getFunction(
               params.stream()
-                      .map(expressionTypeManager::getExpressionSqlType)
+                      .map(sourceTypeManager::getExpressionSqlType)
                       .collect(Collectors.toList())
       ).getLeft();
       int numColArgs = params.size() - numInitArgs;

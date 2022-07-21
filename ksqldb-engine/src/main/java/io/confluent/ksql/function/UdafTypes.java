@@ -118,12 +118,12 @@ class UdafTypes {
       throw new KsqlException("A UDAF and its factory can have at most one variadic argument");
     }
 
-    final int variadicIndex = indexOfVariadic(inputTypes);
+    final int variadicColIndex = indexOfVariadic(inputTypes);
     if (method.isVarArgs()) {
       this.isVariadic = true;
-    } else if (isMultipleArgs && variadicIndex > -1) {
+    } else if (isMultipleArgs && variadicColIndex > -1) {
       this.isVariadic = true;
-      this.inputTypes[variadicIndex] = ((ParameterizedType) inputTypes[variadicIndex])
+      this.inputTypes[variadicColIndex] = ((ParameterizedType) inputTypes[variadicColIndex])
               .getActualTypeArguments()[0];
 
       // TEMPORARY: Disallow initial args when col arg is variadic
@@ -131,7 +131,7 @@ class UdafTypes {
         throw new KsqlException("Methods with variadic column args cannot have factory args");
       }
 
-    } else if (variadicIndex > -1) {
+    } else if (variadicColIndex > -1) {
 
       // Prevent zero column arguments
       throw new KsqlException("Variadic column arguments are only allowed inside tuples");

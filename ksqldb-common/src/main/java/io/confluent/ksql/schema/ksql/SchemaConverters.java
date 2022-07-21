@@ -432,19 +432,19 @@ public final class SchemaConverters {
 
       if (paramType instanceof MapType) {
         final MapType mapType = (MapType) paramType;
-        final SqlType keyType = toSqlType(mapType.key());
-        final SqlType valueType = toSqlType(mapType.value());
+        final SqlType keyType = toSqlType(mapType.key(), reservedGenerics);
+        final SqlType valueType = toSqlType(mapType.value(), reservedGenerics);
         return SqlTypes.map(keyType, valueType);
       }
 
       if (paramType instanceof ArrayType) {
-        return SqlTypes.array(toSqlType(((ArrayType) paramType).element()));
+        return SqlTypes.array(toSqlType(((ArrayType) paramType).element(), reservedGenerics));
       }
 
       if (paramType instanceof StructType) {
         final Builder struct = SqlTypes.struct();
         ((StructType) paramType).getSchema()
-            .forEach((name, type) -> struct.field(name, toSqlType(type)));
+            .forEach((name, type) -> struct.field(name, toSqlType(type, reservedGenerics)));
         return struct.build();
       }
 

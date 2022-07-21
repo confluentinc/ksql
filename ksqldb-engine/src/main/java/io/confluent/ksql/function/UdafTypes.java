@@ -39,6 +39,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -106,17 +107,36 @@ class UdafTypes {
 
     final Type inputWrapperType = type.getActualTypeArguments()[0];
 
-    if (TUPLE_TYPES.contains(getRawType(inputWrapperType))) {
+    final boolean isMultipleArgs = TUPLE_TYPES.contains(getRawType(inputWrapperType));
+    if (isMultipleArgs) {
       this.inputTypes = ((ParameterizedType) inputWrapperType).getActualTypeArguments();
     } else {
       this.inputTypes = new Type[]{inputWrapperType};
     }
 
-    final int lastTypeIndex = inputTypes.length - 1;
-    if (this.inputTypes.length > 0 && getRawType(this.inputTypes[lastTypeIndex]) == VARIADIC_TYPE) {
+    long numVariadic = countVariadic(inputTypes, method);
+    if (numVariadic > 1) {
+      throw new KsqlException("A UDAF and its factory can only have one variadic argument");
+    }
+
+    final int variadicIndex = indexOfVariadic(inputTypes);
+    if (method.isVarArgs()) {
       this.isVariadic = true;
-      this.inputTypes[lastTypeIndex] = ((ParameterizedType) inputTypes[lastTypeIndex])
+    } else if (isMultipleArgs && variadicIndex > -1) {
+      this.isVariadic = true;
+      this.inputTypes[variadicIndex] = ((ParameterizedType) inputTypes[variadicIndex])
               .getActualTypeArguments()[0];
+
+      // TEMPORARY: Disallow initial args when col arg is variadic
+      if (method.getParameterCount() > 0) {
+        throw new KsqlException("Methods with variadic column args cannot have factory args");
+      }
+
+    } else if (variadicIndex > -1) {
+
+      // Prevent zero column arguments
+      throw new KsqlException("Variadic column arguments are only allowed inside tuples");
+
     } else {
       this.isVariadic = false;
     }
@@ -196,6 +216,23 @@ class UdafTypes {
     for (Type type : types) {
       validateType(type);
     }
+  }
+
+  private static long countVariadic(Type[] types, Method factory) {
+    long count = Arrays.stream(types).filter((type) -> getRawType(type) == VARIADIC_TYPE).count();
+    if (factory.isVarArgs()) {
+      count++;
+    }
+    return count;
+  }
+
+  private static int indexOfVariadic(Type[] types) {
+    int lastTypeIndex = types.length - 1;
+    if (types.length > 0 && getRawType(types[lastTypeIndex]) == VARIADIC_TYPE) {
+      return lastTypeIndex;
+    }
+
+    return -1;
   }
 
   private static void validateStructAnnotation(

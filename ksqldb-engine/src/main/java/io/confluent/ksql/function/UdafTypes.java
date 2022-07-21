@@ -114,8 +114,7 @@ class UdafTypes {
       this.inputTypes = new Type[]{inputWrapperType};
     }
 
-    long numVariadic = countVariadic(inputTypes, method);
-    if (numVariadic > 1) {
+    if (countVariadic(inputTypes, method) > 1) {
       throw new KsqlException("A UDAF and its factory can only have one variadic argument");
     }
 

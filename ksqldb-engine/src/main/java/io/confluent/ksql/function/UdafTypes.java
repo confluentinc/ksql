@@ -115,7 +115,7 @@ class UdafTypes {
     }
 
     if (countVariadic(inputTypes, method) > 1) {
-      throw new KsqlException("A UDAF and its factory can only have one variadic argument");
+      throw new KsqlException("A UDAF and its factory can have at most one variadic argument");
     }
 
     final int variadicIndex = indexOfVariadic(inputTypes);

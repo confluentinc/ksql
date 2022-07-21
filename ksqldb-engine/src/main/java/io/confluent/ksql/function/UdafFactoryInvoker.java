@@ -115,7 +115,8 @@ class UdafFactoryInvoker implements FunctionSignature {
             params,
             description,
             metrics,
-            method.getName());
+            method.getName(),
+            params.size() - literalParams().size());
       } else {
         function = new UdafAggregateFunction(
             functionName.text(),
@@ -126,7 +127,8 @@ class UdafFactoryInvoker implements FunctionSignature {
             params,
             description,
             metrics,
-            method.getName());
+            method.getName(),
+            params.size() - literalParams().size());
       }
       return function;
     } catch (final Exception e) {

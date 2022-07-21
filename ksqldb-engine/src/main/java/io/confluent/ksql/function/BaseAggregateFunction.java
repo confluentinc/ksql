@@ -49,6 +49,8 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
 
   protected final String functionName;
   private final String description;
+  private final int numColArgs;
+  private final boolean isVariadic;
 
   public BaseAggregateFunction(
       final String functionName,
@@ -57,7 +59,8 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
       final SqlType aggregateType,
       final SqlType outputType,
       final List<ParameterInfo> parameters,
-      final String description
+      final String description,
+      final int numColArgs
   ) {
     this.argIndicesInValue = ImmutableList.copyOf(
             Objects.requireNonNull(argIndicesInValue, "argIndicesInValue")
@@ -81,6 +84,8 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     this.paramTypes = ImmutableList.copyOf(
         parameters.stream().map(ParameterInfo::type).collect(Collectors.toList())
     );
+    this.numColArgs = numColArgs;
+    this.isVariadic = parameters.stream().anyMatch(ParameterInfo::isVariadic);
     this.inputConverter = determineInputConverter();
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
@@ -126,7 +131,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
 
   @Override
   public boolean isVariadic() {
-    return !params.isEmpty() && params.get(params.size() - 1).isVariadic();
+    return isVariadic;
   }
 
   @Override
@@ -140,44 +145,26 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   }
 
   private Function<List<Object>, Object> determineInputConverter() {
-    if (isVariadic()) {
-      switch (parameters().size()) {
-        case 1:
-          return VariadicArgs::new;
-        case 2:
-          return (objects) -> Pair.of(
-                  objects.get(0),
-                  new VariadicArgs<>(objects.subList(1, objects.size()))
-          );
-        case 3:
-          return (objects) -> Triple.of(
-                  objects.get(0),
-                  objects.get(1),
-                  new VariadicArgs<>(objects.subList(2, objects.size()))
-          );
-        default:
-          throw new KsqlException("Unsupported number of aggregation function parameters: "
-                  + parameters().size());
-      }
-    } else {
-      switch (parameters().size()) {
-        case 1:
-          return (objects) -> objects.get(0);
-        case 2:
-          return (objects) -> Pair.of(
-                  objects.get(0),
-                  objects.get(1)
-          );
-        case 3:
-          return (objects) -> Triple.of(
-                  objects.get(0),
-                  objects.get(1),
-                  objects.get(2)
-          );
-        default:
-          throw new KsqlException("Unsupported number of aggregation function parameters: "
-                  + parameters().size());
-      }
+    final Function<List<Object>, Object> getLastObject = (items) -> isVariadic
+            ? new VariadicArgs<>(items.subList(numColArgs, items.size())) : items.get(0);
+
+    switch (numColArgs) {
+      case 1:
+        return getLastObject;
+      case 2:
+        return (objects) -> Pair.of(
+                objects.get(0),
+                getLastObject.apply(objects)
+        );
+      case 3:
+        return (objects) -> Triple.of(
+                objects.get(0),
+                objects.get(1),
+                getLastObject.apply(objects)
+        );
+      default:
+        throw new KsqlException("Unsupported number of aggregation function parameters: "
+                + numColArgs);
     }
   }
 }

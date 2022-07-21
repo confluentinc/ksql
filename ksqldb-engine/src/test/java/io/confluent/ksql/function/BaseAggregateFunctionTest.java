@@ -65,7 +65,7 @@ public class BaseAggregateFunctionTest {
         final String description
     ) {
       super(functionName, argIndicesInValue, initialValueSupplier, returnType, returnType,
-          arguments, description);
+          arguments, description, 1);
     }
 
     @Override

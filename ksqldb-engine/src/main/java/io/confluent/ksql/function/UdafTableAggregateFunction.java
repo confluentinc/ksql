@@ -36,9 +36,10 @@ public class UdafTableAggregateFunction<I, A, O>
       final List<ParameterInfo> parameters,
       final String description,
       final Optional<Metrics> metrics,
-      final String method) {
+      final String method,
+      final int numColArgs) {
     super(functionName, udafIndices, udaf, aggregateType, outputType, parameters, description,
-        metrics, method);
+        metrics, method, numColArgs);
   }
 
   @Override

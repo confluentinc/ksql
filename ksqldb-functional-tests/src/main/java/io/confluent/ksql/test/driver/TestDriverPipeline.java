@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
@@ -129,6 +130,11 @@ public class TestDriverPipeline {
   public void addDdlTopic(
       final TopologyTestDriver driver, final TopicInfo topic
   ) {
+    List<Input> oldInputs = inputs.get(topic.name)
+        .stream()
+        .filter(input -> input.receivers.size() == 0)
+        .collect(Collectors.toList());
+    oldInputs.forEach(input -> inputs.remove(topic.name, input));
     final Input input = new Input(
         driver.createInputTopic(
             topic.name,

@@ -33,9 +33,11 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AssertTable;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
@@ -252,7 +254,10 @@ public class KsqlTesterTest {
 
     // is DDL statement
     if (!result.getQuery().isPresent()) {
-      final DataSource input = engine.getMetaStore().getSource(((CreateSource) injected.getStatement()).getName());
+      final SourceName name = injected.getStatement() instanceof CreateSource
+          ? ((CreateSource) injected.getStatement()).getName()
+          : ((AlterSource) injected.getStatement()).getName();
+      final DataSource input = engine.getMetaStore().getSource(name);
       final Topology topology = new Topology();
       topology.addSource(input.getKafkaTopicName(), input.getKafkaTopicName());
       final Properties properties = new Properties();

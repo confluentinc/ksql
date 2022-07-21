@@ -18,7 +18,8 @@ package io.confluent.ksql.function;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.AdditionalMatchers.not;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,7 +29,7 @@ import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.math.BigDecimal;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Before;
@@ -52,9 +53,14 @@ public class UdafAggregateFunctionFactoryTest {
   @Before
   public void setUp() {
     functionFactory = new UdafAggregateFunctionFactory(metadata, functionIndex);
-
-    when(functionIndex.getFunction(any())).thenReturn(invoker);
     when(metadata.getName()).thenReturn("BOB");
+
+    when(functionIndex.getFunction(
+            not(eq(ImmutableList.of(
+              SqlArgument.of(SqlTypes.STRING),
+              SqlArgument.of(SqlDecimal.of(1, 0))
+            )))
+    )).thenReturn(invoker);
   }
 
   @Test
@@ -101,18 +107,14 @@ public class UdafAggregateFunctionFactoryTest {
   @Test
   public void shouldThrowOnUnsupportedInitParamType() {
     // When:
-    final Exception e = assertThrows(KsqlFunctionException.class,
+    final Exception e = assertThrows(KsqlException.class,
         () -> functionFactory.getFunction(
             ImmutableList.of(SqlTypes.STRING, SqlDecimal.of(1, 0))
-        ).getRight().apply(new AggregateFunctionInitArguments(
-                Collections.singletonList(0),
-                ImmutableMap.of(),
-                ImmutableList.of(BigDecimal.ONE)
-        ))
+        )
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Only primitive init arguments are supported by UDAF BOB, "
-        + "but got " + BigDecimal.ONE));
+    assertThat(e.getMessage(), is("There is no aggregate function with name='BOB' that has "
+            + "arguments of type=STRING,DECIMAL"));
   }
 }

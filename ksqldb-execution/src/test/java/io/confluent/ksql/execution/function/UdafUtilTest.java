@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -39,6 +40,8 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,7 +49,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class UdafUtilTest {
@@ -69,6 +71,8 @@ public class UdafUtilTest {
   @Mock
   private KsqlAggregateFunction function;
   @Mock
+  private AggregateFunctionFactory functionFactory;
+  @Mock
   private FunctionCall functionCall;
   @Captor
   private ArgumentCaptor<AggregateFunctionInitArguments> argumentsCaptor;
@@ -77,7 +81,8 @@ public class UdafUtilTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(functionCall.getName()).thenReturn(FUNCTION_NAME);
-    when(functionRegistry.getAggregateFunction(any(), any(), any())).thenReturn(function);
+    when(functionRegistry.getAggregateFactory(any())).thenReturn(functionFactory);
+    when(functionFactory.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> function));
   }
 
   @Test
@@ -96,7 +101,7 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA, KsqlConfig.empty());
 
     // Then:
-    verify(functionRegistry).getAggregateFunction(eq(FUNCTION_NAME), any(), any());
+    verify(functionRegistry).getAggregateFactory(eq(FUNCTION_NAME));
   }
 
   @Test
@@ -105,10 +110,8 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA, KsqlConfig.empty());
 
     // Then:
-    verify(functionRegistry).getAggregateFunction(
-            any(),
-            eq(Collections.singletonList(SqlTypes.BIGINT)),
-            any()
+    verify(functionFactory).getFunction(
+            eq(Collections.singletonList(SqlTypes.BIGINT))
     );
   }
 

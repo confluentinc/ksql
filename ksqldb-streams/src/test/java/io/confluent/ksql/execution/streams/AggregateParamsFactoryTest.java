@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafAggregatorFactory;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafUndoAggregatorFactory;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -43,6 +44,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -86,6 +88,12 @@ public class AggregateParamsFactoryTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
+  private AggregateFunctionFactory functionFactoryAggOne;
+  @Mock
+  private AggregateFunctionFactory functionFactoryAggTwo;
+  @Mock
+  private AggregateFunctionFactory functionFactoryTable;
+  @Mock
   private KsqlAggregateFunction agg0;
   @Mock
   private KsqlAggregateFunction agg1;
@@ -105,18 +113,21 @@ public class AggregateParamsFactoryTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(functionRegistry.getAggregateFunction(same(AGG0.getName()), any(), any()))
-        .thenReturn(agg0);
+    when(functionRegistry.getAggregateFactory(same(AGG0.getName())))
+            .thenReturn(functionFactoryAggOne);
+    when(functionFactoryAggOne.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> agg0));
     when(agg0.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(agg0.returnType()).thenReturn(SqlTypes.INTEGER);
     when(agg0.getAggregateType()).thenReturn(SqlTypes.BIGINT);
-    when(functionRegistry.getAggregateFunction(same(AGG1.getName()), any(), any()))
-        .thenReturn(agg1);
+    when(functionRegistry.getAggregateFactory(same(AGG1.getName())))
+            .thenReturn(functionFactoryAggTwo);
+    when(functionFactoryAggTwo.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> agg1));
     when(agg1.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
     when(agg1.returnType()).thenReturn(SqlTypes.STRING);
     when(agg1.getAggregateType()).thenReturn(SqlTypes.DOUBLE);
-    when(functionRegistry.getAggregateFunction(same(TABLE_AGG.getName()), any(), any()))
-        .thenReturn(tableAgg);
+    when(functionRegistry.getAggregateFactory(same(TABLE_AGG.getName())))
+            .thenReturn(functionFactoryTable);
+    when(functionFactoryTable.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> tableAgg));
     when(tableAgg.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(tableAgg.returnType()).thenReturn(SqlTypes.INTEGER);
     when(tableAgg.getAggregateType()).thenReturn(SqlTypes.BIGINT);

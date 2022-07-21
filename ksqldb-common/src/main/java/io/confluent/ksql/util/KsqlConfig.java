@@ -548,6 +548,18 @@ public class KsqlConfig extends AbstractConfig {
           + "that contains headers columns will work with the headers functionality to prevent "
           + "a degraded command topic situation when restarting ksqlDB.";
 
+  public static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
+      = "ksql.json_sr.converter.deserializer.enabled";
+
+  private static final Boolean KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT = true;
+
+  private static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC = ""
+      + "Feature flag that enables the use of the JsonSchemaConverter class for deserializing "
+      + "JSON_SR records. JsonSchemaConverter is required to support `anyOf` JSON_SR types. "
+      + "This flag should be used to disable this feature only when users experience "
+      + "deserialization issues caused by the JsonSchemaConverter. Otherwise, this flag should "
+      + "remain true to take advantage of the new `anyOf` types and other JSON_SR serde fixes.";
+
   public static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED =
       "ksql.source.table.materialization.enabled";
   private static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
@@ -1469,6 +1481,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
             Importance.LOW,
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC
         )
         .withClientSslSupport();
 

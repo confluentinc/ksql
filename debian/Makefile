@@ -59,6 +59,9 @@ endif
 	touch apply-patches
 
 build: apply-patches
+
+	python reset-versions.py "${VERSION}"
+
 ifeq ($(SKIP_TESTS),yes)
 	mvn -B -DskipTests=true install
 else

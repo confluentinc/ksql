@@ -130,7 +130,7 @@ public class TestDriverPipeline {
   public void addDdlTopic(
       final TopologyTestDriver driver, final TopicInfo topic
   ) {
-    List<Input> oldInputs = inputs.get(topic.name)
+    final List<Input> oldInputs = inputs.get(topic.name)
         .stream()
         .filter(input -> input.receivers.size() == 0)
         .collect(Collectors.toList());

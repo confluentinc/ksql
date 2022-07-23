@@ -25,8 +25,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code SerializationClassifier} classifies serialization exceptions as user error
- * while writing to a user topic due to schema mismatch
+ * {@code KsqlSerializationClassifier} classifies serialization exceptions caused due to schema
+ * mismatch as user error when topic name doesn't contain a prefix of "_confluent-ksql-" otherwise
+ * classifies it as non-user error
  */
 public class KsqlSerializationClassifier implements QueryErrorClassifier {
 

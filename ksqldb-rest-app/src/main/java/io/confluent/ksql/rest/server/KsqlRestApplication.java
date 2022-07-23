@@ -1046,9 +1046,23 @@ public final class KsqlRestApplication implements Executable {
     final String commandTopic = commandStore.getCommandTopicName();
 
     // migration code
-    if (internalTopicClient.isTopicExists(commandTopic)
+    if (!internalTopicClient.isTopicExists(commandTopic)
+        && serviceContext.getTopicClient().isTopicExists(commandTopic)
         && restConfig.getBoolean(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_ENABLE)) {
+      log.warn("Migrating command topic from the service context Kafka to the command "
+          + "producer/consumer Kafka.");
+      KsqlInternalTopicUtils.ensureTopic(
+          commandTopic,
+          ksqlConfigNoPort,
+          internalTopicClient
+      );
 
+      try {
+        CommandTopicMigrationUtil.commandTopicMigration(commandTopic, restConfig, ksqlConfigNoPort);
+      } catch (final Exception e) {
+        internalTopicClient.deleteTopics(Collections.singletonList(commandTopic));
+        throw new KsqlException("Error migrating command topic");
+      }
     }
 
     if (CommandTopicBackupUtil.commandTopicMissingWithValidBackup(

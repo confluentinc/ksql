@@ -412,10 +412,14 @@ public class KsqlRestConfig extends AbstractConfig {
       KSQL_CONFIG_PREFIX + "server.command.topic.migration.enabled";
   public static final boolean KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DEFAULT = false;
   protected static final String KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DOC =
-      "Whether or not to migrate the command topic to another Kafka cluster. If the command topic doesn't exist "
-          + "on the Kafka the command producer/consumer are reading from, the server then checks for the existence "
-          + "of the command topic on the broker that the server is connected to in the bootstrap.servers config. "
-          + "If it exists, ";
+      "Whether or not to migrate the command topic to another Kafka cluster. If the command topic "
+          + "doesn't exist on the Kafka the command producer/consumer are reading from, the server "
+          + "then checks for the existence of the command topic on the broker that the server is "
+          + "connected to in the bootstrap.servers config. If it exists, it recreates the command "
+          + "topic on the new broker, then issues a new command to the old command topic to mark "
+          + "it as degraded for other servers that may be running in the cluster. If any exceptions"
+          + "occurs during recreation of the new command topic, delete the new command topic and "
+          + "throw an exception.";
 
   private static final ConfigDef CONFIG_DEF;
 

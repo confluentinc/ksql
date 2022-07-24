@@ -203,7 +203,9 @@ public class TestDriverPipeline {
       throw new KsqlException("Cannot pipe input to unknown source: " + topic);
     }
 
-    topicCache.put(topic, new TestRecord(key, value, Instant.ofEpochMilli(timestampMs)));
+    if (topic.equals(path)) {
+      topicCache.put(topic, new TestRecord(key, value, Instant.ofEpochMilli(timestampMs)));
+    }
     for (final Input input : inputs) {
       input.topic.pipeInput(key, value, timestampMs);
 

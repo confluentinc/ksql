@@ -25,6 +25,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -164,14 +165,16 @@ public class CommandRunner implements Closeable {
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
-    log.info("Executing statement: " + queuedCommand.getCommand().getStatement());
+    log.info("Executing statement: " + Base64.getEncoder().encodeToString(
+        queuedCommand.getCommandId().toString().getBytes()));
 
     final Runnable task = () -> {
       if (closed) {
         log.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        log.info("Executed statement: " + queuedCommand.getCommand().getStatement());
+        log.info("Executed statement: " + Base64.getEncoder().encodeToString(
+            queuedCommand.getCommandId().toString().getBytes()));
       }
     };
 

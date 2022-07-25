@@ -132,9 +132,9 @@ public class CommandStore implements CommandQueue, Closeable {
       commandStatusMap.remove(commandId);
       throw new KsqlException(
           String.format(
-              "Could not write the statement '%s' into the "
+              "Could not write the statement into the "
                   + "command topic"
-                  + ".", statement.getStatementText()
+                  + "."
           ),
           e
       );

@@ -42,6 +42,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -285,7 +286,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         disconnectCheckInterval.toMillis(),
         objectMapper);
 
-    log.info("Streaming query '{}'", statement.getStatementText());
+    log.info("Streaming query '{}'", QueryMask.getMaskedStatement(statement.getStatementText()));
     return Response.ok().entity(queryStreamWriter).build();
   }
 

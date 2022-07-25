@@ -24,7 +24,7 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class KsqlStatementErrorMessage extends KsqlErrorMessage {
-  private final String statementText;
+  private final String statementText = "<retracted>";
   private final KsqlEntityList entities;
 
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -36,7 +36,6 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
       @JsonProperty("entities") final KsqlEntityList entities) {
     super(errorCode, message, stackTrace);
     this.entities = entities;
-    this.statementText = statementText;
   }
 
   public KsqlStatementErrorMessage(

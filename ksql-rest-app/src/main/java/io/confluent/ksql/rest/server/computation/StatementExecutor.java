@@ -215,7 +215,7 @@ public class StatementExecutor implements KsqlConfigurable {
       executeStatement(
           statement, command, commandId, commandStatusFuture, mode, offset);
     } catch (final KsqlException exception) {
-      log.error("Failed to handle: " + command, exception);
+      log.error("Failed to handle: " + commandId, exception);
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)

@@ -33,7 +33,12 @@ public class JsonSchemaTranslator implements ConnectSchemaTranslator {
 
   private final JsonSchemaData jsonData = new JsonSchemaData(new JsonSchemaDataConfig(
       ImmutableMap.of(
-          JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name()
+          JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name(),
+
+          // Makes naming of unions consistent between all SR formats
+          // i.e. instead of `IO.CONFLUENT.CONNECT.JSON.ONEOF.FIELD.0` field names, we'll get
+          // `connect_union_field_0` names
+          JsonSchemaDataConfig.GENERALIZED_SUM_TYPE_SUPPORT_CONFIG, true
       )
   ));
 

@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.json.JsonSchemaConverterConfig;
+import io.confluent.connect.json.JsonSchemaDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.schema.connect.SchemaWalker;
@@ -176,6 +177,12 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
         JsonSchemaConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
+
+    // Makes naming of unions consistent between all SR formats
+    // i.e. instead of `IO.CONFLUENT.CONNECT.JSON.ONEOF.FIELD.0` field names, we'll get
+    // `connect_union_field_0` names
+    config.put(JsonSchemaDataConfig.GENERALIZED_SUM_TYPE_SUPPORT_CONFIG, true);
+
     if (schemaId.isPresent()) {
       // Disable auto registering schema if schema id is used
       config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);

@@ -858,7 +858,12 @@ public class SqlToJavaVisitor {
     ) {
       final Pair<String, SqlType> expr = process(node.getExpression(), context);
       final SqlType to = node.getType().getSqlType();
-      return Pair.of(genCastCode(expr, to), to);
+      //return Pair.of(genCastCode(expr, to), to);
+      String code = genCastCode(expr,to);
+      final String javaType = SchemaConverters.sqlToJavaConverter()
+              .toJavaType(node.getType().getSqlType()).getTypeName();
+      code = evaluateOrReturnNull(code, to.toString(), javaType);
+      return Pair.of(code, to);
     }
 
     @Override
@@ -1190,6 +1195,25 @@ public class SqlToJavaVisitor {
             + "  return defaultValue;"
             + " }"
             + "}}).get()";
+      } else {
+        return s;
+      }
+    }
+
+    private String evaluateOrReturnNull(final String s, final String type, final String javaType) {
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NESTED_ERROR_HANDLING_CONFIG)) {
+        return " (new " + Supplier.class.getSimpleName() + "<" + javaType + ">() {"
+                + "@Override public " + javaType + " get() {"
+                + " try {"
+                + "  return " + s + ";"
+                + " } catch (Exception e) {"
+                + "  logger.error(RecordProcessingError.recordProcessingError("
+                + "    \"Error processing " + type + "\","
+                + "    e instanceof InvocationTargetException? e.getCause() : e,"
+                + "    row));"
+                + "  return (" + javaType + ") defaultValue;"
+                + " }"
+                + "}}).get()";
       } else {
         return s;
       }

@@ -42,38 +42,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.CodeGenTestUtil.Evaluator;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
-import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.execution.expression.tree.*;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
-import io.confluent.ksql.execution.expression.tree.Cast;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
-import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
-import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
-import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
-import io.confluent.ksql.execution.expression.tree.DateLiteral;
-import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
-import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.InListExpression;
-import io.confluent.ksql.execution.expression.tree.InPredicate;
-import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalUnit;
-import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
-import io.confluent.ksql.execution.expression.tree.LambdaVariable;
-import io.confluent.ksql.execution.expression.tree.LikePredicate;
-import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
-import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
-import io.confluent.ksql.execution.expression.tree.TimeLiteral;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -259,24 +231,6 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldCreateCorrectCastJavaExpression() {
-    // Given:
-    final Expression castBigintInteger = new Cast(
-        COL0,
-        new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("INTEGER"))
-    );
-
-    // When:
-    final String actual = sqlToJavaVisitor.process(castBigintInteger);
-
-    // Then:
-    final String expected = CastEvaluator
-        .generateCode("COL0", SqlTypes.BIGINT, SqlTypes.INTEGER, ksqlConfig);
-
-    assertThat(actual, is(expected));
-  }
-
-  @Test
   public void shouldPostfixFunctionInstancesWithUniqueId() {
     // Given:
     final UdfFactory ssFactory = mock(UdfFactory.class);
@@ -348,11 +302,13 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
-    final String doubleCast = CastEvaluator.generateCode(
-        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+      final String doubleCast = sqlToJavaVisitor.process(new Cast(
+              new DecimalLiteral(new BigDecimal("1.2")),
+              new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DOUBLE)));
 
-    final String longCast = CastEvaluator.generateCode(
-        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+      final String longCast = sqlToJavaVisitor.process(new Cast(
+              new IntegerLiteral(1),
+              new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.BIGINT)));
 
     assertThat(javaExpression, is(
         "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + "))"
@@ -380,11 +336,13 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
-    final String doubleCast = CastEvaluator.generateCode(
-        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+    final String doubleCast = sqlToJavaVisitor.process(new Cast(
+            new DecimalLiteral(new BigDecimal("1.2")),
+            new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DOUBLE)));
 
-    final String longCast = CastEvaluator.generateCode(
-        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+    final String longCast = sqlToJavaVisitor.process(new Cast(
+            new IntegerLiteral(1),
+            new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.BIGINT)));
 
     assertThat(javaExpression, is(
         "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + ", " + longCast + "))"
@@ -1314,24 +1272,32 @@ public class SqlToJavaVisitorTest {
     // Then
     assertThat(
         javaExpression, equalTo(
-            "(((Double) nested_0.evaluate(COL4, ((Double)NullSafe.apply(0,new Function() {\n"
+            "(((Double) nested_0.evaluate(COL4,  (new Supplier<java.lang.Double>() " +
+                    "{@Override public java.lang.Double get() { " +
+                    "try {  return ((Double)NullSafe.apply(0,new Function() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1) {\n"
                 + "   final Integer val = (Integer) arg1;\n"
                 + "   return val.doubleValue();\n"
                 + " }\n"
-                + "})), new BiFunction() {\n"
+                + "})); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    " +
+                    "\"Error processing DOUBLE\",    e instanceof InvocationTargetException? e.getCause() : e,    " +
+                    "row));  return (java.lang.Double) defaultValue; }}}).get(), new BiFunction() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1, Object arg2) {\n"
                 + "   final Double A = (Double) arg1;\n"
                 + "   final Integer B = (Integer) arg2;\n"
-                + "   return (((Double) nested_1.evaluate(COL4, ((Double)NullSafe.apply(0,new Function() {\n"
+                + "   return (((Double) nested_1.evaluate(COL4,  (new Supplier<java.lang.Double>() " +
+                    "{@Override public java.lang.Double get() { try {  " +
+                    "return ((Double)NullSafe.apply(0,new Function() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1) {\n"
                 + "   final Integer val = (Integer) arg1;\n"
                 + "   return val.doubleValue();\n"
                 + " }\n"
-                + "})), new BiFunction() {\n"
+                + "})); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    " +
+                    "\"Error processing DOUBLE\",    e instanceof InvocationTargetException? e.getCause() : e,    " +
+                    "row));  return (java.lang.Double) defaultValue; }}}).get(), new BiFunction() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1, Object arg2) {\n"
                 + "   final Double Q = (Double) arg1;\n"

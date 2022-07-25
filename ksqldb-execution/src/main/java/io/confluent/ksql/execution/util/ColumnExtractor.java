@@ -31,10 +31,6 @@ public final class ColumnExtractor {
   private ColumnExtractor() {
   }
 
-  public static boolean detectColumns(final Expression e) {
-    return extractColumns(e).size() > 0;
-  }
-
   public static Set<? extends ColumnReferenceExp> extractColumns(final Expression e) {
     final Set<ColumnReferenceExp> references = new HashSet<>();
     new Extractor().process(e, references);

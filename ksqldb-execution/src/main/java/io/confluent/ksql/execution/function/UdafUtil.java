@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public final class UdafUtil {
 
@@ -90,6 +91,36 @@ public final class UdafUtil {
     } catch (final Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
     }
+  }
+
+  /**
+   * Creates the initial arguments for a dummy aggregate function that will not
+   * actually be called. For example, this is useful for retrieving the return type
+   * in the {@link ExpressionTypeManager}.
+   * @param numRegularArgs  number of regular, column-dependent arguments. It is not
+   *                        always possible to compute this from the number of initial
+   *                        arguments and the number of arguments to the function call
+   *                        in case a default argument is provided when the user does
+   *                        not provided any of their own arguments.
+   * @param numInitArgs     number of initial arguments. This is necessary as there
+   *                        is the potential for the {@link FunctionRegistry} to
+   *                        resolve different functions based on the number of initial
+   *                        arguments.
+   * @param functionCall    the call to the function whose initial arguments should be
+   *                        created
+   * @return initial arguments for a dummy aggregate function
+   */
+  public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
+          final int numRegularArgs,
+          final int numInitArgs,
+          final FunctionCall functionCall
+  ) {
+    return createAggregateFunctionInitArgs(
+            numInitArgs,
+            IntStream.range(0, numRegularArgs).boxed().collect(Collectors.toList()),
+            functionCall,
+            KsqlConfig.empty()
+    );
   }
 
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(

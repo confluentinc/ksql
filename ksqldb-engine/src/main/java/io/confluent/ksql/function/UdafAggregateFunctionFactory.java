@@ -16,16 +16,13 @@
 package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -50,19 +47,6 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   ) {
     super(metadata);
     udfIndex = Objects.requireNonNull(index);
-  }
-
-  @Override
-  public SqlType resolveReturnType(final List<SqlType> arguments) {
-    final Pair<UdafFactoryInvoker, Map<GenericType, SqlType>> resolved =
-            udfIndex.getFunctionAndGenerics(
-                    arguments.stream()
-                            .map(SqlArgument::of)
-                            .collect(Collectors.toList())
-            );
-
-    return SchemaConverters.functionToSqlConverter()
-            .toSqlType(resolved.getLeft().declaredReturnType(), resolved.getRight());
   }
 
   @Override

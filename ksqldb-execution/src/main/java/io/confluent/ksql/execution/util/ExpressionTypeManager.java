@@ -58,9 +58,12 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
@@ -76,12 +79,14 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
@@ -538,8 +543,21 @@ public class ExpressionTypeManager {
         final AggregateFunctionFactory factory = functionRegistry
             .getAggregateFactory(node.getName());
 
-        final SqlType outputSchema = factory.resolveReturnType(schema);
-        context.setSqlType(outputSchema);
+        final Pair<
+                Integer,
+                Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>
+            > initArgsAndCreator = factory.getFunction(schema);
+        int numInitArgs = initArgsAndCreator.getLeft();
+
+        final AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
+                args.size() - numInitArgs,
+                numInitArgs,
+                node
+        );
+        final KsqlAggregateFunction<?, ?, ?> function = initArgsAndCreator.getRight()
+                .apply(initArgs);
+
+        context.setSqlType(function.returnType());
         return null;
       }
 

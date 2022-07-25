@@ -376,10 +376,6 @@ public class InternalFunctionRegistryTest {
 
   private AggregateFunctionFactory createAggregateFunctionFactory() {
     return new AggregateFunctionFactory("my_aggregate") {
-      @Override
-      public SqlType resolveReturnType(List<SqlType> argumentTypes) {
-        return mockAggFun.returnType();
-      }
 
       @Override
       public Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>

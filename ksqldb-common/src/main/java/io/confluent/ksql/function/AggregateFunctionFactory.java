@@ -74,8 +74,6 @@ public abstract class AggregateFunctionFactory {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
   }
 
-  public abstract SqlType resolveReturnType(List<SqlType> argumentTypes);
-
   public abstract
       Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
       getFunction(List<SqlType> argTypeList);

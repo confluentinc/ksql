@@ -858,10 +858,9 @@ public class SqlToJavaVisitor {
     ) {
       final Pair<String, SqlType> expr = process(node.getExpression(), context);
       final SqlType to = node.getType().getSqlType();
-      String code = genCastCode(expr,to);
       final String javaType = SchemaConverters.sqlToJavaConverter()
               .toJavaType(node.getType().getSqlType()).getTypeName();
-      code = evaluateOrReturnNull(code, to.toString(), javaType);
+      final String code = evaluateOrReturnNull(genCastCode(expr,to), to.toString(), javaType);
       return Pair.of(code, to);
     }
 

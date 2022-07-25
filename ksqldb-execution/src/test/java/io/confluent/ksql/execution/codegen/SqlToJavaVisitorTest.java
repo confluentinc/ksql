@@ -42,10 +42,37 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.CodeGenTestUtil.Evaluator;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
-import io.confluent.ksql.execution.expression.tree.*;
+import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
+import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
+import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
+import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.InListExpression;
+import io.confluent.ksql.execution.expression.tree.InPredicate;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
+import io.confluent.ksql.execution.expression.tree.LikePredicate;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
+import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
+import io.confluent.ksql.execution.expression.tree.TimeLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -57,7 +84,6 @@ import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -1342,10 +1368,5 @@ public class SqlToJavaVisitorTest {
     when(function.getReturnType(anyList())).thenReturn(returnType);
     final UdfMetadata metadata = mock(UdfMetadata.class);
     when(factory.getMetadata()).thenReturn(metadata);
-  }
-
-  private String onException(final String type) {
-    return String.format("logger.error(RecordProcessingError.recordProcessingError(    \"Error processing %s\",    "
-        + "e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue;", type);
   }
 }

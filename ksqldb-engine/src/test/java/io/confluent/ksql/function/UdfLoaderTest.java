@@ -196,12 +196,9 @@ public class UdfLoaderTest {
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void shouldLoadUdafs() {
-    final KsqlAggregateFunction instance = FUNC_REG
-        .getAggregateFunction(
-                FunctionName.of("test_udaf"),
-                Collections.singletonList(SqlTypes.BIGINT),
-                AggregateFunctionInitArguments.EMPTY_ARGS
-        );
+    final KsqlAggregateFunction instance = FUNC_REG.getAggregateFactory(FunctionName.of("test_udaf"))
+            .getFunction(singletonList(SqlTypes.BIGINT))
+            .getRight().apply(AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
     assertThat(instance.getMerger().apply(null, 2L, 3L), equalTo(5L));
@@ -221,8 +218,10 @@ public class UdfLoaderTest {
         .build();
 
     final KsqlAggregateFunction instance = FUNC_REG
-        .getAggregateFunction(FunctionName.of("test_udaf"), Collections.singletonList(sqlSchema),
-                AggregateFunctionInitArguments.EMPTY_ARGS);
+            .getAggregateFactory(FunctionName.of("test_udaf"))
+            .getFunction(Collections.singletonList(sqlSchema))
+            .getRight()
+            .apply(AggregateFunctionInitArguments.EMPTY_ARGS);
 
     assertThat(instance.getInitialValueSupplier().get(),
         equalTo(new Struct(schema).put("A", 0).put("B", 0)));
@@ -253,9 +252,10 @@ public class UdfLoaderTest {
         KsqlException.class,
         () -> {
           KsqlAggregateFunction function = FUNC_REG
-              .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                      Collections.singletonList(SqlTypes.array(SqlTypes.INTEGER)),
-                      AggregateFunctionInitArguments.EMPTY_ARGS);
+                  .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                  .getFunction(Collections.singletonList(SqlTypes.array(SqlTypes.INTEGER)))
+                  .getRight()
+                  .apply(AggregateFunctionInitArguments.EMPTY_ARGS);
           function.aggregate("foo", 2L);
         }
     );
@@ -280,9 +280,10 @@ public class UdfLoaderTest {
         KsqlException.class,
         () ->
             ((Configurable)FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                        Collections.singletonList(SqlTypes.INTEGER),
-                        AggregateFunctionInitArguments.EMPTY_ARGS)
+                    .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                    .getFunction(Collections.singletonList(SqlTypes.INTEGER))
+                    .getRight()
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
             ).configure(Collections.emptyMap())
     );
 
@@ -305,10 +306,11 @@ public class UdfLoaderTest {
     final Exception e3 = assertThrows(
         SecurityException.class,
         () -> FUNC_REG
-            .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                    Collections.singletonList(SqlTypes.DOUBLE),
-                    AggregateFunctionInitArguments.EMPTY_ARGS
-            ).getInitialValueSupplier().get()
+                .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                .getFunction(Collections.singletonList(SqlTypes.DOUBLE))
+                .getRight()
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+                .getInitialValueSupplier().get()
     );
 
     // Then:
@@ -332,9 +334,10 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((KsqlAggregateFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                        Collections.singletonList(SqlTypes.BOOLEAN),
-                        AggregateFunctionInitArguments.EMPTY_ARGS)
+                    .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                    .getFunction(Collections.singletonList(SqlTypes.BOOLEAN))
+                    .getRight()
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
             ).getResultMapper().apply(true)
     );
 
@@ -368,9 +371,11 @@ public class UdfLoaderTest {
     final Exception e5 = assertThrows(
         SecurityException.class,
         () ->
-            ((KsqlAggregateFunction) FUNC_REG.getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                    Collections.singletonList(sqlSchema),
-                    AggregateFunctionInitArguments.EMPTY_ARGS)
+            ((KsqlAggregateFunction) FUNC_REG
+                    .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                    .getFunction(Collections.singletonList(sqlSchema))
+                    .getRight()
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
             ).getMerger().apply(null, input, input)
     );
 
@@ -395,9 +400,10 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((KsqlAggregateFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                        Collections.singletonList(SqlTypes.STRING),
-                        AggregateFunctionInitArguments.EMPTY_ARGS)
+                    .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                    .getFunction(Collections.singletonList(SqlTypes.STRING))
+                    .getRight()
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
             ).aggregate("foo", 2L)
     );
 
@@ -422,9 +428,10 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((TableAggregationFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                        Collections.singletonList(SqlTypes.BIGINT),
-                        AggregateFunctionInitArguments.EMPTY_ARGS)
+                    .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                    .getFunction(Collections.singletonList(SqlTypes.BIGINT))
+                    .getRight()
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
             ).undo(1L, 1L)
     );
 
@@ -447,9 +454,10 @@ public class UdfLoaderTest {
     final Exception error = assertThrows(
         KsqlException.class,
         () -> FUNC_REG
-            .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                Collections.singletonList(SqlTypes.array(SqlTypes.BIGINT)),
-                    AggregateFunctionInitArguments.EMPTY_ARGS)
+                .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                .getFunction(Collections.singletonList(SqlTypes.array(SqlTypes.BIGINT)))
+                .getRight()
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
     );
 
     // Then:
@@ -471,9 +479,10 @@ public class UdfLoaderTest {
     final Exception error = assertThrows(
         KsqlException.class,
         () -> FUNC_REG
-            .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                    Collections.singletonList(SqlTypes.array(SqlTypes.BOOLEAN)),
-                    AggregateFunctionInitArguments.EMPTY_ARGS)
+                .getAggregateFactory(FunctionName.of("bad_test_udaf"))
+                .getFunction(Collections.singletonList(SqlTypes.array(SqlTypes.BOOLEAN)))
+                .getRight()
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
     );
 
     // Then:

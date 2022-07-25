@@ -25,7 +25,6 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -146,16 +145,9 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   T getFunction(final List<SqlArgument> arguments) {
-    return getFunctionAndGenerics(arguments).getLeft();
-  }
-
-  Pair<T, Map<GenericType, SqlType>> getFunctionAndGenerics(final List<SqlArgument> arguments) {
 
     // first try to get the candidates without any implicit casting
-    Optional<Pair<T, Map<GenericType, SqlType>>> candidate = findMatchingCandidate(
-            arguments,
-            false
-    );
+    Optional<T> candidate = findMatchingCandidate(arguments, false);
     if (candidate.isPresent()) {
       return candidate.get();
     } else if (!supportsImplicitCasts) {
@@ -170,26 +162,21 @@ public class UdfIndex<T extends FunctionSignature> {
     throw createNoMatchingFunctionException(arguments);
   }
 
-  private Optional<Pair<T, Map<GenericType, SqlType>>> findMatchingCandidate(
+  private Optional<T> findMatchingCandidate(
       final List<SqlArgument> arguments, final boolean allowCasts) {
 
-    final List<Pair<Node, Map<GenericType, SqlType>>> candidates = new ArrayList<>();
+    final List<Node> candidates = new ArrayList<>();
 
     getCandidates(arguments, 0, root, candidates, new HashMap<>(), allowCasts);
-    candidates.sort((first, second) -> first.getLeft().compare(second.getLeft()));
+    candidates.sort(Node::compare);
 
     final int len = candidates.size();
     if (len == 1) {
-      final Pair<Node, Map<GenericType, SqlType>> candidate = candidates.get(0);
-      return Optional.of(Pair.of(candidate.getLeft().value, candidate.getRight()));
+      return Optional.of(candidates.get(0).value);
     } else if (len > 1) {
-      final Pair<Node, Map<GenericType, SqlType>> candidate1 = candidates.get(len - 1);
-      final Pair<Node, Map<GenericType, SqlType>> candidate2 = candidates.get(len - 2);
-
-      if (candidate1.getLeft().compare(candidate2.getLeft()) > 0) {
-        return Optional.of(Pair.of(candidate1.getLeft().value, candidate1.getRight()));
+      if (candidates.get(len - 1).compare(candidates.get(len - 2)) > 0) {
+        return Optional.of(candidates.get(len - 1).value);
       }
-
       throw createVagueImplicitCastException(arguments);
     }
 
@@ -200,13 +187,13 @@ public class UdfIndex<T extends FunctionSignature> {
       final List<SqlArgument> arguments,
       final int argIndex,
       final Node current,
-      final List<Pair<Node, Map<GenericType, SqlType>>> candidates,
+      final List<Node> candidates,
       final Map<GenericType, SqlType> reservedGenerics,
       final boolean allowCasts
   ) {
     if (argIndex == arguments.size()) {
       if (current.value != null) {
-        candidates.add(Pair.of(current, reservedGenerics));
+        candidates.add(current);
       }
       return;
     }

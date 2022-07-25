@@ -39,7 +39,7 @@ public final class TerminateQueryValidator {
     context.getPersistentQuery(queryId)
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId,
-            statement.getStatementText()))
+            statement.getMaskedStatementText()))
         .close();
   }
 

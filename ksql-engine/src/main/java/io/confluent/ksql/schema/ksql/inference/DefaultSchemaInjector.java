@@ -106,7 +106,7 @@ public class DefaultSchemaInjector implements Injector {
       final Exception cause = result.failureReason.get();
       throw new KsqlStatementException(
           cause.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           cause);
     }
 
@@ -145,7 +145,7 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Failed to convert schema to KSQL model: " + e.getMessage(),
-          preparedStatement.getStatementText(),
+          preparedStatement.getMaskedStatementText(),
           e);
     }
   }

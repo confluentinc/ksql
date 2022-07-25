@@ -77,7 +77,7 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return Optional.of(new CommandStatusEntity(
-          injected.getStatementText(),
+          injected.getMaskedStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()
@@ -85,7 +85,7 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
     } catch (final Exception e) {
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
-          statement.getStatementText()), e);
+          statement.getMaskedStatementText()), e);
     }
   }
 

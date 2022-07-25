@@ -106,7 +106,7 @@ public class ArrayContainsKudf implements Kudf {
         }
       }
     } catch (final IOException e) {
-      throw new KsqlException("Invalid JSON format: " + jsonArray, e);
+      throw new KsqlException("Invalid JSON format", e);
     }
     return false;
   }

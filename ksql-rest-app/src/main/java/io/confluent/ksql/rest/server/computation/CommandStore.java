@@ -103,7 +103,7 @@ public class CommandStore implements CommandQueue, Closeable {
 
     // new commands that generate queries will use the new query id generation method from now on
     final Command command = new Command(
-        statement.getStatementText(),
+        statement.getUnMaskedStatementText(),
         true,
         statement.getOverrides(),
         statement.getConfig().getAllConfigPropsWithSecretsObfuscated()
@@ -134,7 +134,7 @@ public class CommandStore implements CommandQueue, Closeable {
           String.format(
               "Could not write the statement '%s' into the "
                   + "command topic"
-                  + ".", statement.getStatementText()
+                  + ".", statement.getMaskedStatementText()
           ),
           e
       );

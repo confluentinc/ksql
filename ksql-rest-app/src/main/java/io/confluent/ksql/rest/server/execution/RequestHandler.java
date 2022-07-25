@@ -130,7 +130,7 @@ public class RequestHandler {
 
     if (sql == null) {
       throw new KsqlStatementException(
-          "Request is missing script content", statement.getStatementText());
+          "Request is missing script content", statement.getMaskedStatementText());
     }
 
     return execute(serviceContext, ksqlEngine.parse(sql), propertyOverrides);

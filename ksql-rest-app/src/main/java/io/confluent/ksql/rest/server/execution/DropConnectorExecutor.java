@@ -41,9 +41,10 @@ public final class DropConnectorExecutor {
         serviceContext.getConnectClient().delete(connectorName);
 
     if (response.error().isPresent()) {
-      return Optional.of(new ErrorEntity(statement.getStatementText(), response.error().get()));
+      return Optional.of(
+          new ErrorEntity(statement.getMaskedStatementText(), response.error().get()));
     }
 
-    return Optional.of(new DropConnectorEntity(statement.getStatementText(), connectorName));
+    return Optional.of(new DropConnectorEntity(statement.getMaskedStatementText(), connectorName));
   }
 }

@@ -317,7 +317,7 @@ public final class TestExecutorUtil {
       // can easily check that the failed statement is the input statement
       throw new KsqlStatementException(
           statementException.getMessage(),
-          withSchema.getStatementText(),
+          withSchema.getMaskedStatementText(),
           statementException.getCause());
     }
     if (prepared.getStatement() instanceof CreateAsSelect) {

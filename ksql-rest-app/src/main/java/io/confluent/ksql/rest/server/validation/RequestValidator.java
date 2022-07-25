@@ -148,7 +148,7 @@ public class RequestValidator {
       throw new KsqlStatementException(
           "Do not know how to validate statement of type: " + statementClass
               + " Known types: " + customValidators.keySet(),
-          configured.getStatementText());
+          configured.getMaskedStatementText());
     }
 
     return (statement instanceof CreateAsSelect || statement instanceof InsertInto) ? 1 : 0;
@@ -165,12 +165,12 @@ public class RequestValidator {
 
     if (sql == null) {
       throw new KsqlStatementException(
-          "Request is missing script content", statement.getStatementText());
+          "Request is missing script content", statement.getMaskedStatementText());
     }
 
     LOG.warn("RUN SCRIPT statement detected. "
         + "Note: RUN SCRIPT is deprecated and will be removed in the next major version. "
-        + "statement: " + statement.getStatementText());
+        + "statement: " + statement.getMaskedStatementText());
 
     return validate(serviceContext, executionContext.parse(sql), mutableScopedProperties, sql);
   }

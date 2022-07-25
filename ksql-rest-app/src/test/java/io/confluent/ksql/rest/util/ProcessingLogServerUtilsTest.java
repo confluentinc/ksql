@@ -187,7 +187,7 @@ public class ProcessingLogServerUtilsTest {
     );
 
     // Then:
-    assertThat(statement.getStatementText(), equalTo(
+    assertThat(statement.getMaskedStatementText(), equalTo(
         "CREATE STREAM PROCESSING_LOG_STREAM ("
             + "logger VARCHAR, "
             + "level VARCHAR, "
@@ -225,7 +225,7 @@ public class ProcessingLogServerUtilsTest {
     );
 
     // Then:
-    assertThat(statement.getStatementText(),
+    assertThat(statement.getMaskedStatementText(),
         containsString("KAFKA_TOPIC='ksql_cluster.ksql_processing_log'"));
 
     assertLogStream(DEFAULT_TOPIC);

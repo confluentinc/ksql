@@ -215,7 +215,7 @@ public class StatementExecutor implements KsqlConfigurable {
       executeStatement(
           statement, command, commandId, commandStatusFuture, mode, offset);
     } catch (final KsqlException exception) {
-      log.error("Failed to handle: " + command, exception);
+      log.error("Failed to handle: " + commandId, exception);
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)
@@ -330,7 +330,7 @@ public class StatementExecutor implements KsqlConfigurable {
 
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig,1)) {
       QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-          ksqlEngine, mergedConfig, statement.getStatementText());
+          ksqlEngine, mergedConfig, statement.getMaskedStatementText());
     }
 
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(

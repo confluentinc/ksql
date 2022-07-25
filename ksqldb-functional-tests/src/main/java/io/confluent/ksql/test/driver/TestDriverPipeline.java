@@ -20,6 +20,7 @@ import com.google.common.collect.ListMultimap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
@@ -110,7 +112,7 @@ public class TestDriverPipeline {
 
   private final ListMultimap<String, Input> inputs;
   private final ListMultimap<String, Output> outputs;
-  private final ListMultimap<String, TestRecord<GenericKey, GenericRow>> outputCache;
+  private final ListMultimap<String, TestRecord<GenericKey, GenericRow>> topicCache;
 
   // this map indexes into the outputCache to track which records we've already
   // read - we don't need to worry about concurrent modification while iterating
@@ -120,9 +122,26 @@ public class TestDriverPipeline {
   public TestDriverPipeline() {
     inputs = ArrayListMultimap.create();
     outputs = ArrayListMultimap.create();
-    outputCache = ArrayListMultimap.create();
+    topicCache = ArrayListMultimap.create();
 
     assertPositions = new HashMap<>();
+  }
+
+  public void addDdlTopic(
+      final TopologyTestDriver driver, final TopicInfo topic
+  ) {
+    final List<Input> oldInputs = inputs.get(topic.name)
+        .stream()
+        .filter(input -> input.receivers.size() == 0)
+        .collect(Collectors.toList());
+    oldInputs.forEach(input -> inputs.remove(topic.name, input));
+    final Input input = new Input(
+        driver.createInputTopic(
+            topic.name,
+            topic.keySerde.serializer(),
+            topic.valueSerde.serializer())
+    );
+    inputs.put(topic.name, input);
   }
 
   public void addDriver(
@@ -184,13 +203,16 @@ public class TestDriverPipeline {
       throw new KsqlException("Cannot pipe input to unknown source: " + topic);
     }
 
+    if (topic.equals(path)) {
+      topicCache.put(topic, new TestRecord(key, value, Instant.ofEpochMilli(timestampMs)));
+    }
     for (final Input input : inputs) {
       input.topic.pipeInput(key, value, timestampMs);
 
       // handle the fallout of piping in a record (propagation)
       for (final Output receiver : input.receivers) {
         for (final TestRecord<GenericKey, GenericRow> record : receiver.topic.readRecordsToList()) {
-          outputCache.put(receiver.name, record);
+          topicCache.put(receiver.name, record);
 
           if (this.inputs.containsKey(receiver.name)) {
             pipeInput(
@@ -208,7 +230,7 @@ public class TestDriverPipeline {
   }
 
   public List<TestRecord<GenericKey, GenericRow>> getAllRecordsForTopic(final String topic) {
-    return outputCache.get(topic);
+    return topicCache.get(topic);
   }
 
   public Iterator<TestRecord<GenericKey, GenericRow>> getRecordsForTopic(final String topic) {
@@ -216,14 +238,14 @@ public class TestDriverPipeline {
       @Override
       public boolean hasNext() {
         final int idx = assertPositions.getOrDefault(topic, 0);
-        return outputCache.get(topic).size() > idx;
+        return topicCache.get(topic).size() > idx;
       }
 
       @Override
       public TestRecord<GenericKey, GenericRow> next() {
         final int idx = assertPositions.getOrDefault(topic, 0);
         assertPositions.put(topic, idx + 1);
-        return outputCache.get(topic).get(idx);
+        return topicCache.get(topic).get(idx);
       }
     };
   }

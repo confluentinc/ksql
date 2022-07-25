@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -95,7 +96,7 @@ public class StreamedQueryResource {
       } catch (final KsqlException e) {
         return Errors.badRequest(e);
       }
-      log.info("Streaming query '{}'", ksql);
+      log.info("Streaming query '{}'", Base64.getEncoder().encodeToString(ksql.getBytes()));
       return Response.ok().entity(queryStreamWriter).build();
 
     } else if (statement instanceof PrintTopic) {

@@ -93,7 +93,7 @@ class QueryEngine {
         logicalPlansList.add(new Pair<>(statementQueryPair.getLeft(), null));
       }
 
-      log.info("Build logical plan for {}.", statementQueryPair.getLeft());
+      log.info("Build logical plan for left statement.");
     }
     return logicalPlansList;
   }

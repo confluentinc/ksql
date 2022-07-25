@@ -132,9 +132,9 @@ public class TopicStreamTest {
         = new ConsumerRecord<>("topic", 1, 1, "key", null);
 
     final String[] printedData = Format.STRING.print(record).split(",");
-    assertEquals(3, printedData.length);
-    assertEquals("key", printedData[1].trim());
-    assertEquals("NULL", printedData[2].trim());
+    assertEquals(4, printedData.length);
+    assertEquals("key", printedData[2].trim());
+    assertEquals("NULL", printedData[3].trim());
 
   }
 }

@@ -718,6 +718,7 @@ public class KsqlResourceTest {
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
     final KsqlStatementErrorMessage result = (KsqlStatementErrorMessage)response.getEntity();
+    assertThat(result.getStatementText(), equalTo("<retracted>"));
     assertThat(result.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_STATEMENT));
   }
 

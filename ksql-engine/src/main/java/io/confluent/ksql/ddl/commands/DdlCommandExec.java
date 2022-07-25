@@ -61,7 +61,7 @@ public class DdlCommandExec {
     try {
       return ddlCommand.run(metaStore, isValidatePhase);
     } catch (final KsqlReferentialIntegrityException referentialIntegrityException) {
-      LOGGER.warn(String.format("executeOnMetaStore:%s", ddlCommand),
+      LOGGER.warn(String.format("executeOnMetaStore"),
                   referentialIntegrityException);
       throw referentialIntegrityException;
     }

@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.computation;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Base64;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -99,7 +100,8 @@ public class CommandRunner implements Runnable, Closeable {
   }
 
   private void executeStatement(final Command command, final CommandId commandId) {
-    log.info("Executing statement: " + command.getStatement());
+    log.info("Executing statement: " + Base64.getEncoder()
+        .encodeToString(commandId.toString().getBytes()));
     try {
       statementExecutor.handleStatement(command, commandId);
     } catch (final WakeupException wue) {

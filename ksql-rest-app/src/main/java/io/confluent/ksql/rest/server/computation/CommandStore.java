@@ -105,9 +105,9 @@ public class CommandStore implements Closeable {
     } catch (final Exception e) {
       throw new KsqlException(
           String.format(
-              "Could not write the statement '%s' into the "
+              "Could not write the statement into the "
               + "command topic"
-              + ".", statementString
+              + "."
           ),
           e
       );

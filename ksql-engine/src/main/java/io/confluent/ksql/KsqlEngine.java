@@ -323,7 +323,7 @@ public class KsqlEngine implements Closeable {
       final MetaStore tempMetaStoreForParser
   ) {
 
-    log.info("Building AST for {}.", statementString);
+    log.info("Building AST for statement");
 
     if (statement instanceof Query) {
       return new Pair<>(statementString, statement);

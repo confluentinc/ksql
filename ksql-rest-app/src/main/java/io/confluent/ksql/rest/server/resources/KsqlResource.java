@@ -369,14 +369,14 @@ public class KsqlResource {
           .get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
     } catch (final TimeoutException exception) {
       log.warn(
-          "Timeout to get commandStatus, waited {} milliseconds:, statementText:" + statementText,
+          "Timeout to get commandStatus, waited {} milliseconds",
           distributedCommandResponseTimeout, exception
       );
       commandStatus = statementExecutor.getStatus(commandId).get();
     } catch (final Exception e) {
       throw new KsqlException(
           String.format(
-              "Could not write the statement '%s' into the command " + "topic.", statementText
+              "Could not write the statement into the command " + "topic."
           ),
           e
       );

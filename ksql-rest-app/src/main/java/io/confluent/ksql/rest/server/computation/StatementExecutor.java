@@ -40,6 +40,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +80,8 @@ public class StatementExecutor {
   void handleRestoration(final RestoreCommands restoreCommands) {
     restoreCommands.forEach(
         (commandId, command, terminatedQueries, wasDropped) -> {
-          log.info("Executing prior statement: '{}'", command);
+          log.info("Executing prior statement: '{}'",
+              Base64.getEncoder().encodeToString(commandId.toString().getBytes()));
           try {
             handleStatementWithTerminatedQueries(
                 command,
@@ -205,7 +207,7 @@ public class StatementExecutor {
     } catch (final WakeupException exception) {
       throw exception;
     } catch (final Exception exception) {
-      log.error("Failed to handle: " + command, exception);
+      log.error("Failed to handle command: ", exception);
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)

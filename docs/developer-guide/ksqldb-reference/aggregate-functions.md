@@ -6,6 +6,11 @@ description: Aggregate functions to use in SQL statements and queries
 keywords: ksqlDB, SQL, function, aggregate
 ---
 
+!!! Important
+    In an aggregation function, providing a `*` character or an empty argument
+    list causes the function to return only the ROWTIME column. For example,
+    calling `AVG(*)` or `AVG()`  returns the  average of ROWTIME.
+
 ## **`AVG`**
 
 ```sql title="Applies to: stream, table<br>Since: 0.6.0"

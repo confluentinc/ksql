@@ -17,7 +17,10 @@ package io.confluent.ksql.execution.function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -41,6 +44,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,7 +86,10 @@ public class UdafUtilTest {
   public void init() {
     when(functionCall.getName()).thenReturn(FUNCTION_NAME);
     when(functionRegistry.getAggregateFactory(any())).thenReturn(functionFactory);
-    when(functionFactory.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> function));
+    when(functionFactory.getFunction(not(eq(Arrays.asList(SqlTypes.INTEGER, SqlTypes.STRING, SqlTypes.STRING)))))
+            .thenReturn(Pair.of(0, (initArgs) -> function));
+    when(functionFactory.getFunction(eq(Arrays.asList(SqlTypes.INTEGER, SqlTypes.STRING, SqlTypes.STRING))))
+            .thenReturn(Pair.of(1, (initArgs) -> function));
   }
 
   @Test
@@ -136,7 +143,27 @@ public class UdafUtilTest {
   }
 
   @Test
-  public void shouldThrowIfSecondParamIsNotALiteral() {
+  public void shouldNotThrowIfSecondParamIsColArgAndIsNotALiteral() {
+    // Given:
+    when(functionCall.getArguments()).thenReturn(ImmutableList.of(
+            new UnqualifiedColumnReferenceExp(ColumnName.of("Bob")),
+            new UnqualifiedColumnReferenceExp(ColumnName.of("Col2")),
+            new StringLiteral("No issue here")
+    ));
+
+    // When:
+    UdafUtil.createAggregateFunctionInitArgs(
+            Math.max(0, functionCall.getArguments().size() - 2),
+            Arrays.asList(0, 1),
+            functionCall,
+            KsqlConfig.empty()
+    );
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldThrowIfSecondParamIsInitArgAndNotALiteral() {
     // Given:
     when(functionCall.getArguments()).thenReturn(ImmutableList.of(
         new UnqualifiedColumnReferenceExp(ColumnName.of("Bob")),
@@ -157,6 +184,30 @@ public class UdafUtilTest {
     // Then:
     assertThat(e.getMessage(), is("Parameter 2 passed to function AGG must be a literal constant, "
         + "but was expression: 'Not good!'"));
+  }
+
+  @Test
+  public void shouldThrowIfSecondParamIsColArgAndNotACol() {
+    // Given:
+    when(functionCall.getArguments()).thenReturn(ImmutableList.of(
+            new UnqualifiedColumnReferenceExp(ColumnName.of("FOO")),
+            new StringLiteral("Not good!"),
+            new StringLiteral("No issue here")
+    ));
+
+    // When:
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> UdafUtil.resolveAggregateFunction(
+                    functionRegistry,
+                    functionCall,
+                    SCHEMA,
+                    KsqlConfig.empty()
+            )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Failed to create aggregate function: functionCall"));
   }
 
   @Test
@@ -183,5 +234,28 @@ public class UdafUtilTest {
     // Then:
     assertThat(e.getMessage(), is("Parameter 4 passed to function AGG must be a literal constant, "
         + "but was expression: 'Not good!'"));
+  }
+
+  @Test
+  public void shouldCreateDummyArgs() {
+    // Given:
+    when(functionCall.getArguments()).thenReturn(ImmutableList.of(
+            new UnqualifiedColumnReferenceExp(ColumnName.of("FOO")),
+            new UnqualifiedColumnReferenceExp(ColumnName.of("Bob")),
+            new StringLiteral("No issue here")
+    ));
+
+    // When:
+    AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
+            2,
+            1,
+            functionCall
+    );
+
+    // Then:
+    assertEquals(2, initArgs.udafIndices().size());
+    assertEquals(1, initArgs.args().size());
+    assertEquals("No issue here", initArgs.arg(0));
+    assertTrue(initArgs.config().isEmpty());
   }
 }

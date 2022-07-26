@@ -100,21 +100,17 @@ public class CommandTopicMigrationIntegrationTest {
   public void shouldMigrateCommandTopic() {
     // Given
     assertFalse(OTHER_TEST_HARNESS.topicExists(commandTopic));
+    setUpStreams(commandTopic);
 
-    makeKsqlRequest(REST_APP, "CREATE STREAM TOPIC1 (ID INT) "
-        + "WITH (KAFKA_TOPIC='topic1', VALUE_FORMAT='JSON');");
-    makeKsqlRequest(REST_APP, "CREATE STREAM TOPIC2 (ID INT) "
-        + "WITH (KAFKA_TOPIC='topic2', VALUE_FORMAT='JSON');");
-    makeKsqlRequest(REST_APP, "CREATE STREAM stream1 AS SELECT * FROM topic1;");
-    makeKsqlRequest(REST_APP, "CREATE STREAM stream2 AS SELECT * FROM topic2;");
-
+    // When
     NEW_REST_APP.start();
 
     // Then
     assertThatEventually("Server should be in degraded state", () -> isDegradedState(REST_APP), is(true));
+    TEST_HARNESS.verifyAvailableRecords(commandTopic, 5);
+
     assertTrue(OTHER_TEST_HARNESS.topicExists(commandTopic));
     OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
-    TEST_HARNESS.verifyAvailableRecords(commandTopic, 5);
     final List<String> streamsNames = showStreams(NEW_REST_APP);
     assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
     assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
@@ -123,25 +119,49 @@ public class CommandTopicMigrationIntegrationTest {
   }
 
   @Test
-  public void shouldNotMigrateCommandTopicIfTopicExists() {
+  public void shouldMigrateCommandTopicIfTopicExistsAndIsEmpty() {
     // Given
     OTHER_TEST_HARNESS.ensureTopics(commandTopic);
+    setUpStreams(commandTopic);
 
-    makeKsqlRequest(REST_APP, "CREATE STREAM TOPIC1 (ID INT) "
-        + "WITH (KAFKA_TOPIC='topic1', VALUE_FORMAT='JSON');");
-    makeKsqlRequest(REST_APP, "CREATE STREAM TOPIC2 (ID INT) "
-        + "WITH (KAFKA_TOPIC='topic2', VALUE_FORMAT='JSON');");
-    makeKsqlRequest(REST_APP, "CREATE STREAM stream1 AS SELECT * FROM topic1;");
-    makeKsqlRequest(REST_APP, "CREATE STREAM stream2 AS SELECT * FROM topic2;");
-    TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
+    // When
+    NEW_REST_APP.start();
+
+    // Then
+    assertThatEventually("Server should be in degraded state", () -> isDegradedState(REST_APP), is(true));
+    TEST_HARNESS.verifyAvailableRecords(commandTopic, 5);
+
+    assertTrue(OTHER_TEST_HARNESS.topicExists(commandTopic));
+    OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
+    final List<String> streamsNames = showStreams(NEW_REST_APP);
+    assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
+    assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
+    assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
+    assertThat("Should have STREAM2", streamsNames.contains("STREAM2"), is(true));
+  }
+
+  @Test
+  public void shouldNotMigrateCommandTopicIfTopicExistsAndHasRecords() {
+    // Given
+    OTHER_TEST_HARNESS.ensureTopics(commandTopic);
+    OTHER_TEST_HARNESS.produceRecord(commandTopic, "key", "data");
+    setUpStreams(commandTopic);
 
     // When
     NEW_REST_APP.start();
 
     // Then
     assertThatEventually("Server should be in degraded state", () -> isDegradedState(REST_APP), is(false));
-    assertTrue(OTHER_TEST_HARNESS.topicExists(commandTopic));
-    OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 0);
+    TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
+  }
+
+  private static void setUpStreams(final String commandTopic) {
+    makeKsqlRequest(REST_APP, "CREATE STREAM TOPIC1 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic1', VALUE_FORMAT='JSON');");
+    makeKsqlRequest(REST_APP, "CREATE STREAM TOPIC2 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic2', VALUE_FORMAT='JSON');");
+    makeKsqlRequest(REST_APP, "CREATE STREAM stream1 AS SELECT * FROM topic1;");
+    makeKsqlRequest(REST_APP, "CREATE STREAM stream2 AS SELECT * FROM topic2;");
     TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
   }
 

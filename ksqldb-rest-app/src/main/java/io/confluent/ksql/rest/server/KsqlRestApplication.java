@@ -152,6 +152,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -1046,9 +1047,7 @@ public final class KsqlRestApplication implements Executable {
     final String commandTopic = commandStore.getCommandTopicName();
 
     // migration code
-    if (!internalTopicClient.isTopicExists(commandTopic)
-        && serviceContext.getTopicClient().isTopicExists(commandTopic)
-        && restConfig.getBoolean(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_ENABLE)) {
+    if (checkMigrationConditions(commandTopic)) {
       log.warn("Migrating command topic from the service context Kafka to the command "
           + "producer/consumer Kafka.");
       KsqlInternalTopicUtils.ensureTopic(
@@ -1079,6 +1078,22 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfigNoPort,
         internalTopicClient
     );
+  }
+
+  private boolean checkMigrationConditions(final String commandTopic) {
+    final boolean emptyCommandTopic;
+    if (internalTopicClient.isTopicExists(commandTopic)) {
+      final Map<TopicPartition, Long> commandTopicEndOffset =
+          internalTopicClient.listTopicsEndOffsets(Collections.singletonList(commandTopic));
+
+      emptyCommandTopic = commandTopicEndOffset.get(new TopicPartition(commandTopic, 0)) == 0L;
+    } else {
+      emptyCommandTopic = true;
+    }
+
+    return emptyCommandTopic
+        && serviceContext.getTopicClient().isTopicExists(commandTopic)
+        && restConfig.getBoolean(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_ENABLE);
   }
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {

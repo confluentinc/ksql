@@ -17,6 +17,7 @@ package io.confluent.ksql.function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,13 +26,16 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,6 +54,13 @@ public class UdafAggregateFunctionFactoryTest {
 
   private UdafAggregateFunctionFactory functionFactory;
 
+  @Mock
+  private UdfIndex<UdafFactoryInvoker> variadicFunctionIndex;
+  @Mock
+  private UdafFactoryInvoker variadicInvoker;
+
+  private UdafAggregateFunctionFactory variadicFunctionFactory;
+
   @Before
   public void setUp() {
     functionFactory = new UdafAggregateFunctionFactory(metadata, functionIndex);
@@ -61,6 +72,31 @@ public class UdafAggregateFunctionFactoryTest {
               SqlArgument.of(SqlDecimal.of(1, 0))
             )))
     )).thenReturn(invoker);
+
+    when(invoker.literalParams()).thenReturn(ImmutableList.of(
+            new ParameterInfo("one", ParamTypes.BOOLEAN, "", false),
+            new ParameterInfo("two", ParamTypes.INTEGER, "", false),
+            new ParameterInfo("two", ParamTypes.LONG, "", false),
+            new ParameterInfo("two", ParamTypes.DOUBLE, "", false),
+            new ParameterInfo("two", ParamTypes.STRING, "", false)
+    ));
+
+    when(variadicFunctionIndex.getFunction(
+            not(eq(ImmutableList.of(
+                    SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlDecimal.of(1, 0))
+            )))
+    )).thenReturn(variadicInvoker);
+
+    when(variadicInvoker.literalParams()).thenReturn(ImmutableList.of(
+            new ParameterInfo("one", ParamTypes.INTEGER, "", false),
+            new ParameterInfo("two", ParamTypes.BOOLEAN, "", true)
+    ));
+    when(variadicInvoker.parameterInfo()).thenReturn(ImmutableList.of(
+            new ParameterInfo("one", ParamTypes.STRING, "", false)
+    ));
+
+    variadicFunctionFactory = new UdafAggregateFunctionFactory(metadata, variadicFunctionIndex);
   }
 
   @Test
@@ -77,31 +113,67 @@ public class UdafAggregateFunctionFactoryTest {
   @Test
   public void shouldHandleNullLiteralParams() {
     // When:
-    functionFactory.getFunction(
-        Arrays.asList(SqlTypes.STRING, null, SqlTypes.BIGINT)
-    ).getRight().apply(new AggregateFunctionInitArguments(
+    Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
+        result = functionFactory.getFunction(
+            Arrays.asList(SqlTypes.STRING, null, SqlTypes.INTEGER,
+                    SqlTypes.BIGINT, SqlTypes.DOUBLE, SqlTypes.STRING)
+        );
+
+    int initArgs = result.getLeft();
+
+    result.getRight().apply(new AggregateFunctionInitArguments(
             Collections.singletonList(0),
             ImmutableMap.of(),
-            Arrays.asList(null, 5L)
+            Arrays.asList(null, 5, 4L, 2.3d, "s")
     ));
 
     // Then:
-    verify(functionIndex).getFunction(Arrays.asList(SqlArgument.of(SqlTypes.STRING), null, SqlArgument.of(SqlTypes.BIGINT)));
+    assertEquals(5, initArgs);
+    verify(functionIndex).getFunction(Arrays.asList(SqlArgument.of(SqlTypes.STRING), null,
+            SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.BIGINT),
+            SqlArgument.of(SqlTypes.DOUBLE), SqlArgument.of(SqlTypes.STRING)));
   }
 
   @Test
   public void shouldHandleInitParamsOfAllPrimitiveTypes() {
     // When:
-    functionFactory.getFunction(
-        ImmutableList.of(SqlTypes.STRING, SqlTypes.BOOLEAN, SqlTypes.INTEGER, SqlTypes.BIGINT,
-                SqlTypes.DOUBLE, SqlTypes.STRING)
-    ).getRight().apply(new AggregateFunctionInitArguments(
+    Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
+            result = functionFactory.getFunction(
+                ImmutableList.of(SqlTypes.STRING, SqlTypes.BOOLEAN, SqlTypes.INTEGER,
+                        SqlTypes.BIGINT, SqlTypes.DOUBLE, SqlTypes.STRING)
+            );
+
+    int initArgs = result.getLeft();
+
+    result.getRight().apply(new AggregateFunctionInitArguments(
             Collections.singletonList(0),
             ImmutableMap.of(),
             ImmutableList.of(true, 1, 1L, 1.0d, "s")
     ));
 
     // Then: did not throw.
+    assertEquals(5, initArgs);
+  }
+
+  @Test
+  public void shouldHandleInitParamsWhenFactoryIsVariadic() {
+    // When:
+    Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
+            result = variadicFunctionFactory.getFunction(
+                    ImmutableList.of(SqlTypes.STRING, SqlTypes.INTEGER, SqlTypes.BOOLEAN,
+                            SqlTypes.BOOLEAN, SqlTypes.BOOLEAN, SqlTypes.BOOLEAN)
+            );
+
+    int initArgs = result.getLeft();
+
+    result.getRight().apply(new AggregateFunctionInitArguments(
+            Collections.singletonList(0),
+            ImmutableMap.of(),
+            ImmutableList.of(2, true, false, true, true)
+    ));
+
+    // Then: did not throw.
+    assertEquals(5, initArgs);
   }
 
   @Test

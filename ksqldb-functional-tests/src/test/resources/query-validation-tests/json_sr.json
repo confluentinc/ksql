@@ -846,6 +846,59 @@
       ]
     },
     {
+      "name": "value - union schema inference",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON_SR', value_schema_id=1);",
+        "CREATE STREAM KEYCODES AS SELECT `connect_union_field_0`->`keyCode` FROM INPUT WHERE `connect_union_field_0` is not null;",
+        "CREATE STREAM ITEMCODES AS SELECT `connect_union_field_1`->`itemCode` FROM INPUT WHERE `connect_union_field_1` is not null;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "JSON_SR",
+          "valueSchema": {
+            "anyOf": [
+              {
+                "properties": {
+                  "keyCode": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "itemCode": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            ]
+          }
+        }
+      ],
+      "inputs": [
+        {"topic": "input", "key": null, "value": { "connect_union_field_0": { "keyCode": "key1" }, "connect_union_field_1": null } },
+        {"topic": "input", "key": null, "value": { "connect_union_field_1": null, "connect_union_field_1": { "itemCode": "item1" } } },
+        {"topic": "input", "key": null, "value": { "connect_union_field_0": { "keyCode": "key2" }, "connect_union_field_1": null } },
+        {"topic": "input", "key": null, "value": { "connect_union_field_1": null, "connect_union_field_1": { "itemCode": "item2" } } }
+      ],
+      "outputs": [
+        {"topic": "KEYCODES", "key": null, "value": { "keyCode": "key1" } },
+        {"topic": "KEYCODES", "key": null, "value": { "keyCode": "key2" } },
+        {"topic": "ITEMCODES", "key": null, "value": { "itemCode": "item1" } },
+        {"topic": "ITEMCODES", "key": null, "value": { "itemCode": "item2" } }
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "`connect_union_field_0` STRUCT<`keyCode` STRING>, `connect_union_field_1` STRUCT<`itemCode` STRING>"},
+          {"name" : "KEYCODES", "type" : "STREAM", "schema" : "`keyCode` STRING", "valueFormat" : "JSON_SR"},
+          {"name" : "ITEMCODES", "type" : "STREAM", "schema" : "`itemCode` STRING", "valueFormat" : "JSON_SR"}
+        ]
+      }
+    },
+    {
       "name": "map with non-string keys fails",
       "statements": [
         "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON_SR');"

@@ -29,6 +29,10 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.execution.pull.HARouting;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.scalablepush.PushRouting;
+import io.confluent.ksql.execution.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
@@ -49,10 +53,6 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -61,6 +61,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -99,7 +100,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class KsqlEngine implements KsqlExecutionContext, Closeable {
+public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
@@ -364,6 +365,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public MetricCollectors metricCollectors() {
     return metricCollectors;
+  }
+
+  @Override
+  public void configure(final KsqlConfig config) {
+    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new IllegalArgumentException("Need KS application server set");
+    }
+    this.primaryContext.configure(config);
   }
 
   @Override

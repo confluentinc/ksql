@@ -41,12 +41,12 @@ import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory.InternalSimpleKsqlClientFactory;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -202,20 +202,6 @@ public class TestKsqlRestApp extends ExternalResource {
     );
   }
 
-  public KsqlRestClient buildKsqlClient(
-      final Optional<BasicCredentials> credentials,
-      final ConsistencyLevel consistencyLevel
-  ) {
-    return KsqlRestClient.create(
-        getHttpListener().toString(),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        credentials,
-        Optional.empty(),
-        consistencyLevel
-    );
-  }
-
   public KsqlRestClient buildInternalKsqlClient() {
     return KsqlRestClient.create(
         getHttpInternalListener().toString(),
@@ -352,6 +338,7 @@ public class TestKsqlRestApp extends ExternalResource {
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           ksqlRestConfig,
+          new ServerState(),
           (booleanSupplier) -> mock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
@@ -703,17 +690,6 @@ public class TestKsqlRestApp extends ExternalResource {
           additionalProps,
           serviceContext,
           credentials,
-          internalSimpleKsqlClientFactory
-      );
-    }
-
-    public TestKsqlRestAppWaitingOnPrecondition buildWaitingOnPrecondition(final CountDownLatch latch) {
-      return new TestKsqlRestAppWaitingOnPrecondition(
-          bootstrapServers,
-          additionalProps,
-          serviceContext,
-          credentials,
-          latch,
           internalSimpleKsqlClientFactory
       );
     }

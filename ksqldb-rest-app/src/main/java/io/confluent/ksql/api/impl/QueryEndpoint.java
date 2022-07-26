@@ -16,18 +16,18 @@
 package io.confluent.ksql.api.impl;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.server.query.QueryExecutor;
@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
 public class QueryEndpoint {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final QueryExecutor queryExecutor;
@@ -66,7 +66,7 @@ public class QueryEndpoint {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryEndpoint(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlConfig ksqlConfig,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final QueryExecutor queryExecutor
@@ -239,16 +239,16 @@ public class QueryEndpoint {
 
     private final PullQueryResult result;
     private final Optional<PullQueryExecutorMetrics>  pullQueryMetrics;
-    private final String statementText;
+    private final String maskedStatementText;
     private final CompletableFuture<Void> future = new CompletableFuture<>();
 
     KsqlPullQueryHandle(final PullQueryResult result,
         final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-        final String statementText
+        final String maskedStatementText
     ) {
       this.result = Objects.requireNonNull(result);
       this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
-      this.statementText = statementText;
+      this.maskedStatementText = maskedStatementText;
     }
 
     @Override
@@ -278,7 +278,7 @@ public class QueryEndpoint {
         // Let this error bubble up since start is called from the worker thread and will fail the
         // query.
         throw new KsqlStatementException("Error starting pull query: " + e.getMessage(),
-            statementText, e);
+            maskedStatementText, e);
       }
     }
 

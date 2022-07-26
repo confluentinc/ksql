@@ -60,6 +60,26 @@ public class ProtobufPropertiesTest {
   }
 
   @Test
+  public void shouldGetDefaultUnwrapPrimitives() {
+    // Given:
+    final ProtobufProperties properties = new ProtobufProperties(ImmutableMap.of());
+
+    // When/Then:
+    assertThat(properties.getUnwrapPrimitives(), is(false));
+  }
+
+  @Test
+  public void shouldGetExplicitUnwrapPrimitives() {
+    // Given:
+    final ProtobufProperties properties = new ProtobufProperties(ImmutableMap.of(
+        ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP
+    ));
+
+    // When/Then:
+    assertThat(properties.getUnwrapPrimitives(), is(true));
+  }
+
+  @Test
   public void shouldThrowWithUnsupportedProperty() {
     // When:
     final Exception e = assertThrows(KsqlException.class,

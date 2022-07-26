@@ -54,7 +54,9 @@
         "type" : "object",
         "properties" : {
           "c1" : {
-            "type" : "integer"
+            "type" : "integer",
+            "connect.index": 0,
+            "connect.type": "int64"
           }
         }
       },
@@ -115,7 +117,9 @@
             "type" : "object",
             "properties" : {
               "c1" : {
-                "type" : "integer"
+                "type" : "integer",
+                "connect.index": 0,
+                "connect.type": "int64"
               }
             }
           }

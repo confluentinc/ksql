@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -72,6 +73,8 @@ public class TransientQueryMetadataTest {
   private Consumer<QueryMetadata> closeCallback;
   @Mock
   private Listener listener;
+  @Mock
+  private MeteredProcessingLoggerFactory loggerFactory;
 
   private TransientQueryMetadata query;
 
@@ -98,7 +101,8 @@ public class TransientQueryMetadataTest {
         ResultType.STREAM,
         0L,
         0L,
-        listener
+        listener,
+        loggerFactory
     );
     query.initialize();
   }
@@ -114,7 +118,7 @@ public class TransientQueryMetadataTest {
     // Then:
     final InOrder inOrder = inOrder(rowQueue, kafkaStreams);
     inOrder.verify(rowQueue).close();
-    inOrder.verify(kafkaStreams).close(any());
+    inOrder.verify(kafkaStreams).close(any(java.time.Duration.class));
   }
 
   @Test

@@ -58,14 +58,13 @@
         "oneOf" : [ {
           "type" : "null"
         }, {
-          "type" : "boolean",
-          "connect.type" : "boolean"
+          "type" : "boolean"
         } ]
       },
       "valueSchema" : {
         "type" : "object",
         "properties" : {
-          "COL1" : {
+          "FOO" : {
             "connect.index" : 0,
             "oneOf" : [ {
               "type" : "null"
@@ -121,14 +120,13 @@
             "oneOf" : [ {
               "type" : "null"
             }, {
-              "type" : "boolean",
-              "connect.type" : "boolean"
+              "type" : "boolean"
             } ]
           },
           "valueSchema" : {
             "type" : "object",
             "properties" : {
-              "COL1" : {
+              "FOO" : {
                 "connect.index" : 0,
                 "oneOf" : [ {
                   "type" : "null"

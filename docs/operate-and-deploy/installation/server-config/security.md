@@ -605,6 +605,16 @@ details, and instructions on how to create suitable trust stores, please
 refer to the
 [Security Guide](https://docs.confluent.io/current/security/index.html).
 
+To use separate trust stores for encrypted communication with {{ site.ak }}
+and external communication with ksqlDB clients, prefix the SSL truststore configs
+with `ksql.streams.`:
+
+```properties
+security.protocol=SSL
+ksql.streams.ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
+ksql.streams.ssl.truststore.password=confluent
+```
+
 ### Configure Kafka Authentication
 
 This configuration enables ksqlDB to connect to a secure Kafka cluster

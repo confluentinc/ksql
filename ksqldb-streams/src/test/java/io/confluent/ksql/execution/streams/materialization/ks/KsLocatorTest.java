@@ -61,6 +61,7 @@ import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -139,6 +140,8 @@ public class KsLocatorTest {
   @Mock
   private RoutingFilter activeFilter;
   @Mock
+  private RoutingFilter lagFilter;
+  @Mock
   private RoutingOptions routingOptions;
   @Mock
   private TopologyDescription description;
@@ -155,8 +158,10 @@ public class KsLocatorTest {
   private KsqlNode standByNode2;
   private RoutingFilters routingStandbyFilters;
   private RoutingFilters routingActiveFilters;
+  private RoutingFilters routingLagFilters;
   private RoutingFilterFactory routingFilterFactoryActive;
   private RoutingFilterFactory routingFilterFactoryStandby;
+  private RoutingFilterFactory routingFilterFactoryLag;
 
   @Before
   public void setUp() {
@@ -177,6 +182,7 @@ public class KsLocatorTest {
 
     routingStandbyFilters = new RoutingFilters(ImmutableList.of(livenessFilter));
     routingActiveFilters = new RoutingFilters(ImmutableList.of(activeFilter, livenessFilter));
+    routingLagFilters = new RoutingFilters(ImmutableList.of(livenessFilter, lagFilter));
 
     // Only active serves query
     when(activeFilter.filter(eq(ACTIVE_HOST)))
@@ -194,10 +200,21 @@ public class KsLocatorTest {
     when(livenessFilter.filter(eq(STANDBY_HOST2)))
         .thenReturn(Host.include(STANDBY_HOST2));
 
+    // StandBy2 exceeds max allowed lag
+    when(lagFilter.filter(eq(ACTIVE_HOST)))
+        .thenReturn(Host.include(ACTIVE_HOST));
+    when(lagFilter.filter(eq(STANDBY_HOST1)))
+        .thenReturn(Host.include(STANDBY_HOST1));
+    when(lagFilter.filter(eq(STANDBY_HOST2)))
+        .thenReturn(Host.exclude(STANDBY_HOST2, "lag"));
+
+
     routingFilterFactoryActive = (routingOptions, hosts, active, applicationQueryId,
                                   storeName, partition) -> routingActiveFilters;
     routingFilterFactoryStandby = (routingOptions, hosts, active, applicationQueryId,
                                    storeName, partition) -> routingStandbyFilters;
+    routingFilterFactoryLag = (routingOptions, hosts, active, applicationQueryId,
+                                   storeName, partition) -> routingLagFilters;
   }
 
   @Test
@@ -223,6 +240,29 @@ public class KsLocatorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Materialized data for key [1] is not available yet. Please try again later."));
+  }
+
+  @Test
+  public void shouldThrowIfMetadataIsEmpty() {
+    // Given:
+    getActiveAndStandbyMetadata();
+    when(topology.describe()).thenReturn(description);
+    when(description.subtopologies()).thenReturn(ImmutableSet.of(sub1));
+    when(sub1.nodes()).thenReturn(ImmutableSet.of(source, processor));
+    when(source.topicSet()).thenReturn(ImmutableSet.of(TOPIC_NAME));
+    when(processor.stores()).thenReturn(ImmutableSet.of(STORE_NAME));
+
+    // When:
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> locator.locate(Collections.emptyList(), routingOptions, routingFilterFactoryActive, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is(
+        "Cannot determine which host contains the required partitions to serve the pull query. \n" +
+            "The underlying persistent query may be restarting (e.g. as a result of" +
+            " ALTER SYSTEM) view the status of your by issuing <DESCRIBE foo>."));
   }
 
   @Test
@@ -462,6 +502,30 @@ public class KsLocatorTest {
   }
 
   @Test
+  public void shouldReturnStandBy1WhenActiveDownStandby2ExceedsLag() {
+    // Given:
+    getActiveAndStandbyMetadata();
+    when(livenessFilter.filter(eq(ACTIVE_HOST)))
+        .thenReturn(Host.exclude(ACTIVE_HOST, "liveness"));
+
+    // When:
+    final List<KsqlPartitionLocation> result = locator.locate(
+        ImmutableList.of(KEY), routingOptions, routingFilterFactoryLag, false);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes().stream()
+        .filter(node -> node.getHost().isSelected())
+        .collect(Collectors.toList());
+    assertThat(nodeList.size(), is(1));
+    assertThat(nodeList, containsInAnyOrder(standByNode1));
+  }
+
+
+
+  @Ignore
+  @Test
+  //For issue #7174. Temporarily ignore this test. It will call getMetadataForAllPartitions().
+  //Formerly it called getMetadataForKeys().
   public void shouldGroupKeysByLocation() {
     // Given:
     getActiveStandbyMetadata(SOME_KEY, 0, ACTIVE_HOST_INFO, STANDBY_HOST_INFO1);

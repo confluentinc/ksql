@@ -18,6 +18,30 @@ Returns the absolute value of `col1`.
 
 ---
 
+### **`ACOS`**
+
+```sql title="Since: 0.28.0"
+ACOS(col1)
+```
+
+Returns the inverse (arc) cosine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+This function returns `NaN` for any input outside [-1, 1].
+
+---
+
+### **`ASIN`**
+
+```sql title="Since: 0.28.0"
+ASIN(col1)
+```
+
+Returns the inverse (arc) sine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+This function returns `NaN` for any input outside [-1, 1].
+
+---
+
 ### **`AS_VALUE`**
 
 ```sql title="Since: 0.9.0"
@@ -37,7 +61,29 @@ CREATE TABLE AGG AS
 ```
 
 !!! Tip "See AS_VALUE in action"
-    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
+
+---
+
+### **`ATAN`**
+
+```sql title="Since: 0.28.0"
+ATAN(col1)
+```
+
+Returns the inverse (arc) tangent of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+---
+
+### **`ATAN2`**
+
+```sql title="Since: 0.28.0"
+ATAN2(y, x)
+```
+
+Returns the inverse (arc) tangent of `y / x`. This is equivalent to the angle _theta_ when Cartesian coordinates (x, y) are converted to polar coordinates (_radius_, _theta_). The returned value is in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+If `x` is zero, `y / x` is undefined, and this function returns the approximate value of a multiple of _π/2_.
 
 ---
 
@@ -65,8 +111,8 @@ Converts one type to another. The following casts are supported:
 | `STRUCT` | `STRUCT` | (Since 0.14) Convert between structs of different field types. Only fields that exist in the target STRUCT type are copied across. Any fields in the target type that don't exist in the source are set to `NULL`. Field name matching is case-sensitive. |
 
 !!! Tip "See CAST in action"
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
-    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -77,6 +123,48 @@ CEIL(col1)
 ```
 
 Returns the the smallest integer value that's greater than or equal to `col1`.
+
+---
+
+### **`COS`**
+
+```sql title="Since: 0.28.0"
+COS(col1)
+```
+
+Returns the cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`COSH`**
+
+```sql title="Since: 0.28.0"
+COSH(col1)
+```
+
+Returns the hyperbolic cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`COT`**
+
+```sql title="Since: 0.28.0"
+COT(col1)
+```
+
+Returns the cotangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+This implementation returns a large value approaching positive or negative infinity near the asymptotes, because _2π_ and similar values cannot be represented exactly. At _0_, it returns `Infinity` with the same sign as the input.
+
+---
+
+### **`DEGREES`**
+
+```sql title="Since: 0.28.0"
+DEGREES(col1)
+```
+
+Converts `col1` from radians to degrees.
 
 ---
 
@@ -180,6 +268,26 @@ The value of `col1` must be greater than 0.
 
 ---
 
+### **`PI`**
+
+```sql title="Since: 0.28.0"
+PI()
+```
+
+Returns an approximate value of _π_.
+
+---
+
+### **`RADIANS`**
+
+```sql title="Since: 0.28.0"
+RADIANS(col1)
+```
+
+Converts `col1` from degrees to radians.
+
+---
+
 ### **`RANDOM`**
 
 ```sql title="Since: 0.1.0"
@@ -223,6 +331,26 @@ Returns the sign of `col1` as an `INTEGER`:
 
 ---
 
+### **`SIN`**
+
+```sql title="Since: 0.28.0"
+SIN(col1)
+```
+
+Returns the sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`SINH`**
+
+```sql title="Since: 0.28.0"
+SINH(col1)
+```
+
+Returns the hyperbolic sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
 ### **`SQRT`**
 
 ```sql title="Since: 0.6.0"
@@ -230,6 +358,28 @@ SQRT(col1)
 ```
 
 Returns the square root of `col`.
+
+---
+
+### **`TAN`**
+
+```sql title="Since: 0.28.0"
+TAN(col1)
+```
+
+Returns the tangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+This implementation returns a large value approaching positive or negative infinity near the asymptotes, because _π/2_ and similar values cannot be represented exactly.
+
+---
+
+### **`TANH`**
+
+```sql title="Since: 0.28.0"
+TANH(col1)
+```
+
+Returns the hyperbolic tangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
 ---
 
@@ -279,7 +429,7 @@ Accepts any `ARRAY` type. The type of the second param must match the element
 type of the `ARRAY`.
 
 !!! Tip "See ARRAY_CONTAINS in action"
-    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#ksqldb-code)
+    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -358,7 +508,7 @@ which is an optional parameter. The default is the comma character, `,`.
 Array elements are limited to primitive ksqlDB types only.
 
 !!! Tip "See ARRAY_JOIN in action"
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -470,7 +620,7 @@ ARRAY_SORT['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]
 ```
 
 !!! Tip "See ARRAY_SORT in action"
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -501,7 +651,7 @@ AS_MAP(keys, vals)
 Constructs a map from a list of keys and a list of values.
 
 !!! Tip "See AS_MAP in action"
-    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -720,7 +870,7 @@ Any inputs which evaluate to `NULL` are replaced with an empty string or bytes
 in the output.
 
 !!! Tip "See CONCAT in action"
-    - [Enrich orders with change data capture (CDC)](https://developer.confluent.io/tutorials/denormalization/confluent.html#ksqldb-code)
+    - [Enrich orders with change data capture (CDC)](https://developer.confluent.io/tutorials/denormalization/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -848,13 +998,13 @@ Returns `true` if `json_string` can be parsed as a valid JSON value; otherwise,
 `false` .
 
 ```sql title="Examples"
-IS_JSON_STRING("[1, 2, 3]") => true
-IS_JSON_STRING("{}") => true
-IS_JSON_STRING("1") => true
-IS_JSON_STRING("\"abc\"") => true
-IS_JSON_STRING("null") => true
-IS_JSON_STRING("") => false
-IS_JSON_STRING("abc") => false
+IS_JSON_STRING('[1, 2, 3]') => true
+IS_JSON_STRING('{}') => true
+IS_JSON_STRING('1') => true
+IS_JSON_STRING('\"abc\"') => true
+IS_JSON_STRING('null') => true
+IS_JSON_STRING('') => false
+IS_JSON_STRING('abc') => false
 IS_JSON_STRING(NULL) => false
 ```
 
@@ -872,13 +1022,13 @@ when the string is `NULL` or it doesn't contain valid JSON, or the JSON value
 is not an array.
 
 ```sql title="Examples"
-JSON_ARRAY_LENGTH("[1, 2, 3]") => 3
-JSON_ARRAY_LENGTH("[1, [1, [2]], 3]") =>  3
-JSON_ARRAY_LENGTH("[]") => 0
-JSON_ARRAY_LENGTH("{}") => NULL
-JSON_ARRAY_LENGTH("123") => NULL
+JSON_ARRAY_LENGTH('[1, 2, 3]') => 3
+JSON_ARRAY_LENGTH('[1, [1, [2]], 3]') =>  3
+JSON_ARRAY_LENGTH('[]') => 0
+JSON_ARRAY_LENGTH('{}') => NULL
+JSON_ARRAY_LENGTH('123') => NULL
 JSON_ARRAY_LENGTH(NULL) => NULL
-JSON_ARRAY_LENGTH("abc") => throws an "Invalid JSON format" exception
+JSON_ARRAY_LENGTH('abc') => returns NULL and logs an "Invalid JSON format" exception in server log
 ```
 
 ### `JSON_CONCAT`
@@ -910,18 +1060,18 @@ object keys or arrays.
 Examples:
 
 ```sql title="Examples"
-JSON_CONCAT("{\"a\": 1}", "{\"b\": 2}") => "{\"a\": 1, \"b\": 2}"
-JSON_CONCAT("{\"a\": {\"5\": 6}}", "{\"a\": {\"3\": 4}}") => "{\"a\": {\"3\": 4}}"
-JSON_CONCAT("{}", "{}") => "{}"
-JSON_CONCAT("[1, 2]", "[3, 4]") => "[1,2,3,4]"
-JSON_CONCAT("[1, [2]]", "[[[3]], [[[4]]]]") => "[ 1, [2], [[3]], [[[4]]] ]"
-JSON_CONCAT("null", "null") => "[null, null]"
-JSON_CONCAT("[1, 2]", "{\"a\": 1}") => "[1, 2, {\"a\": 1}]"
-JSON_CONCAT("[1, 2]", "3") => "[1, 2, 3]"
-JSON_CONCAT("1", "2") => "[1, 2]"
-JSON_CONCAT("[]", "[]") => []
-JSON_CONCAT("abc", "[1]") => NULL
-JSON_CONCAT(NULL, "[1]") => NULL
+JSON_CONCAT('{\"a\": 1}', '{\"b\": 2}') => '{"a":1,"b":2}'
+JSON_CONCAT('{\"a\": {\"5\": 6}}', '{\"a\": {\"3\": 4}}') => '{"a":{"3":4}}'
+JSON_CONCAT('{}', '{}') => '{}'
+JSON_CONCAT('[1, 2]', '[3, 4]') => '[1,2,3,4]'
+JSON_CONCAT('[1, [2]]', '[[[3]], [[[4]]]]') => '[ 1, [2], [[3]], [[[4]]] ]'
+JSON_CONCAT('null', 'null') => '[null, null]'
+JSON_CONCAT('[1, 2]', '{\"a\": 1}') => '[1,2,{"a":1}]'
+JSON_CONCAT('[1, 2]', '3') => '[1, 2, 3]'
+JSON_CONCAT('1', '2') => '[1, 2]'
+JSON_CONCAT('[]', '[]') => '[]'
+JSON_CONCAT('abc', '[1]') => NULL
+JSON_CONCAT(NULL, '[1]') => NULL
 ```
 
 ### `JSON_KEYS`
@@ -938,12 +1088,12 @@ for example, when the string is `NULL` or it does not contain valid JSON,
 or the JSON value is not an object.
 
 ```sql title="Examples"
-JSON_KEYS("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") => ["a", "b", "d"]
-JSON_KEYS("{}") => []
-JSON_KEYS("[]") => NULL
-JSON_KEYS("123") => NULL
+JSON_KEYS('{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}') => ['a', 'b', 'd']
+JSON_KEYS('{}') => []
+JSON_KEYS('[]') => NULL
+JSON_KEYS('123') => NULL
 JSON_KEYS(NULL) => NULL
-JSON_KEYS("") => NULL
+JSON_KEYS('') => NULL
 ```
 
 ### `JSON_RECORDS`
@@ -960,12 +1110,12 @@ for example, when the string is `NULL` or it does not contain valid JSON,
 or the JSON value is not an object.
 
 ```sql title="Examples"
-JSON_RECORDS("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") => {"a": "\"abc\"", "b": "{ \"c\": \"a\" }", "d": "1"}
-JSON_RECORDS("{}") => []
-JSON_RECORDS("[]") => NULL
-JSON_RECORDS("123") => NULL
+JSON_RECORDS('{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}') => {d=1, a="abc", b={"c":"a"}}
+JSON_RECORDS('{}') => {}
+JSON_RECORDS('[]') => NULL
+JSON_RECORDS('123') => NULL
 JSON_RECORDS(NULL) => NULL
-JSON_RECORDS("abc") => NULL
+JSON_RECORDS('abc') => NULL
 ```
 
 ### `TO_JSON_STRING`
@@ -977,21 +1127,21 @@ TO_JSON_STRING(val) => String
 Given any ksqlDB type, returns the equivalent JSON string.
 
 ```sql title="Primitives types"
-TO_JSON_STRING(1) => "1"
-TO_JSON_STRING(15.3) => "15.3"
-TO_JSON_STRING("abc") => "\"abc\""
-TO_JSON_STRING(true) => "true"
-TO_JSON_STRING(2021-10-11) => DATE type, "\"2021-10-11\""
-TO_JSON_STRING(13:25) => TIME type, "\"13:25:10\""
-TO_JSON_STRING(2021-06-31T12:18:39.446) => TIMESTAMP type, "\"2021-06-31T12:18:39.446\""
-TO_JSON_STRING(NULL) => "null"
+TO_JSON_STRING(1) => '1'
+TO_JSON_STRING(15.3) => '15.3'
+TO_JSON_STRING('abc') => '"abc"'
+TO_JSON_STRING(true) => 'true'
+TO_JSON_STRING(PARSE_DATE('2021-10-11', 'yyyy-MM-dd')) => '"2021-10-11"'
+TO_JSON_STRING(PARSE_TIME('13:25', 'HH:mm')) => '"13:25"'
+TO_JSON_STRING(PARSE_TIMESTAMP('2021-06-31 12:18:39.446', 'yyyy-MM-dd HH:mm:ss.SSS')) => '"2021-06-30T12:18:39.446"'
+TO_JSON_STRING(NULL) => 'null'
 ```
 
 ```sql title="Compound types"
-TO_JSON_STRING(Array[1, 2, 3]) => "[1, 2, 3]"
-TO_JSON_STRING(Struct{id=1,name=A}) => "{\"id\": 1, \"name\": \"a\"}"
-TO_JSON_STRING(Map('c' := 2, 'd' := 4)) => "{\"c\": 2, \"d\": 4}"
-TO_JSON_STRING(Array[Struct{json_key=1 json_value=Map('c' := 2, 'd' := true)}]) => "[{\"json_key\": 1, \"json_value\": {\"c\": 2, \"d\": true}}]"
+TO_JSON_STRING(Array[1, 2, 3]) => '[1, 2, 3]'
+TO_JSON_STRING(Struct(id := 1, name := 'A')) => '{"ID":1,"NAME":"A"}'
+TO_JSON_STRING(Map('c' := 2, 'd' := 4)) => '{"c": 2, "d": 4}'
+TO_JSON_STRING(Array[Struct(json_key := 1, json_value := Map('c' := 2, 'd' := 3))]) => '[{"JSON_KEY": 1, "JSON_VALUE": {"c": 2, "d": 3}}]'
 ```
 
 ---
@@ -1180,7 +1330,7 @@ REPLACE(col1, 'foo', 'bar')
 Replaces all instances of a substring in a string with a new string.
 
 !!! Tip "See REPLACE in action"
-    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1299,7 +1449,7 @@ or there are contiguous delimiters, an empty space is added to the array.
 Returns `NULL` if either parameter is `NULL`.
 
 !!! Tip "See SPLIT in action"
-    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1381,7 +1531,7 @@ UCASE(col1)
 Converts a string to uppercase.
 
 !!! Tip "See UCASE in action"
-    - [Handle corrupted data from Salesforce](https://developer.confluent.io/tutorials/salesforce/confluent.html#ksqldb-code)
+    - [Handle corrupted data from Salesforce](https://developer.confluent.io/tutorials/salesforce/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1638,8 +1788,8 @@ For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
 !!! Tip "See FORMAT_TIMESTAMP in action"
-    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
-    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -1662,7 +1812,7 @@ FROM_UNIXTIME(milliseconds)
 Converts a `BIGINT` millisecond timestamp value into a `TIMESTAMP` value.
 
 !!! Tip "See FROM_UNIXTIME in action"
-    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
 
 ---
 
@@ -2036,7 +2186,7 @@ more information on timestamp formats, see
 
 Since: 0.7.1
 
-**Deprecated since 0.17.0 (use FORMAT_TIMESTAMP)**
+**Deprecated since 0.17.0 (use [FORMAT_TIMESTAMP](#format_timestamp))**
 
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -2050,3 +2200,12 @@ can be escaped with two successive single quotes, `''`, for example:
 TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
 for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
 information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+!!! note
+    To use the [`FORMAT_TIMESTAMP`](#format_timestamp) function with a BIGINT millisecond timestamp
+    parameter, convert the millisecond value to a `TIMESTAMP` by using the
+    `FROM_UNIXTIME` function, for example:
+
+    ```sql
+    FORMAT_TIMESTAMP(FROM_UNIXTIME(unix_timestamp))
+    ```

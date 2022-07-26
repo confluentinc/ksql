@@ -21,16 +21,10 @@ import java.util.Optional;
 
 public final class LogicalPlanNode {
 
-  private final String statementText;
   private final Optional<OutputNode> node;
 
-  public LogicalPlanNode(final String statementText, final Optional<OutputNode> node) {
-    this.statementText = Objects.requireNonNull(statementText, "statementText");
+  public LogicalPlanNode(final Optional<OutputNode> node) {
     this.node = Objects.requireNonNull(node, "node");
-  }
-
-  public String getStatementText() {
-    return statementText;
   }
 
   public Optional<OutputNode> getNode() {

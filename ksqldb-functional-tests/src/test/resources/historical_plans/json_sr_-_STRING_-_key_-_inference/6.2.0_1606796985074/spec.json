@@ -62,14 +62,13 @@
         "oneOf" : [ {
           "type" : "null"
         }, {
-          "type" : "string",
-          "connect.type" : "string"
+          "type" : "string"
         } ]
       },
       "valueSchema" : {
         "type" : "object",
         "properties" : {
-          "COL1" : {
+          "FOO" : {
             "connect.index" : 0,
             "oneOf" : [ {
               "type" : "null"
@@ -123,14 +122,13 @@
             "oneOf" : [ {
               "type" : "null"
             }, {
-              "type" : "string",
-              "connect.type" : "string"
+              "type" : "string"
             } ]
           },
           "valueSchema" : {
             "type" : "object",
             "properties" : {
-              "COL1" : {
+              "FOO" : {
                 "connect.index" : 0,
                 "oneOf" : [ {
                   "type" : "null"

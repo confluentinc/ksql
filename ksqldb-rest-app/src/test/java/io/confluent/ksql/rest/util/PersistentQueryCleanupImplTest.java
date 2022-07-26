@@ -94,10 +94,10 @@ public class PersistentQueryCleanupImplTest {
     final List<LoggingEvent> log = appender.getLog();
     final LoggingEvent firstLogEntry = log.get(0);
 
-    assertThat(firstLogEntry.getLevel(), is(Level.WARN));
     assertThat((String) firstLogEntry.getMessage(), is(
       "Deleted local state store for non-existing query fakeStateStore. " +
         "This is not expected and was likely due to a race condition when the query was dropped before."));
+    assertThat(firstLogEntry.getLevel(), is(Level.WARN));
   }
 
   @Test

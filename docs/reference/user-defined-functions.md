@@ -230,7 +230,7 @@ type, like `DECIMAL` or `STRUCT`. For example, a UDF that returns
 precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
-`public SqlType <your-method-name>(final List<SqlType> params)` and
+`public SqlType <your-method-name>(final List<SqlArgument> params)` and
 annotate it with `@UdfSchemaProvider`. Also, you need to link it to the
 corresponding UDF by using the `schemaProvider=<your-method-name>`
 parameter of the `@Udf` annotation.
@@ -238,6 +238,11 @@ parameter of the `@Udf` annotation.
 When implementing dynamic returns for a UDTF function, if your method returns
 a value of type `List<T>`, the type referred to by the schema provider method
 is the type `T`, not the type `List<T>`.
+
+For dynamic UDAFs, the `aggregate` or `map` methods may depend on the input SQL type, so
+implementations of the `Udaf` interface override some of the following three methods:
+`initializeTypeArguments(List<SqlArgument> argTypeList)`, `getAggregateSqlType()`, and 
+`getReturnSqlType()`.
 
 ## Generics
 

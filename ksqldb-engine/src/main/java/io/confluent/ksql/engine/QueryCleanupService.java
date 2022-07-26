@@ -94,6 +94,8 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
   public static class QueryCleanupTask implements Runnable {
     private final String appId;
     private final String queryTopicPrefix;
+    private final String altQueryTopicPrefix;
+    //There was a mixup with - and _ for now we check both
     private final Optional<String> topologyName;
     private final String pathName;
     private final boolean isTransient;
@@ -114,6 +116,11 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
           .map(s -> QueryApplicationId.buildInternalTopicPrefix(
               serviceId,
               persistentQueryPrefix) + s)
+          .orElse(appId);
+      altQueryTopicPrefix = queryId
+          .map(s -> QueryApplicationId.buildInternalTopicPrefix(
+              serviceId,
+              persistentQueryPrefix.split("_")[0] + "-") + s)
           .orElse(appId);
       //generate the prefix depending on if using named topologies
       this.isTransient = isTransient;
@@ -158,6 +165,8 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
           () -> {
             LOG.info("Deleting topics for prefix {}", queryTopicPrefix);
             serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix);
+            serviceContext.getTopicClient().deleteInternalTopics(altQueryTopicPrefix);
+
           },
           "internal topics"
       );

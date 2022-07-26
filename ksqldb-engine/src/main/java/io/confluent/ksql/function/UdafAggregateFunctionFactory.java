@@ -27,6 +27,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
@@ -66,7 +67,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
           .map(Objects::toString)
           .collect(Collectors.joining(",")));
     }
-    return creator.createFunction(initArgs);
+    return creator.createFunction(initArgs, argTypeList);
   }
 
   @Override
@@ -75,6 +76,11 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
         .stream()
         .map(UdafFactoryInvoker::parameters)
         .collect(Collectors.toList());
+  }
+
+  @Override
+  public void eachFunction(final BiConsumer<FunctionSignature, String> consumer) {
+    udfIndex.values().forEach((invoker) -> consumer.accept(invoker, invoker.getDescription()));
   }
 
   private List<SqlArgument> buildAllParams(

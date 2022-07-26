@@ -487,8 +487,8 @@ public class SqlToJavaVisitor {
 
       final String struct = process(node.getBase(), context).getLeft();
       final String field = process(new StringLiteral(node.getFieldName()), context).getLeft();
-      final String codeString = "((" + javaReturnType + ") "
-          + struct + ".get(" + field + "))";
+      final String codeString = "((" + javaReturnType + ")("
+          + struct + " == null ? null : " + struct + ".get(" + field + ")))";
 
       return new Pair<>(codeString, functionReturnSchema);
     }
@@ -545,15 +545,17 @@ public class SqlToJavaVisitor {
         } else {
           paramType = function.parameters().get(i);
         }
-
-        joiner.add(
-            process(
-                convertArgument(arg, sqlType, paramType),
-                new Context(argumentInfos.get(i).getLambdaSqlTypeMapping()))
-            .getLeft()
-        );
+        String code = process(
+            convertArgument(arg, sqlType, paramType),
+            new Context(argumentInfos.get(i).getLambdaSqlTypeMapping()))
+            .getLeft();
+        if (arg instanceof FunctionCall) {
+          code = evaluateOrReturnNull(code, ((FunctionCall) arg).getName().text());
+        } else if (arg instanceof DereferenceExpression) {
+          code = evaluateOrReturnNull(code, ((DereferenceExpression) arg).getFieldName());
+        }
+        joiner.add(code);
       }
-
 
       final String argumentsString = joiner.toString();
       final String codeString = "((" + javaReturnType + ") " + instanceName
@@ -1064,8 +1066,9 @@ public class SqlToJavaVisitor {
           final String suppliedIdx = process(node.getIndex(), context).getLeft();
 
           final String code = format(
-              "((%s) (%s.arrayAccess((%s) %s, ((int) %s))))",
+              "((%s) (%s == null ? null : (%s.arrayAccess((%s) %s, ((int) %s)))))",
               SchemaConverters.sqlToJavaConverter().toJavaType(array.getItemType()).getSimpleName(),
+              listName,
               ArrayAccess.class.getSimpleName(),
               internalSchemaJavaType,
               listName,
@@ -1076,16 +1079,16 @@ public class SqlToJavaVisitor {
 
         case MAP:
           final SqlMap map = (SqlMap) internalSchema;
-          return new Pair<>(
-              String.format(
-                  "((%s) ((%s)%s).get(%s))",
-                  SchemaConverters.sqlToJavaConverter()
-                      .toJavaType(map.getValueType()).getSimpleName(),
-                  internalSchemaJavaType,
-                  process(node.getBase(), context).getLeft(),
-                  process(node.getIndex(), context).getLeft()
-              ),
-              map.getValueType()
+          final String baseCode = process(node.getBase(), context).getLeft();
+          final String mapCode = String.format(
+              "((%s) (%s == null ? null : ((%s)%s).get(%s)))",
+              SchemaConverters.sqlToJavaConverter()
+                  .toJavaType(map.getValueType()).getSimpleName(),
+              baseCode,
+              internalSchemaJavaType,
+              baseCode,
+              process(node.getIndex(), context).getLeft());
+          return new Pair<>(mapCode, map.getValueType()
           );
         default:
           throw new UnsupportedOperationException();

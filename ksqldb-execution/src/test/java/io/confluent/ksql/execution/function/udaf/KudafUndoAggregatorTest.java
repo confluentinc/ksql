@@ -27,6 +27,9 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
+import io.confluent.ksql.util.Pair;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,6 +69,27 @@ public class KudafUndoAggregatorTest {
 
   @Test
   public void shouldApplyUndoableAggregateFunctions() {
+    // Given:
+    final GenericRow value = genericRow(1, 2L);
+    final GenericRow aggRow = genericRow(1, 2L, 3);
+
+    // When:
+    final GenericRow resultRow = aggregator.apply(key, value, aggRow);
+
+    // Then:
+    assertThat(resultRow, equalTo(genericRow(1, 2L, "func1-undone")));
+  }
+
+  @Test
+  public void shouldApplyUndoableMultiParamAggregateFunctions() {
+    when(func1.convertToInput(any())).thenAnswer(
+            (invocation) -> {
+              List<?> inputs = invocation.getArgument(0, List.class);
+              return Pair.of(inputs.get(0), inputs.get(1));
+            }
+    );
+    when(func1.getArgIndicesInValue()).thenReturn(Arrays.asList(0, 1));
+
     // Given:
     final GenericRow value = genericRow(1, 2L);
     final GenericRow aggRow = genericRow(1, 2L, 3);

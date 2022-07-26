@@ -90,6 +90,12 @@ environment:
     KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 ```
 
+For more information, see
+[Create a log4J configuration](https://developer.confluent.io/tutorials/handling-deserialization-errors/ksql.html#create-a-log4j-configuration)
+in the
+[How to handle deserialization errors](https://developer.confluent.io/tutorials/handling-deserialization-errors/ksql.html)
+tutorial.
+
 For the full Docker example configuration, see the
 [Multi-node ksqlDB and Kafka Connect clusters](https://github.com/confluentinc/demo-scene/blob/master/multi-cluster-connect-and-ksql/docker-compose.yml)
 demo.

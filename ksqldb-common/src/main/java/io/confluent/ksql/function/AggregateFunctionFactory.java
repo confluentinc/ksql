@@ -27,7 +27,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 
@@ -42,6 +42,20 @@ public abstract class AggregateFunctionFactory {
       .add(ImmutableList.of(ParamTypes.LONG))
       .add(ImmutableList.of(ParamTypes.DOUBLE))
       .add(ImmutableList.of(ParamTypes.DECIMAL))
+      .build();
+
+  protected static final ImmutableList<List<ParamType>> NUMERICAL_TIME = ImmutableList
+      .<List<ParamType>>builder().addAll(NUMERICAL_ARGS)
+      .add(ImmutableList.of(ParamTypes.DATE))
+      .add(ImmutableList.of(ParamTypes.TIME))
+      .add(ImmutableList.of(ParamTypes.TIMESTAMP))
+      .build();
+
+  protected static final ImmutableList<List<ParamType>> COMPARABLE_ARGS = ImmutableList
+      .<List<ParamType>>builder()
+      .addAll(NUMERICAL_TIME)
+      .add(ImmutableList.of(ParamTypes.STRING))
+      .add(ImmutableList.of(ParamTypes.BYTES))
       .build();
 
   public AggregateFunctionFactory(final String functionName) {
@@ -72,15 +86,21 @@ public abstract class AggregateFunctionFactory {
     return metadata.getName();
   }
 
-  public void eachFunction(final Consumer<KsqlAggregateFunction<?, ?, ?>> consumer) {
+  public void eachFunction(final BiConsumer<FunctionSignature, String> consumer) {
     supportedArgs()
         .stream()
         .map(args -> args
             .stream()
             .map(AggregateFunctionFactory::getSampleSqlType)
-            .map(arg -> SqlArgument.of(arg))
+            .map(SqlArgument::of)
             .collect(Collectors.toList()))
-        .forEach(args -> consumer.accept(createAggregateFunction(args, getDefaultArguments())));
+        .forEach(args -> {
+          final KsqlAggregateFunction<?, ?, ?> function = createAggregateFunction(
+                  args,
+                  getDefaultArguments()
+          );
+          consumer.accept(function, function.getDescription());
+        });
   }
 
   /**

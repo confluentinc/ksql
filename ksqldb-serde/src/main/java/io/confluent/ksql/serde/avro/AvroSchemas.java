@@ -29,7 +29,7 @@ final class AvroSchemas {
   private AvroSchemas() {
   }
 
-  static Schema getAvroCompatibleConnectSchema(
+  public static Schema getAvroCompatibleConnectSchema(
       final Schema schema,
       final String schemaFullName
   ) {

@@ -182,18 +182,6 @@ public class ConsistencyOffsetVector {
     return sb.toString();
   }
 
-
-  public static boolean isConsistencyVectorEnabled(final Map<String, Object> requestProperties) {
-    final Object consistencyEnabled
-        = requestProperties.get(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED);
-
-    if (consistencyEnabled instanceof Boolean) {
-      return (boolean) consistencyEnabled;
-    }
-
-    return KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT;
-  }
-
   private static ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> deepCopy(
       final Map<String, ? extends Map<Integer, Long>> map) {
     if (map == null) {

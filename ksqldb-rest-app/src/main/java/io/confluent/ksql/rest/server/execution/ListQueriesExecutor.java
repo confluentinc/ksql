@@ -31,7 +31,6 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -103,8 +102,7 @@ public final class ListQueriesExecutor {
                             persistentQuery.getResultTopic().get().getKafkaTopicName())
                         : ImmutableSet.of(),
                     q.getQueryId(),
-                    QueryStatusCount.fromStreamsStateCounts(
-                        Collections.singletonMap(q.getState(), 1)),
+                    new QueryStatusCount(Collections.singletonMap(q.getQueryStatus(), 1)),
                     q.getQueryType());
               }
 
@@ -113,8 +111,7 @@ public final class ListQueriesExecutor {
                   ImmutableSet.of(),
                   ImmutableSet.of(),
                   q.getQueryId(),
-                  QueryStatusCount.fromStreamsStateCounts(
-                      Collections.singletonMap(q.getState(), 1)),
+                  new QueryStatusCount(Collections.singletonMap(q.getQueryStatus(), 1)),
                   q.getQueryType());
             }
         ));
@@ -188,8 +185,7 @@ public final class ListQueriesExecutor {
                 query,
                 Collections.singletonMap(
                     new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
-                    KsqlConstants.fromStreamsState(
-                        query.getState())
+                    query.getQueryStatus()
                 ))));
   }
 

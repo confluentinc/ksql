@@ -78,7 +78,7 @@ public class KsStateStoreTest {
   private KsqlConfig ksqlConfig;
 
   @Captor
-  ArgumentCaptor<StoreQueryParameters> storeQueryParamCaptor;
+  ArgumentCaptor<StoreQueryParameters<?>> storeQueryParamCaptor;
 
   private KsStateStore store;
 
@@ -111,7 +111,7 @@ public class KsStateStoreTest {
 
     // Then:
     verify(kafkaStreamsNamedTopologyWrapper).store(storeQueryParamCaptor.capture());
-    List<StoreQueryParameters> keys = storeQueryParamCaptor.getAllValues();
+    List<StoreQueryParameters<?>> keys = storeQueryParamCaptor.getAllValues();
     assertThat(keys.get(0), instanceOf(NamedTopologyStoreQueryParameters.class));
   }
 

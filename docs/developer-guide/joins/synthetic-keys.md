@@ -75,7 +75,7 @@ CREATE STREAM OUTPUT AS
 ```
 
 Like any other key column, the synthetic key column must be included in the projection of streaming
-queries. If you projection is missing the synthetic key, then an error like the one below will be
+queries. If your projection is missing the synthetic key, then an error like the one below will be
 returned, indicating the name of the missing key column:
 
 ```

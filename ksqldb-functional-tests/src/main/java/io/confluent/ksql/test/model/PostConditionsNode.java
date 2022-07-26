@@ -192,8 +192,8 @@ public final class PostConditionsNode {
       this.keyFormat = requireNonNull(keyFormat, "KeyFormat");
       this.valueFormat = requireNonNull(valueFormat, "valueFormat");
       this.partitions = requireNonNull(partitions, "partitions");
-      this.keySchema = requireNonNull(keySchema, "keySchema");
-      this.valueSchema = requireNonNull(valueSchema, "valueSchema");
+      this.keySchema = keySchema;
+      this.valueSchema = valueSchema;
 
       if (this.name.isEmpty()) {
         throw new InvalidFieldException("name", "empty or missing");
@@ -218,6 +218,7 @@ public final class PostConditionsNode {
         }
 
         // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+        // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
         @Override
         public boolean matches(final Object item) {
           if (!(item instanceof PostTopicNode)) {
@@ -229,11 +230,13 @@ public final class PostConditionsNode {
               && Objects.equals(keyFormat, that.keyFormat)
               && Objects.equals(valueFormat, that.valueFormat)
               && (!partitions.isPresent() || partitions.equals(that.partitions))
-              && (keySchema instanceof NullNode || keySchema.equals(that.keySchema))
-              && (valueSchema instanceof NullNode
+              && (keySchema == null || keySchema instanceof NullNode
+              || keySchema.equals(that.keySchema))
+              && (valueSchema == null || valueSchema instanceof NullNode
               || valueSchema.equals(that.valueSchema));
         }
         // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+        // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       };
     }
 

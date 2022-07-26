@@ -73,6 +73,7 @@ public class Analysis implements ImmutableAnalysis {
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
+  private final List<FunctionCall> aggregateFunctions = new ArrayList<>();
   private boolean orReplace = false;
   private final boolean rowpartitionRowoffsetEnabled;
   private boolean pullLimitClauseEnabled = true;
@@ -271,6 +272,15 @@ public class Analysis implements ImmutableAnalysis {
   @Override
   public List<FunctionCall> getTableFunctions() {
     return Collections.unmodifiableList(tableFunctions);
+  }
+
+  void addAggregateFunction(final FunctionCall functionCall) {
+    this.aggregateFunctions.add(Objects.requireNonNull(functionCall));
+  }
+
+  @Override
+  public List<FunctionCall> getAggregateFunctions() {
+    return Collections.unmodifiableList(aggregateFunctions);
   }
 
   public boolean getRowpartitionRowoffsetEnabled() {

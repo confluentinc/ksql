@@ -56,8 +56,7 @@ public abstract class SharedKafkaStreamsRuntime {
   }
 
   public abstract void register(
-      BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
-      QueryId queryId
+      BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata
   );
 
   public boolean isError(final QueryId queryId) {

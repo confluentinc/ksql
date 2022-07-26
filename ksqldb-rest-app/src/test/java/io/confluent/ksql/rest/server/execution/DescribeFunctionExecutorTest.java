@@ -20,14 +20,12 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Arrays;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
@@ -39,17 +37,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DescribeFunctionExecutorTest {
 
-  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
-      new DefaultConnectServerErrors());
-
   @Rule public TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldDescribeUDF() {
     // When:
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
-        CUSTOM_EXECUTORS.describeFunction().execute(
-            (ConfiguredStatement<DescribeFunction>) engine.configure(
+        CustomExecutors.DESCRIBE_FUNCTION.execute(
+        engine.configure(
                 "DESCRIBE FUNCTION TEST_UDF_1;"),
             mock(SessionProperties.class),
             engine.getEngine(),
@@ -75,8 +70,8 @@ public class DescribeFunctionExecutorTest {
   public void shouldDescribeUDAF() {
     // When:
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
-        CUSTOM_EXECUTORS.describeFunction().execute(
-            (ConfiguredStatement<DescribeFunction>) engine.configure("DESCRIBE FUNCTION MAX;"),
+        CustomExecutors.DESCRIBE_FUNCTION.execute(
+            engine.configure("DESCRIBE FUNCTION MAX;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -98,12 +93,37 @@ public class DescribeFunctionExecutorTest {
   }
 
   @Test
+  public void shouldDescribeUDAFWithInitialArgs() {
+    // When:
+    final FunctionDescriptionList functionList = (FunctionDescriptionList)
+            CustomExecutors.DESCRIBE_FUNCTION.execute(
+                    engine.configure("DESCRIBE FUNCTION LATEST_BY_OFFSET;"),
+                    mock(SessionProperties.class),
+                    engine.getEngine(),
+                    engine.getServiceContext()
+            ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
+      @Override
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
+        return functionList.getName().equals("LATEST_BY_OFFSET")
+                && functionList.getType().equals(FunctionType.AGGREGATE);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(functionList.getName());
+      }
+    });
+  }
+
+  @Test
   public void shouldDescribeUDTF() {
     // When:
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
-        CUSTOM_EXECUTORS.describeFunction().execute(
-            (ConfiguredStatement<DescribeFunction>)
-                engine.configure("DESCRIBE FUNCTION TEST_UDTF1;"),
+        CustomExecutors.DESCRIBE_FUNCTION.execute(
+            engine.configure("DESCRIBE FUNCTION TEST_UDTF1;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -125,13 +145,13 @@ public class DescribeFunctionExecutorTest {
 
     assertThat(functionList.getFunctions(), hasSize(2));
 
-    final FunctionInfo expected1 = new FunctionInfo(
+    FunctionInfo expected1 = new FunctionInfo(
         Arrays.asList(new ArgumentInfo("foo", "INT", "", false)),
         "INT", "test_udtf1 int");
 
     assertTrue(functionList.getFunctions().contains(expected1));
 
-    final FunctionInfo expected2 = new FunctionInfo(
+    FunctionInfo expected2 = new FunctionInfo(
         Arrays.asList(new ArgumentInfo("foo", "DOUBLE", "", false)),
         "DOUBLE", "test_udtf1 double");
 

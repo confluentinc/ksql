@@ -6,9 +6,9 @@
   "tests": [
     {
       "name": "encode a url parameter using ENCODE_URL_PARAM",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_ENCODE_PARAM(url) as ENCODED FROM TEST;"
       ],
       "inputs": [
@@ -24,9 +24,9 @@
     },
     {
       "name": "decode a url parameter using DECODE_URL_PARAM",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_DECODE_PARAM(url) as DECODED FROM TEST;"
       ],
       "inputs": [
@@ -42,9 +42,9 @@
     },
     {
       "name": "extract a fragment from a URL using URL_EXTRACT_FRAGMENT",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_FRAGMENT(url) as FRAGMENT FROM TEST;"
       ],
       "inputs": [
@@ -57,10 +57,26 @@
       ]
     },
     {
-      "name": "extract a host from a URL using URL_EXTRACT_HOST",
-      "format": ["JSON", "PROTOBUF"],
+      "name": "extract a fragment from a URL using URL_EXTRACT_FRAGMENT - PROTOBUFs",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_FRAGMENT(url) as FRAGMENT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": "1", "value": {"url": "http://www.test.com/?query#fragment"}, "timestamp":  0},
+        {"topic":  "test_topic", "key": "2", "value": {"url": "http://www.nofragment.com"}, "timestamp":  1}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": "1", "value":  {"FRAGMENT": "fragment"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key": "2", "value":  {"FRAGMENT": ""}, "timestamp": 1}
+      ]
+    },
+    {
+      "name": "extract a host from a URL using URL_EXTRACT_HOST",
+      "format": ["JSON", "PROTOBUF", "PROTOBUF_NOSR"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_HOST(url) as HOST FROM TEST;"
       ],
       "inputs": [
@@ -74,9 +90,9 @@
     },
     {
       "name": "extract a parameter from a URL using URL_EXTRACT_PARAMETER",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PARAMETER(url,'one') as PARAM_A, URL_EXTRACT_PARAMETER(url,'two') as PARAM_B FROM TEST;"
       ],
       "inputs": [
@@ -88,9 +104,9 @@
     },
     {
       "name": "chain a call to URL_EXTRACT_PARAMETER with URL_DECODE_PARAM",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_DECODE_PARAM(URL_EXTRACT_PARAMETER(url,'two')) as PARAM FROM TEST;"
       ],
       "inputs": [
@@ -102,9 +118,9 @@
     },
     {
       "name": "extract a path from a URL using URL_EXTRACT_PATH",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PATH(url) as PATH FROM TEST;"
       ],
       "inputs": [
@@ -120,9 +136,9 @@
     },
     {
       "name": "extract a port from a URL using URL_EXTRACT_PORT",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PORT(url) as PORT FROM TEST;"
       ],
       "inputs": [
@@ -135,10 +151,26 @@
       ]
     },
     {
-      "name": "extract a protocol from a URL using URL_EXTRACT_PROTOCOL",
-      "format": ["JSON", "PROTOBUF"],
+      "name": "extract a port from a URL using URL_EXTRACT_PORT - PROTOBUFs",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PORT(url) as PORT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": "1", "value": {"url": "http://test@confluent.io"}, "timestamp":  0},
+        {"topic":  "test_topic", "key": "2", "value": {"url": "http://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  1}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": "1", "value":  {"PORT": 0}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key": "2", "value":  {"PORT": 8080}, "timestamp": 1}
+      ]
+    },
+    {
+      "name": "extract a protocol from a URL using URL_EXTRACT_PROTOCOL",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PROTOCOL(url) as PROTOCOL FROM TEST;"
       ],
       "inputs": [
@@ -153,10 +185,28 @@
       ]
     },
     {
-      "name": "extract a query from a URL using URL_EXTRACT_QUERY",
-      "format": ["JSON", "PROTOBUF"],
+      "name": "extract a protocol from a URL using URL_EXTRACT_PROTOCOL - PROTOBUFs",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_PROTOCOL(url) as PROTOCOL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": "1", "value": {"url": "http://test@confluent.io"}, "timestamp":  0},
+        {"topic":  "test_topic", "key": "2", "value": {"url": "https://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  1},
+        {"topic":  "test_topic", "key": "3", "value": {"url": "www.confluent.io"}, "timestamp":  2}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": "1", "value":  {"PROTOCOL": "http"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key": "2", "value":  {"PROTOCOL": "https"}, "timestamp": 1},
+        {"topic":  "OUTPUT", "key": "3", "value":  {"PROTOCOL": ""}, "timestamp": 2}
+      ]
+    },
+    {
+      "name": "extract a query from a URL using URL_EXTRACT_QUERY",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_QUERY(url) as Q FROM TEST;"
       ],
       "inputs": [
@@ -170,6 +220,26 @@
         {"topic":  "OUTPUT", "key": "2", "value":  {"Q": "q1&q2"}, "timestamp": 1},
         {"topic":  "OUTPUT", "key": "3", "value":  {"Q": "q=2"}, "timestamp": 2},
         {"topic":  "OUTPUT", "key": "4", "value":  {"Q": null}, "timestamp": 3}
+      ]
+    },
+    {
+      "name": "extract a query from a URL using URL_EXTRACT_QUERY - PROTOBUFs",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT K, URL_EXTRACT_QUERY(url) as Q FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": "1", "value": {"url": "http://www.test.com?query#fragment"}, "timestamp":  0},
+        {"topic":  "test_topic", "key": "2", "value": {"url": "http://www.test.com/path?q1&q2"}, "timestamp":  1},
+        {"topic":  "test_topic", "key": "3", "value": {"url": "http://test@confluent.io:8080/nested/path?q=2"}, "timestamp":  2},
+        {"topic":  "test_topic", "key": "4", "value": {"url": "http://test@confluent.io:8080/path"}, "timestamp":  3}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": "1", "value":  {"Q": "query"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key": "2", "value":  {"Q": "q1&q2"}, "timestamp": 1},
+        {"topic":  "OUTPUT", "key": "3", "value":  {"Q": "q=2"}, "timestamp": 2},
+        {"topic":  "OUTPUT", "key": "4", "value":  {"Q": ""}, "timestamp": 3}
       ]
     }
   ]

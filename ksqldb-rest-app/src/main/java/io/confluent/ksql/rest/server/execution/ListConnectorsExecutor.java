@@ -18,10 +18,14 @@ package io.confluent.ksql.rest.server.execution;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
+import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
@@ -37,14 +41,12 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.Abstrac
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public final class ListConnectorsExecutor {
-  private final ConnectServerErrors connectErrorHandler;
 
-  ListConnectorsExecutor(final ConnectServerErrors connectErrorHandler) {
-    this.connectErrorHandler = connectErrorHandler;
+  private ListConnectorsExecutor() {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public StatementExecutorResponse execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListConnectors> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
@@ -53,8 +55,12 @@ public final class ListConnectorsExecutor {
     final ConnectClient connectClient = serviceContext.getConnectClient();
     final ConnectResponse<List<String>> connectors = serviceContext.getConnectClient().connectors();
     if (connectors.error().isPresent()) {
-      return StatementExecutorResponse.handled(connectErrorHandler.handle(
-          configuredStatement, connectors));
+      final String errorMsg = "Failed to list connectors: " + connectors.error().get();
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(connectors.httpCode())
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(connectors.httpCode()), errorMsg))
+          .build()
+      );
     }
 
     final List<SimpleConnectorInfo> infos = new ArrayList<>();

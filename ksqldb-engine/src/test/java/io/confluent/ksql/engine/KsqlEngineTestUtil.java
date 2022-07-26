@@ -33,6 +33,7 @@ import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.SourcePropertyInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMetadata;
@@ -174,14 +175,13 @@ public final class KsqlEngineTestUtil {
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
         prepared, SessionConfig.of(ksqlConfig, overriddenProperties));
     final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
+    final ConfiguredStatement<?> withSourceProps = new SourcePropertyInjector().inject(withFormats);
     final ConfiguredStatement<?> withSchema =
         schemaInjector
-            .map(injector -> injector.inject(withFormats))
-            .orElse((ConfiguredStatement) withFormats);
-    final ConfiguredStatement<?> reformatted =
-        new SqlFormatInjector(executionContext).inject(withSchema);
+            .map(injector -> injector.inject(withSourceProps))
+            .orElse((ConfiguredStatement) withSourceProps);
     try {
-      return executionContext.execute(serviceContext, reformatted);
+      return executionContext.execute(serviceContext, withSchema);
     } catch (final KsqlStatementException e) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement

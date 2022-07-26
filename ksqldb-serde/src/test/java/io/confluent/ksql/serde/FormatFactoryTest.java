@@ -33,6 +33,8 @@ public class FormatFactoryTest {
     assertThat(FormatFactory.of(FormatInfo.of("JsoN")), is(FormatFactory.JSON));
     assertThat(FormatFactory.of(FormatInfo.of("AvRo")), is(FormatFactory.AVRO));
     assertThat(FormatFactory.of(FormatInfo.of("Delimited")), is(FormatFactory.DELIMITED));
+    assertThat(FormatFactory.of(FormatInfo.of("PrOtObUf")), is(FormatFactory.PROTOBUF));
+    assertThat(FormatFactory.of(FormatInfo.of("PrOtObUf_nOsR")), is(FormatFactory.PROTOBUF_NOSR));
   }
 
   @Test

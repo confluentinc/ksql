@@ -26,10 +26,12 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -40,8 +42,8 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRConverter;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
@@ -60,6 +62,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
@@ -91,6 +94,7 @@ import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,10 +103,10 @@ public class RestTestExecutor implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
-  private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(30);
-  private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
-  private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(30);
-  private static final Duration MAX_TRANSIENT_QUERY_COMPLETION_TIME = Duration.ofSeconds(5);
+  private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(45);
+  private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(45);
+  private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(45);
+  private static final Duration MAX_TRANSIENT_QUERY_COMPLETION_TIME = Duration.ofSeconds(10);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
   private static final String QUERY_KEY = "query";
   private static final String ROW_KEY = "row";
@@ -136,37 +140,38 @@ public class RestTestExecutor implements Closeable {
   void buildAndExecuteQuery(final RestTestCase testCase) {
     topicInfoCache.clear();
 
-    if (testCase.getStatements().size() < testCase.getExpectedResponses().size()) {
+    final StatementSplit statements = splitStatements(testCase);
+    final int expectedResponseSize = (int) testCase.getExpectedResponses()
+            .stream()
+            .filter(resp -> !resp.getContent().containsKey("queryProto"))
+            .count();
+
+    if (testCase.getStatements().size() < expectedResponseSize) {
       throw new AssertionError("Invalid test case: more expected responses than statements. "
           + System.lineSeparator()
           + "statementCount: " + testCase.getStatements().size()
           + System.lineSeparator()
-          + "responsesCount: " + testCase.getExpectedResponses().size());
+          + "responsesCount: " + expectedResponseSize);
     }
 
     initializeTopics(testCase);
-
-    final StatementSplit statements = splitStatements(testCase);
-
     testCase.getProperties().forEach(restClient::setProperty);
 
     try {
       final Optional<List<RqttResponse>> adminResults =
           sendAdminStatements(testCase, statements.admin);
-
       if (!adminResults.isPresent()) {
         return;
       }
-
       final boolean waitForActivePushQueryToProduceInput = testCase.getInputConditions().isPresent()
           && testCase.getInputConditions().get().getWaitForActivePushQuery();
       final Optional<InputConditionsParameters> postInputConditionRunnable;
       if (!waitForActivePushQueryToProduceInput) {
-        produceInputs(testCase.getInputsByTopic());
+        produceInputs(testCase);
         postInputConditionRunnable = Optional.empty();
       } else {
         postInputConditionRunnable = Optional.of(new InputConditionsParameters(
-            this::waitForActivePushQuery, () -> produceInputs(testCase.getInputsByTopic())));
+            this::waitForActivePushQuery, () -> produceInputs(testCase)));
       }
 
       if (!testCase.expectedError().isPresent()
@@ -176,13 +181,26 @@ public class RestTestExecutor implements Closeable {
 
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
           postInputConditionRunnable);
+
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);
+      }
+
+      List<RqttResponse> protoResponses = ImmutableList.of();
+
+      if (testCase.isTestPullWithProtoFormat()) {
+        protoResponses = statements.queries.stream()
+                        .map(this::sendQueryStreamProtoStatement)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .map(RqttResponse::queryProto)
+                        .collect(Collectors.toList());
       }
 
       final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
           .addAll(adminResults.get())
           .addAll(queryResults)
+          .addAll(protoResponses)
           .build();
 
       verifyOutput(testCase);
@@ -193,7 +211,6 @@ public class RestTestExecutor implements Closeable {
       // Give a few seconds for the transient queries to complete, otherwise, we'll go into teardown
       // and leave the queries stuck.
       waitForTransientQueriesToComplete();
-
     } finally {
       testCase.getProperties().keySet().forEach(restClient::unsetProperty);
     }
@@ -249,16 +266,16 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  private void produceInputs(final Map<String, List<Record>> inputs) {
-    inputs.forEach((topicName, records) -> {
+  private void produceInputs(final RestTestCase testCase) {
+    testCase.getInputsByTopic().forEach((topicName, records) -> {
 
       final TopicInfo topicInfo = topicInfoCache.get(topicName)
           .orElseThrow(() -> new KsqlException("No information found for topic: " + topicName));
 
       try (KafkaProducer<Object, Object> producer = new KafkaProducer<>(
           kafkaCluster.producerConfig(),
-          topicInfo.getKeySerializer(),
-          topicInfo.getValueSerializer()
+          topicInfo.getKeySerializer(testCase.getProperties()),
+          topicInfo.getValueSerializer(testCase.getProperties())
       )) {
         final List<Future<RecordMetadata>> futures = records.stream()
             .map(record -> new ProducerRecord<>(
@@ -375,6 +392,18 @@ public class RestTestExecutor implements Closeable {
     return Optional.of(resp.getResponse());
   }
 
+  private Optional<List<StreamedRow>> sendQueryStreamProtoStatement(
+          final String sql
+  ) {
+    final RestResponse<List<StreamedRow>> resp = restClient.makeQueryStreamRequestProto(sql, ImmutableMap.of());
+
+    if (resp.isErroneous()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(resp.getResponse());
+  }
+
   private Optional<List<StreamedRow>> sendQueryStatement(
       final RestTestCase testCase,
       final String sql,
@@ -450,8 +479,8 @@ public class RestTestExecutor implements Closeable {
           .verifyAvailableRecords(
               topicName,
               records.size(),
-              topicInfo.getKeyDeserializer(),
-              topicInfo.getValueDeserializer()
+              topicInfo.getKeyDeserializer(testCase.getProperties()),
+              topicInfo.getValueDeserializer(testCase.getProperties())
           );
 
       for (int idx = 0; idx < records.size(); idx++) {
@@ -617,6 +646,7 @@ public class RestTestExecutor implements Closeable {
       boolean notReady = false;
       for (PersistentQueryMetadata persistentQueryMetadata : engine.getPersistentQueries()) {
         if (persistentQueryMetadata.getState() != State.RUNNING) {
+          LOG.info("Not all persistent queries are running yet");
           notReady = true;
         }
       }
@@ -624,6 +654,7 @@ public class RestTestExecutor implements Closeable {
         threadYield();
       } else {
         allRunning = true;
+        LOG.info("All persistent queries are now running");
         break;
       }
     }
@@ -670,6 +701,7 @@ public class RestTestExecutor implements Closeable {
       if (expectedNames.size() == expectedTopics) {
         foundTopics = true;
         topics.addAll(expectedNames);
+        LOG.info("All expected topics have now been found");
         break;
       }
     }
@@ -758,6 +790,7 @@ public class RestTestExecutor implements Closeable {
       if (notReady) {
         threadYield();
       } else {
+        LOG.info("All transient queries have been completed");
         break;
       }
     }
@@ -878,6 +911,9 @@ public class RestTestExecutor implements Closeable {
       return new RqttQueryResponse(rows);
     }
 
+    static RqttResponse queryProto(final List<StreamedRow> rows) {
+      return new RqttQueryProtoResponse(rows);
+    }
     void verify(
         String expectedType,
         Object expectedPayload,
@@ -987,6 +1023,100 @@ public class RestTestExecutor implements Closeable {
       }
 
       verifyResponseFields(actualRecords, expectedRecords, pathIndex);
+    }
+  }
+
+  @VisibleForTesting
+  static class RqttQueryProtoResponse implements RqttResponse {
+
+    private static final TypeReference<Map<String, Object>> PAYLOAD_TYPE =
+            new TypeReference<Map<String, Object>>() {
+            };
+
+    private static final String INDENT = System.lineSeparator() + "\t";
+    private static final String HEADER_PROTOBUF = "header";
+    private static final String SCHEMA = "protoSchema";
+
+    private final List<StreamedRow> rows;
+
+    RqttQueryProtoResponse(final List<StreamedRow> rows) {
+      this.rows = requireNonNull(rows, "rows");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void verify(
+            final String expectedType,
+            final Object expectedPayload,
+            final List<String> statements,
+            final int idx,
+            final boolean verifyOrder
+    ) {
+      assertThat("Expected query response", expectedType, is("queryProto"));
+      assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
+
+      final List<?> expectedRows = (List<?>) expectedPayload;
+
+      assertThat(
+              "row count mismatch."
+                      + System.lineSeparator()
+                      + "Expected: "
+                      + expectedRows.stream()
+                      .map(Object::toString)
+                      .collect(Collectors.joining(INDENT, INDENT, ""))
+                      + System.lineSeparator()
+                      + "Got: "
+                      + rows.stream()
+                      .map(Object::toString)
+                      .collect(Collectors.joining(INDENT, INDENT, ""))
+                      + System.lineSeparator(),
+              rows,
+              hasSize(expectedRows.size())
+      );
+
+      ProtobufSchema schema = null;
+      ProtobufNoSRConverter.Deserializer deserializer = new ProtobufNoSRConverter.Deserializer();
+      final JsonMapper mapper = new JsonMapper();
+      for (int i = 0; i != rows.size(); ++i) {
+        assertThat(
+                "Each row should be JSON object",
+                expectedRows.get(i),
+                is(instanceOf(Map.class))
+        );
+
+        final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
+        final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
+
+        if (actual.containsKey(HEADER_PROTOBUF)
+                && ((HashMap<String, Object>) actual.get(HEADER_PROTOBUF)).containsKey(SCHEMA)) {
+
+          assertThat(i, is(0));
+
+          schema = new ProtobufSchema((String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA));
+          final String actualSchema = (String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA);
+          final String expectedSchema = (String) ((Map<?, ?>)expected.get(HEADER_PROTOBUF)).get(SCHEMA);
+
+          assertThat(actualSchema, is(expectedSchema));
+        } else if (actual.containsKey("finalMessage")) {
+          assertThat(actual, is(expected));
+        } else {
+          JSONObject row = new JSONObject(actual);
+
+          byte[] bytes;
+          try {
+            bytes = mapper.readTree(row.toString()).get("row").get("protobufBytes").binaryValue();
+          } catch (IOException e) {
+            throw new RuntimeException("Failed to deserialize the ProtoBuf bytes from the " +
+                    "RQTT JSON response row: " + row);
+          }
+
+          final Object message = deserializer.deserialize(bytes, schema);
+          final String actualMessage = message.toString();
+          final String expectedMessage = expected.get("row").toString();
+
+          assertThat(actualMessage, is(expectedMessage));
+        }
+      }
     }
   }
 

@@ -16,10 +16,13 @@
 package io.confluent.ksql.api.client.impl;
 
 import static io.confluent.ksql.api.client.impl.DdlDmlRequestValidators.validateExecuteStatementRequest;
+import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
+import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
@@ -36,8 +39,11 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
-import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
+import io.confluent.ksql.util.AppInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.PushOffsetVector;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -55,6 +61,7 @@ import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,11 +95,13 @@ public class ClientImpl implements Client {
   private final Map<String, Object> sessionVariables;
   private final Map<String, Object> requestProperties;
   private final AtomicReference<String> serializedConsistencyVector;
-
+  private final AtomicReference<String> continuationToken;
+  private final ClientImpl client;
   /**
    * {@code Client} instances should be created via {@link Client#create(ClientOptions)}, NOT via
    * this constructor.
    */
+
   public ClientImpl(final ClientOptions clientOptions) {
     this(clientOptions, Vertx.vertx(), true);
   }
@@ -116,7 +125,9 @@ public class ClientImpl implements Client {
         SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
     this.sessionVariables = new HashMap<>();
     this.serializedConsistencyVector = new AtomicReference<>("");
+    this.continuationToken = new AtomicReference<>("");
     this.requestProperties = new HashMap<>();
+    this.client = this;
   }
 
   @Override
@@ -129,15 +140,20 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_SESSION) {
-      requestProperties.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          serializedConsistencyVector.get());
+    if (PushOffsetVector.isContinuationTokenEnabled(properties)) {
+      properties.put(
+          KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED,
+          true);
+      if (!continuationToken.get().equalsIgnoreCase("")) {
+        requestProperties.put(
+            KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
+            continuationToken.get());
+      }
     }
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
     makeQueryRequest(sql, properties, cf,
         (ctx, rp, fut, req) -> new StreamQueryResponseHandler(
-            ctx, rp, fut, serializedConsistencyVector));
+            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, properties, client));
     return cf;
   }
 
@@ -151,11 +167,6 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_SESSION) {
-      requestProperties.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          serializedConsistencyVector.get());
-    }
     final BatchedQueryResult result = new BatchedQueryResultImpl();
     makeQueryRequest(
         sql,
@@ -376,6 +387,36 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<Void> createConnector(
+      final String name,
+      final boolean isSource,
+      final Map<String, Object> properties,
+      final boolean ifNotExists
+  ) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String connectorConfigs = properties.entrySet()
+        .stream()
+        .map(e -> String.format("'%s'='%s'", e.getKey(), e.getValue()))
+        .collect(Collectors.joining(","));
+    final String type = isSource ? "SOURCE" : "SINK";
+    final String ifNotExistsClause = ifNotExists ? "IF NOT EXISTS" : "";
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql",
+                String.format("CREATE %s CONNECTOR %s %s WITH (%s);",
+                    type, ifNotExistsClause, name, connectorConfigs))
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleCreateConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
   public CompletableFuture<Void> dropConnector(final String name) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
@@ -383,6 +424,24 @@ public class ClientImpl implements Client {
         KSQL_ENDPOINT,
         new JsonObject()
             .put("ksql", "drop connector " + name + ";")
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleDropConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> dropConnector(final String name, final boolean ifExists) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String ifExistsClause = ifExists ? "if exists " : "";
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", "drop connector " + ifExistsClause + name + ";")
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
@@ -422,6 +481,127 @@ public class ClientImpl implements Client {
     );
 
     return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(final String subject, final boolean exists) {
+    return assertSchema(Optional.of(subject), Optional.empty(), exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(final int id, final boolean exists) {
+    return assertSchema(Optional.empty(), Optional.of(id), exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(
+      final String subject, final int id, final boolean exists) {
+    return assertSchema(Optional.of(subject), Optional.of(id), exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(
+      final String subject, final boolean exists, final Duration timeout) {
+    return assertSchema(Optional.of(subject), Optional.empty(), exists, Optional.of(timeout));
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(
+      final int id, final boolean exists, final Duration timeout) {
+    return assertSchema(Optional.empty(), Optional.of(id), exists, Optional.of(timeout));
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(
+      final String subject, final int id, final boolean exists, final Duration timeout) {
+    return assertSchema(Optional.of(subject), Optional.of(id), exists, Optional.of(timeout));
+  }
+
+  private CompletableFuture<Void> assertSchema(
+      final Optional<String> subject,
+      final Optional<Integer> id,
+      final boolean exists,
+      final Optional<Duration> timeout
+  ) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String existClause = exists ? "" : " not exists";
+    final String subjectClause = subject.isPresent() ? " subject '" + subject.get() + "'" : "";
+    final String idClause = id.isPresent() ? " id " + id.get() : "";
+    final String timeoutClause =
+        timeout.isPresent() ? " timeout " + timeout.get().getSeconds() + " seconds" : "";
+    final String command =
+        "assert" + existClause + " schema" + subjectClause + idClause + timeoutClause + ";";
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", command)
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AssertResponseHandler::handleAssertSchemaResponse)
+    );
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> assertTopic(final String topic, final boolean exists) {
+    return assertTopic(topic, ImmutableMap.of(), exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertTopic(
+      final String topic, final boolean exists, final Duration timeout) {
+    return assertTopic(topic, ImmutableMap.of(), exists, Optional.of(timeout));
+  }
+
+  @Override
+  public CompletableFuture<Void> assertTopic(
+      final String topic, final Map<String, Integer> configs, final boolean exists) {
+    return assertTopic(topic, configs, exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertTopic(
+      final String topic,
+      final Map<String, Integer> configs,
+      final boolean exists,
+      final Duration timeout
+  ) {
+    return assertTopic(topic, configs, exists, Optional.of(timeout));
+  }
+
+  private CompletableFuture<Void> assertTopic(
+      final String topic,
+      final Map<String, Integer> configs,
+      final boolean exists,
+      final Optional<Duration> timeout
+  ) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String existClause = exists ? "" : " not exists";
+    final String configString = configs.size() > 0 ? createConfigString(configs) : "";
+    final String timeoutClause =
+        timeout.isPresent() ? " timeout " + timeout.get().getSeconds() + " seconds" : "";
+    final String command =
+        "assert" + existClause + " topic '" + topic + "'" + configString + timeoutClause + ";";
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", command)
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AssertResponseHandler::handleAssertTopicResponse)
+    );
+    return cf;
+  }
+
+  private String createConfigString(final Map<String, Integer> configs) {
+    return " with ("
+        + configs.entrySet()
+        .stream()
+        .map((entry) -> entry.getKey() + "=" + entry.getValue())
+        .collect(Collectors.joining(","))
+        + ")";
   }
 
   @Override
@@ -554,8 +734,12 @@ public class ClientImpl implements Client {
         path,
         responseHandler)
         .exceptionHandler(cf::completeExceptionally);
+    request = configureUserAgent(request);
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
+    }
+    if (path.equals(QUERY_STREAM_ENDPOINT)) {
+      request = configureAcceptTypeToLatestMediaType(request);
     }
     if (clientOptions.getRequestHeaders() != null) {
       for (final Entry<String, String> entry : clientOptions.getRequestHeaders().entrySet()) {
@@ -572,6 +756,15 @@ public class ClientImpl implements Client {
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
+  }
+
+  private HttpClientRequest configureAcceptTypeToLatestMediaType(final HttpClientRequest request) {
+    return request.putHeader(ACCEPT.toString(), KsqlMediaType.LATEST_FORMAT.mediaType());
+  }
+
+  private HttpClientRequest configureUserAgent(final HttpClientRequest request) {
+    final String clientVersion = AppInfo.getVersion();
+    return request.putHeader(USER_AGENT.toString(), "ksqlDB Java Client v" + clientVersion);
   }
 
   private <T extends CompletableFuture<?>> void handleStreamedResponse(

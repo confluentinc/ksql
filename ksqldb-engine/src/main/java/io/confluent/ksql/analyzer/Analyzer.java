@@ -25,6 +25,7 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -57,6 +58,7 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -71,6 +73,7 @@ import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownColumnException;
 import io.confluent.ksql.util.UnknownSourceException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -157,7 +160,8 @@ class Analyzer {
       this.analysis = new Analysis(
               query.getRefinement(),
               rowpartitionRowoffsetEnabled,
-              pullLimitClauseEnabled);
+              pullLimitClauseEnabled
+          );
 
       this.persistent = persistent;
     }
@@ -196,9 +200,13 @@ class Analyzer {
           srcTopic.getKeyFormat().getFormatInfo()
       );
 
+      final String valueFormatName = formatName(
+          props.getValueFormat(),
+          srcTopic.getValueFormat().getFormatInfo()
+      );
       final FormatInfo valueFmtInfo = buildFormatInfo(
-          formatName(props.getValueFormat(), srcTopic.getValueFormat().getFormatInfo()),
-          props.getValueFormatProperties(),
+          valueFormatName,
+          props.getValueFormatProperties(valueFormatName),
           srcTopic.getValueFormat().getFormatInfo()
       );
 
@@ -540,6 +548,9 @@ class Analyzer {
         case LEFT:
           joinType = JoinNode.JoinType.LEFT;
           break;
+        case RIGHT:
+          joinType = JoinNode.JoinType.RIGHT;
+          break;
         case OUTER:
           joinType = JoinNode.JoinType.OUTER;
           break;
@@ -584,6 +595,9 @@ class Analyzer {
           validateSelect(column);
           captureReferencedSourceColumns(column.getExpression());
           visitTableFunctions(column.getExpression());
+        } else if (selectItem instanceof StructAll) {
+          final StructAll structAll = (StructAll) selectItem;
+          captureReferencedSourceColumns(structAll.getBaseStruct());
         } else if (!(selectItem instanceof AllColumns)) {
           throw new IllegalArgumentException(
               "Unsupported SelectItem type: " + selectItem.getClass().getName());
@@ -622,7 +636,7 @@ class Analyzer {
           .forEach(col -> checkForReservedToken(column, col));
 
       if (!analysis.getGroupBy().isPresent()) {
-        throwOnUdafs(column.getExpression());
+        addDummyGroupbyForUdafs(column.getExpression());
       }
     }
 
@@ -659,14 +673,16 @@ class Analyzer {
       return unqualifiedExpression.equalsIgnoreCase(alias.text());
     }
 
-    private void throwOnUdafs(final Expression expression) {
+    private void addDummyGroupbyForUdafs(final Expression expression) {
       new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
           final FunctionName functionName = functionCall.getName();
           if (metaStore.isAggregate(functionName)) {
-            throw new KsqlException("Use of aggregate function "
-                + functionName.text() + " requires a GROUP BY clause.");
+            analysis.addAggregateFunction(functionCall);
+            // Since this is a dummy group by, we don't actually need a correct node location
+            analysis.setGroupBy(new GroupBy(Optional.empty(),
+                ImmutableList.of(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))));
           }
 
           super.visitFunctionCall(functionCall, context);

@@ -1,6 +1,5 @@
 #!/usr/bin/env groovy
 
-
 parallel unitTests: {
     common {
         slackChannel = '#ksqldb-quality-oncall'

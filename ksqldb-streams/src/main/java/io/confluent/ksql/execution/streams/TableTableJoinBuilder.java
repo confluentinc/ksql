@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.execution.plan.JoinType.RIGHT;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
@@ -31,8 +33,16 @@ public final class TableTableJoinBuilder {
       final KTableHolder<K> right,
       final TableTableJoin<K> join
   ) {
-    final LogicalSchema leftSchema = left.getSchema();
-    final LogicalSchema rightSchema = right.getSchema();
+    final LogicalSchema leftSchema;
+    final LogicalSchema rightSchema;
+
+    if (join.getJoinType().equals(RIGHT)) {
+      leftSchema = right.getSchema();
+      rightSchema = left.getSchema();
+    } else {
+      leftSchema = left.getSchema();
+      rightSchema = right.getSchema();
+    }
 
     final JoinParams joinParams = JoinParamsFactory
         .create(join.getKeyColName(), leftSchema, rightSchema);
@@ -44,6 +54,9 @@ public final class TableTableJoinBuilder {
         break;
       case LEFT:
         result = left.getTable().leftJoin(right.getTable(), joinParams.getJoiner());
+        break;
+      case RIGHT:
+        result = right.getTable().leftJoin(left.getTable(), joinParams.getJoiner());
         break;
       case OUTER:
         result = left.getTable().outerJoin(right.getTable(), joinParams.getJoiner());

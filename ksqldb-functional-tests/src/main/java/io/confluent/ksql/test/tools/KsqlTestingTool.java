@@ -72,7 +72,7 @@ public final class KsqlTestingTool {
       final List<ParsedStatement> parsedStatements = ksqlParser.parse(sqlStatements);
       return parsedStatements
           .stream()
-          .map(ParsedStatement::getStatementText)
+          .map(ParsedStatement::getUnMaskedStatementText)
           .collect(Collectors.toList());
     } catch (final IOException e) {
       throw new KsqlException(
@@ -111,6 +111,7 @@ public final class KsqlTestingTool {
     final TestCaseNode testCaseNode = new TestCaseNode(
         "KSQL_Test",
         Optional.empty(),
+        null,
         null,
         (inputFile == null) ? null : inputRecordNodes.getInputRecords(),
         outRecordNodes.getOutputRecords(),

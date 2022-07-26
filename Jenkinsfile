@@ -14,5 +14,6 @@ common {
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
+    nodeLabel = 'docker-debian-10-jdk8'
 }
 

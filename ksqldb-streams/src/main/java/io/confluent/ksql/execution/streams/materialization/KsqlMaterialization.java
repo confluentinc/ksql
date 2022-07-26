@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.ConsistencyUtil;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -135,7 +136,7 @@ class KsqlMaterialization implements Materialization {
       final Optional<Position> position
   ) {
     if (position.isPresent() && consistencyVector.isPresent()) {
-      consistencyVector.get().updateFromPosition(position.get());
+      ConsistencyUtil.updateFromPosition(consistencyVector.get(), position.get());
     }
   }
 

@@ -22,9 +22,12 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryId;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,30 +35,29 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SandboxedSharedKafkaStreamsRuntimeImplTest {
 
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
-
   @Mock
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
-
   @Mock
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
-
   @Mock
   private BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata;
-
   @Mock
   private NamedTopology topology;
-
   @Mock
   private QueryId queryId;
-
   @Mock
   private QueryId queryId2;
+  @Mock
+  private AddNamedTopologyResult addNamedTopologyResult;
+  @Mock
+  private KafkaFuture<Void> future;
 
   private SandboxedSharedKafkaStreamsRuntimeImpl validationSharedKafkaStreamsRuntime;
 
@@ -63,6 +65,9 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
   public void setUp() throws Exception {
     final Map<String, Object> streamProps = new HashMap<>();
     streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "SharedRuntimeId-validation");
+    when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
+    when(addNamedTopologyResult.all()).thenReturn(future);
+    when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
     validationSharedKafkaStreamsRuntime = new SandboxedSharedKafkaStreamsRuntimeImpl(
         kafkaStreamsBuilder,
@@ -74,8 +79,8 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(queryId);
 
     validationSharedKafkaStreamsRuntime.register(
-        binPackedPersistentQueryMetadata,
-        queryId);
+        binPackedPersistentQueryMetadata
+    );
   }
 
   @Test

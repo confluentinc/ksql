@@ -21,11 +21,12 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
-## ALTER property
-Change a property value.
+## ALTER SYSTEM
+Change a system-level property value (only available in {{ site.ccloud }}).
+
 
 ```sql
-ALTER 'auto.offset.reset'='earliest';
+ALTER SYSTEM 'auto.offset.reset'='earliest';
 ```
 
 ## ALTER STREAM
@@ -74,6 +75,20 @@ Assert values, stream, table, or tombstones.
 
 ```sql
 ASSERT NULL VALUES sourceName (columns)? KEY values            
+```
+
+## ASSERT SCHEMA
+Assert the existence or non-existence of a schema.
+
+```sql
+ASSERT (NOT EXISTS)? SCHEMA (SUBJECT subjectName)? (ID id)? (TIMEOUT timeout)?;     
+```
+
+## ASSERT TOPIC
+Assert the existence or non-existence of a topic.
+
+```sql
+ASSERT (NOT EXISTS)? TOPIC topicName (WITH properties)? (TIMEOUT timeout)?;         
 ```
 
 ## BETWEEN
@@ -135,7 +150,7 @@ EMIT CHANGES;
 ```
 
 !!! Tip "See CASE in action"
-    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
 ## CAST
 Change the type of an expression to a different type.
@@ -429,9 +444,9 @@ SELECT column_name(s)
 ```
 
 !!! Tip "See INNER_JOIN in action"
-    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
-    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#ksqldb-code)
-    - [Notify passengers of flight updates](https://developer.confluent.io/tutorials/aviation/confluent.html#ksqldb-code)
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
+    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#execute-ksqldb-code)
+    - [Notify passengers of flight updates](https://developer.confluent.io/tutorials/aviation/confluent.html#execute-ksqldb-code)
     - [Streaming ETL pipeline](/tutorials/etl/#join-the-streams-together)
 
 ## INSERT INTO
@@ -515,6 +530,18 @@ information, see [PRINT](../../ksqldb-reference/print).
 
 ```sql
 PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
+```
+
+## RIGHT JOIN
+Select all records from the right stream/table and the matched records from the
+left stream/table. For more information, see
+[Join streams and tables](/developer-guide/joins/join-streams-and-tables).
+
+```sql hl_lines="3"
+SELECT column_name(s)
+  FROM stream_name1 | table_name1
+   RIGHT JOIN stream_name2 | table_name2
+   ON <stream_name1|table_name1>.column_name=<stream_name2|table_name2>.column_name
 ```
 
 ## RUN SCRIPT
@@ -733,8 +760,8 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 ```
 
 !!! Tip "See WINDOWSTART in action"
-    - [Detect unusual credit card activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
-    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
+    - [Detect unusual credit card activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 
 ## NULLIF
 Returns NULL if two expressions are equal, otherwise it returns the first expression.

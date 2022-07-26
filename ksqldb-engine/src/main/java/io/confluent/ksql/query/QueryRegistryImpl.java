@@ -19,6 +19,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.config.ConfigItem;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -60,8 +62,12 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryRegistryImpl implements QueryRegistry {
+  private final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
+
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
       (sourceName, query) -> query.getSinkName().equals(Optional.of(sourceName));
 
@@ -278,6 +284,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       if (sandbox) {
         throwOnNonQueryLevelConfigs(config.getOverrides());
         streams.addAll(sourceStreams.stream()
+            .filter(t -> t.getApplicationId().equals(sharedRuntimeId.get()))
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
             .collect(Collectors.toList()));
       }
@@ -318,7 +325,13 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   private static void throwOnNonQueryLevelConfigs(final Map<String, Object> overriddenProperties) {
     final String nonQueryLevelConfigs = overriddenProperties.keySet().stream()
-        .filter(s -> !PropertiesList.QueryLevelPropertyList.contains(s))
+        .filter(s -> {
+          final KsqlConfigResolver resolver = new KsqlConfigResolver();
+          final Optional<ConfigItem> resolvedItem = resolver.resolve(s, false);
+          return resolvedItem.map(configItem ->
+              !PropertiesList.QueryLevelProperties
+                  .contains(configItem.getPropertyName())).orElse(true);
+        })
         .distinct()
         .collect(Collectors.joining(","));
 
@@ -443,6 +456,8 @@ public class QueryRegistryImpl implements QueryRegistry {
 
       // don't close the old query so that we don't delete the changelog
       // topics and the state store, instead use QueryMetadata#stop
+      log.info("Detected that query {} already exists so will replace it."
+          + "First will stop without resetting offsets", oldQuery.getQueryId());
       oldQuery.stop(true);
       unregisterQuery(oldQuery);
     }
@@ -566,6 +581,16 @@ public class QueryRegistryImpl implements QueryRegistry {
     public void onStateChange(
         final QueryMetadata queryMetadata, final State before, final State after) {
       eventListeners.forEach(l -> l.onStateChange(queryMetadata, before, after));
+    }
+
+    @Override
+    public void onPause(final QueryMetadata queryMetadata) {
+      eventListeners.forEach(l -> l.onKsqlStateChange(queryMetadata));
+    }
+
+    @Override
+    public void onResume(final QueryMetadata queryMetadata) {
+      eventListeners.forEach(l -> l.onKsqlStateChange(queryMetadata));
     }
 
     @Override

@@ -54,7 +54,7 @@ final class RestTestCaseBuilder {
       final TestLocation location = ctx.getTestLocation(test.name());
 
       return formats
-          .map(format -> createTest(test, format, location));
+          .map(format -> createTest(test, format, Optional.empty(), location));
     } catch (final Exception e) {
       throw new AssertionError("Invalid test '" + test.name() + "': " + e.getMessage(), e);
     }
@@ -63,12 +63,14 @@ final class RestTestCaseBuilder {
   private static RestTestCase createTest(
       final RestTestCaseNode test,
       final Optional<String> explicitFormat,
+      final Optional<String> config,
       final TestLocation location
   ) {
     final String testName = TestCaseBuilderUtil.buildTestName(
         location.getTestPath(),
         test.name(),
-        explicitFormat
+        explicitFormat,
+        config
     );
 
     try {
@@ -103,7 +105,8 @@ final class RestTestCaseBuilder {
           test.getResponses(),
           ee,
           test.getInputConditions(),
-          test.getOutputConditions()
+          test.getOutputConditions(),
+          test.isTestPullWithProtoFormat()
       );
     } catch (final Exception e) {
       throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);

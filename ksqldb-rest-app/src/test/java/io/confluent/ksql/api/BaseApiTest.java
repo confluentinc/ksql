@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -130,6 +131,22 @@ public class BaseApiTest {
     createServer(serverConfig);
     this.client = createClient();
     setDefaultRowGenerator();
+
+    testEndpoints.getQueryPublishers().forEach(
+        publisher -> {
+          final long timeout = System.currentTimeMillis() + 30_000L;
+          while (publisher.getSubscriber() == null) {
+            try {
+              Thread.sleep(100L);
+            } catch (InterruptedException swallow) {
+            }
+
+            if (System.currentTimeMillis() > timeout) {
+              throw new RuntimeException("Test setup failed; no subscriber registered.");
+            }
+          }
+        }
+    );
   }
 
   @After
@@ -251,7 +268,7 @@ public class BaseApiTest {
     client
         .post(uri)
         .sendBuffer(requestBody, requestFuture);
-    return requestFuture.get();
+    return requestFuture.get(10_000L, TimeUnit.MILLISECONDS);
   }
 
   protected void sendPostRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {

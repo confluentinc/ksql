@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
@@ -66,26 +65,23 @@ public class ExplainExecutorTest {
   @Mock
   private SessionProperties sessionProperties;
 
-  private CustomExecutors customExecutors;
 
   @Before
   public void setup() {
     when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST);
-    customExecutors = new CustomExecutors(new DefaultConnectServerErrors());
   }
 
   @Test
   public void shouldExplainQueryId() {
     // Given:
-    final ConfiguredStatement<Explain> explain =
-        (ConfiguredStatement<Explain>) engine.configure("EXPLAIN id;");
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN id;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(metadata.getQueryId())).thenReturn(Optional.of(metadata));
 
     // When:
-    final QueryDescriptionEntity query = (QueryDescriptionEntity) customExecutors.explain().execute(
+    final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
         sessionProperties,
         engine,
@@ -104,11 +100,10 @@ public class ExplainExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "Y");
     final String statementText = "CREATE STREAM X AS SELECT * FROM Y;";
-    final ConfiguredStatement<Explain> explain =
-        (ConfiguredStatement<Explain>) engine.configure("EXPLAIN " + statementText);
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
 
     // When:
-    final QueryDescriptionEntity query = (QueryDescriptionEntity) customExecutors.explain().execute(
+    final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
         sessionProperties,
         engine.getEngine(),
@@ -127,11 +122,10 @@ public class ExplainExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "Y");
     final String statementText = "SELECT * FROM Y EMIT CHANGES;";
-    final ConfiguredStatement<Explain> explain =
-        (ConfiguredStatement<Explain>) engine.configure("EXPLAIN " + statementText);
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
 
     // When:
-    final QueryDescriptionEntity query = (QueryDescriptionEntity) customExecutors.explain().execute(
+    final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
         sessionProperties,
         engine.getEngine(),
@@ -149,11 +143,10 @@ public class ExplainExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "Y");
     final String statementText = "SELECT address->street FROM Y EMIT CHANGES;";
-    final ConfiguredStatement<Explain> explain =
-        (ConfiguredStatement<Explain>) engine.configure("EXPLAIN " + statementText);
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
 
     // When:
-    final QueryDescriptionEntity query = (QueryDescriptionEntity) customExecutors.explain().execute(
+    final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
         sessionProperties,
         engine.getEngine(),
@@ -170,8 +163,8 @@ public class ExplainExecutorTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> customExecutors.explain().execute(
-            (ConfiguredStatement<Explain>) engine.configure("Explain SHOW TOPICS;"),
+        () -> CustomExecutors.EXPLAIN.execute(
+            engine.configure("Explain SHOW TOPICS;"),
             sessionProperties,
             engine.getEngine(),
             engine.getServiceContext()

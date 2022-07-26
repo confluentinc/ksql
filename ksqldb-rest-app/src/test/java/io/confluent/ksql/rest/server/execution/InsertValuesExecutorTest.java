@@ -32,9 +32,11 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
@@ -75,6 +77,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.avro.AvroProperties;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -91,6 +94,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
@@ -108,6 +112,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class InsertValuesExecutorTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
+  private static final ColumnName K1 = ColumnName.of("k1");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName INT_COL = ColumnName.of("INT");
@@ -121,6 +126,27 @@ public class InsertValuesExecutorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(COL1, SqlTypes.BIGINT)
+      .build();
+
+  private static final String RAW_SCHEMA = "{\"type\":\"record\","
+      + "\"name\":\"KsqlDataSourceSchema\","
+      + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
+      + "\"fields\":["
+      + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null},"
+      + "{\"name\":\"k1\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+
+  private static final String AVRO_RAW_ONE_KEY_SCHEMA =
+      "{\"type\":\"record\","
+      + "\"name\":\"KsqlDataSourceSchema\","
+      + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
+      + "\"fields\":["
+      + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+
+  private static final LogicalSchema SCHEMA_WITH_MUTI_KEYS = LogicalSchema.builder()
+      .keyColumn(K0, SqlTypes.STRING)
+      .keyColumn(K1, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(COL1, SqlTypes.BIGINT)
       .build();
@@ -687,6 +713,35 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldThrowOnClusterAuthorizationException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new ClusterAuthorizationException("Cluster authorization failed"))
+        .when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(
+        containsString("Authorization denied to Write on topic(s): [" + TOPIC_NAME + "]. "
+            + "Caused by: The producer is not authorized to do idempotent sends. "
+            + "Check that you have write permissions to the specified topic, "
+            + "and disable idempotent sends by setting 'enable.idempotent=false' "
+            + " if necessary."))));
+  }
+
+  @Test
   public void shouldThrowWhenInsertingValuesOnSourceTable() {
     // Given:
     givenDataSourceWithSchema("source_table_1", SCHEMA,
@@ -924,14 +979,100 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldSupportInsertIntoWithSchemaInfereceMatch() throws Exception {
+  public void shouldAllowInsertOnMultipleKeySchemaDefinitions() throws Exception {
+    final String protoMultiSchema = "syntax = \"proto3\";\n"
+        + "package io.proto;\n"
+        + "\n"
+        + "message SingleKey {\n"
+        + "  string k0 = 1;\n"
+        + "}\n"
+        + "message MultiKeys {\n"
+        + "  string k0 = 1;\n"
+        + "  string k1 = 2;\n"
+        + "}\n";
+
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+        .thenReturn(new SchemaMetadata(1, 1, protoMultiSchema));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new ProtobufSchema(protoMultiSchema));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.PROTOBUF.name(), ImmutableMap.of(
+            AvroProperties.FULL_SCHEMA_NAME,"io.proto.MultiKeys",
+            AvroProperties.SCHEMA_ID, "1"
+        )),
+        FormatInfo.of(FormatFactory.JSON.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, K1, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("K0"),
+            new StringLiteral("K1"),
+            new StringLiteral("V0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("K0", "K1"));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("V0", 21L));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldIgnoreConnectNameComparingKeySchema() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, RAW_SCHEMA));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new AvroSchema(RAW_SCHEMA));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, K1, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("k0"),
+            new StringLiteral("k1"),
+            new StringLiteral("v0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("k0", "k1"));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("v0", 21L));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldSupportInsertIntoWithSchemaInferenceMatch() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, ""));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new AvroSchema(AVRO_RAW_ONE_KEY_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE, SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE, SerdeFeature.WRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -957,7 +1098,10 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnSchemaInferenceMismatchForKey() throws Exception {
     // Given:
-    when(srClient.getLatestSchemaMetadata(Mockito.any())).thenReturn(new SchemaMetadata(1, 1, "schema"));
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, ""));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new AvroSchema(RAW_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
@@ -983,7 +1127,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
-    assertThat(e.getMessage(), containsString("Existing Schema: schema"));
+    assertThat(e.getMessage(), containsString("Existing Schema: " + RAW_SCHEMA));
     assertThat(e.getMessage(), containsString("ksqlDB Generated: {\"type\":"));
   }
 
@@ -1024,10 +1168,8 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldThrowWhenNotAuthorizedToReadKeySchemaToSR() throws Exception {
-    // Given:
-    when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenThrow(new RestClientException("foo", 401, 1));
+  public void shouldThrowWhenNotAuthorizedToReadKeySchemaFromSR() throws Exception {
+    // Given
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
@@ -1044,6 +1186,9 @@ public class InsertValuesExecutorTest {
             new StringLiteral("str"),
             new LongLiteral(2L)
         )
+    );
+    when(srClient.getLatestSchemaMetadata(TOPIC_NAME + "-key")).thenThrow(
+        new RestClientException("User is denied operation Read on topic-key", 401, 1)
     );
 
     // When:
@@ -1062,11 +1207,13 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenNotAuthorizedToWriteKeySchemaToSR() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+        .thenReturn(new SchemaMetadata(1, 1, AVRO_RAW_ONE_KEY_SCHEMA));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new AvroSchema(AVRO_RAW_ONE_KEY_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(SerdeFeature.WRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -1100,11 +1247,13 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenNotAuthorizedToWriteValSchemaToSR() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
-        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+        .thenReturn(new SchemaMetadata(1, 1, AVRO_RAW_ONE_KEY_SCHEMA));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new AvroSchema(AVRO_RAW_ONE_KEY_SCHEMA));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(SerdeFeature.WRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -1284,7 +1433,7 @@ public class InsertValuesExecutorTest {
   ) {
     final KsqlTopic topic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(keyFormat, keyFeatures),
+        KeyFormat.of(keyFormat, keyFeatures, Optional.empty()),
         ValueFormat.of(valueFormat, valFeatures)
     );
 

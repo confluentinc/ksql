@@ -44,7 +44,7 @@ public class KsqlMediaTypeTest {
   public static class PerValue {
 
     @Parameterized.Parameters(name = "{0}")
-    public static KsqlMediaType[] getMetiaTypes() {
+    public static KsqlMediaType[] getMediaTypes() {
       return KsqlMediaType.values();
     }
 
@@ -58,7 +58,8 @@ public class KsqlMediaTypeTest {
 
     @Test
     public void shouldGetValueOf() {
-      assertThat(KsqlMediaType.valueOf("json", mediaType.getVersion()), is(mediaType));
+      final String format = mediaType.mediaType().split("\\+")[1];
+      assertThat(KsqlMediaType.valueOf(format, mediaType.getVersion()), is(mediaType));
     }
   }
 }

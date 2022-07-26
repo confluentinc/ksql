@@ -141,6 +141,18 @@ public class RuntimeAssignorTest {
   }
 
   @Test
+  public void shouldDropQueryAndCleanUpRuntime() {
+    runtimeAssignor.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sources1,
+        KSQL_CONFIG
+    );
+    assertThat(runtimeAssignor.getRuntimesToSources().size(), equalTo(2));
+    runtimeAssignor.dropQuery(queryMetadata);
+    assertThat(runtimeAssignor.getRuntimesToSources().size(), equalTo(1));
+  }
+
+  @Test
   public void shouldRebuildAssignmentFromListOfQueries() {
     final RuntimeAssignor rebuilt = new RuntimeAssignor(KSQL_CONFIG);
     rebuilt.rebuildAssignment(Collections.singleton(queryMetadata));

@@ -37,9 +37,9 @@ with the same name already exists. Instead, ksqlDB returns a warning,
 For more information, see [Stream Processing](/concepts/stream-processing).
 
 !!! Tip "See CREATE TABLE in action"
-    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
-    - [Flag Unhealthy IoT Devices](https://developer.confluent.io/tutorials/internet-of-things/confluent.html#ksqldb-code)
-    - [Notify Passengers of Flight Updates](https://developer.confluent.io/tutorials/aviation/confluent.html#ksqldb-code)
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
+    - [Flag Unhealthy IoT Devices](https://developer.confluent.io/tutorials/internet-of-things/confluent.html#execute-ksqldb-code)
+    - [Notify Passengers of Flight Updates](https://developer.confluent.io/tutorials/aviation/confluent.html#execute-ksqldb-code)
 
 ### PRIMARY KEY
 

@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.codegen.CodeGenTestUtil.Evaluator;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -53,6 +54,7 @@ import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -63,6 +65,7 @@ import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
@@ -150,7 +153,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         javaExpression,
-        equalTo("((Double) (ArrayAccess.arrayAccess((java.util.List) COL4, ((int) 0))))")
+        equalTo("((Double) (COL4 == null ? null : (ArrayAccess.arrayAccess((java.util.List) COL4, ((int) 0)))))")
     );
   }
 
@@ -163,7 +166,7 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("((Double) ((java.util.Map)COL5).get(\"key1\"))"));
+    assertThat(javaExpression, equalTo("((Double) (COL5 == null ? null : ((java.util.Map)COL5).get(\"key1\")))"));
   }
 
   @Test
@@ -183,9 +186,9 @@ public class SqlToJavaVisitorTest {
     assertThat(
         java,
         equalTo("((List)new ArrayBuilder(2)"
-            + ".add( (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("array item") + " }}}).get())"
-            + ".add( (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  " + onException("array item") + " }}}).get()).build())"));
-  }
+            + ".add( (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (COL5 == null ? null : ((java.util.Map)COL5).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing array item\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())"
+            + ".add( (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing array item\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).build())"));
+    }
 
   @Test
   public void shouldProcessCreateMapExpressionCorrectly() {
@@ -204,8 +207,8 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, equalTo("((Map)new MapBuilder(2)"
-        + ".put( (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  " + onException("map key") + " }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("map value") + " }}}).get())"
-        + ".put( (new Supplier<Object>() {@Override public Object get() { try {  return \"bar\"; } catch (Exception e) {  " + onException("map key") + " }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  " + onException("map value") + " }}}).get()).build())"));
+        + ".put( (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing map key\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (COL5 == null ? null : ((java.util.Map)COL5).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing map value\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())"
+        + ".put( (new Supplier<Object>() {@Override public Object get() { try {  return \"bar\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing map key\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing map value\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).build())"));
   }
 
   @Test
@@ -225,8 +228,34 @@ public class SqlToJavaVisitorTest {
     assertThat(
         javaExpression,
         equalTo("((Struct)new Struct(schema0)"
-            + ".put(\"col1\", (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  " + onException("struct field") + " }}}).get())"
-            + ".put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("struct field") + " }}}).get()))"));
+            + ".put(\"col1\", (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())"
+            + ".put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (COL5 == null ? null : ((java.util.Map)COL5).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()))"));
+ }
+
+  @Test
+  public void shouldProcessStructExpressionWithDereferencesCorrectly() {
+    // Given:
+
+    final Expression structExpression = new CreateStructExpression(
+        ImmutableList.of(
+            new Field("col1", new StringLiteral("foo")),
+            new Field("col2", new SubscriptExpression(MAPCOL, new StringLiteral("key1")))
+        )
+    );
+    final Expression expression = new DereferenceExpression(Optional.empty(),
+        structExpression,
+        "col2"
+        );
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
+    assertThat(
+        javaExpression,
+        equalTo("((Double)(((Struct)new Struct(schema0).put(\"col1\", (new Supplier<Object>() "
+            + "{@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  "
+            + "logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (COL5 == null ? null : ((java.util.Map)COL5).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())) == null ? null : ((Struct)new Struct(schema0).put(\"col1\", (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (COL5 == null ? null : ((java.util.Map)COL5).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())).get(\"col2\")))"));
   }
 
   @Test
@@ -283,11 +312,23 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, is(
-        "((String) CONCAT_0.evaluate("
-            + "((String) SUBSTRING_1.evaluate(COL1, 1, 3)), "
-            + "((String) CONCAT_2.evaluate(\"-\","
-            + " ((String) SUBSTRING_3.evaluate(COL1, 4, 5))))))"));
+    final String expected = "((String) CONCAT_0.evaluate( (new Supplier<Object>() "
+        + "{@Override public Object get() { try {  return ((String) "
+        + "SUBSTRING_1.evaluate(COL1, 1, 3)); } catch (Exception e) {  "
+        + "logger.error(RecordProcessingError.recordProcessingError(    "
+        + "\"Error processing SUBSTRING\",    e instanceof InvocationTargetException? "
+        + "e.getCause() : e,    row));  return defaultValue; }}}).get(),  (new Supplier<Object>() "
+        + "{@Override public Object get() { try {  return ((String) CONCAT_2.evaluate(\"-\",  "
+        + "(new Supplier<Object>() {@Override public Object get() { try {  return ((String) "
+        + "SUBSTRING_3.evaluate(COL1, 4, 5)); } catch (Exception e) {  "
+        + "logger.error(RecordProcessingError.recordProcessingError(    "
+        + "\"Error processing SUBSTRING\",    e instanceof InvocationTargetException? "
+        + "e.getCause() : e,    row));  return defaultValue; }}}).get())); } catch (Exception e) "
+        + "{  logger.error(RecordProcessingError.recordProcessingError(    "
+        + "\"Error processing CONCAT\",    e instanceof InvocationTargetException? "
+        + "e.getCause() : e,    row));  return defaultValue; }}}).get()))";
+
+    assertThat(javaExpression, is(expected));
   }
 
   @Test
@@ -588,6 +629,20 @@ public class SqlToJavaVisitorTest {
         "COL8", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
     assertThat(java, containsString(doubleCast));
   }
+
+    @Test
+    public void shouldGenerateCastExpressionsWhichAreComparable() {
+        // Given:
+        final Expression cast = new Cast(new StringLiteral("2020-01-01"), new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DATE));
+        final ComparisonExpression exp = new ComparisonExpression(Type.GREATER_THAN_OR_EQUAL, cast, cast);
+
+        // When:
+        final String java = sqlToJavaVisitor.process(exp);
+
+        // Then:
+        final Evaluator evaluator = CodeGenTestUtil.cookCode(java, Boolean.class);
+        evaluator.evaluate(Collections.emptyList());
+    }
 
   @Test
   public void shouldGenerateCorrectCodeForDecimalSubtract() {
@@ -1259,24 +1314,24 @@ public class SqlToJavaVisitorTest {
     // Then
     assertThat(
         javaExpression, equalTo(
-            "(((Double) nested_0.evaluate(COL4, (Double)NullSafe.apply(0,new Function() {\n"
+            "(((Double) nested_0.evaluate(COL4, ((Double)NullSafe.apply(0,new Function() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1) {\n"
                 + "   final Integer val = (Integer) arg1;\n"
                 + "   return val.doubleValue();\n"
                 + " }\n"
-                + "}), new BiFunction() {\n"
+                + "})), new BiFunction() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1, Object arg2) {\n"
                 + "   final Double A = (Double) arg1;\n"
                 + "   final Integer B = (Integer) arg2;\n"
-                + "   return (((Double) nested_1.evaluate(COL4, (Double)NullSafe.apply(0,new Function() {\n"
+                + "   return (((Double) nested_1.evaluate(COL4, ((Double)NullSafe.apply(0,new Function() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1) {\n"
                 + "   final Integer val = (Integer) arg1;\n"
                 + "   return val.doubleValue();\n"
                 + " }\n"
-                + "}), new BiFunction() {\n"
+                + "})), new BiFunction() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1, Object arg2) {\n"
                 + "   final Double Q = (Double) arg1;\n"

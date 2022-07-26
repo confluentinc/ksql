@@ -49,10 +49,13 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -322,6 +325,19 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void shouldParseStartOnStructCorrectly() {
+    final String simpleQuery = "SELECT iteminfo->* FROM orders WHERE address->state = 'CA';";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getSelect().getSelectItems(), hasSize(1));
+    final StructAll allFields = (StructAll) query.getSelect().getSelectItems().get(0);
+    assertThat(allFields.getBaseStruct(), instanceOf(Expression.class));
+    assertThat(allFields.getBaseStruct().toString(), is("ITEMINFO"));
+  }
+
+  @Test
   public void testSimpleLeftJoin() {
     final String
         queryStr =
@@ -349,6 +365,39 @@ public class KsqlParserTest {
     assertThat(query.getFrom(), is(instanceOf(Join.class)));
     final Join join = (Join) query.getFrom();
     assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("LEFT"));
+    assertThat(((AliasedRelation) join.getLeft()).getAlias(), is(SourceName.of("T1")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
+    assertThat(query.getWhere().get().toString(), is("(T2.COL2 = 'test')"));
+  }
+
+  @Test
+  public void testSimpleRightJoin() {
+    final String
+        queryStr =
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 RIGHT JOIN test2 t2 ON "
+            + "t1.col1 = t2.col1;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getFrom(), is(instanceOf(Join.class)));
+    final Join join = (Join) query.getFrom();
+    assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("RIGHT"));
+    assertThat(((AliasedRelation) join.getLeft()).getAlias(), is(SourceName.of("T1")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
+  }
+
+  @Test
+  public void testRightJoinWithFilter() {
+    final String
+        queryStr =
+        "SELECT t1.col1, t2.col1, t2.col4, t2.col2 FROM test1 t1 RIGHT JOIN test2 t2 ON t1.col1 = "
+            + "t2.col1 WHERE t2.col2 = 'test';";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getFrom(), is(instanceOf(Join.class)));
+    final Join join = (Join) query.getFrom();
+    assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("RIGHT"));
     assertThat(((AliasedRelation) join.getLeft()).getAlias(), is(SourceName.of("T1")));
     assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
     assertThat(query.getWhere().get().toString(), is("(T2.COL2 = 'test')"));
@@ -1399,6 +1448,67 @@ public class KsqlParserTest {
     assertThat(parseDouble("0.123"), is(new DecimalLiteral(new BigDecimal("0.123"))));
     assertThat(parseDouble("00123.000"), is(new DecimalLiteral(new BigDecimal("123.000"))));
   }
+
+  @Test
+  public void shouldMaskParsedStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    final String masked = "CREATE SOURCE CONNECTOR `test-connector` WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "\"mode\"='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
+
+    // when
+    final ParsedStatement parsedStatement = ParsedStatement.of(query, mock(SingleStatementContext.class));
+
+    // Then
+    assertThat(parsedStatement.getStatementText(), is(masked));
+    assertThat(parsedStatement.getUnMaskedStatementText(), is(query));
+    assertThat(parsedStatement.toString(), is(masked));
+  }
+
+  @Test
+  public void shouldMaskPreparedStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    final String masked = "CREATE SOURCE CONNECTOR `test-connector` WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "\"mode\"='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
+
+    // when
+    final PreparedStatement<CreateConnector> preparedStatement =
+        PreparedStatement.of(query, mock(CreateConnector.class));
+
+    // Then
+    assertThat(preparedStatement.getStatementText(), is(masked));
+    assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
+    assertThat(preparedStatement.toString(), is(masked));
+  }
+
+
 
   private Literal parseDouble(final String literalText) {
     final PreparedStatement<Query> query = KsqlParserTestUtil

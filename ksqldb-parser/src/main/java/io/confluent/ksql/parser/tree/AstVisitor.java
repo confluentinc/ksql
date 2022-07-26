@@ -82,6 +82,10 @@ public abstract class AstVisitor<R, C> {
     return visitSelectItem(node, context);
   }
 
+  protected R visitStructAll(final StructAll node, final C context) {
+    return visitSelectItem(node, context);
+  }
+
   protected R visitTable(final Table node, final C context) {
     return visitRelation(node, context);
   }
@@ -148,6 +152,14 @@ public abstract class AstVisitor<R, C> {
 
   protected R visitGroupBy(final GroupBy node, final C context) {
     return visitNode(node, context);
+  }
+
+  protected R visitPauseQuery(final PauseQuery node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitResumeQuery(final ResumeQuery node, final C context) {
+    return visitStatement(node, context);
   }
 
   protected R visitTerminateQuery(final TerminateQuery node, final C context) {

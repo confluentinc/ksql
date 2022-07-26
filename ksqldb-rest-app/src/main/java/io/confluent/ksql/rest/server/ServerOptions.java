@@ -19,13 +19,14 @@ import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
-import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import io.confluent.ksql.rest.util.OptionsParser;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 @Command(name = "server", description = "KSQL Cluster")
@@ -38,14 +39,13 @@ public class ServerOptions {
   public HelpOption<?> help;
 
   @SuppressWarnings("unused") // Accessed via reflection
-  @Once
   @Required
   @Arguments(
       title = "config-file",
       description = "A file specifying configs for the KSQL Server, KSQL, "
           + "and its underlying Kafka Streams instance(s). Refer to KSQL "
           + "documentation for a list of available configs.")
-  private String propertiesFile;
+  private List<String> propertiesFile;
 
   @SuppressWarnings("unused") // Accessed via reflection
   @Option(
@@ -53,8 +53,8 @@ public class ServerOptions {
       description = "Path to the query file on the local machine.")
   private String queriesFile;
 
-  File getPropertiesFile() {
-    return new File(propertiesFile);
+  List<File> getPropertiesFile() {
+    return propertiesFile.stream().map(File::new).collect(Collectors.toList());
   }
 
   Optional<String> getQueriesFile(final Map<String, String> properties) {

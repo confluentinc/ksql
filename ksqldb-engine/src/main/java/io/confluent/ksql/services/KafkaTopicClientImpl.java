@@ -171,7 +171,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           () -> adminClient.get().describeTopics(
               ImmutableList.of(topic),
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
-          ).values().get(topic).get(),
+          ).topicNameValues().get(topic).get(),
           RetryBehaviour.ON_RETRYABLE.and(e -> !(e instanceof UnknownTopicOrPartitionException))
       );
       return true;
@@ -205,7 +205,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           () -> adminClient.get().describeTopics(
               topicNames,
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
-          ).all().get(),
+          ).allTopicNames().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(

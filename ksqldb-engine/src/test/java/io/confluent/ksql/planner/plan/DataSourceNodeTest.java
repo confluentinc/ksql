@@ -434,7 +434,7 @@ public class DataSourceNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `datasource` must include "
-        + "the key columns k0 and k1 in its projection."));
+        + "the key columns k0 and k1 in its projection (eg, SELECT k0, k1...)."));
   }
 
   @Test
@@ -450,7 +450,7 @@ public class DataSourceNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `datasource` must include " +
-        "the key columns k0 and k1 in its projection."));
+        "the key columns k0 and k1 in its projection (eg, SELECT k0, k1...)."));
   }
 
   private void givenNodeWithMockSource() {
@@ -481,7 +481,7 @@ public class DataSourceNodeTest {
 
     final KeyFormat keyFormat = windowed
         ? KeyFormat
-        .windowed(format, SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty()))
+        .windowed(format, SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty()))
         : KeyFormat.nonWindowed(format, SerdeFeatures.of());
 
     when(topic.getKeyFormat()).thenReturn(keyFormat);

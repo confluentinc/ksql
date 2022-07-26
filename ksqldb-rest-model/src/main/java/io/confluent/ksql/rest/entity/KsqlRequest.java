@@ -16,32 +16,33 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.config.PropertyParser;
-import io.confluent.ksql.properties.LocalPropertyParser;
-import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import io.confluent.ksql.properties.PropertiesUtil;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class KsqlRequest {
-  private static final PropertyParser PROPERTY_PARSER = new LocalPropertyParser();
+
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlRequest.class);
 
   private final String ksql;
   private final ImmutableMap<String, Object> configOverrides;
   private final ImmutableMap<String, Object> requestProperties;
   private final ImmutableMap<String, Object> sessionVariables;
   private final Optional<Long> commandSequenceNumber;
+  @JsonIgnore
+  private String maskedKsql;
 
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
@@ -73,17 +74,27 @@ public class KsqlRequest {
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
-  public String getKsql() {
+  public String getMaskedKsql() {
+    Objects.requireNonNull(maskedKsql);
+    return maskedKsql;
+  }
+
+  @JsonProperty("ksql")
+  public String getUnmaskedKsql() {
     return ksql;
+  }
+
+  public void setMaskedKsql(final String maskedKsql) {
+    this.maskedKsql = Objects.requireNonNull(maskedKsql, "maskedKsql");
   }
 
   @JsonProperty("streamsProperties")
   public Map<String, Object> getConfigOverrides() {
-    return coerceTypes(configOverrides);
+    return PropertiesUtil.coerceTypes(configOverrides, false);
   }
 
   public Map<String, Object> getRequestProperties() {
-    return coerceTypes(requestProperties);
+    return PropertiesUtil.coerceTypes(requestProperties, false);
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sessionVariables is ImmutableMap")
@@ -121,8 +132,15 @@ public class KsqlRequest {
 
   @Override
   public String toString() {
+    final String sql = Objects.isNull(maskedKsql) ? ksql : maskedKsql;
+    if (Objects.isNull(maskedKsql)) {
+      LOG.warn("maskedKsql is not set, default to unmasked one for toString which "
+          + "may leak sensitive information, If this is seen in a test, it may be expected "
+          + "depending on how the KsqlRequest was created. If seen in production, "
+          + "this is not expected. Please file a Github issue.");
+    }
     return "KsqlRequest{"
-        + "ksql='" + ksql + '\''
+        + "ksql='" + sql + '\''
         + ", configOverrides=" + configOverrides
         + ", requestProperties=" + requestProperties
         + ", sessionVariables=" + sessionVariables
@@ -146,35 +164,5 @@ public class KsqlRequest {
 
           return kv.getValue();
         }));
-  }
-
-  private static Map<String, Object> coerceTypes(final Map<String, Object> streamsProperties) {
-    if (streamsProperties == null) {
-      return Collections.emptyMap();
-    }
-
-    final Map<String, Object> validated = new HashMap<>(streamsProperties.size());
-    streamsProperties.forEach((k, v) -> validated.put(k, coerceType(k, v)));
-    return validated;
-  }
-
-  private static Object coerceType(final String key, final Object value) {
-    try {
-      final String stringValue = value == null
-          ? null
-          : value instanceof List
-              ? listToString((List<?>) value)
-              : String.valueOf(value);
-
-      return PROPERTY_PARSER.parse(key, stringValue);
-    } catch (final Exception e) {
-      throw new KsqlException("Failed to set '" + key + "' to '" + value + "'", e);
-    }
-  }
-
-  private static String listToString(final List<?> value) {
-    return value.stream()
-        .map(e -> e == null ? null : e.toString())
-        .collect(Collectors.joining(","));
   }
 }

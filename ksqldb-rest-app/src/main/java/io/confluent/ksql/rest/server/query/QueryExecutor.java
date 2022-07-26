@@ -16,12 +16,16 @@
 package io.confluent.ksql.rest.server.query;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.pull.HARouting;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.scalablepush.PushRouting;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
@@ -29,9 +33,6 @@ import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
@@ -49,7 +50,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
@@ -71,9 +71,8 @@ public class QueryExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(QueryExecutor.class);
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final KsqlRestConfig ksqlRestConfig;
-  private final KsqlConfig ksqlConfig;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RateLimiter rateLimiter;
@@ -102,7 +101,6 @@ public class QueryExecutor {
   ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlRestConfig = ksqlRestConfig;
-    this.ksqlConfig = ksqlConfig;
     this.pullQueryMetrics = pullQueryMetrics;
     this.scalablePushQueryMetrics = scalablePushQueryMetrics;
     this.rateLimiter = rateLimiter;
@@ -158,7 +156,7 @@ public class QueryExecutor {
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
 
-      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
+      if (!ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
         throw new KsqlStatementException(
             "Pull queries are disabled."
                 + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
@@ -169,19 +167,6 @@ public class QueryExecutor {
             statement.getStatementText());
       }
 
-      Optional<ConsistencyOffsetVector> consistencyOffsetVector = Optional.empty();
-      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)
-          && requestProperties.containsKey(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
-        final String serializedCV = (String)requestProperties.get(
-            KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
-        // serializedCV will be empty on the first request as the consistency vector is initialized
-        // at the server
-        consistencyOffsetVector = serializedCV != null && !serializedCV.equals("")
-            ? Optional.of(ConsistencyOffsetVector.deserialize(serializedCV))
-            : Optional.of(new ConsistencyOffsetVector());
-      }
-
       switch (dataSourceType) {
         case KTABLE: {
           // First thing, set the metrics callback so that it gets called, even if we hit an error
@@ -189,7 +174,8 @@ public class QueryExecutor {
           metricsCallbackHolder.setCallback(QueryMetricsUtil.initializePullTableMetricsCallback(
               pullQueryMetrics, pullBandRateLimiter, resultForMetrics));
 
-          final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configOverrides);
+          final SessionConfig sessionConfig
+              = SessionConfig.of(ksqlEngine.getKsqlConfig(), configOverrides);
           final ConfiguredStatement<Query> configured = ConfiguredStatement
               .of(statement, sessionConfig);
 
@@ -201,7 +187,7 @@ public class QueryExecutor {
               isInternalRequest,
               pullBandRateLimiter,
               resultForMetrics,
-              consistencyOffsetVector
+              Optional.empty()
           );
         }
         case KSTREAM: {
@@ -214,7 +200,8 @@ public class QueryExecutor {
                   pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics,
                   refDecrementer));
 
-          final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configOverrides);
+          final SessionConfig sessionConfig
+              = SessionConfig.of(ksqlEngine.getKsqlConfig(), configOverrides);
           final ConfiguredStatement<Query> configured = ConfiguredStatement
               .of(statement, sessionConfig);
 
@@ -233,7 +220,7 @@ public class QueryExecutor {
           );
       }
     } else if (ScalablePushUtil
-        .isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
+        .isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlEngine.getKsqlConfig(),
             configOverrides)) {
       // First thing, set the metrics callback so that it gets called, even if we hit an error
       final AtomicReference<ScalablePushQueryMetadata> resultForMetrics =
@@ -345,13 +332,16 @@ public class QueryExecutor {
       final AtomicReference<ScalablePushQueryMetadata> resultForMetrics
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
-        .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
+        .of(statement, SessionConfig.of(ksqlEngine.getKsqlConfig(), configOverrides));
 
-    final PushQueryConfigRoutingOptions routingOptions =
-        new PushQueryConfigRoutingOptions(ksqlConfig, configOverrides, requestProperties);
+    final PushQueryConfigRoutingOptions routingOptions = new PushQueryConfigRoutingOptions(
+        ksqlEngine.getKsqlConfig(),
+        configOverrides,
+        requestProperties
+    );
 
     final PushQueryConfigPlannerOptions plannerOptions =
-        new PushQueryConfigPlannerOptions(ksqlConfig, configOverrides);
+        new PushQueryConfigPlannerOptions(ksqlEngine.getKsqlConfig(), configOverrides);
 
     scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
 
@@ -397,7 +387,7 @@ public class QueryExecutor {
       final boolean excludeTombstones
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
-        .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
+        .of(statement, SessionConfig.of(ksqlEngine.getKsqlConfig(), streamsProperties));
 
     if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
       QueryCapacityUtil.throwTooManyActivePushQueriesException(

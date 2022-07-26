@@ -44,7 +44,7 @@ public class SessionWindowExpressionTest {
   @Test
   public void shouldReturnWindowInfo() {
     assertThat(windowExpression.getWindowInfo(),
-        is(WindowInfo.of(WindowType.SESSION, Optional.empty())));
+        is(WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty())));
   }
 
   @Test

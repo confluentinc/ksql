@@ -143,7 +143,6 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
-import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -172,6 +171,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -314,8 +314,6 @@ public class KsqlResourceTest {
   @Mock
   private Errors errorsHandler;
   @Mock
-  private ConnectServerErrors connectErrorHandler;
-  @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private Supplier<String> commandRunnerWarning;
@@ -334,6 +332,8 @@ public class KsqlResourceTest {
 
   @Before
   public void setUp() throws IOException, RestClientException {
+    VALID_EXECUTABLE_REQUEST.setMaskedKsql(QueryMask.getMaskedStatement(VALID_EXECUTABLE_REQUEST.getUnmaskedKsql()));
+
     commandStatus = new QueuedCommandStatus(
         0, new CommandStatusFuture(new CommandId(TOPIC, "whateva", CREATE)));
 
@@ -450,7 +450,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -483,7 +482,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -2367,8 +2365,8 @@ public class KsqlResourceTest {
                 ? ImmutableSet.of(md.getResultTopic().get().getKafkaTopicName())
                 : ImmutableSet.of(),
             md.getQueryId(),
-            QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(md.getState(), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
+            new QueryStatusCount(Collections.singletonMap(KsqlConstants.fromStreamsState(md.getState()), 1)),
+            KsqlConstants.KsqlQueryType.PERSISTENT)
     ).collect(Collectors.toList());
   }
 
@@ -2513,7 +2511,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -2554,6 +2551,21 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldNotBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
+    givenKsqlConfigWith(ImmutableMap.of(
+        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
+    ));
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.streams.auto.offset.reset");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(200));
+  }
+
+  @Test
   public void shouldThrowOnDenyListValidatorWhenTerminateCluster() {
     final Map<String, Object> terminateStreamProperties =
         ImmutableMap.of(DELETE_TOPIC_LIST_PROP, Collections.singletonList("Foo"));
@@ -2583,7 +2595,7 @@ public class KsqlResourceTest {
       ksqlResource.handleKsqlStatements(securityContext, VALID_EXECUTABLE_REQUEST);
 
       logger.verify(() -> QueryLogger.info("Query created",
-          VALID_EXECUTABLE_REQUEST.getKsql()), times(1));
+          VALID_EXECUTABLE_REQUEST.getMaskedKsql()), times(1));
     }
   }
 
@@ -2623,7 +2635,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );

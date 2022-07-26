@@ -101,7 +101,7 @@ public class KsqlRequestTest {
   @Test
   public void shouldHandleNullStatement() {
     assertThat(
-        new KsqlRequest(null, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER).getKsql(),
+        new KsqlRequest(null, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER).getUnmaskedKsql(),
         is(""));
   }
 

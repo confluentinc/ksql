@@ -99,8 +99,11 @@ public class TimestampExtractionPolicyFactoryTest {
     );
 
     // Then:
+    // split the assertion into two different checks to support the error message differences
+    // between JDK8 and JDK17
+    assertThat(e.getMessage(), containsString("cannot be cast"));
     assertThat(e.getMessage(), containsString(
-        "cannot be cast to org.apache.kafka.streams.processor.TimestampExtractor"));
+        "org.apache.kafka.streams.processor.TimestampExtractor"));
   }
 
   @Test

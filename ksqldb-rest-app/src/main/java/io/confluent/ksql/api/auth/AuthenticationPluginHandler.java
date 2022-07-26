@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
  * Handler that calls any authentication plugin
  */
 public class AuthenticationPluginHandler implements Handler<RoutingContext> {
-  public static final Set<String> KSQL_AUTHENTICATION_SKIP_PATHS = ImmutableSet
+  private static final Set<String> KSQL_AUTHENTICATION_SKIP_PATHS = ImmutableSet
       .of("/v1/metadata", "/v1/metadata/id", "/healthcheck");
 
   private final Server server;
@@ -57,17 +57,9 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
       final AuthenticationPlugin securityHandlerPlugin) {
     this.server = Objects.requireNonNull(server);
     this.securityHandlerPlugin = Objects.requireNonNull(securityHandlerPlugin);
-    // We add in all the paths that don't require authentication/authorization from
-    // KsqlAuthorizationProviderHandler
-    final Set<String> unauthenticatedPaths = new HashSet<>(KSQL_AUTHENTICATION_SKIP_PATHS);
-    // And then we add anything from the property authentication.skip.paths
-    // This preserves the behaviour from the previous Jetty based implementation
     final List<String> unauthed = server.getConfig()
         .getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG);
-    unauthenticatedPaths.addAll(unauthed);
-    final String paths = String.join(",", unauthenticatedPaths);
-    final String converted = convertCommaSeparatedWilcardsToRegex(paths);
-    unauthedPathsPattern = Pattern.compile(converted);
+    unauthedPathsPattern = getAuthorizationSkipPaths(unauthed);
   }
 
   @Override
@@ -96,6 +88,18 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
       routingContext.fail(t);
       return null;
     });
+  }
+
+  public static Pattern getAuthorizationSkipPaths(final List<String> unauthed) {
+    // We add in all the paths that don't require authentication/authorization from
+    // KsqlAuthorizationProviderHandler
+    final Set<String> unauthenticatedPaths = new HashSet<>(KSQL_AUTHENTICATION_SKIP_PATHS);
+    // And then we add anything from the property authentication.skip.paths
+    // This preserves the behaviour from the previous Jetty based implementation
+    unauthenticatedPaths.addAll(unauthed);
+    final String paths = String.join(",", unauthenticatedPaths);
+    final String converted = convertCommaSeparatedWilcardsToRegex(paths);
+    return Pattern.compile(converted);
   }
 
   private static class AuthPluginUser implements ApiUser {

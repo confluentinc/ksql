@@ -2,7 +2,9 @@ package io.confluent.ksql.execution.codegen;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -13,6 +15,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -26,6 +29,7 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -276,7 +280,11 @@ public class CompiledExpressionTest {
         .evaluate(null, DEFAULT_VAL, processingLogger, errorMsgSupplier);
 
     // Then:
-    verify(processingLogger).error(RecordProcessingError
-        .recordProcessingError("It went wrong!", new NullPointerException(), (GenericRow)null));
+    ArgumentCaptor<RecordProcessingError> err = ArgumentCaptor.forClass(
+        RecordProcessingError.class);
+    verify(processingLogger).error(err.capture());
+
+    assertThat(err.getValue().getException().get(), instanceOf(NullPointerException.class));
+    assertThat(err.getValue().getMessage(), containsString("It went wrong!"));
   }
 }

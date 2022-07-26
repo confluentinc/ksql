@@ -72,13 +72,29 @@ public final class StreamedRow {
       final LogicalSchema schema
   ) {
     return new StreamedRow(
-        Optional.of(Header.of(queryId, schema)),
+        Optional.of(Header.of(queryId, schema, Optional.empty())),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty()
+    );
+  }
+
+  public static StreamedRow headerProtobuf(
+          final QueryId queryId,
+          final LogicalSchema columnsSchema,
+          final String protoSchema
+  ) {
+    return new StreamedRow(
+            Optional.of(Header.of(queryId, columnsSchema, Optional.of(protoSchema))),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty()
     );
   }
 
@@ -127,6 +143,20 @@ public final class StreamedRow {
         sourceHost,
         Optional.empty(),
         Optional.empty()
+    );
+  }
+
+  public static StreamedRow pullRowProtobuf(
+          final byte[] rowBytes
+  ) {
+    return new StreamedRow(
+            Optional.empty(),
+            Optional.of(DataRow.rowProtobuf(rowBytes)),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty()
     );
   }
 
@@ -212,7 +242,8 @@ public final class StreamedRow {
     this.continuationToken = requireNonNull(continuationToken, "continuationToken");
     this.consistencyToken = requireNonNull(
         consistencyToken, "consistencyToken");
-    checkUnion(header, row, errorMessage, finalMessage, continuationToken, consistencyToken);
+    checkUnion(header, row, errorMessage, finalMessage,
+            continuationToken, consistencyToken);
   }
 
   public Optional<Header> getHeader() {
@@ -248,6 +279,7 @@ public final class StreamedRow {
     return finalMessage.isPresent() || errorMessage.isPresent();
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -268,8 +300,8 @@ public final class StreamedRow {
 
   @Override
   public int hashCode() {
-    return Objects.hash(header, row, errorMessage, finalMessage, sourceHost, continuationToken,
-                        consistencyToken);
+    return Objects.hash(header, row, errorMessage, finalMessage,
+            sourceHost, continuationToken, consistencyToken);
   }
 
   @Override
@@ -310,12 +342,14 @@ public final class StreamedRow {
 
     private final QueryId queryId;
     private final LogicalSchema columnsSchema;
+    private final Optional<String> protoSchema;
 
     public static Header of(
         final QueryId queryId,
-        final LogicalSchema columnsSchema
+        final LogicalSchema columnsSchema,
+        final Optional<String> protoSchema
     ) {
-      return new Header(queryId, columnsSchema);
+      return new Header(queryId, columnsSchema, protoSchema);
     }
 
     public QueryId getQueryId() {
@@ -329,21 +363,28 @@ public final class StreamedRow {
       return columnsSchema;
     }
 
+    public Optional<String> getProtoSchema() {
+      return protoSchema;
+    }
+
     @JsonCreator
     @SuppressWarnings("unused") // Invoked by reflection by Jackson.
     private static Header jsonCreator(
         @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-        @JsonProperty(value = "schema", required = true) final LogicalSchema columnsSchema
+        @JsonProperty(value = "schema") final LogicalSchema columnsSchema,
+        @JsonProperty(value = "protobufSchema") final Optional<String> protoSchema
     ) {
-      return new Header(queryId, columnsSchema);
+      return new Header(queryId, columnsSchema, protoSchema);
     }
 
     private Header(
         final QueryId queryId,
-        final LogicalSchema columnsSchema
+        final LogicalSchema columnsSchema,
+        final Optional<String> protoSchema
     ) {
       this.queryId = requireNonNull(queryId, "queryId");
       this.columnsSchema = requireNonNull(columnsSchema, "columnsSchema");
+      this.protoSchema = protoSchema;
     }
 
     @Override
@@ -356,12 +397,13 @@ public final class StreamedRow {
       }
       final Header header = (Header) o;
       return Objects.equals(queryId, header.queryId)
-          && Objects.equals(columnsSchema, header.columnsSchema);
+          && Objects.equals(columnsSchema, header.columnsSchema)
+              && Objects.equals(protoSchema, header.protoSchema);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(queryId, columnsSchema);
+      return Objects.hash(queryId, columnsSchema, protoSchema);
     }
   }
 
@@ -370,24 +412,36 @@ public final class StreamedRow {
   public static final class DataRow extends BaseRow {
 
     @EffectivelyImmutable
-    private final List<?> columns;
+    private final Optional<List<?>> columns;
+    @EffectivelyImmutable
+    private final Optional<byte[]> protobufBytes;
     private final boolean tombstone;
 
     public static DataRow row(
         final List<?> columns
     ) {
-      return new DataRow(columns, Optional.empty());
+      return new DataRow(Optional.of(columns), Optional.empty(), Optional.empty());
+    }
+
+    public static DataRow rowProtobuf(
+        final byte[] bytes
+    ) {
+      return new DataRow(Optional.empty(), Optional.of(bytes), Optional.empty());
     }
 
     public static DataRow tombstone(
         final List<?> columns
     ) {
-      return new DataRow(columns, Optional.of(true));
+      return new DataRow(Optional.of(columns), Optional.empty(), Optional.of(true));
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is unmodifiableList()")
     public List<?> getColumns() {
-      return columns;
+      return columns.orElse(Collections.emptyList());
+    }
+
+    public Optional<byte[]> getProtobufBytes() {
+      return protobufBytes;
     }
 
     public Optional<Boolean> getTombstone() {
@@ -396,14 +450,15 @@ public final class StreamedRow {
 
     @JsonCreator
     private DataRow(
-        @JsonProperty(value = "columns") final List<?> columns,
+        @JsonProperty(value = "columns") final Optional<List<?>> columns,
+        @JsonProperty(value = "protobufBytes") final Optional<byte[]> protobufBytes,
         @JsonProperty(value = "tombstone") final Optional<Boolean> tombstone
     ) {
       this.tombstone = tombstone.orElse(false);
       // cannot use ImmutableList, as we need to handle `null`
-      this.columns = Collections.unmodifiableList(
-          new ArrayList<>(requireNonNull(columns, "columns"))
-      );
+      this.columns = columns.map(objects -> Collections.unmodifiableList(
+              new ArrayList<>(requireNonNull(objects, "columns"))));
+      this.protobufBytes = protobufBytes;
     }
 
     @Override
@@ -416,12 +471,13 @@ public final class StreamedRow {
       }
       final DataRow row = (DataRow) o;
       return tombstone == row.tombstone
-          && Objects.equals(columns, row.columns);
+          && Objects.equals(columns, row.columns)
+          && Objects.equals(protobufBytes, row.protobufBytes);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(tombstone, columns);
+      return Objects.hash(tombstone, columns, protobufBytes);
     }
   }
 }

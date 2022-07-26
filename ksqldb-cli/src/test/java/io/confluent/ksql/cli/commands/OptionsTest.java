@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import java.util.Arrays;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
@@ -204,6 +205,7 @@ public class OptionsTest {
     assertThat(options.getVariables(), hasEntry("size", "1"));
     assertThat(options.getVariables(), hasEntry("prod", "true"));
   }
+
 
   private static Options parse(final String... args) {
     try {

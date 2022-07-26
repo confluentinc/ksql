@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.serde.connect;
 
+import io.confluent.ksql.serde.KsqlSerializationException;
 import io.confluent.ksql.serde.SerdeUtils;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.storage.Converter;
@@ -52,8 +52,8 @@ public class KsqlConnectSerializer<T> implements Serializer<T> {
       final Object connectRow = translator.toConnectRow(data);
       return converter.fromConnectData(topic, schema, connectRow);
     } catch (final Exception e) {
-      throw new SerializationException(
-          "Error serializing message to topic: " + topic + ". " + e.getMessage(), e);
+      throw new KsqlSerializationException(
+          topic, "Error serializing message to topic: " + topic + ". " + e.getMessage(), e);
     }
   }
 

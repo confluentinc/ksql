@@ -51,7 +51,7 @@ public class AnalysisTest {
 
   private static final SourceName ALIAS = SourceName.of("ds1");
   private static final FormatInfo A_FORMAT = FormatInfo.of("JSON");
-  private static final WindowInfo A_WINDOW = WindowInfo.of(WindowType.SESSION, Optional.empty());
+  private static final WindowInfo A_WINDOW = WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty());
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)

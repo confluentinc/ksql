@@ -19,6 +19,9 @@ import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.api.util.ApiServerUtils;
+import io.confluent.ksql.config.ConfigItem;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -44,7 +47,6 @@ import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
-import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
 import io.confluent.ksql.rest.server.execution.DefaultCommandQueueSync;
 import io.confluent.ksql.rest.server.execution.RequestHandler;
@@ -59,6 +61,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -100,7 +103,7 @@ public class KsqlResource implements KsqlConfigurable {
           .add(UnsetProperty.class)
           .build();
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final CommandRunner commandRunner;
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
@@ -113,7 +116,6 @@ public class KsqlResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private KsqlHostInfo localHost;
   private URL localUrl;
-  private final CustomExecutors customExecutors;
 
   public KsqlResource(
       final KsqlEngine ksqlEngine,
@@ -122,7 +124,6 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final ConnectServerErrors connectErrorHandler,
       final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(
@@ -133,7 +134,6 @@ public class KsqlResource implements KsqlConfigurable {
         Injectors.DEFAULT,
         authorizationValidator,
         errorHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunner::getCommandRunnerDegradedWarning
     );
@@ -147,7 +147,6 @@ public class KsqlResource implements KsqlConfigurable {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final ConnectServerErrors connectErrorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Supplier<String> commandRunnerWarning
   ) {
@@ -165,8 +164,6 @@ public class KsqlResource implements KsqlConfigurable {
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
-    this.customExecutors = new CustomExecutors(Objects.requireNonNull(connectErrorHandler,
-        "connectErrorHandler"));
   }
 
   @Override
@@ -195,7 +192,7 @@ public class KsqlResource implements KsqlConfigurable {
     );
 
     this.handler = new RequestHandler(
-        customExecutors.EXECUTOR_MAP,
+        CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
             config,
             commandRunner.getCommandQueue(),
@@ -209,7 +206,7 @@ public class KsqlResource implements KsqlConfigurable {
         ksqlEngine,
         new DefaultCommandQueueSync(
             commandRunner.getCommandQueue(),
-            this::shouldSynchronize,
+            KsqlResource::shouldSynchronize,
             distributedCmdResponseTimeout
         )
     );
@@ -250,8 +247,11 @@ public class KsqlResource implements KsqlConfigurable {
       final Map<String, Object> properties = new HashMap<>();
       properties.put(property, "");
       denyListPropertyValidator.validateAll(properties);
-      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-        if (!PropertiesList.QueryLevelPropertyList.contains(property)) {
+      final KsqlConfigResolver resolver = new KsqlConfigResolver();
+      final Optional<ConfigItem> resolvedItem = resolver.resolve(property, false);
+      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+          && resolvedItem.isPresent()) {
+        if (!PropertiesList.QueryLevelProperties.contains(resolvedItem.get().getPropertyName())) {
           throw new KsqlException(String.format("When shared runtimes are enabled, the"
               + " config %s can only be set for the entire cluster and all queries currently"
               + " running in it, and not configurable for individual queries."
@@ -273,8 +273,10 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    LOG.info("Received: " + request);
+    // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
+    ApiServerUtils.setMaskedSqlIfNeeded(request);
 
+    LOG.info("Received: " + request);
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -290,7 +292,7 @@ public class KsqlResource implements KsqlConfigurable {
 
       final KsqlRequestConfig requestConfig =
           new KsqlRequestConfig(request.getRequestProperties());
-      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+      final List<ParsedStatement> statements = ksqlEngine.parse(request.getUnmaskedKsql());
 
       validator.validate(
           SandboxedServiceContext.create(securityContext.getServiceContext()),
@@ -302,13 +304,13 @@ public class KsqlResource implements KsqlConfigurable {
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
               request.getSessionVariables()
           ),
-          request.getKsql()
+          request.getUnmaskedKsql()
       );
 
       // log validated statements for query anonymization
       statements.forEach(s -> {
-        if (s.getStatementText().toLowerCase().contains("terminate")
-            || s.getStatementText().toLowerCase().contains("drop")) {
+        if (s.getUnMaskedStatementText().toLowerCase().contains("terminate")
+            || s.getUnMaskedStatementText().toLowerCase().contains("drop")) {
           QueryLogger.info("Query terminated", s.getStatementText());
         } else {
           QueryLogger.info("Query created", s.getStatementText());
@@ -344,7 +346,7 @@ public class KsqlResource implements KsqlConfigurable {
     } catch (final Exception e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
       return errorHandler.generateResponse(
-          e, Errors.serverErrorForStatement(e, request.getKsql()));
+          e, Errors.serverErrorForStatement(e, request.getMaskedKsql()));
     }
   }
 
@@ -354,10 +356,10 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
-  private boolean shouldSynchronize(final Class<? extends Statement> statementClass) {
+  private static boolean shouldSynchronize(final Class<? extends Statement> statementClass) {
     return !SYNC_BLACKLIST.contains(statementClass)
         // we never need to synchronize distributed statements
-        && customExecutors.EXECUTOR_MAP.containsKey(statementClass);
+        && CustomExecutors.EXECUTOR_MAP.containsKey(statementClass);
   }
 
   private static void ensureValidPatterns(final List<String> deleteTopicList) {

@@ -53,6 +53,8 @@ import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListVariables;
+import io.confluent.ksql.parser.tree.PauseQuery;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -526,6 +528,34 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatRightJoinWithoutJoinWindow() {
+    final Join join = new Join(leftAlias, ImmutableList.of(new JoinedSource(
+        Optional.empty(),
+        rightAlias,
+        JoinedSource.Type.RIGHT,
+        criteria,
+        Optional.empty())));
+
+    final String result = SqlFormatter.formatSql(join);
+    final String expected = "`left` L\nRIGHT OUTER JOIN `right` R ON (('left.col0' = 'right.col0'))";
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void shouldFormatRightJoinWithWithin() {
+    final Join join = new Join(leftAlias, ImmutableList.of(new JoinedSource(
+        Optional.empty(),
+        rightAlias,
+        JoinedSource.Type.RIGHT,
+        criteria,
+        Optional.of(new WithinExpression(10, TimeUnit.SECONDS)))));
+
+    final String expected = "`left` L\nRIGHT OUTER JOIN `right` R WITHIN 10 SECONDS ON "
+        + "(('left.col0' = 'right.col0'))";
+    assertEquals(expected, SqlFormatter.formatSql(join));
+  }
+
+  @Test
   public void shouldFormatLeftJoinWithoutJoinWindow() {
     final Join join = new Join(leftAlias, ImmutableList.of(new JoinedSource(
         Optional.empty(),
@@ -638,6 +668,15 @@ public class SqlFormatterTest {
         + "\nLEFT OUTER JOIN `right` R WITHIN 10 SECONDS ON (('left.col0' = 'right.col0'))"
         + "\nINNER JOIN `right2` R2 WITHIN 10 SECONDS ON (('left.col0' = 'right2.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
+  }
+
+  @Test
+  public void shouldFormatSelectStructAllCorrectly() {
+    final String statementString =
+        "CREATE STREAM S AS SELECT a.address->* FROM address a;";
+    final Statement statement = parseSingle(statementString);
+    assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT A.ADDRESS->*\n"
+        + "FROM ADDRESS A\nEMIT CHANGES"));
   }
 
   @Test
@@ -881,6 +920,55 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(formatted, is("DROP TABLE SOMETHING"));
+  }
+
+  @Test
+  public void shouldFormatPauseQuery() {
+    // Given:
+    final PauseQuery query = PauseQuery.query(Optional.empty(), new QueryId("FOO"));
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(query);
+
+    // Then:
+    assertThat(formatted, is("PAUSE FOO"));
+  }
+
+  @Test
+  public void shouldFormatPauseAllQueries() {
+    // Given:
+    final PauseQuery query = PauseQuery.all(Optional.empty());
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(query);
+
+    // Then:
+    assertThat(formatted, is("PAUSE ALL"));
+  }
+
+  @Test
+  public void shouldFormatResumeQuery() {
+    // Given:
+    final ResumeQuery query = ResumeQuery.query(Optional.empty(), new QueryId(
+        "FOO"));
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(query);
+
+    // Then:
+    assertThat(formatted, is("RESUME FOO"));
+  }
+
+  @Test
+  public void shouldFormatResumeAllQueries() {
+    // Given:
+    final ResumeQuery query = ResumeQuery.all(Optional.empty());
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(query);
+
+    // Then:
+    assertThat(formatted, is("RESUME ALL"));
   }
 
   @Test

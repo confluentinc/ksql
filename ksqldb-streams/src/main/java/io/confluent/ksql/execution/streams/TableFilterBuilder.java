@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -20,7 +20,7 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.Optional;
@@ -62,7 +62,7 @@ public final class TableFilterBuilder {
     final Stacker stacker = Stacker.of(step.getProperties().getQueryContext());
     final KTable<K, GenericRow> filtered = table.getTable()
         .transformValues(
-            () -> new KsTransformer<>(predicate.getTransformer(processingLogger)),
+            () -> new KsValueTransformer<>(predicate.getTransformer(processingLogger)),
             Named.as(StreamsUtil.buildOpName(stacker.push(PRE_PROCESS_OP).getQueryContext()))
         )
         .filter(

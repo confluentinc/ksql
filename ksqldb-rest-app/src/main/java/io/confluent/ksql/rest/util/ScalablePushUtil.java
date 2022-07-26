@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
-import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ColumnExtractor;
@@ -47,7 +47,7 @@ public final class ScalablePushUtil {
   @SuppressWarnings({"BooleanExpressionComplexity", "CyclomaticComplexity"})
   public static boolean isScalablePushQuery(
       final Statement statement,
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overrides
   ) {

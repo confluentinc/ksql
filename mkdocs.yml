@@ -81,6 +81,7 @@ nav:
       - Logging: operate-and-deploy/logging.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
+      - High availability: operate-and-deploy/high-availability.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
       - Schema Inference With ID: operate-and-deploy/schema-inference-with-id.md
       - High availability for pull queries: operate-and-deploy/high-availability-pull-queries.md
@@ -155,6 +156,8 @@ nav:
     - Clients:
       - Synopsis: developer-guide/ksqldb-clients/index.md
       - Java Client: developer-guide/ksqldb-clients/java-client.md
+      - Python Client: developer-guide/ksqldb-clients/python-client.md
+      - .NET Client: developer-guide/ksqldb-clients/dotnet-client.md
       - Contribute a new client: developer-guide/ksqldb-clients/contributing.md
     - Processing log: reference/processing-log.md
     - Serialization: reference/serialization.md
@@ -172,7 +175,7 @@ markdown_extensions:
     - attr_list
     - mdx_gh_links:
         user: confluentinc
-        repo: ksqldb
+        repo: ksql
     - mdx_truly_sane_lists
 
 plugins:
@@ -258,10 +261,10 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 3.1
-        ksqldbversion: 0.24.0
-        cprelease: 7.1.0
-        releasepostbranch: 7.1.0-post
+        kafkaversion: 3.2
+        ksqldbversion: 0.27.0
+        cprelease: 7.2.0
+        releasepostbranch: 7.2.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

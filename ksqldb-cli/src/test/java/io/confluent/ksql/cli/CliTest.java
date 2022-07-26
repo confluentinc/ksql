@@ -854,9 +854,10 @@ public class CliTest {
     when(mockRestClient.getServerInfo())
         .thenThrow(new KsqlRestClientException("Boom", new IOException("")));
 
-    new Cli(1L, 1L, mockRestClient, console)
+    final int error_code = new Cli(1L, 1L, mockRestClient, console)
         .runCommand("this is a command");
 
+    assertThat(error_code, is(-1));
     assertThat(terminal.getOutputString(),
         containsString("Please ensure that the URL provided is for an active KSQL server."));
   }
@@ -1067,16 +1068,17 @@ public class CliTest {
   @Test
   public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
-            "Name        : TOPK\n" +
-                "Author      : Confluent\n" +
-                "Type        : AGGREGATE\n" +
-            "Jar         : internal\n" +
-            "Variations  : \n";
+            "Name        : TOPK\n"
+            + "Author      : Confluent\n"
+            + "Overview    : Computes the top k values for a column, per key.\n"
+            + "Type        : AGGREGATE\n"
+            + "Jar         : internal\n"
+            + "Variations  : \n";
 
     final String expectedVariant =
-        "\tVariation   : TOPK(val INT)\n"
+        "\tVariation   : TOPK(val INT, k INT)\n"
         + "\tReturns     : ARRAY<INT>\n"
-        + "\tDescription : Calculates the TopK value for a column, per key.";
+        + "\tDescription : Calculates the top k values for an integer column, per key.";
 
     localCli.handleLine("describe function topk;");
 
@@ -1228,13 +1230,14 @@ public class CliTest {
         + "partitions=1);\n").getBytes(StandardCharsets.UTF_8));
 
     // When:
-    localCli.runScript(scriptFile.getPath());
+    final int error_code = localCli.runScript(scriptFile.getPath());
 
     // Then:
     final String out = terminal.getOutputString();
     final String expected = "Statement: create stream if not exist s1(id int) "
         + "with (kafka_topic='s1', value_format='json', partitions=1);\n"
         + "Caused by: line 2:22: no viable alternative at input 'create stream if not";
+    assertThat(error_code, is(-1));
     assertThat(out, containsString(expected));
     assertThat(out, not(containsString("drop stream if exists")));
   }

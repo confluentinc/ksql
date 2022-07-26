@@ -142,12 +142,6 @@ public class KsqlConfig extends AbstractConfig {
       "Custom extension to allow for more fine-grained control of connector requests made by "
           + "ksqlDB. Extensions should implement the ConnectRequestHeadersExtension interface.";
 
-  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER =
-      KSQL_CONNECT_PREFIX + "error.handler";
-  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT = null;
-  private static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC =
-      "A class that allows the ksqlDB server to customize error handling from connector requests.";
-
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
   public static final String KSQL_EXT_DIR = "ksql.extension.dir";
@@ -358,11 +352,6 @@ public class KsqlConfig extends AbstractConfig {
           + " much faster for short-lived queries.";
   public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
-  public static final String KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED
-      = "ksql.query.pull.consistency.token.enabled";
-  public static final String KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC =
-      "Enables the use of the consistency token to offer monotonic read consistency for pull "
-          + "queries.";
   public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
 
   public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED
@@ -436,6 +425,11 @@ public class KsqlConfig extends AbstractConfig {
       "How close the catchup consumer must be to the latest before it will stop the latest to join"
           + " with it.";
   public static final int KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT = 50;
+
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED =
+      "ksql.query.push.v2.metrics.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC =
+      "Config to enable/disable collecting JMX metrics for push queries v2.";
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -526,7 +520,7 @@ public class KsqlConfig extends AbstractConfig {
       + "KSQL metastore backup files are located.";
 
   public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
-  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = true;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
@@ -554,6 +548,18 @@ public class KsqlConfig extends AbstractConfig {
           + "that contains headers columns will work with the headers functionality to prevent "
           + "a degraded command topic situation when restarting ksqlDB.";
 
+  public static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
+      = "ksql.json_sr.converter.deserializer.enabled";
+
+  private static final Boolean KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT = true;
+
+  private static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC = ""
+      + "Feature flag that enables the use of the JsonSchemaConverter class for deserializing "
+      + "JSON_SR records. JsonSchemaConverter is required to support `anyOf` JSON_SR types. "
+      + "This flag should be used to disable this feature only when users experience "
+      + "deserialization issues caused by the JsonSchemaConverter. Otherwise, this flag should "
+      + "remain true to take advantage of the new `anyOf` types and other JSON_SR serde fixes.";
+
   public static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED =
       "ksql.source.table.materialization.enabled";
   private static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
@@ -571,9 +577,14 @@ public class KsqlConfig extends AbstractConfig {
           + "Default is false. If false, persistent queries will use separate "
           + " runtimes, if true, new queries may share streams instances.";
 
+  public static final String KSQL_NEW_QUERY_PLANNER_ENABLED =
+      "ksql.new.query.planner.enabled";
+  private static final Boolean KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT = false;
+  private static final String KSQL_NEW_QUERY_PLANNER_ENABLED_DOC =
+      "Feature flag that enables the new planner for persistent queries. Default is false.";
 
   public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
-  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 8;
+  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 2;
   public static final String KSQL_SHARED_RUNTIMES_COUNT_DOC =
       "Controls how many runtimes queries are allocated over initially."
           + "this is only used when ksql.runtime.feature.shared.enabled is true.";
@@ -662,6 +673,27 @@ public class KsqlConfig extends AbstractConfig {
   private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
   private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
       = "Migrates the /query endpoint to use the same handler as /query-stream.";
+  public static final String KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS
+      = "ksql.assert.topic.default.timeout.ms";
+  private static final int KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DEFAULT = 1000;
+  private static final String KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DOC
+      = "The default timeout for ASSERT TOPIC statements if no timeout is specified "
+      + "in the statement.";
+  public static final String KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS
+      = "ksql.assert.schema.default.timeout.ms";
+  private static final int KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DEFAULT = 1000;
+  private static final String KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DOC
+      = "The default timeout for ASSERT SCHEMA statements if no timeout is specified "
+      + "in the statement.";
+
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
+      = "ksql.websocket.connection.max.timeout.ms";
+  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 0;
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+      = "If this config is set to a positive number, then ksqlDB will terminate websocket"
+      + " connections after a timeout. The timeout will be the lower of the auth token's "
+      + "lifespan (if present) and the value of this config. If this config is set to 0, then "
+      + "ksqlDB will not close websockets even if the token has an expiration time.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -1180,13 +1212,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
         )
         .define(
-            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC
-        )
-        .define(
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED,
             Type.BOOLEAN,
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT,
@@ -1255,6 +1280,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED,
+            Type.BOOLEAN,
+            true,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
@@ -1381,6 +1413,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC
         )
         .define(
+            KSQL_NEW_QUERY_PLANNER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DOC
+        )
+        .define(
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS,
             Type.LONG,
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT,
@@ -1393,13 +1432,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_HEADERS_COLUMNS_ENABLED_DOC
-        )
-        .define(
-            KSQL_CONNECT_SERVER_ERROR_HANDLER,
-            Type.CLASS,
-            KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT,
-            Importance.LOW,
-            KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC
         )
         .define(
             KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG,
@@ -1428,6 +1460,34 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT,
             Importance.LOW,
             KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
+        )
+        .define(
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS,
+            Type.INT,
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS,
+            Type.INT,
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC
         )
         .withClientSslSupport();
 
@@ -1772,6 +1832,18 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, String> getStringAsMap(final String key) {
     final String value = getString(key).trim();
     return parseStringAsMap(key, value);
+  }
+
+  public static Map<String, String> getStringAsMap(
+      final String key,
+      final Map<String, ?> configMap
+  ) {
+    final String value = (String) configMap.get(key);
+    if (value != null) {
+      return parseStringAsMap(key, value);
+    } else {
+      return Collections.emptyMap();
+    }
   }
 
   public static Map<String, String> parseStringAsMap(final String key, final String value) {

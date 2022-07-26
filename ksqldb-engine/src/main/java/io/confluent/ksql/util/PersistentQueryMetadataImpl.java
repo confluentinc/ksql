@@ -22,13 +22,14 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -86,7 +87,8 @@ public class PersistentQueryMetadataImpl
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
       final QueryMetadata.Listener listener,
-      final Optional<ScalablePushRegistry> scalablePushRegistry
+      final Optional<ScalablePushRegistry> scalablePushRegistry,
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -105,7 +107,8 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        new QueryListenerWrapper(listener, scalablePushRegistry)
+        new QueryListenerWrapper(listener, scalablePushRegistry),
+        loggerFactory
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");

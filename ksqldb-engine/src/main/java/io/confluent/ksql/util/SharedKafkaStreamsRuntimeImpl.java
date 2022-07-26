@@ -23,15 +23,21 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +48,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   private final long shutdownTimeout;
   private final QueryErrorClassifier errorClassifier;
   private final int maxQueryErrorsQueueSize;
+  private final List<KafkaFuture<Void>> topolgogiesToAdd;
 
   public SharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                        final QueryErrorClassifier errorClassifier,
@@ -56,13 +63,14 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     this.maxQueryErrorsQueueSize = maxQueryErrorsQueueSize;
     shutdownTimeout = shutdownTimeoutConfig;
     setupAndStartKafkaStreams(kafkaStreams);
+    topolgogiesToAdd = new ArrayList<>();
   }
 
   @Override
   public void register(
-      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
-      final QueryId queryId
+      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata
   ) {
+    final QueryId queryId = binpackedPersistentQueryMetadata.getQueryId();
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.info("Registered query: {}  in {} \n"
                  + "Runtime {} is executing these queries: {}",
@@ -183,6 +191,10 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
         try {
+          for (KafkaFuture<Void> toAdd : topolgogiesToAdd) {
+            toAdd.get();
+          }
+          topolgogiesToAdd.clear();
           kafkaStreams.removeNamedTopology(queryId.toString(), !isCreateOrReplace)
               .all()
               .get();
@@ -220,18 +232,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     log.info("Attempting to start query {} in runtime {}", queryId, getApplicationId());
     if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        try {
-          kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology())
-              .all()
-              .get();
-        } catch (ExecutionException | InterruptedException e) {
-          final Throwable t = e.getCause() == null ? e : e.getCause();
-          throw new IllegalStateException(String.format(
-                "Encountered an error when trying to start query %s in runtime: %s",
-                queryId,
-                getApplicationId()),
-              t);
-        }
+        final KafkaFuture<Void> toAdd = kafkaStreams
+            .addNamedTopology(collocatedQueries.get(queryId).getTopology()).all();
+        topolgogiesToAdd.add(toAdd);
       } else {
         throw new IllegalArgumentException("Cannot start because Streams is not done terminating"
                                                + " an older version of query : " + queryId);
@@ -245,18 +248,26 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void overrideStreamsProperties(final Map<String, Object> newProperties) {
+    newProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG,
+        streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+    //The application server should not be overwritten
     streamsProperties = ImmutableMap.copyOf(newProperties);
   }
 
   @Override
   public void restartStreamsRuntime() {
     log.info("Restarting runtime {}", getApplicationId());
+    final Collection<NamedTopology> liveTopologies = kafkaStreams.getAllTopologies();
+    kafkaStreams.close();
     final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
         .buildNamedTopologyWrapper(streamsProperties);
-    kafkaStreams.close();
     kafkaStreams = kafkaStreamsNamedTopologyWrapper;
-    for (final BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
-      kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
+    kafkaStreams.setStateListener(stateListener());
+    for (final NamedTopology topology : liveTopologies) {
+      final BinPackedPersistentQueryMetadataImpl query = collocatedQueries
+          .get(new QueryId(topology.name()));
+      query.updateTopology(query.getTopologyCopy(this));
+      kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopology());
     }
     setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);
   }

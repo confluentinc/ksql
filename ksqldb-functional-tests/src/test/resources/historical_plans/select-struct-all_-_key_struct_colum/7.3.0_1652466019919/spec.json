@@ -1,0 +1,111 @@
+{
+  "version" : "7.3.0",
+  "timestamp" : 1652466019919,
+  "path" : "query-validation-tests/select-struct-all.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K1` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `V1` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K1` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `A` INTEGER, `B` INTEGER, `V1` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "key struct colum",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : {
+        "a" : 1,
+        "b" : 2
+      },
+      "value" : {
+        "v1" : 1
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "A" : 1,
+        "B" : 2
+      },
+      "value" : {
+        "A" : 1,
+        "B" : 2,
+        "V1" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (k1 STRUCT<a INT, b INT> KEY, v1 INT) WITH (kafka_topic='test_topic', format='JSON');", "CREATE STREAM OUTPUT AS SELECT k1, k1->*, v1 FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K1` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `V1` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K1` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `A` INTEGER, `B` INTEGER, `V1` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

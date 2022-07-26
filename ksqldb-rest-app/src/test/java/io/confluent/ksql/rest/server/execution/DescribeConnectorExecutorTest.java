@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static io.confluent.ksql.util.KsqlConfig.KSQL_CONNECT_SERVER_ERROR_HANDLER;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -41,10 +41,12 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeConnector;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -150,7 +152,7 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.describe("connector")).thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));
 
     connectorFactory = info -> Optional.of(connector);
-    executor = new DescribeConnectorExecutor(connectorFactory, new DefaultConnectServerErrors());
+    executor = new DescribeConnectorExecutor(connectorFactory);
 
     final DescribeConnector describeConnector = new DescribeConnector(Optional.empty(), "connector");
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -222,36 +224,42 @@ public class DescribeConnectorExecutorTest {
   }
 
   @Test
-  public void shouldErrorIfConnectClientFailsStatus() {
+  public void shouldThrowIfConnectClientFailsStatus() {
     // Given:
     when(connectClient.status(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> executor.execute(describeStatement, mock(SessionProperties.class), engine, serviceContext));
 
     // Then:
     verify(connectClient).status("connector");
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(), is("error"));
+
+    assertThat(e.getResponse().getStatus(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+    final KsqlErrorMessage err = (KsqlErrorMessage) e.getResponse().getEntity();
+    assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+    assertThat(err.getMessage(), containsString("Failed to query connector status: error"));
   }
 
   @Test
-  public void shouldErrorIfConnectClientFailsDescribe() {
+  public void shouldThrowIfConnectClientFailsDescribe() {
     // Given:
     when(connectClient.describe(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> executor.execute(describeStatement, mock(SessionProperties.class), engine, serviceContext));
 
     // Then:
     verify(connectClient).status("connector");
     verify(connectClient).describe("connector");
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(), is("error"));
+
+    assertThat(e.getResponse().getStatus(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+    final KsqlErrorMessage err = (KsqlErrorMessage) e.getResponse().getEntity();
+    assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+    assertThat(err.getMessage(), containsString("Failed to describe connector: error"));
   }
 
   @Test
@@ -283,7 +291,7 @@ public class DescribeConnectorExecutorTest {
   public void shouldWorkIfUnknownConnector() {
     // Given:
     connectorFactory = info -> Optional.empty();
-    executor = new DescribeConnectorExecutor(connectorFactory, new DefaultConnectServerErrors());
+    executor = new DescribeConnectorExecutor(connectorFactory);
 
     // When:
     final Optional<KsqlEntity> entity = executor
@@ -301,83 +309,4 @@ public class DescribeConnectorExecutorTest {
     assertThat(description.getSources(), empty());
   }
 
-  @Test
-  public void shouldReturnPluggableForbiddenError() {
-    //Given:
-    when(connectClient.describe(anyString()))
-        .thenReturn(
-            ConnectResponse.failure("FORBIDDEN", HttpStatus.SC_FORBIDDEN));
-    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
-
-    // When:
-    final Optional<KsqlEntity> entity = new DescribeConnectorExecutor(connectErrorHandler)
-        .execute(describeStatement,
-            mock(SessionProperties.class),
-            null,
-            serviceContext).getEntity();
-
-    // Then:
-    verify(connectClient).status("connector");
-    verify(connectClient).describe("connector");
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
-        is(DummyConnectServerErrors.FORBIDDEN_ERR));
-  }
-
-  @Test
-  public void shouldReturnPluggableUnauthorizedError() {
-    //Given:
-    when(connectClient.describe(anyString()))
-        .thenReturn(
-            ConnectResponse.failure("UNAUTHORIZED", HttpStatus.SC_UNAUTHORIZED));
-    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
-
-    // When:
-    final Optional<KsqlEntity> entity = new DescribeConnectorExecutor(connectErrorHandler)
-        .execute(describeStatement,
-            mock(SessionProperties.class),
-            null,
-            serviceContext).getEntity();
-
-    // Then:
-    verify(connectClient).status("connector");
-    verify(connectClient).describe("connector");
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
-        is(DummyConnectServerErrors.UNAUTHORIZED_ERR));
-  }
-
-  @Test
-  public void shouldReturnDefaultPluggableErrorOnUnknownCode() {
-    //Given:
-    when(connectClient.describe(anyString()))
-        .thenReturn(
-            ConnectResponse.failure("NOT ACCEPTABLE", HttpStatus.SC_NOT_ACCEPTABLE));
-    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
-
-    // When:
-    final Optional<KsqlEntity> entity = new DescribeConnectorExecutor(connectErrorHandler)
-        .execute(describeStatement,
-            mock(SessionProperties.class),
-            null,
-            serviceContext).getEntity();
-
-    // Then:
-    verify(connectClient).status("connector");
-    verify(connectClient).describe("connector");
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
-        is(DummyConnectServerErrors.DEFAULT_ERR));
-  }
-
-  private ConnectServerErrors givenCustomConnectErrorHandler() {
-    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
-        KSQL_CONNECT_SERVER_ERROR_HANDLER, DummyConnectServerErrors.class));
-    return config.getConfiguredInstance(
-        KSQL_CONNECT_SERVER_ERROR_HANDLER,
-        ConnectServerErrors.class);
-  }
 }

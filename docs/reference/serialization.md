@@ -33,10 +33,10 @@ ksqlDB supports these serialization formats:
 
 -   [`NONE`](#none) used to indicate the data should not be deserialized.
 -   [`DELIMITED`](#delimited) supports comma separated values.
--   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and within schema registry integration 
+-   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and without schema registry integration
 -   [`AVRO`](#avro) supports AVRO serialized values. 
 -   [`KAFKA`](#kafka) supports primitives serialized using the standard Kafka serializers. 
--   [`PROTOBUF`](#protobuf) supports Protocol Buffers.
+-   [`PROTOBUF`](#protobuf) and [`PROTOBUF_NOSR`](#protobuf) support Protocol Buffers, with and without schema registry integration
 
 With the exception of the `NONE` format, all formats may be used as both key and value formats.
 See individual formats for details.
@@ -323,7 +323,7 @@ used.
 | Feature                      | Supported |
 |------------------------------|-----------|
 | As value format              | Yes       |
-| As key format                | Yes        |
+| As key format                | Yes       |
 | Multi-Column Keys            | Yes       |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
@@ -488,8 +488,8 @@ format.
 | As value format              | Yes       |
 | As key format                | Yes       |
 | Multi-Column Keys            | Yes       |
-| [Schema Registry required][0]| Yes       |
-| [Schema inference][1]        | Yes       |
+| [Schema Registry required][0]| `PROTOBUF`: Yes, `PROTOBUF_NOSR`: No |
+| [Schema inference][1]        | `PROTOBUF`: Yes, `PROTOBUF_NOSR`: No |
 | [Single field wrapping][2]   | Yes       |
 | [Single field unwrapping][2] | No        |
 

@@ -1,0 +1,134 @@
+{
+  "version" : "7.3.0",
+  "timestamp" : 1656368571831,
+  "path" : "query-validation-tests/math.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "asin edge cases",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "i" : null,
+        "l" : null,
+        "d" : null
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "i" : -2,
+        "l" : -6,
+        "d" : -1.1
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "i" : 2,
+        "l" : 6,
+        "d" : 1.1
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : null,
+        "L" : null,
+        "D" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : "NaN",
+        "L" : "NaN",
+        "D" : "NaN"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : "NaN",
+        "L" : "NaN",
+        "D" : "NaN"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT k, asin(i) i, asin(l) l, asin(d) d FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -200,7 +200,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'NULL'"
+        "message": "no viable alternative at input 'cast(f0 as NULL'"
       }
     },
     {
@@ -381,6 +381,21 @@
       ],
       "outputs": [
         {"topic":  "OUT", "value": {"VAL": 1}}
+      ]
+    },
+    {
+      "name": "string to timestamp",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, col0 STRING) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast(col0 AS TIMESTAMP) as VAL FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": {"col0": "2022-04-28T21:44:47.943"}},
+        {"topic":  "test_topic", "value": {"col0": "2022-04-28T21:44:47.943Z"}}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": {"VAL": 1651182287943}},
+        {"topic":  "OUT", "value": {"VAL": 1651182287943}}
       ]
     }
   ]

@@ -83,6 +83,15 @@ FROM s2
 EMIT CHANGES;
 ```
 
+Starting in ksqlDB 0.27, you can access all fields of a struct by using the `->*` after the column. For instance, this query behaves similar to the previous query by selecting columns `a`, `b`, and all keys withing `b`:
+```sql
+SELECT a,
+       b,
+       b->*
+FROM s2
+EMIT CHANGES;
+```
+
 Your output should resemble the following results. Notice that the column names for the last two columns are `C` and `D` respectively. By default, ksqlDB will give the column the name of the last identifier in the arrow chain. You can override this by aliasing, such as `b->c AS x`. If you drill into nested values that finish with the same identifier name, ksqlDB will force you to provide an alias to avoid ambiguity.
 
 ```

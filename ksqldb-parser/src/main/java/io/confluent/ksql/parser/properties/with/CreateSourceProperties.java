@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.properties.with;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -36,6 +37,8 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -54,10 +57,11 @@ public final class CreateSourceProperties {
   private final PropertiesConfig props;
   @EffectivelyImmutable
   private final transient Function<String, Duration> durationParser;
+  private final boolean unwrapProtobufPrimitives;
 
   public static CreateSourceProperties from(final Map<String, Literal> literals) {
     try {
-      return new CreateSourceProperties(literals, DurationParser::parse);
+      return new CreateSourceProperties(literals, DurationParser::parse, false);
     } catch (final ConfigException e) {
       final String message = e.getMessage().replace(
           "configuration",
@@ -71,10 +75,12 @@ public final class CreateSourceProperties {
   @VisibleForTesting
   CreateSourceProperties(
       final Map<String, Literal> originals,
-      final Function<String, Duration> durationParser
+      final Function<String, Duration> durationParser,
+      final boolean unwrapProtobufPrimitives
   ) {
     this.props = new PropertiesConfig(CreateConfigs.CONFIG_METADATA, originals);
     this.durationParser = Objects.requireNonNull(durationParser, "durationParser");
+    this.unwrapProtobufPrimitives = unwrapProtobufPrimitives;
 
     CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
@@ -134,6 +140,24 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getInt(CommonCreateConfigs.VALUE_SCHEMA_ID));
   }
 
+  public Optional<String> getKeySchemaFullName() {
+    final String schemaFullName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
+    if (schemaFullName == null) {
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(Strings.emptyToNull(schemaFullName.trim()));
+  }
+
+  public Optional<String> getValueSchemaFullName() {
+    final String schemaFullName = props.getString(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME);
+    if (schemaFullName == null) {
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(Strings.emptyToNull(schemaFullName.trim()));
+  }
+
   public Optional<FormatInfo> getKeyFormat(final SourceName name) {
     final String keyFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
@@ -141,7 +165,7 @@ public final class CreateSourceProperties {
         .map(format -> FormatInfo.of(format, getKeyFormatProperties(keyFormat, name.text())));
   }
 
-  private Map<String, String> getKeyFormatProperties(final String keyFormat, final String name) {
+  public Map<String, String> getKeyFormatProperties(final String keyFormat, final String name) {
     final Builder<String, String> builder = ImmutableMap.builder();
     final String schemaName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
     if (schemaName != null) {
@@ -158,6 +182,10 @@ public final class CreateSourceProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && unwrapProtobufPrimitives) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
+    }
+
     final Optional<Integer> keySchemaId = getKeySchemaId();
     keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
@@ -168,10 +196,10 @@ public final class CreateSourceProperties {
     final String valueFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY));
     return Optional.ofNullable(valueFormat)
-        .map(format -> FormatInfo.of(format, getValueFormatProperties()));
+        .map(format -> FormatInfo.of(format, getValueFormatProperties(valueFormat)));
   }
 
-  public Map<String, String> getValueFormatProperties() {
+  public Map<String, String> getValueFormatProperties(final String valueFormat) {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
     final String avroSchemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
@@ -185,6 +213,10 @@ public final class CreateSourceProperties {
     final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
     if (delimiter != null) {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
+    }
+
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && unwrapProtobufPrimitives) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
     final Optional<Integer> valueSchemaId = getValueSchemaId();
@@ -215,7 +247,7 @@ public final class CreateSourceProperties {
     valueSchemaName.ifPresent(
         s -> originals.put(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME, new StringLiteral(s)));
 
-    return new CreateSourceProperties(originals, durationParser);
+    return new CreateSourceProperties(originals, durationParser, unwrapProtobufPrimitives);
   }
 
   public CreateSourceProperties withPartitions(
@@ -224,7 +256,7 @@ public final class CreateSourceProperties {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
 
-    return new CreateSourceProperties(originals, durationParser);
+    return new CreateSourceProperties(originals, durationParser, unwrapProtobufPrimitives);
   }
 
   public CreateSourceProperties withFormats(final String keyFormat, final String valueFormat) {
@@ -232,7 +264,17 @@ public final class CreateSourceProperties {
     originals.put(CommonCreateConfigs.KEY_FORMAT_PROPERTY, new StringLiteral(keyFormat));
     originals.put(CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral(valueFormat));
 
-    return new CreateSourceProperties(originals, durationParser);
+    return new CreateSourceProperties(originals, durationParser, unwrapProtobufPrimitives);
+  }
+
+  public CreateSourceProperties withUnwrapProtobufPrimitives(
+      final boolean unwrapProtobufPrimitives
+  ) {
+    return new CreateSourceProperties(
+        props.copyOfOriginalLiterals(),
+        durationParser,
+        unwrapProtobufPrimitives
+    );
   }
 
   public Map<String, Literal> copyOfOriginalLiterals() {
@@ -253,12 +295,13 @@ public final class CreateSourceProperties {
       return false;
     }
     final CreateSourceProperties that = (CreateSourceProperties) o;
-    return Objects.equals(props, that.props);
+    return Objects.equals(props, that.props)
+        && unwrapProtobufPrimitives == that.unwrapProtobufPrimitives;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(props);
+    return Objects.hash(props, unwrapProtobufPrimitives);
   }
 
   private void validateWindowInfo() {

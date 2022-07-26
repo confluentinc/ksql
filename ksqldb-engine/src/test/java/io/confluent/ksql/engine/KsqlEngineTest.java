@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.engine.KsqlEngineTestUtil.execute;
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasFullName;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
@@ -57,6 +58,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -108,6 +110,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
@@ -116,6 +119,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings({"OptionalGetWithoutIsPresent", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
+  private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   private KsqlConfig ksqlConfig;
   private final Map<String, Object> sharedRuntimeEnabled = new HashMap<>();
@@ -133,6 +137,11 @@ public class KsqlEngineTest {
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private KsqlExecutionContext sandbox;
 
+  @BeforeClass
+  public static void setUpFunctionRegistry() {
+    loadAllUserFunctions(functionRegistry);
+  }
+
   @Before
   public void setUp() {
     sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
@@ -144,7 +153,7 @@ public class KsqlEngineTest {
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
 
 
-    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
 
     serviceContext = TestServiceContext.create(
         topicClient,
@@ -308,6 +317,25 @@ public class KsqlEngineTest {
     assertThat(e, rawMessage(containsString(
         "INSERT INTO can only be used to insert into a stream. BAR is a table.")));
     assertThat(e, statementText(is("insert into bar select * from test2;")));
+  }
+
+  @Test
+  public void shouldThrowForBadSumAggregate() {
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.executeQuery(
+            serviceContext,
+            ksqlEngine,
+            "SELECT 'dummy', SUM(CAST(col1 AS STRING)) FROM test1 GROUP BY 'dummy' EMIT CHANGES;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(containsString(
+        "Function 'SUM' does not accept parameters (STRING).")));
   }
 
   @Test
@@ -1057,7 +1085,7 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -1079,7 +1107,7 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -1105,7 +1133,7 @@ public class KsqlEngineTest {
     ksqlEngine.close();
 
     // Then:
-    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -1127,7 +1155,7 @@ public class KsqlEngineTest {
     ksqlEngine.close();
 
     // Then:
-    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -1391,7 +1419,7 @@ public class KsqlEngineTest {
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
 
   @Test
@@ -2248,6 +2276,21 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldBeAbleToPreparePauseAndResume() {
+    // Given:
+    givenSqlAlreadyExecuted("CREATE STREAM FOO AS SELECT * FROM TEST1;");
+
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "PAUSE CSAS_FOO_0;"
+            + "RESUME CSAS_FOO_0;");
+
+    // When:
+    parsed.forEach(ksqlEngine::prepare);
+
+    // Then: did not throw.
+  }
+
+  @Test
   public void shouldIgnoreLegacyDeleteTopicPartOfDropCommand() {
     // Given:
     final QueryMetadata query = KsqlEngineTestUtil.execute(
@@ -2290,6 +2333,25 @@ public class KsqlEngineTest {
     final Object valueAfter = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
     assertThat(valueAfter, not(equalTo(valueBefore)));
     assertThat(valueAfter, equalTo("3000"));
+  }
+
+  @Test
+  public void shouldThrowIfConfigureNotCalledWithAppServerConfig() {
+    // When/Then:
+    assertThrows(IllegalArgumentException.class, () -> ksqlEngine.configure(KsqlConfig.empty()));
+  }
+
+  @Test
+  public void shouldConfigure() {
+    // Given:
+    final KsqlConfig config
+        = new KsqlConfig(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "foo:bar//"));
+
+    // When:
+    ksqlEngine.configure(config);
+
+    // Then:
+    assertThat(ksqlEngine.getKsqlConfig(), is(config));
   }
 
   @Test

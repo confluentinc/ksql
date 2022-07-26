@@ -151,6 +151,10 @@
         },
         "size" : {
           "type" : "integer"
+        },
+        "emitStrategy" : {
+          "type" : "string",
+          "enum" : [ "CHANGES", "FINAL" ]
         }
       },
       "required" : [ "type" ]
@@ -483,6 +487,12 @@
             "type" : "string"
           }
         },
+        "selectedKeys" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
         "selectExpressions" : {
           "type" : "array",
           "items" : {
@@ -647,7 +657,7 @@
         },
         "joinType" : {
           "type" : "string",
-          "enum" : [ "INNER", "LEFT", "OUTER" ]
+          "enum" : [ "INNER", "LEFT", "RIGHT", "OUTER" ]
         },
         "leftInternalFormats" : {
           "$ref" : "#/definitions/Formats"
@@ -691,7 +701,7 @@
         },
         "joinType" : {
           "type" : "string",
-          "enum" : [ "INNER", "LEFT", "OUTER" ]
+          "enum" : [ "INNER", "LEFT", "RIGHT", "OUTER" ]
         },
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
@@ -1089,7 +1099,7 @@
         },
         "joinType" : {
           "type" : "string",
-          "enum" : [ "INNER", "LEFT", "OUTER" ]
+          "enum" : [ "INNER", "LEFT", "RIGHT", "OUTER" ]
         },
         "leftSource" : {
           "$ref" : "#/definitions/ExecutionStep"
@@ -1118,7 +1128,7 @@
         },
         "joinType" : {
           "type" : "string",
-          "enum" : [ "INNER", "LEFT", "OUTER" ]
+          "enum" : [ "INNER", "LEFT", "RIGHT", "OUTER" ]
         },
         "leftJoinColumnName" : {
           "type" : "string"

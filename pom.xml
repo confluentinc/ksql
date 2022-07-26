@@ -29,14 +29,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.2.0-0, 7.2.1-0)</version>
+        <version>7.3.0-626</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.2.0-0</version>
+    <version>7.3.0-0</version>
 
     <licenses>
         <license>
@@ -110,13 +110,13 @@
         <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
-        <antlr.version>4.7.1</antlr.version>
+        <antlr.version>4.9.2</antlr.version>
         <commons-text.version>1.8</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
         <lang3.version>3.5</lang3.version>
         <guava.version>30.1.1-jre</guava.version>
-        <protobuf.version>3.17.0</protobuf.version>
+        <protobuf.version>3.19.4</protobuf.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
@@ -128,7 +128,7 @@
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
-        <apache.curator.version>2.9.0</apache.curator.version>
+        <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
@@ -143,8 +143,7 @@
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
-        <io.confluent.ksql.version>7.2.0-0</io.confluent.ksql.version>
-        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <io.confluent.ksql.version>7.3.0-0</io.confluent.ksql.version>
         <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -292,25 +291,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
-                <version>${io.confluent.schema-registry.version}</version>
+                <version>7.3.0-643</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>${io.confluent.schema-registry.version}</version>
+                <version>7.3.0-643</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
-                <version>${io.confluent.schema-registry.version}</version>
+                <version>7.3.0-643</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
-                <version>${io.confluent.schema-registry.version}</version>
+                <version>7.3.0-643</version>
             </dependency>
 
             <dependency>
@@ -334,25 +333,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
-                <version>${io.confluent.schema-registry.version}</version>
+                <version>7.3.0-643</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
-                <version>${io.confluent.schema-registry.version}</version>
+                <version>7.3.0-643</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
-                <version>${io.confluent.schema-registry.version}</version>
+                <version>7.3.0-643</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
-                <version>${io.confluent.schema-registry.version}</version>
+                <version>7.3.0-643</version>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -391,6 +390,12 @@
                 <groupId>com.github.rholder</groupId>
                 <artifactId>guava-retrying</artifactId>
                 <version>${retrying.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -619,33 +624,17 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Every child project uses slf4j/log4j for logging, might as well just include them here automatically -->
+
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <artifactId>slf4j-reload4j</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-          </dependency>
-
-        <!-- Use a repackaged version of log4j with security patches. Default log4j v1.2 is a transitive dependency of slf4j-log4j12, but it is excluded in common/pom.xml -->
         <dependency>
             <groupId>io.confluent</groupId>
-            <artifactId>confluent-log4j</artifactId>
-            <version>1.2.17-cp6</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-api</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>logredactor</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -701,6 +690,19 @@
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- we haven't yet fully migrated to JDK9 Jigsaw, but when compiling
+                    with JDKs that are >9 failsafe fails with many NoClassDefFoundErrors
+                    unless we disable this flag.
+
+                    You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
+                    for more details -->
+                    <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>
 

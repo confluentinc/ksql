@@ -16,8 +16,8 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
-import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+import static io.vertx.core.http.HttpHeaders.AUTHORIZATION;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 
@@ -37,6 +37,8 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
@@ -96,12 +98,12 @@ public final class RestIntegrationTestUtil {
     return makeKsqlRequest(restApp, sql, Optional.empty());
   }
 
-  public static String makeKsqlRequestWithVariables(
+  public static void makeKsqlRequestWithVariables(
       final TestKsqlRestApp restApp, final String sql, final Map<String, Object> variables) {
     final KsqlRequest request =
         new KsqlRequest(sql, ImmutableMap.of(), ImmutableMap.of(), variables, null);
 
-    return rawRestRequest(restApp, HTTP_1_1, POST, "/ksql", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+    rawRestRequest(restApp, HTTP_1_1, POST, "/ksql", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
         Optional.empty(), Optional.empty()).body().toString();
   }
 
@@ -299,12 +301,34 @@ public final class RestIntegrationTestUtil {
       final Optional<WriteStream<Buffer>> writeStream,
       final Optional<BasicCredentials> credentials
   ) {
+    return rawRestRequest(
+        restApp.getHttpListener(),
+        httpVersion,
+        method,
+        uri,
+        requestBody,
+        mediaType,
+        writeStream,
+        credentials
+    );
+  }
+
+  static HttpResponse<Buffer> rawRestRequest(
+      final URI listener,
+      final HttpVersion httpVersion,
+      final HttpMethod method,
+      final String uri,
+      final Object requestBody,
+      final String mediaType,
+      final Optional<WriteStream<Buffer>> writeStream,
+      final Optional<BasicCredentials> credentials
+  ) {
     Vertx vertx = Vertx.vertx();
     WebClient webClient = null;
     try {
       WebClientOptions webClientOptions = new WebClientOptions()
-          .setDefaultHost(restApp.getHttpListener().getHost())
-          .setDefaultPort(restApp.getHttpListener().getPort())
+          .setDefaultHost(listener.getHost())
+          .setDefaultPort(listener.getPort())
           .setFollowRedirects(false);
 
       if (httpVersion == HttpVersion.HTTP_2) {
@@ -313,10 +337,7 @@ public final class RestIntegrationTestUtil {
 
       webClient = WebClient.create(vertx, webClientOptions);
       return rawRestRequest(
-          vertx,
           webClient,
-          restApp,
-          httpVersion,
           method,
           uri,
           requestBody,
@@ -333,10 +354,7 @@ public final class RestIntegrationTestUtil {
   }
 
   static HttpResponse<Buffer> rawRestRequest(
-      final Vertx vertx,
       final WebClient webClient,
-      final TestKsqlRestApp restApp,
-      final HttpVersion httpVersion,
       final HttpMethod method,
       final String uri,
       final Object requestBody,
@@ -546,12 +564,10 @@ public final class RestIntegrationTestUtil {
       httpClient = vertx.createHttpClient();
 
       final String uri = baseUri.toString() + "/ws/query?request="
-          + buildStreamingRequest(sql, overrides, requestProperties);
+          + buildStreamingRequest(sql, overrides, requestProperties)
+          + "&access_token=" + buildBasicAuthHeader(credentials.get());
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-
-      credentials.ifPresent(
-          creds -> headers.add(AUTHORIZATION.toString(), "Basic " + buildBasicAuthHeader(creds)));
 
       mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
       contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));
@@ -642,8 +658,10 @@ public final class RestIntegrationTestUtil {
     return Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
   }
 
-  private static String buildStreamingRequest(final String sql,
-      Optional<Map<String, Object>> overrides, Optional<Map<String, Object>> requestProperties
+  private static String buildStreamingRequest(
+      final String sql,
+      final Optional<Map<String, Object>> overrides,
+      final Optional<Map<String, Object>> requestProperties
   ) {
     KsqlRequest request = new KsqlRequest(sql, overrides.orElse(Collections.emptyMap()),
         requestProperties.orElse(Collections.emptyMap()), null);
@@ -660,5 +678,26 @@ public final class RestIntegrationTestUtil {
   private static String createBasicAuthHeader(final BasicCredentials credentials) {
     return "Basic " + Base64.getEncoder().encodeToString(
         (credentials.username() + ":" + credentials.password()).getBytes(StandardCharsets.UTF_8));
+  }
+
+  public static List<String> getQueryIds(final TestKsqlRestApp restApp) {
+    final List<KsqlEntity> results = RestIntegrationTestUtil.makeKsqlRequest(
+        restApp,
+        "Show Queries;"
+    );
+
+    if (results.size() != 1) {
+      return Collections.emptyList();
+    }
+
+    final KsqlEntity result = results.get(0);
+
+    if (!(result instanceof Queries)) {
+      return Collections.emptyList();
+    }
+
+    final List<RunningQuery> runningQueries = ((Queries) result)
+        .getQueries();
+    return runningQueries.stream().map(query -> query.getId().toString()).collect(Collectors.toList());
   }
 }

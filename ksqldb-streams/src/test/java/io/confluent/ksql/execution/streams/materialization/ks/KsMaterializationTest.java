@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.mockito.Mockito.when;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
@@ -28,7 +27,6 @@ import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedTa
 import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.Before;
@@ -44,14 +42,11 @@ public class KsMaterializationTest {
   private Locator locator;
   @Mock
   private KsStateStore stateStore;
-  @Mock
-  private KsqlConfig ksqlConfig;
   private KsMaterialization materialization;
 
   @Before
   public void setUp() {
     givenWindowType(Optional.empty());
-    when(stateStore.getKsqlConfig()).thenReturn(ksqlConfig);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -146,7 +141,8 @@ public class KsMaterializationTest {
     final Optional<WindowInfo> windowInfo = windowType
         .map(wt -> WindowInfo.of(wt, wt.requiresWindowSize()
             ? Optional.of(Duration.ofSeconds(1))
-            : Optional.empty())
+            : Optional.empty(),
+            Optional.empty())
         );
 
     materialization = new KsMaterialization(windowInfo, locator, stateStore);

@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.QueryMask;
 import io.vertx.core.http.HttpHeaders;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -57,8 +58,8 @@ import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,10 +116,11 @@ public class DefaultConnectClient implements ConnectClient {
       final Map<String, String> config
   ) {
     try {
+      final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
       LOG.debug("Issuing create request to Kafka Connect at URI {} with name {} and config {}",
           connectUri,
           connector,
-          config);
+          maskedConfig);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .post(resolveUri(CONNECTORS))
@@ -151,10 +153,11 @@ public class DefaultConnectClient implements ConnectClient {
       final String plugin,
       final Map<String, String> config) {
     try {
+      final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
       LOG.debug("Issuing validate request to Kafka Connect at URI {} for plugin {} and config {}",
           connectUri,
           plugin,
-          config);
+          maskedConfig);
 
       final ConnectResponse<ConfigInfos> connectResponse = withRetries(() -> Request
           .put(resolveUri(String.format(VALIDATE_CONNECTOR, plugin)))
@@ -170,7 +173,7 @@ public class DefaultConnectClient implements ConnectClient {
       connectResponse.error()
           .ifPresent(error ->
               LOG.warn("Did not VALIDATE connector configuration for plugin {} and config {}: {}",
-              plugin, config, error));
+              plugin, maskedConfig, error));
 
       return connectResponse;
 
@@ -206,18 +209,18 @@ public class DefaultConnectClient implements ConnectClient {
   }
 
   @Override
-  public ConnectResponse<List<ConnectorPluginInfo>> connectorPlugins() {
+  public ConnectResponse<List<PluginInfo>> connectorPlugins() {
     try {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connector plugins", connectUri);
 
-      final ConnectResponse<List<ConnectorPluginInfo>> connectResponse = withRetries(() -> Request
+      final ConnectResponse<List<PluginInfo>> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTOR_PLUGINS))
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, new TypeReference<List<ConnectorPluginInfo>>() {},
+              createHandler(HttpStatus.SC_OK, new TypeReference<List<PluginInfo>>() {},
                   Function.identity())));
 
       connectResponse.error()

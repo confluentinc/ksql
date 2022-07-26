@@ -36,8 +36,6 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
 import java.io.Closeable;
@@ -310,6 +308,14 @@ public final class KsqlRestClient implements Closeable {
         ksql, requestPropertiesToSend, Optional.ofNullable(commandSeqNum));
   }
 
+  public RestResponse<List<StreamedRow>> makeQueryStreamRequestProto(
+          final String ksql,
+          final Map<String, Object> requestProperties
+  ) {
+    final KsqlTarget target = target();
+    return target.postQueryStreamRequestProto(ksql, requestProperties);
+  }
+
   public RestResponse<StreamPublisher<String>> makePrintTopicRequest(
       final String ksql,
       final Long commandSeqNum
@@ -390,13 +396,9 @@ public final class KsqlRestClient implements Closeable {
   private Map<String, Object> setConsistencyVector(
       final Map<String, ?> requestProperties
   ) {
-    final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestPropertiesToSend)) {
-      final String serializedCV = serializedConsistencyVector.get();
-      // KsqlRequest:serializeClassValues throws NPE for null value
-      requestPropertiesToSend.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          serializedCV == null ? "" : serializedCV);
+    final Map<String, Object> requestPropertiesToSend = new HashMap<>();
+    if (requestProperties != null) {
+      requestPropertiesToSend.putAll(requestProperties);
     }
     return requestPropertiesToSend;
   }

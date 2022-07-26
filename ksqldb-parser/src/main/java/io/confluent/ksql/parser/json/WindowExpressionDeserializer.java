@@ -16,17 +16,47 @@
 package io.confluent.ksql.parser.json;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
+import io.confluent.ksql.execution.windows.SessionWindowExpression;
+import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.parser.ExpressionParser;
+import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 
 class WindowExpressionDeserializer<T extends KsqlWindowExpression> extends JsonDeserializer<T> {
+  private static final ObjectMapper mapper = new ObjectMapper();
+
   @Override
   @SuppressWarnings("unchecked")
   public T deserialize(final JsonParser parser, final DeserializationContext ctx)
       throws IOException {
-    return (T) ExpressionParser.parseWindowExpression(parser.readValueAs(String.class));
+    final TreeNode root = parser.readValueAsTree();
+
+    if (root instanceof TextNode) {
+      // parse old format
+      return (T) ExpressionParser.parseWindowExpression(((TextNode) root).textValue());
+    } else {
+      // parse new format
+
+      final String windowType = ((ObjectNode) root).remove("windowType").textValue();
+
+      switch (windowType) {
+        case "TUMBLING":
+          return (T) mapper.convertValue(root, TumblingWindowExpression.class);
+        case "HOPPING":
+          return (T) mapper.convertValue(root, HoppingWindowExpression.class);
+        case "SESSION":
+          return (T) mapper.convertValue(root, SessionWindowExpression.class);
+        default:
+          throw new KsqlException("Unknown window type: " + windowType);
+      }
+    }
   }
 }

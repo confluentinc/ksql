@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory.InternalSimpleKsqlClientFactory;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
@@ -337,6 +338,7 @@ public class TestKsqlRestApp extends ExternalResource {
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           ksqlRestConfig,
+          new ServerState(),
           (booleanSupplier) -> mock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
@@ -688,17 +690,6 @@ public class TestKsqlRestApp extends ExternalResource {
           additionalProps,
           serviceContext,
           credentials,
-          internalSimpleKsqlClientFactory
-      );
-    }
-
-    public TestKsqlRestAppWaitingOnPrecondition buildWaitingOnPrecondition(final CountDownLatch latch) {
-      return new TestKsqlRestAppWaitingOnPrecondition(
-          bootstrapServers,
-          additionalProps,
-          serviceContext,
-          credentials,
-          latch,
           internalSimpleKsqlClientFactory
       );
     }

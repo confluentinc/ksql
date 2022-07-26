@@ -22,8 +22,10 @@ import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
+import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -34,9 +36,11 @@ import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +48,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Handles requests to the query-stream endpoint
  */
+@SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class QueryStreamHandler implements Handler<RoutingContext> {
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamHandler.class);
@@ -96,7 +101,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         request.sql, request.configOverrides, request.sessionProperties,
         request.requestProperties,
         context, server.getWorkerExecutor(),
-        DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder,
+        DefaultApiSecurityContext.create(routingContext, server), metricsCallbackHolder,
         internalRequest)
         .thenAccept(queryPublisher -> {
           handleQueryPublisher(
@@ -113,18 +118,37 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       final RoutingContext routingContext,
       final QueryPublisher queryPublisher,
       final Optional<String> completionMessage,
-      final Optional<String> limitMessage
+      final Optional<String> limitMessage,
+      final boolean bufferOutput
   ) {
     final String contentType = routingContext.getAcceptableContentType();
     if (DELIMITED_CONTENT_TYPE.equals(contentType)
         || (contentType == null && !queryCompatibilityMode)) {
       // Default
       return new DelimitedQueryStreamResponseWriter(routingContext.response());
+    } else if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)) {
+      return new JsonStreamedRowResponseWriter(
+              routingContext.response(),
+              queryPublisher,
+              completionMessage,
+              limitMessage,
+              Clock.systemUTC(),
+              bufferOutput,
+              context,
+              RowFormat.PROTOBUF
+      );
     } else if (KsqlMediaType.KSQL_V1_JSON.mediaType().equals(contentType)
         || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
         && queryCompatibilityMode))) {
-      return new JsonStreamedRowResponseWriter(routingContext.response(), queryPublisher,
-          completionMessage, limitMessage);
+      return new JsonStreamedRowResponseWriter(
+              routingContext.response(),
+              queryPublisher,
+              completionMessage,
+              limitMessage,
+              Clock.systemUTC(),
+              bufferOutput,
+              context,
+              RowFormat.JSON);
     } else {
       return new JsonQueryStreamResponseWriter(routingContext.response());
     }
@@ -141,7 +165,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       if (!ksqlRequest.isPresent()) {
         return null;
       }
-      sql = ksqlRequest.get().getKsql();
+      // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
+      ApiServerUtils.setMaskedSqlIfNeeded(ksqlRequest.get());
+      sql = ksqlRequest.get().getUnmaskedKsql();
       configOverrides = ksqlRequest.get().getConfigOverrides();
       sessionProperties = ksqlRequest.get().getSessionVariables();
       requestProperties = ksqlRequest.get().getRequestProperties();
@@ -169,6 +195,12 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final QueryResponseMetadata metadata;
     Optional<String> completionMessage = Optional.empty();
     Optional<String> limitMessage = Optional.of("Limit Reached");
+    boolean bufferOutput = false;
+    // The end handler can be called twice if the connection is closed by the client.  The
+    // call to response.end() resulting from queryPublisher.close() may result in a second
+    // call to the end handler, which will mess up metrics, so we ensure that this called just
+    // once by keeping track of the calls.
+    final AtomicBoolean endedResponse = new AtomicBoolean(false);
 
     if (queryPublisher.isPullQuery()) {
       metadata = new QueryResponseMetadata(
@@ -177,9 +209,14 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnTypes(),
           queryPublisher.geLogicalSchema());
       limitMessage = Optional.empty();
+      bufferOutput = true;
 
       // When response is complete, publisher should be closed
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         queryPublisher.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),
@@ -195,6 +232,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
 
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         queryPublisher.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),
@@ -215,6 +256,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
       // When response is complete, publisher should be closed and query unregistered
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         query.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),
@@ -226,7 +271,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
     final QueryStreamResponseWriter queryStreamResponseWriter
         = getQueryStreamResponseWriter(routingContext, queryPublisher, completionMessage,
-        limitMessage);
+        limitMessage, bufferOutput);
     queryStreamResponseWriter.writeMetadata(metadata);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(context,

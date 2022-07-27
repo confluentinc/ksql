@@ -72,8 +72,53 @@ public class UdafTypesTest {
     // Then:
     assertThat(types.getInputSchema(new String[]{""}), is(ImmutableList.of(
         new ParameterInfo("val1", ParamTypes.INTEGER, "", false),
+        initParamInfo
+    )));
+    assertFalse(types.isVariadic());
+    assertEquals(Collections.singletonList(initParamInfo), types.literalParams());
+  }
+
+  @Test
+  public void shouldDefaultToEmptySchemasWhenNotEnoughProvided() {
+    // When:
+    final UdafTypes types = createTypes("udafWithMultipleParams", String.class);
+    final ParameterInfo initParamInfo = new ParameterInfo(
+            "initParam",
+            ParamTypes.STRING,
+            "",
+            false
+    );
+
+    // Then:
+    assertThat(types.getInputSchema(new String[]{""}), is(ImmutableList.of(
+            new ParameterInfo("val1", ParamTypes.INTEGER, "", false),
+            new ParameterInfo("val2", ParamTypes.DOUBLE, "", false),
             initParamInfo
     )));
+    assertFalse(types.isVariadic());
+    assertEquals(Collections.singletonList(initParamInfo), types.literalParams());
+  }
+
+  @Test
+  public void shouldIgnoreExtraSchemasWhenTooManyProvided() {
+    // When:
+    final UdafTypes types = createTypes("udafWithMultipleParams", String.class);
+    final ParameterInfo initParamInfo = new ParameterInfo(
+            "initParam",
+            ParamTypes.STRING,
+            "",
+            false
+    );
+
+    // Then:
+    assertThat(types.getInputSchema(
+            new String[]{"", "", "STRUCT<A INTEGER, B INTEGER>"}),
+            is(ImmutableList.of(
+              new ParameterInfo("val1", ParamTypes.INTEGER, "", false),
+              new ParameterInfo("val2", ParamTypes.DOUBLE, "", false),
+              initParamInfo
+            ))
+    );
     assertFalse(types.isVariadic());
     assertEquals(Collections.singletonList(initParamInfo), types.literalParams());
   }
@@ -131,6 +176,11 @@ public class UdafTypesTest {
     );
 
     assertThat(e.getMessage(), is("Variadic column arguments are only allowed inside tuples"));
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Integer, Double>, Long, Double> udafWithMultipleParams(String initParam) {
+    return null;
   }
 
   @SuppressWarnings({"unused", "MethodMayBeStatic"})

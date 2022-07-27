@@ -146,7 +146,7 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
 
   private Function<List<Object>, Object> determineInputConverter() {
     final Function<List<Object>, Object> getLastObject = (items) -> isVariadic
-            ? new VariadicArgs<>(items.subList(numColArgs, items.size())) : items.get(0);
+            ? new VariadicArgs<>(items.subList(numColArgs - 1, items.size())) : items.get(0);
 
     switch (numColArgs) {
       case 1:

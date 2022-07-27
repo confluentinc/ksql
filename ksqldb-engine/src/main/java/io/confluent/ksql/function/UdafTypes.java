@@ -217,7 +217,7 @@ class UdafTypes {
     }
   }
 
-  private static long countVariadic(Type[] types, Method factory) {
+  private static long countVariadic(final Type[] types, final Method factory) {
     long count = Arrays.stream(types).filter((type) -> getRawType(type) == VARIADIC_TYPE).count();
     if (factory.isVarArgs()) {
       count++;
@@ -225,8 +225,8 @@ class UdafTypes {
     return count;
   }
 
-  private static int indexOfVariadic(Type[] types) {
-    int lastTypeIndex = types.length - 1;
+  private static int indexOfVariadic(final Type[] types) {
+    final int lastTypeIndex = types.length - 1;
     if (types.length > 0 && getRawType(types[lastTypeIndex]) == VARIADIC_TYPE) {
       return lastTypeIndex;
     }

@@ -547,7 +547,7 @@ public class ExpressionTypeManager {
                 Integer,
                 Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>
             > initArgsAndCreator = factory.getFunction(schema);
-        int numInitArgs = initArgsAndCreator.getLeft();
+        final int numInitArgs = initArgsAndCreator.getLeft();
 
         final AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
                 args.size() - numInitArgs,

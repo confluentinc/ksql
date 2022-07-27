@@ -201,63 +201,13 @@
       ]
     },
     {
-      "name": "select * against CST table",
-      "testPullWithProtoFormat": true,
-      "statements": [
-        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "SELECT * FROM INPUT;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
-        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
-        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
-          {"row":{"columns":[1,"a1"]}},
-          {"row":{"columns":[2,"a2"]}},
-          {"row":{"columns":[3,"a3"]}}
-        ]},
-        {"queryProto": [
-          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},
-          {"row": "K: 1\nTEXT: \"a1\"\n"},
-          {"row": "K: 2\nTEXT: \"a2\"\n"},
-          {"row": "K: 3\nTEXT: \"a3\"\n"}
-        ]}
-      ]
-    },
-    {
-      "name": "select * against CST table and filter by key",
-      "testPullWithProtoFormat": true,
-      "statements": [
-        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "SELECT * FROM INPUT WHERE K=2;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
-        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
-        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
-          {"row":{"columns":[2,"a2"]}}
-        ]},
-        {"queryProto": [
-          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},
-          {"row": "K: 2\nTEXT: \"a2\"\n"}
-        ]}
-      ]
-    },
-    {
       "name": "select with projection table scan and key lookup",
       "testPullWithProtoFormat": true,
       "statements": [
         "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT * FROM INPUT;",
         "SELECT K, TEXT FROM INPUT;",
+        "SELECT * FROM INPUT WHERE K=2;",
         "SELECT K, TEXT FROM INPUT WHERE K=2;"
       ],
       "inputs": [
@@ -275,6 +225,16 @@
         ]},
         {"query": [
           {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[1,"a1"]}},
+          {"row":{"columns":[2,"a2"]}},
+          {"row":{"columns":[3,"a3"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[2,"a2"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
           {"row":{"columns":[2,"a2"]}}
         ]},
         {"queryProto": [
@@ -282,6 +242,16 @@
           {"row": "K: 1\nTEXT: \"a1\"\n"},
           {"row": "K: 2\nTEXT: \"a2\"\n"},
           {"row": "K: 3\nTEXT: \"a3\"\n"}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},
+          {"row": "K: 1\nTEXT: \"a1\"\n"},
+          {"row": "K: 2\nTEXT: \"a2\"\n"},
+          {"row": "K: 3\nTEXT: \"a3\"\n"}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},
+          {"row": "K: 2\nTEXT: \"a2\"\n"}
         ]},
         {"queryProto": [
           {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},

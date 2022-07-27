@@ -101,6 +101,7 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
       .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+      .put(StreamsConfig.DEFAULT_DSL_STORE_CONFIG, StreamsConfig.IN_MEMORY)
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .put(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)

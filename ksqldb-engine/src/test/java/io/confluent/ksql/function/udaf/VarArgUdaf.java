@@ -19,7 +19,7 @@ import io.confluent.ksql.util.Pair;
 
 @UdafDescription(
         name = "VAR_ARG",
-        description = "Testing multiple and variadic arguments",
+        description = "Returns the sum of the provided longs and lengths of strings.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class VarArgUdaf implements Udaf<Pair<Long, VariadicArgs<String>>, Double, Double> {

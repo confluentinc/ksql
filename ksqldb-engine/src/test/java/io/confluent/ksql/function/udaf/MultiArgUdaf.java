@@ -19,7 +19,7 @@ import io.confluent.ksql.util.Pair;
 
 @UdafDescription(
         name = "MULTI_ARG",
-        description = "Testing multiple arguments",
+        description = "Returns the sum of the provided longs and lengths of strings.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class MultiArgUdaf implements Udaf<Pair<Long, String>, Double, Double> {

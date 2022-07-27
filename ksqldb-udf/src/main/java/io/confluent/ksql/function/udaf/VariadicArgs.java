@@ -27,6 +27,17 @@ public class VariadicArgs<T> implements Iterable<T> {
   }
 
   public T get(final int index) {
+    if (index < 0 || index >= values.size()) {
+      throw new IndexOutOfBoundsException(
+              String.format(
+                      "Attempted to access variadic argument at index %s when only %s "
+                      + "arguments are available",
+                      index,
+                      values.size()
+              )
+      );
+    }
+
     return values.get(index);
   }
 

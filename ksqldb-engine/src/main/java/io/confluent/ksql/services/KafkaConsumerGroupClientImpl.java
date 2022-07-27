@@ -116,7 +116,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
           () -> adminClient.get().deleteConsumerGroups(groups).all().get(),
           e -> (e instanceof RetriableException)
               || (e instanceof GroupNotEmptyException),
-          (retry) -> Duration.of(3L * retry, ChronoUnit.SECONDS),
+          (retry) -> Duration.of(500L, ChronoUnit.MILLIS),
           10
       );
     } catch (final Exception e) {

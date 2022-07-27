@@ -196,6 +196,7 @@ public final class KsqlClient implements AutoCloseable {
       }
     }
     try {
+      httpClientOptions.setPoolCleanerPeriod(100);
       return vertx.createHttpClient(httpClientOptions);
     } catch (VertxException e) {
       throw new KsqlRestClientException(e.getMessage(), e);

@@ -138,6 +138,7 @@ public class RestTestExecutor implements Closeable {
   }
 
   void buildAndExecuteQuery(final RestTestCase testCase) {
+    final long start = System.currentTimeMillis();
     topicInfoCache.clear();
 
     final StatementSplit statements = splitStatements(testCase);
@@ -154,7 +155,10 @@ public class RestTestExecutor implements Closeable {
           + "responsesCount: " + expectedResponseSize);
     }
 
+
     initializeTopics(testCase);
+    final long endInitTopics = System.currentTimeMillis();
+    LOG.info("JNH execution: init topics " + (endInitTopics-start) + " milliseconds for " + testCase.getName());
     testCase.getProperties().forEach(restClient::setProperty);
 
     try {
@@ -163,6 +167,9 @@ public class RestTestExecutor implements Closeable {
       if (!adminResults.isPresent()) {
         return;
       }
+      final long endAdmin = System.currentTimeMillis();
+      LOG.info("JNH execution: admin statements " + (endAdmin-endInitTopics) + " milliseconds for " + testCase.getName());
+
       final boolean waitForActivePushQueryToProduceInput = testCase.getInputConditions().isPresent()
           && testCase.getInputConditions().get().getWaitForActivePushQuery();
       final Optional<InputConditionsParameters> postInputConditionRunnable;
@@ -173,11 +180,15 @@ public class RestTestExecutor implements Closeable {
         postInputConditionRunnable = Optional.of(new InputConditionsParameters(
             this::waitForActivePushQuery, () -> produceInputs(testCase)));
       }
+      final long endWaitInputs = System.currentTimeMillis();
+      LOG.info("JNH execution: wait inputs " + (endWaitInputs-endAdmin) + " milliseconds for " + testCase.getName());
 
       if (!testCase.expectedError().isPresent()
           && testCase.getExpectedResponses().size() > statements.admin.size()) {
         waitForPersistentQueriesToProcessInputs();
       }
+      final long endWaitProcess = System.currentTimeMillis();
+      LOG.info("JNH execution: wait process " + (endWaitProcess-endWaitInputs) + " milliseconds for " + testCase.getName());
 
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
           postInputConditionRunnable);
@@ -208,9 +219,17 @@ public class RestTestExecutor implements Closeable {
         && testCase.getOutputConditions().get().getVerifyOrder();
       verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements(), verifyOrder);
 
+      final long endSendQueriesAndVerify = System.currentTimeMillis();
+      LOG.info("JNH execution: query and verify " + (endSendQueriesAndVerify-endWaitProcess) + " milliseconds for " + testCase.getName());
+
+
       // Give a few seconds for the transient queries to complete, otherwise, we'll go into teardown
       // and leave the queries stuck.
       waitForTransientQueriesToComplete();
+
+      final long endWaitTransientQueries = System.currentTimeMillis();
+      LOG.info("JNH execution: wait for transient queries to complete " + (endWaitTransientQueries-endSendQueriesAndVerify) + " milliseconds for " + testCase.getName());
+
     } finally {
       testCase.getProperties().keySet().forEach(restClient::unsetProperty);
     }

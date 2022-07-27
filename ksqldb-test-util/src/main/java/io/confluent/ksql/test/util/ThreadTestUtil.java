@@ -105,6 +105,10 @@ public final class ThreadTestUtil {
       return ThreadTestUtil.detailsOfNewThreads(previous.threads.keySet(), threads);
     }
 
+    public Map<Thread, StackTraceElement[]> getDifference() {
+      return difference(threads.keySet(), threadSnapshot(predicate).getThreads());
+    }
+
     public void assertSameThreads() {
       // Give threads a chance to die...
       assertThatEventually(

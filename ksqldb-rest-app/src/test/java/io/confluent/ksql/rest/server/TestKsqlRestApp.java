@@ -52,6 +52,7 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
@@ -252,14 +253,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
   public void closePersistentQueries(final Optional<BasicCredentials> credentials) {
     try (final KsqlRestClient client = buildKsqlClient(credentials)) {
-      // Filter source tables queries because they cannot be terminated manually
-      final Set<String> queriesToTerminate = getPersistentQueries(client).stream()
-          .filter(query -> !query.getQueryString().startsWith("CREATE SOURCE TABLE"))
-          .map(RunningQuery::getId)
-          .map(QueryId::toString)
-          .collect(Collectors.toSet());
-
-      terminateQueries(queriesToTerminate, client);
+      terminateAllQueries(client);
     }
   }
 
@@ -334,7 +328,10 @@ public class TestKsqlRestApp extends ExternalResource {
     ksqlRestConfig = buildConfig(bootstrapServers, baseConfig);
 
     try {
-      Vertx vertx = Vertx.vertx();
+      VertxOptions vertxOptions = new VertxOptions();
+      vertxOptions.setEventLoopPoolSize(8);
+      //vertxOptions.set
+      Vertx vertx = Vertx.vertx(vertxOptions);
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           ksqlRestConfig,
@@ -408,6 +405,14 @@ public class TestKsqlRestApp extends ExternalResource {
     return queries.getQueries().stream()
         .filter(query -> query.getQueryType() == queryType)
         .collect(Collectors.toSet());
+  }
+
+  private void terminateAllQueries(final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> response = makeKsqlRequest(client, "TERMINATE ALL;");
+
+    if (response.isErroneous()) {
+      throw new AssertionError("Failed to terminate all queries:" + response.getErrorMessage());
+    }
   }
 
   private void terminateQueries(final Set<String> queryIds, final KsqlRestClient client) {

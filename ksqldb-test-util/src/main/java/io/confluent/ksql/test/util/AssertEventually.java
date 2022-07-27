@@ -21,11 +21,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.hamcrest.Matcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Hamcrest async assert with timeout.
  */
 public final class AssertEventually {
+  private static final Logger log = LoggerFactory.getLogger(AssertEventually.class);
 
   private static final long DEFAULT_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(30);
   private static final long DEFAULT_INITIAL_PAUSE_PERIOD_MS = 1;
@@ -213,6 +216,7 @@ public final class AssertEventually {
         if (acquired && expected.matches(actual)) {
           return actual;
         }
+        log.info("Running assertThatEventually again! " + message.get());
 
         Thread.sleep(period);
         period = Math.min(period * 2, maxPausePeriodMs);

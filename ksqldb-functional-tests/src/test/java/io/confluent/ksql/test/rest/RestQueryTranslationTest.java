@@ -56,6 +56,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Equivalent(ish) to {@code QueryTranslationTest}, but coming in through the Restful API.
@@ -75,6 +77,7 @@ import org.junit.runners.Parameterized;
 @Category({IntegrationTest.class})
 @RunWith(Parameterized.class)
 public class RestQueryTranslationTest {
+  private final static Logger log = LoggerFactory.getLogger(RestQueryTranslationTest.class);
 
   private static final Path TEST_DIR = Paths.get("rest-query-validation-tests");
 
@@ -144,9 +147,15 @@ public class RestQueryTranslationTest {
 
   @After
   public void tearDown() {
-    REST_APP.closePersistentQueries();
-    REST_APP.dropSourcesExcept();
+    final long start = System.currentTimeMillis();
 
+    REST_APP.closePersistentQueries();
+    final long endClosePersistent = System.currentTimeMillis();
+    log.info("JNH stopping queries took " + (endClosePersistent-start) + " milliseconds for " + testCase.getName());
+
+    REST_APP.dropSourcesExcept();
+    final long dropEnd = System.currentTimeMillis();
+    log.info("JNH dropping sources took " + (dropEnd-endClosePersistent) + " milliseconds for " + testCase.getName());
 
     // Sometimes a race-condition throws an error when deleting a changelog topic (created by
     // a CST query) that is later deleted automatically just before the Kafka API delete is called.
@@ -158,6 +167,8 @@ public class RestQueryTranslationTest {
         () -> TEST_HARNESS.getKafkaCluster()
             .deleteAllTopics(TestKsqlRestApp.getCommandTopicName())
     );
+    final long deleteEnd = System.currentTimeMillis();
+    log.info("JNH deleting topics took " + (deleteEnd-start) + " milliseconds for " + testCase.getName());
 
     final ThreadSnapshot thread = STARTING_THREADS.get();
     if (thread == null) {
@@ -172,12 +183,23 @@ public class RestQueryTranslationTest {
           .nameMatches(name -> !name.startsWith("pull-query-router"))
           .build()));
     } else {
+      final long startThread = System.currentTimeMillis();
+
+      // Interrupt the threads ;)
+      thread.getDifference().keySet().stream().forEach(t -> t.interrupt());
+
       thread.assertSameThreads();
+      final long endThread = System.currentTimeMillis();
+      log.info("JNH assertSameThreads took " + (endThread-startThread) + " milliseconds for " + testCase.getName());
     }
+    final long end = System.currentTimeMillis();
+    log.info("JNH teardown " + (end-start) + " milliseconds tearing down " + testCase.getName());
   }
 
   @Test
   public void shouldBuildAndExecuteQueries() {
+    final long start = System.currentTimeMillis();
+
     try (RestTestExecutor testExecutor = testExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
     } catch (final AssertionError | Exception e) {
@@ -189,6 +211,10 @@ public class RestQueryTranslationTest {
           e
       );
     }
+
+    final long end = System.currentTimeMillis();
+    log.info("JNH execution " + (end-start) + " milliseconds executing from file " +
+            testCase.getTestLocation().getTestPath().getFileName() + " " + testCase.getName());
   }
 
   private static RestTestExecutor testExecutor() {

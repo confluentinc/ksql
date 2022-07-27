@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Maps;
+import io.confluent.common.config.ConfigUtils;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutionListener;
@@ -32,12 +33,16 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class EndToEndEngineTestUtil {
+  private final static Logger log = LoggerFactory.getLogger(EndToEndEngineTestUtil.class);
 
   private EndToEndEngineTestUtil(){}
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
+    final long start = System.currentTimeMillis();
     try (final TestExecutor testExecutor = TestExecutor.create(true, Optional.empty())) {
       testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
     } catch (final AssertionError | Exception e) {
@@ -49,6 +54,8 @@ final class EndToEndEngineTestUtil {
           e
       );
     }
+    final long end = System.currentTimeMillis();
+    log.warn("Ran " + testCase.getName() + " in " + (end-start) + " milliseconds");
   }
 
   @SuppressWarnings("unchecked")

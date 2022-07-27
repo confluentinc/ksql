@@ -14,16 +14,17 @@
 
 package io.confluent.ksql.function.udaf;
 
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
 public class VariadicArgs<T> implements Iterable<T> {
-  private final ImmutableList<T> values;
+  private final List<T> values;
 
   public VariadicArgs(final List<T> values) {
-    this.values = ImmutableList.copyOf(values);
+    this.values = Collections.unmodifiableList(new ArrayList<>(values));
   }
 
   public T get(final int index) {

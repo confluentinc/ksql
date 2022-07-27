@@ -108,7 +108,8 @@ public class TestDriverPipeline {
 
   private void replaceAllInputs(final TopicInfo topic) {
     topics.get(topic.name).topicAsInput.clear();
-    topics.get(topic.name).drivers.forEach(driver -> topics.get(topic.name).topicAsInput.add(createInputTopic(driver, topic)));
+    topics.get(topic.name).drivers.forEach(driver ->
+            topics.get(topic.name).topicAsInput.add(createInputTopic(driver, topic)));
   }
 
   public void addDdlTopic(final TopicInfo topic) {
@@ -185,7 +186,8 @@ public class TestDriverPipeline {
     }
 
     for (final Topic receiver : topic.receivers) {
-      for (final TestRecord<GenericKey, GenericRow> record : receiver.topicAsOutput.get().readRecordsToList()) {
+      for (final TestRecord<GenericKey, GenericRow> record :
+          receiver.topicAsOutput.get().readRecordsToList()) {
         topicCache.put(receiver.name, record);
         if (topics.get(receiver.name).topicAsInput.size() > 0) {
           pipeInput(

@@ -60,4 +60,20 @@ public class ServerStateTest {
     assertThat(response.getStatus(), equalTo(expected.getStatus()));
     assertThat(response.getEntity(), equalTo(expected.getEntity()));
   }
+
+  @Test
+  public void shouldReturnErrorWhenTerminated() {
+    // Given:
+    serverState.setTerminated();
+
+    // When:
+    final Optional<EndpointResponse> result = serverState.checkReady();
+
+    // Then:
+    assertThat(result.isPresent(), is(true));
+    final EndpointResponse response = result.get();
+    final EndpointResponse expected = Errors.serverShutDown();
+    assertThat(response.getStatus(), equalTo(expected.getStatus()));
+    assertThat(response.getEntity(), equalTo(expected.getEntity()));
+  }
 }

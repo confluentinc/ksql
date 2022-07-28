@@ -71,6 +71,9 @@ public final class Errors {
   public static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
       toErrorCode(SERVICE_UNAVAILABLE.code()) + 3;
 
+  public static final int ERROR_CODE_SERVER_SHUT_DOWN =
+      toErrorCode(SERVICE_UNAVAILABLE.code()) + 3;
+
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.code());
   
@@ -204,6 +207,15 @@ public final class Errors {
         .entity(new KsqlErrorMessage(
             ERROR_CODE_SERVER_SHUTTING_DOWN,
             "The server is shutting down"))
+        .build();
+  }
+
+  public static EndpointResponse serverShutDown() {
+    return EndpointResponse.create()
+        .status(SERVICE_UNAVAILABLE.code())
+        .entity(new KsqlErrorMessage(
+            ERROR_CODE_SERVER_SHUT_DOWN,
+            "The server is shut down"))
         .build();
   }
 

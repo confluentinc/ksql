@@ -91,7 +91,9 @@ public class UdafAggregateFunctionFactoryTest {
             new ParameterInfo("two", ParamTypes.BOOLEAN, "", true)
     ));
     when(variadicInvoker.parameterInfo()).thenReturn(ImmutableList.of(
-            new ParameterInfo("one", ParamTypes.STRING, "", false)
+            new ParameterInfo("col", ParamTypes.STRING, "", false),
+            new ParameterInfo("one", ParamTypes.INTEGER, "", false),
+            new ParameterInfo("two", ParamTypes.BOOLEAN, "", true)
     ));
 
     variadicFunctionFactory = new UdafAggregateFunctionFactory(metadata, variadicFunctionIndex);

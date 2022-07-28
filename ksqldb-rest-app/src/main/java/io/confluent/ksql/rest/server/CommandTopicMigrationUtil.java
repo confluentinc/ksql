@@ -55,13 +55,9 @@ public final class CommandTopicMigrationUtil {
     );
 
     // read all the commands from the old command topic
-    final String bootstrapServer =
-        (String) config.originals().get(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG);
-    final Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
-    commandConsumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
     final org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> oldBrokerConsumer =
         new KafkaConsumer<>(
-            commandConsumerProperties,
+            config.originals(),
             new ByteArrayDeserializer(),
             new ByteArrayDeserializer()
     );
@@ -76,11 +72,8 @@ public final class CommandTopicMigrationUtil {
 
     // produce a higher version command to the old command topic so that other servers
     // stop writing to it since they'll be degraded
-    final Map<String, Object> oldBrokerProducerProperties =
-        restConfig.getCommandProducerProperties();
-    oldBrokerProducerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
     final Producer<CommandId, Command> oldBrokerProducer = new KafkaProducer<>(
-        oldBrokerProducerProperties,
+        config.originals(),
         InternalTopicSerdes.serializer(),
         InternalTopicSerdes.serializer()
     );

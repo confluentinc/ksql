@@ -64,13 +64,18 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
 
     final ImmutableList.Builder<SqlTest> builder = ImmutableList.builder();
     final List<String> whiteList = TestLoader.getWhiteList();
+    final List<String> whiteListTests = TestLoader.getWhiteListTestNames();
     for (final Path file : files) {
       if (whiteList.isEmpty() || whiteList.stream().anyMatch(file::endsWith)) {
-        builder.addAll(loadTest(file));
+        builder.addAll(loadTest(file, whiteListTests));
       }
     }
 
     return builder.build().stream();
+  }
+
+  private boolean matchesTestName(final List<String> testNames, final String name) {
+    return testNames.isEmpty() || testNames.stream().anyMatch(name::endsWith);
   }
 
   /**
@@ -78,7 +83,8 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
    *
    * @return the list of tests to run
    */
-  public List<SqlTest> loadTest(final Path path) throws IOException {
+  public List<SqlTest> loadTest(
+      final Path path, final List<String> whiteListTests) throws IOException {
     final ImmutableList.Builder<SqlTest> builder = ImmutableList.builder();
 
     List<TestStatement> statements = null;
@@ -93,20 +99,24 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
 
       if (nextName.isPresent()) {
         // flush the previous test
-        if (statements != null) {
+        if (statements != null && matchesTestName(whiteListTests, name)) {
           builder.add(new SqlTest(path, name, statements));
         }
 
         statements = new ArrayList<>();
         name = nextName.get();
       } else if (statements == null) {
-        throw new KsqlTestException(statement, path, "Exepcted test to start with --@test.");
+        throw new KsqlTestException(statement, path, "Expected test to start with --@test.");
       }
 
-      statements.add(statement);
+      if (matchesTestName(whiteListTests, name)) {
+        statements.add(statement);
+      }
     }
 
-    builder.add(new SqlTest(path, name, statements));
+    if (matchesTestName(whiteListTests, name)) {
+      builder.add(new SqlTest(path, name, statements));
+    }
     return builder.build().stream().filter(shouldRun).collect(ImmutableList.toImmutableList());
   }
 

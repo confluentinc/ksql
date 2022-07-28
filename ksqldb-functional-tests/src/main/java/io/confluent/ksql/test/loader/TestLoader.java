@@ -33,7 +33,14 @@ public interface TestLoader<T extends Test> {
   // Example:
   //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
   //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
+  // Pass a single test name or multiple test names separated by commas to the test framework.
+  // Example:
+  //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.names="foo bar"
+  //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.names="foo bar","foo baz"
+  //   mvn test -pl ksql-engine -Dtest=QueryTranslationTest
+  //        -Dksql.test.files=foo.sql -Dksql.test.names="foo bar"
   String KSQL_TEST_FILES = "ksql.test.files";
+  String KSQL_TEST_NAMES = "ksql.test.names";
 
   Stream<T> load() throws IOException;
 
@@ -44,5 +51,14 @@ public interface TestLoader<T extends Test> {
     }
 
     return ImmutableList.copyOf(ksqlTestFiles.split(","));
+  }
+
+  static List<String> getWhiteListTestNames() {
+    final String ksqlTestNames = System.getProperty(KSQL_TEST_NAMES, "").trim();
+    if (ksqlTestNames.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    return ImmutableList.copyOf(ksqlTestNames.split(","));
   }
 }

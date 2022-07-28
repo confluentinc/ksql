@@ -398,10 +398,6 @@ Also, you can check the following JMX metrics for high usage.
 io.confluent.ksql.metrics:type=_ksql-rocksdb-aggregates
 ```
 
-!!! info
-    Pull query metrics must be enabled explicitly by setting
-    the `ksql.query.pull.metrics.enabled` server configuration to `true`.
-
 ### Attributes
 
 **Block cache usage**

@@ -130,7 +130,9 @@ public final class TableSelectBuilder {
 
     final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
         () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
-        Materialized.with(keySerde, valSerde),
+        Materialized
+            .<K, GenericRow, KeyValueStore<Bytes, byte[]>>with(keySerde, valSerde)
+            .withStoreType(Materialized.StoreType.IN_MEMORY),
         selectName
     );
 

@@ -92,7 +92,7 @@ public final class TableSuppressBuilder {
         materializedFactory.apply(
             keySerde,
             valueSerde
-        );
+        ).withStoreType(Materialized.StoreType.IN_MEMORY);
 
     final Suppressed.StrictBufferConfig strictBufferConfig;
     final long maxBytes = buildContext.getKsqlConfig().getLong(

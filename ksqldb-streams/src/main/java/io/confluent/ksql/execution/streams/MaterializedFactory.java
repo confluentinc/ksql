@@ -46,9 +46,12 @@ public interface MaterializedFactory {
               final Optional<Duration> retention) {
             if (retention.isPresent()) {
               return (Materialized<K, V, S>) Materialized.as(storeName)
-                  .withRetention(retention.get());
+                  .withRetention(retention.get())
+                  .withStoreType(Materialized.StoreType.IN_MEMORY);
             } else {
-              return Materialized.as(storeName);
+              return Materialized
+                  .<K, V, S>as(storeName)
+                  .withStoreType(Materialized.StoreType.IN_MEMORY);
             }
           }
         }

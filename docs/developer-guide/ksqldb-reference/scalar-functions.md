@@ -118,7 +118,7 @@ Converts one type to another. The following casts are supported:
 
 ### **`CBRT`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.29.0"
 CBRT(col1)
 ```
 
@@ -280,7 +280,7 @@ The value of `col1` must be greater than 0.
 
 ### **`LOG`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.29.0"
 LOG(value)
 LOG(base, value)
 ```
@@ -303,7 +303,7 @@ Returns an approximate value of _π_.
 
 ### **`POWER`**
 
-```sql title="Since: 0.27.0"
+```sql title="Since: 0.29.0"
 POWER(base, exponent)
 ```
 

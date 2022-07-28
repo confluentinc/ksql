@@ -74,10 +74,11 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
     /* There can only be one variadic argument, so we know either the column args are bounded
     or the initial args are bounded. */
     final int numInitArgs;
+    final int numSignatureInitArgs = creator.literalParams().size();
     if (isFactoryVariadic) {
-      numInitArgs = argTypeList.size() - creator.parameterInfo().size();
+      numInitArgs = argTypeList.size() - (creator.parameterInfo().size() - numSignatureInitArgs);
     } else {
-      numInitArgs = creator.literalParams().size();
+      numInitArgs = numSignatureInitArgs;
     }
 
     return Pair.of(

@@ -85,6 +85,7 @@ class UdafTypes {
   private static final Type VARIADIC_TYPE = VariadicArgs.class;
 
   private final boolean isVariadic;
+  final int variadicColIndex;
   private final Type[] inputTypes;
   private final Type aggregateType;
   private final Type outputType;
@@ -118,7 +119,7 @@ class UdafTypes {
       throw new KsqlException("A UDAF and its factory can have at most one variadic argument");
     }
 
-    final int variadicColIndex = indexOfVariadic(inputTypes);
+    variadicColIndex = indexOfVariadic(inputTypes);
     if (method.isVarArgs()) {
       this.isVariadic = true;
     } else if (isMultipleArgs && variadicColIndex > -1) {
@@ -160,24 +161,24 @@ class UdafTypes {
       Objects.requireNonNull(schema);
 
       validateStructAnnotation(inputType, schema, "paramSchema");
-      paramTypes.add(getSchemaFromType(inputType, schema));
+
+      ParamType paramType = getSchemaFromType(inputType, schema);
+      if (paramIndex == variadicColIndex) {
+        paramType = ArrayType.of(paramType);
+      }
+
+      paramTypes.add(paramType);
     }
 
-    final int lastParamIndex = paramTypes.size() - 1;
     final List<ParameterInfo> paramInfos = IntStream.range(0, paramTypes.size())
             .mapToObj((paramIndex) -> {
-              final boolean paramVariadic = isVariadic && paramIndex == lastParamIndex;
-
               ParamType paramType = paramTypes.get(paramIndex);
-              if (paramVariadic) {
-                paramType = ArrayType.of(paramType);
-              }
 
               return new ParameterInfo(
                       "val" + (paramIndex + 1),
                       paramType,
                       "",
-                      paramVariadic
+                      paramIndex == variadicColIndex
               );
             }).collect(Collectors.toList());
 

@@ -16,13 +16,10 @@
 package io.confluent.ksql.execution.runtime;
 
 import io.confluent.ksql.GenericRow;
-
-import java.time.Duration;
-import java.util.Objects;
-import java.util.Optional;
-
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
@@ -34,8 +31,8 @@ public class MaterializedFactory {
     this.storeType = Materialized.StoreType.IN_MEMORY;
   }
 
-  public MaterializedFactory(KsqlConfig ksqlConfig) {
-    String string = ksqlConfig.getString(KsqlConfig.KSQL_STATE_STORE_TYPE);
+  public MaterializedFactory(final KsqlConfig ksqlConfig) {
+    final String string = ksqlConfig.getString(KsqlConfig.KSQL_STATE_STORE_TYPE);
     switch (string.toLowerCase()) {
       case "in_memory":
         this.storeType = Materialized.StoreType.IN_MEMORY;
@@ -44,7 +41,9 @@ public class MaterializedFactory {
         this.storeType = Materialized.StoreType.ROCKS_DB;
         break;
       default:
-        throw new KsqlException("Invalid config value for " + KsqlConfig.KSQL_STATE_STORE_TYPE + ": " + string);
+        throw new KsqlException(
+            "Invalid config value for " + KsqlConfig.KSQL_STATE_STORE_TYPE + ": " + string
+        );
     }
   }
 
@@ -54,7 +53,7 @@ public class MaterializedFactory {
       final Optional<String> name,
       final Optional<Duration> retention) {
 
-    Materialized<K, GenericRow, S> materialized;
+    final Materialized<K, GenericRow, S> materialized;
     if (name.isPresent()) {
       materialized = Materialized
           .<K, GenericRow, S>as(name.get())
@@ -95,8 +94,8 @@ public class MaterializedFactory {
   }
 
   public <K, S extends StateStore> Materialized<K, GenericRow, S> create(
-      Serde<K> keySerde,
-      Serde<GenericRow> valSerde) {
+      final Serde<K> keySerde,
+      final Serde<GenericRow> valSerde) {
     return create(keySerde, valSerde, Optional.empty(), Optional.empty());
   }
 }

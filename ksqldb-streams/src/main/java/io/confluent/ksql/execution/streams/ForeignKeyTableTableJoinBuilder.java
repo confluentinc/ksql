@@ -33,6 +33,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.KTable;
 
 public final class ForeignKeyTableTableJoinBuilder {
+  private ForeignKeyTableTableJoinBuilder() {}
 
   public static <KLeftT, KRightT> KTableHolder<KLeftT> build(
       final KTableHolder<KLeftT> left,

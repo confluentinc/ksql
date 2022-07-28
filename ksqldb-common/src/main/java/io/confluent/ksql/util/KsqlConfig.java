@@ -700,7 +700,8 @@ public class KsqlConfig extends AbstractConfig {
       = "ksql.state.store.type";
   public static final String KSQL_STATE_STORE_TYPE_DEFAULT = "in_memory";
   public static final String KSQL_STATE_STORE_TYPE_DOC
-      = "EXPERIMENTAL: Overrides the default state store type (Rocks DB). Options: rocks_db|in_memory."
+      = "EXPERIMENTAL: Overrides the default state store type (RocksDB)."
+      + " Options: rocks_db|in_memory."
       + " This config is experimental and may be removed without warning.";
 
   public Materialized.StoreType getStoreType() {

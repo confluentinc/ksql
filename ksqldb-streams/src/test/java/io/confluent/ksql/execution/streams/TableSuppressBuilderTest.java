@@ -36,13 +36,11 @@ import io.confluent.ksql.execution.streams.TableSuppressBuilder.PhysicalSchemaFa
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.internals.suppress.FinalResultsSuppressionBuilder;
-import org.apache.kafka.streams.processor.StateStore;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,8 +77,6 @@ public class TableSuppressBuilderTest {
   @Mock
   private  Serde<Struct> keySerde;
   @Mock
-  private  Materialized<Object, GenericRow, StateStore> materialized;
-  @Mock
   private KTableHolder<Struct> tableHolder;
   @Mock
   private KTableHolder<Struct> suppressedtable;
@@ -94,7 +90,6 @@ public class TableSuppressBuilderTest {
   private TableSuppress<Struct> tableSuppress;
   @Mock
   private PhysicalSchemaFactory physicalSchemaFactory;
-  private BiFunction<Serde<Struct>, Serde<GenericRow>, Materialized> materializedFactory;
   private Long maxBytes = 300L;
   private TableSuppressBuilder builder;
 
@@ -107,7 +102,6 @@ public class TableSuppressBuilderTest {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
 
     when(physicalSchemaFactory.create(any(), any(), any())).thenReturn(physicalSchema);
-    materializedFactory = (a,b) -> materialized;
 
     when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);

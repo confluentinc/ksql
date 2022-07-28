@@ -16,38 +16,45 @@ package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
+import java.util.Objects;
 
 @UdafDescription(
         name = "VAR_ARG",
         description = "Returns the sum of the provided longs and lengths of strings.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class VarArgUdaf implements Udaf<Pair<Long, VariadicArgs<String>>, Double, Double> {
+@SuppressWarnings("unused")
+public class VarArgUdaf implements Udaf<Pair<Long, VariadicArgs<String>>, Long, Long> {
 
   @UdafFactory(description = "Testing factory")
-  public static Udaf<Pair<Long, VariadicArgs<String>>, Double, Double> createVarArgUdaf() {
+  public static Udaf<Pair<Long, VariadicArgs<String>>, Long, Long> createVarArgUdaf() {
     return new VarArgUdaf();
   }
 
   @Override
-  public Double initialize() {
-    return 0.0;
+  public Long initialize() {
+    return 0L;
   }
 
   @Override
-  public Double aggregate(final Pair<Long, VariadicArgs<String>> currentValue,
-                          final Double aggregateValue) {
-    return aggregateValue + currentValue.getLeft()
-            + currentValue.getRight().stream().map(String::length).reduce(0, Integer::sum);
+  public Long aggregate(final Pair<Long, VariadicArgs<String>> currentValue,
+                          final Long aggregateValue) {
+    final long firstVal = currentValue.getLeft() == null ? 0 : currentValue.getLeft();
+    final int secondVal = currentValue.getRight() == null ? 0 : currentValue.getRight().stream()
+            .filter(Objects::nonNull)
+            .map(String::length)
+            .reduce(0, Integer::sum);
+
+    return aggregateValue + firstVal + secondVal;
   }
 
   @Override
-  public Double merge(final Double aggOne, final Double aggTwo) {
+  public Long merge(final Long aggOne, final Long aggTwo) {
     return aggOne + aggTwo;
   }
 
   @Override
-  public Double map(final Double agg) {
+  public Long map(final Long agg) {
     return agg;
   }
 }

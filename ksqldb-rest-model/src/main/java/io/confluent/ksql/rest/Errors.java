@@ -72,7 +72,7 @@ public final class Errors {
       toErrorCode(SERVICE_UNAVAILABLE.code()) + 3;
 
   public static final int ERROR_CODE_SERVER_SHUT_DOWN =
-      toErrorCode(SERVICE_UNAVAILABLE.code()) + 3;
+      toErrorCode(SERVICE_UNAVAILABLE.code()) + 4;
 
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.code());

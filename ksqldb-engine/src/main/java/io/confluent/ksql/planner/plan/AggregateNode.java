@@ -328,7 +328,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
               params.stream()
                       .map(sourceTypeManager::getExpressionSqlType)
                       .collect(Collectors.toList())
-      ).getLeft();
+      ).initArgs;
       final int numColArgs = params.size() - numInitArgs;
 
       final List<Expression> internalParams = new ArrayList<>(params.size());

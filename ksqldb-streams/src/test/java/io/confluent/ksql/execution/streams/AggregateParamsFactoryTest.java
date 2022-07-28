@@ -44,7 +44,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -115,19 +114,19 @@ public class AggregateParamsFactoryTest {
   public void init() {
     when(functionRegistry.getAggregateFactory(same(AGG0.getName())))
             .thenReturn(functionFactoryAggOne);
-    when(functionFactoryAggOne.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> agg0));
+    when(functionFactoryAggOne.getFunction(any())).thenReturn(new AggregateFunctionFactory.FunctionSource(0, (initArgs) -> agg0));
     when(agg0.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(agg0.returnType()).thenReturn(SqlTypes.INTEGER);
     when(agg0.getAggregateType()).thenReturn(SqlTypes.BIGINT);
     when(functionRegistry.getAggregateFactory(same(AGG1.getName())))
             .thenReturn(functionFactoryAggTwo);
-    when(functionFactoryAggTwo.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> agg1));
+    when(functionFactoryAggTwo.getFunction(any())).thenReturn(new AggregateFunctionFactory.FunctionSource(0, (initArgs) -> agg1));
     when(agg1.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
     when(agg1.returnType()).thenReturn(SqlTypes.STRING);
     when(agg1.getAggregateType()).thenReturn(SqlTypes.DOUBLE);
     when(functionRegistry.getAggregateFactory(same(TABLE_AGG.getName())))
             .thenReturn(functionFactoryTable);
-    when(functionFactoryTable.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> tableAgg));
+    when(functionFactoryTable.getFunction(any())).thenReturn(new AggregateFunctionFactory.FunctionSource(0, (initArgs) -> tableAgg));
     when(tableAgg.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(tableAgg.returnType()).thenReturn(SqlTypes.INTEGER);
     when(tableAgg.getAggregateType()).thenReturn(SqlTypes.BIGINT);

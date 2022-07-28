@@ -24,7 +24,6 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -74,9 +73,7 @@ public abstract class AggregateFunctionFactory {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
   }
 
-  public abstract
-      Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
-      getFunction(List<SqlType> argTypeList);
+  public abstract FunctionSource getFunction(List<SqlType> argTypeList);
 
   protected abstract List<List<ParamType>> supportedArgs();
 
@@ -98,7 +95,7 @@ public abstract class AggregateFunctionFactory {
         .forEach(args -> {
           final KsqlAggregateFunction<?, ?, ?> function = getFunction(
                   args
-          ).getRight().apply(getDefaultArguments());
+          ).source.apply(getDefaultArguments());
           consumer.accept(function, function.getDescription());
         });
   }
@@ -120,6 +117,18 @@ public abstract class AggregateFunctionFactory {
 
   public AggregateFunctionInitArguments getDefaultArguments() {
     return AggregateFunctionInitArguments.EMPTY_ARGS;
+  }
+
+  public static class FunctionSource {
+    public final int initArgs;
+    public final Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>> source;
+
+    public FunctionSource(
+            final int initArgs,
+            final Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>> source) {
+      this.initArgs = initArgs;
+      this.source = source;
+    }
   }
 
 }

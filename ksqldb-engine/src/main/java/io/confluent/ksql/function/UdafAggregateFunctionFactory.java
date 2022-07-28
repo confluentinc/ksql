@@ -21,11 +21,9 @@ import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
@@ -50,9 +48,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public synchronized
-      Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
-      getFunction(final List<SqlType> argTypeList) {
+  public synchronized FunctionSource getFunction(final List<SqlType> argTypeList) {
 
     final List<SqlArgument> args = argTypeList.stream()
             .map((type) -> type == null ? null : SqlArgument.of(type))
@@ -81,7 +77,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
       numInitArgs = numSignatureInitArgs;
     }
 
-    return Pair.of(
+    return new FunctionSource(
             numInitArgs,
             (initArgs) -> creator.createFunction(initArgs, args)
     );

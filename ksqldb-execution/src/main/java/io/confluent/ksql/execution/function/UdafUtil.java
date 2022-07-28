@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -29,12 +30,10 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -57,14 +56,15 @@ public final class UdafUtil {
               .map(expressionTypeManager::getExpressionSqlType)
               .collect(Collectors.toList());
 
-      final Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
-              func = functionRegistry.getAggregateFactory(functionCall.getName()).getFunction(args);
+      final AggregateFunctionFactory.FunctionSource func = functionRegistry
+              .getAggregateFactory(functionCall.getName())
+              .getFunction(args);
 
       final int totalArgs = functionCall.getArguments().size();
 
       // All non-constant UDAF arguments must be column references
       final List<Integer> argIndices = functionCall.getArguments().stream()
-              .limit(totalArgs - func.getLeft())
+              .limit(totalArgs - func.initArgs)
               .map((arg) -> {
                 final Optional<Column> column;
 
@@ -82,8 +82,8 @@ public final class UdafUtil {
                 );
               }).map(Column::index).collect(Collectors.toList());
 
-      return func.getRight().apply(createAggregateFunctionInitArgs(
-              func.getLeft(),
+      return func.source.apply(createAggregateFunctionInitArgs(
+              func.initArgs,
               argIndices,
               functionCall,
               config

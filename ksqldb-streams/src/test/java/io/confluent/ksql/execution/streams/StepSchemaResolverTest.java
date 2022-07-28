@@ -72,7 +72,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -611,7 +610,7 @@ public class StepSchemaResolverTest {
     final KsqlAggregateFunction aggregateFunction = mock(KsqlAggregateFunction.class);
     when(functionRegistry.getAggregateFactory(eq(FunctionName.of(name))))
         .thenReturn(factory);
-    when(factory.getFunction(any())).thenReturn(Pair.of(0, (initArgs) -> aggregateFunction));
+    when(factory.getFunction(any())).thenReturn(new AggregateFunctionFactory.FunctionSource(0, (initArgs) -> aggregateFunction));
     when(aggregateFunction.getAggregateType()).thenReturn(SqlTypes.INTEGER);
     when(aggregateFunction.returnType()).thenReturn(SqlTypes.BIGINT);
     when(aggregateFunction.getInitialValueSupplier()).thenReturn(mock(Supplier.class));

@@ -95,7 +95,6 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
@@ -1222,7 +1221,7 @@ public class ExpressionTypeManagerTest {
     when(functionRegistry.isAggregate(FunctionName.of(name))).thenReturn(true);
     when(functionRegistry.getAggregateFactory(FunctionName.of(name))).thenReturn(factory);
     when(factory.getFunction(eq(Arrays.asList(SqlTypes.INTEGER, SqlArray.of(SqlTypes.DOUBLE), SqlTypes.STRING))))
-            .thenReturn(Pair.of(1, (initArgs) -> aggCreator.apply((String) initArgs.arg(0))));
+            .thenReturn(new AggregateFunctionFactory.FunctionSource(1, (initArgs) -> aggCreator.apply((String) initArgs.arg(0))));
     when(aggCreator.apply(any())).thenReturn(function);
     when(function.returnType()).thenReturn(returnType);
     final UdfMetadata metadata = mock(UdfMetadata.class);

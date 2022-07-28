@@ -43,7 +43,6 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Before;
@@ -87,9 +86,9 @@ public class UdafUtilTest {
     when(functionCall.getName()).thenReturn(FUNCTION_NAME);
     when(functionRegistry.getAggregateFactory(any())).thenReturn(functionFactory);
     when(functionFactory.getFunction(not(eq(Arrays.asList(SqlTypes.INTEGER, SqlTypes.STRING, SqlTypes.STRING)))))
-            .thenReturn(Pair.of(0, (initArgs) -> function));
+            .thenReturn(new AggregateFunctionFactory.FunctionSource(0, (initArgs) -> function));
     when(functionFactory.getFunction(eq(Arrays.asList(SqlTypes.INTEGER, SqlTypes.STRING, SqlTypes.STRING))))
-            .thenReturn(Pair.of(1, (initArgs) -> function));
+            .thenReturn(new AggregateFunctionFactory.FunctionSource(1, (initArgs) -> function));
   }
 
   @Test

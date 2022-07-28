@@ -42,11 +42,9 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -377,10 +375,8 @@ public class InternalFunctionRegistryTest {
     return new AggregateFunctionFactory("my_aggregate") {
 
       @Override
-      public Pair<Integer, Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>>>
-          getFunction(List<SqlType> argTypeList) {
-
-        return Pair.of(0, (initArgs) -> mockAggFun);
+      public FunctionSource getFunction(List<SqlType> argTypeList) {
+        return new FunctionSource(0, (initArgs) -> mockAggFun);
       }
 
       @Override

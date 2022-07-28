@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -126,7 +127,7 @@ public class TableSuppressBuilderTest {
   @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldSuppressSourceTable() {
     // When:
-    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, buildContext, executionKeyFactory, physicalSchemaFactory, materializedFactory);
+    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, buildContext, executionKeyFactory, physicalSchemaFactory, new MaterializedFactory());
 
     // Then:
     assertThat(result, is(suppressedtable));

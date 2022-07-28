@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -130,9 +131,7 @@ public final class TableSelectBuilder {
 
     final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
         () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
-        Materialized
-            .<K, GenericRow, KeyValueStore<Bytes, byte[]>>with(keySerde, valSerde)
-            .withStoreType(Materialized.StoreType.IN_MEMORY),
+        materializedFactory.create(keySerde, valSerde),
         selectName
     );
 

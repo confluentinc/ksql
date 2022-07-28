@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;

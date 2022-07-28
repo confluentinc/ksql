@@ -254,7 +254,7 @@ public class StreamAggregateBuilderTest {
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   private void givenTimeWindowedAggregate() {
-    when(materializedFactory.<GenericKey, WindowStore<Bytes, byte[]>>create(any(), any(), any()))
+    when(materializedFactory.<GenericKey, WindowStore<Bytes, byte[]>>create(any(), any(), any(), (Optional<Duration>) any()))
         .thenReturn(timeWindowMaterialized);
     when(groupedStream.windowedBy(any(Windows.class))).thenReturn(timeWindowedStream);
     when(timeWindowedStream.aggregate(any(), any(), any(Materialized.class)))
@@ -302,7 +302,7 @@ public class StreamAggregateBuilderTest {
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   private void givenSessionWindowedAggregate() {
-    when(materializedFactory.<GenericKey, SessionStore<Bytes, byte[]>>create(any(), any(), any()))
+    when(materializedFactory.<GenericKey, SessionStore<Bytes, byte[]>>create(any(), any(), any(), (Optional<Duration>) any()))
         .thenReturn(sessionWindowMaterialized);
     when(groupedStream.windowedBy(any(SessionWindows.class))).thenReturn(sessionWindowedStream);
     when(sessionWindowedStream.aggregate(any(), any(), any(), any(Materialized.class)))
@@ -576,7 +576,7 @@ public class StreamAggregateBuilderTest {
       windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
-      verify(materializedFactory).create(same(keySerde), same(valueSerde), any());
+      verify(materializedFactory).create(same(keySerde), same(valueSerde), any(), (Optional<Duration>) any());
     }
   }
 
@@ -591,7 +591,7 @@ public class StreamAggregateBuilderTest {
       windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
-      verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
+      verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"), (Optional<Duration>) any());
     }
   }
 

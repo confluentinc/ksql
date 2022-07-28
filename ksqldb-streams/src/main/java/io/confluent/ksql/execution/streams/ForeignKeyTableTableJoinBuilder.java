@@ -31,12 +31,9 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
 
 public final class ForeignKeyTableTableJoinBuilder {
-
-  private ForeignKeyTableTableJoinBuilder() {
-  }
+  private ForeignKeyTableTableJoinBuilder() {}
 
   public static <KLeftT, KRightT> KTableHolder<KLeftT> build(
       final KTableHolder<KLeftT> left,
@@ -103,7 +100,7 @@ public final class ForeignKeyTableTableJoinBuilder {
             right.getTable(),
             joinParams.getKeyExtractor(),
             joinParams.getJoiner(),
-            Materialized.with(keySerde, valSerde)
+            buildContext.getMaterializedFactory().create(keySerde, valSerde)
         );
         break;
       case LEFT:
@@ -111,7 +108,7 @@ public final class ForeignKeyTableTableJoinBuilder {
             right.getTable(),
             joinParams.getKeyExtractor(),
             joinParams.getJoiner(),
-            Materialized.with(keySerde, valSerde)
+            buildContext.getMaterializedFactory().create(keySerde, valSerde)
         );
         break;
       default:

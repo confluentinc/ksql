@@ -54,6 +54,7 @@ import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -694,6 +695,18 @@ public class KsqlConfig extends AbstractConfig {
       + " connections after a timeout. The timeout will be the lower of the auth token's "
       + "lifespan (if present) and the value of this config. If this config is set to 0, then "
       + "ksqlDB will not close websockets even if the token has an expiration time.";
+
+  public static final String KSQL_STATE_STORE_TYPE
+      = "ksql.state.store.type";
+  public static final String KSQL_STATE_STORE_TYPE_DEFAULT = "in_memory";
+  public static final String KSQL_STATE_STORE_TYPE_DOC
+      = "EXPERIMENTAL: Overrides the default state store type (RocksDB)."
+      + " Options: rocks_db|in_memory."
+      + " This config is experimental and may be removed without warning.";
+
+  public Materialized.StoreType getStoreType() {
+    return Materialized.StoreType.IN_MEMORY;
+  }
 
   private enum ConfigGeneration {
     LEGACY,
@@ -1488,6 +1501,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC
+        )
+        .define(
+            KSQL_STATE_STORE_TYPE,
+            Type.STRING,
+            KSQL_STATE_STORE_TYPE_DEFAULT,
+            Importance.LOW,
+            KSQL_STATE_STORE_TYPE_DOC
         )
         .withClientSslSupport();
 

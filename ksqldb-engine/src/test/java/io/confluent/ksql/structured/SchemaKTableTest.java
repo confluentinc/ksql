@@ -55,7 +55,7 @@ import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.KsqlValueJoiner;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.execution.streams.StreamJoinedFactory;

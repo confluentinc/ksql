@@ -172,7 +172,7 @@ class UdafTypes {
 
     final List<ParameterInfo> paramInfos = IntStream.range(0, paramTypes.size())
             .mapToObj((paramIndex) -> {
-              ParamType paramType = paramTypes.get(paramIndex);
+              final ParamType paramType = paramTypes.get(paramIndex);
 
               return new ParameterInfo(
                       "val" + (paramIndex + 1),

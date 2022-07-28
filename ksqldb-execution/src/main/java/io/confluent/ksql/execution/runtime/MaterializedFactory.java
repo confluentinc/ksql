@@ -32,7 +32,8 @@ public class MaterializedFactory {
   }
 
   public MaterializedFactory(final KsqlConfig ksqlConfig) {
-    final String string = ksqlConfig.getString(KsqlConfig.KSQL_STATE_STORE_TYPE);
+    final String string1 = ksqlConfig.getString(KsqlConfig.KSQL_STATE_STORE_TYPE);
+    final String string = string1 == null ? KsqlConfig.KSQL_STATE_STORE_TYPE_DEFAULT : string1;
     switch (string.toLowerCase()) {
       case "in_memory":
         this.storeType = Materialized.StoreType.IN_MEMORY;

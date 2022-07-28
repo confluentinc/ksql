@@ -27,13 +27,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
+@SuppressFBWarnings(
+        value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
+        justification = "get() throws exception"
+)
 public class VariadicArgsTest {
 
   @Test
-  @SuppressFBWarnings(
-          value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
-          justification = "get() throws exception"
-  )
   public void shouldThrowWhenIndexTooLarge() {
     final VariadicArgs<Integer> varArgs = new VariadicArgs<>(ImmutableList.of(1, 2, 3));
 
@@ -47,10 +47,6 @@ public class VariadicArgsTest {
   }
 
   @Test
-  @SuppressFBWarnings(
-          value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
-          justification = "get() throws exception"
-  )
   public void shouldThrowWhenIndexNegative() {
     final VariadicArgs<Integer> varArgs = new VariadicArgs<>(ImmutableList.of(1, 2, 3));
 

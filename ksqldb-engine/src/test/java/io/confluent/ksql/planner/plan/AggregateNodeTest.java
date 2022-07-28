@@ -273,7 +273,7 @@ public class AggregateNodeTest {
     assertThat(stream.getSchema(), is(LogicalSchema.builder()
             .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
-            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.BIGINT)
             .build()
     ));
   }
@@ -289,7 +289,7 @@ public class AggregateNodeTest {
     assertThat(stream.getSchema(), is(LogicalSchema.builder()
             .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
-            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.BIGINT)
             .build()
     ));
   }

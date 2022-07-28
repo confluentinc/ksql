@@ -119,7 +119,7 @@ public class RestQueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    final String testRegex = System.getProperty("ksql.rqtt.regex");
+    final String testRegex = System.getProperty("ksql.qtt.regex");
 
     return JsonTestLoader.of(TEST_DIR, RqttTestFile.class)
         .load()

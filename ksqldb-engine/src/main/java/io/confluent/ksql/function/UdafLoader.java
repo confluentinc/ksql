@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Loads user defined aggregate functions (UDAFs)
  */
-class UdafLoader {
+public class UdafLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UdafLoader.class);
 
@@ -41,7 +41,7 @@ class UdafLoader {
   private final Optional<Metrics> metrics;
   private final SqlTypeParser typeParser;
 
-  UdafLoader(
+  public UdafLoader(
       final MutableFunctionRegistry functionRegistry,
       final Optional<Metrics> metrics,
       final SqlTypeParser typeParser
@@ -51,7 +51,7 @@ class UdafLoader {
     this.typeParser = Objects.requireNonNull(typeParser, "typeParser");
   }
 
-  void loadUdafFromClass(final Class<?> theClass, final String path) {
+  public void loadUdafFromClass(final Class<?> theClass, final String path) {
     final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
     
     final List<UdafFactoryInvoker> invokers = new ArrayList<>();

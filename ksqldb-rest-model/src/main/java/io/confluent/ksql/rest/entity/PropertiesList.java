@@ -49,7 +49,6 @@ import static org.apache.kafka.streams.StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG
 import static org.apache.kafka.streams.StreamsConfig.POLL_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.PROBING_REBALANCE_INTERVAL_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.PROCESSING_GUARANTEE_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.TASK_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.WINDOW_SIZE_MS_CONFIG;
 
@@ -87,7 +86,6 @@ public class PropertiesList extends KsqlEntity {
       KSQL_QUERY_PULL_TABLE_SCAN_ENABLED,
       KSQL_TIMESTAMP_THROW_ON_INVALID,
       MAX_TASK_IDLE_MS_CONFIG,
-      STATESTORE_CACHE_MAX_BYTES_CONFIG,
       TASK_TIMEOUT_MS_CONFIG
   );
 

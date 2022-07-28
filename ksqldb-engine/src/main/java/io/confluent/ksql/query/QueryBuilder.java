@@ -653,7 +653,8 @@ final class QueryBuilder {
         .and(new AuthorizationClassifier(applicationId))
         .and(new KsqlFunctionClassifier(applicationId))
         .and(new MissingSubjectClassifier(applicationId))
-        .and(new SchemaAuthorizationClassifier(applicationId));
+        .and(new SchemaAuthorizationClassifier(applicationId))
+        .and(new KsqlSerializationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);

@@ -62,24 +62,18 @@
     }, {
       "name" : "input_topic",
       "valueSchema" : {
-        "type" : "object",
-        "properties" : {
-          "FOO" : {
-            "connect.index" : 0,
+        "oneOf" : [ {
+          "type" : "null"
+        }, {
+          "type" : "array",
+          "items" : {
             "oneOf" : [ {
               "type" : "null"
             }, {
-              "type" : "array",
-              "items" : {
-                "oneOf" : [ {
-                  "type" : "null"
-                }, {
-                  "type" : "string"
-                } ]
-              }
+              "type" : "string"
             } ]
           }
-        }
+        } ]
       },
       "valueFormat" : "JSON",
       "replicas" : 1,
@@ -120,24 +114,18 @@
           },
           "partitions" : 4,
           "valueSchema" : {
-            "type" : "object",
-            "properties" : {
-              "FOO" : {
-                "connect.index" : 0,
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "array",
+              "items" : {
                 "oneOf" : [ {
                   "type" : "null"
                 }, {
-                  "type" : "array",
-                  "items" : {
-                    "oneOf" : [ {
-                      "type" : "null"
-                    }, {
-                      "type" : "string"
-                    } ]
-                  }
+                  "type" : "string"
                 } ]
               }
-            }
+            } ]
           }
         }, {
           "name" : "OUTPUT",

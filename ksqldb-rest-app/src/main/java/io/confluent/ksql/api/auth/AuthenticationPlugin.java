@@ -46,4 +46,17 @@ public interface AuthenticationPlugin {
   CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
       WorkerExecutor workerExecutor);
 
+  /**
+   * Retrieve the authorization header from the request. This is different from {@code handleAuth}
+   * since we need to expose the authorization header in order to provide forwarded inter-node
+   * requests the correct credentials.
+   *
+   * @param routingContext The routing context
+   * @return A String that is the authorization header that we can then use for forwarding
+   *        inter-node requests.
+   */
+  default String getAuthHeader(final RoutingContext routingContext) {
+    return routingContext.request().getHeader("Authorization");
+  }
+
 }

@@ -18,6 +18,30 @@ Returns the absolute value of `col1`.
 
 ---
 
+### **`ACOS`**
+
+```sql title="Since: 0.28.0"
+ACOS(col1)
+```
+
+Returns the inverse (arc) cosine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+This function returns `NaN` for any input outside [-1, 1].
+
+---
+
+### **`ASIN`**
+
+```sql title="Since: 0.28.0"
+ASIN(col1)
+```
+
+Returns the inverse (arc) sine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+This function returns `NaN` for any input outside [-1, 1].
+
+---
+
 ### **`AS_VALUE`**
 
 ```sql title="Since: 0.9.0"
@@ -38,6 +62,28 @@ CREATE TABLE AGG AS
 
 !!! Tip "See AS_VALUE in action"
     - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
+
+---
+
+### **`ATAN`**
+
+```sql title="Since: 0.28.0"
+ATAN(col1)
+```
+
+Returns the inverse (arc) tangent of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+---
+
+### **`ATAN2`**
+
+```sql title="Since: 0.28.0"
+ATAN2(y, x)
+```
+
+Returns the inverse (arc) tangent of `y / x`. This is equivalent to the angle _theta_ when Cartesian coordinates (x, y) are converted to polar coordinates (_radius_, _theta_). The returned value is in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+If `x` is zero, `y / x` is undefined, and this function returns the approximate value of a multiple of _π/2_.
 
 ---
 
@@ -87,6 +133,48 @@ CEIL(col1)
 ```
 
 Returns the the smallest integer value that's greater than or equal to `col1`.
+
+---
+
+### **`COS`**
+
+```sql title="Since: 0.28.0"
+COS(col1)
+```
+
+Returns the cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`COSH`**
+
+```sql title="Since: 0.28.0"
+COSH(col1)
+```
+
+Returns the hyperbolic cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`COT`**
+
+```sql title="Since: 0.28.0"
+COT(col1)
+```
+
+Returns the cotangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+This implementation returns a large value approaching positive or negative infinity near the asymptotes, because _2π_ and similar values cannot be represented exactly. At _0_, it returns `Infinity` with the same sign as the input.
+
+---
+
+### **`DEGREES`**
+
+```sql title="Since: 0.28.0"
+DEGREES(col1)
+```
+
+Converts `col1` from radians to degrees.
 
 ---
 
@@ -203,6 +291,16 @@ This function returns `-Infinity` for any `base` when the `value` is 0. It retur
 
 ---
 
+### **`PI`**
+
+```sql title="Since: 0.28.0"
+PI()
+```
+
+Returns an approximate value of _π_.
+
+---
+
 ### **`POWER`**
 
 ```sql title="Since: 0.27.0"
@@ -212,6 +310,16 @@ POWER(base, exponent)
 Calculates the value of the `base` raised to the `exponent`.
 
 This function returns `Infinity` when the result overflows the `DOUBLE` type.
+
+---
+
+### **`RADIANS`**
+
+```sql title="Since: 0.28.0"
+RADIANS(col1)
+```
+
+Converts `col1` from degrees to radians.
 
 ---
 
@@ -258,6 +366,26 @@ Returns the sign of `col1` as an `INTEGER`:
 
 ---
 
+### **`SIN`**
+
+```sql title="Since: 0.28.0"
+SIN(col1)
+```
+
+Returns the sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`SINH`**
+
+```sql title="Since: 0.28.0"
+SINH(col1)
+```
+
+Returns the hyperbolic sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
 ### **`SQRT`**
 
 ```sql title="Since: 0.6.0"
@@ -265,6 +393,28 @@ SQRT(col1)
 ```
 
 Returns the square root of `col`.
+
+---
+
+### **`TAN`**
+
+```sql title="Since: 0.28.0"
+TAN(col1)
+```
+
+Returns the tangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+This implementation returns a large value approaching positive or negative infinity near the asymptotes, because _π/2_ and similar values cannot be represented exactly.
+
+---
+
+### **`TANH`**
+
+```sql title="Since: 0.28.0"
+TANH(col1)
+```
+
+Returns the hyperbolic tangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
 ---
 

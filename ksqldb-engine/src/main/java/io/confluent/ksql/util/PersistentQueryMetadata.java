@@ -90,6 +90,16 @@ public interface PersistentQueryMetadata extends QueryMetadata {
     }
 
     @Override
+    public void onPause(final QueryMetadata queryMetadata) {
+      this.listener.onPause(queryMetadata);
+    }
+
+    @Override
+    public void onResume(final QueryMetadata queryMetadata) {
+      this.listener.onResume(queryMetadata);
+    }
+
+    @Override
     public void onClose(final QueryMetadata queryMetadata) {
       this.listener.onClose(queryMetadata);
       scalablePushRegistry.ifPresent(ScalablePushRegistry::cleanup);

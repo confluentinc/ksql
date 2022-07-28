@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
@@ -142,14 +143,29 @@ public final class CreateSourceFactory {
   }
 
   // This method is called by CREATE_AS statements
-  public CreateTableCommand createTableCommand(final KsqlStructuredDataOutputNode outputNode) {
+  public CreateTableCommand createTableCommand(
+      final KsqlStructuredDataOutputNode outputNode,
+      final Optional<RefinementInfo> emitStrategy
+  ) {
+    Optional<WindowInfo> windowInfo =
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo();
+
+    if (windowInfo.isPresent() && emitStrategy.isPresent()) {
+      final WindowInfo info = windowInfo.get();
+      windowInfo = Optional.of(WindowInfo.of(
+          info.getType(),
+          info.getSize(),
+          Optional.of(emitStrategy.get().getOutputRefinement())
+      ));
+    }
+
     return new CreateTableCommand(
         outputNode.getSinkName().get(),
         outputNode.getSchema(),
         outputNode.getTimestampColumn(),
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),
-        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+        windowInfo,
         Optional.of(outputNode.getOrReplace()),
         Optional.of(false)
     );
@@ -269,7 +285,8 @@ public final class CreateSourceFactory {
   }
 
   private static Optional<WindowInfo> getWindowInfo(final CreateSourceProperties props) {
-    return props.getWindowType().map(type -> WindowInfo.of(type, props.getWindowSize()));
+    return props.getWindowType()
+        .map(type -> WindowInfo.of(type, props.getWindowSize(), Optional.empty()));
   }
 
   private static String ensureTopicExists(

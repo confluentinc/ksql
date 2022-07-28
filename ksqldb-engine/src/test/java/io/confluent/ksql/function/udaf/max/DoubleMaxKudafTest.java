@@ -19,13 +19,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class DoubleMaxKudafTest {
@@ -65,21 +62,19 @@ public class DoubleMaxKudafTest {
   @Test
   public void shouldFindCorrectMaxForMerge() {
     final MaxKudaf<Double> doubleMaxKudaf = getMaxComparableKudaf();
-    final Merger<GenericKey, Double> merger = doubleMaxKudaf.getMerger();
-    final Double mergeResult1 = merger.apply(null, 10.0, 12.0);
+    final Double mergeResult1 = doubleMaxKudaf.merge(10.0, 12.0);
     assertThat(mergeResult1, equalTo(12.0));
-    final Double mergeResult2 = merger.apply(null, 10.0, -12.0);
+    final Double mergeResult2 = doubleMaxKudaf.merge(10.0, -12.0);
     assertThat(mergeResult2, equalTo(10.0));
-    final Double mergeResult3 = merger.apply(null, -10.0, 0.0);
+    final Double mergeResult3 = doubleMaxKudaf.merge(-10.0, 0.0);
     assertThat(mergeResult3, equalTo(0.0));
   }
 
-  @SuppressWarnings("unchecked")
   private MaxKudaf<Double> getMaxComparableKudaf() {
-    final KsqlAggregateFunction<Double, Double, Double> aggregateFunction =
-        (KsqlAggregateFunction<Double, Double, Double>) new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+    final Udaf<Double, Double, Double> aggregateFunction = MaxKudaf.createMaxDouble();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE))
+    );
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
     return  (MaxKudaf<Double>) aggregateFunction;
   }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -47,6 +48,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -76,15 +78,20 @@ public class SchemaKGroupedTableTest {
   private static final FunctionCall MAX = udaf("MAX");
   private static final FunctionCall SUM = udaf("SUM");
   private static final FunctionCall COUNT = udaf("COUNT");
+  private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
   private final ValueFormat valueFormat = ValueFormat
       .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
   private KeyFormat keyFormat = KeyFormat
       .nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+
+  @BeforeClass
+  public static void setUpFunctionRegistry() {
+    loadAllUserFunctions(functionRegistry);
+  }
 
   @Test
   public void shouldFailWindowedTableAggregation() {

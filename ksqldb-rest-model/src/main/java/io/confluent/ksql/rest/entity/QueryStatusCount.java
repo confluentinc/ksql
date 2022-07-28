@@ -25,11 +25,10 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 
 /**
- * Used to keep track of a the state of KafkaStreams application
+ * Used to keep track of the state of a KafkaStreams application
  * across multiple servers. Used in {@link RunningQuery}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -37,15 +36,6 @@ public class QueryStatusCount {
   
   // Use a EnumMap so toString() will always return the same string
   private final EnumMap<KsqlQueryStatus, Integer> statuses;
-
-  public static QueryStatusCount fromStreamsStateCounts(
-      final Map<KafkaStreams.State, Integer> states) {
-    final Map<KsqlQueryStatus, Integer> ksqlQueryStatus = states.entrySet().stream()
-        .collect(Collectors.toMap(
-            e -> KsqlConstants.fromStreamsState(e.getKey()),
-            Map.Entry::getValue));
-    return new QueryStatusCount(ksqlQueryStatus);
-  }
 
   public QueryStatusCount() {
     this(Collections.emptyMap());

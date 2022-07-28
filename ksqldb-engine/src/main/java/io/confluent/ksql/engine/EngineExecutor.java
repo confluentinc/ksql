@@ -808,10 +808,7 @@ final class EngineExecutor {
           statement.getStatementText()
       );
 
-      final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-          statement.getStatementText(),
-          Optional.of(outputNode)
-      );
+      final LogicalPlanNode logicalPlan = new LogicalPlanNode(Optional.of(outputNode));
 
       final QueryId queryId = QueryIdUtil.buildId(
           statement.getStatement(),
@@ -956,10 +953,7 @@ final class EngineExecutor {
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
         .buildQueryLogicalPlan(queryPlannerOptions, isScalablePush);
-    return new LogicalPlanNode(
-        statement.getStatementText(),
-        Optional.of(outputNode)
-    );
+    return new LogicalPlanNode(Optional.of(outputNode));
   }
 
   private PushPhysicalPlan buildScalablePushPhysicalPlan(
@@ -1036,7 +1030,10 @@ final class EngineExecutor {
       ));
     }
 
-    return Optional.of(engineContext.createDdlCommand(outputNode));
+    return Optional.of(engineContext.createDdlCommand(
+        outputNode,
+        ((QueryContainer) statement).getQuery().getRefinement())
+    );
   }
 
   private void validateExistingSink(

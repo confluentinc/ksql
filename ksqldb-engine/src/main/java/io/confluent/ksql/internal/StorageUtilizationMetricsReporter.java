@@ -15,7 +15,13 @@
 
 package io.confluent.ksql.internal;
 
+import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_QUERY_ID_TAG;
+import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TASK_ID_TAG;
+import static io.confluent.ksql.internal.MetricsTagUtils.NAMED_TOPOLOGY_PATTERN;
+import static io.confluent.ksql.internal.MetricsTagUtils.QUERY_ID_PATTERN;
 import static java.util.Objects.requireNonNull;
+import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.TASK_ID_TAG;
+import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.THREAD_ID_TAG;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
@@ -33,7 +39,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigException;
@@ -50,9 +55,6 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       = LoggerFactory.getLogger(StorageUtilizationMetricsReporter.class);
   private static final String METRIC_GROUP = "ksqldb_utilization";
   private static final String TASK_STORAGE_USED_BYTES = "task_storage_used_bytes";
-  private static final Pattern NAMED_TOPOLOGY_PATTERN = Pattern.compile("(.*?)__\\d*_\\d*");
-  private static final Pattern QUERY_ID_PATTERN =
-      Pattern.compile("(?<=query_|transient_)(.*?)(?=-)");
 
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private Metrics metricRegistry;
@@ -126,7 +128,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
 
     handleNewSstFilesSizeMetric(
         metric,
-        metric.metricName().tags().getOrDefault("task-id", ""),
+        metric.metricName().tags().getOrDefault(TASK_ID_TAG, ""),
         getQueryId(metric)
     );
   }
@@ -139,7 +141,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     }
 
     final String queryId = getQueryId(metric);
-    final String taskId = metric.metricName().tags().getOrDefault("task-id", "");
+    final String taskId = metric.metricName().tags().getOrDefault(TASK_ID_TAG, "");
     final TaskStorageMetric taskMetric = metricsSeen.get(queryId).get(taskId);
 
     handleRemovedSstFileSizeMetric(taskMetric, metric, queryId, taskId);
@@ -267,13 +269,13 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   }
 
   private String getQueryId(final KafkaMetric metric) {
-    final String taskName = metric.metricName().tags().getOrDefault("task-id", "");
+    final String taskName = metric.metricName().tags().getOrDefault(TASK_ID_TAG, "");
     final Matcher namedTopologyMatcher = NAMED_TOPOLOGY_PATTERN.matcher(taskName);
     if (namedTopologyMatcher.find()) {
       return namedTopologyMatcher.group(1);
     }
 
-    final String queryIdTag = metric.metricName().tags().getOrDefault("thread-id", "");
+    final String queryIdTag = metric.metricName().tags().getOrDefault(THREAD_ID_TAG, "");
     final Matcher matcher = QUERY_ID_PATTERN.matcher(queryIdTag);
     if (matcher.find()) {
       return matcher.group(1);
@@ -285,7 +287,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   
   private Map<String, String> getQueryMetricTags(final String queryId) {
     final Map<String, String> queryMetricTags = new HashMap<>(customTags);
-    queryMetricTags.put("query-id", queryId);
+    queryMetricTags.put(KSQL_QUERY_ID_TAG, queryId);
     return ImmutableMap.copyOf(queryMetricTags);
   }
 
@@ -294,7 +296,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       final String taskId
   ) {
     final Map<String, String> taskMetricTags = new HashMap<>(queryTags);
-    taskMetricTags.put("task-id", taskId);
+    taskMetricTags.put(KSQL_TASK_ID_TAG, taskId);
     return ImmutableMap.copyOf((taskMetricTags));
   }
   

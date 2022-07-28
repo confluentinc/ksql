@@ -40,6 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.util.Collection;
 import java.util.List;
@@ -86,6 +87,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   private final ProcessingLoggerFactory loggerFactory;
   public boolean everStarted = false;
+  private boolean isPaused = false;
   private boolean corruptionCommandTopic = false;
 
 
@@ -414,6 +416,29 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       sharedKafkaStreamsRuntime.start(queryId);
     }
     everStarted = true;
+  }
+
+  @Override
+  public KsqlQueryStatus getQueryStatus() {
+    if (isPaused) {
+      return KsqlQueryStatus.PAUSED;
+    } else {
+      return KsqlConstants.fromStreamsState(getState());
+    }
+  }
+
+  @Override
+  public void pause() {
+    sharedKafkaStreamsRuntime.getKafkaStreams().pauseNamedTopology(topology.name());
+    isPaused = true;
+    listener.onPause(this);
+  }
+
+  @Override
+  public void resume() {
+    sharedKafkaStreamsRuntime.getKafkaStreams().resumeNamedTopology(topology.name());
+    isPaused = false;
+    listener.onPause(this);
   }
 
   @Override

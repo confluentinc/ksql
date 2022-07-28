@@ -21,13 +21,16 @@ import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.json.JsonSchemaConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
+import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -45,7 +48,6 @@ import org.apache.kafka.connect.storage.Converter;
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 @Immutable
 class KsqlJsonSerdeFactory implements SerdeFactory {
-
   private final boolean useSchemaRegistryFormat;
   private final JsonSchemaProperties properties;
 
@@ -70,6 +72,8 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
       final Class<T> targetType,
       final boolean isKey
   ) {
+    validateSchema(schema);
+
     final Optional<Schema> physicalSchema;
     if (useSchemaRegistryFormat) {
       physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
@@ -79,16 +83,28 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
       physicalSchema = Optional.empty();
     }
 
+    final Converter converter = useSchemaRegistryFormat
+        ? getSchemaRegistryConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
+        : getConverter();
+
+    // The translators are used in the serializer & deserializzer only for JSON_SR formats
+    final ConnectDataTranslator dataTranslator = physicalSchema.isPresent()
+            ? new ConnectSRSchemaDataTranslator(physicalSchema.get())
+            : new ConnectDataTranslator(schema);
+
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
-        schema,
-        ksqlConfig,
-        srFactory,
         targetType,
-        physicalSchema,
-        isKey
+        dataTranslator,
+        converter
     );
 
-    final Deserializer<T> deserializer = createDeserializer(schema, targetType);
+    final Deserializer<T> deserializer = createDeserializer(
+        ksqlConfig,
+        schema,
+        targetType,
+        dataTranslator,
+        converter
+    );
 
     // Sanity check:
     serializer.get();
@@ -100,21 +116,10 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
   }
 
   private <T> Serializer<T> createSerializer(
-      final Schema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
-      final Optional<Schema> physicalSchema,
-      final boolean isKey
+      final ConnectDataTranslator dataTranslator,
+      final Converter converter
   ) {
-    final Converter converter = useSchemaRegistryFormat
-        ? getSchemaConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
-        : getConverter();
-
-    final ConnectDataTranslator dataTranslator =
-        physicalSchema.isPresent() ? new ConnectSRSchemaDataTranslator(physicalSchema.get())
-            : new ConnectDataTranslator(schema);
-
     return new KsqlConnectSerializer<>(
         dataTranslator.getSchema(),
         dataTranslator,
@@ -124,14 +129,29 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
   }
 
   private <T> Deserializer<T> createDeserializer(
+      final KsqlConfig ksqlConfig,
       final Schema schema,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final ConnectDataTranslator dataTranslator,
+      final Converter converter
   ) {
-    return new KsqlJsonDeserializer<>(
-        schema,
-        useSchemaRegistryFormat,
-        targetType
-    );
+    if (useSchemaRegistryFormat
+        && ksqlConfig.getBoolean(KsqlConfig.KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED)) {
+      return new KsqlConnectDeserializer<>(
+          converter,
+          dataTranslator,
+          targetType
+      );
+    } else {
+      return new KsqlJsonDeserializer<>(
+          schema,
+          // This parameter should be removed once KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
+          // is completely deprecated and removed from the code. The KsqlJsonDeserializer class
+          // should only be used for JSON (no JSON_SR) formats after that.
+          useSchemaRegistryFormat,
+          targetType
+      );
+    }
   }
 
   private static Converter getConverter() {
@@ -143,7 +163,7 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
     return converter;
   }
 
-  private static Converter getSchemaConverter(
+  private static Converter getSchemaRegistryConverter(
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
       final Optional<Integer> schemaId,
@@ -167,5 +187,26 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
     converter.configure(config, isKey);
 
     return converter;
+  }
+
+  private static Schema validateSchema(final Schema schema) {
+
+    class SchemaValidator implements SchemaWalker.Visitor<Void, Void> {
+
+      @Override
+      public Void visitMap(final Schema mapSchema, final Void key, final Void value) {
+        if (mapSchema.keySchema().type() != Schema.Type.STRING) {
+          throw new KsqlException("JSON only supports MAP types with STRING keys");
+        }
+        return null;
+      }
+
+      public Void visitSchema(final Schema schema11) {
+        return null;
+      }
+    }
+
+    SchemaWalker.visit(schema, new SchemaValidator());
+    return schema;
   }
 }

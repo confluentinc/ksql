@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +30,10 @@ import org.junit.Test;
 public class VariadicArgsTest {
 
   @Test
+  @SuppressFBWarnings(
+          value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
+          justification = "get() throws exception"
+  )
   public void shouldThrowWhenIndexTooLarge() {
     final VariadicArgs<Integer> varArgs = new VariadicArgs<>(ImmutableList.of(1, 2, 3));
 
@@ -42,6 +47,10 @@ public class VariadicArgsTest {
   }
 
   @Test
+  @SuppressFBWarnings(
+          value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
+          justification = "get() throws exception"
+  )
   public void shouldThrowWhenIndexNegative() {
     final VariadicArgs<Integer> varArgs = new VariadicArgs<>(ImmutableList.of(1, 2, 3));
 

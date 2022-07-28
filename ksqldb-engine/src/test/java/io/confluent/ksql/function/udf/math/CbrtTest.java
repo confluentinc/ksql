@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.math;
 import org.junit.Before;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -38,22 +39,22 @@ public class CbrtTest {
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.cbrt(-8), is(-2.0));
-    assertThat(udf.cbrt(-3L), is(-1.4422495703074083));
-    assertThat(udf.cbrt(-1.0), is(-1.0));
+    assertThat(udf.cbrt(-8), closeTo(-2.0, 0.000000000000001));
+    assertThat(udf.cbrt(-3L), closeTo(-1.4422495703074083, 0.000000000000001));
+    assertThat(udf.cbrt(-1.0), closeTo(-1.0, 0.000000000000001));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.cbrt(0), is(0.0));
-    assertThat(udf.cbrt(0L), is(0.0));
-    assertThat(udf.cbrt(0.0), is(0.0));
+    assertThat(udf.cbrt(0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.cbrt(0L), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.cbrt(0.0), closeTo(0.0, 0.000000000000001));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.cbrt(8), is(2.0));
-    assertThat(udf.cbrt(3L), is(1.4422495703074083));
-    assertThat(udf.cbrt(1.0), is(1.0));
+    assertThat(udf.cbrt(8), closeTo(2.0, 0.000000000000001));
+    assertThat(udf.cbrt(3L), closeTo(1.4422495703074083, 0.000000000000001));
+    assertThat(udf.cbrt(1.0), closeTo(1.0, 0.000000000000001));
   }
 }

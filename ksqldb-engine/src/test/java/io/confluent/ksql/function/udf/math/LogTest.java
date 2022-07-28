@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.math;
 import org.junit.Before;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -63,20 +64,20 @@ public class LogTest {
 
   @Test
   public void shouldHandlePositiveValueAndBase() {
-    assertThat(udf.log(1), is(0.0));
-    assertThat(udf.log(1L), is(0.0));
-    assertThat(udf.log(1.0), is(0.0));
-    assertThat(udf.log(13), is(2.5649493574615367));
-    assertThat(udf.log(13L), is(2.5649493574615367));
-    assertThat(udf.log(13.0), is(2.5649493574615367));
-    assertThat(udf.log(1), is(0.0));
-    assertThat(udf.log(1L), is(0.0));
-    assertThat(udf.log(1.0), is(0.0));
-    assertThat(udf.log(15, 13), is(0.9471572411831843));
-    assertThat(udf.log(15L, 13L), is(0.9471572411831843));
-    assertThat(udf.log(15.0, 13.0), is(0.9471572411831843));
-    assertThat(udf.log(Double.MIN_VALUE, 13.0), is(-0.003445474597896734));
-    assertThat(udf.log(Double.MAX_VALUE, 13.0), is(0.0036137106622471603));
+    assertThat(udf.log(1), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.log(1L), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.log(1.0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.log(13), closeTo(2.5649493574615367, 0.000000000000001));
+    assertThat(udf.log(13L), closeTo(2.5649493574615367, 0.000000000000001));
+    assertThat(udf.log(13.0), closeTo(2.5649493574615367, 0.000000000000001));
+    assertThat(udf.log(1), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.log(1L), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.log(1.0), closeTo(0.0, 0.000000000000001));
+    assertThat(udf.log(15, 13), closeTo(0.9471572411831843, 0.000000000000001));
+    assertThat(udf.log(15L, 13L), closeTo(0.9471572411831843, 0.000000000000001));
+    assertThat(udf.log(15.0, 13.0), closeTo(0.9471572411831843, 0.000000000000001));
+    assertThat(udf.log(Double.MIN_VALUE, 13.0), closeTo(-0.003445474597896734, 0.000000000000001));
+    assertThat(udf.log(Double.MAX_VALUE, 13.0), closeTo(0.0036137106622471603, 0.000000000000001));
   }
 
   @Test

@@ -16,38 +16,49 @@ package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
+import java.util.Arrays;
 
 @UdafDescription(
         name = "MULTI_ARG",
         description = "Returns the sum of the provided longs and lengths of strings.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class MultiArgUdaf implements Udaf<Pair<Long, String>, Double, Double> {
+@SuppressWarnings("unused")
+public class MultiArgUdaf implements Udaf<Pair<Long, String>, Long, Long> {
 
   @UdafFactory(description = "Testing factory")
-  @SuppressWarnings("unused")
-  public static Udaf<Pair<Long, String>, Double, Double> createMultiArgUdaf(final int initArg) {
-    return new MultiArgUdaf();
+  public static Udaf<Pair<Long, String>, Long, Long> createMultiArgUdaf(final int initArg1,
+                                                                        final String... initArg2) {
+    return new MultiArgUdaf(initArg1, initArg2);
+  }
+
+  private final long initVal;
+
+  public MultiArgUdaf(final int initArg1, final String... initArg2) {
+    initVal = initArg1 + Arrays.stream(initArg2).map(String::length).reduce(0, Integer::sum);
   }
 
   @Override
-  public Double initialize() {
-    return 0.0;
+  public Long initialize() {
+    return initVal;
   }
 
   @Override
-  public Double aggregate(final Pair<Long, String> currentValue,
-                          final Double aggregateValue) {
-    return aggregateValue + currentValue.getLeft() + currentValue.getRight().length();
+  public Long aggregate(final Pair<Long, String> currentValue,
+                          final Long aggregateValue) {
+    final long firstVal = currentValue.getLeft() == null ? 0 : currentValue.getLeft();
+    final int secondVal = currentValue.getRight() == null ? 0 : currentValue.getRight().length();
+
+    return aggregateValue + firstVal + secondVal;
   }
 
   @Override
-  public Double merge(final Double aggOne, final Double aggTwo) {
+  public Long merge(final Long aggOne, final Long aggTwo) {
     return aggOne + aggTwo;
   }
 
   @Override
-  public Double map(final Double agg) {
+  public Long map(final Long agg) {
     return agg;
   }
 }

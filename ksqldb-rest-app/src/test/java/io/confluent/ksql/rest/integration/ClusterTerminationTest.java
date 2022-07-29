@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -111,17 +112,17 @@ public class ClusterTerminationTest {
     );
 
     // Then:
-    shouldReturn50303WhenTerminating();
+    shouldReturn50304WhenTerminating();
   }
 
-  private void shouldReturn50303WhenTerminating() {
+  private void shouldReturn50304WhenTerminating() {
     // Given: TERMINATE CLUSTER has been issued
 
     // When:
     final KsqlErrorMessage error = RestIntegrationTestUtil.makeKsqlRequestWithError(REST_APP, "SHOW STREAMS;");
 
     // Then:
-    assertThat(error.getErrorCode(), is(Errors.ERROR_CODE_SERVER_SHUT_DOWN));
+    assertThatEventually(() -> error.getErrorCode(), is(Errors.ERROR_CODE_SERVER_SHUT_DOWN));
   }
 
   private static void terminateCluster(final List<String> deleteTopicList) {

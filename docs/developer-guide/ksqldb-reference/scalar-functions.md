@@ -285,9 +285,9 @@ LOG(value)
 LOG(base, value)
 ```
 
-The single parameter version of this method returns the base 10 logarithm of the `value`. The two parameter version returns the logarithm with the given `base` of the `value`.
+The single-parameter version of this method returns the base 10 logarithm of the `value`. The two-parameter version returns the logarithm with the given `base` of the `value`.
 
-This function returns `-Infinity` for any `base` when the `value` is 0. It returns `NaN` when the `value` is negative, when the `base` is negative, when the `base` is 0, or when the `base` is 1.
+This function returns `-Infinity` for any `base` when the `value` is `0`. It returns `NaN` when the `value` is negative, when the `base` is negative, when the `base` is `0`, or when the `base` is `1`.
 
 ---
 

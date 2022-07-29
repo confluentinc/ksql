@@ -28,7 +28,7 @@ import io.confluent.ksql.util.KsqlConstants;
 )
 public class Cbrt {
 
-  @Udf(description = "Returns the cube root of a DOUBLE value")
+  @Udf(description = "Returns the cube root of an INT value")
   public Double cbrt(
           @UdfParameter(
                   value = "value",
@@ -38,7 +38,7 @@ public class Cbrt {
     return cbrt(value == null ? null : value.doubleValue());
   }
 
-  @Udf(description = "Returns the cube root of a DOUBLE value")
+  @Udf(description = "Returns the cube root of a BIGINT value")
   public Double cbrt(
           @UdfParameter(
                   value = "value",

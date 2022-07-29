@@ -24,18 +24,24 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -45,6 +51,8 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.SourcePropertyInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -120,6 +128,70 @@ public class ExecutionPlanBuilderTest {
     givenKafkaTopicsExist("test1");
     execute(CREATE_STREAM_TEST1);
     return executeQuery(query);
+  }
+
+  @Test
+  public void checkEqualityOnStreams() {
+    givenKafkaTopicsExist("test1", "test2");
+
+    final KsqlPlan plan = getPlan(CREATE_STREAM_TEST1);
+    final KsqlPlan plan2 = getPlan(CREATE_STREAM_TEST1);
+    final KsqlPlan plan3 = getPlan(CREATE_STREAM_TEST2);
+
+    final String CREATE_STREAM_TEST1_2 = "CREATE STREAM TEST1 "
+            + "(ROWKEY STRING KEY, COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) "
+            + "WITH (KAFKA_TOPIC = 'test1', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'AVRO');";
+    final KsqlPlan plan_2 = getPlan(CREATE_STREAM_TEST1_2);
+    assertFalse(plan.equals(plan_2));
+
+    final String CREATE_STREAM_TEST1_3 = "CREATE STREAM TEST1 "
+            + "(ROWKEY STRING KEY, COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) "
+            + "WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');";
+    final KsqlPlan plan_3 = getPlan(CREATE_STREAM_TEST1_3);
+    assertTrue(plan.equals(plan_3));
+
+    assertTrue(plan.equals(plan2));
+    assertFalse(plan.equals(plan3));
+  }
+
+  @Test
+  public void checkEqualityOnTables() {
+    givenKafkaTopicsExist("test4", "test5");
+    final KsqlPlan plan = getPlan(CREATE_TABLE_TEST4);
+    final KsqlPlan plan2 = getPlan(CREATE_TABLE_TEST4);
+    final KsqlPlan plan3 = getPlan(CREATE_TABLE_TEST5);
+
+    final String CREATE_TABLE_TEST4_2 = "CREATE TABLE TEST4 "
+            + "(ID BIGINT PRIMARY KEY, COL0 BIGINT, COL1 DOUBLE) "
+            + " WITH (KAFKA_TOPIC = 'test4', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'AVRO');";
+    final KsqlPlan plan_2 = getPlan(CREATE_TABLE_TEST4_2);
+    assertFalse(plan.equals(plan_2));
+
+    final String CREATE_TABLE_TEST4_3 = "CREATE TABLE TEST4 "
+            + "(ID BIGINT PRIMARY KEY, COL0 BIGINT, COL1 DOUBLE) "
+            + " WITH (KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON', KAFKA_TOPIC = 'test4');";
+    final KsqlPlan plan_3 = getPlan(CREATE_TABLE_TEST4_3);
+    assertTrue(plan.equals(plan_3));
+
+    assertTrue(plan.equals(plan2));
+    assertFalse(plan.equals(plan3));
+  }
+
+  // This is cribbed from KsqlEngineTestUtil.
+  private KsqlPlan getPlan(final String statement) {
+    final List<KsqlParser.ParsedStatement> statements = ksqlEngine.parse(statement);
+    final KsqlParser.PreparedStatement<?> prepared = ksqlEngine.prepare(statements.get(0));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+            prepared, SessionConfig.of(ksqlConfig, Collections.emptyMap()));
+    final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
+    final ConfiguredStatement<?> withSourceProps = new SourcePropertyInjector().inject(withFormats);
+    //  This shows how to use SR to inject schema info.
+    //    final ConfiguredStatement<?> withSchema =
+    //            schemaInjector
+    //                    .map(injector -> injector.inject(withSourceProps))
+    //                    .orElse((ConfiguredStatement) withSourceProps);
+
+    return ksqlEngine.plan(serviceContext, withSourceProps);
   }
 
   @Test

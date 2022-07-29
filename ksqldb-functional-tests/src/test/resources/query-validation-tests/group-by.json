@@ -2806,7 +2806,8 @@
                 "fields": [
                   { "name": "A", "type": [ "null", "int" ], "default": null },
                   { "name": "B", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
               },
               "valueFormat" : { "format" : "AVRO" },
               "valueSchema": {
@@ -2815,7 +2816,8 @@
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "COUNT", "type": [ "null", "long" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
               }
             }
           ]
@@ -2885,7 +2887,8 @@
                 "fields": [
                   { "name": "A", "type": [ "null", "int" ], "default": null },
                   { "name": "B", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
               },
               "valueFormat" : { "format" : "JSON" }
             }

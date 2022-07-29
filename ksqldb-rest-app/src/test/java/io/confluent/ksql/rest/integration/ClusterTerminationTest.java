@@ -121,7 +121,7 @@ public class ClusterTerminationTest {
     final KsqlErrorMessage error = RestIntegrationTestUtil.makeKsqlRequestWithError(REST_APP, "SHOW STREAMS;");
 
     // Then:
-    assertThat(error.getErrorCode(), is(Errors.ERROR_CODE_SERVER_SHUTTING_DOWN));
+    assertThat(error.getErrorCode(), is(Errors.ERROR_CODE_SERVER_SHUT_DOWN));
   }
 
   private static void terminateCluster(final List<String> deleteTopicList) {

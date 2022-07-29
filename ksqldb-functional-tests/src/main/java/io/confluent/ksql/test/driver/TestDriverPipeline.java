@@ -39,6 +39,26 @@ public class TestDriverPipeline {
   /*
    * The pipeline is represented as a tree of topic nodes. Each node keeps track of what nodes
    * read from them, as well as the "pipes" flowing in and out of them.
+   *
+   * For example, the pipeline for
+   *
+   * CREATE STREAM B AS SELECT * FROM A;
+   * CREATE STREAM C AS SELECT * FROM A;
+   * CREATE STREAM D AS SELECT * FROM C;
+   *
+   * looks like:
+   *                               ---------------
+   *                               | Topic B     |
+   *                           |---| Input pipes |
+   *                           |   | Output pipes|
+   *    ---------------        |   ---------------
+   *    | Topic A     |        |
+   *    | Input pipes |        |   ---------------
+   *    | Output pipes|--------|   | Topic C     |         ----------------
+   *    ----------- ---        |---| Input pipes |         | Topic D      |
+   *                               | Output pipes|---------| Input pipes  |
+   *                               ---------------         | Output pipes |
+   *                                                       ----------------
    */
 
   // ----------------------------------------------------------------------------------

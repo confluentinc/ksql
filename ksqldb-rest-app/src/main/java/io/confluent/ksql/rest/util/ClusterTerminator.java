@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -66,7 +67,8 @@ public class ClusterTerminator {
   public void terminateCluster(final List<String> deleteTopicPatterns) {
     terminatePersistentQueries();
     deleteSinkTopics(deleteTopicPatterns);
-    deleteTopics(managedTopics);
+    deleteTopics(Streams.concat(managedTopics.stream(), deleteTopicPatterns.stream()).collect(
+        Collectors.toList()));
     ksqlEngine.close();
   }
 
@@ -133,6 +135,21 @@ public class ClusterTerminator {
   ) {
     final Predicate<String> predicate = topicName -> patterns.stream()
         .anyMatch(pattern -> pattern.matcher(topicName).matches());
+
+    return metaStore.getAllDataSources().values().stream()
+        .filter(DataSource::isCasTarget)
+        .filter(s -> predicate.test(s.getKsqlTopic().getKafkaTopicName()))
+        .collect(Collectors.toList());
+  }
+
+  private static List<DataSource> getTopicsToDelete(
+      final List<Pattern> patterns,
+      final MetaStore metaStore
+  ) {
+    final Predicate<String> predicate = topicName -> patterns.stream()
+        .anyMatch(pattern -> pattern.matcher(topicName).matches());
+
+    Set<String> topics = serviceContext.getTopicClient().listTopicNames();
 
     return metaStore.getAllDataSources().values().stream()
         .filter(DataSource::isCasTarget)

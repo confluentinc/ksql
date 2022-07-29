@@ -58,6 +58,13 @@ public class ClusterTerminationTest {
 
   private static final String SINK_TOPIC = "sink_topic";
   private static final String SINK_STREAM = "sink_stream";
+  private static final String AGG_TABLE = "agg_table";
+  private static final String AGG_TOPIC = "agg_topic";
+  private static final String INTERNAL_TOPIC_AGG =
+      "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-Aggregate-Materialize-changelog";
+  private static final String INTERNAL_TOPIC_GROUPBY =
+      "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-GroupBy-repartition";
+
   private static final String ALL_TOPICS = ".*";
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
@@ -90,11 +97,11 @@ public class ClusterTerminationTest {
 
   @Before
   public void setUp() {
-    // Given
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
 
+    // Given
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
         "CREATE STREAM " + SINK_STREAM
@@ -132,20 +139,51 @@ public class ClusterTerminationTest {
 
   @Test
   public void shouldTerminateAllTopicsWithStarInBody(){
+    // Given
+    RestIntegrationTestUtil.makeKsqlRequest(
+        REST_APP_0,
+        "CREATE TABLE " + AGG_TABLE
+            + " WITH (kafka_topic='" + AGG_TOPIC + "',format='avro')"
+            + " AS SELECT USERID, COUNT(*) FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
+    );
+
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(AGG_TOPIC);
+
+    // Produce to stream so that schema is registered by AvroConverter
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
+
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(INTERNAL_TOPIC_AGG);
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(INTERNAL_TOPIC_GROUPBY);
+
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(AGG_TOPIC, true));
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(AGG_TOPIC, false));
+
+    TEST_HARNESS.getKafkaCluster().getTopics().stream().forEach(System.out::println);
+    System.out.println("here 1");
+
     // When:
     terminateCluster(ImmutableList.of(ALL_TOPICS), REST_APP_0);
 
     // Then:
-    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(SINK_TOPIC);
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(AGG_TOPIC);
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(INTERNAL_TOPIC_AGG);
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(INTERNAL_TOPIC_GROUPBY);
 
-    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(SINK_TOPIC, true));
-    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(SINK_TOPIC, false));
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(AGG_TOPIC, true));
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(AGG_TOPIC, false));
+
 
     assertThat(
         "Should not delete non-sink topics",
         TEST_HARNESS.topicExists(PAGE_VIEW_TOPIC),
         is(true)
     );
+
+    System.out.println("here 2");
+    TEST_HARNESS.getKafkaCluster().getTopics().stream().forEach(System.out::println);
+
+    // assert that eventually this is 2, just the pageview topic and sink topic
+    assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(2));
 
     // Then:
     shouldReturn50303WhenTerminating();

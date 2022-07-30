@@ -88,10 +88,9 @@ class UdafFactoryInvoker implements FunctionSignature {
   @SuppressWarnings({"rawtypes", "unchecked"})
   KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs,
       final List<SqlArgument> argTypeList) {
-    Object[] factoryArgs = initArgs.args().toArray();
-    if (method.isVarArgs()) {
-      factoryArgs = convertToVariadicArgs(factoryArgs);
-    }
+    final Object[] factoryArgs = method.isVarArgs()
+            ? convertToVariadicArgs(initArgs.args().toArray())
+            : initArgs.args().toArray();
 
     try {
       ExtensionSecurityManager.INSTANCE.pushInUdf();

@@ -246,13 +246,12 @@ public class UdafUtilTest {
 
     // When:
     AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
-            2,
             1,
             functionCall
     );
 
     // Then:
-    assertEquals(2, initArgs.udafIndices().size());
+    assertEquals(0, initArgs.udafIndices().size());
     assertEquals(1, initArgs.args().size());
     assertEquals("No issue here", initArgs.arg(0));
     assertTrue(initArgs.config().isEmpty());

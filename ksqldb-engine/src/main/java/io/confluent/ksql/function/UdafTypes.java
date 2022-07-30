@@ -220,9 +220,14 @@ class UdafTypes {
 
   private static long countVariadic(final Type[] types, final Method factory) {
     long count = Arrays.stream(types).filter((type) -> getRawType(type) == VARIADIC_TYPE).count();
+
+    /* If there is a variadic initial argument, include it in the total number of variadic
+    arguments. We need to include this because there can only be one variadic argument in
+    the function signature, whether it is a column argument or an initial argument. */
     if (factory.isVarArgs()) {
       count++;
     }
+
     return count;
   }
 

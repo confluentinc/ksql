@@ -546,7 +546,6 @@ public class ExpressionTypeManager {
         final int numInitArgs = initArgsAndCreator.initArgs;
 
         final AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
-                args.size() - numInitArgs,
                 numInitArgs,
                 node
         );

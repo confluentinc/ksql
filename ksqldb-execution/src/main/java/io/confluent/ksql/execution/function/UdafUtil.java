@@ -31,11 +31,11 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public final class UdafUtil {
 
@@ -97,11 +97,6 @@ public final class UdafUtil {
    * Creates the initial arguments for a dummy aggregate function that will not
    * actually be called. For example, this is useful for retrieving the return type
    * in the {@link ExpressionTypeManager}.
-   * @param numRegularArgs  number of regular, column-dependent arguments. It is not
-   *                        always possible to compute this from the number of initial
-   *                        arguments and the number of arguments to the function call
-   *                        in case a default argument is provided when the user does
-   *                        not provided any of their own arguments.
    * @param numInitArgs     number of initial arguments. This is necessary as there
    *                        is the potential for the {@link FunctionRegistry} to
    *                        resolve different functions based on the number of initial
@@ -111,13 +106,12 @@ public final class UdafUtil {
    * @return initial arguments for a dummy aggregate function
    */
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
-          final int numRegularArgs,
           final int numInitArgs,
           final FunctionCall functionCall
   ) {
     return createAggregateFunctionInitArgs(
             numInitArgs,
-            IntStream.range(0, numRegularArgs).boxed().collect(Collectors.toList()),
+            Collections.emptyList(),
             functionCall,
             KsqlConfig.empty()
     );

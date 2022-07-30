@@ -30,7 +30,13 @@ public class KsqlStatementException extends KsqlException {
       final String message,
       final String sqlStatement,
       final Throwable cause) {
-    super(buildMessage(message, sqlStatement), cause);
+    super(
+        buildMessage(message, sqlStatement)
+            + System.lineSeparator()
+            + "Cause: "
+            + cause.getMessage(),
+        cause
+    );
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
   }

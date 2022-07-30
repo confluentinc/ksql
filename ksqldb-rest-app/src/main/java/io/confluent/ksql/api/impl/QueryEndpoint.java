@@ -46,8 +46,6 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
-import org.apache.calcite.rel.RelRoot;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,6 +53,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.apache.calcite.rel.RelRoot;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class QueryEndpoint {
@@ -93,8 +92,6 @@ public class QueryEndpoint {
       final Optional<Boolean> isInternalRequest) {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
-
-    RelRoot logicalPlan = new KsqlLang().getLogicalPlan(sql);
 
     final ConfiguredStatement<Query> statement = createStatement(
         sql, properties, sessionVariables);

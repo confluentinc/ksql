@@ -137,6 +137,12 @@ public class ServerVerticle extends AbstractVerticle {
 
     router.route().handler(new ServerStateHandler(server.getServerState()));
 
+    router.route(HttpMethod.POST, "/v2/ksql")
+        .produces(MediaType.APPLICATION_JSON)
+//        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .handler(BodyHandler.create(false))
+        .handler(new V2Handler(endpoints, connectionQueryManager, context, server, false));
+
     // The new query and insert streaming API
     // --------------------------------------
 

@@ -47,8 +47,8 @@ public class KsqlLang {
             .withParserFactory(SqlDdlParserImpl::new);
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(parserConfig)
         .defaultSchema(schema)
+        .parserConfig(parserConfig)
         .build();
 
     planner = Frameworks.getPlanner(config);

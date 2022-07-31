@@ -1,14 +1,16 @@
 {
+  "version" : "6.2.0",
+  "timestamp" : 1607371037571,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`KSQL_COL_0` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `A` INTEGER, `B` INTEGER, `ROWTIME` BIGINT",
       "keyFormat" : {
-        "features" : [ "UNWRAP_SINGLES" ],
         "format" : "AVRO",
         "properties" : {
           "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
-        }
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "AVRO"
@@ -17,11 +19,11 @@
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`ID` INTEGER KEY, `A` INTEGER, `B` INTEGER",
       "keyFormat" : {
-        "features" : [ "UNWRAP_SINGLES" ],
         "format" : "AVRO",
         "properties" : {
           "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
-        }
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "AVRO"
@@ -30,11 +32,11 @@
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`KSQL_COL_0` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `A` INTEGER, `B` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
       "keyFormat" : {
-        "features" : [ "UNWRAP_SINGLES" ],
         "format" : "AVRO",
         "properties" : {
           "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
-        }
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "AVRO"
@@ -43,265 +45,79 @@
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ROWKEY` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `COUNT` BIGINT",
       "keyFormat" : {
-        "features" : [ "UNWRAP_SINGLES" ],
         "format" : "AVRO",
         "properties" : {
           "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
-        }
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "AVRO"
       }
     }
   },
-  "version" : "6.2.0",
-  "timestamp" : 1607371037571,
   "testCase" : {
-    "outputs" : [ {
-      "topic" : "OUTPUT",
-      "value" : {
-        "COUNT" : 1
-      },
-      "key" : {
-        "A" : 1,
-        "B" : 1
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "value" : {
-        "COUNT" : 1
-      },
-      "key" : {
-        "A" : 2,
-        "B" : 1
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "value" : {
-        "COUNT" : 2
-      },
-      "key" : {
-        "A" : 1,
-        "B" : 1
-      }
-    } ],
-    "post" : {
-      "sources" : [ {
-        "schema" : "`ROWKEY` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `COUNT` BIGINT",
-        "keyFormat" : {
-          "format" : "AVRO"
-        },
-        "name" : "OUTPUT",
-        "valueFormat" : "AVRO",
-        "valueFeatures" : [ ],
-        "type" : "TABLE",
-        "keyFeatures" : [ "UNWRAP_SINGLES" ]
-      }, {
-        "schema" : "`ID` INTEGER KEY, `A` INTEGER, `B` INTEGER",
-        "keyFormat" : {
-          "format" : "AVRO"
-        },
-        "name" : "TEST",
-        "valueFormat" : "AVRO",
-        "valueFeatures" : [ ],
-        "type" : "STREAM",
-        "keyFeatures" : [ "UNWRAP_SINGLES" ]
-      } ],
-      "topics" : {
-        "topics" : [ {
-          "partitions" : 1,
-          "valueSchema" : {
-            "name" : "ignored",
-            "type" : "record",
-            "fields" : [ {
-              "name" : "A",
-              "type" : "int"
-            }, {
-              "name" : "B",
-              "type" : "int"
-            } ],
-            "connect.name" : "ignored"
-          },
-          "keyFormat" : {
-            "features" : [ "UNWRAP_SINGLES" ],
-            "format" : "AVRO",
-            "properties" : {
-              "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
-            }
-          },
-          "name" : "test_topic",
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "keySchema" : "int"
-        }, {
-          "valueSchema" : {
-            "name" : "KsqlDataSourceSchema",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "A",
-              "type" : [ "null", "int" ]
-            }, {
-              "default" : null,
-              "name" : "B",
-              "type" : [ "null", "int" ]
-            }, {
-              "default" : null,
-              "name" : "ROWTIME",
-              "type" : [ "null", "long" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
-          },
-          "keyFormat" : {
-            "features" : [ "UNWRAP_SINGLES" ],
-            "format" : "AVRO",
-            "properties" : {
-              "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
-            }
-          },
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "keySchema" : {
-            "name" : "TestKey",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "A",
-              "type" : [ "null", "int" ]
-            }, {
-              "default" : null,
-              "name" : "B",
-              "type" : [ "null", "int" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.TestKey"
-          }
-        }, {
-          "valueSchema" : {
-            "name" : "KsqlDataSourceSchema",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "A",
-              "type" : [ "null", "int" ]
-            }, {
-              "default" : null,
-              "name" : "B",
-              "type" : [ "null", "int" ]
-            }, {
-              "default" : null,
-              "name" : "ROWTIME",
-              "type" : [ "null", "long" ]
-            }, {
-              "default" : null,
-              "name" : "KSQL_AGG_VARIABLE_0",
-              "type" : [ "null", "long" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
-          },
-          "keyFormat" : {
-            "features" : [ "UNWRAP_SINGLES" ],
-            "format" : "AVRO",
-            "properties" : {
-              "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
-            }
-          },
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "keySchema" : {
-            "name" : "TestKey",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "A",
-              "type" : [ "null", "int" ]
-            }, {
-              "default" : null,
-              "name" : "B",
-              "type" : [ "null", "int" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.TestKey"
-          }
-        }, {
-          "partitions" : 4,
-          "valueSchema" : {
-            "name" : "KsqlDataSourceSchema",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "COUNT",
-              "type" : [ "null", "long" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
-          },
-          "keyFormat" : {
-            "features" : [ "UNWRAP_SINGLES" ],
-            "format" : "AVRO",
-            "properties" : {
-              "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
-            }
-          },
-          "name" : "OUTPUT",
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "keySchema" : {
-            "name" : "OutputKey",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "A",
-              "type" : [ "null", "int" ]
-            }, {
-              "default" : null,
-              "name" : "B",
-              "type" : [ "null", "int" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
-          }
-        } ]
-      }
-    },
+    "name" : "AVRO group by struct",
     "inputs" : [ {
       "topic" : "test_topic",
+      "key" : 0,
       "value" : {
         "A" : 1,
         "B" : 1
-      },
-      "key" : 0
+      }
     }, {
       "topic" : "test_topic",
+      "key" : 1,
       "value" : {
         "A" : 2,
         "B" : 1
-      },
-      "key" : 1
+      }
     }, {
       "topic" : "test_topic",
+      "key" : 2,
       "value" : {
         "A" : 1,
         "B" : 1
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "A" : 1,
+        "B" : 1
       },
-      "key" : 2
+      "value" : {
+        "COUNT" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "A" : 2,
+        "B" : 1
+      },
+      "value" : {
+        "COUNT" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "A" : 1,
+        "B" : 1
+      },
+      "value" : {
+        "COUNT" : 2
+      }
     } ],
     "topics" : [ {
+      "name" : "OUTPUT",
       "replicas" : 1,
-      "numPartitions" : 4,
-      "name" : "OUTPUT"
+      "numPartitions" : 4
     }, {
+      "name" : "test_topic",
+      "keySchema" : "int",
       "valueSchema" : {
-        "name" : "ignored",
         "type" : "record",
+        "name" : "ignored",
         "fields" : [ {
           "name" : "A",
           "type" : "int"
@@ -311,13 +127,191 @@
         } ]
       },
       "keyFormat" : "AVRO",
-      "replicas" : 1,
-      "numPartitions" : 1,
-      "name" : "test_topic",
       "valueFormat" : "AVRO",
-      "keySchema" : "int"
+      "replicas" : 1,
+      "numPartitions" : 1
     } ],
-    "name" : "AVRO group by struct",
-    "statements" : [ "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='AVRO');", "CREATE TABLE OUTPUT AS SELECT STRUCT(a:=A, b:=B) AS ROWKEY, COUNT() AS COUNT FROM TEST GROUP BY STRUCT(a:=A, b:=B);" ]
+    "statements" : [ "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='AVRO');", "CREATE TABLE OUTPUT AS SELECT STRUCT(a:=A, b:=B) AS ROWKEY, COUNT() AS COUNT FROM TEST GROUP BY STRUCT(a:=A, b:=B);" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `A` INTEGER, `B` INTEGER",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1,
+          "keySchema" : "int",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "ignored",
+            "fields" : [ {
+              "name" : "A",
+              "type" : "int"
+            }, {
+              "name" : "B",
+              "type" : "int"
+            } ],
+            "connect.name" : "ignored"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "keySchema" : {
+            "type" : "record",
+            "name" : "TestKey",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "keySchema" : {
+            "type" : "record",
+            "name" : "TestKey",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_AGG_VARIABLE_0",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "keySchema" : {
+            "type" : "record",
+            "name" : "OutputKey",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "COUNT",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
+          }
+        } ]
+      }
+    }
   }
 }

@@ -1,11 +1,13 @@
 {
+  "version" : "7.0.0",
+  "timestamp" : 1618294629930,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.Project" : {
       "schema" : "`KEY` DECIMAL(2, 1) KEY, `TOTAL` BIGINT",
       "keyFormat" : {
-        "features" : [ "UNWRAP_SINGLES" ],
-        "format" : "JSON"
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "JSON"
@@ -14,8 +16,8 @@
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`F2` DECIMAL(2, 1) KEY, `F2` DECIMAL(2, 1), `ROWTIME` BIGINT",
       "keyFormat" : {
-        "features" : [ "UNWRAP_SINGLES" ],
-        "format" : "JSON"
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "JSON"
@@ -33,8 +35,8 @@
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`F2` DECIMAL(2, 1) KEY, `F2` DECIMAL(2, 1), `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
       "keyFormat" : {
-        "features" : [ "UNWRAP_SINGLES" ],
-        "format" : "JSON"
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "JSON"
@@ -43,191 +45,184 @@
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`KEY` DECIMAL(2, 1) KEY, `TOTAL` BIGINT",
       "keyFormat" : {
-        "features" : [ "UNWRAP_SINGLES" ],
         "format" : "AVRO",
         "properties" : {
           "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
-        }
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "JSON"
       }
     }
   },
-  "version" : "7.0.0",
-  "timestamp" : 1618294629930,
   "testCase" : {
+    "name" : "multiple expressions - KAFKA to non-supported decimal key format with favored explicit AVRO format conversion",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "f2" : "2"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "4"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "f2" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : null
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "f2" : "1"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "f2" : "2"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "4"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "1"
+      }
+    } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
+      "key" : 2.0,
       "value" : {
         "TOTAL" : 1
-      },
-      "key" : 2.0
+      }
     }, {
       "topic" : "OUTPUT",
+      "key" : 4.0,
       "value" : {
         "TOTAL" : 1
-      },
-      "key" : 4.0
+      }
     }, {
       "topic" : "OUTPUT",
+      "key" : 1.0,
       "value" : {
         "TOTAL" : 1
-      },
-      "key" : 1.0
+      }
     }, {
       "topic" : "OUTPUT",
+      "key" : 2.0,
       "value" : {
         "TOTAL" : 2
-      },
-      "key" : 2.0
+      }
     }, {
       "topic" : "OUTPUT",
+      "key" : 4.0,
       "value" : {
         "TOTAL" : 2
-      },
-      "key" : 4.0
+      }
     }, {
       "topic" : "OUTPUT",
+      "key" : 1.0,
       "value" : {
         "TOTAL" : 2
-      },
-      "key" : 1.0
+      }
     } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM TEST (f1 INT KEY, f2 DECIMAL(2, 1)) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);", "CREATE TABLE OUTPUT WITH (KEY_FORMAT='AVRO') AS SELECT f2 AS key, COUNT(*) AS total FROM TEST GROUP BY f2;" ],
     "post" : {
       "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
         "schema" : "`KEY` DECIMAL(2, 1) KEY, `TOTAL` BIGINT",
         "keyFormat" : {
           "format" : "AVRO"
         },
-        "name" : "OUTPUT",
         "valueFormat" : "JSON",
-        "valueFeatures" : [ ],
-        "type" : "TABLE",
-        "keyFeatures" : [ "UNWRAP_SINGLES" ]
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ]
       }, {
+        "name" : "TEST",
+        "type" : "STREAM",
         "schema" : "`F1` INTEGER KEY, `F2` DECIMAL(2, 1)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "name" : "TEST",
         "valueFormat" : "JSON",
-        "valueFeatures" : [ ],
-        "type" : "STREAM",
-        "keyFeatures" : [ ]
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "partitions" : 1,
+          "name" : "test_topic",
           "keyFormat" : {
             "format" : "KAFKA"
           },
-          "name" : "test_topic",
           "valueFormat" : {
             "format" : "JSON"
-          }
-        }, {
-          "keyFormat" : {
-            "features" : [ "UNWRAP_SINGLES" ],
-            "format" : "JSON"
           },
+          "partitions" : 1
+        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
           "keyFormat" : {
-            "features" : [ "UNWRAP_SINGLES" ],
-            "format" : "JSON"
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
           },
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "valueFormat" : {
             "format" : "JSON"
           }
         }, {
-          "partitions" : 4,
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "features" : [ "UNWRAP_SINGLES" ],
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
             "format" : "AVRO",
             "properties" : {
               "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
-            }
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
           },
-          "name" : "OUTPUT",
           "valueFormat" : {
             "format" : "JSON"
           },
+          "partitions" : 4,
           "keySchema" : {
-            "logicalType" : "decimal",
-            "precision" : 2,
-            "scale" : 1,
             "type" : "bytes",
-            "connect.parameters" : {
-              "scale" : "1",
-              "connect.decimal.precision" : "2"
-            },
-            "connect.name" : "org.apache.kafka.connect.data.Decimal"
+            "scale" : 1,
+            "precision" : 2,
+            "logicalType" : "decimal"
           }
         } ]
       }
-    },
-    "inputs" : [ {
-      "topic" : "test_topic",
-      "value" : {
-        "f2" : "2"
-      },
-      "key" : 1
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-        "f2" : "4"
-      },
-      "key" : 2
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-        "f2" : null
-      },
-      "key" : 1
-    }, {
-      "topic" : "test_topic",
-      "value" : null,
-      "key" : 1
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-        "f2" : "1"
-      },
-      "key" : null
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-        "f2" : "2"
-      },
-      "key" : 1
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-        "f2" : "4"
-      },
-      "key" : 2
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-        "f2" : "1"
-      },
-      "key" : 2
-    } ],
-    "topics" : [ {
-      "replicas" : 1,
-      "numPartitions" : 4,
-      "name" : "OUTPUT"
-    }, {
-      "replicas" : 1,
-      "numPartitions" : 1,
-      "name" : "test_topic"
-    } ],
-    "name" : "multiple expressions - KAFKA to non-supported decimal key format with favored explicit AVRO format conversion",
-    "statements" : [ "CREATE STREAM TEST (f1 INT KEY, f2 DECIMAL(2, 1)) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);", "CREATE TABLE OUTPUT WITH (KEY_FORMAT='AVRO') AS SELECT f2 AS key, COUNT(*) AS total FROM TEST GROUP BY f2;" ]
+    }
   }
 }

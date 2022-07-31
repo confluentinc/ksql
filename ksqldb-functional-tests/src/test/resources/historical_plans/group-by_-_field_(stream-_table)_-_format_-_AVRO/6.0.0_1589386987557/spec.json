@@ -1,4 +1,6 @@
 {
+  "version" : "6.0.0",
+  "timestamp" : 1589386987557,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
@@ -38,241 +40,232 @@
       }
     }
   },
-  "version" : "6.0.0",
-  "timestamp" : 1589386987557,
   "testCase" : {
+    "name" : "field (stream->table) - format - AVRO",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "d1",
+      "value" : { },
+      "timestamp" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "d2",
+      "value" : { },
+      "timestamp" : 2
+    }, {
+      "topic" : "test_topic",
+      "key" : "d1",
+      "value" : { },
+      "timestamp" : 3
+    }, {
+      "topic" : "test_topic",
+      "key" : "d2",
+      "value" : { },
+      "timestamp" : 4
+    }, {
+      "topic" : "test_topic",
+      "key" : "d1",
+      "value" : { },
+      "timestamp" : 5
+    } ],
     "outputs" : [ {
       "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-      "value" : {
-        "ROWTIME" : 1,
-        "KSQL_AGG_VARIABLE_0" : 1,
-        "K" : "d1"
-      },
       "key" : "d1",
+      "value" : {
+        "K" : "d1",
+        "ROWTIME" : 1,
+        "KSQL_AGG_VARIABLE_0" : 1
+      },
       "timestamp" : 1
     }, {
       "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-      "value" : {
-        "ROWTIME" : 2,
-        "KSQL_AGG_VARIABLE_0" : 1,
-        "K" : "d2"
-      },
       "key" : "d2",
+      "value" : {
+        "K" : "d2",
+        "ROWTIME" : 2,
+        "KSQL_AGG_VARIABLE_0" : 1
+      },
       "timestamp" : 2
     }, {
       "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-      "value" : {
-        "ROWTIME" : 3,
-        "KSQL_AGG_VARIABLE_0" : 2,
-        "K" : "d1"
-      },
       "key" : "d1",
+      "value" : {
+        "K" : "d1",
+        "ROWTIME" : 3,
+        "KSQL_AGG_VARIABLE_0" : 2
+      },
       "timestamp" : 3
     }, {
       "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-      "value" : {
-        "ROWTIME" : 4,
-        "KSQL_AGG_VARIABLE_0" : 2,
-        "K" : "d2"
-      },
       "key" : "d2",
+      "value" : {
+        "K" : "d2",
+        "ROWTIME" : 4,
+        "KSQL_AGG_VARIABLE_0" : 2
+      },
       "timestamp" : 4
     }, {
       "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-      "value" : {
-        "ROWTIME" : 5,
-        "KSQL_AGG_VARIABLE_0" : 3,
-        "K" : "d1"
-      },
       "key" : "d1",
+      "value" : {
+        "K" : "d1",
+        "ROWTIME" : 5,
+        "KSQL_AGG_VARIABLE_0" : 3
+      },
       "timestamp" : 5
     }, {
       "topic" : "OUTPUT",
+      "key" : "d1",
       "value" : {
         "KSQL_COL_0" : 1
       },
-      "key" : "d1",
       "timestamp" : 1
     }, {
       "topic" : "OUTPUT",
+      "key" : "d2",
       "value" : {
         "KSQL_COL_0" : 1
       },
-      "key" : "d2",
       "timestamp" : 2
     }, {
       "topic" : "OUTPUT",
+      "key" : "d1",
       "value" : {
         "KSQL_COL_0" : 2
       },
-      "key" : "d1",
       "timestamp" : 3
     }, {
       "topic" : "OUTPUT",
+      "key" : "d2",
       "value" : {
         "KSQL_COL_0" : 2
       },
-      "key" : "d2",
       "timestamp" : 4
     }, {
       "topic" : "OUTPUT",
+      "key" : "d1",
       "value" : {
         "KSQL_COL_0" : 3
       },
-      "key" : "d1",
       "timestamp" : 5
     } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "IGNORED",
+          "type" : [ "null", "string" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) FROM TEST GROUP BY K;" ],
     "post" : {
       "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
         "schema" : "`K` STRING KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "name" : "OUTPUT",
         "valueFormat" : "AVRO",
-        "valueFeatures" : [ ],
-        "type" : "TABLE",
-        "keyFeatures" : [ ]
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
+        "name" : "TEST",
+        "type" : "STREAM",
         "schema" : "`K` STRING KEY, `IGNORED` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "name" : "TEST",
         "valueFormat" : "AVRO",
-        "valueFeatures" : [ ],
-        "type" : "STREAM",
-        "keyFeatures" : [ ]
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "partitions" : 4,
-          "valueSchema" : {
-            "name" : "KsqlDataSourceSchema",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "IGNORED",
-              "type" : [ "null", "string" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
-          },
-          "keyFormat" : {
-            "format" : "KAFKA"
-          },
           "name" : "test_topic",
-          "valueFormat" : {
-            "format" : "AVRO"
-          }
-        }, {
-          "partitions" : 4,
-          "valueSchema" : {
-            "name" : "KsqlDataSourceSchema",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "K",
-              "type" : [ "null", "string" ]
-            }, {
-              "default" : null,
-              "name" : "ROWTIME",
-              "type" : [ "null", "long" ]
-            }, {
-              "default" : null,
-              "name" : "KSQL_AGG_VARIABLE_0",
-              "type" : [ "null", "long" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
-          },
           "keyFormat" : {
             "format" : "KAFKA"
           },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "IGNORED",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-          "valueFormat" : {
-            "format" : "AVRO"
-          }
-        }, {
-          "partitions" : 4,
-          "valueSchema" : {
-            "name" : "KsqlDataSourceSchema",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "type" : "record",
-            "fields" : [ {
-              "default" : null,
-              "name" : "KSQL_COL_0",
-              "type" : [ "null", "long" ]
-            } ],
-            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
-          },
           "keyFormat" : {
             "format" : "KAFKA"
           },
-          "name" : "OUTPUT",
           "valueFormat" : {
             "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "K",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_AGG_VARIABLE_0",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "KSQL_COL_0",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
           }
         } ]
       }
-    },
-    "inputs" : [ {
-      "topic" : "test_topic",
-      "value" : {
-      },
-      "key" : "d1",
-      "timestamp" : 1
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-      },
-      "key" : "d2",
-      "timestamp" : 2
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-      },
-      "key" : "d1",
-      "timestamp" : 3
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-      },
-      "key" : "d2",
-      "timestamp" : 4
-    }, {
-      "topic" : "test_topic",
-      "value" : {
-      },
-      "key" : "d1",
-      "timestamp" : 5
-    } ],
-    "topics" : [ {
-      "replicas" : 1,
-      "numPartitions" : 4,
-      "name" : "OUTPUT"
-    }, {
-      "valueSchema" : {
-        "name" : "KsqlDataSourceSchema",
-        "namespace" : "io.confluent.ksql.avro_schemas",
-        "type" : "record",
-        "fields" : [ {
-          "default" : null,
-          "name" : "IGNORED",
-          "type" : [ "null", "string" ]
-        } ],
-        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
-      },
-      "replicas" : 1,
-      "numPartitions" : 4,
-      "name" : "test_topic",
-      "valueFormat" : "AVRO"
-    }, {
-      "replicas" : 1,
-      "numPartitions" : 4,
-      "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog"
-    } ],
-    "name" : "field (stream->table) - format - AVRO",
-    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) FROM TEST GROUP BY K;" ]
+    }
   }
 }

@@ -244,7 +244,7 @@ public class InsertValuesExecutor {
 
     if (dataSource.isSource()) {
       throw new KsqlException(String.format("Cannot insert values into read-only %s: %s",
-              dataSource.getDataSourceType().getKsqlType().toLowerCase(), dataSource.getName().text()));
+          dataSource.getDataSourceType().getKsqlType().toLowerCase(), dataSource.getName().text()));
     }
 
     return dataSource;

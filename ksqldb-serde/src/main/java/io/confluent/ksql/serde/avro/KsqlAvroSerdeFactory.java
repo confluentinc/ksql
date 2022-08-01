@@ -146,7 +146,7 @@ class KsqlAvroSerdeFactory implements SerdeFactory {
   }
 
   private DataTranslator createAvroTranslator(final Schema schema,
-                                              final Optional<Schema> physicalSchema, final boolean isDeserializer) {
+      final Optional<Schema> physicalSchema, final boolean isDeserializer) {
     // If physical schema exists, we use physical schema to translate to connect data. During
     // deserialization, if physical schema exists, we use original schema to translate to ksql data.
     return physicalSchema.<DataTranslator>map(

@@ -298,7 +298,8 @@
               "name" : "F2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S1_JOIN_S2_0-KafkaTopic_Right-Reduce-changelog",
@@ -324,7 +325,8 @@
               "name" : "RTS",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S1_JOIN_S2_0-KafkaTopic_Left-Reduce-changelog",
@@ -346,7 +348,8 @@
               "name" : "TS",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S1_JOIN_S2_0-Project-Last-changelog",
@@ -376,7 +379,8 @@
               "name" : "F2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

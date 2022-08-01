@@ -563,7 +563,7 @@ public class KsqlResourceTest {
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead."))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "CREATE STREAM s1 AS SELECT * FROM test_table;"))));
+        "<retracted>"))));
   }
 
   @Test
@@ -580,7 +580,7 @@ public class KsqlResourceTest {
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead."))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;"))));
+        "<retracted>"))));
   }
 
   @Test
@@ -597,7 +597,7 @@ public class KsqlResourceTest {
         "Invalid result type. Your SELECT query produces a STREAM. "
             + "Please use CREATE STREAM AS SELECT statement instead."))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "CREATE TABLE s1 AS SELECT * FROM test_stream;"))));
+        "<retracted>"))));
   }
 
   @Test
@@ -652,7 +652,7 @@ public class KsqlResourceTest {
             + System.lineSeparator()
             + "\t* SELECT"))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "SELECT * FROM test_table EMIT CHANGES;"))));
+        "<retracted>"))));
   }
 
   @Test
@@ -672,7 +672,7 @@ public class KsqlResourceTest {
             + System.lineSeparator()
             + "\t* SELECT"))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "SELECT * FROM test_table;"))));
+        "<retracted>"))));
   }
 
   @Test
@@ -692,7 +692,7 @@ public class KsqlResourceTest {
             + System.lineSeparator()
             + "\t* SELECT"))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "PRINT 'orders-topic';"))));
+        "<retracted>"))));
   }
 
   @Test
@@ -745,7 +745,7 @@ public class KsqlResourceTest {
     assertThat(result.getMessage(),
         containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
     assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
-        is("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON');"));
+        is("<retracted>"));
   }
 
   @Test
@@ -799,7 +799,7 @@ public class KsqlResourceTest {
     assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
-        is("DESCRIBE i_do_not_exist;"));
+        is("<retracted>"));
   }
 
   @Test
@@ -1178,7 +1178,7 @@ public class KsqlResourceTest {
     assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Unknown queryId: unknown_query_id"))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "TERMINATE unknown_query_id;"))));
+        "<retracted>"))));
   }
 
   @Test
@@ -1203,7 +1203,7 @@ public class KsqlResourceTest {
     assertThat(e, exceptionErrorMessage(errorMessage(containsString(
         "Unknown queryId:"))));
     assertThat(e, exceptionStatementErrorMessage(statement(containsString(
-        "TERMINATE /*second*/"))));
+        "<retracted>"))));
 
   }
 

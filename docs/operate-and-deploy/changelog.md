@@ -5,6 +5,10 @@ tagline: Detailed changelog for ksqlDB
 description: Lists changes to the ksqlDB codebase
 keywords: ksqldb, changelog
 ---
+Version 0.28.22
+--------------
+
+- [ksqlDB v0.28.2 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0282-2022-08-02)
 
 Version 0.27.0
 --------------

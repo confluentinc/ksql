@@ -141,7 +141,7 @@
       ]
     },
     {
-      "name": "all arguments (four)",
+      "name": "all arguments (four cols)",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string, THIRD string, FOURTH string) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT id, FOUR_ARG(FIRST, SECOND, THIRD, FOURTH, 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
@@ -171,6 +171,39 @@
         {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 116}},
         {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 135}},
         {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 157}}
+      ]
+    },
+    {
+      "name": "all arguments (five cols)",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string, THIRD string, FOURTH string, FIFTH integer) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, FIVE_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH, 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi", "THIRD": "apples", "FOURTH": null, "FIFTH": 9}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a", "THIRD": "oranges", "FOURTH": "Mercury", "FIFTH": null}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello", "THIRD": "bananas", "FOURTH": "Venus", "FIFTH": 1}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world", "THIRD": "peaches", "FOURTH": "Earth", "FIFTH": 200}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": "grapes", "FOURTH": "Mars", "FIFTH": -4}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test", "THIRD": null, "FOURTH": "Asteroid Belt", "FIFTH": 1}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing", "THIRD": "strawberries", "FOURTH": "Jupiter", "FIFTH": 10}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate", "THIRD": "avocados", "FOURTH": "Saturn", "FIFTH": 2}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function", "THIRD": "pears", "FOURTH": "Uranus", "FIFTH": 123}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql", "THIRD": "plums", "FOURTH": "Neptune", "FIFTH": 45}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test", "THIRD": "oranges", "FOURTH": "Pluto", "FIFTH": -2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 33}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 27}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 51}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 249}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 62}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 270}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 308}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 108}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 450}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 514}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 534}}
       ]
     }
   ]

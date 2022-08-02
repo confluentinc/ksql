@@ -163,7 +163,7 @@ public class KsqlProtobufSerializerTest {
   @Before
   public void setup() {
     final ImmutableMap<String, Object> configs = ImmutableMap.of(
-        AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
+        AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false,
         AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
@@ -236,7 +236,8 @@ public class KsqlProtobufSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             Struct.class,
-            false).serializer();
+            false,
+            true).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -299,7 +300,8 @@ public class KsqlProtobufSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             Struct.class,
-            false).serializer();
+            false,
+            true).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -488,7 +490,8 @@ public class KsqlProtobufSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             targetType,
-            false).serializer();
+            false,
+            true).serializer();
   }
 
   private static ParsedSchema parseProtobufSchema(final String protobufSchema) {

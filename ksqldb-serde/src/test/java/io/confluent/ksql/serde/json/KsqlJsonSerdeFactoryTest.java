@@ -67,7 +67,7 @@ public class KsqlJsonSerdeFactoryTest {
 
     // When
     final Serde<String> serde =
-        jsonFactory.createSerde(connectSchema, config, srFactory, String.class, false);
+        jsonFactory.createSerde(connectSchema, config, srFactory, String.class, false, false);
 
     // Then
     assertThat(serde.deserializer(), is(instanceOf(KsqlConnectDeserializer.class)));
@@ -82,7 +82,7 @@ public class KsqlJsonSerdeFactoryTest {
 
     // When
     final Serde<String> serde =
-        jsonFactory.createSerde(connectSchema, config, srFactory, String.class, false);
+        jsonFactory.createSerde(connectSchema, config, srFactory, String.class, false, false);
 
     // Then
     assertThat(serde.deserializer(), is(instanceOf(KsqlJsonDeserializer.class)));
@@ -98,7 +98,7 @@ public class KsqlJsonSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> jsonFactory.createSerde(schemaOfInvalidMap, config, srFactory, String.class, false)
+        () -> jsonFactory.createSerde(schemaOfInvalidMap, config, srFactory, String.class, false, false)
     );
 
     // Then:
@@ -120,7 +120,7 @@ public class KsqlJsonSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> jsonFactory.createSerde(schemaWithNestedInvalidMap, config, srFactory, String.class, false)
+        () -> jsonFactory.createSerde(schemaWithNestedInvalidMap, config, srFactory, String.class, false, false)
     );
 
     // Then:

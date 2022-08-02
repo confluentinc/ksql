@@ -145,7 +145,9 @@ public class KsqlProtobufNoSRSerializerTest {
             new KsqlConfig(ImmutableMap.of()),
             () -> null,
             Struct.class,
-            false).serializer();
+            false,
+            false
+        ).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -191,7 +193,9 @@ public class KsqlProtobufNoSRSerializerTest {
             new KsqlConfig(ImmutableMap.of()),
             () -> null,
             Struct.class,
-            false).serializer();
+            false,
+            false
+        ).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -264,7 +268,9 @@ public class KsqlProtobufNoSRSerializerTest {
             new KsqlConfig(ImmutableMap.of()),
             () -> null,
             targetType,
-            false).deserializer();
+            false,
+            false
+        ).deserializer();
 
     deserializer.configure(Collections.emptyMap(), false);
 
@@ -320,7 +326,10 @@ public class KsqlProtobufNoSRSerializerTest {
             new KsqlConfig(ImmutableMap.of()),
             () -> null,
             targetType,
-            false).serializer();
+            false,
+            false
+        )
+        .serializer();
 
     serializer.configure(Collections.emptyMap(), false);
 

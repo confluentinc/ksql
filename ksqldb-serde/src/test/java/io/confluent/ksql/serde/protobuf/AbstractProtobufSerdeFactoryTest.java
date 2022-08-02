@@ -50,7 +50,7 @@ public abstract class AbstractProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    getSerdeFactory().createSerde(schema, config, srClientFactory, Struct.class, false);
+    getSerdeFactory().createSerde(schema, config, srClientFactory, Struct.class, false, false);
 
     // Then (did not throw)
   }
@@ -64,7 +64,7 @@ public abstract class AbstractProtobufSerdeFactoryTest {
 
     // When:
     getSerdeFactory().createSerde(schema, config, srClientFactory,
-        Struct.class, false);
+        Struct.class, false, false);
 
     // Then (did not throw)
   }

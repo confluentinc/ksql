@@ -28,6 +28,7 @@ import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.STRING_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
+import static org.mockito.ArgumentMatchers.any;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -36,20 +37,25 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -83,6 +89,7 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings({"SameParameterValue", "rawtypes", "unchecked"})
@@ -263,9 +270,9 @@ public class KsqlAvroSerializerTest {
   private GenericRecord avroOrderWithExtraDefaultField;
 
   @Before
-  public void setup() {
+  public void setup() throws RestClientException, IOException {
     final ImmutableMap<String, Object> configs = ImmutableMap.of(
-        AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
+        AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false,
         AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
@@ -309,7 +316,7 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldSerializeNullValue() {
     // Given:
-    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class, true);
 
     // When:
     final byte[] serializedRow = serializer.serialize(SOME_TOPIC, null);
@@ -321,7 +328,7 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldSerializeStructCorrectly() {
     // Given:
-    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class, true);
 
     // When:
     final byte[] serializedRow = serializer.serialize(SOME_TOPIC, orderStruct);
@@ -335,7 +342,7 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldThrowIfNotStruct() {
     // Given:
-    final Serializer serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+    final Serializer serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -367,7 +374,7 @@ public class KsqlAvroSerializerTest {
     final Struct value = new Struct(schema)
         .put("nested", orderStruct);
 
-    final Serializer<Struct> serializer = givenSerializerForSchema(schema, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(schema, Struct.class, true);
 
     // When:
     final byte[] serializedRow = serializer.serialize(SOME_TOPIC, value);
@@ -396,7 +403,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeBoolean() {
     // Given:
     final Serializer<Boolean> serializer =
-        givenSerializerForSchema(OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
+        givenSerializerForSchema(OPTIONAL_BOOLEAN_SCHEMA, Boolean.class, true);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, true);
@@ -410,7 +417,7 @@ public class KsqlAvroSerializerTest {
   public void shouldThrowIfNotBoolean() {
     // Given:
     final Serializer serializer =
-        givenSerializerForSchema(OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
+        givenSerializerForSchema(OPTIONAL_BOOLEAN_SCHEMA, Boolean.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -427,7 +434,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeInt() {
     // Given:
     final Serializer<Integer> serializer =
-        givenSerializerForSchema(OPTIONAL_INT32_SCHEMA, Integer.class);
+        givenSerializerForSchema(OPTIONAL_INT32_SCHEMA, Integer.class, true);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, 62);
@@ -441,7 +448,7 @@ public class KsqlAvroSerializerTest {
   public void shouldThrowIfNotInt() {
     // Given:
     final Serializer serializer =
-        givenSerializerForSchema(OPTIONAL_INT32_SCHEMA, Integer.class);
+        givenSerializerForSchema(OPTIONAL_INT32_SCHEMA, Integer.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -458,7 +465,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeBigInt() {
     // Given:
     final Serializer<Long> serializer =
-        givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class);
+        givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class, true);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, 62L);
@@ -472,7 +479,7 @@ public class KsqlAvroSerializerTest {
   public void shouldThrowIfNotBigInt() {
     // Given:
     final Serializer serializer =
-        givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class);
+        givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -489,7 +496,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeDouble() {
     // Given:
     final Serializer<Double> serializer =
-        givenSerializerForSchema(OPTIONAL_FLOAT64_SCHEMA, Double.class);
+        givenSerializerForSchema(OPTIONAL_FLOAT64_SCHEMA, Double.class, true);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, 62.0);
@@ -503,7 +510,7 @@ public class KsqlAvroSerializerTest {
   public void shouldThrowIfNotDouble() {
     // Given:
     final Serializer serializer =
-        givenSerializerForSchema(OPTIONAL_FLOAT64_SCHEMA, Double.class);
+        givenSerializerForSchema(OPTIONAL_FLOAT64_SCHEMA, Double.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -520,7 +527,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeString() {
     // Given:
     final Serializer<String> serializer =
-        givenSerializerForSchema(OPTIONAL_STRING_SCHEMA, String.class);
+        givenSerializerForSchema(OPTIONAL_STRING_SCHEMA, String.class, true);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, "a string");
@@ -534,7 +541,7 @@ public class KsqlAvroSerializerTest {
   public void shouldThrowIfNotString() {
     // Given:
     final Serializer serializer =
-        givenSerializerForSchema(OPTIONAL_STRING_SCHEMA, String.class);
+        givenSerializerForSchema(OPTIONAL_STRING_SCHEMA, String.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -552,7 +559,8 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer<List> serializer = givenSerializerForSchema(
         SchemaBuilder.array(OPTIONAL_BOOLEAN_SCHEMA).build(),
-        List.class
+        List.class,
+        true
     );
 
     final List<Boolean> value = ImmutableList.of(true, false);
@@ -570,7 +578,8 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer serializer = givenSerializerForSchema(
         SchemaBuilder.array(OPTIONAL_BOOLEAN_SCHEMA).build(),
-        List.class
+        List.class,
+        true
     );
 
     // When:
@@ -596,7 +605,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeTime() {
     // Given:
     final Serializer<java.sql.Time> serializer =
-        givenSerializerForSchema(Time.SCHEMA, java.sql.Time.class);
+        givenSerializerForSchema(Time.SCHEMA, java.sql.Time.class, true);
     final java.sql.Time value = new java.sql.Time(500);
 
     // When:
@@ -611,7 +620,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeDate() {
     // Given:
     final Serializer<java.sql.Date> serializer =
-        givenSerializerForSchema(Date.SCHEMA, java.sql.Date.class);
+        givenSerializerForSchema(Date.SCHEMA, java.sql.Date.class, true);
     final java.sql.Date value = new java.sql.Date(864000000L);
 
     // When:
@@ -626,7 +635,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeTimestamp() {
     // Given:
     final Serializer<java.sql.Timestamp> serializer =
-        givenSerializerForSchema(Timestamp.SCHEMA, java.sql.Timestamp.class);
+        givenSerializerForSchema(Timestamp.SCHEMA, java.sql.Timestamp.class, true);
     final java.sql.Timestamp value = new java.sql.Timestamp(500);
 
     // When:
@@ -642,7 +651,8 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer<List> serializer = givenSerializerForSchema(
         SchemaBuilder.array(Schema.BOOLEAN_SCHEMA).build(),
-        List.class
+        List.class,
+        true
     );
 
     // When:
@@ -665,7 +675,8 @@ public class KsqlAvroSerializerTest {
                 .array(OPTIONAL_BOOLEAN_SCHEMA)
                 .build()
         ).build(),
-        List.class
+        List.class,
+        true
     );
 
     final List<List<Boolean>> value = ImmutableList.of(ImmutableList.of(true, false));
@@ -686,7 +697,8 @@ public class KsqlAvroSerializerTest {
                 .map(OPTIONAL_STRING_SCHEMA, OPTIONAL_INT64_SCHEMA)
                 .build()
         ).build(),
-        List.class
+        List.class,
+        true
     );
 
     final List<Map<String, Long>> value = ImmutableList.of(ImmutableMap.of("a", 1L));
@@ -711,7 +723,8 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer<List> serializer = givenSerializerForSchema(
         SchemaBuilder.array(ORDER_SCHEMA).build(),
-        List.class
+        List.class,
+        true
     );
 
     final List<Struct> value = ImmutableList.of(orderStruct);
@@ -728,7 +741,8 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(
         SchemaBuilder.map(STRING_SCHEMA, OPTIONAL_INT32_SCHEMA).build(),
-        Map.class
+        Map.class,
+        true
     );
 
     // When:
@@ -745,7 +759,7 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(SchemaBuilder
         .map(OPTIONAL_STRING_SCHEMA, OPTIONAL_INT32_SCHEMA)
-        .build(), Map.class);
+        .build(), Map.class, true);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", 1, "b", 2));
@@ -766,7 +780,7 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer serializer = givenSerializerForSchema(SchemaBuilder
         .map(OPTIONAL_STRING_SCHEMA, OPTIONAL_INT64_SCHEMA)
-        .build(), Map.class);
+        .build(), Map.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -792,7 +806,7 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(SchemaBuilder
         .map(OPTIONAL_STRING_SCHEMA, OPTIONAL_INT64_SCHEMA)
-        .build(), Map.class);
+        .build(), Map.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -810,7 +824,7 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(SchemaBuilder
         .map(OPTIONAL_STRING_SCHEMA, OPTIONAL_INT64_SCHEMA)
-        .build(), Map.class);
+        .build(), Map.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -842,7 +856,8 @@ public class KsqlAvroSerializerTest {
                 ksqlConfig,
                 () -> schemaRegistryClient,
                 Map.class,
-                false)
+                false,
+            true)
     );
 
     // Then:
@@ -871,7 +886,8 @@ public class KsqlAvroSerializerTest {
                 ksqlConfig,
                 () -> schemaRegistryClient,
                 Struct.class,
-                false)
+                false,
+            true)
     );
 
     // Then:
@@ -886,7 +902,7 @@ public class KsqlAvroSerializerTest {
             .map(OPTIONAL_STRING_SCHEMA, OPTIONAL_INT32_SCHEMA)
             .optional()
             .build())
-        .build(), Map.class);
+        .build(), Map.class, true);
 
     final Map<String, Map<String, Integer>> value =
         ImmutableMap.of("k", ImmutableMap.of("a", 1, "b", 2));
@@ -916,7 +932,7 @@ public class KsqlAvroSerializerTest {
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(SchemaBuilder
         .map(OPTIONAL_STRING_SCHEMA, ORDER_SCHEMA)
-        .build(), Map.class);
+        .build(), Map.class, true);
 
     final Map<String, Struct> value = ImmutableMap.of("k", orderStruct);
 
@@ -948,7 +964,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeNullAsNull() {
     // Given:
     final Serializer<Long> serializer =
-        givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class);
+        givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class, true);
 
     // Then:
     assertThat(serializer.serialize(SOME_TOPIC, null), is(nullValue()));
@@ -957,7 +973,7 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldHandleNulls() {
     // Given:
-    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class, true);
 
     orderStruct
         .put(ARRAYCOL, null)
@@ -976,7 +992,7 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
-    final Serializer serializer = givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class);
+    final Serializer serializer = givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class, true);
 
     // When:
     final Exception e = assertThrows(
@@ -991,7 +1007,7 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldNotIncludeBadValueInExceptionAsThatWouldBeASecurityIssue() {
     // Given:
-    final Serializer serializer = givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class);
+    final Serializer serializer = givenSerializerForSchema(OPTIONAL_INT64_SCHEMA, Long.class, true);
 
     try {
 
@@ -1187,7 +1203,7 @@ public class KsqlAvroSerializerTest {
     final Struct ksqlRecord = new Struct(ksqlRecordSchema)
         .put("source.field0", 123);
 
-    final Serializer<Struct> serializer = givenSerializerForSchema(ksqlRecordSchema, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ksqlRecordSchema, Struct.class, true);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -1224,7 +1240,8 @@ public class KsqlAvroSerializerTest {
                 ksqlConfig,
                 () -> schemaRegistryClient,
                 Struct.class,
-                false).serializer();
+                false,
+            true).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -1241,11 +1258,11 @@ public class KsqlAvroSerializerTest {
     // Given:
     int boolSchemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), BOOLEAN_PARSED_AVRO_SCHEMA);
     final Serializer<Boolean> boolSerializer = givenSerializerForSchema(OPTIONAL_BOOLEAN_SCHEMA,
-        Boolean.class, Optional.of(boolSchemaId), Optional.empty());
+        Boolean.class, Optional.of(boolSchemaId), Optional.empty(), false);
 
     int intSchemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), INT_PARSED_AVRO_SCHEMA);
     final Serializer<Integer> intSerializer = givenSerializerForSchema(OPTIONAL_INT32_SCHEMA,
-        Integer.class, Optional.of(intSchemaId), Optional.empty());
+        Integer.class, Optional.of(intSchemaId), Optional.empty(), false);
 
     // When:
     final byte[] boolBytes = boolSerializer.serialize(SOME_TOPIC, true);
@@ -1261,7 +1278,7 @@ public class KsqlAvroSerializerTest {
     // Given:
     int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), ORDER_PARSED_AVRO_SCHEMA);
     final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.empty());
+        Struct.class, Optional.of(schemaId), Optional.empty(), false);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, orderStruct);
@@ -1277,7 +1294,7 @@ public class KsqlAvroSerializerTest {
     int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
         ORDER_AVRO_SCHEMA_WITH_EXTRA_FIELD);
     final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.empty());
+        Struct.class, Optional.of(schemaId), Optional.empty(), false);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, orderStruct);
@@ -1293,7 +1310,7 @@ public class KsqlAvroSerializerTest {
     int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
         ORDER_AVRO_SCHEMA_WITH_DEFAULT_EXTRA_FIELD);
     final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.empty());
+        Struct.class, Optional.of(schemaId), Optional.empty(), false);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, orderStruct);
@@ -1309,7 +1326,7 @@ public class KsqlAvroSerializerTest {
     int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
         ORDER_AVRO_SCHEMA_WITH_NON_OPTIONAL_EXTRA_FIELD);
     final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.empty());
+        Struct.class, Optional.of(schemaId), Optional.empty(), false);
 
     // When:
     final Exception e = assertThrows(
@@ -1400,7 +1417,7 @@ public class KsqlAvroSerializerTest {
         .field("field0", ksqlSchema)
         .build();
 
-    final Serializer<Struct> serializer = givenSerializerForSchema(schema, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(schema, Struct.class, true);
 
     final Struct ksqlRecord = new Struct(schema)
         .put("field0", ksqlValue);
@@ -1425,16 +1442,18 @@ public class KsqlAvroSerializerTest {
 
   private <T> Serializer<T> givenSerializerForSchema(
       final Schema schema,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean autoRegisterSchemas
   ) {
-    return givenSerializerForSchema(schema, targetType, Optional.empty(), Optional.empty());
+    return givenSerializerForSchema(schema, targetType, Optional.empty(), Optional.empty(), autoRegisterSchemas);
   }
 
   private <T> Serializer<T> givenSerializerForSchema(
       final Schema schema,
       final Class<T> targetType,
       final Optional<Integer> schemaId,
-      final Optional<String> schemaName
+      final Optional<String> schemaName,
+      final boolean autoRegisterSchemas
   ) {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     if (schemaName.isPresent()) {
@@ -1449,7 +1468,8 @@ public class KsqlAvroSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             targetType,
-            false).serializer();
+            false,
+            autoRegisterSchemas).serializer();
   }
 
   private int givenPhysicalSchema(

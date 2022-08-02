@@ -56,6 +56,7 @@ public class KsqlProtobufNoSRDeserializerTest extends  AbstractKsqlProtobufDeser
             new KsqlConfig(ImmutableMap.of()),
             () -> null,
             targetType,
+            false,
             false).deserializer();
 
     deserializer.configure(Collections.emptyMap(), false);

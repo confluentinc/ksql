@@ -235,9 +235,10 @@ public class KsqlJsonSerializerTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldThrowOnWrongValueType() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer serializer =
-        givenSerializerForSchema(SchemaBuilder.OPTIONAL_INT64_SCHEMA, Long.class);
+        givenSerializerForSchema(SchemaBuilder.OPTIONAL_INT64_SCHEMA, Long.class, autoRegisterSchemas);
 
     // When:
     final Exception e = assertThrows(
@@ -252,8 +253,9 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeNullValue() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
-    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class, autoRegisterSchemas);
 
     // When:
     final byte[] serializedRow = serializer.serialize(SOME_TOPIC, null);
@@ -264,8 +266,9 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeStructCorrectly() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
-    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class, autoRegisterSchemas);
 
     final Struct struct = new Struct(ORDER_SCHEMA)
         .put(ORDERTIME, 1511897796092L)
@@ -306,9 +309,10 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldHandleNestedStruct() throws IOException {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<Struct> serializer = givenSerializerForSchema(SCHEMA_WITH_STRUCT,
-        Struct.class);
+        Struct.class, autoRegisterSchemas);
     final Struct struct = buildWithNestedStruct();
 
     // When:
@@ -326,9 +330,10 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeBoolean() throws Exception {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<Boolean> serializer =
-        givenSerializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
+        givenSerializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class, autoRegisterSchemas);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, true);
@@ -342,9 +347,10 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeKeyAndRegisterKeySubject() throws IOException, RestClientException {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given;
     final Serializer<Boolean> serializer = givenJsonSerdeFactory()
-        .createSerde((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, config, () -> srClient, Boolean.class, true)
+        .createSerde((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, config, () -> srClient, Boolean.class, true, autoRegisterSchemas)
         .serializer();
 
     // When:
@@ -359,9 +365,10 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeInt() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<Integer> serializer =
-        givenSerializerForSchema(Schema.OPTIONAL_INT32_SCHEMA, Integer.class);
+        givenSerializerForSchema(Schema.OPTIONAL_INT32_SCHEMA, Integer.class, autoRegisterSchemas);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, 62);
@@ -372,9 +379,10 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeBigInt() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<Long> serializer =
-        givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
+        givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class, autoRegisterSchemas);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, 62L);
@@ -385,9 +393,10 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeDouble() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<Double> serializer =
-        givenSerializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA, Double.class);
+        givenSerializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA, Double.class, autoRegisterSchemas);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, 62.0);
@@ -398,10 +407,12 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeDecimal() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<BigDecimal> serializer = givenSerializerForSchema(
         DecimalUtil.builder(20, 19).build(),
-        BigDecimal.class
+        BigDecimal.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -413,10 +424,12 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeDecimalsWithoutStrippingTrailingZeros() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<BigDecimal> serializer = givenSerializerForSchema(
         DecimalUtil.builder(3, 1).build(),
-        BigDecimal.class
+        BigDecimal.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -428,10 +441,12 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeTime() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<java.sql.Time> serializer = givenSerializerForSchema(
         Time.SCHEMA,
-        java.sql.Time.class
+        java.sql.Time.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -443,10 +458,12 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeDate() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<java.sql.Date> serializer = givenSerializerForSchema(
         Date.SCHEMA,
-        java.sql.Date.class
+        java.sql.Date.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -458,10 +475,12 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeTimestamp() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<java.sql.Timestamp> serializer = givenSerializerForSchema(
         Timestamp.SCHEMA,
-        java.sql.Timestamp.class
+        java.sql.Timestamp.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -473,9 +492,10 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeString() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<String> serializer =
-        givenSerializerForSchema(Schema.OPTIONAL_STRING_SCHEMA, String.class);
+        givenSerializerForSchema(Schema.OPTIONAL_STRING_SCHEMA, String.class, autoRegisterSchemas);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, "a string");
@@ -486,9 +506,10 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeBytes() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<ByteBuffer> serializer =
-        givenSerializerForSchema(Schema.OPTIONAL_BYTES_SCHEMA, ByteBuffer.class);
+        givenSerializerForSchema(Schema.OPTIONAL_BYTES_SCHEMA, ByteBuffer.class, autoRegisterSchemas);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ByteBuffer.wrap(new byte[] {123}));
@@ -499,11 +520,13 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeArray() {
+    final boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<List> serializer = givenSerializerForSchema(SchemaBuilder
             .array(Schema.BOOLEAN_SCHEMA)
             .build(),
-        List.class
+        List.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -515,11 +538,13 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldThrowOnWrongElementType() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<List> serializer = givenSerializerForSchema(SchemaBuilder
             .array(Schema.BOOLEAN_SCHEMA)
             .build(),
-        List.class
+        List.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -535,11 +560,13 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeMap() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
             .build(),
-        Map.class
+        Map.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -556,11 +583,13 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldThrowIfKeyWrongType() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
             .build(),
-        Map.class
+        Map.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -576,11 +605,13 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldThrowIfValueWrongType() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
             .build(),
-        Map.class
+        Map.class,
+        autoRegisterSchemas
     );
 
     // When:
@@ -596,6 +627,7 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldThrowOnMapSchemaWithNonStringKeys() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final ConnectSchema schema = (ConnectSchema) SchemaBuilder
         .struct()
@@ -610,7 +642,7 @@ public class KsqlJsonSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.createSerde(schema, config, () -> null, Struct.class, false)
+        () -> factory.createSerde(schema, config, () -> null, Struct.class, false, autoRegisterSchemas)
     );
 
     // Then:
@@ -620,6 +652,7 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final ConnectSchema schema = (ConnectSchema) SchemaBuilder
         .struct()
@@ -637,7 +670,7 @@ public class KsqlJsonSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.createSerde(schema, config, () -> null, Struct.class, false)
+        () -> factory.createSerde(schema, config, () -> null, Struct.class, false, autoRegisterSchemas)
     );
 
     // Then:
@@ -647,8 +680,9 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeNullAsNull() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
-    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class, autoRegisterSchemas);
 
     // Then:
     assertThat(serializer.serialize(SOME_TOPIC, null), is(nullValue()));
@@ -656,8 +690,9 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldHandleNulls() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
-    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class, autoRegisterSchemas);
 
     final Struct struct = new Struct(ORDER_SCHEMA)
         .put(ORDERTIME, 1511897796092L)
@@ -695,9 +730,10 @@ public class KsqlJsonSerializerTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldIncludeTopicNameInException() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer serializer =
-        givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
+        givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class, autoRegisterSchemas);
 
     // When:
     final Exception e = assertThrows(
@@ -712,9 +748,10 @@ public class KsqlJsonSerializerTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldNotIncludeBadValueInExceptionAsThatWouldBeASecurityIssue() {
+    boolean autoRegisterSchemas = useSchemas ? true : false;
     // Given:
     final Serializer serializer =
-        givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
+        givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class, autoRegisterSchemas);
 
     final Exception e = assertThrows(
         Exception.class,
@@ -727,10 +764,11 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializePrimitiveWithSchemaId() throws Exception {
+    boolean autoRegisterSchemas = false; // Set to false when using schemaId
     // Given:
     final int intSchemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), INT_JSON_SCHEMA);
     final Serializer<Long> intSerializer = givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA,
-        Long.class, Optional.of(intSchemaId), Optional.empty());
+        Long.class, Optional.of(intSchemaId), Optional.empty(), autoRegisterSchemas);
 
     // When:
     final byte[] intBytes = intSerializer.serialize(SOME_TOPIC, 123L);
@@ -741,10 +779,11 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeStructWithSchemaId() throws Exception {
+    boolean autoRegisterSchemas = false; // Set to false when using schemaId
     // Given:
     final int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), ITEM_JSON_SCHEMA);
     final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.empty());
+        Struct.class, Optional.of(schemaId), Optional.empty(), autoRegisterSchemas);
     final Struct category = new Struct(CATEGORY_SCHEMA);
     category.put("ID", 1L);
     category.put("NAME", "Food");
@@ -763,11 +802,12 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeStructWithExtraOptionalFieldWithSchemaId() throws Exception {
+    boolean autoRegisterSchemas = false; // Set to false when using schemaId
     // Given:
     final int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
         ITEM_JSON_SCHEMA_WITH_OPTIONAL_EXTRA_FIELD);
     final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.empty());
+        Struct.class, Optional.of(schemaId), Optional.empty(), autoRegisterSchemas);
     final Struct category = new Struct(CATEGORY_SCHEMA);
     category.put("ID", 1L);
     category.put("NAME", "Food");
@@ -792,11 +832,12 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeWithExtraNonOptionalFieldWithSchemaId() throws Exception {
+    boolean autoRegisterSchemas = false; // Set to false when using schemaId
     // Given:
     final int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
         ITEM_JSON_SCHEMA_WITH_EXTRA_FIELD);
     final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.empty());
+        Struct.class, Optional.of(schemaId), Optional.empty(), autoRegisterSchemas);
     final Struct category = new Struct(CATEGORY_SCHEMA);
     category.put("ID", 1L);
     category.put("NAME", "Food");
@@ -816,11 +857,12 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldThrowIfOptionalSchemaNotCompatible() throws Exception {
+    boolean autoRegisterSchemas = false; // Set to false when using schemaId
     // Given:
     int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
         NON_OPTIONAL_ITEM_JSON_SCHEMA);
     final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.of("randomName"));
+        Struct.class, Optional.of(schemaId), Optional.of("randomName"), autoRegisterSchemas);
     final Struct category = new Struct(CATEGORY_SCHEMA);
     category.put("ID", 1L);
     category.put("NAME", null);
@@ -887,15 +929,16 @@ public class KsqlJsonSerializerTest {
     return topLevel;
   }
 
-  private <T> Serializer<T> givenSerializerForSchema(final Schema schema, final Class<T> type) {
-    return givenSerializerForSchema(schema, type, Optional.empty(), Optional.empty());
+  private <T> Serializer<T> givenSerializerForSchema(final Schema schema, final Class<T> type, final boolean autoRegisterSchemas) {
+    return givenSerializerForSchema(schema, type, Optional.empty(), Optional.empty(), autoRegisterSchemas);
   }
 
   private <T> Serializer<T> givenSerializerForSchema(
       final Schema schema,
       final Class<T> targetType,
       final Optional<Integer> schemaId,
-      final Optional<String> schemaName
+      final Optional<String> schemaName,
+      final boolean autoRegisterSchemas
   ) {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     schemaName.ifPresent(s -> builder.put(ConnectProperties.FULL_SCHEMA_NAME, s));
@@ -905,7 +948,7 @@ public class KsqlJsonSerializerTest {
         new KsqlJsonSerdeFactory(new JsonSchemaProperties(builder.build())) :
         new KsqlJsonSerdeFactory();
     return factory
-        .createSerde((ConnectSchema) schema, config, () -> srClient, targetType, false)
+        .createSerde((ConnectSchema) schema, config, () -> srClient, targetType, false, autoRegisterSchemas)
         .serializer();
   }
 

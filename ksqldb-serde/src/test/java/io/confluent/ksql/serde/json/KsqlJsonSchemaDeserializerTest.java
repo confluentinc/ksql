@@ -96,7 +96,8 @@ public class KsqlJsonSchemaDeserializerTest {
         new KsqlConfig(ImmutableMap.of()),
         () -> schemaRegistryClient,
         Struct.class,
-        false
+        false,
+        false // Results in fetching the id by subject and schema
     );
 
     serializer = serde.serializer();

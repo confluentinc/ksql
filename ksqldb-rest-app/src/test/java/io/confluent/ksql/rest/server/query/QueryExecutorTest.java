@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.execution.pull.HARouting;
 import io.confluent.ksql.execution.pull.PullPhysicalPlan.PullPhysicalPlanType;
@@ -187,6 +188,7 @@ public class QueryExecutorTest {
         ImmutableSet.of(new QueryId("a")));
     when(pushQueryQuery.getRefinement())
         .thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.CHANGES)));
+    when(pushQueryQuery.getSelect()).thenReturn(new Select(Collections.emptyList()));
     pullQuery = PreparedStatement.of(PULL_QUERY_STRING, pullQueryQuery);
     pushQuery = PreparedStatement.of(PUSH_QUERY_STRING, pushQueryQuery);
     queryExecutor = new QueryExecutor(ksqlEngine, ksqlRestConfig, ksqlConfig,

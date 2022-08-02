@@ -70,6 +70,6 @@ public class JsonFormat extends ConnectFormat {
       final boolean isKey
   ) {
     return new KsqlJsonSerdeFactory()
-        .createSerde(connectSchema, config, srFactory, targetType, isKey);
+        .createSerde(connectSchema, config, srFactory, targetType, isKey, false);
   }
 }

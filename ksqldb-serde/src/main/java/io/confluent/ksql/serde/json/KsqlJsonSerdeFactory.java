@@ -70,7 +70,8 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     validateSchema(schema);
 
@@ -84,7 +85,8 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
     }
 
     final Converter converter = useSchemaRegistryFormat
-        ? getSchemaRegistryConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
+        ? getSchemaRegistryConverter(
+            srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey, autoRegisterSchemas)
         : getConverter();
 
     // The translators are used in the serializer & deserializzer only for JSON_SR formats
@@ -167,7 +169,8 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
       final Optional<Integer> schemaId,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     final Map<String, Object> config = ksqlConfig
         .originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
@@ -176,9 +179,12 @@ class KsqlJsonSerdeFactory implements SerdeFactory {
         JsonSchemaConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
+    // Disable auto registering schema by default, keeping it as a parameter for tests
+    // See: https://github.com/confluentinc/ksql/issues/8995
+    config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegisterSchemas);
+
     if (schemaId.isPresent()) {
       // Disable auto registering schema if schema id is used
-      config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       config.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
     }
     config.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name());

@@ -27,5 +27,6 @@ public interface SerdeFactory {
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> srFactory,
       Class<T> targetType,
-      boolean isKey);
+      boolean isKey,
+      boolean autoRegisterSchemas);
 }

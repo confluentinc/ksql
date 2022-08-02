@@ -80,7 +80,7 @@ public final class AvroFormat extends ConnectFormat {
     getConnectSchemaTranslator(formatProps).fromConnectSchema(connectSchema);
 
     return new KsqlAvroSerdeFactory(new AvroProperties(formatProps))
-        .createSerde(connectSchema, config, srFactory, targetType, isKey);
+        .createSerde(connectSchema, config, srFactory, targetType, isKey, false);
   }
 
   public static String getKeySchemaName(final String name) {

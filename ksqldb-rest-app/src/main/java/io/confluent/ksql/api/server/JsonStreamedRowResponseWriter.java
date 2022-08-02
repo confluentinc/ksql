@@ -197,7 +197,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
 
         connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
         serializer = new ProtobufNoSRSerdeFactory(ImmutableMap.of())
-                .createSerializer(connectSchema, Struct.class, false);
+                .createSerializer(connectSchema, Struct.class, false, false);
         return StreamedRow.headerProtobuf(
                 new QueryId(queryId), schema, logicalToProtoSchema(schema));
       }

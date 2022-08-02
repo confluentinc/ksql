@@ -77,6 +77,6 @@ public class ProtobufFormat extends AbstractProtobufFormat {
       final boolean isKey
   ) {
     return new ProtobufSerdeFactory(new ProtobufProperties(formatProps))
-        .createSerde(connectSchema, config, srFactory, targetType, isKey);
+        .createSerde(connectSchema, config, srFactory, targetType, isKey, false);
   }
 }

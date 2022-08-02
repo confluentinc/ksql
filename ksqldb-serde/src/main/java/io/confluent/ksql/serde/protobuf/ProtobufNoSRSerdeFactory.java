@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.protobuf;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
@@ -58,18 +59,21 @@ public final class ProtobufNoSRSerdeFactory implements SerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
-      final boolean isKey) {
+      final boolean isKey,
+      final boolean autoRegisterSchemas) {
     validate(schema);
 
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
         schema,
         targetType,
-        isKey
+        isKey,
+        autoRegisterSchemas
     );
     final Supplier<Deserializer<T>> deserializer = () -> createDeserializer(
         schema,
         targetType,
-        isKey
+        isKey,
+        autoRegisterSchemas
     );
 
     // Sanity check:
@@ -89,9 +93,10 @@ public final class ProtobufNoSRSerdeFactory implements SerdeFactory {
   public <T> KsqlConnectSerializer<T> createSerializer(
       final Schema schema,
       final Class<T> targetType,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
-    final ProtobufNoSRConverter converter = getConverter(schema, isKey);
+    final ProtobufNoSRConverter converter = getConverter(schema, isKey, autoRegisterSchemas);
     final DataTranslator translator = getDataTranslator(schema);
     final Schema compatibleSchema = translator instanceof ProtobufDataTranslator
         ? ((ProtobufDataTranslator) translator).getSchema()
@@ -108,10 +113,11 @@ public final class ProtobufNoSRSerdeFactory implements SerdeFactory {
   private <T> KsqlConnectDeserializer<T> createDeserializer(
       final Schema schema,
       final Class<T> targetType,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     return new KsqlConnectDeserializer<>(
-        getConverter(schema, isKey),
+        getConverter(schema, isKey, autoRegisterSchemas),
         getDataTranslator(schema),
         targetType
     );
@@ -124,7 +130,8 @@ public final class ProtobufNoSRSerdeFactory implements SerdeFactory {
 
   private ProtobufNoSRConverter getConverter(
       final Schema schema,
-      final boolean isKey
+      final boolean isKey,
+      final boolean autoRegisterSchemas
   ) {
     final Map<String, Object> protobufConfig = new HashMap<>();
 
@@ -132,6 +139,9 @@ public final class ProtobufNoSRSerdeFactory implements SerdeFactory {
         ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG,
         properties.getUnwrapPrimitives()
     );
+    // Disable auto registering schema by default
+    // https://github.com/confluentinc/ksql/issues/8995
+    protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, autoRegisterSchemas);
 
     final ProtobufNoSRConverter converter = new ProtobufNoSRConverter(schema);
     converter.configure(protobufConfig, isKey);

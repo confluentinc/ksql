@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -67,8 +66,7 @@ public class ClusterTerminator {
   public void terminateCluster(final List<String> deleteTopicPatterns) {
     terminatePersistentQueries();
     deleteSinkTopics(deleteTopicPatterns);
-    deleteTopics(Streams.concat(managedTopics.stream(), deleteTopicPatterns.stream()).collect(
-        Collectors.toList()));
+    deleteTopics(managedTopics);
     ksqlEngine.close();
   }
 
@@ -85,10 +83,13 @@ public class ClusterTerminator {
         .map(Pattern::compile)
         .collect(Collectors.toList());
 
-    final List<DataSource> toDelete = getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
+    final List<DataSource> sourcesToDelete =
+        getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
+    deleteTopics(topicNames(sourcesToDelete));
+    cleanUpSinkSchemas(subjectNames(sourcesToDelete));
 
-    deleteTopics(topicNames(toDelete));
-    cleanUpSinkSchemas(subjectNames(toDelete));
+    final List<String> topicsToDelete = getTopicsToDelete(patterns);
+    deleteTopics(topicsToDelete);
   }
 
   private List<String> filterNonExistingTopics(final Collection<String> topicList) {
@@ -142,18 +143,14 @@ public class ClusterTerminator {
         .collect(Collectors.toList());
   }
 
-  private static List<DataSource> getTopicsToDelete(
-      final List<Pattern> patterns,
-      final MetaStore metaStore
+  private List<String> getTopicsToDelete(
+      final List<Pattern> patterns
   ) {
     final Predicate<String> predicate = topicName -> patterns.stream()
         .anyMatch(pattern -> pattern.matcher(topicName).matches());
 
-    Set<String> topics = serviceContext.getTopicClient().listTopicNames();
-
-    return metaStore.getAllDataSources().values().stream()
-        .filter(DataSource::isCasTarget)
-        .filter(s -> predicate.test(s.getKsqlTopic().getKafkaTopicName()))
+    return this.serviceContext.getTopicClient().listTopicNames().stream()
+        .filter(predicate::test)
         .collect(Collectors.toList());
   }
 

@@ -38,6 +38,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.client.HttpResponse;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +66,7 @@ public class ClusterTerminationTest {
   private static final String INTERNAL_TOPIC_GROUPBY =
       "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-GroupBy-repartition";
 
-  private static final String ALL_TOPICS = ".*";
+  private static final List<String> ALL_TOPICS = Arrays.asList(KsqlConfig.KSQL_HIDDEN_TOPICS_DEFAULT.split(","));
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -158,11 +159,10 @@ public class ClusterTerminationTest {
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(AGG_TOPIC, true));
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(AGG_TOPIC, false));
 
-    TEST_HARNESS.getKafkaCluster().getTopics().stream().forEach(System.out::println);
-    System.out.println("here 1");
+    ALL_TOPICS.add(AGG_TOPIC);
 
     // When:
-    terminateCluster(ImmutableList.of(ALL_TOPICS), REST_APP_0);
+    terminateCluster(ALL_TOPICS, REST_APP_0);
 
     // Then:
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(AGG_TOPIC);
@@ -172,15 +172,11 @@ public class ClusterTerminationTest {
     TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(AGG_TOPIC, true));
     TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(AGG_TOPIC, false));
 
-
     assertThat(
         "Should not delete non-sink topics",
         TEST_HARNESS.topicExists(PAGE_VIEW_TOPIC),
         is(true)
     );
-
-    System.out.println("here 2");
-    TEST_HARNESS.getKafkaCluster().getTopics().stream().forEach(System.out::println);
 
     // assert that eventually this is 2, just the pageview topic and sink topic
     assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(2));
@@ -192,7 +188,7 @@ public class ClusterTerminationTest {
   @Test
   public void shouldTerminateEvenWithMultipleServers(){
     // When:
-    terminateCluster(ImmutableList.of(ALL_TOPICS), REST_APP_1);
+    terminateCluster(ALL_TOPICS, REST_APP_1);
 
     // Then:
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(SINK_TOPIC);

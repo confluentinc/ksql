@@ -139,6 +139,39 @@
         {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 49}},
         {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 59}}
       ]
+    },
+    {
+      "name": "all arguments (four)",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string, THIRD string, FOURTH string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, FOUR_ARG(FIRST, SECOND, THIRD, FOURTH, 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi", "THIRD": "apples", "FOURTH": null}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a", "THIRD": "oranges", "FOURTH": "Mercury"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello", "THIRD": "bananas", "FOURTH": "Venus"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world", "THIRD": "peaches", "FOURTH": "Earth"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": "grapes", "FOURTH": "Mars"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test", "THIRD": null, "FOURTH": "Asteroid Belt"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing", "THIRD": "strawberries", "FOURTH": "Jupiter"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate", "THIRD": "avocados", "FOURTH": "Saturn"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function", "THIRD": "pears", "FOURTH": "Uranus"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql", "THIRD": "plums", "FOURTH": "Neptune"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test", "THIRD": "oranges", "FOURTH": "Pluto"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 24}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 27}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 41}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 49}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 56}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 69}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 97}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 100}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 116}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 135}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 157}}
+      ]
     }
   ]
 }

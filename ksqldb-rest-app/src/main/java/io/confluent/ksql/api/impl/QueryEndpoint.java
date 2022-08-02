@@ -17,7 +17,6 @@ package io.confluent.ksql.api.impl;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.KsqlLang;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
@@ -53,7 +52,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.apache.calcite.rel.RelRoot;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class QueryEndpoint {

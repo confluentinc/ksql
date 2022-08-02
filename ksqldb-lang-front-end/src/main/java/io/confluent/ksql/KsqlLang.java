@@ -16,35 +16,62 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.util.KsqlStatementException;
-import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.adapter.tpch.TpchSchema;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Table;
-import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
 import org.apache.calcite.sql.ddl.SqlCreateTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KsqlLang {
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlLang.class);
+
   private final Planner planner;
 
   public KsqlLang() {
     final SchemaPlus schema = CalciteSchema.createRootSchema(true).plus();
 
+//    schema  .add(
+//        "TPCH",
+//        new TpchSchema(
+//            1.0,
+//            1,
+//            1,
+//            false
+//        )
+//    );
+
+    schema.add(
+        "USERS",
+        new AbstractTable() {
+          @Override
+          public RelDataType getRowType(final RelDataTypeFactory typeFactory) {
+            final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+            final RelDataType t1 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+            final RelDataType t2 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.CHAR), true);
+            final RelDataType t3 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.CHAR), true);
+            builder.add("ID", t1);
+            builder.add("NAME", t2);
+            builder.add("OWNERID", t3);
+            return builder.build();
+          }
+        }
+    );
 
     // NEEDED: add integration with metastore here.
     // NEEDED: register UDFs here.
@@ -113,6 +140,7 @@ public class KsqlLang {
           e
       );
     }
+    LOG.info("Logical plan for query:\n\t{}\n\t{}", statement, logicalPlan);
     return logicalPlan;
   }
 }

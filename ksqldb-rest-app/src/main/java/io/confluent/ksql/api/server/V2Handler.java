@@ -15,6 +15,13 @@
 
 package io.confluent.ksql.api.server;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlLang;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -26,14 +33,21 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
+import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.AbstractList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.tools.RelRunners;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +126,23 @@ public class V2Handler implements Handler<RoutingContext> {
 
     vcf.thenAccept(logicalPlan -> {
       final HttpServerResponse response = routingContext.response();
-      response.write(logicalPlan.toString());
+      response.write(logicalPlan.toString() + "\n\n");
+      try (final PreparedStatement run = RelRunners.run(logicalPlan.rel);
+           final ResultSet resultSet = run.executeQuery()) {
+        final int columnCount = resultSet.getMetaData().getColumnCount();
+        for (int i = 0; i < columnCount; i++) {
+          response.write(resultSet.getMetaData().getColumnName(i)).write(" | ");
+        }
+        response.write("\n");
+        while (resultSet.next()) {
+          for (int i = 0; i < columnCount; i++) {
+            response.write(String.valueOf(resultSet.getObject(i))).write(" | ");
+          }
+          response.write("\n");
+        }
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
       response.end();
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {

@@ -38,7 +38,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.client.HttpResponse;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -65,9 +64,8 @@ public class ClusterTerminationTest {
       "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-Aggregate-Materialize-changelog";
   private static final String INTERNAL_TOPIC_GROUPBY =
       "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-GroupBy-repartition";
-
-  private static final List<String> ALL_TOPICS = Arrays.asList(KsqlConfig.KSQL_HIDDEN_TOPICS_DEFAULT.split(","));
-
+  private static final String ALL_TOPICS = ".*";
+  private static final long WAIT_FOR_TOPIC_TIMEOUT_MS = 500;
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
@@ -139,7 +137,7 @@ public class ClusterTerminationTest {
   }
 
   @Test
-  public void shouldTerminateAllTopicsWithStarInBody(){
+  public void shouldTerminateAllTopicsWithStarInBody() throws InterruptedException {
     // Given
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
@@ -159,15 +157,13 @@ public class ClusterTerminationTest {
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(AGG_TOPIC, true));
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(AGG_TOPIC, false));
 
-    ALL_TOPICS.add(AGG_TOPIC);
-
     // When:
-    terminateCluster(ALL_TOPICS, REST_APP_0);
+    terminateCluster(ImmutableList.of(ALL_TOPICS), REST_APP_0);
 
     // Then:
-    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(AGG_TOPIC);
-    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(INTERNAL_TOPIC_AGG);
-    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(INTERNAL_TOPIC_GROUPBY);
+    waitForTopicsToBeAbsentWithTimeout(AGG_TOPIC);
+    waitForTopicsToBeAbsentWithTimeout(INTERNAL_TOPIC_AGG);
+    waitForTopicsToBeAbsentWithTimeout(INTERNAL_TOPIC_GROUPBY);
 
     TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(AGG_TOPIC, true));
     TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(AGG_TOPIC, false));
@@ -178,17 +174,35 @@ public class ClusterTerminationTest {
         is(true)
     );
 
-    // assert that eventually this is 2, just the pageview topic and sink topic
-    assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(2));
+    // should only be the pageview topic left
+    assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(1));
 
     // Then:
     shouldReturn50303WhenTerminating();
   }
 
+  private void waitForTopicsToBeAbsentWithTimeout(final String topic) {
+    assertThatEventually(
+        () -> "expected topics to be deleted",
+        () -> {
+          try {
+            TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(topic);
+            return true;
+          } catch (AssertionError e) {
+            return false;
+          }
+        },
+        is(true),
+        WAIT_FOR_TOPIC_TIMEOUT_MS,
+        TimeUnit.MILLISECONDS,
+        500,
+        30000);
+  }
+
   @Test
   public void shouldTerminateEvenWithMultipleServers(){
     // When:
-    terminateCluster(ALL_TOPICS, REST_APP_1);
+    terminateCluster(ImmutableList.of(ALL_TOPICS), REST_APP_1);
 
     // Then:
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(SINK_TOPIC);

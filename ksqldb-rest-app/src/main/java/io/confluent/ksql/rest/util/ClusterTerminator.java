@@ -87,9 +87,6 @@ public class ClusterTerminator {
         getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
     deleteTopics(topicNames(sourcesToDelete));
     cleanUpSinkSchemas(subjectNames(sourcesToDelete));
-
-    final List<String> topicsToDelete = getTopicsToDelete(patterns);
-    deleteTopics(topicsToDelete);
   }
 
   private List<String> filterNonExistingTopics(final Collection<String> topicList) {
@@ -140,17 +137,6 @@ public class ClusterTerminator {
     return metaStore.getAllDataSources().values().stream()
         .filter(DataSource::isCasTarget)
         .filter(s -> predicate.test(s.getKsqlTopic().getKafkaTopicName()))
-        .collect(Collectors.toList());
-  }
-
-  private List<String> getTopicsToDelete(
-      final List<Pattern> patterns
-  ) {
-    final Predicate<String> predicate = topicName -> patterns.stream()
-        .anyMatch(pattern -> pattern.matcher(topicName).matches());
-
-    return this.serviceContext.getTopicClient().listTopicNames().stream()
-        .filter(predicate::test)
         .collect(Collectors.toList());
   }
 

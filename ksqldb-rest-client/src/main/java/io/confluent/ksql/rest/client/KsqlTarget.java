@@ -53,6 +53,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -337,6 +338,9 @@ public final class KsqlTarget {
       final Consumer<T> chunkHandler,
       final CompletableFuture<Void> shouldCloseConnection
   ) {
+    final String requestID = "request-" + UUID.randomUUID();
+    log.info("(REQUEST_ID: {}) Issuing {} {} {}", requestID, httpMethod, path, requestBody);
+
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
@@ -345,7 +349,9 @@ public final class KsqlTarget {
         recordParser.exceptionHandler(vcf::completeExceptionally);
         recordParser.handler(buff -> {
           try {
-            chunkHandler.accept(chunkMapper.apply(buff));
+            final T chunk = chunkMapper.apply(buff);
+            log.info("(REQUEST_ID: {}) Handled chunk: {}", requestID, chunk);
+            chunkHandler.accept(chunk);
           } catch (Throwable t) {
             log.error("Error while handling chunk", t);
             vcf.completeExceptionally(t);
@@ -353,6 +359,7 @@ public final class KsqlTarget {
         });
         recordParser.endHandler(v -> {
           try {
+            log.info("(REQUEST_ID: {}) Handled end", requestID);
             end.set(true);
             chunkHandler.accept(null);
             vcf.complete(new ResponseWithBody(resp, Buffer.buffer()));

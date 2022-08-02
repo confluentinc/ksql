@@ -25,6 +25,7 @@ import io.confluent.ksql.util.RowMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -57,6 +58,8 @@ public class PullQueryQueue implements BlockingRowQueue {
 
   private final BlockingQueue<PullQueryRow> rowQueue;
   private final long offerTimeoutMs;
+  private final QueryId queryId;
+
   private AtomicBoolean closed = new AtomicBoolean(false);
   private AtomicLong totalRowsQueued = new AtomicLong(0);
   private final OptionalInt limit;
@@ -76,14 +79,16 @@ public class PullQueryQueue implements BlockingRowQueue {
    */
   private CompletionHandler completionHandler;
 
-  public PullQueryQueue(final OptionalInt limit) {
-    this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS, limit);
+  public PullQueryQueue(final QueryId queryId, final OptionalInt limit) {
+    this(queryId, BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS, limit);
   }
 
   public PullQueryQueue(
+      final QueryId queryId,
       final int queueSizeLimit,
       final long offerTimeoutMs,
       final OptionalInt limit) {
+    this.queryId = queryId;
     this.queuedCallback = () -> { };
     this.limitHandler = () -> { };
     this.completionHandler = () -> { };
@@ -163,13 +168,16 @@ public class PullQueryQueue implements BlockingRowQueue {
    * also be called then.
    */
   private void closeInternal(final boolean limitHit) {
+    LOG.info("(QUERY_ID: {}) closing query (first time: {})", queryId, closed.get());
     if (!closed.getAndSet(true)) {
       // Unlike limits based on a number of rows which can be checked and possibly triggered after
       // every queuing of a row, pull queries just declare they've reached their limit when close is
       // called.
       if (limitHit) {
+        LOG.info("(QUERY_ID: {}) calling limitHandler.limitReached()", queryId);
         limitHandler.limitReached();
       } else {
+        LOG.info("(QUERY_ID: {}) calling completionhandler.complete()", queryId);
         completionHandler.complete();
       }
     }

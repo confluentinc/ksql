@@ -52,8 +52,12 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter {
+
+  private static final Logger LOG = LoggerFactory.getLogger(JsonStreamedRowResponseWriter.class);
 
   private static final int FLUSH_SIZE_BYTES = 50 * 1024;
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
@@ -70,6 +74,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   private final Context context;
   private final RowFormat rowFormat;
   private final WriterState writerState;
+  private final QueryId queryId;
   private StreamedRow lastRow;
   private long timerId = -1;
 
@@ -86,6 +91,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
       final RowFormat rowFormat
   ) {
     this.response = response;
+    this.queryId = queryPublisher.queryId();
     this.tombstoneFactory = queryPublisher.getResultType().map(
         resultType -> TombstoneFactory.create(queryPublisher.geLogicalSchema(), resultType));
     this.completionMessage = completionMessage;
@@ -102,6 +108,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
 
   @Override
   public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
+    LOG.info("(QUERY_ID: {}) writing metadata {} for queryID", queryId, metaData);
     final StreamedRow streamedRow = rowFormat.metadataRow(metaData);
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
     if (bufferOutput) {
@@ -158,6 +165,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   @Override
   public QueryStreamResponseWriter writeCompletionMessage() {
     if (completionMessage.isPresent()) {
+      LOG.info("(QUERY_ID: {}) writing completion message", queryId);
       writeLastRow(false);
       final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage.get());
       writeBuffer(serializeObject(streamedRow), true);
@@ -168,6 +176,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   @Override
   public QueryStreamResponseWriter writeLimitMessage() {
     if (limitMessage.isPresent()) {
+      LOG.info("(QUERY_ID: {}) writing limit message", queryId);
       writeLastRow(false);
       final StreamedRow streamedRow = StreamedRow.finalMessage(limitMessage.get());
       writeBuffer(serializeObject(streamedRow), true);
@@ -183,6 +192,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     if (writerState.length() > 0) {
       response.write(writerState.getStringToFlush());
     }
+    LOG.info("(QUERY_ID: {}) response.end()", queryId);
     response.end();
   }
 

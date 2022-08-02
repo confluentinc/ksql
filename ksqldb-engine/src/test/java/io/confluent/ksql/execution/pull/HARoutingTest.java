@@ -135,7 +135,8 @@ public class HARoutingTest {
   private KsqlPartitionLocation location4;
   private KsqlPartitionLocation location5;
 
-  private PullQueryQueue pullQueryQueue = new PullQueryQueue(OptionalInt.empty());
+  private PullQueryQueue pullQueryQueue = new PullQueryQueue(
+      new QueryId("query_HARoutingTest"), OptionalInt.empty());
 
 
   @Mock

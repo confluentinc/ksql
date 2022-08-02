@@ -198,6 +198,8 @@ public final class HARouting implements AutoCloseable {
     }
 
     while (processedPartitions < totalPartitions) {
+      LOG.info("(QUERY_ID: {}) Processed {}/{} partitions.",
+          queryId, processedPartitions, totalPartitions);
       final Future<PartitionFetchResult> future = completionService.take();
       try {
         final PartitionFetchResult fetchResult = future.get();
@@ -231,6 +233,7 @@ public final class HARouting implements AutoCloseable {
         throw exception;
       }
     }
+    LOG.info("(QUERY_ID: {}) Closing PQQ", queryId);
     pullQueryQueue.close();
   }
 
@@ -291,12 +294,14 @@ public final class HARouting implements AutoCloseable {
             routingOptions.getIsDebugRequest() ? node : null), Optional.empty());
     if (node.isLocal()) {
       try {
-        LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-            statement.getStatementText(), node.location(), System.currentTimeMillis());
+        LOG.info("(QUERY_ID: {}) About to execute locally for partition {} at host {} (ts: {}).",
+            queryId, location.getPartition(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
         synchronized (pullPhysicalPlan) {
           pullPhysicalPlan.execute(ImmutableList.of(location), pullQueryQueue, rowFactory);
+          LOG.info("(QUERY_ID: {}) Completed local execution for partition {} at host {} (ts: {}).",
+              queryId, location.getPartition(), node.location(), System.currentTimeMillis());
           return new PartitionFetchResult(
               RoutingResult.SUCCESS, location, Optional.empty());
         }
@@ -314,12 +319,15 @@ public final class HARouting implements AutoCloseable {
       }
     } else {
       try {
-        LOG.debug("Query {} routed to host {} at timestamp {}.",
-            statement.getStatementText(), node.location(), System.currentTimeMillis());
+        LOG.info("(QUERY_ID: {}) About to execute remotely for partition {} at host {} (ts: {}).",
+            queryId, location.getPartition(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
         forwardTo(node, ImmutableList.of(location), statement, serviceContext, pullQueryQueue,
             rowFactory, outputSchema, shouldCancelRequests, consistencyOffsetVector);
+        // TODO(agavra): link the query id on other node to this
+        LOG.info("(QUERY_ID: {}) Completed remote execution for partition {} at host {} (ts: {}).",
+            queryId, location.getPartition(), node.location(), System.currentTimeMillis());
         return new PartitionFetchResult(
             RoutingResult.SUCCESS, location, Optional.empty());
       } catch (StandbyFallbackException e) {

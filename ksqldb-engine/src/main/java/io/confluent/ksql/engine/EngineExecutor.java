@@ -285,7 +285,9 @@ final class EngineExecutor {
       );
       final PullPhysicalPlan physicalPlan = plan;
 
-      final PullQueryQueue pullQueryQueue = new PullQueryQueue(analysis.getLimitClause());
+      final PullQueryQueue pullQueryQueue = new PullQueryQueue(
+          physicalPlan.getQueryId(),
+          analysis.getLimitClause());
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),

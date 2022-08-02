@@ -150,7 +150,8 @@ public class PullQueryQueueTest {
   public void shouldOnlyAcceptLimitRows() {
     // Given:
     final int LIMIT_SIZE = 3;
-    queue = new PullQueryQueue(QUEUE_SIZE, 1, OptionalInt.of(LIMIT_SIZE));
+    queue = new PullQueryQueue(
+        new QueryId("query_TestID"), QUEUE_SIZE, 1, OptionalInt.of(LIMIT_SIZE));
 
     queue.setLimitHandler(limitHandler);
     queue.setQueuedCallback(queuedCallback);
@@ -172,7 +173,8 @@ public class PullQueryQueueTest {
     final List<PullQueryRow> rows = Lists.newArrayList();
     // limit is twice the queue capacity
     final int LIMIT_SIZE = QUEUE_SIZE * 2;
-    queue = new PullQueryQueue(QUEUE_SIZE, 1, OptionalInt.of(LIMIT_SIZE));
+    queue = new PullQueryQueue(
+        new QueryId("query_TestID"), QUEUE_SIZE, 1, OptionalInt.of(LIMIT_SIZE));
 
     queue.setLimitHandler(limitHandler);
     queue.setQueuedCallback(queuedCallback);
@@ -212,7 +214,7 @@ public class PullQueryQueueTest {
   }
 
   private void givenQueue() {
-    queue = new PullQueryQueue(QUEUE_SIZE, 1, OptionalInt.empty());
+    queue = new PullQueryQueue(new QueryId("query_TestID"), QUEUE_SIZE, 1, OptionalInt.empty());
 
     queue.setLimitHandler(limitHandler);
     queue.setCompletionHandler(completionHandler);

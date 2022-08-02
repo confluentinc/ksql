@@ -26,6 +26,7 @@ import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.util.ApiServerUtils;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -202,9 +203,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     // once by keeping track of the calls.
     final AtomicBoolean endedResponse = new AtomicBoolean(false);
 
+    final QueryId queryId = queryPublisher.queryId();
     if (queryPublisher.isPullQuery()) {
       metadata = new QueryResponseMetadata(
-          queryPublisher.queryId().toString(),
+          queryId.toString(),
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           queryPublisher.geLogicalSchema());
@@ -213,6 +215,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
       // When response is complete, publisher should be closed
       routingContext.response().endHandler(v -> {
+        log.info("(QUERY_ID: {}) QueryStreamHandler endHandler invoked.", queryId);
         if (endedResponse.getAndSet(true)) {
           log.warn("Connection already closed so just returning");
           return;
@@ -226,7 +229,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       });
     }  else if (queryPublisher.isScalablePushQuery()) {
       metadata = new QueryResponseMetadata(
-          queryPublisher.queryId().toString(),
+          queryId.toString(),
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
@@ -248,7 +251,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           .createApiQuery(queryPublisher, routingContext.request());
 
       metadata = new QueryResponseMetadata(
-          queryPublisher.queryId().toString(),
+          queryId.toString(),
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));

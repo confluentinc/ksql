@@ -84,6 +84,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     this.queryId = queryHandle.getQueryId();
     this.queue.setQueuedCallback(this::maybeSend);
     this.queue.setLimitHandler(() -> {
+      log.info("(QUERY_ID: {}) running customer limitHandler.", queryId);
       if (isPullQuery) {
         queryHandle.getConsistencyOffsetVector().ifPresent(
             ((PullQueryQueue) queue)::putConsistencyVector);
@@ -93,6 +94,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       hitLimit = true;
       // This allows us to hit the limit without having to queue one last row
       if (queue.isEmpty()) {
+        log.info("(QUERY_ID: {}) sendComplete() from limit handler (empty queue).", queryId);
         ctx.runOnContext(v -> sendComplete());
       }
     });
@@ -102,6 +104,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     // we should be returning a "Limit Reached" message as we do in the HTTP/1 endpoint when
     // we hit the limit, but for query completion, we should just end the response stream.
     this.queue.setCompletionHandler(() -> {
+      log.info("(QUERY_ID: {}) running customer completionHandler.", queryId);
       if (isPullQuery) {
         queryHandle.getConsistencyOffsetVector().ifPresent(
             ((PullQueryQueue) queue)::putConsistencyVector);
@@ -110,6 +113,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       complete = true;
       // This allows us to finish the query immediately if the query is already fully streamed.
       if (queue.isEmpty()) {
+        log.info("(QUERY_ID: {}) sendComplete() from completion handler (empty queue).", queryId);
         ctx.runOnContext(v -> sendComplete());
       }
     });
@@ -175,8 +179,15 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   }
 
   @Override
+  protected void sendComplete() {
+    log.info("(QUERY_ID: {}) call sendComplete (first time: {})", queryId, !hasSentComplete());
+    super.sendComplete();
+  }
+
+  @Override
   protected void afterSubscribe() {
     // Run async as it can block
+    log.info("(QUERY_ID: {}) Starting query publisher.");
     if (!started) {
       started = true;
       executeOnWorker(queryHandle::start);
@@ -208,6 +219,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       if (num < SEND_MAX_BATCH_SIZE) {
         doOnNext(queue.poll());
         if (complete && queue.isEmpty()) {
+          log.info("(QUERY_ID: {}) sendComplete() from doSend().", queryId);
           ctx.runOnContext(v -> sendComplete());
         }
         num++;

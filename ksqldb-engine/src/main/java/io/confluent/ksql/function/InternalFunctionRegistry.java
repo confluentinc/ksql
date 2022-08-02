@@ -17,11 +17,9 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,22 +94,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       return true;
     }
     return udtfs.containsKey(functionName.text().toUpperCase());
-  }
-
-  @Override
-  public synchronized KsqlAggregateFunction getAggregateFunction(
-      final FunctionName functionName,
-      final SqlType argumentType,
-      final AggregateFunctionInitArguments initArgs
-  ) {
-    final AggregateFunctionFactory udafFactory = udafs.get(functionName.text().toUpperCase());
-    if (udafFactory == null) {
-      throw new KsqlException("No aggregate function with name " + functionName + " exists!");
-    }
-    return udafFactory.createAggregateFunction(
-        Collections.singletonList(SqlArgument.of(argumentType)),
-        initArgs
-    );
   }
 
   @Override

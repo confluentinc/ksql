@@ -39,6 +39,7 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
@@ -255,9 +256,8 @@ public class InternalFunctionRegistryTest {
   @Test
   public void shouldAddAggregateFunction() {
     functionRegistry.addAggregateFunctionFactory(createAggregateFunctionFactory());
-    assertThat(functionRegistry.getAggregateFunction(FunctionName.of("my_aggregate"),
-        SqlTypes.INTEGER,
-        AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
+    assertThat(functionRegistry.getAggregateFactory(FunctionName.of("my_aggregate")),
+            not(nullValue()));
   }
 
   @Test
@@ -373,10 +373,10 @@ public class InternalFunctionRegistryTest {
 
   private AggregateFunctionFactory createAggregateFunctionFactory() {
     return new AggregateFunctionFactory("my_aggregate") {
+
       @Override
-      public KsqlAggregateFunction createAggregateFunction(final List<SqlArgument> argTypeList,
-                                                           final AggregateFunctionInitArguments initArgs) {
-        return mockAggFun;
+      public FunctionSource getFunction(List<SqlType> argTypeList) {
+        return new FunctionSource(0, (initArgs) -> mockAggFun);
       }
 
       @Override

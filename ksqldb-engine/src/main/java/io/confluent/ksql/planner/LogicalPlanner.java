@@ -390,7 +390,8 @@ public class LogicalPlanner {
         aggregateAnalysis,
         projectionExpressions,
         analysis.getInto().isPresent(),
-        ksqlConfig
+        ksqlConfig,
+        sourcePlanNode.getSchema()
     );
   }
 

@@ -83,10 +83,10 @@ public class ClusterTerminator {
         .map(Pattern::compile)
         .collect(Collectors.toList());
 
-    final List<DataSource> sourcesToDelete =
-        getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
-    deleteTopics(topicNames(sourcesToDelete));
-    cleanUpSinkSchemas(subjectNames(sourcesToDelete));
+    final List<DataSource> toDelete = getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
+
+    deleteTopics(topicNames(toDelete));
+    cleanUpSinkSchemas(subjectNames(toDelete));
   }
 
   private List<String> filterNonExistingTopics(final Collection<String> topicList) {

@@ -325,7 +325,6 @@ public final class HARouting implements AutoCloseable {
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
         forwardTo(node, ImmutableList.of(location), statement, serviceContext, pullQueryQueue,
             rowFactory, outputSchema, shouldCancelRequests, consistencyOffsetVector);
-        // TODO(agavra): link the query id on other node to this
         LOG.info("(QUERY_ID: {}) Completed remote execution for partition {} at host {} (ts: {}).",
             queryId, location.getPartition(), node.location(), System.currentTimeMillis());
         return new PartitionFetchResult(
@@ -450,6 +449,10 @@ public final class HARouting implements AutoCloseable {
           final StreamedRow row = streamedRows.get(i);
           if (i == 0 && previousProcessedRows == 0) {
             final Optional<Header> optionalHeader = row.getHeader();
+            optionalHeader.ifPresent(value ->
+                LOG.info("(QUERY_ID: {}) Got response from sub-query with id {}",
+                    pullQueryQueue.queryId(), value.getQueryId()));
+
             optionalHeader.ifPresent(h -> validateSchema(outputSchema, h.getSchema(), owner));
             optionalHeader.ifPresent(header::set);
             continue;

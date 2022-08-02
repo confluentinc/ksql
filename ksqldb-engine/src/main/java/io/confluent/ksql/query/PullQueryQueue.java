@@ -168,7 +168,7 @@ public class PullQueryQueue implements BlockingRowQueue {
    * also be called then.
    */
   private void closeInternal(final boolean limitHit) {
-    LOG.info("(QUERY_ID: {}) closing query (first time: {})", queryId, closed.get());
+    LOG.info("(QUERY_ID: {}) closing query (first time: {})", queryId, !closed.get());
     if (!closed.getAndSet(true)) {
       // Unlike limits based on a number of rows which can be checked and possibly triggered after
       // every queuing of a row, pull queries just declare they've reached their limit when close is
@@ -296,5 +296,9 @@ public class PullQueryQueue implements BlockingRowQueue {
 
   public long getTotalRowsQueued() {
     return totalRowsQueued.get();
+  }
+
+  public QueryId queryId() {
+    return queryId;
   }
 }

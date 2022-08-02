@@ -187,7 +187,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   @Override
   protected void afterSubscribe() {
     // Run async as it can block
-    log.info("(QUERY_ID: {}) Starting query publisher.");
+    log.info("(QUERY_ID: {}) Starting query publisher.", queryId);
     if (!started) {
       started = true;
       executeOnWorker(queryHandle::start);

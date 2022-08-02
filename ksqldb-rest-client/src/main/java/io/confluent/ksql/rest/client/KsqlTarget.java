@@ -369,7 +369,7 @@ public final class KsqlTarget {
           }
         });
         // Closing after the end handle was called resulted in errors about the connection being
-        // closed, so we even turn this on the context so there's no race.
+        // closed, so we even run this on the context so there's no race.
         final Context context = Vertx.currentContext();
         shouldCloseConnection.handle((v, t) -> {
           context.runOnContext(v2 -> {

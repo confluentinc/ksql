@@ -192,8 +192,10 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     if (writerState.length() > 0) {
       response.write(writerState.getStringToFlush());
     }
-    LOG.info("(QUERY_ID: {}) response.end()", queryId);
-    response.end();
+
+    LOG.info("(QUERY_ID: {}) response.end() [before: {}]", queryId, response.bytesWritten());
+    response.end(Buffer.buffer("END(" + queryId + ")"));
+    LOG.info("(QUERY_ID: {}) response.end() [after: {}]", queryId, response.bytesWritten());
   }
 
   public enum RowFormat {

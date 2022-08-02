@@ -133,7 +133,7 @@ public class ClusterTerminationTest {
     );
 
     // Then:
-    shouldReturn50303WhenTerminating();
+    shouldReturn50304WhenTerminating();
   }
 
   @Test
@@ -178,7 +178,7 @@ public class ClusterTerminationTest {
     assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(1));
 
     // Then:
-    shouldReturn50303WhenTerminating();
+    shouldReturn50304WhenTerminating();
   }
 
   private void waitForTopicsToBeAbsentWithTimeout(final String topic) {

@@ -95,7 +95,9 @@ public final class InternalKsqlClientFactory {
       final Map<String, String> clientProps,
       final boolean tls
   ) {
-    return new HttpClientOptions().setMaxPoolSize(100);
+    return new HttpClientOptions()
+        .setLogActivity(true)
+        .setMaxPoolSize(100);
   }
 
   private static HttpClientOptions createClientOptionsHttp2(
@@ -123,6 +125,7 @@ public final class InternalKsqlClientFactory {
         .setHttp2MultiplexingLimit(1)
         .setHttp2MaxPoolSize(sizeInt)
         .setProtocolVersion(HttpVersion.HTTP_2)
+        .setLogActivity(true)
         .setUseAlpn(tls);
   }
 }

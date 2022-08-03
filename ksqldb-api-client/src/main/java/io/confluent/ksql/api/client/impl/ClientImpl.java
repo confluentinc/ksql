@@ -902,6 +902,7 @@ public class ClientImpl implements Client {
         .setVerifyHost(clientOptions.isVerifyHost())
         .setDefaultHost(clientOptions.getHost())
         .setDefaultPort(clientOptions.getPort())
+        .setLogActivity(true)
         .setHttp2MultiplexingLimit(clientOptions.getHttp2MultiplexingLimit());
     if (clientOptions.isUseTls() && !clientOptions.getTrustStore().isEmpty()) {
       final JksOptions jksOptions = VertxSslOptionsFactory.getJksTrustStoreOptions(

@@ -71,6 +71,20 @@ originally processed.
 
 ---
 
+## **`CORRELATION`**
+
+```sql title="Applies to: stream, table<br>Since: 0.29.0"
+CORRELATION(x, y)
+```
+
+Returns the Pearson correlation coefficient between `DOUBLE` columns `x` and `y`. If either value in `x` or `y` is `NULL` for a particular row, that row is ignored.
+
+If all rows contain `NULL` for `x` or `y`, or if there is only one non-null row, `NaN` is returned. When there are only two non-null rows, either `1.0` or `-1.0` is returned, depending on the sign of the slope of the line that would be drawn between the two points.
+
+If all the values in one column are equal, `NaN` is returned.
+
+---
+
 ## **`COUNT`**
 
 ```sql title="Applies to: stream, table<br>"

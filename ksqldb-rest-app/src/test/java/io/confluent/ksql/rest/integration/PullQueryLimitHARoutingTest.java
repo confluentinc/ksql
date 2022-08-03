@@ -52,6 +52,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProviderBig;
 import io.netty.channel.ChannelHandlerContext;
 import io.vertx.core.http.impl.Http1xClientConnection;
+import io.vertx.core.http.impl.HttpClientResponseAdvice;
+import io.vertx.core.http.impl.HttpClientResponseImpl;
+import io.vertx.core.http.impl.HttpEventHandlerAdvice;
 import io.vertx.core.net.impl.VertxHandler;
 import java.io.IOException;
 import java.util.List;
@@ -217,7 +220,7 @@ public class PullQueryLimitHARoutingTest {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws ClassNotFoundException {
 
       //  private void handleResponseEnd(Stream stream, LastHttpContent trailer) {
 
@@ -235,6 +238,23 @@ public class PullQueryLimitHARoutingTest {
             .make()
             .load(Http1xClientConnection.class.getClassLoader(),
                 ClassReloadingStrategy.fromInstalledAgent());
+
+      new ByteBuddy()
+          .with(Factory.INSTANCE)
+          .redefine(HttpClientResponseImpl.class)
+          .visit(Advice.to(HttpClientResponseAdvice.class).on(ElementMatchers.named("handleEnd")))
+          .make()
+          .load(HttpClientResponseImpl.class.getClassLoader(),
+              ClassReloadingStrategy.fromInstalledAgent());
+
+      new ByteBuddy()
+          .with(Factory.INSTANCE)
+          .redefine(HttpClientResponseImpl.class.getClassLoader()
+              .loadClass("io.vertx.core.http.impl.HttpEventHandler"))
+          .visit(Advice.to(HttpEventHandlerAdvice.class).on(ElementMatchers.named("endHandler")))
+          .make()
+          .load(HttpClientResponseImpl.class.getClassLoader(),
+              ClassReloadingStrategy.fromInstalledAgent());
 
         //Create topic with 4 partition to control who is active and standby
         topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();

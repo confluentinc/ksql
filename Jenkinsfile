@@ -14,6 +14,6 @@ common {
     pinnedNanoVersions = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = config.isPrJob ? "-Dmaven.gitcommitid.nativegit=true" : "-Dmaven.gitcommitid.nativegit=true -DskipTests -T4 -Dassembly.skipAssembly"
+    extraBuildArgs = isPrJob ? "-Dmaven.gitcommitid.nativegit=true" : "-Dmaven.gitcommitid.nativegit=true -DskipTests -T4 -Dassembly.skipAssembly"
 }
 

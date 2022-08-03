@@ -51,12 +51,13 @@ import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProviderBig;
 import io.netty.channel.ChannelHandlerContext;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.impl.Http1xClientConnection;
-import io.vertx.core.http.impl.HttpClientResponseAdvice;
 import io.vertx.core.http.impl.HttpClientResponseImpl;
-import io.vertx.core.http.impl.HttpEventHandlerAdvice;
 import io.vertx.core.net.impl.VertxHandler;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,6 +70,7 @@ import net.bytebuddy.asm.Advice.OnMethodEnter;
 import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.implementation.Implementation.Context.Default.Factory;
 import net.bytebuddy.matcher.ElementMatchers;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -218,6 +220,51 @@ public class PullQueryLimitHARoutingTest {
       }
 
     }
+
+  public static class HttpEventHandlerAdvice {
+
+    @OnMethodEnter
+    public static void foo(
+        @Advice.Argument(0) Handler<Void> handler,
+        @Advice.FieldValue("endHandler") Handler<Void> endHandler
+    ) {
+      final String handlerClazz = handler == null
+          ? "null" : handler.getClass().getSimpleName();
+      final String endHandlerClazz = endHandler == null
+          ? "null" : endHandler.getClass().getSimpleName();
+
+      if (handlerClazz.contains("RecordParserImpl") || endHandlerClazz.contains("RecordParserImpl")) {
+        LOG.info(
+            "Replacing handler class {} with handler of class {} at trace {}",
+            endHandlerClazz,
+            handlerClazz,
+            ExceptionUtils.getStackTrace(new Throwable())
+        );
+      }
+    }
+  }
+
+  public static class HttpClientResponseAdvice {
+
+    @OnMethodEnter
+    public static void foo(
+        @Advice.FieldValue("conn") HttpConnection conn,
+        @Advice.FieldValue("eventHandler") Object eventHandler
+    ) throws Exception {
+      final Field endHandlerF = eventHandler.getClass().getDeclaredField("endHandler");
+      endHandlerF.setAccessible(true);
+      final Object endHandler = endHandlerF.get(eventHandler);
+
+      LOG.info(
+          "{} HttpClientResponse handleEnd() with handler object {} class {}. Stack trace: {}",
+          ((Http1xClientConnection) conn).channelHandlerContext(),
+          endHandler,
+          endHandler != null ? endHandler.getClass() : null,
+          ExceptionUtils.getStackTrace(new Throwable())
+      );
+    }
+
+  }
 
     @Before
     public void setUp() throws ClassNotFoundException {

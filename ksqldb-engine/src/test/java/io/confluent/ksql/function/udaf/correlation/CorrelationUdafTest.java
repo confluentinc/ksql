@@ -393,6 +393,50 @@ public class CorrelationUdafTest {
   }
 
   @Test
+  public void shouldCorrelateDoublesSameXValues() {
+    final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
+            CorrelationUdaf.createCorrelation();
+
+    Struct agg = udaf.initialize();
+    final List<Pair<Double, Double>> values = ImmutableList.of(
+            Pair.of(20.0, 15.0),
+            Pair.of(20.0, 10.0),
+            Pair.of(20.0, 5.0),
+            Pair.of(20.0, 0.0),
+            Pair.of(20.0, -5.0),
+            Pair.of(20.0, -10.0)
+    );
+    for (final Pair<Double, Double> thisValue : values) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+    final double correlation = udaf.map(agg);
+
+    assertThat(Double.isNaN(correlation), is(true));
+  }
+
+  @Test
+  public void shouldCorrelateDoublesSameYValues() {
+    final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
+            CorrelationUdaf.createCorrelation();
+
+    Struct agg = udaf.initialize();
+    final List<Pair<Double, Double>> values = ImmutableList.of(
+            Pair.of(15.0, 20.0),
+            Pair.of(10.0, 20.0),
+            Pair.of(5.0, 20.0),
+            Pair.of(0.0, 20.0),
+            Pair.of(-5.0, 20.0),
+            Pair.of(-10.0, 20.0)
+    );
+    for (final Pair<Double, Double> thisValue : values) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+    final double correlation = udaf.map(agg);
+
+    assertThat(Double.isNaN(correlation), is(true));
+  }
+
+  @Test
   public void shouldMergeCorrelations() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
             CorrelationUdaf.createCorrelation();

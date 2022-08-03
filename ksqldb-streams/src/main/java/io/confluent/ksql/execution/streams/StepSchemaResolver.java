@@ -373,8 +373,7 @@ public final class StepSchemaResolver {
       final boolean windowed,
       final int pseudoColumnVersion
   ) {
-    return schema
-        .withPseudoAndKeyColsInValue(windowed, pseudoColumnVersion);
+    return schema.withPseudoAndKeyColsInValue(windowed, pseudoColumnVersion);
   }
 
   private LogicalSchema buildSelectSchema(

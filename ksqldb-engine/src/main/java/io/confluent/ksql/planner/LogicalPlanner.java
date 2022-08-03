@@ -401,8 +401,7 @@ public class LogicalPlanner {
         parentNode,
         analysis.getSelectItems(),
         analysis.getInto(),
-        metaStore,
-        ksqlConfig
+        metaStore
     );
   }
 
@@ -456,8 +455,7 @@ public class LogicalPlanner {
         currentNode,
         schema,
         partitionBy.getExpressions(),
-        rewrittenPartitionBys,
-        ksqlConfig
+        rewrittenPartitionBys
     );
   }
 
@@ -608,8 +606,7 @@ public class LogicalPlanner {
           new PlanNodeId("KafkaTopic_" + prefix + JoinSide.LEFT),
           leaf.getSource().getDataSource(),
           leaf.getSource().getAlias(),
-          isWindowed,
-          ksqlConfig
+          isWindowed
       );
     }
 
@@ -622,8 +619,7 @@ public class LogicalPlanner {
           new PlanNodeId("KafkaTopic_" + prefix + JoinSide.RIGHT),
           leaf.getSource().getDataSource(),
           leaf.getSource().getAlias(),
-          isWindowed,
-          ksqlConfig
+          isWindowed
       );
     }
 
@@ -988,8 +984,7 @@ public class LogicalPlanner {
         new PlanNodeId("KsqlTopic"),
         dataSource.getDataSource(),
         dataSource.getAlias(),
-        isWindowed,
-        ksqlConfig
+        isWindowed
     );
   }
 
@@ -1002,7 +997,7 @@ public class LogicalPlanner {
 
     final LogicalSchema projectionSchema = SelectionUtil.buildProjectionSchema(
         sourceSchema
-            .withPseudoAndKeyColsInValue(analysis.getWindowExpression().isPresent(), ksqlConfig),
+            .withPseudoAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
         projectionExpressions,
         metaStore
     );

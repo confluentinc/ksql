@@ -121,52 +121,54 @@ public final class TestCaseBuilderUtil {
       final FunctionRegistry functionRegistry,
       final KsqlConfig ksqlConfig
   ) {
-    final Map<String, Topic> allTopics = new HashMap<>();
-
-    // Add all topics from topic nodes to the map:
-    topics.forEach(topic -> allTopics.put(topic.getName(), topic));
+    final Map<String, Topic> topicsByName = new HashMap<>();
+    topics.forEach(topic -> topicsByName.put(topic.getName(), topic));
 
     // Infer topics if not added already:
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     for (String sql : statements) {
+      // Creates the `Topic` object when a schema is declared in the CREATE statement
+      // and updates the `allTopics` with the schema and features found in the statement
       final Topic topicFromStatement = createTopicFromStatement(sql, metaStore, ksqlConfig);
       if (topicFromStatement != null) {
-        allTopics.computeIfPresent(topicFromStatement.getName(), (key, topic) -> {
-          final Optional<ParsedSchema> keySchema = Optional.of(topic.getKeySchema())
-                  .filter(Optional::isPresent)
-                  .orElse(topicFromStatement.getKeySchema());
-          final Optional<ParsedSchema> valueSchema = Optional.of(topic.getValueSchema())
-                  .filter(Optional::isPresent)
-                  .orElse(topicFromStatement.getValueSchema());
-          topic = new Topic(topic.getName(), topic.getNumPartitions(), topic.getReplicas(),
-                  keySchema, valueSchema, topic.getKeyFeatures(), topic.getValueFeatures());
+        topicsByName.compute(topicFromStatement.getName(), (key, topic) -> {
+          if (topic == null) {
+            return topicFromStatement;
+          } else {
+            final Optional<ParsedSchema> keySchema = Optional.of(topic.getKeySchema())
+                .filter(Optional::isPresent)
+                .orElse(topicFromStatement.getKeySchema());
 
-          return topic;
+            final Optional<ParsedSchema> valueSchema = Optional.of(topic.getValueSchema())
+                .filter(Optional::isPresent)
+                .orElse(topicFromStatement.getValueSchema());
+
+            topic = new Topic(
+                topic.getName(),
+                topic.getNumPartitions(),
+                topic.getReplicas(),
+
+                // Use the key/value schema built for the CREATE statement
+                keySchema,
+                valueSchema,
+
+                // Use the serde features built for the CREATE statement
+                topicFromStatement.getKeyFeatures(),
+                topicFromStatement.getValueFeatures());
+
+            return topic;
+          }
         });
-        if (allTopics.containsKey(topicFromStatement.getName())) {
-          // If the topic already exists, just add the key/value serde features
-          final Topic existingTopic = allTopics.get(topicFromStatement.getName());
-          allTopics.put(topicFromStatement.getName(), new Topic(
-              existingTopic.getName(),
-              existingTopic.getNumPartitions(),
-              existingTopic.getReplicas(),
-              existingTopic.getKeySchema(),
-              existingTopic.getValueSchema(),
-              topicFromStatement.getKeyFeatures(),
-              topicFromStatement.getValueFeatures()
-          ));
-        } else {
-          allTopics.put(topicFromStatement.getName(), topicFromStatement);
-        }
       }
     }
 
-    // Get topics from inputs and outputs fields:
+    // If the `Topic` information is not found or resolved directly from the statement, then
+    // create a simple `Topic` using the input/outputs topic field
     Streams.concat(inputs.stream(), outputs.stream())
         .map(record -> new Topic(record.getTopicName(), Optional.empty(), Optional.empty()))
-        .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
+        .forEach(topic -> topicsByName.putIfAbsent(topic.getName(), topic));
 
-    return allTopics.values();
+    return topicsByName.values();
   }
 
   private static Topic createTopicFromStatement(

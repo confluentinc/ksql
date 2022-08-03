@@ -52,6 +52,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProviderBig;
 import io.netty.channel.ChannelHandlerContext;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.impl.Http1xClientConnection;
 import io.vertx.core.http.impl.HttpClientResponseImpl;
@@ -214,9 +215,17 @@ public class PullQueryLimitHARoutingTest {
 
       @OnMethodEnter
       public static void foo(
-          @Advice.FieldValue("chctx") ChannelHandlerContext chctx
-      ) {
-        LOG.info("{} Http1xClientConnection hit handleResponseEnd()", chctx.toString());
+          @Advice.FieldValue("chctx") ChannelHandlerContext chctx,
+          @Advice.Argument(0) Object stream
+      ) throws Exception {
+        final Field endHandlerF = stream.getClass().getDeclaredField("endHandler");
+        endHandlerF.setAccessible(true);
+
+        final Field queueF = stream.getClass().getDeclaredField("queue");
+        queueF.setAccessible(true);
+
+        LOG.info("{} Http1xClientConnection hit handleResponseEnd() with endHandler "
+            + "set on stream {}", chctx.toString(), endHandlerF.get(stream));
       }
 
     }

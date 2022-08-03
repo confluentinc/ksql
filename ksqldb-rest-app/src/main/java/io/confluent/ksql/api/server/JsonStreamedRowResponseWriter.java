@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.connect.protobuf.ProtobufData;
@@ -45,6 +46,9 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.impl.Http1xServerConnection;
+import io.vertx.core.http.impl.Http1xServerResponse;
+import io.vertx.core.net.impl.ConnectionBase;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.List;
@@ -75,6 +79,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   private final RowFormat rowFormat;
   private final WriterState writerState;
   private final QueryId queryId;
+  private Supplier<Boolean> readGetter;
   private StreamedRow lastRow;
   private long timerId = -1;
 
@@ -104,6 +109,25 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
             || completionMessage.isPresent(),
         "If buffering isn't used, a limit/completion message must be set");
     this.rowFormat = rowFormat;
+
+    try {
+      final java.lang.reflect.Field fRead = ConnectionBase.class.getDeclaredField("read");
+      fRead.setAccessible(true);
+
+      final java.lang.reflect.Field fConn = Http1xServerResponse.class.getDeclaredField("conn");
+      fConn.setAccessible(true);
+
+      this.readGetter = () -> {
+        try {
+          final Http1xServerConnection conn = (Http1xServerConnection) fConn.get(response);
+          return (Boolean) fRead.get(conn);
+        } catch (IllegalAccessException e) {
+          return false;
+        }
+      };
+    } catch (NoSuchFieldException e) {
+      this.readGetter = () -> null;
+    }
   }
 
   @Override
@@ -193,9 +217,10 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
       response.write(writerState.getStringToFlush());
     }
 
-    LOG.info("(QUERY_ID: {}) response.end() [before: {}]", queryId, response.bytesWritten());
+    LOG.info("(QUERY_ID: {}) response.end() [will flush: {}]",
+        queryId, !(Boolean.TRUE.equals(readGetter.get())));
+
     response.end(Buffer.buffer("END(" + queryId + ")"));
-    LOG.info("(QUERY_ID: {}) response.end() [after: {}]", queryId, response.bytesWritten());
   }
 
   public enum RowFormat {

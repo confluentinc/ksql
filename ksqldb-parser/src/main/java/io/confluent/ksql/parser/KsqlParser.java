@@ -54,7 +54,7 @@ public interface KsqlParser {
     private ParsedStatement(final String statementText, final SingleStatementContext statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
       this.statement = Objects.requireNonNull(statement, "statement");
-      maskedStatementText = QueryMask.getMaskedStatement(statementText);
+      this.maskedStatementText = QueryMask.getMaskedStatement(statementText);
     }
 
     public static ParsedStatement of(
@@ -104,7 +104,7 @@ public interface KsqlParser {
     private PreparedStatement(final String statementText, final T statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
       this.statement = Objects.requireNonNull(statement, "statement");
-      maskedStatementText = QueryMask.getMaskedStatement(statementText);
+      this.maskedStatementText = QueryMask.getMaskedStatement(statementText); //
     }
 
     public static <T extends Statement> PreparedStatement<T> of(

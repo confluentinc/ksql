@@ -92,6 +92,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.QueryMask;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
@@ -1479,7 +1480,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldMaskPreparedStatement() {
+  public void shouldMaskConnectStatement() {
     // Given
     final String query = "--this is a comment. \n"
         + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
@@ -1506,6 +1507,74 @@ public class KsqlParserTest {
     assertThat(preparedStatement.getStatementText(), is(masked));
     assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
     assertThat(preparedStatement.toString(), is(masked));
+  }
+
+  @Test
+  public void shouldMaskFallbackConnectStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    final String masked = "--this is a comment. \n"
+        + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url'='[string]',\n"
+        + "    \"mode\"='[string]',\n"
+        + "    \"topic.prefix\"='[string]',\n"
+        + "    \"table.whitelist\"='[string]',\n"
+        + "    \"key\"='[string]');";
+
+    // when
+    final PreparedStatement<CreateConnector> preparedStatement =
+        PreparedStatement.of(query, mock(CreateConnector.class));
+
+    // Then
+    assertThat(QueryMask.fallbackMaskConnectProperties(query), is(masked));
+    assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
+  }
+
+  @Test
+  public void shouldMaskInsertStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES (\"key\", \"A\");";
+
+    final String masked = "INSERT INTO  SOURCE (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');";
+
+    // when
+    final PreparedStatement<CreateConnector> preparedStatement =
+        PreparedStatement.of(query, mock(CreateConnector.class));
+
+    // Then
+    assertThat(preparedStatement.getStatementText(), is(masked));
+    assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
+    assertThat(preparedStatement.toString(), is(masked));
+  }
+
+  @Test
+  public void shouldMaskFallbackInsertStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
+        + "(\"key\", 0.125, '{something}', 1, C, 2.3E);";
+
+    final String masked = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
+        + "('[value]','[value]','[value]','[value]','[value]','[value]');";
+
+    // when
+    final PreparedStatement<CreateConnector> preparedStatement =
+        PreparedStatement.of(query, mock(CreateConnector.class));
+
+    // Then
+    assertThat(QueryMask.fallbackMaskValues(query), is(masked));
+    assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
   }
 
 

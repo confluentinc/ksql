@@ -44,7 +44,8 @@ public class CorrelationUdaf implements TableUdaf<Pair<Double, Double>, Struct, 
           .build();
 
   @UdafFactory(description = "Computes the Pearson correlation coefficient between "
-          + "two DOUBLE columns.")
+          + "two DOUBLE columns.", aggregateSchema = "STRUCT<X_SUM double, Y_SUM double, "
+          + "X_SQUARED_SUM double, Y_SQUARED_SUM double, XY_SUM double, COUNT bigint>")
   public static TableUdaf<Pair<Double, Double>, Struct, Double> createCorrelation() {
     return new CorrelationUdaf();
   }

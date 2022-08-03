@@ -50,6 +50,9 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProviderBig;
+import io.netty.channel.ChannelHandlerContext;
+import io.vertx.core.http.impl.Http1xClientConnection;
+import io.vertx.core.net.impl.VertxHandler;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +60,12 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import kafka.zookeeper.ZooKeeperClientException;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.OnMethodEnter;
+import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
+import net.bytebuddy.implementation.Implementation.Context.Default.Factory;
+import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -68,10 +77,14 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 @Category({IntegrationTest.class})
 public class PullQueryLimitHARoutingTest {
+
+    public static final Logger LOG = LoggerFactory.getLogger(PullQueryLimitHARoutingTest.class);
 
     private static final String USER_TOPIC = "user_topic_";
     private static final String USERS_STREAM = "users";
@@ -180,8 +193,49 @@ public class PullQueryLimitHARoutingTest {
             .withLookingForStuckThread(true)
             .build();
 
+    public static class VertxHandlerAdvice {
+
+      @OnMethodEnter
+      public static void foo(
+          @Advice.Argument(0)ChannelHandlerContext chctx,
+          @Advice.Argument(1) Object msg
+      ) {
+        LOG.info("{} VertxHandler Received Message: {}", chctx.toString(), msg);
+      }
+
+    }
+
+    public static class CCAdvice {
+
+      @OnMethodEnter
+      public static void foo(
+          @Advice.FieldValue("chctx") ChannelHandlerContext chctx
+      ) {
+        LOG.info("{} Http1xClientConnection hit handleResponseEnd()", chctx.toString());
+      }
+
+    }
+
     @Before
     public void setUp() {
+
+      //  private void handleResponseEnd(Stream stream, LastHttpContent trailer) {
+
+        new ByteBuddy()
+            .with(Factory.INSTANCE)
+            .redefine(VertxHandler.class)
+            .visit(Advice.to(VertxHandlerAdvice.class).on(ElementMatchers.named("channelRead")))
+            .make()
+            .load(VertxHandler.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+
+        new ByteBuddy()
+            .with(Factory.INSTANCE)
+            .redefine(Http1xClientConnection.class)
+            .visit(Advice.to(CCAdvice.class).on(ElementMatchers.named("handleResponseEnd")))
+            .make()
+            .load(Http1xClientConnection.class.getClassLoader(),
+                ClassReloadingStrategy.fromInstalledAgent());
+
         //Create topic with 4 partition to control who is active and standby
         topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
         TEST_HARNESS.ensureTopics(4, topic);

@@ -35,7 +35,7 @@ final class QueryLogicalPlanUtil {
     if (!addAdditionalColumnsToIntermediateSchema) {
       return schema;
     } else {
-      return schema.withPseudoAndKeyColsInValue(isWindowed);
+      return schema.withPseudoAndKeyColsInValue(isWindowed, true);
     }
   }
 }

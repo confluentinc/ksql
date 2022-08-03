@@ -152,7 +152,9 @@ public final class LogicalSchema {
    * @return the new schema.
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
-      final boolean windowed, final int pseudoColumnVersion) {
+      final boolean windowed,
+      final int pseudoColumnVersion
+  ) {
     return rebuildWithPseudoAndKeyColsInValue(windowed, pseudoColumnVersion, false);
   }
 
@@ -167,6 +169,27 @@ public final class LogicalSchema {
    */
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
     return withPseudoAndKeyColsInValue(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
+
+  /**
+   * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
+   *
+   * <p>Similar to the above implementation, but determines the version to use by looking at the
+   * config and whether or not the calling context is a pull or scalable push query.
+   *
+   * @param windowed indicates that the source is windowed
+   * @param forPullOrScalablePushQuery whether this is a pull or scalable push query schema
+   * @return the new schema.
+   */
+  public LogicalSchema withPseudoAndKeyColsInValue(
+      final boolean windowed,
+      final boolean forPullOrScalablePushQuery
+  ) {
+    return rebuildWithPseudoAndKeyColsInValue(
+        windowed,
+        CURRENT_PSEUDOCOLUMN_VERSION_NUMBER,
+        forPullOrScalablePushQuery
+    );
   }
 
   /**

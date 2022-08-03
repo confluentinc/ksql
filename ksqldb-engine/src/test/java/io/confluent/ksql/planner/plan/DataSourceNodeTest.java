@@ -157,8 +157,6 @@ public class DataSourceNodeTest {
   private ProcessingLogger processingLogger;
   @Mock
   private Projection projection;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   private DataSourceNode node;
 
@@ -194,13 +192,11 @@ public class DataSourceNodeTest {
 
     givenWindowedSource(false);
 
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     node = new DataSourceNode(
         PLAN_NODE_ID,
         SOME_SOURCE,
         SOME_SOURCE.getName(),
-        false,
-        ksqlConfig
+        false
     );
   }
 
@@ -257,8 +253,7 @@ public class DataSourceNodeTest {
         PLAN_NODE_ID,
         table,
         table.getName(),
-        false,
-        ksqlConfig
+        false
     );
 
     // When:
@@ -274,7 +269,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false)));
   }
 
   @Test
@@ -287,7 +282,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
   @Test
@@ -460,8 +455,7 @@ public class DataSourceNodeTest {
         dataSource,
         SOURCE_NAME,
         schemaKStreamFactory,
-        false,
-        ksqlConfig
+        false
     );
   }
 

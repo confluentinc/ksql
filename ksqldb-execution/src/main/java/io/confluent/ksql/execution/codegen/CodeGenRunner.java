@@ -320,7 +320,7 @@ public class CodeGenRunner {
 
     private void addRequiredColumn(final ColumnName columnName) {
       final Column column = schema.findValueColumn(columnName)
-          .orElseThrow(() -> new KsqlException(fieldNotFoundErrorMessage(columnName, ksqlConfig)));
+          .orElseThrow(() -> new KsqlException(fieldNotFoundErrorMessage(columnName)));
 
       spec.addParameter(
           column.name(),
@@ -330,15 +330,14 @@ public class CodeGenRunner {
     }
 
     private String fieldNotFoundErrorMessage(
-        final ColumnName columnName,
-        final KsqlConfig ksqlConfig
+        final ColumnName columnName
     ) {
       final String cannotFindFieldMessage =
           "Cannot find the select field in the available fields."
               + " field: " + columnName
               + ", schema: " + schema.value();
 
-      if (SystemColumns.isPseudoColumn(columnName, ksqlConfig)) {
+      if (SystemColumns.isPseudoColumn(columnName)) {
         return cannotFindFieldMessage
             + "\nIf this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
             + " ksqlDB after the original query was issued are not available"

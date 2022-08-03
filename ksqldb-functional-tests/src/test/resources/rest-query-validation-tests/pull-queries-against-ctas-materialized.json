@@ -1146,9 +1146,6 @@
         "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
         "SELECT *, ROWPARTITION FROM QUERYABLE_USERS WHERE ID=2;"
       ],
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "responses": [
         {"admin": {"@type": "currentStatus"}}
       ],
@@ -1165,9 +1162,6 @@
         "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
         "SELECT ID, USERTIMESTAMP FROM QUERYABLE_USERS WHERE ID = 2 AND USERTIMESTAMP > 50 AND ROWOFFSET < 3;"
       ],
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "responses": [
         {"admin": {"@type": "currentStatus"}}
       ],

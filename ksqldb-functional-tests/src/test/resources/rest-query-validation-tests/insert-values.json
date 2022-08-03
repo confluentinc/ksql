@@ -555,9 +555,6 @@
     },
     {
       "name": "verify INSERT VALUES fails for ROWPARTITION",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO input (id, val, ROWPARTITION) VALUES (1, 'hello', 5);"
@@ -570,9 +567,6 @@
     },
     {
       "name": "verify INSERT VALUES fails for ROWOFFSET",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "INSERT INTO input (id, val, ROWOFFSET) VALUES (1, 'hello', 5);"

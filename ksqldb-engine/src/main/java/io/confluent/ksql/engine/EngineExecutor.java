@@ -122,7 +122,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -801,7 +800,6 @@ final class EngineExecutor {
 
       return new ExecutorPlans(
           new StubbedOutputNode(
-              ksqlConfig,
               metaStore.getSource(logicalPlan.getSourceNames().stream().findFirst().get()),
               getSinkTopic(root.getFormats(), sink.get()),
               schemaBuilder.build()
@@ -814,7 +812,6 @@ final class EngineExecutor {
           sink,
           metaStore,
           ksqlConfig,
-          getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
           statement.getStatementText()
       );
 
@@ -903,7 +900,6 @@ final class EngineExecutor {
 
   private static final class StubbedOutputNode extends KsqlStructuredDataOutputNode {
     private StubbedOutputNode(
-        final KsqlConfig ksqlConfig,
         final DataSource source,
         final KsqlTopic sinkTopic,
         final LogicalSchema sinkSchema) {
@@ -913,8 +909,7 @@ final class EngineExecutor {
               new PlanNodeId("stubbedSource"),
               source,
               source.getName(),
-              false,
-              ksqlConfig
+              false
           ),
           sinkSchema,
           Optional.empty(),
@@ -936,10 +931,9 @@ final class EngineExecutor {
         final PlanNodeId id,
         final DataSource dataSource,
         final SourceName alias,
-        final boolean isWindowed,
-        final KsqlConfig ksqlConfig
+        final boolean isWindowed
     ) {
-      super(id, dataSource, alias, isWindowed, ksqlConfig);
+      super(id, dataSource, alias, isWindowed);
     }
 
     @Override
@@ -1177,18 +1171,5 @@ final class EngineExecutor {
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {
     return new PlanSummary(queryId, config.getConfig(true), engineContext.getMetaStore())
         .summarize(plan);
-  }
-
-  private static boolean getRowpartitionRowoffsetEnabled(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> configOverrides
-  ) {
-    final Object rowpartitionRowoffsetEnabled =
-        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
-    if (rowpartitionRowoffsetEnabled != null) {
-      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
-    }
-
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 }

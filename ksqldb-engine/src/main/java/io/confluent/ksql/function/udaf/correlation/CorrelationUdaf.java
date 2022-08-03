@@ -91,6 +91,9 @@ public class CorrelationUdaf implements TableUdaf<Pair<Double, Double>, Struct, 
 
   @Override
   public Double map(final Struct agg) {
+
+    /* These calculations are based on the single-pass correlation formula shown at
+    https://www.mathsisfun.com/data/correlation.html. (See "Note for Programmers.") */
     final double sumX = agg.getFloat64(X_SUM);
     final double sumY = agg.getFloat64(Y_SUM);
     final double squaredXSum = agg.getFloat64(X_SQUARED_SUM);
@@ -100,9 +103,9 @@ public class CorrelationUdaf implements TableUdaf<Pair<Double, Double>, Struct, 
 
     final double numerator = count * sumXY - sumX * sumY;
 
-    final double denominatorX = Math.sqrt(count * squaredXSum - sumX * sumX);
-    final double denominatorY = Math.sqrt(count * squaredYSum - sumY * sumY);
-    final double denominator = denominatorX * denominatorY;
+    final double denominatorX = count * squaredXSum - sumX * sumX;
+    final double denominatorY = count * squaredYSum - sumY * sumY;
+    final double denominator = Math.sqrt(denominatorX * denominatorY);
 
     return numerator / denominator;
   }

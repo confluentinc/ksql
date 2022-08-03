@@ -294,6 +294,7 @@ public class Server {
         .setPort(port)
         .setReuseAddress(true)
         .setReusePort(true)
+        .setLogActivity(true)
         .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
         .setPerFrameWebSocketCompressionSupported(true);

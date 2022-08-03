@@ -1,6 +1,6 @@
 {
   "comments": [
-    "Tests covering the use of the AVERAGE aggregate function"
+    "Tests covering the use of the CORRELATION aggregate function"
   ],
   "tests": [
     {

@@ -340,6 +340,59 @@ public class CorrelationUdafTest {
   }
 
   @Test
+  public void shouldCorrelateDoublesOnePoint() {
+    final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
+            CorrelationUdaf.createCorrelation();
+
+    Struct agg = udaf.initialize();
+    final List<Pair<Double, Double>> values = ImmutableList.of(
+            Pair.of(15.0, 20.0)
+    );
+    for (final Pair<Double, Double> thisValue : values) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+    final double correlation = udaf.map(agg);
+
+    assertThat(Double.isNaN(correlation), is(true));
+  }
+
+  @Test
+  public void shouldCorrelateDoublesTwoPointsPositive() {
+    final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
+            CorrelationUdaf.createCorrelation();
+
+    Struct agg = udaf.initialize();
+    final List<Pair<Double, Double>> values = ImmutableList.of(
+            Pair.of(15.0, 20.0),
+            Pair.of(20.0, 30.0)
+    );
+    for (final Pair<Double, Double> thisValue : values) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+    final double correlation = udaf.map(agg);
+
+    assertThat(correlation, closeTo(1.0, 0.00005));
+  }
+
+  @Test
+  public void shouldCorrelateDoublesTwoPointsNegative() {
+    final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
+            CorrelationUdaf.createCorrelation();
+
+    Struct agg = udaf.initialize();
+    final List<Pair<Double, Double>> values = ImmutableList.of(
+            Pair.of(15.0, 20.0),
+            Pair.of(20.0, -30.0)
+    );
+    for (final Pair<Double, Double> thisValue : values) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+    final double correlation = udaf.map(agg);
+
+    assertThat(correlation, closeTo(-1.0, 0.00005));
+  }
+
+  @Test
   public void shouldMergeCorrelations() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
             CorrelationUdaf.createCorrelation();

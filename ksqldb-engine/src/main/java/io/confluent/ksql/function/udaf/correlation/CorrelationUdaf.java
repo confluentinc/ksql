@@ -35,12 +35,13 @@ public class CorrelationUdaf implements TableUdaf<Pair<Double, Double>, Struct, 
   private static final String XY_SUM = "XY_SUM";
   private static final String COUNT = "COUNT";
   private static final Schema structSchema = SchemaBuilder.struct()
-          .field(X_SUM, Schema.FLOAT64_SCHEMA)
-          .field(Y_SUM, Schema.FLOAT64_SCHEMA)
-          .field(X_SQUARED_SUM, Schema.FLOAT64_SCHEMA)
-          .field(Y_SQUARED_SUM, Schema.FLOAT64_SCHEMA)
-          .field(XY_SUM, Schema.FLOAT64_SCHEMA)
-          .field(COUNT, Schema.INT64_SCHEMA)
+          .optional()
+          .field(X_SUM, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .field(Y_SUM, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .field(X_SQUARED_SUM, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .field(Y_SQUARED_SUM, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .field(XY_SUM, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .field(COUNT, Schema.OPTIONAL_INT64_SCHEMA)
           .build();
 
   @UdafFactory(description = "Computes the Pearson correlation coefficient between "

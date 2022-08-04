@@ -22,6 +22,8 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.StreamableTable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
@@ -43,6 +45,26 @@ public class KsqlLang {
 
   private final Planner planner;
 
+  public static class KsqlTable extends AbstractTable implements StreamableTable {
+
+    @Override
+    public Table stream() {
+      return null;
+    }
+
+    @Override
+    public RelDataType getRowType(final RelDataTypeFactory typeFactory) {
+      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+      final RelDataType t1 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+      final RelDataType t2 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.CHAR), true);
+      final RelDataType t3 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.CHAR), true);
+      builder.add("ID", t1);
+      builder.add("NAME", t2);
+      builder.add("OWNERID", t3);
+      return builder.build();
+    }
+  }
+
   public KsqlLang() {
     final SchemaPlus schema = CalciteSchema.createRootSchema(true).plus();
 
@@ -58,19 +80,7 @@ public class KsqlLang {
 
     schema.add(
         "USERS",
-        new AbstractTable() {
-          @Override
-          public RelDataType getRowType(final RelDataTypeFactory typeFactory) {
-            final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
-            final RelDataType t1 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.INTEGER), true);
-            final RelDataType t2 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.CHAR), true);
-            final RelDataType t3 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.CHAR), true);
-            builder.add("ID", t1);
-            builder.add("NAME", t2);
-            builder.add("OWNERID", t3);
-            return builder.build();
-          }
-        }
+        new KsqlTable()
     );
 
     // NEEDED: add integration with metastore here.

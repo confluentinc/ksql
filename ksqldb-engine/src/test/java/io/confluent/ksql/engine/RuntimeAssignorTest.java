@@ -1,7 +1,6 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;

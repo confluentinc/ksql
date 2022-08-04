@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RuntimeAssignor {
-  private final Map<String, Collection<SourceName>> runtimesToSources;
+  private final Map<String, Collection<String>> runtimesToSources;
   private final Map<QueryId, String> idToRuntime;
   private final Logger log = LoggerFactory.getLogger(RuntimeAssignor.class);
   private final int numDefaultRuntimes;
@@ -53,7 +53,7 @@ public class RuntimeAssignor {
     numDefaultRuntimes = other.numDefaultRuntimes;
     this.runtimesToSources = new HashMap<>();
     this.idToRuntime = new HashMap<>(other.idToRuntime);
-    for (Map.Entry<String, Collection<SourceName>> runtime
+    for (Map.Entry<String, Collection<String>> runtime
         : other.runtimesToSources.entrySet()) {
       this.runtimesToSources.put(runtime.getKey(), new HashSet<>(runtime.getValue()));
     }
@@ -64,7 +64,7 @@ public class RuntimeAssignor {
   }
 
   public String getRuntimeAndMaybeAddRuntime(final QueryId queryId,
-                                             final Collection<SourceName> sources,
+                                             final Collection<String> sources,
                                              final KsqlConfig config) {
     if (idToRuntime.containsKey(queryId)) {
       return idToRuntime.get(queryId);
@@ -97,7 +97,7 @@ public class RuntimeAssignor {
             + " only possible with Gen 1 queries", queryMetadata);
       }
       runtimesToSources.get(queryMetadata.getQueryApplicationId())
-          .removeAll(queryMetadata.getSourceNames());
+          .removeAll(queryMetadata.getSourceTopicNames());
       idToRuntime.remove(queryMetadata.getQueryId());
       if (runtimesToSources.get(queryMetadata.getQueryApplicationId()).isEmpty()
           && runtimesToSources.size() > numDefaultRuntimes) {
@@ -123,7 +123,7 @@ public class RuntimeAssignor {
           runtimesToSources.put(queryMetadata.getQueryApplicationId(), new HashSet<>());
         }
         runtimesToSources.get(queryMetadata.getQueryApplicationId())
-            .addAll(queryMetadata.getSourceNames());
+            .addAll(queryMetadata.getSourceTopicNames());
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
       } else {
         gen1Queries.add(queryMetadata.getQueryId());
@@ -149,7 +149,7 @@ public class RuntimeAssignor {
     }
   }
 
-  public Map<String, Collection<SourceName>> getRuntimesToSources() {
+  public Map<String, Collection<String>> getRuntimesToSources() {
     return ImmutableMap.copyOf(runtimesToSources);
   }
 

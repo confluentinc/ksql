@@ -30,8 +30,8 @@ public class RuntimeAssignorTest {
   public BinPackedPersistentQueryMetadataImpl queryMetadata;
   private final QueryId query1 = new QueryId("Test1");
   private final QueryId query2 = new QueryId("Test2");
-  private final Collection<SourceName> sources1 = Collections.singleton(SourceName.of("test1"));
-  private final Collection<SourceName> sources2 = Collections.singleton(SourceName.of("test2"));
+  private final Collection<String> sources1 = Collections.singleton("test1");
+  private final Collection<String> sources2 = Collections.singleton("test2");
 
   private String firstRuntime;
   private RuntimeAssignor runtimeAssignor;
@@ -48,7 +48,7 @@ public class RuntimeAssignorTest {
     );
     when(queryMetadata.getQueryApplicationId()).thenReturn(firstRuntime);
     when(queryMetadata.getQueryId()).thenReturn(query1);
-    when(queryMetadata.getSourceNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
+    when(queryMetadata.getSourceTopicNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
   }
 
   @Test
@@ -193,7 +193,7 @@ public class RuntimeAssignorTest {
           KSQL_CONFIG
       ));
       when(query.getQueryId()).thenReturn(query1);
-      when(query.getSourceNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
+      when(query.getSourceTopicNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
       queries.add(query);
     }
     return queries;

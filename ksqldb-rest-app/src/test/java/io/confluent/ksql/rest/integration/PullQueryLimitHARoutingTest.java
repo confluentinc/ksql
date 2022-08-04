@@ -325,15 +325,23 @@ public class PullQueryLimitHARoutingTest {
           @Argument(1) Object arg,
           @Argument(2) Handler<Object> task,
           @This EventLoopContext context
-      ) {
+      ) throws NoSuchFieldException, IllegalAccessException {
         EventLoop eventLoop = context.nettyEventLoop();
         if (eventLoop.inEventLoop()) {
           task.handle(arg);
         } else {
-          if (task.getClass().toString().contains("Http1XClientConnection")) {
-            LOG.info("Enqueued EventLoopLambda with task: {}", task);
-          }
-          eventLoop.execute(new EventLoopLambda(arg, task));
+          final Field streamF = task.getClass().getDeclaredField("arg$1");
+          streamF.setAccessible(true);
+
+          final Object stream = streamF.get(task);
+          final Field connF = stream.getClass().getDeclaredField("conn");
+          connF.setAccessible(true);
+
+          final ConnectionBase conn = (ConnectionBase) connF.get(stream);
+
+          LOG.info("{} Enqueued EventLoopLambda with task: {}",
+              conn.channelHandlerContext(), task);
+          eventLoop.execute(new EventLoopLambda(arg, task, conn));
         }
       }
   }
@@ -341,13 +349,15 @@ public class PullQueryLimitHARoutingTest {
   public static class EventLoopLambda implements Runnable {
       public final Object arg;
       public final Handler task;
+      public final ConnectionBase conn;
 
     public EventLoopLambda(
         final Object arg,
-        final Handler task
-    ) {
+        final Handler task,
+        final ConnectionBase conn) {
       this.arg = arg;
       this.task = task;
+      this.conn = conn;
     }
 
     @Override
@@ -364,7 +374,9 @@ public class PullQueryLimitHARoutingTest {
       ) {
         if (task instanceof EventLoopLambda) {
           if (task.getClass().toString().contains("Http1XClientConnection")) {
-            LOG.info("Pulled EventLoopLambda with task: {}", ((EventLoopLambda) task).task);
+            LOG.info("{} Pulled EventLoopLambda with task: {}",
+                ((EventLoopLambda) task).conn,
+                ((EventLoopLambda) task).task);
           }
         }
       }

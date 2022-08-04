@@ -373,11 +373,9 @@ public class PullQueryLimitHARoutingTest {
           @Advice.Return Runnable task
       ) {
         if (task instanceof EventLoopLambda) {
-          if (task.getClass().toString().contains("Http1XClientConnection")) {
-            LOG.info("{} Pulled EventLoopLambda with task: {}",
-                ((EventLoopLambda) task).conn,
-                ((EventLoopLambda) task).task);
-          }
+          LOG.info("{} Pulled EventLoopLambda with task: {}",
+              ((EventLoopLambda) task).conn.channelHandlerContext(),
+              ((EventLoopLambda) task).task);
         }
       }
 

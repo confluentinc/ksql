@@ -60,6 +60,7 @@ import io.vertx.core.net.impl.ConnectionBase;
 import io.vertx.core.net.impl.VertxHandler;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -287,33 +288,27 @@ public class PullQueryLimitHARoutingTest {
       @OnMethodEnter
       public static void foo(
           @Advice.FieldValue("conn") Object conn,
-          @Advice.FieldValue("endHandler") Object endHandler
+          @Advice.FieldValue("endHandler") Object endHandler,
+          @Advice.Origin String origin,
+          @Advice.AllArguments Object[] args
       ) {
+        String trace = "";
+        if (origin.contains("endHandler")) {
+          trace = ExceptionUtils.getStackTrace(new Throwable());
+        }
+
         LOG.info(
-            "{} StreamImpl handleEnd() called. Field value for endHandler: {}",
+            "{} {}({}) called. Field value for endHandler: {}{}",
             ((ConnectionBase) conn).channelHandlerContext(),
-            endHandler
+            origin,
+            Arrays.toString(args),
+            endHandler,
+            trace.isEmpty() ? "" : " from: " + trace
         );
       }
   }
 
-  public static class StreamImplEndHandlerAdvice {
-
-    @OnMethodEnter
-    public static void foo(
-        @Advice.FieldValue("conn") Object conn,
-        @Advice.Argument(0) Object endHandler
-    ) {
-      LOG.info(
-          "{} StreamImpl endHandler() called. Setting endHandler to: {}. Trace: {}",
-          ((ConnectionBase) conn).channelHandlerContext(),
-          endHandler,
-          ExceptionUtils.getStackTrace(new Throwable())
-      );
-    }
-  }
-
-    @Before
+  @Before
     public void setUp() throws ClassNotFoundException {
 
       //  private void handleResponseEnd(Stream stream, LastHttpContent trailer) {
@@ -354,17 +349,9 @@ public class PullQueryLimitHARoutingTest {
           .with(Factory.INSTANCE)
           .redefine(Http1xClientConnection.class.getClassLoader()
               .loadClass("io.vertx.core.http.impl.Http1xClientConnection$StreamImpl"))
-          .visit(Advice.to(StreamImplAdvice.class).on(ElementMatchers.named("handleEnd")))
-          .make()
-          .load(Http1xClientConnection.class.getClassLoader(),
-              ClassReloadingStrategy.fromInstalledAgent());
-
-      new ByteBuddy()
-          .with(Factory.INSTANCE)
-          .redefine(Http1xClientConnection.class.getClassLoader()
-              .loadClass("io.vertx.core.http.impl.Http1xClientConnection$StreamImpl"))
-          .visit(Advice.to(StreamImplEndHandlerAdvice.class)
-              .on(ElementMatchers.named("endHandler")))
+          .visit(Advice.to(StreamImplAdvice.class).on(
+              ElementMatchers.nameContainsIgnoreCase("handle")
+                  .and(ElementMatchers.not(ElementMatchers.nameContainsIgnoreCase("chunk")))))
           .make()
           .load(Http1xClientConnection.class.getClassLoader(),
               ClassReloadingStrategy.fromInstalledAgent());

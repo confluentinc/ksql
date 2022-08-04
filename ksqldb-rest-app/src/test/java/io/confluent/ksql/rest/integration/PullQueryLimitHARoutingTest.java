@@ -51,11 +51,14 @@ import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProviderBig;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.EventLoop;
+import io.netty.util.concurrent.SingleThreadEventExecutor;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.impl.Http1xClientConnection;
 import io.vertx.core.http.impl.HttpClientResponseImpl;
+import io.vertx.core.impl.EventLoopContext;
 import io.vertx.core.net.impl.ConnectionBase;
 import io.vertx.core.net.impl.VertxHandler;
 import java.io.IOException;
@@ -64,14 +67,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import kafka.zookeeper.ZooKeeperClientException;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.Advice.AllArguments;
 import net.bytebuddy.asm.Advice.OnMethodEnter;
+import net.bytebuddy.asm.Advice.OnMethodExit;
 import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.implementation.Implementation.Context.Default.Factory;
+import net.bytebuddy.implementation.MethodDelegation;
+import net.bytebuddy.implementation.bind.annotation.Argument;
+import net.bytebuddy.implementation.bind.annotation.RuntimeType;
+import net.bytebuddy.implementation.bind.annotation.This;
 import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -308,6 +318,59 @@ public class PullQueryLimitHARoutingTest {
       }
   }
 
+  public static class EventLoopIntercept {
+
+      @RuntimeType
+      public static void intercept(
+          @Argument(1) Object arg,
+          @Argument(2) Handler<Object> task,
+          @This EventLoopContext context
+      ) {
+        EventLoop eventLoop = context.nettyEventLoop();
+        if (eventLoop.inEventLoop()) {
+          task.handle(arg);
+        } else {
+          if (task.getClass().toString().contains("Http1XClientConnection")) {
+            LOG.info("Enqueued EventLoopLambda with task: {}", task);
+          }
+          eventLoop.execute(new EventLoopLambda(arg, task));
+        }
+      }
+  }
+
+  public static class EventLoopLambda implements Runnable {
+      public final Object arg;
+      public final Handler task;
+
+    public EventLoopLambda(
+        final Object arg,
+        final Handler task
+    ) {
+      this.arg = arg;
+      this.task = task;
+    }
+
+    @Override
+    public void run() {
+      task.handle(arg);
+    }
+  }
+
+  public static class EventExecAdvice {
+
+      @OnMethodExit
+      public static void foo(
+          @Advice.Return Runnable task
+      ) {
+        if (task instanceof EventLoopLambda) {
+          if (task.getClass().toString().contains("Http1XClientConnection")) {
+            LOG.info("Pulled EventLoopLambda with task: {}", ((EventLoopLambda) task).task);
+          }
+        }
+      }
+
+  }
+
   @Before
     public void setUp() throws ClassNotFoundException {
 
@@ -355,6 +418,23 @@ public class PullQueryLimitHARoutingTest {
           .make()
           .load(Http1xClientConnection.class.getClassLoader(),
               ClassReloadingStrategy.fromInstalledAgent());
+
+    new ByteBuddy()
+        .with(Factory.INSTANCE)
+        .redefine(EventLoopContext.class)
+        .method(ElementMatchers.named("execute").and(ElementMatchers.takesArguments(3)))
+        .intercept(MethodDelegation.to(EventLoopIntercept.class))
+        .make()
+        .load(EventLoopContext.class.getClassLoader(),
+            ClassReloadingStrategy.fromInstalledAgent());
+
+    new ByteBuddy()
+        .with(Factory.INSTANCE)
+        .redefine(SingleThreadEventExecutor.class)
+        .visit(Advice.to(EventExecAdvice.class).on(ElementMatchers.named("pollTaskFrom")))
+        .make()
+        .load(SingleThreadEventExecutor.class.getClassLoader(),
+            ClassReloadingStrategy.fromInstalledAgent());
 
         //Create topic with 4 partition to control who is active and standby
         topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();

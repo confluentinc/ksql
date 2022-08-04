@@ -260,10 +260,16 @@ public class PullQueryQueue implements BlockingRowQueue {
   }
 
   private boolean doAcceptRow(final PullQueryRow row) throws InterruptedException {
+    long startMs = System.currentTimeMillis();
     while (!closed.get()) {
       if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
         totalRowsQueued.incrementAndGet();
         return true;
+      }
+      if (System.currentTimeMillis() - startMs > 10_000) {
+        startMs = System.currentTimeMillis();
+        LOG.info("Stuck attempting to accept row on thread {} for more than 10s.",
+            Thread.currentThread().getName());
       }
     }
     return false;

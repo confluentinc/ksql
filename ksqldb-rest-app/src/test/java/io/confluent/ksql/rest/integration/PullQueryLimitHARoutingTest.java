@@ -325,7 +325,7 @@ public class PullQueryLimitHARoutingTest {
           @Argument(1) Object arg,
           @Argument(2) Handler<Object> task,
           @This EventLoopContext context
-      ) throws NoSuchFieldException, IllegalAccessException {
+      ) throws Exception {
         EventLoop eventLoop = context.nettyEventLoop();
         if (eventLoop.inEventLoop()) {
           task.handle(arg);
@@ -337,10 +337,13 @@ public class PullQueryLimitHARoutingTest {
           final Field connF = stream.getClass().getDeclaredField("conn");
           connF.setAccessible(true);
 
-          final ConnectionBase conn = (ConnectionBase) connF.get(stream);
+          final Field threadF = SingleThreadEventExecutor.class.getDeclaredField("thread");
+          threadF.setAccessible(true);
+          final Thread thread = (Thread) threadF.get(eventLoop);
 
-          LOG.info("{} Enqueued EventLoopLambda with task: {}",
-              conn.channelHandlerContext(), task);
+          final ConnectionBase conn = (ConnectionBase) connF.get(stream);
+          LOG.info("{} Enqueued EventLoopLambda onto loop with thread {} with task: {}",
+              conn.channelHandlerContext(), thread.getName(), task);
           eventLoop.execute(new EventLoopLambda(arg, task, conn));
         }
       }
@@ -373,8 +376,9 @@ public class PullQueryLimitHARoutingTest {
           @Advice.Return Runnable task
       ) {
         if (task instanceof EventLoopLambda) {
-          LOG.info("{} Pulled EventLoopLambda with task: {}",
+          LOG.info("{} Pulled EventLoopLambda from loop with thread {} with task: {}",
               ((EventLoopLambda) task).conn.channelHandlerContext(),
+              Thread.currentThread().getName(),
               ((EventLoopLambda) task).task);
         }
       }

@@ -56,6 +56,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.impl.Http1xClientConnection;
 import io.vertx.core.http.impl.HttpClientResponseImpl;
+import io.vertx.core.net.impl.ConnectionBase;
 import io.vertx.core.net.impl.VertxHandler;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -224,8 +225,14 @@ public class PullQueryLimitHARoutingTest {
         final Field queueF = stream.getClass().getDeclaredField("queue");
         queueF.setAccessible(true);
 
+        final Field headF = stream.getClass().getDeclaredField("request");
+        headF.setAccessible(true);
+
         LOG.info("{} Http1xClientConnection hit handleResponseEnd() with endHandler "
-            + "set on stream {}", chctx.toString(), endHandlerF.get(stream));
+            + "set on stream {} with {}null head",
+            chctx.toString(),
+            endHandlerF.get(stream),
+            headF.get(stream) != null ? "non-" : "");
       }
 
     }
@@ -275,6 +282,37 @@ public class PullQueryLimitHARoutingTest {
 
   }
 
+  public static class StreamImplAdvice {
+
+      @OnMethodEnter
+      public static void foo(
+          @Advice.FieldValue("conn") Object conn,
+          @Advice.FieldValue("endHandler") Object endHandler
+      ) {
+        LOG.info(
+            "{} StreamImpl handleEnd() called. Field value for endHandler: {}",
+            ((ConnectionBase) conn).channelHandlerContext(),
+            endHandler
+        );
+      }
+  }
+
+  public static class StreamImplEndHandlerAdvice {
+
+    @OnMethodEnter
+    public static void foo(
+        @Advice.FieldValue("conn") Object conn,
+        @Advice.Argument(0) Object endHandler
+    ) {
+      LOG.info(
+          "{} StreamImpl endHandler() called. Setting endHandler to: {}. Trace: {}",
+          ((ConnectionBase) conn).channelHandlerContext(),
+          endHandler,
+          ExceptionUtils.getStackTrace(new Throwable())
+      );
+    }
+  }
+
     @Before
     public void setUp() throws ClassNotFoundException {
 
@@ -310,6 +348,25 @@ public class PullQueryLimitHARoutingTest {
           .visit(Advice.to(HttpEventHandlerAdvice.class).on(ElementMatchers.named("endHandler")))
           .make()
           .load(HttpClientResponseImpl.class.getClassLoader(),
+              ClassReloadingStrategy.fromInstalledAgent());
+
+      new ByteBuddy()
+          .with(Factory.INSTANCE)
+          .redefine(Http1xClientConnection.class.getClassLoader()
+              .loadClass("io.vertx.core.http.impl.Http1xClientConnection$StreamImpl"))
+          .visit(Advice.to(StreamImplAdvice.class).on(ElementMatchers.named("handleEnd")))
+          .make()
+          .load(Http1xClientConnection.class.getClassLoader(),
+              ClassReloadingStrategy.fromInstalledAgent());
+
+      new ByteBuddy()
+          .with(Factory.INSTANCE)
+          .redefine(Http1xClientConnection.class.getClassLoader()
+              .loadClass("io.vertx.core.http.impl.Http1xClientConnection$StreamImpl"))
+          .visit(Advice.to(StreamImplEndHandlerAdvice.class)
+              .on(ElementMatchers.named("endHandler")))
+          .make()
+          .load(Http1xClientConnection.class.getClassLoader(),
               ClassReloadingStrategy.fromInstalledAgent());
 
         //Create topic with 4 partition to control who is active and standby

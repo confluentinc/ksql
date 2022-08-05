@@ -602,7 +602,7 @@ final class EngineExecutor {
         plans.executionPlan.getPhysicalPlan(),
         plans.executionPlan.getQueryId(),
         getApplicationId(plans.executionPlan.getQueryId(),
-            getSourceNames(outputNode))
+            getSourceTopicNames(outputNode))
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -679,7 +679,7 @@ final class EngineExecutor {
           plans.executionPlan.getPhysicalPlan(),
           plans.executionPlan.getQueryId(),
           getApplicationId(plans.executionPlan.getQueryId(),
-              getSourceNames(outputNode))
+              getSourceTopicNames(outputNode))
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -701,7 +701,7 @@ final class EngineExecutor {
   }
 
   private Optional<String> getApplicationId(final QueryId queryId,
-                                            final Collection<SourceName> sources) {
+                                            final Collection<String> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         ? Optional.of(
         engineContext.getRuntimeAssignor()
@@ -1094,6 +1094,14 @@ final class EngineExecutor {
     return outputNode.getSourceNodes()
         .map(DataSourceNode::getDataSource)
         .map(DataSource::getName)
+        .collect(Collectors.toSet());
+  }
+
+  private static Set<String> getSourceTopicNames(final PlanNode outputNode) {
+    return outputNode.getSourceNodes()
+        .map(DataSourceNode::getDataSource)
+        .map(DataSource::getKsqlTopic)
+        .map(KsqlTopic::getKafkaTopicName)
         .collect(Collectors.toSet());
   }
 

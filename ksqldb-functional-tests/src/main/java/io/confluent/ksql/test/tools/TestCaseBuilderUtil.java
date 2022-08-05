@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static com.google.common.io.Files.getNameWithoutExtension;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.config.SessionConfig;
@@ -34,6 +35,7 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -171,18 +173,25 @@ public final class TestCaseBuilderUtil {
     return topicsByName.values();
   }
 
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   private static Topic createTopicFromStatement(
       final String sql,
       final MutableMetaStore metaStore,
       final KsqlConfig ksqlConfig
   ) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
     final KsqlParser parser = new DefaultKsqlParser();
 
     final Function<ConfiguredStatement<?>, Topic> extractTopic = (ConfiguredStatement<?> stmt) -> {
       final CreateSource statement = (CreateSource) stmt.getStatement();
       final CreateSourceProperties props = statement.getProperties();
+      final TableElements tableElements = statement.getElements();
 
-      final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
+      if (Iterators.size(tableElements.iterator()) == 0) {
+        return null;
+      }
+
+      final LogicalSchema logicalSchema = tableElements.toLogicalSchema();
 
       final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
           props, statement.getName());

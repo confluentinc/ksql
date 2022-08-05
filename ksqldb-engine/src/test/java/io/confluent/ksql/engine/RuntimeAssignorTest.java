@@ -1,6 +1,7 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -29,8 +30,8 @@ public class RuntimeAssignorTest {
   public BinPackedPersistentQueryMetadataImpl queryMetadata;
   private final QueryId query1 = new QueryId("Test1");
   private final QueryId query2 = new QueryId("Test2");
-  private final Collection<String> sources1 = Collections.singleton("test1");
-  private final Collection<String> sources2 = Collections.singleton("test2");
+  private final Collection<String> sourceTopics1 = Collections.singleton("test1");
+  private final Collection<String> sourceTopics2 = Collections.singleton("test2");
 
   private String firstRuntime;
   private RuntimeAssignor runtimeAssignor;
@@ -42,12 +43,12 @@ public class RuntimeAssignorTest {
     runtimeAssignor = new RuntimeAssignor(KSQL_CONFIG);
     firstRuntime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query1,
-        sources1,
+        sourceTopics1,
         KSQL_CONFIG
     );
     when(queryMetadata.getQueryApplicationId()).thenReturn(firstRuntime);
     when(queryMetadata.getQueryId()).thenReturn(query1);
-    when(queryMetadata.getSourceTopicNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
+    when(queryMetadata.getSourceTopicNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sourceTopics1)));
   }
 
   @Test
@@ -65,12 +66,12 @@ public class RuntimeAssignorTest {
     final RuntimeAssignor sandbox = runtimeAssignor.createSandbox();
     sandbox.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources2,
+        sourceTopics2,
         KSQL_CONFIG
     );
     assertThat("Was changed by sandbox.", !runtimeAssignor.getIdToRuntime().containsKey(query2));
     assertThat("The query was not added.", sandbox.getIdToRuntime().containsKey(query2));
-    assertThat("Added a new Runtime.", sandbox.getRuntimesToSources().size() == 1);
+    assertThat("Added a new Runtime.", sandbox.getRuntimesToSourceTopics().size() == 1);
   }
 
   @Test
@@ -78,41 +79,53 @@ public class RuntimeAssignorTest {
     final RuntimeAssignor sandbox = runtimeAssignor.createSandbox();
     sandbox.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources2,
+        sourceTopics2,
         KSQL_CONFIG
     );
     assertThat("Was changed by sandbox.", !runtimeAssignor.getIdToRuntime().containsKey(query2));
     assertThat("The query was not added.", sandbox.getIdToRuntime().containsKey(query2));
-    assertThat("Was changed by sandbox.", runtimeAssignor.getRuntimesToSources().size() == 1);
+    assertThat("Was changed by sandbox.", runtimeAssignor.getRuntimesToSourceTopics().size() == 1);
   }
 
   @Test
-  public void shouldAddingAQueryWithDifferentSourcesWillNotAddARuntime() {
+  public void shouldAddingAQueryWithDifferentSourceTopicsWillNotAddARuntime() {
     runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources2,
+        sourceTopics2,
         KSQL_CONFIG
     );
     assertThat("Query not added.", runtimeAssignor.getIdToRuntime().containsKey(query2));
-    assertThat("Added a new Runtime.", runtimeAssignor.getRuntimesToSources().size() == 1);
+    assertThat("Added a new Runtime.", runtimeAssignor.getRuntimesToSourceTopics().size() == 1);
+  }
+
+  @Test
+  public void shouldAddingAQueryWithSameSourceTopicsWillAddARuntime() {
+    runtimeAssignor.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sourceTopics1,
+        KSQL_CONFIG
+    );
+    assertThat("Query not added.", runtimeAssignor.getIdToRuntime().containsKey(query2));
+    assertThat("Added a new Runtime.", runtimeAssignor.getRuntimesToSourceTopics().size() == 2);
   }
 
   @Test
   public void shouldAddingAQueryWithSameSourcesWillAddARuntime() {
+    when(queryMetadata.getSourceNames()).thenReturn(Collections.singleton(SourceName.of("Same")));
     runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources1,
+        sourceTopics1,
         KSQL_CONFIG
     );
     assertThat("Query not added.", runtimeAssignor.getIdToRuntime().containsKey(query2));
-    assertThat("Added a new Runtime.", runtimeAssignor.getRuntimesToSources().size() == 2);
+    assertThat("Added a new Runtime.", runtimeAssignor.getRuntimesToSourceTopics().size() == 2);
   }
 
   @Test
   public void shouldGetSameRuntimeForSameQueryId() {
     final String runtime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query1,
-        sources1,
+        sourceTopics1,
         KSQL_CONFIG
     );
     assertThat(runtime, equalTo(firstRuntime));
@@ -122,7 +135,7 @@ public class RuntimeAssignorTest {
   public void shouldNotGetSameRuntimeForDifferentQueryIdAndSameSources() {
     final String runtime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources1,
+        sourceTopics1,
         KSQL_CONFIG
     );
     assertThat(runtime, not(equalTo(firstRuntime)));
@@ -133,7 +146,7 @@ public class RuntimeAssignorTest {
     runtimeAssignor.dropQuery(queryMetadata);
     final String runtime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query1,
-        sources1,
+        sourceTopics1,
         KSQL_CONFIG
     );
     assertThat(runtime, equalTo(firstRuntime));
@@ -143,12 +156,12 @@ public class RuntimeAssignorTest {
   public void shouldDropQueryAndCleanUpRuntime() {
     runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources1,
+        sourceTopics1,
         KSQL_CONFIG
     );
-    assertThat(runtimeAssignor.getRuntimesToSources().size(), equalTo(2));
+    assertThat(runtimeAssignor.getRuntimesToSourceTopics().size(), equalTo(2));
     runtimeAssignor.dropQuery(queryMetadata);
-    assertThat(runtimeAssignor.getRuntimesToSources().size(), equalTo(1));
+    assertThat(runtimeAssignor.getRuntimesToSourceTopics().size(), equalTo(1));
   }
 
   @Test
@@ -157,7 +170,7 @@ public class RuntimeAssignorTest {
     rebuilt.rebuildAssignment(Collections.singleton(queryMetadata));
     final String runtime = rebuilt.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources1,
+        sourceTopics1,
         KSQL_CONFIG
     );
     assertThat(runtime, not(equalTo(firstRuntime)));
@@ -172,7 +185,7 @@ public class RuntimeAssignorTest {
     //When:
     final String runtime = rebuilt.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources1,
+        sourceTopics1,
         KSQL_CONFIG
     );
 
@@ -188,11 +201,11 @@ public class RuntimeAssignorTest {
       when(query.getQueryApplicationId()).thenReturn(
           runtimeAssignor.getRuntimeAndMaybeAddRuntime(
           new QueryId(i + "_"),
-          sources1,
+              sourceTopics1,
           KSQL_CONFIG
       ));
       when(query.getQueryId()).thenReturn(query1);
-      when(query.getSourceTopicNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
+      when(query.getSourceTopicNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sourceTopics1)));
       queries.add(query);
     }
     return queries;

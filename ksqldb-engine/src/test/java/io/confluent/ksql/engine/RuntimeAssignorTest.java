@@ -110,18 +110,6 @@ public class RuntimeAssignorTest {
   }
 
   @Test
-  public void shouldAddingAQueryWithSameSourcesWillAddARuntime() {
-    when(queryMetadata.getSourceNames()).thenReturn(Collections.singleton(SourceName.of("Same")));
-    runtimeAssignor.getRuntimeAndMaybeAddRuntime(
-        query2,
-        sourceTopics1,
-        KSQL_CONFIG
-    );
-    assertThat("Query not added.", runtimeAssignor.getIdToRuntime().containsKey(query2));
-    assertThat("Added a new Runtime.", runtimeAssignor.getRuntimesToSourceTopics().size() == 2);
-  }
-
-  @Test
   public void shouldGetSameRuntimeForSameQueryId() {
     final String runtime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query1,

@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
@@ -337,6 +338,8 @@ public class TestKsqlRestApp extends ExternalResource {
 
     try {
       Vertx vertx = Vertx.vertx();
+      final MetricCollectors metricsCollector = new MetricCollectors();
+      final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           ksqlRestConfig,
@@ -353,10 +356,16 @@ public class TestKsqlRestApp extends ExternalResource {
               vertx),
           TestRestServiceContextFactory.createDefault(internalSimpleKsqlClientFactory),
           TestRestServiceContextFactory.createUser(internalSimpleKsqlClientFactory),
-          new MetricCollectors(),
-          new InternalFunctionRegistry(),
+          metricsCollector,
+          functionRegistry,
           Instant.now()
       );
+      UserFunctionLoader.newInstance(
+          new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties()),
+          functionRegistry,
+          ksqlRestConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG),
+          metricsCollector.getMetrics()
+      ).load();
 
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);

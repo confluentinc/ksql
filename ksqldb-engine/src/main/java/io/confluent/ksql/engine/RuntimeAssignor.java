@@ -63,7 +63,7 @@ public class RuntimeAssignor {
   }
 
   public String getRuntimeAndMaybeAddRuntime(final QueryId queryId,
-                                             final Collection<String> sources,
+                                             final Collection<String> sourceTopics,
                                              final KsqlConfig config) {
     if (idToRuntime.containsKey(queryId)) {
       return idToRuntime.get(queryId);

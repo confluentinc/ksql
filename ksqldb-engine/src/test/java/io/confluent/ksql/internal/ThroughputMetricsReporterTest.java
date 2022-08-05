@@ -32,9 +32,10 @@ public class ThroughputMetricsReporterTest {
   private static final String RECORDS_PRODUCED_TOTAL = "records-produced-total";
   private static final String BYTES_PRODUCED_TOTAL = "bytes-produced-total";
   private static final String QUERY_ID = "CTAS_TEST";
-  private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-blahblah";
-  private static final String THREAD_ID_2 = "_confluent_blahblah_query_CTAS_TEST_2-blahblah";
-  private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-blahblah";
+  private static final String THREAD_ID_SUFFIX = "3d62ddb9-d520-4cb3-9c23-968f8e61e201-StreamThread-1";
+  private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-" + THREAD_ID_SUFFIX;
+  private static final String THREAD_ID_2 = "_confluent_blahblah_query_CTAS_TEST_2-" + THREAD_ID_SUFFIX;
+  private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-" + THREAD_ID_SUFFIX;
   private static final String TASK_ID_1 = "0_1";
   private static final String TASK_ID_2 = "0_2";
   private static final String PROCESSOR_NODE_ID = "sink-node";

@@ -201,7 +201,7 @@ public class KsqlRestApplicationTest {
     );
     assertThat(metric, not(nullValue()));
     // compare start time recorded to time around startKsql. add a second for clock jitter
-    assertThat((double) metric.metricValue(), lessThanOrEqualTo((double) (duration + 1000)));
+    assertThat((Double) metric.metricValue(), lessThanOrEqualTo((double) (duration + 1000)));
   }
 
   @Test

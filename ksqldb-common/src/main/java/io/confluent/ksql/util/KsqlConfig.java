@@ -192,7 +192,16 @@ public class KsqlConfig extends AbstractConfig {
           + "hosts storing it, both active and standbys included. This can be overridden per query "
           + "or set in the CLI. It's only enabled when lag.reporting.enable is true. "
           + "By default, any amount of lag is is allowed.";
-  
+
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
+      = "ksql.websocket.connection.max.timeout.ms";
+  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 0;
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+      = "If this config is set to a positive number, then ksqlDB will terminate websocket"
+      + " connections after a timeout. The timeout will be the lower of the auth token's "
+      + "lifespan (if present) and the value of this config. If this config is set to 0, then "
+      + "ksqlDB will not close websockets even if the token has an expiration time.";
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
 
@@ -596,6 +605,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_NEW_API_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_NEW_API_ENABLED_DOC
+        )
+        .define(
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
         )
         .withClientSslSupport();
 

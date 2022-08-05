@@ -78,6 +78,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -626,6 +627,40 @@ public class WSQueryEndpointTest {
 
     // Then:
     verify(activenessRegistrar).updateLastRequestTime();
+  }
+
+  @Test
+  public void shouldScheduleCloseOnTimeout() {
+    // Given:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
+        .thenReturn(true);
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS))
+        .thenReturn(10L);
+    givenQueryIs(QueryType.PULL);
+    givenRequestIs(query);
+
+    // When
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then
+    verify(exec).schedule(any(Runnable.class), eq(10L), eq(TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void shouldNotScheduleCloseOnTimeout() {
+    // Given:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
+        .thenReturn(true);
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS))
+        .thenReturn(0L);
+    givenQueryIs(QueryType.PULL);
+    givenRequestIs(query);
+
+    // When
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then
+    verify(exec, never()).schedule(any(Runnable.class), anyLong(), any());
   }
 
   private void givenVersions(final String... versions) {

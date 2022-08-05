@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static javax.websocket.CloseReason.CloseCodes.UNEXPECTED_CONDITION;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
@@ -33,6 +35,7 @@ import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.util.AuthenticationUtil;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -44,12 +47,14 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.security.Principal;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -218,6 +223,20 @@ public class WSQueryEndpoint {
 
       validateKafkaAuthorization(statement);
 
+      final Optional<Long> timeout = new AuthenticationUtil(Clock.systemUTC())
+          .getTokenTimeout(
+              session.getUserPrincipal(), ksqlConfig, securityExtension.getAuthTokenProvider());
+
+      if (timeout.isPresent()) {
+        log.info("Setting websocket timeout to " + timeout.get() + " ms");
+        exec.schedule(
+            () -> SessionUtil.closeSilently(
+                session, CloseCodes.UNEXPECTED_CONDITION, "The request token has expired."),
+            timeout.get(),
+            TimeUnit.MILLISECONDS
+        );
+      }
+
       HANDLER_MAP
           .getOrDefault(type, WSQueryEndpoint::handleUnsupportedStatement)
           .handle(this, new RequestContext(session, request, serviceContext), statement);
@@ -249,7 +268,7 @@ public class WSQueryEndpoint {
   @OnError
   public void onError(final Session session, final Throwable t) {
     log.error("websocket error in session {}", session.getId(), t);
-    SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, t.getMessage());
+    SessionUtil.closeSilently(session, UNEXPECTED_CONDITION, t.getMessage());
   }
 
   private void checkAuthorization(final Session session) {

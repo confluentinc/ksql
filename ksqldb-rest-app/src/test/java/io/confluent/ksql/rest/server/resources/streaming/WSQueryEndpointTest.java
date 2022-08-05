@@ -632,8 +632,6 @@ public class WSQueryEndpointTest {
   @Test
   public void shouldScheduleCloseOnTimeout() {
     // Given:
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
-        .thenReturn(true);
     when(ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS))
         .thenReturn(10L);
     givenQueryIs(QueryType.PULL);
@@ -649,8 +647,6 @@ public class WSQueryEndpointTest {
   @Test
   public void shouldNotScheduleCloseOnTimeout() {
     // Given:
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
-        .thenReturn(true);
     when(ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS))
         .thenReturn(0L);
     givenQueryIs(QueryType.PULL);

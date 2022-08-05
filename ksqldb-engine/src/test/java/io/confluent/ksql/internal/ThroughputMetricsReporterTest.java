@@ -356,6 +356,60 @@ public class ThroughputMetricsReporterTest {
   }
 
   @Test
+  public void shouldExtractQueryIdWithHyphenInSharedRuntimes() {
+    // Given:
+    final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
+        "logical_cluster_id", "lksqlc-12345",
+        "query-id", "CSAS_TEST_COPY-STREAM_1_23",
+        "consumer_group_member_id", "_confluent_blahblah_query-1-blahblah",
+        "topic", TOPIC_NAME
+    );
+    listener.metricChange(mockMetric(
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        ImmutableMap.of(
+            "thread-id", "_confluent_blahblah_query-1-blahblah",
+            "task-id", "CSAS_TEST_COPY-STREAM_1_23__" + TASK_ID_1,
+            "processor-node-id", PROCESSOR_NODE_ID,
+            "topic", TOPIC_NAME))
+    );
+
+    Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, sharedRuntimeQueryTags);
+    Object bytesConsumedValue =
+        bytesConsumed.measure(new MetricConfig().tags(sharedRuntimeQueryTags), 0L);
+    assertThat(bytesConsumedValue, equalTo(2D));
+  }
+
+  @Test
+  public void shouldExtractQueryIdWithHyphenInUnsharedRuntimes() {
+    // Given:
+    final String threadId =
+        "_confluent-ksql-pksqlc-d1m0zquery_"                           // thread prefix
+            + "CSAS_TEST_COPY-STREAM_1_23"                             // query id
+            + "-3d62ddb9-d520-4cb3-9c23-968f8e61e201-StreamThread-1";  // thread    suffix
+    final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
+        "logical_cluster_id", "lksqlc-12345",
+        "query-id", "CSAS_TEST_COPY-STREAM_1_23",
+        "consumer_group_member_id", threadId,
+        "topic", TOPIC_NAME
+    );
+    listener.metricChange(mockMetric(
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        ImmutableMap.of(
+            "thread-id", threadId,
+            "task-id", TASK_ID_1,
+            "processor-node-id", PROCESSOR_NODE_ID,
+            "topic", TOPIC_NAME))
+    );
+
+    Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, sharedRuntimeQueryTags);
+    Object bytesConsumedValue =
+        bytesConsumed.measure(new MetricConfig().tags(sharedRuntimeQueryTags), 0L);
+    assertThat(bytesConsumedValue, equalTo(2D));
+  }
+
+  @Test
   public void shouldIgnoreNonThroughputMetric() {
     // When:
     listener.metricChange(mockMetric(

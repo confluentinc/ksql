@@ -16,8 +16,12 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -57,6 +61,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +70,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
@@ -126,6 +133,8 @@ public class KsqlRestApplicationTest {
   private KafkaTopicClient internalTopicClient;
   @Mock
   private Admin internalAdminClient;
+  private final Instant start = Instant.now();
+  private final MetricCollectors metricCollectors = new MetricCollectors();
 
   @Mock
   private Vertx vertx;
@@ -177,7 +186,22 @@ public class KsqlRestApplicationTest {
         ksqlConfig
     );
 
-    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"), new MetricCollectors());
+    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"), metricCollectors);
+  }
+
+  @Test
+  public void shouldRecordStartLatency() {
+    // When:
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    long duration = Duration.between(start, Instant.now()).toMillis();
+    final Metric metric = metricCollectors.getMetrics().metric(
+        metricCollectors.getMetrics().metricName("startup-time-ms", "ksql-rest-application")
+    );
+    assertThat(metric, not(nullValue()));
+    // compare start time recorded to time around startKsql. add a second for clock jitter
+    assertThat((double) metric.metricValue(), lessThanOrEqualTo((double) (duration + 1000)));
   }
 
   @Test
@@ -424,7 +448,8 @@ public class KsqlRestApplicationTest {
         queryExecutor,
         metricCollectors,
         internalTopicClient,
-        internalAdminClient
+        internalAdminClient,
+        Instant.now()
     );
   }
 

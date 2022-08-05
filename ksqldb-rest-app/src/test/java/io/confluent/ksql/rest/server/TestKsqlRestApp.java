@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
@@ -55,6 +56,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -351,7 +353,9 @@ public class TestKsqlRestApp extends ExternalResource {
               vertx),
           TestRestServiceContextFactory.createDefault(internalSimpleKsqlClientFactory),
           TestRestServiceContextFactory.createUser(internalSimpleKsqlClientFactory),
-          new MetricCollectors()
+          new MetricCollectors(),
+          new InternalFunctionRegistry(),
+          Instant.now()
       );
 
     } catch (final Exception e) {

@@ -152,8 +152,6 @@ public class ClusterTerminationTest {
     // Produce to stream so that schema is registered by AvroConverter
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
 
-    System.out.println("grabaralkjd " + TEST_HARNESS.getKafkaCluster().getTopics());
-
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(INTERNAL_TOPIC_AGG);
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(INTERNAL_TOPIC_GROUPBY);
 

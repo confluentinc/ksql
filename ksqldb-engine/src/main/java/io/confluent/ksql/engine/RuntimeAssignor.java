@@ -70,7 +70,7 @@ public class RuntimeAssignor {
     }
     final List<String> possibleRuntimes = runtimesToSourceTopics.entrySet()
         .stream()
-        .filter(t -> t.getValue().stream().noneMatch(sources::contains))
+        .filter(t -> t.getValue().stream().noneMatch(sourceTopics::contains))
         .map(Map.Entry::getKey)
         .collect(Collectors.toList());
     final String runtime;
@@ -79,7 +79,7 @@ public class RuntimeAssignor {
     } else {
       runtime = possibleRuntimes.get(Math.abs(queryId.hashCode() % possibleRuntimes.size()));
     }
-    runtimesToSourceTopics.get(runtime).addAll(sources);
+    runtimesToSourceTopics.get(runtime).addAll(sourceTopics);
     idToRuntime.put(queryId, runtime);
     log.info("Assigning query {} to runtime {}", queryId, runtime);
     return runtime;

@@ -40,7 +40,7 @@ public class KsqlRestApplicationMetrics {
         GROUP
     );
     if (metrics.metric(metricName) != null) {
-      LOGGER.error("");
+      LOGGER.error("ksql server startup latency already registered");
       return;
     }
     LOGGER.info("ksql server took {} to become ready", latency.toString());

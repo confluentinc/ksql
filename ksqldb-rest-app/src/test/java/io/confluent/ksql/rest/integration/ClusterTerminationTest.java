@@ -62,9 +62,9 @@ public class ClusterTerminationTest {
   private static final String AGG_TABLE = "agg_table";
   private static final String AGG_TOPIC = "agg_topic";
   private static final String INTERNAL_TOPIC_AGG =
-      "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-Aggregate-Materialize-changelog";
+      "_confluent-ksql-default_query-CTAS_AGG_TABLE_3-Aggregate-Aggregate-Materialize-changelog";
   private static final String INTERNAL_TOPIC_GROUPBY =
-      "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-GroupBy-repartition";
+      "_confluent-ksql-default_query-CTAS_AGG_TABLE_3-Aggregate-GroupBy-repartition";
   private static final String ALL_TOPICS = ".*";
   private static final long WAIT_FOR_TOPIC_TIMEOUT_MS = 500;
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
@@ -151,6 +151,8 @@ public class ClusterTerminationTest {
 
     // Produce to stream so that schema is registered by AvroConverter
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
+
+    System.out.println("grabaralkjd " + TEST_HARNESS.getKafkaCluster().getTopics());
 
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(INTERNAL_TOPIC_AGG);
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(INTERNAL_TOPIC_GROUPBY);

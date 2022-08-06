@@ -362,7 +362,7 @@ public class ThroughputMetricsReporterTest {
     final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
         "logical_cluster_id", "lksqlc-12345",
         "query-id", "CSAS_TEST_COPY-STREAM_1_23",
-        "consumer_group_member_id", "_confluent_blahblah_query-1-blahblah",
+        "member", "_confluent_blahblah_query-1-blahblah",
         "topic", TOPIC_NAME
     );
     listener.metricChange(mockMetric(
@@ -391,7 +391,7 @@ public class ThroughputMetricsReporterTest {
     final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
         "logical_cluster_id", "lksqlc-12345",
         "query-id", "CSAS_TEST_COPY-STREAM_1_23",
-        "consumer_group_member_id", threadId,
+        "member", threadId,
         "topic", TOPIC_NAME
     );
     listener.metricChange(mockMetric(

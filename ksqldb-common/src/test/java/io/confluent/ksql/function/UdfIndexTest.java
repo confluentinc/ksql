@@ -2,8 +2,8 @@ package io.confluent.ksql.function;
 
 import static io.confluent.ksql.function.KsqlScalarFunction.INTERNAL_PATH;
 import static io.confluent.ksql.function.types.ArrayType.of;
-import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static java.lang.System.lineSeparator;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -82,13 +83,13 @@ public class UdfIndexTest {
   public void shouldThrowOnAddIfFunctionWithSameNameAndParamsExists() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, DOUBLE)
+        function(EXPECTED, -1, DOUBLE)
     );
 
     // When:
     final Exception e = assertThrows(
         KsqlFunctionException.class,
-        () -> udfIndex.addFunction(function(EXPECTED, false, DOUBLE))
+        () -> udfIndex.addFunction(function(EXPECTED, -1, DOUBLE))
     );
 
     // Then:
@@ -100,7 +101,7 @@ public class UdfIndexTest {
   public void shouldFindNoArgs() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false)
+        function(EXPECTED, -1)
     );
 
     // When:
@@ -114,7 +115,7 @@ public class UdfIndexTest {
   public void shouldFindOneArg() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING)
+        function(EXPECTED, -1, STRING)
     );
 
     // When:
@@ -128,7 +129,7 @@ public class UdfIndexTest {
   public void shouldFindOneArgWithCast() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
-        function(EXPECTED, false, LONG)};
+        function(EXPECTED, -1, LONG)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
@@ -142,9 +143,9 @@ public class UdfIndexTest {
   public void shouldFindPreferredOneArgWithCast() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
-        function(OTHER, false, LONG),
-        function(EXPECTED, false, INT),
-        function(OTHER, false, DOUBLE)
+        function(EXPECTED, -1, LONG),
+        function(EXPECTED, -1, INT),
+        function(EXPECTED, -1, DOUBLE)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
@@ -159,7 +160,7 @@ public class UdfIndexTest {
   public void shouldFindTwoDifferentArgs() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING, INT)
+        function(EXPECTED, -1, STRING, INT)
     );
 
     // When:
@@ -174,7 +175,7 @@ public class UdfIndexTest {
   public void shouldFindTwoSameArgs() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING, STRING)
+        function(EXPECTED, -1, STRING, STRING)
     );
 
     // When:
@@ -189,8 +190,8 @@ public class UdfIndexTest {
   public void shouldFindOneArgConflict() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING),
-        function(OTHER, false, INT)
+        function(EXPECTED, -1, STRING),
+        function(EXPECTED, -1, INT)
     );
 
     // When:
@@ -204,8 +205,8 @@ public class UdfIndexTest {
   public void shouldFindTwoArgSameFirstConflict() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING, STRING),
-        function(OTHER, false, STRING, INT)
+        function(EXPECTED, -1, STRING, STRING),
+        function(EXPECTED, -1, STRING, INT)
     );
 
     // When:
@@ -219,8 +220,8 @@ public class UdfIndexTest {
   public void shouldChooseCorrectStruct() {
     // Given:
     givenFunctions(
-        function(OTHER, false, STRUCT2),
-        function(EXPECTED, false, STRUCT1)
+        function(EXPECTED, -1, STRUCT2),
+        function(EXPECTED, -1, STRUCT1)
     );
 
     // When:
@@ -234,8 +235,8 @@ public class UdfIndexTest {
   public void shouldChooseCorrectMap() {
     // Given:
     givenFunctions(
-        function(OTHER, false, MAP2),
-        function(EXPECTED, false, MAP1)
+        function(EXPECTED, -1, MAP2),
+        function(EXPECTED, -1, MAP1)
     );
 
     // When:
@@ -249,7 +250,7 @@ public class UdfIndexTest {
   public void shouldChooseIntervalUnit() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, INTERVALUNIT)
+        function(EXPECTED, -1, INTERVALUNIT)
     );
 
     // When:
@@ -264,10 +265,10 @@ public class UdfIndexTest {
   public void shouldChooseCorrectLambdaFunction() {
     // Given:
     givenFunctions(
-        function(FIRST_FUNC, false, GENERIC_MAP, LAMBDA_KEY_FUNCTION)
+        function(FIRST_FUNC, -1, GENERIC_MAP, LAMBDA_KEY_FUNCTION)
     );
     givenFunctions(
-        function(SECOND_FUNC, false, GENERIC_MAP, LAMBDA_VALUE_FUNCTION)
+        function(SECOND_FUNC, -1, GENERIC_MAP, LAMBDA_VALUE_FUNCTION)
     );
 
     // When:
@@ -296,7 +297,7 @@ public class UdfIndexTest {
   public void shouldChooseCorrectLambdaBiFunction() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, GENERIC_MAP, LAMBDA_BI_FUNCTION)
+        function(EXPECTED, -1, GENERIC_MAP, LAMBDA_BI_FUNCTION)
     );
 
     // When:
@@ -316,7 +317,7 @@ public class UdfIndexTest {
   public void shouldChooseCorrectLambdaForTypeSpecificCollections() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, MAP1, LAMBDA_BI_FUNCTION_STRING)
+        function(EXPECTED, -1, MAP1, LAMBDA_BI_FUNCTION_STRING)
     );
 
     // When:
@@ -361,7 +362,7 @@ public class UdfIndexTest {
   public void shouldThrowOnInvalidLambdaMapping() {
     // Given:
     givenFunctions(
-        function(OTHER, false, GENERIC_MAP, LAMBDA_BI_FUNCTION)
+        function(OTHER, -1, GENERIC_MAP, LAMBDA_BI_FUNCTION)
     );
 
     // When:
@@ -406,7 +407,7 @@ public class UdfIndexTest {
   public void shouldAllowAnyDecimal() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, DECIMAL)
+        function(EXPECTED, -1, DECIMAL)
     );
 
     // When:
@@ -420,7 +421,7 @@ public class UdfIndexTest {
   public void shouldFindVarargsEmpty() {
     // Given:
     givenFunctions(
-        function(EXPECTED, true, STRING_VARARGS)
+        function(EXPECTED, 0, STRING_VARARGS)
     );
 
     // When:
@@ -434,7 +435,7 @@ public class UdfIndexTest {
   public void shouldFindVarargsOne() {
     // Given:
     givenFunctions(
-        function(EXPECTED, true, STRING_VARARGS)
+        function(EXPECTED, 0, STRING_VARARGS)
     );
 
     // When:
@@ -448,7 +449,7 @@ public class UdfIndexTest {
   public void shouldFindVarargsTwo() {
     // Given:
     givenFunctions(
-        function(EXPECTED, true, STRING_VARARGS)
+        function(EXPECTED, 0, STRING_VARARGS)
     );
 
     // When:
@@ -463,7 +464,7 @@ public class UdfIndexTest {
   public void shouldFindVarargWithStruct() {
     // Given:
     givenFunctions(
-        function(EXPECTED, true, ArrayType.of(STRUCT1))
+        function(EXPECTED, 0, ArrayType.of(STRUCT1))
     );
 
     // When:
@@ -477,7 +478,7 @@ public class UdfIndexTest {
   public void shouldFindVarargWithList() {
     // Given:
     givenFunctions(
-        function(EXPECTED, true, STRING_VARARGS)
+        function(EXPECTED, 0, STRING_VARARGS)
     );
 
     // When:
@@ -492,8 +493,8 @@ public class UdfIndexTest {
   public void shouldChooseSpecificOverVarArgs() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING),
-        function(OTHER, true, STRING_VARARGS)
+        function(EXPECTED, -1, STRING),
+        function(OTHER, 0, STRING_VARARGS)
     );
 
     // When:
@@ -507,9 +508,9 @@ public class UdfIndexTest {
   public void shouldChooseSpecificOverMultipleVarArgs() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING),
-        function(OTHER, true, STRING_VARARGS),
-        function("two", true, STRING, STRING_VARARGS)
+        function(EXPECTED, -1, STRING),
+        function(OTHER, 0, STRING_VARARGS),
+        function("two", 1, STRING, STRING_VARARGS)
     );
 
     // When:
@@ -523,8 +524,8 @@ public class UdfIndexTest {
   public void shouldChooseVarArgsIfSpecificDoesntMatch() {
     // Given:
     givenFunctions(
-        function(OTHER, false, STRING),
-        function(EXPECTED, true, STRING_VARARGS)
+        function(EXPECTED, -1, STRING),
+        function(EXPECTED, 0, STRING_VARARGS)
     );
 
     // When:
@@ -539,7 +540,7 @@ public class UdfIndexTest {
   public void shouldFindNonVarargWithNullValues() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING)
+        function(EXPECTED, -1, STRING)
     );
 
     // When:
@@ -553,7 +554,7 @@ public class UdfIndexTest {
   public void shouldFindNonVarargWithPartialNullValues() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING, STRING)
+        function(EXPECTED, -1, STRING, STRING)
     );
 
     // When:
@@ -567,7 +568,7 @@ public class UdfIndexTest {
   public void shouldFindVarargWithSomeNullValues() {
     // Given:
     givenFunctions(
-        function(EXPECTED, true, STRING_VARARGS)
+        function(EXPECTED, 0, STRING_VARARGS)
     );
 
     // When:
@@ -581,8 +582,8 @@ public class UdfIndexTest {
   public void shouldChooseNonVarargWithNullValues() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING),
-        function(OTHER, true, STRING_VARARGS)
+        function(EXPECTED, -1, STRING),
+        function(OTHER, 0, STRING_VARARGS)
     );
 
     // When:
@@ -596,8 +597,8 @@ public class UdfIndexTest {
   public void shouldChooseNonVarargWithNullValuesOfDifferingSchemas() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING, INT),
-        function(OTHER, true, STRING_VARARGS)
+        function(EXPECTED, -1, STRING, INT),
+        function(OTHER, 0, STRING_VARARGS)
     );
 
     // When:
@@ -611,8 +612,8 @@ public class UdfIndexTest {
   public void shouldChooseNonVarargWithNullValuesOfSameSchemas() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING, STRING),
-        function(OTHER, true, STRING_VARARGS)
+        function(EXPECTED, -1, STRING, STRING),
+        function(OTHER, 0, STRING_VARARGS)
     );
 
     // When:
@@ -626,8 +627,8 @@ public class UdfIndexTest {
   public void shouldChooseNonVarargWithNullValuesOfPartialNulls() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING, INT),
-        function(OTHER, true, STRING_VARARGS)
+        function(EXPECTED, -1, STRING, INT),
+        function(OTHER, 0, STRING_VARARGS)
     );
 
     // When:
@@ -641,11 +642,11 @@ public class UdfIndexTest {
   public void shouldChooseCorrectlyInComplicatedTopology() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, STRING, INT, STRING, INT), function(OTHER, true, STRING_VARARGS),
-        function("two", true, STRING, STRING_VARARGS),
-        function("three", true, STRING, INT, STRING_VARARGS),
-        function("four", true, STRING, INT, STRING, INT, STRING_VARARGS),
-        function("five", true, INT, INT, STRING, INT, STRING_VARARGS)
+        function(EXPECTED, -1, STRING, INT, STRING, INT), function(OTHER, 0, STRING_VARARGS),
+        function("two", 1, STRING, STRING_VARARGS),
+        function("three", 2, STRING, INT, STRING_VARARGS),
+        function("four", 4, STRING, INT, STRING, INT, STRING_VARARGS),
+        function("five", 4, INT, INT, STRING, INT, STRING_VARARGS)
     );
 
     // When:
@@ -659,7 +660,7 @@ public class UdfIndexTest {
   public void shouldFindGenericMethodWithIntParam() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, GENERIC_LIST)
+        function(EXPECTED, -1, GENERIC_LIST)
     );
 
     // When:
@@ -673,7 +674,7 @@ public class UdfIndexTest {
   public void shouldFindGenericMethodWithStringParam() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, GENERIC_LIST)
+        function(EXPECTED, -1, GENERIC_LIST)
     );
 
     // When:
@@ -688,7 +689,7 @@ public class UdfIndexTest {
     // Given:
     final GenericType generic = GenericType.of("A");
     givenFunctions(
-        function(EXPECTED, false, generic, generic)
+        function(EXPECTED, -1, generic, generic)
     );
 
     // When:
@@ -704,7 +705,7 @@ public class UdfIndexTest {
     final GenericType genericA = GenericType.of("A");
     final GenericType genericB = GenericType.of("B");
     givenFunctions(
-        function(EXPECTED, false, genericA, genericB)
+        function(EXPECTED, -1, genericA, genericB)
     );
 
     // When:
@@ -719,7 +720,7 @@ public class UdfIndexTest {
     // Given:
     final ArrayType generic = ArrayType.of(GenericType.of("A"));
     givenFunctions(
-        function(EXPECTED, false, generic, generic)
+        function(EXPECTED, -1, generic, generic)
     );
 
     // When:
@@ -733,7 +734,7 @@ public class UdfIndexTest {
   public void shouldNotMatchIfParamLengthDiffers() {
     // Given:
     givenFunctions(
-        function(OTHER, false, STRING)
+        function(EXPECTED, -1, STRING)
     );
 
     // When:
@@ -751,7 +752,7 @@ public class UdfIndexTest {
   public void shouldNotMatchIfNoneFound() {
     // Given:
     givenFunctions(
-        function(OTHER, false, STRING)
+        function(EXPECTED, -1, STRING)
     );
 
     // When:
@@ -769,7 +770,7 @@ public class UdfIndexTest {
   public void shouldNotMatchIfNoneFoundWithNull() {
     // Given:
     givenFunctions(
-        function(OTHER, false, STRING, INT)
+        function(EXPECTED, -1, STRING, INT)
     );
 
     // When:
@@ -787,8 +788,8 @@ public class UdfIndexTest {
   public void shouldNotChooseSpecificWhenTrickyVarArgLoop() {
     // Given:
     givenFunctions(
-        function(OTHER, false, STRING, INT),
-        function("two", true, STRING_VARARGS)
+        function(EXPECTED, -1, STRING, INT),
+        function("two", 0, STRING_VARARGS)
     );
 
     // When:
@@ -806,7 +807,7 @@ public class UdfIndexTest {
   public void shouldNotMatchWhenNullTypeInArgsIfParamLengthDiffers() {
     // Given:
     givenFunctions(
-        function(OTHER, false, STRING)
+        function(EXPECTED, -1, STRING)
     );
 
     // When:
@@ -824,7 +825,7 @@ public class UdfIndexTest {
   public void shouldNotMatchVarargDifferentStructs() {
     // Given:
     givenFunctions(
-        function(OTHER, true, ArrayType.of(STRUCT1))
+        function(OTHER, 0, ArrayType.of(STRUCT1))
     );
 
     // When:
@@ -843,7 +844,7 @@ public class UdfIndexTest {
     // Given:
     final GenericType generic = GenericType.of("A");
     givenFunctions(
-        function(EXPECTED, false, generic, generic)
+        function(EXPECTED, -1, generic, generic)
     );
 
     // When:
@@ -862,7 +863,7 @@ public class UdfIndexTest {
     // Given:
     final ArrayType generic = ArrayType.of(GenericType.of("A"));
     givenFunctions(
-        function(EXPECTED, false, generic, generic)
+        function(EXPECTED, -1, generic, generic)
     );
 
     // When:
@@ -882,9 +883,9 @@ public class UdfIndexTest {
     // Given:
     final ArrayType generic = of(GenericType.of("A"));
     givenFunctions(
-        function(OTHER, true, false, STRING, INT),
-        function(OTHER, true, STRING_VARARGS),
-        function(OTHER, false, generic)
+        function(OTHER, true, -1, STRING, INT),
+        function(OTHER, 0, STRING_VARARGS),
+        function(OTHER, -1, generic)
     );
 
     // When:
@@ -907,7 +908,7 @@ public class UdfIndexTest {
   public void shouldSupportMatchAndImplicitCastEnabled() {
     // Given:
     givenFunctions(
-            function(EXPECTED, false, DOUBLE)
+            function(EXPECTED, -1, DOUBLE)
     );
 
     // When:
@@ -922,7 +923,7 @@ public class UdfIndexTest {
     // Given:
     udfIndex = new UdfIndex<>("name", false);
     givenFunctions(
-            function(OTHER, false, DOUBLE)
+            function(EXPECTED, -1, DOUBLE)
     );
 
     // When:
@@ -940,8 +941,8 @@ public class UdfIndexTest {
   public void shouldThrowOnAmbiguousImplicitCastWithoutGenerics() {
     // Given:
     givenFunctions(
-        function(FIRST_FUNC, false, LONG, LONG),
-        function(SECOND_FUNC, false, DOUBLE, DOUBLE)
+        function(FIRST_FUNC, -1, LONG, LONG),
+        function(SECOND_FUNC, -1, DOUBLE, DOUBLE)
     );
 
     // When:
@@ -959,8 +960,8 @@ public class UdfIndexTest {
   public void shouldFindFewerGenerics() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, INT, GenericType.of("A"), INT),
-        function(OTHER, false, INT, GenericType.of("A"), GenericType.of("B"))
+        function(EXPECTED, -1, INT, GenericType.of("A"), INT),
+        function(EXPECTED, -1, INT, GenericType.of("A"), GenericType.of("B"))
     );
 
     // When:
@@ -975,8 +976,8 @@ public class UdfIndexTest {
   public void shouldThrowOnAmbiguousImplicitCastWithGenerics() {
     // Given:
     givenFunctions(
-        function(FIRST_FUNC, false, LONG, GenericType.of("A"), GenericType.of("B")),
-        function(SECOND_FUNC, false, DOUBLE, GenericType.of("A"), GenericType.of("B"))
+        function(FIRST_FUNC, -1, LONG, GenericType.of("A"), GenericType.of("B")),
+        function(SECOND_FUNC, -1, DOUBLE, GenericType.of("A"), GenericType.of("B"))
     );
 
     // When:
@@ -997,24 +998,24 @@ public class UdfIndexTest {
 
   private static KsqlScalarFunction function(
       final String name,
-      final boolean isVarArgs,
+      final int variadicIndex,
       final ParamType... args
   ) {
-    return function(FunctionName.of(name), isVarArgs, args);
+    return function(FunctionName.of(name), variadicIndex, args);
   }
 
   private static KsqlScalarFunction function(
       final FunctionName name,
-      final boolean isVarArgs,
+      final int variadicIndex,
       final ParamType... args
   ) {
-    return function(name, false, isVarArgs, args);
+    return function(name, false, variadicIndex, args);
   }
 
   private static KsqlScalarFunction function(
       final FunctionName name,
       final boolean namedParams,
-      final boolean isVarArgs,
+      final int variadicIndex,
       final ParamType... args
   ) {
     final Function<KsqlConfig, Kudf> udfFactory = ksqlConfig -> {
@@ -1026,9 +1027,13 @@ public class UdfIndexTest {
       }
     };
 
-    final List<ParameterInfo> paramInfos = Arrays.stream(args)
-        .map(type -> new ParameterInfo(namedParams ? "paramName" : "", type, "", false))
-        .collect(Collectors.toList());
+    final List<ParameterInfo> paramInfos = IntStream.range(0, args.length)
+            .mapToObj(index -> new ParameterInfo(
+                    namedParams ? "paramName" : "", 
+                    args[index], 
+                    "", 
+                    index == variadicIndex
+            )).collect(Collectors.toList());
 
     return KsqlScalarFunction.create(
         (params, arguments) -> SqlTypes.STRING,
@@ -1039,7 +1044,7 @@ public class UdfIndexTest {
         udfFactory,
         "",
         INTERNAL_PATH,
-        isVarArgs);
+        variadicIndex >= 0);
   }
 
   private static final class MyUdf implements Kudf {

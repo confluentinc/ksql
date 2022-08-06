@@ -18,8 +18,8 @@ package io.confluent.ksql.internal;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_CONSUMER_GROUP_MEMBER_ID_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_QUERY_ID_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TOPIC_TAG;
-import static io.confluent.ksql.internal.MetricsTagUtils.NAMED_TOPOLOGY_PATTERN;
-import static io.confluent.ksql.internal.MetricsTagUtils.QUERY_ID_PATTERN;
+import static io.confluent.ksql.internal.MetricsTagUtils.SHARED_RUNTIME_THREAD_PATTERN;
+import static io.confluent.ksql.internal.MetricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN;
 import static java.util.Objects.requireNonNull;
 import static org.apache.kafka.common.utils.Utils.mkSet;
 
@@ -208,14 +208,15 @@ public class ThroughputMetricsReporter implements MetricsReporter {
 
     final String taskName =
         metric.metricName().tags().getOrDefault(StreamsMetricsImpl.TASK_ID_TAG, "");
-    final Matcher namedTopologyMatcher = NAMED_TOPOLOGY_PATTERN.matcher(taskName);
+    final Matcher namedTopologyMatcher = SHARED_RUNTIME_THREAD_PATTERN.matcher(taskName);
     if (namedTopologyMatcher.find()) {
       return namedTopologyMatcher.group(1);
     }
 
     final String queryIdTag =
         metric.metricName().tags().getOrDefault(StreamsMetricsImpl.THREAD_ID_TAG, "");
-    final Matcher matcher = QUERY_ID_PATTERN.matcher(queryIdTag);
+    final Matcher matcher = UNSHARED_RUNTIME_THREAD_PATTERN.matcher(queryIdTag);
+
     if (matcher.find()) {
       return matcher.group(1);
     } else {

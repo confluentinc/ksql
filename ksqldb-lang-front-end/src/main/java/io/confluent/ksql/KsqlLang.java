@@ -15,27 +15,47 @@
 
 package io.confluent.ksql;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlStatementException;
+import java.awt.*;
+import java.util.Iterator;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.kafka.KafkaStreamTable;
+import org.apache.calcite.adapter.kafka.KafkaTableFactory;
 import org.apache.calcite.adapter.tpch.TpchSchema;
+import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteJdbc41Factory;
+import org.apache.calcite.jdbc.CalciteMetaImpl;
+import org.apache.calcite.jdbc.CalciteResultSet;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
 import org.apache.calcite.sql.ddl.SqlCreateTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
+import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.tools.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,10 +65,15 @@ public class KsqlLang {
 
   private final Planner planner;
 
-  public static class KsqlTable extends AbstractTable implements StreamableTable {
+  public static class KsqlTable extends AbstractTable implements ScannableTable, StreamableTable {
 
     @Override
     public Table stream() {
+      return null;
+    }
+
+    @Override
+    public Enumerable<Object[]> scan(final DataContext root) {
       return null;
     }
 
@@ -83,6 +108,22 @@ public class KsqlLang {
         new KsqlTable()
     );
 
+
+    final RelDataTypeSystem relDataTypeSystem = RelDataTypeSystem.DEFAULT;
+    final SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(relDataTypeSystem);
+    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final RelDataType t1 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+    final RelDataType t2 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.CHAR), true);
+    final RelDataType t3 = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.CHAR), true);
+    builder.add("ID", t1);
+    builder.add("NAME", t2);
+    builder.add("OWNERID", t3);
+    final RelDataType rowType = builder.build();
+
+    final KafkaStreamTable table = new KafkaTableFactory().create(schema, "pants", ImmutableMap.of(), rowType);
+    schema.add("pants", table);
+
+    final CalcitePrepareImpl calcitePrepare = new CalcitePrepareImpl();
     // NEEDED: add integration with metastore here.
     // NEEDED: register UDFs here.
 
@@ -97,7 +138,20 @@ public class KsqlLang {
         .defaultSchema(schema)
         .parserConfig(parserConfig)
         .build();
+/*
+    Frameworks.withPlanner(, config);
+    final CalciteServerStatement calciteServerStatement = Frameworks.withPrepare(config, (cluster, relOptSchema, rootSchema, statement) -> statement);
+    final RelOptCluster relOptCluster = Frameworks.withPrepare(config, (cluster, relOptSchema, rootSchema, statement) -> cluster);
+    relOptCluster.getRexBuilder().
+    final CalciteConnection connection = calciteServerStatement.getConnection();
+    connection.
+    final Iterator<Object> resultSet = (Iterator<Object>) connection;
 
+
+    Avatica
+    final CalciteJdbc41Factory calciteJdbc41Factory = new CalciteJdbc41Factory();
+    calciteJdbc41Factory.
+    calciteJdbc41Factory.newResultSet();*/
     planner = Frameworks.getPlanner(config);
   }
 
@@ -125,7 +179,9 @@ public class KsqlLang {
           statement
       );
     } else {
-      return getLogicalPlan(statement, parsed);
+      final RelRoot logicalPlan = getLogicalPlan(statement, parsed);
+      RelRunners.run(logicalPlan.rel);
+      return logicalPlan;
     }
   }
 

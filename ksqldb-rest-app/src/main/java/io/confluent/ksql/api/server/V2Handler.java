@@ -127,7 +127,7 @@ public class V2Handler implements Handler<RoutingContext> {
     vcf.thenAccept(logicalPlan -> {
       final HttpServerResponse response = routingContext.response();
       response.write(logicalPlan.toString() + "\n\n");
-      try (final PreparedStatement run = RelRunners.run(logicalPlan.rel);
+      /*try (final PreparedStatement run = RelRunners.run(logicalPlan.rel);
            final ResultSet resultSet = run.executeQuery()) {
         final int columnCount = resultSet.getMetaData().getColumnCount();
         for (int i = 0; i < columnCount; i++) {
@@ -142,7 +142,7 @@ public class V2Handler implements Handler<RoutingContext> {
         }
       } catch (SQLException e) {
         throw new RuntimeException(e);
-      }
+      }*/
       response.end();
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {

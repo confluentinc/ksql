@@ -375,6 +375,13 @@
                 <version>1.30.0</version>
             </dependency>
 
+
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-kafka</artifactId>
+                <version>1.30.0</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.github.rvesse</groupId>
                 <artifactId>airline</artifactId>

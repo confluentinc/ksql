@@ -17,13 +17,10 @@
 
 package io.confluent.ksql;
 
-import com.google.common.collect.ImmutableList;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Random;
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 
@@ -45,8 +42,8 @@ public class JohnTest {
       System.out.println(statement);
       final KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan = logicalPlanner.getLogicalPlan(statement);
       System.out.println(logicalPlan);
-      final ResultSet resultSet = simpleExecutor.execute(logicalPlan);
-      print(resultSet);
+      final KsqlSimpleExecutor.KsqlResultSet resultSet = simpleExecutor.execute(logicalPlan);
+      print(resultSet.getResultSet());
     }
     {
       System.out.println();
@@ -54,8 +51,8 @@ public class JohnTest {
       System.out.println(statement);
       final KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan = logicalPlanner.getLogicalPlan(statement);
       System.out.println(logicalPlan);
-      final ResultSet resultSet = simpleExecutor.execute(logicalPlan);
-      print(resultSet);
+      final KsqlSimpleExecutor.KsqlResultSet resultSet = simpleExecutor.execute(logicalPlan);
+      print(resultSet.getResultSet());
     }
     {
       System.out.println();
@@ -63,8 +60,8 @@ public class JohnTest {
       System.out.println(statement);
       final KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan = logicalPlanner.getLogicalPlan(statement);
       System.out.println(logicalPlan);
-      final ResultSet resultSet = simpleExecutor.execute(logicalPlan);
-      print(resultSet);
+      final KsqlSimpleExecutor.KsqlResultSet resultSet = simpleExecutor.execute(logicalPlan);
+      print(resultSet.getResultSet());
     }
     {
       System.out.println();
@@ -72,8 +69,8 @@ public class JohnTest {
       System.out.println(statement);
       final KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan = logicalPlanner.getLogicalPlan(statement);
       System.out.println(logicalPlan);
-      final ResultSet resultSet = simpleExecutor.execute(logicalPlan);
-      print(resultSet);
+      final KsqlSimpleExecutor.KsqlResultSet resultSet = simpleExecutor.execute(logicalPlan);
+      print(resultSet.getResultSet());
     }
     {
       System.out.println();
@@ -81,8 +78,8 @@ public class JohnTest {
       System.out.println(statement);
       final KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan = logicalPlanner.getLogicalPlan(statement);
       System.out.println(logicalPlan);
-      final ResultSet resultSet = simpleExecutor.execute(logicalPlan);
-      print(resultSet);
+      final KsqlSimpleExecutor.KsqlResultSet resultSet = simpleExecutor.execute(logicalPlan);
+      print(resultSet.getResultSet());
     }
   }
 

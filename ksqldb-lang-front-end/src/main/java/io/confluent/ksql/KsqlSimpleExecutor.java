@@ -26,22 +26,30 @@ import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
-import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.tools.Planner;
-import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.RelRunner;
-import org.apache.calcite.tools.ValidationException;
 
 public class KsqlSimpleExecutor {
+  public static class KsqlResultSet {
+    private KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan;
+    private ResultSet resultSet;
+
+    public KsqlResultSet(final KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan, final ResultSet resultSet) {
+      this.logicalPlan = logicalPlan;
+      this.resultSet = resultSet;
+    }
+
+    public KsqlLogicalPlanner.KsqlLogicalPlan getLogicalPlan() {
+      return logicalPlan;
+    }
+
+    public ResultSet getResultSet() {
+      return resultSet;
+    }
+  }
+
   private final Connection connection;
   private final RelRunner runner;
 
@@ -54,7 +62,7 @@ public class KsqlSimpleExecutor {
     }
   }
 
-  public ResultSet execute(final KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan) {
+  public KsqlResultSet execute(final KsqlLogicalPlanner.KsqlLogicalPlan logicalPlan) {
     final RelNode rel = logicalPlan.getRelNode();
     final RelShuttle shuttle = new RelHomogeneousShuttle() {
       @Override
@@ -73,7 +81,7 @@ public class KsqlSimpleExecutor {
     try {
       @SuppressWarnings("resource") final PreparedStatement result =
           runner.prepareStatement(boundRel);
-      return result.executeQuery();
+      return new KsqlResultSet(logicalPlan, result.executeQuery());
     } catch (SQLException e) {
       throw new KsqlStatementException(
           "Could not execute statement",

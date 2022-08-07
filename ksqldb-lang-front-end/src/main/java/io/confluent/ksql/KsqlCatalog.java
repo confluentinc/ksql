@@ -19,11 +19,13 @@ import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.jetbrains.annotations.NotNull;
 
 public class KsqlCatalog {
   private static class KsqlSchema extends AbstractSchema {
@@ -52,7 +54,47 @@ public class KsqlCatalog {
     this.schema = CalciteSchema
         .createRootSchema(false)
         .plus();
+    final KsqlSchema metadataSchema = schemas.computeIfAbsent("metadata", KsqlSchema::new);
 
+    final KsqlTable metadataTable = new KsqlTable(
+        tf -> tf
+            .builder()
+            .add("SCHEMA", SqlTypeName.VARCHAR)
+            .add("NAME", SqlTypeName.VARCHAR)
+            .build(),
+        () -> {
+          final ImmutableList.Builder<Object[]> builder = ImmutableList.builder();
+          addTablesToList("", schema, builder);
+          return builder.build();
+        }
+    );
+    metadataSchema.addTable(
+        "TABLES",
+        metadataTable
+    );
+    schema.add("METADATA", metadataSchema);
+  }
+
+  @NotNull
+  private void addTablesToList(
+      final String prefix,
+      final SchemaPlus schema,
+      final ImmutableList.Builder<Object[]> builder) {
+
+    final String schemaName = prefix + schema.getName();
+    final Set<String> tableNames = schema.getTableNames();
+    for (final String tableName : tableNames) {
+      builder.add(new Object[]{schemaName.toUpperCase(), tableName.toUpperCase()});
+    }
+    final Set<String> subSchemaNames = schema.getSubSchemaNames();
+    for (final String subSchemaName : subSchemaNames) {
+      final SchemaPlus subSchema = schema.getSubSchema(subSchemaName);
+      addTablesToList(
+          schemaName.isEmpty() ? "" : schemaName + ".",
+          subSchema,
+          builder
+      );
+    }
   }
 
   public void addTable(final String schemaName, final String tableName, final KsqlTable table) {

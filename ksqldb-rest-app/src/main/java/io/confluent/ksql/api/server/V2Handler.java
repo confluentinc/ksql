@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.api.server;
 
+import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlLang;
 import io.confluent.ksql.KsqlLogicalPlanner;
 import io.confluent.ksql.KsqlSimpleExecutor;
+import io.confluent.ksql.Table;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -34,11 +36,16 @@ import io.vertx.ext.web.RoutingContext;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import javax.swing.tree.RowMapper;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.kafka.common.utils.Time;
@@ -180,18 +187,28 @@ public class V2Handler implements Handler<RoutingContext> {
   }
 
   private static void print(final ResultSet resultSet, final HttpServerResponse response) throws SQLException {
+    final Table.Builder builder = new Table.Builder();
     final ResultSetMetaData metaData = resultSet.getMetaData();
     final int columnCount = metaData.getColumnCount();
+    final List<String> headers = new ArrayList<>(columnCount - 1);
     for (int i = 1; i <= columnCount; i++) {
-      response.write(metaData.getColumnLabel(i)).write(" | ");
+      final String columnLabel = metaData.getColumnLabel(i);
+      headers.add(i - 1, columnLabel);
     }
-    response.write("\n");
+    builder.withColumnHeaders(headers);
+    int rowCount = 0;
     while (resultSet.next()) {
+      final List<String> row = new ArrayList<>(columnCount - 1);
       for (int i = 1; i <= columnCount; i++) {
-        response.write(resultSet.getObject(i).toString()).write(" | ");
+        final String value = resultSet.getObject(i).toString();
+        row.add(i - 1, value);
       }
-      response.write("\n");
+      builder.withRow(row);
+      rowCount++;
     }
+    builder.withFooterLine(rowCount + " rows");
+    builder.build().print(response);
+
   }
 
   private CommonRequest getRequest(final RoutingContext routingContext) {

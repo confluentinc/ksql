@@ -16,6 +16,8 @@
 package io.confluent.ksql;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Supplier;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
@@ -35,14 +37,27 @@ public class KsqlTable implements ScannableTable {
 
   private final RelProtoDataType protoDataType;
   private final List<Object[]> data;
+  private final Supplier<List<Object[]>> dataFn;
 
-  protected KsqlTable(final RelProtoDataType protoDataType, final List<Object[]> data) {
+  public KsqlTable(final RelProtoDataType protoDataType, final List<Object[]> data) {
     this.protoDataType = protoDataType;
     this.data = data;
+    this.dataFn = null;
+  }
+
+  public KsqlTable(final RelProtoDataType protoDataType, final Supplier<List<Object[]>> data) {
+    this.protoDataType = protoDataType;
+    this.data = null;
+    this.dataFn = data;
   }
 
   public Enumerable<Object[]> scan(final DataContext root) {
-    return Linq4j.asEnumerable(data);
+    if (data != null) {
+      return Linq4j.asEnumerable(data);
+    } else {
+      final Supplier<List<Object[]>> listSupplier = Objects.requireNonNull(dataFn);
+      return Linq4j.asEnumerable(listSupplier.get());
+    }
   }
 
   @Override

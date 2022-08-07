@@ -1,0 +1,4 @@
+#!/bin/bash
+
+QUERY="${1}"
+http -v localhost:8088/v2/ksql sql="${QUERY}"

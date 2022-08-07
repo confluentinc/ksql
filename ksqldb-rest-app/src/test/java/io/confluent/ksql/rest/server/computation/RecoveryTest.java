@@ -115,13 +115,15 @@ public class RecoveryTest {
   @Mock
   private Errors errorHandler = mock(Errors.class);
 
-  private final KsqlServer server1 = new KsqlServer(commands);
-  private final KsqlServer server2 = new KsqlServer(commands);
+  private KsqlServer server1;
+  private KsqlServer server2;
 
 
   @Before
   public void setup() {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
+    server1 = new KsqlServer(commands);
+    server2 = new KsqlServer(commands);
   }
 
   @After
@@ -545,19 +547,12 @@ public class RecoveryTest {
       )) {
         return false;
       }
-      if (!test(
+      return test(
           sqlMatcher,
           metadata.getStatementString(),
           description,
           "sql mismatch: "
-      )) {
-        return false;
-      }
-      return test(
-          stateMatcher,
-          metadata.getState().toString(),
-          description,
-          "state mismatch: ");
+      );
     }
   }
 
@@ -578,6 +573,9 @@ public class RecoveryTest {
     final KsqlServer executeServer = new KsqlServer(commands);
     executeServer.executeCommands();
     final KsqlEngine engine = executeServer.ksqlEngine;
+    final Map<QueryId, PersistentQueryMetadata> queries
+        = queriesById(engine.getPersistentQueries());
+    executeServer.close();
 
     // When:
     final KsqlServer recoverServer = new KsqlServer(commands);
@@ -586,13 +584,12 @@ public class RecoveryTest {
 
     // Then:
     assertThat(recovered.getMetaStore(), sameStore(engine.getMetaStore()));
-    final Map<QueryId, PersistentQueryMetadata> queries
-        = queriesById(engine.getPersistentQueries());
     final Map<QueryId, PersistentQueryMetadata> recoveredQueries
         = queriesById(recovered.getPersistentQueries());
     assertThat(queries.keySet(), equalTo(recoveredQueries.keySet()));
     queries.forEach(
         (queryId, query) -> assertThat(query, sameQuery(recoveredQueries.get(queryId))));
+    recoverServer.close();
   }
 
   @Before
@@ -629,6 +626,7 @@ public class RecoveryTest {
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT ROWKEY, C2 FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -639,6 +637,7 @@ public class RecoveryTest {
         "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;",
         "CREATE OR REPLACE STREAM B AS SELECT ROWKEY, C1, C2 FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -662,6 +661,7 @@ public class RecoveryTest {
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
         "INSERT INTO B SELECT * FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -672,6 +672,7 @@ public class RecoveryTest {
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
         "INSERT INTO B WITH(QUERY_ID='MY_INSERT_ID') SELECT * FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -684,6 +685,7 @@ public class RecoveryTest {
         "TERMINATE InsertQuery_2;",
         "INSERT INTO B SELECT * FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -742,7 +744,7 @@ public class RecoveryTest {
         "CREATE STREAM B AS SELECT * FROM A;",
         "INSERT INTO B SELECT * FROM A;"
     );
-
+    server1.close();
     // ksqlDB does not allow a DROP STREAM A because 'A' is used by 'B'.
     // However, if a ksqlDB upgrade is done, then this order can be possible.
     final Command dropACommand = new Command(
@@ -777,6 +779,7 @@ public class RecoveryTest {
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(1));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
     assertThat(recovered.ksqlEngine.getAllLiveQueries().size(), is(2));
+    recovered.close();
   }
 
   @Test
@@ -860,6 +863,7 @@ public class RecoveryTest {
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(2));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("A")));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
+    recovered.close();
   }
 
   @Test
@@ -926,6 +930,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM C AS SELECT * FROM A;");
+    server1.close();
 
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
@@ -933,6 +938,7 @@ public class RecoveryTest {
         .keySet();
 
     assertThat(queryIdNames, contains(new QueryId("CSAS_C_1")));
+    server.close();
   }
 
   @Test
@@ -949,6 +955,7 @@ public class RecoveryTest {
         .keySet();
 
     assertThat(queryIdNames, contains(new QueryId("CSAS_C_2")));
+    server.close();
   }
 
   @Test
@@ -958,6 +965,8 @@ public class RecoveryTest {
         "CREATE STREAM B AS SELECT * FROM A;",
         "CREATE STREAM C AS SELECT * FROM A;",
         "TERMINATE CSAS_B_1;");
+    server1.close();
+    server2.close();
 
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
@@ -965,6 +974,7 @@ public class RecoveryTest {
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
     assertThat(queryIdNames, contains(new QueryId("CSAS_C_2"), new QueryId("CSAS_D_3")));
+    server.close();
   }
 
 

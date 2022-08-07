@@ -189,7 +189,7 @@ public class SecureIntegrationTest {
 
     givenAllowAcl(ALL_USERS,
                   resource(GROUP, ResourcePattern.WILDCARD_RESOURCE),
-                  ops(DESCRIBE, READ));
+                  ops(DESCRIBE, READ, DELETE));
 
     final Map<String, Object> configs = getBaseKsqlConfig();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,

@@ -20,6 +20,7 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
@@ -28,6 +29,8 @@ import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.connect.runtime.SourceConnectorConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.jetbrains.annotations.NotNull;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -75,6 +78,7 @@ public class PauseResumeIntegrationTest {
     REST_APP = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
+        .withProperty(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2)
         .withProperty(SESSION_TIMEOUT_MS_CONFIG, 10000) // Reduces the time for a rebalance during ksqlDB restart.
         .build();
   }
@@ -188,20 +192,20 @@ public class PauseResumeIntegrationTest {
     createQuery("1");
     String queryId = ((Queries) RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "SHOW "
             + "QUERIES;").get(0)).getQueries().get(0).getId().toString();
-    createQuery("2");
+//    createQuery("2");
 
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
 
     Supplier<Integer> supplier = getSupplier(1);
-    Supplier<Integer> supplier2 = getSupplier(2);
+//    Supplier<Integer> supplier2 = getSupplier(2);
 
     // 7 records are produced + a header & footer.
     assertThatEventually(supplier, equalTo(9));
-    assertThatEventually(supplier2, equalTo(9));
+//    assertThatEventually(supplier2, equalTo(9));
 
     // When:
-    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
-    assertThatEventually(this::getPausedCount, equalTo(1L));
+    //RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "PAUSE " + queryId + ";");
+    //assertThatEventually(this::getPausedCount, equalTo(1L));
     assertThatEventually(supplier, equalTo(9));
 
     // Restart server
@@ -209,15 +213,16 @@ public class PauseResumeIntegrationTest {
     REST_APP.start();
 
     // Verify PAUSED state -- eventually
-    assertThatEventually(this::getPausedCount, equalTo(1L));
-    assertThatEventually(this::getRunningCount, equalTo(1L));
+    assertThatEventually(supplier, equalTo(16));
+//    assertThatEventually(supplier2, equalTo(16));
 
     // Adding more after restart.
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER2, KAFKA, JSON, System::currentTimeMillis);
 
     // Verify number of processed records
     assertThatEventually(supplier, equalTo(9));
-    assertThatEventually(supplier2, equalTo(14));
+    System.out.println("JNH: checking condition");
+//    assertThatEventually(supplier2, equalTo(14));
 
     // Then:
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "RESUME " + queryId + ";");
@@ -238,8 +243,13 @@ public class PauseResumeIntegrationTest {
 
   @NotNull
   private Supplier<Integer> getSupplier(int streamNumber) {
-    return () -> RestIntegrationTestUtil.makeQueryRequest(REST_APP,
-        "select * from " + SINK_STREAM + streamNumber + ";",Optional.empty()).size();
+    return () -> {
+      List<StreamedRow> rows = RestIntegrationTestUtil.makeQueryRequest(REST_APP,
+              "select * from " + SINK_STREAM + streamNumber + ";",Optional.empty());
+      System.out.println("Printing results: " + rows.size());
+      rows.forEach(r -> System.out.println("\t" + r));
+      return rows.size();
+    };
   }
 
   private long getPausedCount() {

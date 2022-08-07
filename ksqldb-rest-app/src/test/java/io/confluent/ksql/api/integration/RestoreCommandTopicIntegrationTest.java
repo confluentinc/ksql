@@ -236,7 +236,7 @@ public class RestoreCommandTopicIntegrationTest {
     makeKsqlRequest("CREATE STREAM new_stream (ID INT, price int) "
             + "WITH (KAFKA_TOPIC='temp_top', partitions=3, VALUE_FORMAT='JSON');");
     makeKsqlRequest("CREATE TABLE new_stream_3 AS SELECT id, sum(price) FROM new_stream group by ID;");
-    File realStateStore = new File(tempDir.getAbsolutePath() + "/_confluent-ksql-default_query_CTAS_NEW_STREAM_3_1");
+    File realStateStore = new File(tempDir.getAbsolutePath() + "/_confluent-ksql-default_query_1");
 
     assertTrue(tempDir.exists());
     assertTrue(fakeStateStore.exists());

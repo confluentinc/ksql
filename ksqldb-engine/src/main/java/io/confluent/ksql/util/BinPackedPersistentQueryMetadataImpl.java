@@ -452,4 +452,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     return listener;
   }
 
+  @Override
+  public Collection<String> getSourceTopicNames() {
+    return topology.sourceTopics();
+  }
+
 }

@@ -119,6 +119,7 @@ public class UdfIndex<T extends FunctionSignature> {
             root,
             parameters,
             function,
+            false,
             false
     );
     final Node variadicParent = variadicParentAndOffset.getLeft();
@@ -127,7 +128,7 @@ public class UdfIndex<T extends FunctionSignature> {
       final int offset = variadicParentAndOffset.getRight();
 
       // Handle var args given inside list
-      buildTree(variadicParent, parameters, function, true);
+      buildTree(variadicParent, parameters, function, true, false);
 
       // Determine which side the variadic parameter is on
       final boolean isLeftVariadic = parameters.get(offset).isVariadic();
@@ -140,6 +141,7 @@ public class UdfIndex<T extends FunctionSignature> {
               variadicParent,
               paramsWithoutVariadic,
               function,
+              false,
               false
       );
 
@@ -148,7 +150,7 @@ public class UdfIndex<T extends FunctionSignature> {
               ? parameters.get(offset)
               : parameters.get(parameters.size() - offset - 1);
 
-      final int maxAddedVariadics = paramsWithoutVariadic.size() + 3;
+      final int maxAddedVariadics = paramsWithoutVariadic.size() + 1;
       final List<ParameterInfo> addedVariadics = IntStream.range(0, maxAddedVariadics)
               .mapToObj(ignored -> variadicParam)
               .collect(Collectors.toList());
@@ -173,7 +175,8 @@ public class UdfIndex<T extends FunctionSignature> {
                 variadicParent,
                 combinedAllParams.subList(fromIndex, toIndex),
                 function,
-                false
+                false,
+                toIndex - fromIndex == combinedAllParams.size()
         );
 
         if (isLeftVariadic) {
@@ -185,72 +188,6 @@ public class UdfIndex<T extends FunctionSignature> {
 
     }
 
-    /*if (function.isVariadic()) {
-      // first add the function to the parent to address the
-      // case of empty varargs
-      parent.update(function);
-
-      // then add a new child node with the parameter value type
-      // and add this function to that node
-      final ParamType varargSchema = Iterables.getLast(parameters);
-      final Parameter vararg = new Parameter(varargSchema, true);
-      final Node leaf = parent.children.computeIfAbsent(vararg, ignored -> new Node());
-      leaf.update(function);
-
-      // add a self referential loop for varargs so that we can
-      // add as many of the same param at the end and still retrieve
-      // this node
-      leaf.children.putIfAbsent(vararg, leaf);
-    }*/
-  }
-
-  private Pair<Node, Integer> buildTree(final Node root, final List<ParameterInfo> parameters,
-                                        final T function, final boolean keepArrays) {
-    final int rightStartIndex = parameters.size() - 1;
-
-    Node curr = root;
-    Node parent;
-
-    Node parentOfVariadic = null;
-    int variadicOffset = -1;
-
-    for (int offset = 0; offset < indexAfterCenter(parameters.size()); offset++) {
-      final ParameterInfo leftParamInfo = parameters.get(offset);
-      final int rightParamIndex = rightStartIndex - offset;
-      final ParameterInfo rightParamInfo = parameters.get(rightParamIndex);
-
-      final Parameter leftParam = new Parameter(
-              toType(leftParamInfo, keepArrays),
-              leftParamInfo.isVariadic()
-      );
-      final boolean isRightParamVariadic = rightParamInfo.isVariadic();
-      final Parameter rightParam = offset == rightParamIndex
-              ? null
-              : new Parameter(toType(rightParamInfo, keepArrays), isRightParamVariadic);
-
-      parent = curr;
-      curr = curr.children.computeIfAbsent(Pair.of(leftParam, rightParam), ignored -> new Node());
-
-      // The case of one var arg will be handled here, but we need to handle the other cases later
-      if (leftParamInfo.isVariadic() || rightParamInfo.isVariadic()) {
-        parentOfVariadic = parent;
-        variadicOffset = offset;
-      }
-    }
-
-    curr.update(function);
-
-    return Pair.of(parentOfVariadic, variadicOffset);
-  }
-
-  private int indexAfterCenter(int size) {
-    return (size + 1) / 2;
-  }
-
-  private ParamType toType(final ParameterInfo info, final boolean keepArrays) {
-    return info.isVariadic() && !keepArrays
-            ? ((ArrayType) info.type()).element()
-            : info.type();
   }
 
   T getFunction(final List<SqlArgument> arguments) {
@@ -269,6 +206,86 @@ public class UdfIndex<T extends FunctionSignature> {
       return candidate.get();
     }
     throw createNoMatchingFunctionException(arguments);
+  }
+
+  private Pair<Node, Integer> buildTree(final Node root, final List<ParameterInfo> parameters,
+                                        final T function, final boolean keepArrays,
+                                        final boolean appendVariadicLoop) {
+    final int rightStartIndex = parameters.size() - 1;
+
+    Node curr = root;
+    Node parent = curr;
+
+    Node parentOfVariadic = null;
+    int variadicOffset = -1;
+
+    for (int offset = 0; offset < indexAfterCenter(parameters.size()); offset++) {
+      final ParameterInfo leftParamInfo = parameters.get(offset);
+      final int rightParamIndex = rightStartIndex - offset;
+      final ParameterInfo rightParamInfo = parameters.get(rightParamIndex);
+
+      final Parameter leftParam = new Parameter(
+              toType(leftParamInfo, keepArrays),
+              false
+      );
+      final Parameter rightParam = offset == rightParamIndex
+              ? null
+              : new Parameter(toType(rightParamInfo, keepArrays), false);
+
+      parent = curr;
+      curr = curr.children.computeIfAbsent(Pair.of(leftParam, rightParam), ignored -> new Node());
+
+      // The case of one var arg will be handled here, but we need to handle the other cases later
+      if (leftParamInfo.isVariadic() || rightParamInfo.isVariadic()) {
+        parentOfVariadic = parent;
+        variadicOffset = offset;
+      }
+    }
+
+    if (appendVariadicLoop) {
+
+      /* Sanity check--throw a clearer exception if we aren't in a valid state
+      since parameters.get() will fail anyway. */
+      if (variadicOffset < 0) {
+        throw new IllegalStateException(
+                "appendVariadicLoop was set for a function that is not variadic"
+        );
+      }
+
+      final ParamType varArgSchema = toType(parameters.get(variadicOffset), keepArrays);
+      final Parameter varArg = new Parameter(varArgSchema, true);
+
+      /* Add a self-referential loop for varargs so that we can add as many of the same param
+      at the end and still retrieve this node. */
+      final Node loop = parent.children.computeIfAbsent(
+              Pair.of(varArg, varArg),
+              ignored -> new Node()
+      );
+      loop.update(function);
+      loop.children.putIfAbsent(Pair.of(varArg, varArg), loop);
+
+      // Add a leaf node to handle an odd number of arguments after the loop
+      final Node leaf = loop.children.computeIfAbsent(
+              Pair.of(varArg, null),
+              ignored -> new Node()
+      );
+      leaf.update(function);
+
+    }
+
+    curr.update(function);
+
+    return Pair.of(parentOfVariadic, variadicOffset);
+  }
+
+  private int indexAfterCenter(int size) {
+    return (size + 1) / 2;
+  }
+
+  private ParamType toType(final ParameterInfo info, final boolean keepArrays) {
+    return info.isVariadic() && !keepArrays
+            ? ((ArrayType) info.type()).element()
+            : info.type();
   }
 
   private Optional<T> findMatchingCandidate(
@@ -292,6 +309,7 @@ public class UdfIndex<T extends FunctionSignature> {
     return Optional.empty();
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   private void getCandidates(
       final List<SqlArgument> arguments,
       final int argOffset,

@@ -261,7 +261,7 @@ public class QueryMaskTest {
     final String maskedQuery = QueryMask.getMaskedStatement(query);
 
     // Then
-    final String expected = "INSERT INTO  SOURCE (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');";
+    final String expected = "INSERT INTO `FOO` (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');";
 
     assertThat(maskedQuery, is(expected));
   }

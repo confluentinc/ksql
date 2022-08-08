@@ -1195,7 +1195,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "INSERT INTO  SOURCE (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');"))));
+        "INSERT INTO `FOO` (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');"))));
   }
 
   @Test

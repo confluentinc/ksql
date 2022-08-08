@@ -106,7 +106,7 @@ public class InsertValues extends Statement {
     return "InsertValues{"
         + "target=" + target
         + ", columns=" + columns
-        + ", values= <redacted>"
+        + ", values=<redacted>"
         + '}';
   }
 }

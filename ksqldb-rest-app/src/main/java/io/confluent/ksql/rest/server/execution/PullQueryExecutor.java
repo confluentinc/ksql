@@ -378,7 +378,7 @@ public final class PullQueryExecutor {
         .getKsqlClient()
         .makeQueryRequest(
             owner.location(),
-            statement.getMaskedStatementText(),
+            statement.getUnMaskedStatementText(),
             statement.getConfigOverrides(),
             requestProperties
         );

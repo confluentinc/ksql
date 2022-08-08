@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -227,7 +228,7 @@ public class CommandRunner implements Closeable {
     }
   }
 
-  @SuppressWarnings("DMI_INVOKING_TOSTRING_ON_ARRAY")
+  @SuppressFBWarnings("DMI_INVOKING_TOSTRING_ON_ARRAY")
   private void executeStatement(final QueuedCommand queuedCommand) {
     final String commandId = queuedCommand.getCommandId().toString();
     LOG.info("Executing statement: " + commandId);

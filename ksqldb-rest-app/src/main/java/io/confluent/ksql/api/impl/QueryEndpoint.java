@@ -127,7 +127,7 @@ public class QueryEndpoint {
       QueryCapacityUtil.throwTooManyActivePushQueriesException(
               ksqlEngine,
               ksqlRestConfig,
-              statement.getStatementText()
+              statement.getMaskedStatementText()
       );
     }
 

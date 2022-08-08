@@ -60,8 +60,8 @@ public class InsertValues extends Statement {
     if (!columns.isEmpty() && columns.size() != values.size()) {
       throw new KsqlException(
           "Expected number columns and values to match: "
-              + columns.stream().map(ColumnName::text).collect(Collectors.toList()) + ", "
-              + values);
+              + columns.stream().map(ColumnName::text).collect(Collectors.toList()).size() + ", "
+              + values.size());
     }
   }
 
@@ -106,7 +106,7 @@ public class InsertValues extends Statement {
     return "InsertValues{"
         + "target=" + target
         + ", columns=" + columns
-        + ", values=" + values
+        + ", values= <redacted>"
         + '}';
   }
 }

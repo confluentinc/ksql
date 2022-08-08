@@ -323,7 +323,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
               + "this feature."
               + System.lineSeparator(),
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
 
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
@@ -394,7 +394,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       QueryCapacityUtil.throwTooManyActivePushQueriesException(
               ksqlEngine,
               ksqlRestConfig,
-              statement.getStatementText()
+              statement.getMaskedStatementText()
       );
     }
 
@@ -410,7 +410,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         connectionClosedFuture
     );
 
-    log.info("Streaming query '{}'", statement.getStatementText());
+    log.info("Streaming query '{}'", statement.getMaskedStatementText());
     return EndpointResponse.ok(queryStreamWriter);
   }
 

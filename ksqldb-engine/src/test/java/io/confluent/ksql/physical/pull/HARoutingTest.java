@@ -108,7 +108,7 @@ public class HARoutingTest {
 
   @Before
   public void setUp() {
-    when(statement.getStatementText()).thenReturn("foo");
+    when(statement.getMaskedStatementText()).thenReturn("foo");
     when(location1.getNodes()).thenReturn(ImmutableList.of(node1, node2));
     when(location2.getNodes()).thenReturn(ImmutableList.of(node2, node1));
     when(location3.getNodes()).thenReturn(ImmutableList.of(node1, node2));

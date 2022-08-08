@@ -61,21 +61,21 @@ public class SqlTestReaderTest {
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("CREATE STREAM foo")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM bar")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("CREATE STREAM bar")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("INSERT INTO")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("INSERT INTO")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );
@@ -104,14 +104,14 @@ public class SqlTestReaderTest {
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("CREATE STREAM foo")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM bar")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("CREATE STREAM bar")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );
@@ -135,7 +135,7 @@ public class SqlTestReaderTest {
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("CREATE STREAM foo")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );
@@ -162,7 +162,7 @@ public class SqlTestReaderTest {
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("CREATE STREAM foo")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );
@@ -202,14 +202,14 @@ public class SqlTestReaderTest {
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("CREATE STREAM foo")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );
 
     assertThat(reader.hasNext(), is(true));
     reader.next().consume(
-        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM bar")),
+        s -> assertThat(s.getMaskedStatementText(), containsString("CREATE STREAM bar")),
         s -> fail("unexpected statement " + s),
         s -> fail("unexpected statement " + s)
     );

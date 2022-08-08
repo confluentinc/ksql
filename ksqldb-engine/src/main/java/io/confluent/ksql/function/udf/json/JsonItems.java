@@ -28,9 +28,7 @@ import java.util.List;
     name = "JSON_ITEMS",
     category = FunctionCategory.JSON,
     description = "Given a string with JSON array, converts it to an array of JSON strings and "
-        + "returns an array of String. Returns `NULL` if input is `NULL` or each array item can't "
-        + "be interpreted as a JSON object, i.e. it is `NULL` or it does not contain valid JSON, "
-        + "or the JSON value is not an object.",
+        + "returns an array of String. Returns `NULL` if input is `NULL`.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class JsonItems {
@@ -44,12 +42,9 @@ public class JsonItems {
 
     final List<JsonNode> objectList = UdfJsonMapper.readAsJsonArray(jsonItems);
     final List<String> res = new ArrayList<>();
-    for (JsonNode jsonNode: objectList) {
-      if (jsonNode.isMissingNode() || !jsonNode.isObject()) {
-        return null;
-      }
-      res.add(jsonNode.toString());
-    }
+    objectList.forEach(jsonObject -> {
+      res.add(jsonObject.toString());
+    });
     return res;
   }
 }

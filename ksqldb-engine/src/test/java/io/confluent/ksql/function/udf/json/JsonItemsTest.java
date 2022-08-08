@@ -51,14 +51,15 @@ public class JsonItemsTest {
   }
 
   @Test
+  public void shouldSupportJsonIntegerType() {
+    assertEquals(ImmutableList.of("1","2","3"), udf.items("[1, 2, 3]"));
+  }
+
+  @Test
   public void shouldReturnNullForNull() {
     assertNull(udf.items(null));
   }
 
-  @Test
-  public void shouldReturnNullForInvalidJsonObject() {
-    assertNull(udf.items("[\"abc\"]"));
-  }
 
   @Test(expected = KsqlFunctionException.class)
   public void shouldThrowForNonArray() {

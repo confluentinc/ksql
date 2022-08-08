@@ -176,7 +176,11 @@ public class KsMaterializationFunctionalTest {
 
   @After
   public void after() {
-    toClose.forEach(q -> q.close());
+    try {
+      toClose.forEach(q -> q.close());
+    } catch (Exception e) {
+
+    }
   }
 
   @Test

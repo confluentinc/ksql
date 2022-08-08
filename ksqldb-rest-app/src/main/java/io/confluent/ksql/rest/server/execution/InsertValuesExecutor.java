@@ -194,7 +194,7 @@ public class InsertValuesExecutor {
               "The producer is not authorized to do idempotent sends. "
                       + "Check that you have write permissions to the specified topic, "
                       + "and disable idempotent sends by setting 'enable.idempotent=false' "
-                      + " if necessary."
+                      + " if necessary.");
       throw new KsqlException(
           createInsertFailedExceptionMessage(insertValues),
           createClusterAuthorizationExceptionRootCause(dataSource)

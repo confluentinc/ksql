@@ -163,7 +163,7 @@ public class InsertValuesExecutor {
     validateInsert(insertValues.getColumns(), dataSource);
 
     final ProducerRecord<byte[], byte[]> record =
-            buildRecord(statement, metaStore, dataSource, serviceContext);
+        buildRecord(statement, metaStore, dataSource, serviceContext);
 
     try {
       producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
@@ -538,7 +538,7 @@ public class InsertValuesExecutor {
         propertiesBuilder.putAll(formatInfo.getProperties());
 
         propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,
-                KsqlConstants.getSRSubject(topicName, isKey));
+            KsqlConstants.getSRSubject(topicName, isKey));
 
         return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
       }

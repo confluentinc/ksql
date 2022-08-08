@@ -75,7 +75,7 @@ public final class DescribeConnectorExecutor {
     if (statusResponse.error().isPresent()) {
       return Optional.of(
           new ErrorEntity(
-              configuredStatement.getStatementText(),
+              configuredStatement.getMaskedStatementText(),
               statusResponse.error().get())
       );
     }
@@ -86,7 +86,7 @@ public final class DescribeConnectorExecutor {
     if (infoResponse.error().isPresent()) {
       return Optional.of(
           new ErrorEntity(
-              configuredStatement.getStatementText(),
+              configuredStatement.getMaskedStatementText(),
               infoResponse.error().get())
       );
     }
@@ -128,7 +128,7 @@ public final class DescribeConnectorExecutor {
     }
 
     final ConnectorDescription description = new ConnectorDescription(
-        configuredStatement.getStatementText(),
+        configuredStatement.getMaskedStatementText(),
         info.config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG),
         status,
         sources,

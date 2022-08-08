@@ -119,7 +119,7 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+    throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
   }
 
   public static Optional<KsqlEntity> execute(
@@ -202,7 +202,7 @@ public final class PullQueryExecutor {
       }
 
       return new TableRowsEntity(
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           queryId,
           outputSchema,
           rows
@@ -210,7 +210,7 @@ public final class PullQueryExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e
       );
     }
@@ -668,7 +668,7 @@ public final class PullQueryExecutor {
   ) {
     final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
-        .makeQueryRequest(owner.location(), statement.getStatementText());
+        .makeQueryRequest(owner.location(), statement.getUnMaskedStatementText());
 
     if (response.isErroneous()) {
       throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
@@ -690,7 +690,7 @@ public final class PullQueryExecutor {
       if (row.getErrorMessage().isPresent()) {
         throw new KsqlStatementException(
             row.getErrorMessage().get().getMessage(),
-            statement.getStatementText()
+            statement.getMaskedStatementText()
         );
       }
 
@@ -702,7 +702,7 @@ public final class PullQueryExecutor {
     }
 
     return new TableRowsEntity(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         header.getQueryId(),
         header.getSchema(),
         rows.build()

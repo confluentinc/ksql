@@ -1182,6 +1182,23 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldThrowOnInsertBadQuery() {
+    // When:
+    final String query = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
+        + "(\"key\", 0.125);";
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest(query)
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
+        "INSERT INTO `FOO` (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');"))));
+  }
+
+  @Test
   public void shouldThrowOnTerminateTerminatedQuery() {
     // Given:
     final String queryId = createQuery(

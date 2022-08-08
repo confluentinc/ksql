@@ -572,7 +572,7 @@ public class StatementExecutorTest extends EasyMockSupport {
       final PreparedStatement<T> preparedStatement
   ) {
     EasyMock2Adapter.adapt(configured(preparedStatement(
-        equalTo(preparedStatement.getStatementText()),
+        equalTo(preparedStatement.getMaskedStatementText()),
         equalTo(preparedStatement.getStatement()))
     ));
     return null;

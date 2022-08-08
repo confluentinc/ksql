@@ -214,7 +214,7 @@ public class InsertValuesExecutor {
     } catch (Exception e) {
       throw new KsqlStatementException(
           createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e);
     }
   }
@@ -307,8 +307,8 @@ public class InsertValuesExecutor {
     if (fieldNames.size() != values.size()) {
       throw new KsqlException(
           "Expected a value for each column."
-              + " Expected Columns: " + fieldNames
-              + ". Got " + values);
+              + " There are [" + fieldNames.size() + "] Columns"
+              + " but got [" + values.size() + "] values");
     }
 
     return fieldNames;
@@ -354,8 +354,8 @@ public class InsertValuesExecutor {
         }
       } else if (keyValue != null && !Objects.equals(keyValue.toString(), rowKeyValue)) {
         throw new KsqlException(String.format(
-            "Expected ROWKEY and %s to match but got %s and %s respectively.",
-            key.toString(FormatOptions.noEscape()), rowKeyValue, keyValue));
+            "Expected ROWKEY and %s to match",
+            key.toString(FormatOptions.noEscape())));
       }
     }
   }
@@ -392,7 +392,7 @@ public class InsertValuesExecutor {
           .serializer()
           .serialize(dataSource.getKafkaTopicName(), keyValue);
     } catch (final Exception e) {
-      throw new KsqlException("Could not serialize key: " + keyValue, e);
+      throw new KsqlException("Could not serialize key", e);
     }
   }
 
@@ -437,7 +437,7 @@ public class InsertValuesExecutor {
         }
       }
 
-      throw new KsqlException("Could not serialize row: " + row, e);
+      throw new KsqlException("Could not serialize row", e);
     }
   }
 
@@ -536,11 +536,10 @@ public class InsertValuesExecutor {
                 .toSqlType(value.getClass());
 
             return new KsqlException(
-                String.format("Expected type %s for field %s but got %s(%s)",
+                String.format("Expected type %s for field %s but got %s",
                     fieldType,
                     fieldName,
-                    valueSqlType,
-                    value));
+                    valueSqlType));
 
           });
     }

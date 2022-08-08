@@ -123,7 +123,7 @@ public class RecoveryTest {
           new QueuedCommand(
               commandId,
               new Command(
-                  statement.getStatementText(),
+                  statement.getMaskedStatementText(),
                   true,
                   Collections.emptyMap(),
                   statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),

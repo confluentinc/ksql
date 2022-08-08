@@ -240,7 +240,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void stop() {
-    stop(true);
+    stop(false);
   }
 
   public void stop(final boolean resetOffsets) {

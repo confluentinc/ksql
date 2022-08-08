@@ -30,7 +30,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesPerfectPositiveNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -58,7 +58,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesStrongPositiveNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -86,7 +86,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesWeakPositiveNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -114,7 +114,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesNoCorrelationNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -142,7 +142,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesWeakNegativeNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -170,7 +170,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesStrongNegativeNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -198,7 +198,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesPerfectNegativeNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -226,7 +226,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesOnlyPositiveValuesNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -254,7 +254,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesOnlyNegativeValuesNoNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -282,7 +282,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesIgnoresNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -312,7 +312,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesOnlyNulls() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -342,7 +342,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesOnePoint() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -359,7 +359,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesTwoPointsPositive() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -377,7 +377,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesTwoPointsNegative() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -395,7 +395,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesSameXValues() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -417,7 +417,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldCorrelateDoublesSameYValues() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -439,7 +439,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldMergeCorrelations() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct leftAgg = udaf.initialize();
     final List<Pair<Double, Double>> leftValues = ImmutableList.of(
@@ -475,7 +475,7 @@ public class CorrelationUdafTest {
   @Test
   public void shouldUndoCorrelations() {
     final TableUdaf<Pair<Double, Double>, Struct, Double> udaf =
-            CorrelationUdaf.createCorrelation();
+            CorrelationUdaf.createCorrelationDouble();
 
     Struct agg = udaf.initialize();
     final List<Pair<Double, Double>> values = ImmutableList.of(
@@ -506,6 +506,66 @@ public class CorrelationUdafTest {
     final double correlation = udaf.map(agg);
 
     assertThat(0.9575, closeTo(correlation, 0.00005));
+  }
+
+  @Test
+  public void shouldCorrelateIntegersIgnoresNulls() {
+    final TableUdaf<Pair<Integer, Integer>, Struct, Double> udaf =
+            CorrelationUdaf.createCorrelationInteger();
+
+    Struct agg = udaf.initialize();
+    final List<Pair<Integer, Integer>> values = ImmutableList.of(
+            Pair.of(14, 215),
+            Pair.of(16, 325),
+            Pair.of(11, 185),
+            Pair.of(15, 332),
+            Pair.of(18, 406),
+            Pair.of(13, null),
+            Pair.of(22, 522),
+            Pair.of(19, 412),
+            Pair.of(25, 614),
+            Pair.of(23, 544),
+            Pair.of(18, 421),
+            Pair.of(22, 445),
+            Pair.of(null, 620),
+            Pair.of(17, 408)
+    );
+    for (final Pair<Integer, Integer> thisValue : values) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+    final double correlation = udaf.map(agg);
+
+    assertThat(0.9645, closeTo(correlation, 0.00005));
+  }
+
+  @Test
+  public void shouldCorrelateLongsIgnoresNulls() {
+    final TableUdaf<Pair<Long, Long>, Struct, Double> udaf =
+            CorrelationUdaf.createCorrelationLong();
+
+    Struct agg = udaf.initialize();
+    final List<Pair<Long, Long>> values = ImmutableList.of(
+            Pair.of(14L, 215L),
+            Pair.of(16L, 325L),
+            Pair.of(11L, 185L),
+            Pair.of(15L, 332L),
+            Pair.of(18L, 406L),
+            Pair.of(13L, null),
+            Pair.of(22L, 522L),
+            Pair.of(19L, 412L),
+            Pair.of(25L, 614L),
+            Pair.of(23L, 544L),
+            Pair.of(18L, 421L),
+            Pair.of(22L, 445L),
+            Pair.of(null, 620L),
+            Pair.of(17L, 408L)
+    );
+    for (final Pair<Long, Long> thisValue : values) {
+      agg = udaf.aggregate(thisValue, agg);
+    }
+    final double correlation = udaf.map(agg);
+
+    assertThat(0.9645, closeTo(correlation, 0.00005));
   }
 
 }

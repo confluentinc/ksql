@@ -19,6 +19,7 @@ import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -27,7 +28,7 @@ import org.apache.kafka.connect.data.Struct;
         description = "Computes the Pearson correlation coefficient between two columns of data.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class CorrelationUdaf implements TableUdaf<Pair<Double, Double>, Struct, Double> {
+public class CorrelationUdaf<T> implements TableUdaf<Pair<T, T>, Struct, Double> {
   private static final String X_SUM = "X_SUM";
   private static final String Y_SUM = "Y_SUM";
   private static final String X_SQUARED_SUM = "X_SQUARED_SUM";
@@ -47,8 +48,28 @@ public class CorrelationUdaf implements TableUdaf<Pair<Double, Double>, Struct, 
   @UdafFactory(description = "Computes the Pearson correlation coefficient between "
           + "two DOUBLE columns.", aggregateSchema = "STRUCT<X_SUM double, Y_SUM double, "
           + "X_SQUARED_SUM double, Y_SQUARED_SUM double, XY_SUM double, COUNT bigint>")
-  public static TableUdaf<Pair<Double, Double>, Struct, Double> createCorrelation() {
-    return new CorrelationUdaf();
+  public static TableUdaf<Pair<Double, Double>, Struct, Double> createCorrelationDouble() {
+    return new CorrelationUdaf<>(Function.identity());
+  }
+
+  @UdafFactory(description = "Computes the Pearson correlation coefficient between "
+          + "two INTEGER columns.", aggregateSchema = "STRUCT<X_SUM double, Y_SUM double, "
+          + "X_SQUARED_SUM double, Y_SQUARED_SUM double, XY_SUM double, COUNT bigint>")
+  public static TableUdaf<Pair<Integer, Integer>, Struct, Double> createCorrelationInteger() {
+    return new CorrelationUdaf<>(Integer::doubleValue);
+  }
+
+  @UdafFactory(description = "Computes the Pearson correlation coefficient between "
+          + "two BIGINT columns.", aggregateSchema = "STRUCT<X_SUM double, Y_SUM double, "
+          + "X_SQUARED_SUM double, Y_SQUARED_SUM double, XY_SUM double, COUNT bigint>")
+  public static TableUdaf<Pair<Long, Long>, Struct, Double> createCorrelationLong() {
+    return new CorrelationUdaf<>(Long::doubleValue);
+  }
+
+  private final Function<T, Double> toNumber;
+
+  public CorrelationUdaf(Function<T, Double> toNumber) {
+    this.toNumber = toNumber;
   }
 
   @Override
@@ -63,13 +84,13 @@ public class CorrelationUdaf implements TableUdaf<Pair<Double, Double>, Struct, 
   }
 
   @Override
-  public Struct aggregate(final Pair<Double, Double> current, final Struct aggregate) {
-    final Double x = current.getLeft();
-    final Double y = current.getRight();
-
-    if (x == null || y == null) {
+  public Struct aggregate(final Pair<T, T> current, final Struct aggregate) {
+    if (current.getLeft() == null || current.getRight() == null) {
       return aggregate;
     }
+
+    final double x = toNumber.apply(current.getLeft());
+    final double y = toNumber.apply(current.getRight());
 
     return new Struct(structSchema)
             .put(X_SUM, aggregate.getFloat64(X_SUM) + x)
@@ -113,13 +134,13 @@ public class CorrelationUdaf implements TableUdaf<Pair<Double, Double>, Struct, 
   }
 
   @Override
-  public Struct undo(final Pair<Double, Double> valueToUndo, final Struct aggregateValue) {
-    final Double x = valueToUndo.getLeft();
-    final Double y = valueToUndo.getRight();
-
-    if (x == null || y == null) {
+  public Struct undo(final Pair<T, T> valueToUndo, final Struct aggregateValue) {
+    if (valueToUndo.getLeft() == null || valueToUndo.getRight() == null) {
       return aggregateValue;
     }
+
+    final double x = toNumber.apply(valueToUndo.getLeft());
+    final double y = toNumber.apply(valueToUndo.getRight());
 
     return new Struct(structSchema)
             .put(X_SUM, aggregateValue.getFloat64(X_SUM) - x)

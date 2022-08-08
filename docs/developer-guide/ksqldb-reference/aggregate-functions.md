@@ -77,7 +77,7 @@ originally processed.
 CORRELATION(x, y)
 ```
 
-Returns the Pearson correlation coefficient between `DOUBLE` columns `x` and `y`. If either value in `x` or `y` is `NULL` for a particular row, that row is ignored.
+Returns the Pearson correlation coefficient between columns `x` and `y`. If either value in `x` or `y` is `NULL` for a particular row, that row is ignored.
 
 If all rows contain `NULL` for `x` or `y`, or if there is only one non-null row, `NaN` is returned. When there are only two non-null rows, either `1.0` or `-1.0` is returned, depending on the sign of the slope of the line that would be drawn between the two points.
 

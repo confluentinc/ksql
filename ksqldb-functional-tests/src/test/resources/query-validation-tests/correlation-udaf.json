@@ -29,6 +29,56 @@
       ]
     },
     {
+      "name": "correlation int",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, X integer, Y integer) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, correlation(X, Y) AS correlation FROM INPUT group by ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "alice", "value": {"x": 1, "y": 8}},
+        {"topic": "test_topic", "key": "bob", "value": {"x": -3, "y": -2}},
+        {"topic": "test_topic", "key": "alice", "value": {"x": -1, "y": -2}},
+        {"topic": "test_topic", "key": "alice", "value": {"x": -4, "y": -1}},
+        {"topic": "test_topic", "key": "bob", "value": {"x": 13, "y": null}},
+        {"topic": "test_topic", "key": "bob", "value": {"x": 3, "y": 11}},
+        {"topic": "test_topic", "key": "alice", "value": {"x": null, "y": -6}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "alice", "value": {"CORRELATION": "NaN"}},
+        {"topic": "OUTPUT", "key": "bob", "value": {"CORRELATION": "NaN"}},
+        {"topic": "OUTPUT", "key": "alice", "value": {"CORRELATION": 1.0}},
+        {"topic": "OUTPUT", "key": "alice", "value": {"CORRELATION": 0.7455284088780169}},
+        {"topic": "OUTPUT", "key": "bob", "value": {"CORRELATION": "NaN"}},
+        {"topic": "OUTPUT", "key": "bob", "value": {"CORRELATION": 1.0}},
+        {"topic": "OUTPUT", "key": "alice", "value": {"CORRELATION": 0.7455284088780169}}
+      ]
+    },
+    {
+      "name": "correlation long",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, X bigint, Y bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, correlation(X, Y) AS correlation FROM INPUT group by ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "alice", "value": {"x": 1, "y": 8}},
+        {"topic": "test_topic", "key": "bob", "value": {"x": -3, "y": -2}},
+        {"topic": "test_topic", "key": "alice", "value": {"x": -1, "y": -2}},
+        {"topic": "test_topic", "key": "alice", "value": {"x": -4, "y": -1}},
+        {"topic": "test_topic", "key": "bob", "value": {"x": 13, "y": null}},
+        {"topic": "test_topic", "key": "bob", "value": {"x": 3, "y": 11}},
+        {"topic": "test_topic", "key": "alice", "value": {"x": null, "y": -6}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "alice", "value": {"CORRELATION": "NaN"}},
+        {"topic": "OUTPUT", "key": "bob", "value": {"CORRELATION": "NaN"}},
+        {"topic": "OUTPUT", "key": "alice", "value": {"CORRELATION": 1.0}},
+        {"topic": "OUTPUT", "key": "alice", "value": {"CORRELATION": 0.7455284088780169}},
+        {"topic": "OUTPUT", "key": "bob", "value": {"CORRELATION": "NaN"}},
+        {"topic": "OUTPUT", "key": "bob", "value": {"CORRELATION": 1.0}},
+        {"topic": "OUTPUT", "key": "alice", "value": {"CORRELATION": 0.7455284088780169}}
+      ]
+    },
+    {
       "name": "correlation - DELIMITED",
       "comment": "DELIMITED does not support STRUCT, so can't support CORRELATION until we use a different internal format",
       "statements": [

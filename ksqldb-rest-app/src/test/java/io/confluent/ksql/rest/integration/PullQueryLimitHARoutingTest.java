@@ -206,7 +206,7 @@ public class PullQueryLimitHARoutingTest {
 
     @Rule
     public final Timeout timeout = Timeout.builder()
-            .withTimeout(4, TimeUnit.MINUTES)
+            .withTimeout(2, TimeUnit.MINUTES)
             .withLookingForStuckThread(true)
             .build();
 

@@ -360,6 +360,11 @@ public final class KsqlTarget {
                 && ((VertxCompletableFuture<ResponseWithBody>) vcf).debug) {
               log.info("Completing VCF with ID: {}", vcf);
             }
+            vcf.complete(new ResponseWithBody(resp, Buffer.buffer()));
+          }
+          if (ar.failed()) {
+            log.error("Error while handling response.");
+            vcf.completeExceptionally(ar.cause());
           }
         });
 

@@ -1235,7 +1235,7 @@ public class KsqlResourceTest {
     // When:
     final String query = "--this is a comment. \n"
         + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
-        + "(\"key\", 0.125);";
+        + "(\"key\", 0.125, 1);";
     final KsqlRestException e = assertThrows(
         KsqlRestException.class,
         () -> makeRequest(query)
@@ -1244,7 +1244,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(e, exceptionStatusCode(is(Code.BAD_REQUEST)));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
-        "INSERT INTO  SOURCE (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');"))));
+        "INSERT INTO  SOURCE (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]', '[value]');"))));
   }
 
   @Test

@@ -66,10 +66,10 @@ public class CorrelationUdaf<T> implements TableUdaf<Pair<T, T>, Struct, Double>
     return new CorrelationUdaf<>(Long::doubleValue);
   }
 
-  private final Function<T, Double> toNumber;
+  private final Function<T, Double> toDouble;
 
-  public CorrelationUdaf(final Function<T, Double> toNumber) {
-    this.toNumber = toNumber;
+  public CorrelationUdaf(final Function<T, Double> toDouble) {
+    this.toDouble = toDouble;
   }
 
   @Override
@@ -89,8 +89,8 @@ public class CorrelationUdaf<T> implements TableUdaf<Pair<T, T>, Struct, Double>
       return aggregate;
     }
 
-    final double x = toNumber.apply(current.getLeft());
-    final double y = toNumber.apply(current.getRight());
+    final double x = toDouble.apply(current.getLeft());
+    final double y = toDouble.apply(current.getRight());
 
     return new Struct(structSchema)
             .put(X_SUM, aggregate.getFloat64(X_SUM) + x)
@@ -139,8 +139,8 @@ public class CorrelationUdaf<T> implements TableUdaf<Pair<T, T>, Struct, Double>
       return aggregateValue;
     }
 
-    final double x = toNumber.apply(valueToUndo.getLeft());
-    final double y = toNumber.apply(valueToUndo.getRight());
+    final double x = toDouble.apply(valueToUndo.getLeft());
+    final double y = toDouble.apply(valueToUndo.getRight());
 
     return new Struct(structSchema)
             .put(X_SUM, aggregateValue.getFloat64(X_SUM) - x)

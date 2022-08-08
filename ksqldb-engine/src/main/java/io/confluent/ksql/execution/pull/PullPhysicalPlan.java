@@ -16,7 +16,11 @@
 package io.confluent.ksql.execution.pull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Monitor;
+import com.google.common.util.concurrent.Monitor.Guard;
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.common.QueryRow;
 import io.confluent.ksql.execution.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.execution.pull.operators.DataSourceOperator;
@@ -25,15 +29,19 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartition
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.LookupConstraint;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +62,8 @@ public class PullPhysicalPlan {
   private final QuerySourceType querySourceType;
   private final Materialization mat;
   private final DataSourceOperator dataSourceOperator;
+
+
 
   public PullPhysicalPlan(
       final AbstractPhysicalOperator root,
@@ -79,27 +89,49 @@ public class PullPhysicalPlan {
 
   public void execute(
       final List<KsqlPartitionLocation> locations,
-      final PullQueryQueue pullQueryQueue,
-      final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory) {
-
+      final PullQueryWriteStream pullQueryQueue,
+      final Function<StreamedRow, StreamedRow> addDebugInfo
+  ) {
     // We only know at runtime which partitions to get from which node.
     // That's why we need to set this explicitly for the dataSource operators
     dataSourceOperator.setPartitionLocations(locations);
 
+    // to achieve parity with the remote execution path, we start
+    // by passing the row header into the queue
+    pullQueryQueue.write(ImmutableList.of(StreamedRow.header(queryId, schema)));
+
     open();
-    QueryRow row;
-    while ((row = (QueryRow)next()) != null) {
-      if (pullQueryQueue.isClosed()) {
-        // If the queue has been closed, we stop adding rows and cleanup. This should be triggered
-        // because the client has closed their connection with the server before the results have
-        // completed.
-        LOGGER.info("Queue closed before results completed. Stopping execution.");
-        break;
-      }
-      if (!pullQueryQueue.acceptRow(rowFactory.apply(row.value().values(), schema))) {
-        LOGGER.info("Failed to queue row");
+    QueryRow row = (QueryRow) next();
+
+    int rowsQueued = 0;
+    while (!pullQueryQueue.isDone() && row != null) {
+      final StreamedRow streamedRow = addDebugInfo.apply(
+          StreamedRow.pullRow(GenericRow.fromList(row.value().values()), Optional.empty())
+      );
+
+      try {
+        if (!pullQueryQueue.writeQueueFull()) {
+          rowsQueued++;
+          pullQueryQueue.write(ImmutableList.of(streamedRow));
+          row = (QueryRow) next();
+        } else {
+          // try every 100ms if the queue is full
+          Thread.sleep(100);
+        }
+      } catch (InterruptedException e) {
+        // this isn't expected
+        throw new KsqlException(e);
       }
     }
+
+    if (row != null) {
+      // If the queue has been closed, we stop adding rows and cleanup. This should be triggered
+      // because the client has closed their connection with the server before the results have
+      // completed or the limit was hit
+      LOGGER.info("Queue closed before results completed. Stopping execution.");
+    }
+
+    LOGGER.info("Closing {} after queuing {} rows locally.", queryId, rowsQueued);
     close();
   }
 

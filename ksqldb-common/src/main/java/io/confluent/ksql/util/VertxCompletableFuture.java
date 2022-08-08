@@ -18,6 +18,9 @@ package io.confluent.ksql.util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An implementation of CompletableFuture which also implements a Vert.x Handler of AsyncResult, so
@@ -26,11 +29,25 @@ import java.util.concurrent.CompletableFuture;
 public class VertxCompletableFuture<T> extends CompletableFuture<T> implements
     Handler<AsyncResult<T>> {
 
+  private static final Logger LOG = LoggerFactory.getLogger(VertxCompletableFuture.class);
+  public final boolean debug;
+
   public VertxCompletableFuture() {
+    debug = false;
+  }
+
+  public VertxCompletableFuture(boolean debug) {
+    this.debug = debug;
+    if (debug) {
+      LOG.info("Created VCF with id " + this, new Throwable());
+    }
   }
 
   @Override
   public void handle(final AsyncResult<T> ar) {
+    if (debug) {
+      LOG.info("Handling ar for VCF with id " + this, new Throwable());
+    }
     if (ar.succeeded()) {
       complete(ar.result());
     } else {

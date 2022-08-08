@@ -21,7 +21,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -87,7 +87,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       log.info("(QUERY_ID: {}) running customer limitHandler.", queryId);
       if (isPullQuery) {
         queryHandle.getConsistencyOffsetVector().ifPresent(
-            ((PullQueryQueue) queue)::putConsistencyVector);
+            ((PullQueryWriteStream) queue)::putConsistencyVector);
         maybeSend();
       }
       complete = true;
@@ -107,7 +107,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       log.info("(QUERY_ID: {}) running customer completionHandler.", queryId);
       if (isPullQuery) {
         queryHandle.getConsistencyOffsetVector().ifPresent(
-            ((PullQueryQueue) queue)::putConsistencyVector);
+            ((PullQueryWriteStream) queue)::putConsistencyVector);
         maybeSend();
       }
       complete = true;

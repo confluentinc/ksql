@@ -102,8 +102,7 @@ public class QueryProjectNode extends ProjectNode {
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
           source.getSchema().withoutPseudoAndKeyColsInValue(),
           addAdditionalColumnsToIntermediateSchema,
-          isWindowed,
-          ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+          isWindowed
       );
     this.compiledSelectExpressions = isSelectStar
         ? ImmutableList.of()
@@ -169,7 +168,7 @@ public class QueryProjectNode extends ProjectNode {
 
     if (isSelectStar()) {
       outputSchema = buildPullQuerySelectStarSchema(
-          parentSchema.withoutPseudoAndKeyColsInValue(ksqlConfig), isWindowed);
+          parentSchema.withoutPseudoAndKeyColsInValue(), isWindowed);
     } else {
       final List<SelectExpression> projects = projection.selectItems().stream()
           .map(SingleColumn.class::cast)
@@ -200,7 +199,7 @@ public class QueryProjectNode extends ProjectNode {
   private boolean shouldAddAdditionalColumnsInSchema() {
 
     final boolean hasSystemColumns = analysis.getSelectColumnNames().stream().anyMatch(
-        columnName -> SystemColumns.isSystemColumn(columnName, ksqlConfig)
+        columnName -> SystemColumns.isSystemColumn(columnName)
     );
 
     final boolean hasKeyColumns = analysis.getSelectColumnNames().stream().anyMatch(cn ->
@@ -256,7 +255,7 @@ public class QueryProjectNode extends ProjectNode {
 
     // Copy meta & key columns into the value schema as SelectValueMapper expects it:
     final LogicalSchema schema = parentSchema
-        .withPseudoAndKeyColsInValue(isWindowed, ksqlConfig);
+        .withPseudoAndKeyColsInValue(isWindowed);
 
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, metaStore);

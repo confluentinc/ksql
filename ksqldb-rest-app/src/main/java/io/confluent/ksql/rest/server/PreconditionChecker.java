@@ -35,6 +35,7 @@ import io.confluent.ksql.util.RetryUtil;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
+import java.io.Closeable;
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,10 +58,9 @@ public class PreconditionChecker implements Executable {
 
   private static final Logger LOG = LoggerFactory.getLogger(PreconditionChecker.class);
 
-  final ServiceContext serviceContext;
   final KsqlRestConfig restConfig;
   final Supplier<Map<String, String>> propertiesLoader;
-  final KafkaTopicClient topicClient;
+  final Supplier<Clients> clientsSupplier;
   final Vertx vertx;
   final List<KsqlServerPrecondition> preconditions;
   final PreconditionServer server;
@@ -74,11 +74,8 @@ public class PreconditionChecker implements Executable {
     this.propertiesLoader = Objects.requireNonNull(propertiesLoader, "propertiesLoader");
     final Map<String, String> properties = propertiesLoader.get();
     this.restConfig = new KsqlRestConfig(properties);
-    this.serviceContext = buildServiceContext(propertiesLoader);
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.topicClient = new KafkaTopicClientImpl(
-        () -> createCommandTopicAdminClient(
-            new KsqlRestConfig(propertiesLoader.get()), new KsqlConfig(propertiesLoader.get())));
+    this.clientsSupplier = () -> buildClients(this.propertiesLoader);
     this.preconditions = restConfig.getConfiguredInstances(
         KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
         KsqlServerPrecondition.class
@@ -97,18 +94,16 @@ public class PreconditionChecker implements Executable {
   @VisibleForTesting
   PreconditionChecker(
       final Supplier<Map<String, String>> propertiesLoader,
-      final ServiceContext serviceContext,
       final KsqlRestConfig restConfig,
-      final KafkaTopicClient topicClient,
+      final Supplier<Clients> clientsSupplier,
       final Vertx vertx,
       final List<KsqlServerPrecondition> preconditions,
       final PreconditionServer server,
       final ServerState state
   ) {
     this.propertiesLoader = Objects.requireNonNull(propertiesLoader, "propertiesLoader");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.clientsSupplier = Objects.requireNonNull(clientsSupplier, "clientsSupplier");
     this.restConfig = Objects.requireNonNull(restConfig, "restConfig");
-    this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.vertx = Objects.requireNonNull(vertx, "vertx");
     this.preconditions = Objects.requireNonNull(preconditions, "preconditions");
     this.server = Objects.requireNonNull(server, "server");
@@ -116,12 +111,17 @@ public class PreconditionChecker implements Executable {
   }
 
   private boolean shouldCheckPreconditions() {
-    return preconditions.stream()
-        .map(p -> p.checkPrecondition(propertiesLoader.get(), serviceContext, topicClient))
-        .peek(
-            r -> r.ifPresent(rr -> LOG.info("Precondition failed: {}", rr))
-        )
-        .anyMatch(Optional::isPresent);
+    try (Clients clients = clientsSupplier.get()) {
+      return preconditions.stream()
+          .map(p -> p.checkPrecondition(
+              propertiesLoader.get(),
+              clients.serviceContext,
+              clients.topicClient))
+          .peek(
+              r -> r.ifPresent(rr -> LOG.info("Precondition failed: {}", rr))
+          )
+          .anyMatch(Optional::isPresent);
+    }
   }
 
   /**
@@ -164,7 +164,8 @@ public class PreconditionChecker implements Executable {
     RetryUtil.retryWithBackoff(
         Integer.MAX_VALUE,
         1000,
-        30000,
+        Math.toIntExact(restConfig.getLong(
+            KsqlRestConfig.KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS)),
         this::checkPreconditions,
         terminatedFuture::isDone,
         predicates
@@ -182,11 +183,14 @@ public class PreconditionChecker implements Executable {
   private void checkPreconditions() {
     LOG.info("Checking preconditions...");
     for (final KsqlServerPrecondition precondition : preconditions) {
-      final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
-          propertiesLoader.get(),
-          serviceContext,
-          topicClient
-      );
+      final Optional<KsqlErrorMessage> error;
+      try (Clients clients = clientsSupplier.get()) {
+        error = precondition.checkPrecondition(
+            propertiesLoader.get(),
+            clients.serviceContext,
+            clients.topicClient
+        );
+      }
       if (error.isPresent()) {
         LOG.info("Precondition failed: {}", error.get());
         serverState.setInitializingReason(error.get());
@@ -212,7 +216,7 @@ public class PreconditionChecker implements Executable {
     return new DefaultKafkaClientSupplier().getAdmin(adminClientConfigs);
   }
 
-  private static ServiceContext buildServiceContext(
+  private static Clients buildClients(
       final Supplier<Map<String, String>> propertiesLoader
   ) {
     final Map<String, String> properties = propertiesLoader.get();
@@ -229,14 +233,49 @@ public class PreconditionChecker implements Executable {
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ConnectClientFactory connectClientFactory = new DefaultConnectClientFactory(ksqlConfig);
-    return new LazyServiceContext(() -> RestServiceContextFactory.create(
-        ksqlConfig,
-        Optional.empty(),
-        schemaRegistryClientFactory,
-        connectClientFactory,
-        sharedClient,
-        Collections.emptyList(),
-        Optional.empty()
+    final ServiceContext serviceContext
+        = new LazyServiceContext(() -> RestServiceContextFactory.create(
+            ksqlConfig,
+            Optional.empty(),
+            schemaRegistryClientFactory,
+            connectClientFactory,
+            sharedClient,
+            Collections.emptyList(),
+            Optional.empty()
     ));
+    final Admin admin
+        = createCommandTopicAdminClient(new KsqlRestConfig(properties), new KsqlConfig(properties));
+    return new Clients(
+        serviceContext,
+        vertx,
+        admin,
+        new KafkaTopicClientImpl(() -> admin)
+    );
+  }
+
+  static final class Clients implements Closeable {
+    private final ServiceContext serviceContext;
+    private final Vertx vertx;
+    private final Admin admin;
+    private final KafkaTopicClient topicClient;
+
+    Clients(
+        final ServiceContext serviceContext,
+        final Vertx vertx,
+        final Admin admin,
+        final KafkaTopicClient topicClient
+    ) {
+      this.serviceContext = serviceContext;
+      this.vertx = vertx;
+      this.admin = admin;
+      this.topicClient = topicClient;
+    }
+
+    @Override
+    public void close() {
+      serviceContext.close();
+      vertx.close();
+      admin.close();
+    }
   }
 }

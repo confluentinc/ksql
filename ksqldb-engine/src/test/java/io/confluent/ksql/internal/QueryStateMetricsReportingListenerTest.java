@@ -33,6 +33,7 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
@@ -59,6 +60,8 @@ public class QueryStateMetricsReportingListenerTest {
       new MetricName("dylan", "g1", "d1", ImmutableMap.of());
   private static final MetricName METRIC_NAME_3 =
       new MetricName("steven", "g1", "d1", ImmutableMap.of());
+  private static final MetricName METRIC_NAME_4 =
+          new MetricName("pete", "g1", "d1", ImmutableMap.of());
   private static final QueryId QUERY_ID = new QueryId("foo");
   private static final String TAG = "_confluent-ksql-" + "some-prefix-" + "query_" + QUERY_ID.toString();
 
@@ -81,7 +84,8 @@ public class QueryStateMetricsReportingListenerTest {
     when(metrics.metricName(any(), any(), any(), anyMap()))
         .thenReturn(METRIC_NAME_1)
         .thenReturn(METRIC_NAME_2)
-        .thenReturn(METRIC_NAME_3);
+        .thenReturn(METRIC_NAME_3)
+        .thenReturn(METRIC_NAME_4);
     when(query.getQueryId()).thenReturn(QUERY_ID);
 
     listener = new QueryStateMetricsReportingListener(metrics, "some-prefix-", metricsTags);
@@ -101,11 +105,14 @@ public class QueryStateMetricsReportingListenerTest {
 
     // Then:
     verify(metrics).metricName("query-status", "some-prefix-ksql-queries",
-        "The current status of the given query.",
+        "The current Kafka Streams status of the given query.",
         tags);
     verify(metrics).metricName("error-status", "some-prefix-ksql-queries",
         "The current error status of the given query, if the state is in ERROR state",
         tags);
+    verify(metrics).metricName("ksql-query-status", "some-prefix-ksql-queries",
+            "The current ksqlDB status of the given query.",
+            tags);
     tags.put("query-id", QUERY_ID.toString());
     verify(metrics).metricName(QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_NAME, "some-prefix-ksql-queries",
         QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_DESCRIPTION,
@@ -114,6 +121,7 @@ public class QueryStateMetricsReportingListenerTest {
     verify(metrics).addMetric(eq(METRIC_NAME_1), isA(Gauge.class));
     verify(metrics).addMetric(eq(METRIC_NAME_2), isA(Gauge.class));
     verify(metrics).addMetric(eq(METRIC_NAME_3), isA(CumulativeSum.class));
+    verify(metrics).addMetric(eq(METRIC_NAME_4), isA(Gauge.class));
   }
 
   @Test
@@ -151,11 +159,14 @@ public class QueryStateMetricsReportingListenerTest {
 
     // Then:
     verify(metrics).metricName("query-status", groupPrefix + "ksql-queries",
-        "The current status of the given query.",
+        "The current Kafka Streams status of the given query.",
         tags);
     verify(metrics).metricName("error-status", groupPrefix + "ksql-queries",
         "The current error status of the given query, if the state is in ERROR state",
         tags);
+    verify(metrics).metricName("ksql-query-status", groupPrefix + "ksql-queries",
+            "The current ksqlDB status of the given query.",
+            tags);
     tags.put("query-id", QUERY_ID.toString());
     verify(metrics).metricName(QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_NAME, "some-prefix-ksql-queries",
         QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_DESCRIPTION,
@@ -175,6 +186,7 @@ public class QueryStateMetricsReportingListenerTest {
   @Test
   public void shouldUpdateToNewState() {
     // When:
+    when(query.getQueryStatus()).thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING);
     listener.onCreate(serviceContext, metaStore, query);
     listener.onStateChange(query, State.REBALANCING, State.RUNNING);
 
@@ -185,11 +197,34 @@ public class QueryStateMetricsReportingListenerTest {
   @Test
   public void shouldUpdateOnError() {
     // When:
+    when(query.getQueryStatus()).thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING);
     listener.onCreate(serviceContext, metaStore, query);
     listener.onError(query, new QueryError(1, "foo", Type.USER));
 
     // Then:
     assertThat(currentGaugeValue(METRIC_NAME_2), is("USER"));
+  }
+
+  @Test
+  public void shouldReportKsqlQueryStatus() {
+    // When:
+    listener.onCreate(serviceContext, metaStore, query);
+
+    when(query.getQueryStatus())
+            .thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING)
+            .thenReturn(KsqlConstants.KsqlQueryStatus.PAUSED)
+            .thenReturn(KsqlConstants.KsqlQueryStatus.UNRESPONSIVE)
+            .thenReturn(KsqlConstants.KsqlQueryStatus.ERROR);
+
+    // Then:
+    listener.onKsqlStateChange(query);
+    assertThat(currentGaugeValue(METRIC_NAME_4), is("RUNNING"));
+    listener.onKsqlStateChange(query);
+    assertThat(currentGaugeValue(METRIC_NAME_4), is("PAUSED"));
+    listener.onKsqlStateChange(query);
+    assertThat(currentGaugeValue(METRIC_NAME_4), is("UNRESPONSIVE"));
+    listener.onKsqlStateChange(query);
+    assertThat(currentGaugeValue(METRIC_NAME_4), is("ERROR"));
   }
 
   @Test
@@ -202,6 +237,7 @@ public class QueryStateMetricsReportingListenerTest {
     verify(metrics).removeMetric(METRIC_NAME_1);
     verify(metrics).removeMetric(METRIC_NAME_2);
     verify(metrics).removeMetric(METRIC_NAME_3);
+    verify(metrics).removeMetric(METRIC_NAME_4);
   }
 
   private String currentGaugeValue(final MetricName name) {

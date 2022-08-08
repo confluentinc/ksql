@@ -34,6 +34,8 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +45,9 @@ import org.junit.experimental.categories.Category;
 public class PreconditionCheckerIntegrationTest {
   private static final Map<String, String> PROPERTIES = ImmutableMap.of(
       KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
-      PreconditionCheckerIntegrationTestPrecondition.class.getCanonicalName()
+      PreconditionCheckerIntegrationTestPrecondition.class.getCanonicalName(),
+      ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+      "localhost:8888"
   );
 
   private final ServerState serverState = new ServerState();

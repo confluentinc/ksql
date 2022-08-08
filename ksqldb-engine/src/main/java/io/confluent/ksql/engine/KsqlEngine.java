@@ -677,7 +677,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         getMetaStore(),
         "",
-        getRowpartitionRowoffsetEnabled(ksqlConfig, configOverrides),
         ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)
     );
 
@@ -761,19 +760,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
         ((StreamsErrorCollector) o).cleanup();
       }
     }
-  }
-
-  private static boolean getRowpartitionRowoffsetEnabled(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> configOverrides
-  ) {
-    final Object rowpartitionRowoffsetEnabled =
-        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
-    if (rowpartitionRowoffsetEnabled != null) {
-      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
-    }
-
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 
   private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {

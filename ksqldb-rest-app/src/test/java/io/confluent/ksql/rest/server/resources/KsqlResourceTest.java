@@ -171,6 +171,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -331,6 +332,8 @@ public class KsqlResourceTest {
 
   @Before
   public void setUp() throws IOException, RestClientException {
+    VALID_EXECUTABLE_REQUEST.setMaskedKsql(QueryMask.getMaskedStatement(VALID_EXECUTABLE_REQUEST.getUnmaskedKsql()));
+
     commandStatus = new QueuedCommandStatus(
         0, new CommandStatusFuture(new CommandId(TOPIC, "whateva", CREATE)));
 
@@ -2362,8 +2365,8 @@ public class KsqlResourceTest {
                 ? ImmutableSet.of(md.getResultTopic().get().getKafkaTopicName())
                 : ImmutableSet.of(),
             md.getQueryId(),
-            QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(md.getState(), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
+            new QueryStatusCount(Collections.singletonMap(KsqlConstants.fromStreamsState(md.getState()), 1)),
+            KsqlConstants.KsqlQueryType.PERSISTENT)
     ).collect(Collectors.toList());
   }
 
@@ -2592,7 +2595,7 @@ public class KsqlResourceTest {
       ksqlResource.handleKsqlStatements(securityContext, VALID_EXECUTABLE_REQUEST);
 
       logger.verify(() -> QueryLogger.info("Query created",
-          VALID_EXECUTABLE_REQUEST.getKsql()), times(1));
+          VALID_EXECUTABLE_REQUEST.getMaskedKsql()), times(1));
     }
   }
 

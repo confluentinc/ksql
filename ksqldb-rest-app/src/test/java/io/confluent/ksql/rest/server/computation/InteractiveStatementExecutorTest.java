@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -42,6 +43,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -146,9 +148,13 @@ public class InteractiveStatementExecutorTest {
     serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
     final SpecificQueryIdGenerator hybridQueryIdGenerator = new SpecificQueryIdGenerator();
     final MetricCollectors metricCollectors = new MetricCollectors();
+
+    MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    loadAllUserFunctions(functionRegistry);
+
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
+        new MetaStoreImpl(functionRegistry),
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty(),
             metricCollectors
         ),

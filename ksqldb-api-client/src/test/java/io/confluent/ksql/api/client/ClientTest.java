@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -1181,6 +1182,40 @@ public class ClientTest extends BaseApiTest {
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
         () -> javaClient.executeStatement("drop connector;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("Use the dropConnector() method instead"));
+  }
+
+  @Test
+  public void shouldHandleWarningsForDdlStatements()
+      throws ExecutionException, InterruptedException {
+    // Given
+    final WarningEntity entity = new WarningEntity("create stream if not exists;", "Cannot add stream foo: A stream with the same name already exists.");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final ExecuteStatementResult result = javaClient.executeStatement("create stream if not exists;").get();
+
+    // Then
+    assertFalse(result.queryId().isPresent());
+  }
+
+  @Test
+  public void shouldRejectWarningsFromNonDdlStatementsViaExecuteStatement() {
+    // Given
+    final WarningEntity entity = new WarningEntity("drop connector if exits;", "Connector does not exist.");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("drop connector if exits;").get()
     );
 
     // Then

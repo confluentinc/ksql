@@ -16,22 +16,69 @@
 package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.udaf.BaseComparableKudaf;
-import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.UdafDescription;
+import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 
+@UdafDescription(
+        name = "MAX",
+        description = "Computes the maximum value for a key.",
+        author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class MaxKudaf<T extends Comparable<? super T>> extends BaseComparableKudaf<T> {
 
-  MaxKudaf(
-      final String functionName,
-      final Integer argIndexInValue,
-      final SqlType outputSchema
-  ) {
-    super(functionName,
-        argIndexInValue,
-        outputSchema,
-        (first, second) -> first.compareTo(second) > 0 ? first : second,
-        "Computes the maximum " + outputSchema.toString(FormatOptions.none())
-            + " value for a key.");
+  @UdafFactory(description = "Computes the maximum value for an integer key.")
+  public static Udaf<Integer, Integer, Integer> createMaxInt() {
+    return new MaxKudaf<>();
   }
 
+  @UdafFactory(description = "Computes the maximum value for a long key.")
+  public static Udaf<Long, Long, Long> createMaxLong() {
+    return new MaxKudaf<>();
+  }
+
+  @UdafFactory(description = "Computes the maximum value for a double key.")
+  public static Udaf<Double, Double, Double> createMaxDouble() {
+    return new MaxKudaf<>();
+  }
+
+  @UdafFactory(description = "Computes the maximum value for a decimal key.")
+  public static Udaf<BigDecimal, BigDecimal, BigDecimal> createMaxDecimal() {
+    return new MaxKudaf<>();
+  }
+
+  @UdafFactory(description = "Computes the maximum value for a date key.")
+  public static Udaf<Date, Date, Date> createMaxDate() {
+    return new MaxKudaf<>();
+  }
+
+  @UdafFactory(description = "Computes the maximum value for a time key.")
+  public static Udaf<Time, Time, Time> createMaxTime() {
+    return new MaxKudaf<>();
+  }
+
+  @UdafFactory(description = "Computes the maximum value for a timestamp key.")
+  public static Udaf<Timestamp, Timestamp, Timestamp> createMaxTimestamp() {
+    return new MaxKudaf<>();
+  }
+
+  @UdafFactory(description = "Computes the maximum value for a string key.")
+  public static Udaf<String, String, String> createMaxString() {
+    return new MaxKudaf<>();
+  }
+
+  @UdafFactory(description = "Computes the maximum value for a bytes key.")
+  public static Udaf<ByteBuffer, ByteBuffer, ByteBuffer> createMaxBytes() {
+    return new MaxKudaf<>();
+  }
+
+  public MaxKudaf() {
+    super((first, second) -> first.compareTo(second) > 0 ? first : second);
+  }
 }

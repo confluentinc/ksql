@@ -124,6 +124,9 @@ public class CommandRunnerTest {
     when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     when(queuedCommand3.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    when(queuedCommand1.getCommandId()).thenReturn(new byte[0]);
+    when(queuedCommand2.getCommandId()).thenReturn(new byte[0]);
+    when(queuedCommand3.getCommandId()).thenReturn(new byte[0]);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand1);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);

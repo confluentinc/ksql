@@ -224,10 +224,12 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Test
     public void shouldRestart() {
         //When:
+        when(binPackedPersistentQueryMetadata.getQueryStatus()).thenReturn(KsqlConstants.KsqlQueryStatus.PAUSED);
         sharedKafkaStreamsRuntimeImpl.restartStreamsRuntime();
 
         //Then:
         verify(kafkaStreamsNamedTopologyWrapper).close();
+        verify(kafkaStreamsNamedTopologyWrapper2).pauseNamedTopology(any());
         verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(any());
         verify(kafkaStreamsNamedTopologyWrapper2).start();
         verify(kafkaStreamsNamedTopologyWrapper2).setUncaughtExceptionHandler((StreamsUncaughtExceptionHandler) any());

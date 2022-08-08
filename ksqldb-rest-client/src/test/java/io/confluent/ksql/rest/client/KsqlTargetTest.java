@@ -130,13 +130,13 @@ public class KsqlTargetTest {
 
   private void expectPostQueryRequestChunkHandler() {
     try {
-      when(writeStream.write(any(), any())).thenAnswer(inv -> {
+      doAnswer((inv -> {
         final List<StreamedRow> rs = inv.getArgument(0);
         if (rs != null) {
           rows.addAll(rs);
         }
         return writeStream;
-      });
+      })).when(writeStream).write(any());
 
       response.set(ksqlTarget.postQueryRequest(
           QUERY, ImmutableMap.of(), Optional.empty(), writeStream, closeConnection, Function.identity()));

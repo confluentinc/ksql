@@ -29,10 +29,11 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.RowMetadata;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.impl.FutureFactoryImpl;
-import io.vertx.core.spi.FutureFactory;
+import io.vertx.core.impl.future.SucceededFuture;
 import io.vertx.core.streams.WriteStream;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -59,7 +60,6 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   private static final Logger LOG = LoggerFactory.getLogger(PullQueryWriteStream.class);
 
   private static final int DEFAULT_SOFT_CAPACITY = 50;
-  private static final FutureFactory FUTURE_FACTORY = new FutureFactoryImpl();
 
   private final OptionalInt hardLimit;
   private final StreamedRowTranslator translator;
@@ -210,7 +210,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
     numPolled++;
 
-    polled.handler.handle(FUTURE_FACTORY.succeededFuture());
+    polled.handler.handle(new SucceededFuture<>(null, null));
 
     m.enter();
     try {
@@ -315,13 +315,14 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   }
 
   @Override
-  public PullQueryWriteStream write(final List<StreamedRow> data) {
-    write(data, ar -> {});
-    return this;
+  public Future<Void> write(final List<StreamedRow> data) {
+    final Promise<Void> promise = Promise.promise();
+    write(data, promise);
+    return promise.future();
   }
 
   @Override
-  public PullQueryWriteStream write(
+  public void write(
       final List<StreamedRow> data,
       final Handler<AsyncResult<Void>> handler
   ) {
@@ -333,7 +334,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
         LOG.warn(msg);
         exceptionHandler.handle(new KsqlException(msg));
-        return this;
+        return;
       }
 
       translator.add(data);
@@ -352,18 +353,11 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
     } finally {
       m.leave();
     }
-
-    return this;
   }
 
   @Override
   public void close() {
     end();
-  }
-
-  @Override
-  public void end() {
-    end(ar -> {});
   }
 
   @Override
@@ -377,7 +371,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
     }
 
     endHandler.complete();
-    handler.handle(FUTURE_FACTORY.succeededFuture());
+    handler.handle(new SucceededFuture<>(null, null));
   }
 
   @Override

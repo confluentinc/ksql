@@ -103,25 +103,20 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
-  private final boolean rowpartitionRowoffsetEnabled;
   private final boolean pullLimitClauseEnabled;
 
   /**
    * @param metaStore the metastore to use.
    * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
-   * @param rowpartitionRowoffsetEnabled whether KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED
-   *                                     is true
    */
   Analyzer(
       final MetaStore metaStore,
       final String topicPrefix,
-      final boolean rowpartitionRowoffsetEnabled,
       final boolean pullLimitClauseEnabled
 
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
-    this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
     this.pullLimitClauseEnabled = pullLimitClauseEnabled;
   }
 
@@ -159,7 +154,6 @@ class Analyzer {
     Visitor(final Query query, final boolean persistent) {
       this.analysis = new Analysis(
               query.getRefinement(),
-              rowpartitionRowoffsetEnabled,
               pullLimitClauseEnabled
           );
 
@@ -629,10 +623,7 @@ class Analyzer {
 
     private void validateSelect(final SingleColumn column) {
 
-      final int pseudoColumnVersion = SystemColumns
-          .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
-
-      SystemColumns.systemColumnNames(pseudoColumnVersion)
+      SystemColumns.systemColumnNames()
           .forEach(col -> checkForReservedToken(column, col));
 
       if (!analysis.getGroupBy().isPresent()) {

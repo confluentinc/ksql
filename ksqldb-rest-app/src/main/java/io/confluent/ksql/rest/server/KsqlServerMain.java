@@ -16,6 +16,10 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
@@ -26,6 +30,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -69,13 +74,18 @@ public class KsqlServerMain {
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final MetricCollectors metricCollectors = new MetricCollectors();
       final ServerState serverState = new ServerState();
+      // we make sure to load functions at server startup to ensure that we can quickly start
+      // the main ksql server once the precondition checker passes. Function loading can take a
+      // long time (10s of seconds) and we don't want to run without a server in the interim.
+      final FunctionRegistry functionRegistry = loadFunctions(propertiesLoader, metricCollectors);
       final Executable preconditionChecker = new PreconditionChecker(propertiesLoader, serverState);
       final Supplier<Executable> executableFactory = () -> createExecutable(
           propertiesLoader,
           serverState,
           queriesFile,
           installDir,
-          metricCollectors
+          metricCollectors,
+          functionRegistry
       );
       new KsqlServerMain(
           preconditionChecker,
@@ -103,6 +113,25 @@ public class KsqlServerMain {
       return;
     }
     runExecutable(executable.get());
+  }
+
+  private static FunctionRegistry loadFunctions(
+      final Supplier<Map<String, String>> propertiesLoader,
+      final MetricCollectors metricCollectors
+  ) {
+    final Map<String, String> properties = propertiesLoader.get();
+    final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
+    final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+    final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    UserFunctionLoader.newInstance(
+        ksqlConfig,
+        functionRegistry,
+        ksqlInstallDir,
+        metricCollectors.getMetrics()
+    ).load();
+    return functionRegistry;
   }
 
   boolean runExecutable(final Executable executable) throws Exception {
@@ -177,7 +206,8 @@ public class KsqlServerMain {
       final ServerState serverState,
       final Optional<String> queriesFile,
       final String installDir,
-      final MetricCollectors metricCollectors
+      final MetricCollectors metricCollectors,
+      final FunctionRegistry functionRegistry
   ) {
     final Map<String, String> properties = propertiesLoader.get();
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
@@ -192,8 +222,13 @@ public class KsqlServerMain {
     }
 
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
-    final Executable restApp = KsqlRestApplication
-        .buildApplication(restConfig, serverState, metricCollectors);
+    final Executable restApp = KsqlRestApplication.buildApplication(
+        restConfig,
+        serverState,
+        metricCollectors,
+        functionRegistry,
+        Instant.now()
+    );
 
     final String connectConfigFile =
         ksqlConfig.getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);

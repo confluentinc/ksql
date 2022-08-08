@@ -30,8 +30,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.schema.connect.SchemaWalker;
-import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.DecimalUtil;
@@ -98,7 +96,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       final boolean isJsonSchema,
       final Class<T> targetType
   ) {
-    this.schema = validateSchema(Objects.requireNonNull(schema, "schema"));
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.isJsonSchema = isJsonSchema;
     this.targetType = Objects.requireNonNull(targetType, "targetType");
 
@@ -356,26 +354,5 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
     public String getPath() {
       return path;
     }
-  }
-
-  private static Schema validateSchema(final Schema schema) {
-
-    class SchemaValidator implements Visitor<Void, Void> {
-
-      @Override
-      public Void visitMap(final Schema mapSchema, final Void key, final Void value) {
-        if (mapSchema.keySchema().type() != Type.STRING) {
-          throw new KsqlException("JSON only supports MAP types with STRING keys");
-        }
-        return null;
-      }
-
-      public Void visitSchema(final Schema schema11) {
-        return null;
-      }
-    }
-
-    SchemaWalker.visit(schema, new SchemaValidator());
-    return schema;
   }
 }

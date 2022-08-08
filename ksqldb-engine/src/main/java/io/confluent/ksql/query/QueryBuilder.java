@@ -575,11 +575,15 @@ final class QueryBuilder {
         ThroughputMetricsReporter.class.getName()
     );
 
+    final String type = queryId.isPresent() && queryId.get().toString().contains("transient")
+        ? queryId.get().toString()
+        : "query";
+
     if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
           ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
               + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-              + "query");
+              + type);
     }
 
     // Passing shared state into managed components
@@ -653,7 +657,8 @@ final class QueryBuilder {
         .and(new AuthorizationClassifier(applicationId))
         .and(new KsqlFunctionClassifier(applicationId))
         .and(new MissingSubjectClassifier(applicationId))
-        .and(new SchemaAuthorizationClassifier(applicationId));
+        .and(new SchemaAuthorizationClassifier(applicationId))
+        .and(new KsqlSerializationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);

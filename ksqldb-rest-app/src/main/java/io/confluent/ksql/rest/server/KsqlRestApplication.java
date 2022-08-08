@@ -39,9 +39,7 @@ import io.confluent.ksql.execution.scalablepush.PushRouting;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UserFunctionLoader;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.JmxDataPointsReporter;
 import io.confluent.ksql.internal.LeakedResourcesMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
@@ -133,6 +131,7 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -206,6 +205,8 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final Optional<LocalCommands> localCommands;
   private KafkaTopicClient internalTopicClient;
+  private final Instant ksqlRestAppStartTime;
+  private final KsqlRestApplicationMetrics restApplicationMetrics;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -246,7 +247,8 @@ public final class KsqlRestApplication implements Executable {
       final QueryExecutor queryExecutor,
       final MetricCollectors metricCollectors,
       final KafkaTopicClient internalTopicClient,
-      final Admin internalAdmin
+      final Admin internalAdmin,
+      final Instant ksqlRestAppStartTime
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -300,6 +302,8 @@ public final class KsqlRestApplication implements Executable {
     this.localCommands = requireNonNull(localCommands, "localCommands");
     this.queryExecutor = requireNonNull(queryExecutor, "queryExecutor");
     this.internalTopicClient = requireNonNull(internalTopicClient, "internalTopicClient");
+    this.ksqlRestAppStartTime = requireNonNull(ksqlRestAppStartTime, "ksqlRestAppStartTime");
+    this.restApplicationMetrics = new KsqlRestApplicationMetrics(metricCollectors.getMetrics());
   }
 
   @Override
@@ -456,6 +460,9 @@ public final class KsqlRestApplication implements Executable {
     }
 
     serverState.setReady();
+
+    restApplicationMetrics.recordServerStartLatency(
+        Duration.between(ksqlRestAppStartTime, Instant.now()));
   }
 
   @Override
@@ -585,7 +592,10 @@ public final class KsqlRestApplication implements Executable {
   public static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
       final ServerState serverState,
-      final MetricCollectors metricCollectors) {
+      final MetricCollectors metricCollectors,
+      final FunctionRegistry functionRegistry,
+      final Instant ksqlRestAppStartTime
+  ) {
 
     final Map<String, Object> updatedRestProps = restConfig.getOriginals();
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -637,7 +647,9 @@ public final class KsqlRestApplication implements Executable {
         sharedClient,
         RestServiceContextFactory::create,
         RestServiceContextFactory::create,
-        metricCollectors
+        metricCollectors,
+        functionRegistry,
+        ksqlRestAppStartTime
     );
   }
 
@@ -656,9 +668,9 @@ public final class KsqlRestApplication implements Executable {
       final KsqlClient sharedClient,
       final DefaultServiceContextFactory defaultServiceContextFactory,
       final UserServiceContextFactory userServiceContextFactory,
-      final MetricCollectors metricCollectors) {
-    final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
-
+      final MetricCollectors metricCollectors,
+      final FunctionRegistry functionRegistry,
+      final Instant ksqlRestAppStartTime) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
     final ProcessingLogConfig processingLogConfig
@@ -668,8 +680,6 @@ public final class KsqlRestApplication implements Executable {
         metricCollectors.getMetrics(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
-
-    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
     if (restConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER)) {
       Thread.setDefaultUncaughtExceptionHandler(
@@ -753,13 +763,6 @@ public final class KsqlRestApplication implements Executable {
             transientQueryCleanupServicePeriod,
             TimeUnit.SECONDS
     );
-
-    UserFunctionLoader.newInstance(
-        ksqlConfig,
-        functionRegistry,
-        ksqlInstallDir,
-        metricCollectors.getMetrics()
-    ).load();
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
@@ -965,7 +968,8 @@ public final class KsqlRestApplication implements Executable {
         queryExecutor,
         metricCollectors,
         internalTopicClient,
-        internalAdmin
+        internalAdmin,
+        ksqlRestAppStartTime
     );
   }
 

@@ -17,7 +17,6 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
@@ -27,7 +26,6 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -110,29 +108,13 @@ public final class SystemColumns {
     return WINDOW_BOUNDS_COLUMN_NAMES;
   }
 
-  @VisibleForTesting
-  static boolean isPseudoColumn(final ColumnName columnName, final int pseudoColumnVersion) {
-    validatePseudoColumnVersion(pseudoColumnVersion);
-
-    return pseudoColumns
-        .stream()
-        .filter(col -> col.version <= pseudoColumnVersion)
+  public static boolean isPseudoColumn(final ColumnName columnName) {
+    return pseudoColumns.stream()
         .anyMatch(col -> col.name.equals(columnName));
   }
 
-  public static boolean isPseudoColumn(
-      final ColumnName columnName,
-      final KsqlConfig ksqlConfig
-  ) {
-    return isPseudoColumn(columnName, getPseudoColumnVersionFromConfig(ksqlConfig));
-  }
-
-  public static boolean isPseudoColumn(
-      final ColumnName columnName,
-      final boolean rowpartitionRowoffsetEnabled
-  ) {
-    return isPseudoColumn(columnName,
-        getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled));
+  public static Set<ColumnName> pseudoColumnNames() {
+    return pseudoColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
@@ -146,29 +128,23 @@ public final class SystemColumns {
         .collect(Collectors.toSet());
   }
 
-  public static Set<ColumnName> pseudoColumnNames(final KsqlConfig ksqlConfig) {
-    return pseudoColumnNames(getPseudoColumnVersionFromConfig(ksqlConfig));
-  }
-
-  public static Set<ColumnName> pseudoColumnNames(final boolean rowpartitionRowoffsetEnabled) {
-    return pseudoColumnNames(getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled));
+  public static boolean isSystemColumn(final ColumnName columnName) {
+    return isSystemColumn(columnName, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static boolean isSystemColumn(final ColumnName columnName, final int pseudoColumnVersion) {
     return systemColumnNames(pseudoColumnVersion).contains(columnName);
   }
 
-  public static boolean isSystemColumn(final ColumnName columnName, final KsqlConfig ksqlConfig) {
-    return isSystemColumn(columnName, getPseudoColumnVersionFromConfig(ksqlConfig));
+  public static Set<ColumnName> systemColumnNames() {
+    return systemColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
-
     return Stream.concat(
         WINDOW_BOUNDS_COLUMN_NAMES.stream(),
         pseudoColumnNames(pseudoColumnVersion).stream()
-    )
-        .collect(Collectors.toSet());
+    ).collect(Collectors.toSet());
   }
 
   /**
@@ -187,15 +163,17 @@ public final class SystemColumns {
         .mustBeMaterializedForTableJoins;
   }
 
-  public static boolean isDisallowedForInsertValues(
-      final ColumnName columnName,
-      final KsqlConfig ksqlConfig
-  ) {
+  public static boolean isDisallowedForInsertValues(final ColumnName columnName) {
     return pseudoColumns
         .stream()
-        .filter(col -> col.version <= getPseudoColumnVersionFromConfig(ksqlConfig))
         .filter(col -> col.name.equals(columnName))
         .anyMatch(col -> col.isDisallowedForInsertValues);
+  }
+
+  public static boolean isDisallowedInPullOrScalablePushQueries(
+      final ColumnName columnName
+  ) {
+    return isDisallowedInPullOrScalablePushQueries(columnName, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static boolean isDisallowedInPullOrScalablePushQueries(
@@ -207,26 +185,6 @@ public final class SystemColumns {
         .filter(col -> col.version <= pseudoColumnVersion)
         .filter(col -> col.isDisallowedInPullAndScalablePushQueries)
         .anyMatch(col -> col.name.equals(columnName));
-  }
-
-  public static int getPseudoColumnVersionFromConfig(final boolean rowpartitionRowoffsetEnabled) {
-    return getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled, false);
-  }
-
-  public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
-    return getPseudoColumnVersionFromConfig(
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED),
-        false
-    );
-  }
-
-  public static int getPseudoColumnVersionFromConfig(
-      final boolean rowpartitionRowoffsetEnabled,
-      final boolean forPullOrScalablePushQuery
-  ) {
-    return rowpartitionRowoffsetEnabled && !forPullOrScalablePushQuery
-        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
-        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
   }
 
   private static void validatePseudoColumnVersion(final int pseudoColumnVersionNumber) {

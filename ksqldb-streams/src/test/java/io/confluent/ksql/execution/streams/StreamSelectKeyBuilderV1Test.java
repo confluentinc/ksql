@@ -67,7 +67,7 @@ public class StreamSelectKeyBuilderV1Test {
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .build()
-      .withPseudoAndKeyColsInValue(false, new KsqlConfig(ImmutableMap.of()));
+      .withPseudoAndKeyColsInValue(false);
 
   private static final UnqualifiedColumnReferenceExp KEY =
       new UnqualifiedColumnReferenceExp(ColumnName.of("BOI"));

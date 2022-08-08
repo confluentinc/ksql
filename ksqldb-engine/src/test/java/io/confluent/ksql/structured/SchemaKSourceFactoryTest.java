@@ -191,30 +191,9 @@ public class SchemaKSourceFactoryTest {
   }
 
   @Test
-  public void shouldBuildV1NonWindowedTable() {
-    // Given:
-    givenNonWindowedTable();
-
-    // When:
-    final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        buildContext,
-        dataSource,
-        contextStacker
-    );
-
-    // Then:
-    assertThat(result, instanceOf(SchemaKTable.class));
-    assertThat(result.getSourceStep(), instanceOf(TableSourceV1.class));
-
-    assertValidSchema(result);
-    assertThat(result.getSourceStep().getSources(), is(empty()));
-  }
-
-  @Test
   public void shouldBuildV2NonWindowedTable() {
     // Given:
     givenNonWindowedTable();
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -235,7 +214,6 @@ public class SchemaKSourceFactoryTest {
   public void shouldBuildCorrectFormatsForV2NonWindowedTable() {
     // Given:
     givenNonWindowedTable();
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -258,7 +236,6 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenNonWindowedStream();
     givenExistingQueryWithOldPseudoColumnVersion(streamSource);
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -276,7 +253,6 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateNonWindowedStreamSourceWithNewPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenNonWindowedStream();
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -295,7 +271,6 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenWindowedStream();
     givenExistingQueryWithOldPseudoColumnVersion(windowedStreamSource);
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -313,7 +288,6 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateWindowedStreamSourceWithNewPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenWindowedStream();
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -331,7 +305,6 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateNonWindowedTableSourceV2WithNewPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenNonWindowedTable();
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -354,7 +327,6 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenNonWindowedTable();
     givenExistingQueryWithOldPseudoColumnVersion(tableSource);
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -369,29 +341,10 @@ public class SchemaKSourceFactoryTest {
   }
 
   @Test
-  public void shouldCreateNonWindowedTableSourceV1WithOldPseudoColumnVersionIfNoOldQuery() {
-    // Given:
-    givenNonWindowedTable();
-    givenOnOldPseudoColumnVersion();
-
-    // When:
-    final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        buildContext,
-        dataSource,
-        contextStacker
-    );
-
-    // Then:
-    assertThat(((TableSourceV1) result.getSourceStep()).getPseudoColumnVersion(), equalTo(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
-    assertValidSchema(result);
-  }
-
-  @Test
   public void shouldReplaceTableSourceV1WithSame() {
     // Given:
     givenNonWindowedTable();
     givenExistingQueryWithOldPseudoColumnVersion(tableSourceV1);
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -410,7 +363,6 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenWindowedTable();
     givenExistingQueryWithOldPseudoColumnVersion(windowedTableSource);
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -428,7 +380,6 @@ public class SchemaKSourceFactoryTest {
   public void shouldCreateWindowedTableSourceWithNewPseudoColumnVersionIfNoOldQuery() {
     // Given:
     givenWindowedTable();
-    givenOnNewPseudoColumnVersion();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -462,7 +413,7 @@ public class SchemaKSourceFactoryTest {
     // Then:
     assertThat(
         e.getMessage(),
-        containsString("TableSourceV2 was released in conjunction with pseudocolumnversion 1. Something has gone very wrong")
+        containsString("TableSourceV2 was released in conjunction with pseudocolumn version 1. Something has gone very wrong")
     );
   }
 
@@ -494,14 +445,6 @@ public class SchemaKSourceFactoryTest {
     when(buildContext.getPlanInfo()).thenReturn(Optional.of(planInfo));
     when(planInfo.getSources()).thenReturn(ImmutableSet.of(step));
     when(step.getPseudoColumnVersion()).thenReturn(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-  }
-
-  private void givenOnNewPseudoColumnVersion() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
-  }
-
-  private void givenOnOldPseudoColumnVersion() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
   }
 
   private void assertValidSchema(final SchemaKStream<?> result) {

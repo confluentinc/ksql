@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -55,7 +56,7 @@ class UdafFactoryInvoker implements FunctionSignature {
       final Method method,
       final FunctionName functionName,
       final String description,
-      final String inputSchema,
+      final String[] inputSchemas,
       final String aggregateSchema,
       final String outputSchema,
       final SqlTypeParser typeParser,
@@ -76,7 +77,7 @@ class UdafFactoryInvoker implements FunctionSignature {
     this.functionName = Objects.requireNonNull(functionName);
     this.aggregateSchema = aggregateSchema; // This can be null if the annotation is not used.
     this.metrics = Objects.requireNonNull(metrics);
-    this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
+    this.params = types.getInputSchema(Objects.requireNonNull(inputSchemas));
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
     this.aggregateReturnType = types.getOutputSchema(Objects.requireNonNull(outputSchema));
     this.method = Objects.requireNonNull(method);
@@ -87,7 +88,10 @@ class UdafFactoryInvoker implements FunctionSignature {
   @SuppressWarnings({"rawtypes", "unchecked"})
   KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs,
       final List<SqlArgument> argTypeList) {
-    final Object[] factoryArgs = initArgs.args().toArray();
+    final Object[] factoryArgs = method.isVarArgs()
+            ? convertToVariadicArgs(initArgs.args().toArray())
+            : initArgs.args().toArray();
+
     try {
       ExtensionSecurityManager.INSTANCE.pushInUdf();
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
@@ -108,25 +112,27 @@ class UdafFactoryInvoker implements FunctionSignature {
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
         function = new UdafTableAggregateFunction(
             functionName.text(),
-            initArgs.udafIndex(),
+            initArgs.udafIndices(),
             udaf,
             aggregateSqlType,
             returnSqlType,
             params,
             description,
             metrics,
-            method.getName());
+            method.getName(),
+            params.size() - literalParams().size());
       } else {
         function = new UdafAggregateFunction(
             functionName.text(),
-            initArgs.udafIndex(),
+            initArgs.udafIndices(),
             udaf,
             aggregateSqlType,
             returnSqlType,
             params,
             description,
             metrics,
-            method.getName());
+            method.getName(),
+            params.size() - literalParams().size());
       }
       return function;
     } catch (final Exception e) {
@@ -159,11 +165,46 @@ class UdafFactoryInvoker implements FunctionSignature {
 
   @Override
   public boolean isVariadic() {
-    return false;
+    return types.isVariadic();
+  }
+
+  public List<ParameterInfo> literalParams() {
+    return types.literalParams();
   }
 
   public String getDescription() {
     return description;
+  }
+
+  private Object[] convertToVariadicArgs(final Object[] factoryArgs) {
+    final int varArgsStartIndex = method.getParameterCount() - 1;
+
+    /* When invoking a variadic method via reflection, the variadic arguments must be
+    placed into an array nested inside the main array of parameters. We need to adjust
+    the original factory arguments, which is simply a flat array. */
+    final Object[] adjustedFactoryArgs = new Object[method.getParameterCount()];
+
+    // Copy the regular, non-variadic arguments
+    System.arraycopy(factoryArgs, 0, adjustedFactoryArgs, 0, varArgsStartIndex);
+
+    /* The factory method will do type checking on the array type when it is invoked, so we
+    need to create an array with elements of the correct type. A sub-array cannot be cast
+    directly from Object[] to a more specific type. Thus, a new array of the correct type is
+    created, and then it is filled with the initial arguments. (Type checking has been done
+    previously by the UdfIndex, so we don't need to type-check individual elements.) */
+    final int numVarArgs = factoryArgs.length - varArgsStartIndex;
+    final Object[] varArgs = (Object[]) Array.newInstance(
+            method.getParameterTypes()[varArgsStartIndex].getComponentType(),
+            numVarArgs
+    );
+
+    // Copy the variadic arguments into the nested array
+    System.arraycopy(factoryArgs, varArgsStartIndex, varArgs, 0, numVarArgs);
+
+    // Add the nested array to the main array of arguments
+    adjustedFactoryArgs[varArgsStartIndex] = varArgs;
+
+    return adjustedFactoryArgs;
   }
 
 }

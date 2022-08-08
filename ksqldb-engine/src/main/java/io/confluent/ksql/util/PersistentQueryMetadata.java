@@ -59,7 +59,7 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   void stop();
 
-  void stop(boolean isCreateOrReplace);
+  void stop(boolean resetOffsets);
 
   void register();
 

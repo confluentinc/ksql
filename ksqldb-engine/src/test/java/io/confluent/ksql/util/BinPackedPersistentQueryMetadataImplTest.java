@@ -159,6 +159,18 @@ public class BinPackedPersistentQueryMetadataImplTest {
     }
 
     @Test
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+    public void shouldCloseKafkaStreamsOnClose() {
+        // When:
+        query.close();
+
+        // Then:
+        final InOrder inOrder = inOrder(sharedKafkaStreamsRuntimeImpl);
+        inOrder.verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, true);
+        inOrder.verifyNoMoreInteractions();
+    }
+
+    @Test
     public void shouldNotCallCloseCallbackOnStop() {
         // When:
         query.stop();

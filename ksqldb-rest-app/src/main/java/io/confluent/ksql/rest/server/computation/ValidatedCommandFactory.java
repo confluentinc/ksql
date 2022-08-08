@@ -65,7 +65,8 @@ public final class ValidatedCommandFactory {
       final ConfiguredStatement<? extends Statement> statement,
       final ServiceContext serviceContext,
       final KsqlExecutionContext context) {
-    if (statement.getStatementText().equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+    if (statement.getUnMaskedStatementText()
+        .equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
       return Command.of(statement);
     } else if (statement.getStatement() instanceof TerminateQuery) {
       return createForTerminateQuery(statement, context);
@@ -88,7 +89,7 @@ public final class ValidatedCommandFactory {
     context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()))
+            statement.getMaskedStatementText()))
         .close();
     return Command.of(statement);
   }

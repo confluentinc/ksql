@@ -41,14 +41,14 @@ public final class ListQueriesExecutor {
     final ListQueries listQueries = statement.getStatement();
     if (listQueries.getShowExtended()) {
       return Optional.of(new QueryDescriptionList(
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           executionContext.getPersistentQueries().stream()
               .map(QueryDescriptionFactory::forQueryMetadata)
               .collect(Collectors.toList())));
     }
 
     return Optional.of(new io.confluent.ksql.rest.entity.Queries(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         executionContext.getPersistentQueries()
             .stream()
             .map(q -> new RunningQuery(

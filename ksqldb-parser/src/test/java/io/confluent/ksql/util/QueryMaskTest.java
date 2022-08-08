@@ -250,4 +250,34 @@ public class QueryMaskTest {
 
     assertThat(maskedQuery, is(expected));
   }
+
+  @Test
+  public void shouldMaskInsertStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES (\"key\", \"A\");";
+
+    // When
+    final String maskedQuery = QueryMask.getMaskedStatement(query);
+
+    // Then
+    final String expected = "INSERT INTO  SOURCE (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');";
+
+    assertThat(maskedQuery, is(expected));
+  }
+
+  @Test
+  public void shouldMaskFallbackInsertStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
+        + "(\"key\", 0.125, '{something}', 1, C, 2.3E);";
+
+    final String masked = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
+        + "('[value]','[value]','[value]','[value]','[value]','[value]');";
+
+    // Then
+    assertThat(QueryMask.fallbackMaskValues(query), is(masked));
+  }
 }

@@ -194,7 +194,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Failed to prepare statement: Expected number columns and values to match: [ROWKEY, ID], ['10']",
+        "message": "Failed to prepare statement: Expected number columns and values to match: 2, 1",
         "status": 400
       }
     },
@@ -206,7 +206,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Failed to insert values into 'TEST'. Expected ROWKEY and ID to match but got 10 and 5 respectively.",
+        "message": "Failed to insert values into 'TEST'. Expected ROWKEY and ID to match",
         "status": 400
       }
     },

@@ -53,7 +53,7 @@ public final class ListConnectorsExecutor {
     final ConnectResponse<List<String>> connectors = serviceContext.getConnectClient().connectors();
     if (connectors.error().isPresent()) {
       return Optional.of(new ErrorEntity(
-          configuredStatement.getStatementText(),
+          configuredStatement.getMaskedStatementText(),
           connectors.error().get()
       ));
     }
@@ -84,7 +84,7 @@ public final class ListConnectorsExecutor {
 
     return Optional.of(
         new ConnectorList(
-            configuredStatement.getStatementText(),
+            configuredStatement.getMaskedStatementText(),
             warnings,
             infos)
     );

@@ -185,7 +185,7 @@ public class BinPackedPersistentQueryMetadataImplTest {
         query.stop();
 
         // Then:
-        verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, true);
+        verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, false);
     }
 
     @Test

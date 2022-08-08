@@ -860,7 +860,7 @@ public final class PullQueryExecutor {
   ) {
     final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
-        .makeQueryRequest(owner.location(), statement.getMaskedStatementText(),
+        .makeQueryRequest(owner.location(), statement.getUnMaskedStatementText(),
             statement.getOverrides());
 
     if (response.isErroneous()) {

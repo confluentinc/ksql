@@ -261,7 +261,7 @@ public class QueryMaskTest {
     final String maskedQuery = QueryMask.getMaskedStatement(query);
 
     // Then
-    final String expected = "INSERT INTO  SOURCE (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');";
+    final String expected = "INSERT INTO `FOO` (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]');";
 
     assertThat(maskedQuery, is(expected));
   }
@@ -273,11 +273,15 @@ public class QueryMaskTest {
         + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
         + "(\"key\", 0.125, '{something}', 1, C, 2.3E);";
 
+    // When
+    final String maskedQuery = QueryMask.getMaskedStatement(query);
+
+    // Then
     final String masked = "--this is a comment. \n"
         + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
         + "('[value]','[value]','[value]','[value]','[value]','[value]');";
 
     // Then
-    assertThat(QueryMask.fallbackMaskValues(query), is(masked));
+    assertThat(maskedQuery, is(masked));
   }
 }

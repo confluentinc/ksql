@@ -76,7 +76,7 @@ public final class ListPropertiesExecutor {
         .collect(Collectors.toList());
 
     return Optional.of(new PropertiesList(
-        statement.getStatementText(), mergedProperties, overwritten, defaultProps));
+        statement.getMaskedStatementText(), mergedProperties, overwritten, defaultProps));
   }
 
   private static List<Property> mergedProperties(

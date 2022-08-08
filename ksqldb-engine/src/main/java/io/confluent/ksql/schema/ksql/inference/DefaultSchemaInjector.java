@@ -79,7 +79,7 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e), 
-          statement.getStatementText(), 
+          statement.getMaskedStatementText(),
           e.getCause());
     }
   }
@@ -114,7 +114,7 @@ public class DefaultSchemaInjector implements Injector {
       final Exception cause = result.failureReason.get();
       throw new KsqlStatementException(
           cause.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           cause);
     }
 

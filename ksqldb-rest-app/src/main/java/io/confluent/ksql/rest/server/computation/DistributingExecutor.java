@@ -122,7 +122,7 @@ public class DistributingExecutor {
     } catch (final Exception e) {
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
-          statement.getStatementText()), e);
+          statement.getMaskedStatementText()), e);
     }
     
     try {
@@ -142,7 +142,7 @@ public class DistributingExecutor {
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return Optional.of(new CommandStatusEntity(
-          injected.getStatementText(),
+          injected.getMaskedStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()
@@ -155,12 +155,12 @@ public class DistributingExecutor {
       // This catch doesn't abortTransaction() since doing that would throw another exception.
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic.",
-          statement.getStatementText()), e);
+          statement.getMaskedStatementText()), e);
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic.",
-          statement.getStatementText()), e);
+          statement.getMaskedStatementText()), e);
     } finally {
       transactionalProducer.close();
     }

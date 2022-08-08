@@ -87,7 +87,8 @@ public final class ParserMatchers {
     return new TypeSafeMatcher<ConfiguredStatement<T>>() {
       @Override
       protected boolean matchesSafely(final ConfiguredStatement<T> item) {
-        return statement.matches(PreparedStatement.of(item.getStatementText(), item.getStatement()));
+        return statement.matches(
+            PreparedStatement.of(item.getUnMaskedStatementText(), item.getStatement()));
       }
 
       @Override
@@ -123,7 +124,8 @@ public final class ParserMatchers {
     return new TypeSafeMatcher<ConfiguredStatement<T>>() {
       @Override
       protected boolean matchesSafely(final ConfiguredStatement<T> item) {
-        return statement.matches(PreparedStatement.of(item.getStatementText(), item.getStatement()))
+        return statement.matches(
+            PreparedStatement.of(item.getUnMaskedStatementText(), item.getStatement()))
             && Objects.equals(properties, item.getConfigOverrides())
             && Objects.equals(config, item.getConfig());
       }
@@ -146,7 +148,7 @@ public final class ParserMatchers {
 
     @Override
     protected String featureValueOf(final PreparedStatement<T> actual) {
-      return actual.getStatementText();
+      return actual.getMaskedStatementText();
     }
 
     @Factory

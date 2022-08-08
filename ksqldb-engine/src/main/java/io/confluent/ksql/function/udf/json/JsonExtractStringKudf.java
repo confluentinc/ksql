@@ -89,7 +89,7 @@ public class JsonExtractStringKudf implements Kudf {
     try {
       return OBJECT_READER.readTree(jsonString);
     } catch (final IOException e) {
-      throw new KsqlFunctionException("Invalid JSON format:" + jsonString, e);
+      throw new KsqlFunctionException("Invalid JSON format", e);
     }
   }
 }

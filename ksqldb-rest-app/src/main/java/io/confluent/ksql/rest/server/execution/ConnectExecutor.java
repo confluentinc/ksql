@@ -27,7 +27,6 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.QueryMask;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
@@ -43,7 +42,7 @@ public final class ConnectExecutor {
   ) {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
-    final String maskedStatement = QueryMask.getMaskedStatement(statement.getStatementText());
+    final String maskedStatement = statement.getMaskedStatementText();
 
     final ConnectResponse<ConnectorInfo> response = client.create(
         createConnector.getName(),

@@ -13,14 +13,17 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
+import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementsContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,7 +37,8 @@ import org.apache.commons.lang3.StringUtils;
 public final class QueryMask {
 
   private static final ImmutableSet<String> ALLOWED_KEYS = ImmutableSet.of("connector.class");
-  private static final String MASKED_VALUE = "'[string]'";
+  private static final String MASKED_STRING = "'[string]'";
+  private static final String MASKED_VALUE = "'[value]'";
 
   private QueryMask() {}
 
@@ -43,7 +47,7 @@ public final class QueryMask {
       final ParseTree tree = DefaultKsqlParser.getParseTree(query);
       return new Visitor().visit(tree);
     } catch (final Exception | StackOverflowError e) {
-      return maskConnectProperties(query);
+      return fallbackMasking(query);
     }
   }
 
@@ -52,11 +56,42 @@ public final class QueryMask {
       if (ALLOWED_KEYS.contains(e.getKey())) {
         return e.getValue();
       }
-      return MASKED_VALUE;
+      return MASKED_STRING;
     }));
   }
 
-  private static String maskConnectProperties(final String query) {
+  private static String fallbackMasking(final String query) {
+    return fallbackMaskConnectProperties(fallbackMaskValues(query));
+  }
+
+  public static String fallbackMaskValues(final String query) {
+    /*
+       Failed to parse statement. Mask Insert values by string replacement in a best effort manner.
+       The assumption is that parenthesis around VALUES are not missing.
+       Regex matches sequences of characters that are not in '(' ',' ';' ')' and are not be followed
+       by a '(' anywhere further down the string (since VALUES is always last in a statement).
+     */
+    final int valueIdx = StringUtils.indexOfIgnoreCase(query, "VALUES");
+    if (valueIdx < 0) {
+      return query;
+    }
+
+    final StringBuffer sb = new StringBuffer();
+    final Pattern pattern = Pattern.compile("([^(,;)]+)(?!.*\\()",
+        Pattern.DOTALL | Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+
+    final Matcher matcher = pattern.matcher(query);
+    while (matcher.find()) {
+      if (matcher.start() > valueIdx) {
+        matcher.appendReplacement(sb, MASKED_VALUE);
+      }
+    }
+
+    matcher.appendTail(sb);
+    return sb.toString();
+  }
+
+  public static String fallbackMaskConnectProperties(final String query) {
     /*
       Failed to parse statement. Mask disallowed keys by string replacing. This is a best effort
       attempt. The assumption is that properties are in right format: it matches key wrapped in
@@ -74,7 +109,7 @@ public final class QueryMask {
       final String key = matcher.group(1).substring(1, matcher.group(1).length() - 1);
 
       if (!ALLOWED_KEYS.contains(key)) {
-        final String replacement = quote + key + quote + "=" + MASKED_VALUE;
+        final String replacement = quote + key + quote + "=" + MASKED_STRING;
         matcher.appendReplacement(sb, replacement);
       } else {
         matcher.appendReplacement(sb, matchedString);
@@ -114,6 +149,32 @@ public final class QueryMask {
     @Override
     public String visitSingleStatement(final SingleStatementContext context) {
       return String.format("%s;", visit(context.statement()));
+    }
+
+    @Override
+    public String visitInsertValues(final InsertValuesContext context) {
+      final StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
+
+      if (context.sourceName() != null) {
+        stringBuilder.append(" SOURCE");
+      }
+
+      // columns
+      if (context.columns() != null) {
+        stringBuilder.append(String.format(" (%s)",
+            StringUtils.join(context.columns().identifier().stream()
+                .map(ParserUtil::getIdentifierText)
+                .map(ColumnName::of)
+                .map(ColumnName::toString).collect(Collectors.toList()), ", ")));
+      }
+
+      // masked values
+      final String values = String.join(", ",
+          Collections.nCopies(context.values().valueExpression().size(), MASKED_VALUE));
+      stringBuilder.append(String.format(" VALUES (%s)", values));
+
+      masked = true;
+      return stringBuilder.toString();
     }
 
     @Override
@@ -158,7 +219,7 @@ public final class QueryMask {
 
         formattedProp.append(key);
         final String value = ALLOWED_KEYS.contains(unquotedLowerKey) ? prop.literal().getText() :
-            MASKED_VALUE;
+            MASKED_STRING;
         formattedProp.append("=").append(value);
         tableProperties.add(formattedProp.toString());
       }

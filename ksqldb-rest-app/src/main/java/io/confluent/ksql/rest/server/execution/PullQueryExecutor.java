@@ -156,7 +156,7 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+    throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
   }
 
   public TableRowsEntity execute(
@@ -231,7 +231,7 @@ public final class PullQueryExecutor {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e
       );
     }
@@ -262,10 +262,10 @@ public final class PullQueryExecutor {
 
     if (filteredAndOrderedNodes.isEmpty()) {
       LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
-                statement.getStatementText());
+                statement.getMaskedStatementText());
       throw new MaterializationException(String.format(
           "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
-          statement.getStatementText()));
+          statement.getMaskedStatementText()));
     }
 
     // Nodes are ordered by preference: active is first if alive then standby nodes in
@@ -275,11 +275,11 @@ public final class PullQueryExecutor {
         return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
       } catch (Exception t) {
         LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
-                  statement.getStatementText(), node, System.currentTimeMillis(), t);
+                  statement.getMaskedStatementText(), node, System.currentTimeMillis(), t);
       }
     }
     throw new MaterializationException(String.format(
-        "Unable to execute pull query: %s", statement.getStatementText()));
+        "Unable to execute pull query: %s", statement.getMaskedStatementText()));
   }
 
   private static TableRowsEntity routeQuery(
@@ -291,7 +291,7 @@ public final class PullQueryExecutor {
   ) {
     if (node.isLocal()) {
       LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-               statement.getStatementText(), node.location(), System.currentTimeMillis());
+               statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       pullQueryContext.pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
       return queryRowsLocally(
@@ -300,7 +300,7 @@ public final class PullQueryExecutor {
           pullQueryContext);
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
-                statement.getStatementText(), node.location(), System.currentTimeMillis());
+                statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       pullQueryContext.pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
       return forwardTo(node, statement, serviceContext);
@@ -358,7 +358,7 @@ public final class PullQueryExecutor {
       );
     }
     return new TableRowsEntity(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         pullQueryContext.queryId,
         outputSchema,
         rows
@@ -378,7 +378,7 @@ public final class PullQueryExecutor {
         .getKsqlClient()
         .makeQueryRequest(
             owner.location(),
-            statement.getStatementText(),
+            statement.getMaskedStatementText(),
             statement.getConfigOverrides(),
             requestProperties
         );
@@ -403,7 +403,7 @@ public final class PullQueryExecutor {
       if (row.getErrorMessage().isPresent()) {
         throw new KsqlStatementException(
             row.getErrorMessage().get().getMessage(),
-            statement.getStatementText()
+            statement.getMaskedStatementText()
         );
       }
 
@@ -415,7 +415,7 @@ public final class PullQueryExecutor {
     }
 
     return new TableRowsEntity(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         header.getQueryId(),
         header.getSchema(),
         rows.build()

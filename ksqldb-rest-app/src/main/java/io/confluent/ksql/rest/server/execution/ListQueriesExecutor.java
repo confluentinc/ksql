@@ -92,7 +92,7 @@ public final class ListQueriesExecutor {
     mergeSimple(remoteResults, runningQueries);
 
     return Optional.of(new Queries(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         runningQueries.values()));
   }
 
@@ -179,7 +179,7 @@ public final class ListQueriesExecutor {
     mergeExtended(remoteResults, queryDescriptions);
 
     return Optional.of(new QueryDescriptionList(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         queryDescriptions.values()));
   }
 
@@ -274,7 +274,7 @@ public final class ListQueriesExecutor {
                       host.host(),
                       host.port()
                   ),
-                  statement.getStatementText(),
+                  statement.getUnMaskedStatementText(),
                   Collections.singletonMap(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true));
           future.complete(response);
         });

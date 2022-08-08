@@ -77,6 +77,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.apache.kafka.test.IntegrationTest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -171,6 +172,11 @@ public class KsMaterializationFunctionalTest {
     toClose.clear();
 
     initializeKsql(ksqlContext);
+  }
+
+  @After
+  public void after() {
+    toClose.forEach(q -> q.close());
   }
 
   @Test

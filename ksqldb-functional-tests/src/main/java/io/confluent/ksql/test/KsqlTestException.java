@@ -78,7 +78,7 @@ public class KsqlTestException extends KsqlException {
 
     return String.format(
         "Test failure for statement `%s` (%s):%n\t%s%n\t%s",
-        parsedStatement.getStatementText(),
+        parsedStatement.getMaskedStatementText(),
         loc.map(NodeLocation::toString).orElse("unknown"),
         message,
         new LocationWithinFile(

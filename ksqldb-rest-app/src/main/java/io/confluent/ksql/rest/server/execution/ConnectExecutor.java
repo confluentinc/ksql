@@ -28,7 +28,6 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.QueryMask;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -47,7 +46,7 @@ public final class ConnectExecutor {
   ) {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
-    final String maskedStatementText = QueryMask.getMaskedStatement(statement.getStatementText());
+    final String maskedStatementText = statement.getMaskedStatementText();
 
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
         maskedStatementText, createConnector, client);

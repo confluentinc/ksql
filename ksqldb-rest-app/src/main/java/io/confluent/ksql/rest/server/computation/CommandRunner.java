@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
@@ -324,17 +325,17 @@ public class CommandRunner implements Closeable {
     }
   }
 
+  @SuppressFBWarnings("DMI_INVOKING_TOSTRING_ON_ARRAY")
   private void executeStatement(final QueuedCommand queuedCommand) {
-    final String commandStatement =
-        queuedCommand.getAndDeserializeCommand(commandDeserializer).getStatement();
-    LOG.info("Executing statement: " + commandStatement);
+    final String commandId = queuedCommand.getCommandId().toString();
+    LOG.info("Executing statement: " + commandId);
 
     final Runnable task = () -> {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        LOG.info("Executed statement: " + commandStatement);
+        LOG.info("Executed statement: " + commandId);
       }
     };
 

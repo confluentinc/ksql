@@ -88,7 +88,7 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e), 
-          statement.getStatementText(), 
+          statement.getMaskedStatementText(),
           e.getCause());
     }
   }
@@ -125,7 +125,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKeySchemaId(),
         keyFormat,
         SerdeFeaturesFactory.buildInternal(FormatFactory.of(keyFormat)),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         true
     ));
   }
@@ -145,7 +145,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getValueSchemaId(),
         valueFormat,
         props.getValueSerdeFeatures(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         false
     ));
   }

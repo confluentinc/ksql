@@ -46,7 +46,6 @@ class KsqlAvroSerdeFactory implements SerdeFactory {
 
   private final String fullSchemaName;
   private final AvroProperties properties;
-  private boolean connectMetadata = true;
 
   KsqlAvroSerdeFactory(final AvroProperties properties) {
     this.properties = Objects.requireNonNull(properties, "properties");
@@ -55,11 +54,6 @@ class KsqlAvroSerdeFactory implements SerdeFactory {
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
-  }
-
-  KsqlAvroSerdeFactory(final AvroProperties properties, final boolean connectMetadata) {
-    this(properties);
-    this.connectMetadata = connectMetadata;
   }
 
   KsqlAvroSerdeFactory(final ImmutableMap<String, String> properties) {
@@ -116,15 +110,13 @@ class KsqlAvroSerdeFactory implements SerdeFactory {
       final boolean isKey
   ) {
     return () -> {
-      final DataTranslator translator =
-          createAvroTranslator(schema, physicalSchema, false);
+      final DataTranslator translator = createAvroTranslator(schema, physicalSchema, false);
       final Schema compatibleSchema = translator instanceof AvroDataTranslator
           ? ((AvroDataTranslator) translator).getAvroCompatibleSchema()
           : ((ConnectDataTranslator) translator).getSchema();
 
-      final AvroConverter avroConverter = getAvroConverter(
-          srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey, connectMetadata
-      );
+      final AvroConverter avroConverter =
+          getAvroConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey);
 
       return new KsqlConnectSerializer<>(
           compatibleSchema,
@@ -144,12 +136,10 @@ class KsqlAvroSerdeFactory implements SerdeFactory {
       final boolean isKey
   ) {
     return () -> {
-      final DataTranslator translator =
-          createAvroTranslator(schema, physicalSchema, true);
+      final DataTranslator translator = createAvroTranslator(schema, physicalSchema, true);
 
-      final AvroConverter avroConverter = getAvroConverter(
-          srFactory.get(), ksqlConfig, Optional.empty(), isKey, connectMetadata
-      );
+      final AvroConverter avroConverter =
+          getAvroConverter(srFactory.get(), ksqlConfig, Optional.empty(), isKey);
 
       return new KsqlConnectDeserializer<>(avroConverter, translator, targetType);
     };
@@ -169,8 +159,7 @@ class KsqlAvroSerdeFactory implements SerdeFactory {
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
       final Optional<Integer> schemaId,
-      final boolean isKey,
-      final boolean connectMetadata
+      final boolean isKey
   ) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
 
@@ -180,7 +169,7 @@ class KsqlAvroSerdeFactory implements SerdeFactory {
     avroConfig.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
 
-    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, connectMetadata);
+    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, true);
 
     if (schemaId.isPresent()) {
       // Disable auto registering schema if schema id is used

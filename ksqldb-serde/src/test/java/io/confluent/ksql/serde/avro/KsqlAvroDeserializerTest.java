@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.avro;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_BYTES_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -30,7 +31,6 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroConverter;
-import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -39,6 +39,7 @@ import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlPreconditions;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
@@ -63,7 +64,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
@@ -661,22 +661,6 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeAvroDecimalWithConnectMeta() {
-    // Given:
-    final Deserializer<BigDecimal> deserializer =
-        givenDeserializerForSchema((ConnectSchema) DecimalUtil.builder(4, 2).build(),
-            BigDecimal.class);
-    final BigDecimal value = new BigDecimal("12.34");
-    final byte[] bytes = givenConnectSerializedWithNoConnectMeta(value, DecimalUtil.builder(4, 2).build(), BigDecimal.class);
-
-    // When:
-    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
-
-    // Then:
-    assertThat(result, is(value));
-  }
-
-  @Test
   public void shouldDeserializeConnectToDouble() {
     /*
     Note: Connect stores additional metadata in the schema when serializing other types,
@@ -962,36 +946,6 @@ public class KsqlAvroDeserializerTest {
     validCoercions.forEach((avroSchema, value) -> {
 
       final byte[] bytes = givenAvroSerialized(value, INT_MAP_AVRO_SCHEMA);
-
-      final Map<String, Long> expected = value.entrySet().stream()
-          .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().longValue()));
-
-      // When:
-      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
-
-      // Then:
-      assertThat(result, is(expected));
-    });
-  }
-
-  @Test
-  public void shouldDeserializeAvroMapWithConnectMeta() {
-    // Given:
-    final Deserializer<Map> deserializer =
-        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-            .build(), Map.class);
-
-    final Map<org.apache.avro.Schema, Map<String, Number>> validCoercions = ImmutableMap.of(
-        INT_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1, "b", 2),
-        OPTIONAL_INT_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1, "b", 2),
-        LONG_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1L, "b", 2L)
-    );
-
-    validCoercions.forEach((avroSchema, value) -> {
-
-      final byte[] bytes = givenConnectSerializedWithNoConnectMeta(value, new AvroData(1).toConnectSchema(avroSchema), Map.class);
-
 
       final Map<String, Long> expected = value.entrySet().stream()
           .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().longValue()));
@@ -1685,24 +1639,6 @@ public class KsqlAvroDeserializerTest {
       final Schema connectSchema
   ) {
     return serializeAsBinaryAvro(SOME_TOPIC, connectSchema, value);
-  }
-
-  private byte[] givenConnectSerializedWithNoConnectMeta(
-      final Object value,
-      final Schema connectSchema,
-      final Class targetType
-  ) {
-    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-    builder.put(ConnectProperties.FULL_SCHEMA_NAME, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-
-    final Serializer serializer =  new KsqlAvroSerdeFactory(new AvroProperties(builder.build()), false)
-        .createSerde(
-            connectSchema,
-            new KsqlConfig(ImmutableMap.of()),
-            () -> schemaRegistryClient,
-            targetType,
-            false).serializer();
-    return serializer.serialize(SOME_TOPIC, value);
   }
 
   private static org.apache.avro.Schema parseAvroSchema(final String avroSchema) {

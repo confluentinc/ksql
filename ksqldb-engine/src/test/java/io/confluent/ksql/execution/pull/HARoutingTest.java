@@ -69,7 +69,6 @@ import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
@@ -204,7 +203,7 @@ public class HARoutingTest {
       return null;
     }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
     doNothing().when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity())).thenAnswer(
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any())).thenAnswer(
       new Answer() {
         private int count = 0;
 
@@ -235,7 +234,7 @@ public class HARoutingTest {
     // Then:
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
-    verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity());
+    verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any());
     assertThat(pullQueryQueue.size(), is(2));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW1));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW2));
@@ -254,7 +253,7 @@ public class HARoutingTest {
       throw new StandbyFallbackException("Error!");
     }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
     doNothing().when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity())).thenAnswer(
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any())).thenAnswer(
         new Answer() {
           private int count = 0;
 
@@ -291,7 +290,7 @@ public class HARoutingTest {
     // Then:
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
-    verify(ksqlClient, times(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity());
+    verify(ksqlClient, times(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any());
 
     assertThat(pullQueryQueue.size(), is(2));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW2));
@@ -315,7 +314,7 @@ public class HARoutingTest {
       return null;
     }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
 
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity())).thenAnswer(
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any())).thenAnswer(
       new Answer() {
         private int count = 0;
 
@@ -356,7 +355,7 @@ public class HARoutingTest {
     // Then:
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
-    verify(ksqlClient, times(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity());
+    verify(ksqlClient, times(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any());
 
     assertThat(pullQueryQueue.size(), is(4));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW2));
@@ -375,7 +374,7 @@ public class HARoutingTest {
       throws InterruptedException, ExecutionException {
     // Given:
     locate(location2);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity()))
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenAnswer(i -> {
           throw new RuntimeException("Network error!");
         }
@@ -393,7 +392,7 @@ public class HARoutingTest {
 
     // Then:
     verify(ksqlClient, times(1)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(),
-        any(), Function.identity());
+        any(), any());
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location2.removeHeadHost())), any(), any());
 
     assertThat(pullQueryQueue.size(), is(1));
@@ -415,7 +414,7 @@ public class HARoutingTest {
     doAnswer(i -> {
       throw new StandbyFallbackException("Error1!");
     }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity())).thenAnswer(
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any())).thenAnswer(
         new Answer() {
           private int count = 0;
 
@@ -459,7 +458,7 @@ public class HARoutingTest {
     // Then:
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
-    verify(ksqlClient, atLeast(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity());
+    verify(ksqlClient, atLeast(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any());
 
     assertThat(e.getCause().getMessage(), containsString("Exhausted standby hosts to try."));
 
@@ -520,7 +519,7 @@ public class HARoutingTest {
   public void shouldNotRouteToFilteredHost() throws InterruptedException, ExecutionException {
     // Given:
     location1 = new PartitionLocation(Optional.empty(), 1, ImmutableList.of(badNode, node1));
-    when(ksqlClient.makeQueryRequest(any(), any(), any(), any(), any(), any(), Function.identity()))
+    when(ksqlClient.makeQueryRequest(any(), any(), any(), any(), any(), any(), any()))
         .then(invocationOnMock -> RestResponse.successful(200, 2));
     locate(location1, location2, location3, location4);
 
@@ -537,7 +536,7 @@ public class HARoutingTest {
 
     // Then:
     verify(ksqlClient, never())
-        .makeQueryRequest(eq(badNode.location()), any(), any(), any(), any(), any(), Function.identity());
+        .makeQueryRequest(eq(badNode.location()), any(), any(), any(), any(), any(), any());
 
     final double fetch_count = getMetricValue("-partition-fetch-count");
     final double resubmission_count = getMetricValue("-partition-fetch-resubmission-count");
@@ -549,7 +548,7 @@ public class HARoutingTest {
   public void forwardingError_errorRow() {
     // Given:
     locate(location5);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity()))
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           WriteStream<List<StreamedRow>> rowConsumer = i.getArgument(4);
@@ -586,7 +585,7 @@ public class HARoutingTest {
   public void forwardingError_authError() {
     // Given:
     locate(location2);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity()))
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           WriteStream<List<StreamedRow>> rowConsumer = i.getArgument(4);
@@ -620,7 +619,7 @@ public class HARoutingTest {
   public void forwardingError_throwsError() {
     // Given:
     locate(location5);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity()))
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenThrow(new RuntimeException("Network Error"));
 
     // When:
@@ -647,7 +646,7 @@ public class HARoutingTest {
   public void forwardingError_cancelled() throws ExecutionException, InterruptedException {
     // Given:
     locate(location5);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity()))
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenAnswer(a -> {
           WriteStream<List<StreamedRow>> rowConsumer = a.getArgument(4);
           rowConsumer.write(
@@ -679,7 +678,7 @@ public class HARoutingTest {
   public void forwardingError_noRows() {
     // Given:
     locate(location4);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity()))
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           WriteStream<List<StreamedRow>> rowConsumer = i.getArgument(4);
@@ -714,7 +713,7 @@ public class HARoutingTest {
   public void forwardingError_invalidSchema() {
     // Given:
     locate(location5);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), Function.identity()))
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           WriteStream<List<StreamedRow>> rowConsumer = i.getArgument(4);

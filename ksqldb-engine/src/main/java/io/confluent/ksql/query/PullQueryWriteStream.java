@@ -77,7 +77,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   private int softLimit = DEFAULT_SOFT_CAPACITY;
 
   // this is a bit of a leaky abstraction that is necessary because
-  // Vertx's PipeImpl sets the drain handler very single time the
+  // Vertx's PipeImpl sets the drain handler every single time the
   // soft limit is hit. because we use the same write stream for
   // multiple read streams, we need to make sure that we maintain
   // all of them but only one copy of them. perhaps a better solution
@@ -322,9 +322,8 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
     monitor.enter();
     try {
-      translator.add(data);
-      while (translator.hasNext()) {
-        queue.offer(new HandledRow(translator.next(), handler));
+      for (final PullQueryRow row: translator.apply(data)) {
+        queue.offer(new HandledRow(row, handler));
         totalRowsQueued++;
         queueCallback.run();
 

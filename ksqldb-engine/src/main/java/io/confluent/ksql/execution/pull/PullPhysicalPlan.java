@@ -91,14 +91,9 @@ public class PullPhysicalPlan {
     // That's why we need to set this explicitly for the dataSource operators
     dataSourceOperator.setPartitionLocations(locations);
 
-    // to achieve parity with the remote execution path, we start
-    // by passing the row header into the queue
-    pullQueryQueue.write(ImmutableList.of(StreamedRow.header(queryId, schema)));
-
     open();
     QueryRow row = (QueryRow) next();
 
-    int rowsQueued = 0;
     while (!pullQueryQueue.isDone() && row != null) {
       // this mechanism is "best effort" in that it is possible that multiple
       // threads waiting on this condition may all be signalled and attempt

@@ -15,26 +15,22 @@
 
 package io.confluent.ksql.execution.pull;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
-public class StreamedRowTranslator implements Iterator<PullQueryRow> {
+public class StreamedRowTranslator implements Function<List<StreamedRow>, List<PullQueryRow>> {
 
-  private final Deque<PullQueryRow> rowQueue = new ArrayDeque<>();
   private final LogicalSchema expectedSchema;
   private final Optional<ConsistencyOffsetVector> offsetVector;
-
-  private Header header = null;
 
   public StreamedRowTranslator(
       final LogicalSchema expectedSchema,
@@ -45,20 +41,12 @@ public class StreamedRowTranslator implements Iterator<PullQueryRow> {
   }
 
   @Override
-  public PullQueryRow next() {
-    return rowQueue.pollFirst();
-  }
-
-  @Override
-  public boolean hasNext() {
-    return !rowQueue.isEmpty();
-  }
-
-  public void add(final List<StreamedRow> rows) {
+  public List<PullQueryRow> apply(final List<StreamedRow> rows) {
     if (rows == null || rows.isEmpty()) {
-      return;
+      return ImmutableList.of();
     }
 
+    final List<PullQueryRow> result = new ArrayList<>(rows.size());
     for (int i = 0; i < rows.size(); i++) {
       final StreamedRow row = rows.get(i);
       if (row.getHeader().isPresent()) {
@@ -70,8 +58,7 @@ public class StreamedRowTranslator implements Iterator<PullQueryRow> {
         handleNonDataRows(row, i, offsetVector);
       } else {
         final List<?> columns = row.getRow().get().getColumns();
-        Preconditions.checkNotNull(header, "Expected to read header row before any other data.");
-        rowQueue.add(new PullQueryRow(
+        result.add(new PullQueryRow(
             columns,
             expectedSchema,
             row.getSourceHost(),
@@ -79,14 +66,14 @@ public class StreamedRowTranslator implements Iterator<PullQueryRow> {
         ));
       }
     }
+
+    return result;
   }
 
   private void handleHeader(final StreamedRow row) {
     final Optional<Header> header = row.getHeader();
-    if (header.isPresent()) {
-      validateSchema(expectedSchema, header.get().getSchema(), row.getSourceHost());
-      this.header = header.get();
-    }
+    header.ifPresent(
+        value -> validateSchema(expectedSchema, value.getSchema(), row.getSourceHost()));
   }
 
   private static void handleNonDataRows(

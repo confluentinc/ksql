@@ -64,7 +64,7 @@ public final class QueryMask {
     return fallbackMaskConnectProperties(fallbackMaskValues(query));
   }
 
-  public static String fallbackMaskValues(final String query) {
+  private static String fallbackMaskValues(final String query) {
     /*
        Failed to parse statement. Mask Insert values by string replacement in a best effort manner.
        The assumption is that parenthesis around VALUES are not missing.
@@ -91,7 +91,7 @@ public final class QueryMask {
     return sb.toString();
   }
 
-  public static String fallbackMaskConnectProperties(final String query) {
+  private static String fallbackMaskConnectProperties(final String query) {
     /*
       Failed to parse statement. Mask disallowed keys by string replacing. This is a best effort
       attempt. The assumption is that properties are in right format: it matches key wrapped in
@@ -156,7 +156,7 @@ public final class QueryMask {
       final StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
 
       if (context.sourceName() != null) {
-        stringBuilder.append(" SOURCE");
+        stringBuilder.append(ParserUtil.getSourceName(context.sourceName()));
       }
 
       // columns

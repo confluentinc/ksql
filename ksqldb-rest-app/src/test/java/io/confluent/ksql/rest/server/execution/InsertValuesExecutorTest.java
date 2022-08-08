@@ -138,7 +138,8 @@ public class InsertValuesExecutorTest {
       + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null},"
       + "{\"name\":\"k1\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
 
-  private static final String AVRO_RAW_ONE_KEY_SCHEMA = "{\"type\":\"record\","
+  private static final String AVRO_RAW_ONE_KEY_SCHEMA =
+      "{\"type\":\"record\","
       + "\"name\":\"KsqlDataSourceSchema\","
       + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
       + "\"fields\":["
@@ -827,7 +828,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenInsertingValuesOnSourceTable() {
     // Given:
     givenDataSourceWithSchema("source_table_1", SCHEMA,
-            SerdeFeatures.of(), SerdeFeatures.of(), true, true);
+        SerdeFeatures.of(), SerdeFeatures.of(), true, true);
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
         PreparedStatement.of(
@@ -871,7 +872,7 @@ public class InsertValuesExecutorTest {
                     new StringLiteral("str"),
                     new LongLiteral(2L)
                 ))),
-            SessionConfig.of(ksqlConfig, ImmutableMap.of())
+        SessionConfig.of(ksqlConfig, ImmutableMap.of())
     );
 
     // When:
@@ -913,9 +914,9 @@ public class InsertValuesExecutorTest {
         ImmutableList.of(
             K0,
             ColumnName.of("NONEXISTENT")),
-            ImmutableList.of(
-                new StringLiteral("foo"),
-                new StringLiteral("bar"))
+        ImmutableList.of(
+            new StringLiteral("foo"),
+            new StringLiteral("bar"))
     );
 
     // When:
@@ -1463,9 +1464,9 @@ public class InsertValuesExecutorTest {
       final List<Expression> values
   ) {
     return ConfiguredStatement.of(PreparedStatement.of(
-        "",
-        new InsertValues(SourceName.of("TOPIC"), columns, values)), SessionConfig.of(
-            new KsqlConfig(ImmutableMap.of()), ImmutableMap.of()));
+            "",
+            new InsertValues(SourceName.of("TOPIC"), columns, values)), SessionConfig.of(
+        new KsqlConfig(ImmutableMap.of()), ImmutableMap.of()));
   }
 
   private void givenSourceStreamWithSchema(

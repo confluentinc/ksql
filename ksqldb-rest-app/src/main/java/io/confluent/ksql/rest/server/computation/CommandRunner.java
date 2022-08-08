@@ -227,6 +227,7 @@ public class CommandRunner implements Closeable {
     }
   }
 
+  @SuppressWarnings("DMI_INVOKING_TOSTRING_ON_ARRAY")
   private void executeStatement(final QueuedCommand queuedCommand) {
     final String commandId = queuedCommand.getCommandId().toString();
     LOG.info("Executing statement: " + commandId);

@@ -161,7 +161,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.schemas = original.schemas;
     this.overriddenProperties =
             ImmutableMap.copyOf(original.getOverriddenProperties());
-    this.sources = original.sources;
+    this.sources = original.getSources();
     this.queryId = original.getQueryId();
     this.processingLogger = original.processingLogger;
     this.physicalPlan = original.getPhysicalPlan();
@@ -457,6 +457,10 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public Collection<String> getSourceTopicNames() {
     return sources.stream().map(s-> s.getKsqlTopic().getKafkaTopicName()).collect(Collectors.toSet());
+  }
+
+  private Set<DataSource> getSources() {
+    return sources;
   }
 
 }

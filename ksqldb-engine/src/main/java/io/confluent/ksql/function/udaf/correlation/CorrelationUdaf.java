@@ -68,7 +68,7 @@ public class CorrelationUdaf<T> implements TableUdaf<Pair<T, T>, Struct, Double>
 
   private final Function<T, Double> toNumber;
 
-  public CorrelationUdaf(Function<T, Double> toNumber) {
+  public CorrelationUdaf(final Function<T, Double> toNumber) {
     this.toNumber = toNumber;
   }
 

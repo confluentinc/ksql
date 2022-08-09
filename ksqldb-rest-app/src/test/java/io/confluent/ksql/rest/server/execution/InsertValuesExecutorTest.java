@@ -1210,8 +1210,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
-    assertThat(e.getMessage(), containsString("Existing Schema: " + RAW_SCHEMA));
-    assertThat(e.getMessage(), containsString("ksqlDB Generated: {\"type\":"));
+    assertThat(e.getMessage(), containsString("Existing Schema: [`K0` STRING, `K1` STRING]"));
+    assertThat(e.getMessage(), containsString("ksqlDB Generated: [`k0` STRING KEY]"));
   }
 
   @Test

@@ -209,6 +209,15 @@ public class KsqlConfig extends AbstractConfig {
       "Config to enable or disable transient pull queries on a specific KSQL server.";
   public static final boolean KSQL_PULL_QUERIES_ENABLE_DEFAULT = true;
 
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
+      = "ksql.websocket.connection.max.timeout.ms";
+  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 3600000;
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+      = "If this config is set to a positive number, then ksqlDB will terminate websocket"
+      + " connections after a timeout. The timeout will be the lower of the auth token's "
+      + "lifespan (if present) and the value of this config. If this config is set to 0, then "
+      + "ksqlDB will not close websockets even if the token has an expiration time.";
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
@@ -597,6 +606,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DEFAULT,
             Importance.LOW,
             KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC
+        )
+        .define(
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

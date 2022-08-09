@@ -22,11 +22,13 @@ import io.vertx.core.logging.LoggerFactory;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 
 public class AuthenticationUtil {
 
   final Clock clock;
   private static final Logger log = LoggerFactory.getLogger(AuthenticationUtil.class);
+  private static final String BEARER = "Bearer ";
 
   public AuthenticationUtil(final Clock clock) {
     this.clock = Objects.requireNonNull(clock);
@@ -42,8 +44,8 @@ public class AuthenticationUtil {
     if (maxTimeout > 0) {
       if (authTokenProvider.isPresent() && token.isPresent()) {
         try {
-          final long tokenTimeout = authTokenProvider.get().getLifetimeMs(token.get())
-              - clock.millis();
+          final long tokenTimeout = authTokenProvider.get()
+              .getLifetimeMs(StringUtils.removeStart(token.get(), BEARER)) - clock.millis();
           return Optional.of(Math.min(tokenTimeout, maxTimeout));
         } catch (final Exception e) {
           log.error(e.getMessage());

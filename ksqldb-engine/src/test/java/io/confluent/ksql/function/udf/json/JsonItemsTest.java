@@ -33,7 +33,7 @@ public class JsonItemsTest {
   @Test
   public void shouldExtractRecords() throws JsonProcessingException {
     // When
-    String jsonArrayStr = "[{\"type\": \"AAA\", \"timestamp\": \"2022-01-27\"}, {\"type\": \"BBB\", \"timestamp\": \"2022-05-18\"}]}";
+    String jsonArrayStr = "[{\"type\": \"AAA\", \"timestamp\": \"2022-01-27\"}, {\"type\": \"BBB\", \"timestamp\": \"2022-05-18\"}]";
 
     final List<String> result = udf.items(jsonArrayStr);
     // Then:

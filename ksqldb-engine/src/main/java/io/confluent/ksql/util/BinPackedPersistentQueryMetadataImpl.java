@@ -50,7 +50,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -351,7 +350,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Set<SourceName> getSourceNames() {
-    return ImmutableSet.copyOf(sources.stream().map(DataSource::getName).collect(Collectors.toSet()));
+    return ImmutableSet.copyOf(sources.stream()
+        .map(DataSource::getName)
+        .collect(Collectors.toSet()));
   }
 
   @Override
@@ -456,7 +457,10 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Collection<String> getSourceTopicNames() {
-    return sources.stream().map(s-> s.getKsqlTopic().getKafkaTopicName()).collect(Collectors.toSet());
+    return sources.stream()
+        .map(s -> s.getKsqlTopic()
+            .getKafkaTopicName())
+        .collect(Collectors.toSet());
   }
 
   private Set<DataSource> getSources() {

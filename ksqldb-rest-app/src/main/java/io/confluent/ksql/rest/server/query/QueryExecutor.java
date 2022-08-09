@@ -153,7 +153,7 @@ public class QueryExecutor {
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(
-              statement.getStatement(), statement.getStatementText(), configOverrides);
+              statement.getStatement(), statement.getMaskedStatementText(), configOverrides);
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
 
@@ -165,7 +165,7 @@ public class QueryExecutor {
                 + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
                 + "this feature."
                 + System.lineSeparator(),
-            statement.getStatementText());
+            statement.getMaskedStatementText());
       }
 
       switch (dataSourceType) {
@@ -215,7 +215,7 @@ public class QueryExecutor {
         default:
           throw new KsqlStatementException(
               "Unexpected data source type for pull query: " + dataSourceType,
-              statement.getStatementText()
+              statement.getMaskedStatementText()
           );
       }
     } else if (ScalablePushUtil
@@ -230,11 +230,11 @@ public class QueryExecutor {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(
               statement.getStatement(),
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               configOverrides
           );
 
-      QueryLogger.info("Scalable push query created", statement.getStatementText());
+      QueryLogger.info("Scalable push query created", statement.getMaskedStatementText());
 
       return handleScalablePushQuery(
           analysis,
@@ -248,7 +248,7 @@ public class QueryExecutor {
       );
     } else {
       // log validated statements for query anonymization
-      QueryLogger.info("Transient query created", statement.getStatementText());
+      QueryLogger.info("Transient query created", statement.getMaskedStatementText());
       return handlePushQuery(
           serviceContext,
           statement,
@@ -347,7 +347,7 @@ public class QueryExecutor {
     query.prepare();
     resultForMetrics.set(query);
 
-    QueryLogger.info("Streaming scalable push query", statement.getStatementText());
+    QueryLogger.info("Streaming scalable push query", statement.getMaskedStatementText());
     return QueryMetadataHolder.of(query);
   }
 
@@ -389,7 +389,7 @@ public class QueryExecutor {
       QueryCapacityUtil.throwTooManyActivePushQueriesException(
           ksqlEngine,
           ksqlRestConfig,
-          statement.getStatementText()
+          statement.getMaskedStatementText()
       );
     }
 
@@ -398,7 +398,7 @@ public class QueryExecutor {
 
     localCommands.ifPresent(lc -> lc.write(query));
 
-    log.info("Streaming query '{}'", statement.getStatementText());
+    log.info("Streaming query '{}'", statement.getMaskedStatementText());
     return QueryMetadataHolder.of(query);
   }
 }

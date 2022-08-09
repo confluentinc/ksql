@@ -284,7 +284,7 @@ public class InsertValuesExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e);
     }
   }
@@ -346,7 +346,7 @@ public class InsertValuesExecutor {
           AclOperation.WRITE,
           e);
       LOG.error("Could not serialize key.", e);
-      throw new KsqlException("Could not serialize key: " + keyValue, e);
+      throw new KsqlException("Could not serialize key", e);
     }
   }
 
@@ -478,7 +478,7 @@ public class InsertValuesExecutor {
           AclOperation.WRITE,
           e);
       LOG.error("Could not serialize value.", e);
-      throw new KsqlException("Could not serialize value: " + row + ". " + e.getMessage(), e);
+      throw new KsqlException("Could not serialize value" + e.getMessage(), e);
     }
   }
 

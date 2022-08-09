@@ -77,7 +77,7 @@ public enum CustomValidators {
           sessionProperties,
           executionContext,
           serviceContext) -> {
-        throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+        throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
       }),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
   ALTER_SYSTEM_PROPERTY(AlterSystemProperty.class, StatementValidator.NO_VALIDATION),

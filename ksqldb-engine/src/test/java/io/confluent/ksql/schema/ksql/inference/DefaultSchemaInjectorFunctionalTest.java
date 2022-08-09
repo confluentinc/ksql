@@ -644,7 +644,7 @@ public class DefaultSchemaInjectorFunctionalTest {
       validateCsasInference((ConfiguredStatement<CreateStreamAsSelect>) inferred, this.avroSchema);
     } else {
       final Statement withSchema = KsqlParserTestUtil
-          .buildSingleAst(inferred.getStatementText(), metaStore, true)
+          .buildSingleAst(inferred.getUnMaskedStatementText(), metaStore, true)
           .getStatement();
 
       final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);

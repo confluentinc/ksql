@@ -2296,7 +2296,7 @@ public class KsqlEngineTest {
   public void shouldCheckStreamPullQueryEnabledFlag() {
     @SuppressWarnings("unchecked") final ConfiguredStatement<Query> statementOrig =
         mock(ConfiguredStatement.class);
-    when(statementOrig.getStatementText()).thenReturn("TEXT");
+    when(statementOrig.getMaskedStatementText()).thenReturn("TEXT");
 
     final SessionConfig mockSessionConfig = mock(SessionConfig.class);
     final KsqlConfig mockConfig = mock(KsqlConfig.class);

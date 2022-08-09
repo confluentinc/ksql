@@ -57,7 +57,7 @@ public final class ConnectExecutor {
     if (!errors.isEmpty()) {
       final String errorMessage = "Validation error: " + String.join("\n", errors);
       return StatementExecutorResponse.handled(Optional.of(new ErrorEntity(
-          statement.getStatementText(), errorMessage)));
+          statement.getMaskedStatementText(), errorMessage)));
     }
 
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
@@ -73,7 +73,7 @@ public final class ConnectExecutor {
     if (response.datum().isPresent()) {
       return StatementExecutorResponse.handled(Optional.of(
           new CreateConnectorEntity(
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               response.datum().get()
           )
       ));
@@ -141,11 +141,11 @@ public final class ConnectExecutor {
       final ConnectResponse<List<String>> connectorsResponse = client.connectors();
       if (connectorsResponse.error().isPresent()) {
         return connectorsResponse.error()
-            .map(err -> new ErrorEntity(statement.getStatementText(), err));
+            .map(err -> new ErrorEntity(statement.getMaskedStatementText(), err));
       }
 
       if (checkIfConnectorExists(createConnector, connectorsResponse)) {
-        return Optional.of(new WarningEntity(statement.getStatementText(),
+        return Optional.of(new WarningEntity(statement.getMaskedStatementText(),
             String.format("Connector %s already exists", createConnector.getName())));
       }
     }

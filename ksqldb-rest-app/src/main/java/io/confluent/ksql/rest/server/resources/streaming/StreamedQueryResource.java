@@ -306,7 +306,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         connectionClosedFuture
     );
 
-    log.info("Streaming query '{}'", statement.getStatementText());
+    log.info("Streaming query '{}'", statement.getMaskedStatementText());
     return EndpointResponse.ok(queryStreamWriter);
   }
 

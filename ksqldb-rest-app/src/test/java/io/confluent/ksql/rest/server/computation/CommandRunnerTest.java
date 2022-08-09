@@ -36,6 +36,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
@@ -104,6 +105,12 @@ public class CommandRunnerTest {
     when(queuedCommand1.getCommand()).thenReturn(command);
     when(queuedCommand2.getCommand()).thenReturn(command);
     when(queuedCommand3.getCommand()).thenReturn(command);
+    when(queuedCommand1.getCommandId()).thenReturn(
+        new CommandId(CommandId.Type.STREAM, "foo1", CommandId.Action.CREATE));
+    when(queuedCommand2.getCommandId()).thenReturn(
+        new CommandId(CommandId.Type.STREAM, "foo2", CommandId.Action.CREATE));
+    when(queuedCommand3.getCommandId()).thenReturn(
+        new CommandId(CommandId.Type.STREAM, "foo3", CommandId.Action.CREATE));
 
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
 

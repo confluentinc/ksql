@@ -519,7 +519,7 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     // Then:
     final Statement withSchema = KsqlParserTestUtil
-        .buildSingleAst(inferred.getStatementText(), metaStore)
+        .buildSingleAst(inferred.getUnMaskedStatementText(), metaStore)
         .getStatement();
 
     final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);

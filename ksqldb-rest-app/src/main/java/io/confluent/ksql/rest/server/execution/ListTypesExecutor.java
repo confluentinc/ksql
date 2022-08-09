@@ -47,6 +47,6 @@ public final class ListTypesExecutor {
       types.put(customType.getName(), EntityUtil.schemaInfo(customType.getType()));
     }
 
-    return Optional.of(new TypeList(configuredStatement.getStatementText(), types.build()));
+    return Optional.of(new TypeList(configuredStatement.getMaskedStatementText(), types.build()));
   }
 }

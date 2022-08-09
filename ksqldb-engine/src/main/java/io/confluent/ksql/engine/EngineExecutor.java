@@ -50,6 +50,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Map;
 import java.util.Objects;
@@ -102,11 +103,12 @@ final class EngineExecutor {
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   ExecuteResult execute(final KsqlPlan plan) {
+    final String maskedStatement = QueryMask.getMaskedStatement(plan.getStatementText());
     final Optional<String> ddlResult = plan.getDdlCommand()
-        .map(ddl -> executeDdl(ddl, plan.getStatementText(), plan.getQueryPlan().isPresent()));
+        .map(ddl -> executeDdl(ddl, maskedStatement, plan.getQueryPlan().isPresent()));
 
     final Optional<PersistentQueryMetadata> queryMetadata = plan.getQueryPlan()
-        .map(qp -> executePersistentQuery(qp, plan.getStatementText()));
+        .map(qp -> executePersistentQuery(qp, maskedStatement));
 
     return queryMetadata
         .map(ExecuteResult::of)
@@ -123,7 +125,7 @@ final class EngineExecutor {
         serviceContext
     );
     return executor.buildTransientQuery(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         plans.physicalPlan.getQueryId(),
         getSourceNames(outputNode),
         plans.physicalPlan.getPhysicalPlan(),
@@ -143,13 +145,13 @@ final class EngineExecutor {
 
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
         final DdlCommand ddlCommand = engineContext.createDdlCommand(
-            statement.getStatementText(),
+            statement.getMaskedStatementText(),
             (ExecutableDdlStatement) statement.getStatement(),
             ksqlConfig,
             overriddenProperties
         );
 
-        return KsqlPlan.ddlPlanCurrent(statement.getStatementText(), ddlCommand);
+        return KsqlPlan.ddlPlanCurrent(statement.getMaskedStatementText(), ddlCommand);
       }
 
       final QueryContainer queryContainer = (QueryContainer) statement.getStatement();
@@ -163,7 +165,7 @@ final class EngineExecutor {
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           outputNode
       );
 
@@ -177,14 +179,14 @@ final class EngineExecutor {
       );
 
       return KsqlPlan.queryPlanCurrent(
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           ddlCommand,
           queryPlan
       );
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
     }
   }
 
@@ -200,7 +202,7 @@ final class EngineExecutor {
         ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
     );
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         Optional.of(outputNode)
     );
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
@@ -306,7 +308,7 @@ final class EngineExecutor {
       throw new KsqlStatementException("Invalid result type. "
           + "Your SELECT query produces a TABLE. "
           + "Please use CREATE TABLE AS SELECT statement instead.",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
 
     if (statement.getStatement() instanceof CreateTableAsSelect
@@ -314,13 +316,14 @@ final class EngineExecutor {
       throw new KsqlStatementException("Invalid result type. "
           + "Your SELECT query produces a STREAM. "
           + "Please use CREATE STREAM AS SELECT statement instead.",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
   }
 
   private static void throwOnNonExecutableStatement(final ConfiguredStatement<?> statement) {
     if (!KsqlEngine.isExecutableStatement(statement.getStatement())) {
-      throw new KsqlStatementException("Statement not executable", statement.getStatementText());
+      throw new KsqlStatementException("Statement not executable",
+          statement.getMaskedStatementText());
     }
   }
 

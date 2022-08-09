@@ -76,7 +76,7 @@ public class SchemaRegisterInjector implements Injector {
         cs.getStatement().getProperties().getKafkaTopic(),
         cs.getStatement().getProperties().getFormatInfo(),
         cs.getConfig(),
-        cs.getStatementText(),
+        cs.getMaskedStatementText(),
         false
     );
   }
@@ -92,7 +92,7 @@ public class SchemaRegisterInjector implements Injector {
         .orElseThrow(() -> new KsqlStatementException(
             "Could not determine output schema for query due to error: "
                 + executeResult.getCommandResult(),
-            cas.getStatementText()
+            cas.getMaskedStatementText()
         ));
 
     registerSchema(
@@ -100,7 +100,7 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
         cas.getConfig(),
-        cas.getStatementText(),
+        cas.getMaskedStatementText(),
         true
     );
   }

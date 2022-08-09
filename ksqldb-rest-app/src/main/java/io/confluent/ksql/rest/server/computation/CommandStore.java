@@ -21,6 +21,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.QueryMask;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collections;
@@ -177,7 +178,7 @@ public class CommandStore implements CommandQueue, Closeable {
           String.format(
               "Could not write the statement '%s' into the "
                   + "command topic"
-                  + ".", command.getStatement()
+                  + ".", QueryMask.getMaskedStatement(command.getStatement())
           ),
           e
       );

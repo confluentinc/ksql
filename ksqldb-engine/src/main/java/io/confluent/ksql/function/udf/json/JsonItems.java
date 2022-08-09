@@ -27,8 +27,10 @@ import java.util.List;
 @UdfDescription(
     name = "JSON_ITEMS",
     category = FunctionCategory.JSON,
-    description = "Given a string with JSON array, converts it to an array of JSON strings and "
-        + "returns an array of String. Returns `NULL` if input is `NULL`.",
+    description = "Given a string with JSON array, converts it to a ksqlDB array of JSON strings. "
+        + "Returns `NULL` if the string can not be interpreted as a JSON array, for example, when "
+        + "the string is `NULL` or it does not contain valid JSON, or the JSON value is not an "
+        + "array.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class JsonItems {

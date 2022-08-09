@@ -115,7 +115,7 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject).map(SchemaMetadata::getId);
   }
 
-  public static Optional<ParsedSchema> getLatestParsedSchema(
+  public static Optional<Integer> getSchemaId(
       final SchemaRegistryClient srClient,
       final String topic,
       final boolean isKey
@@ -128,9 +128,25 @@ public final class SchemaRegistryUtil {
     }
 
     final int schemaId = metadata.get().getId();
+    return Optional.of(schemaId);
+  }
+
+  public static SchemaWithId getLatestParsedSchema(
+      final SchemaRegistryClient srClient,
+      final String topic,
+      final boolean isKey
+  ) {
+    final String subject = KsqlConstants.getSRSubject(topic, isKey);
+
+    Optional<Integer> optSchemaId = getSchemaId(srClient, topic, isKey);
+    if (!optSchemaId.isPresent()) {
+      return new SchemaWithId(Optional.empty(), Optional.empty());
+    }
+
+    final int schemaId = optSchemaId.get();
 
     try {
-      return Optional.of(srClient.getSchemaById(schemaId));
+      return new SchemaWithId(Optional.of(srClient.getSchemaById(schemaId)), Optional.of(schemaId));
     } catch (final Exception e) {
       throwOnAuthError(e, subject);
 

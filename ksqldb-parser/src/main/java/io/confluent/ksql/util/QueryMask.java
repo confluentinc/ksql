@@ -71,10 +71,10 @@ public final class QueryMask {
        Regex matches sequences of characters that are not in '(' ',' ';' ')' and are not be followed
        by a '(' anywhere further down the string (since VALUES is always last in a statement).
      */
-    final int valueIdx = StringUtils.indexOfIgnoreCase(query, " VALUES ");
-    if (valueIdx < 0) {
+    if (StringUtils.indexOfIgnoreCase(query.replaceAll("\\s+", ""), "VALUES(") < 0) {
       return query;
     }
+    final int valueIdx = StringUtils.indexOfIgnoreCase(query, "VALUES");
 
     final StringBuffer sb = new StringBuffer();
     final Pattern pattern = Pattern.compile("([^(,;)]+)(?!.*\\()",

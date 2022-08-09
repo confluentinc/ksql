@@ -184,7 +184,13 @@ public class UdfIndex<T extends FunctionSignature> {
       iterates through the already-created branch for the case where there is one variadic
       parameter. This is necessary because the variadic loop was not added when that branch
       was built, but it needs to be added if there are no non-variadic parameters (i.e.
-      paramsWithoutVariadic.size() == 0 and maxAddedVariadics == 1). */
+      paramsWithoutVariadic.size() == 0 and maxAddedVariadics == 1).
+
+      The number of nodes added here is quadratic with respect to paramsWithoutVariadic.size().
+      However, this tree is only built on ksql startup, and this tree structure allows resolving
+      functions with variadic arguments in the middle in linear time. The number of edges generated
+      as a function of paramsWithoutVariadic.size() is roughly 0.25x^2 + 1.5x + 3, which is not
+      excessive for reasonable numbers of arguments. */
       while (fromIndex >= 0 && toIndex <= combinedAllParams.size()) {
         buildTree(
                 variadicParent,

@@ -46,6 +46,9 @@ import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
+import io.confluent.ksql.security.KsqlAuthTokenProvider;
+import io.confluent.ksql.rest.util.AuthenticationUtil;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -55,6 +58,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -83,6 +87,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final WSQueryEndpoint wsQueryEndpoint;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final QueryExecutor queryExecutor;
+  private final Optional<KsqlAuthTokenProvider> authTokenProvider;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -101,7 +106,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final QueryExecutor queryExecutor
+      final QueryExecutor queryExecutor,
+      final Optional<KsqlAuthTokenProvider> authTokenProvider
   ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
@@ -121,6 +127,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.queryExecutor = queryExecutor;
+    this.authTokenProvider = authTokenProvider;
   }
 
   @Override
@@ -296,13 +303,21 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
       final Context context) {
-
     executeOnWorker(() -> {
       final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
           .provide(apiSecurityContext);
       try {
-        wsQueryEndpoint
-            .executeStreamQuery(webSocket, requestParams, ksqlSecurityContext, context);
+        final String authToken = apiSecurityContext.getAuthToken().isPresent()
+            ? apiSecurityContext.getAuthToken().get()
+            : requestParams.get("access_token");
+        wsQueryEndpoint.executeStreamQuery(
+            webSocket,
+            requestParams,
+            ksqlSecurityContext,
+            context,
+            new AuthenticationUtil(Clock.systemUTC())
+                .getTokenTimeout(authToken, ksqlConfig, authTokenProvider)
+        );
       } finally {
         ksqlSecurityContext.getServiceContext().close();
       }

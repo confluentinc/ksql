@@ -38,7 +38,7 @@ public class AuthenticationUtilTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private KsqlAuthTokenProvider authTokenProvider;
-  private final String TOKEN = "token";
+  private static final String TOKEN = "token";
   private final AuthenticationUtil authenticationUtil
       = new AuthenticationUtil(Clock.fixed(Instant.ofEpochMilli(0), ZoneId.of("UTC")));
 

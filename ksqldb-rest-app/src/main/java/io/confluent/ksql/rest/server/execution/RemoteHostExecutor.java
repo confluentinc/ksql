@@ -134,7 +134,7 @@ public final class RemoteHostExecutor {
           }
         } catch (final Exception cause) {
           LOG.warn("Failed to retrieve info from host: {}, statement: {}, cause: {}",
-              e.getKey(), statement.getStatementText(), cause.getMessage());
+              e.getKey(), statement.getMaskedStatementText(), cause.getMessage());
           unresponsiveHosts.add(e.getKey());
         }
       }

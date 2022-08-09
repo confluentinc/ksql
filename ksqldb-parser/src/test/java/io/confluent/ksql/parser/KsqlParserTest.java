@@ -193,7 +193,7 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final PreparedStatement<?> statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
 
-    assertThat(statement.getStatementText(), is(simpleQuery));
+    assertThat(statement.getMaskedStatementText(), is(simpleQuery));
     assertThat(statement.getStatement(), is(instanceOf(Query.class)));
     final Query query = (Query) statement.getStatement();
     assertThat(query.getSelect().getSelectItems(), hasSize(3));
@@ -1417,7 +1417,7 @@ public class KsqlParserTest {
     final ParsedStatement parsedStatement = ParsedStatement.of(query, mock(SingleStatementContext.class));
 
     // Then
-    assertThat(parsedStatement.getStatementText(), is(masked));
+    assertThat(parsedStatement.getMaskedStatementText(), is(masked));
     assertThat(parsedStatement.getUnMaskedStatementText(), is(query));
     assertThat(parsedStatement.toString(), is(masked));
   }
@@ -1447,7 +1447,7 @@ public class KsqlParserTest {
         PreparedStatement.of(query, mock(CreateConnector.class));
 
     // Then
-    assertThat(preparedStatement.getStatementText(), is(masked));
+    assertThat(preparedStatement.getMaskedStatementText(), is(masked));
     assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
     assertThat(preparedStatement.toString(), is(masked));
   }

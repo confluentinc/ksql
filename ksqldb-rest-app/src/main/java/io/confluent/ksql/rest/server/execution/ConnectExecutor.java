@@ -63,7 +63,7 @@ public final class ConnectExecutor {
     if (response.datum().isPresent()) {
       return Optional.of(
           new CreateConnectorEntity(
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               response.datum().get()
           )
       );
@@ -78,7 +78,7 @@ public final class ConnectExecutor {
     }
 
     return response.error()
-        .map(err -> new ErrorEntity(statement.getStatementText(), err));
+        .map(err -> new ErrorEntity(statement.getMaskedStatementText(), err));
   }
 
   private static Optional<KsqlEntity> handleIfNotExists(
@@ -89,11 +89,11 @@ public final class ConnectExecutor {
       final ConnectResponse<List<String>> connectorsResponse = client.connectors();
       if (connectorsResponse.error().isPresent()) {
         return connectorsResponse.error()
-            .map(err -> new ErrorEntity(statement.getStatementText(), err));
+            .map(err -> new ErrorEntity(statement.getMaskedStatementText(), err));
       }
 
       if (checkIfConnectorExists(createConnector, connectorsResponse)) {
-        return Optional.of(new WarningEntity(statement.getStatementText(),
+        return Optional.of(new WarningEntity(statement.getMaskedStatementText(),
             String.format("Connector %s already exists", createConnector.getName())));
       }
     }

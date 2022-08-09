@@ -122,7 +122,7 @@ public final class ValidatedCommandFactory {
     context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()))
+            statement.getMaskedStatementText()))
         .close();
     return Command.of(statement);
   }

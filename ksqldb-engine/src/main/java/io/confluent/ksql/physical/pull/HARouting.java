@@ -283,7 +283,7 @@ public final class HARouting implements AutoCloseable {
     if (node.isLocal()) {
       try {
         LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-                  statement.getStatementText(), node.location(), System.currentTimeMillis());
+                  statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
         pullPhysicalPlan.execute(locations, pullQueryQueue,  rowFactory);
@@ -302,7 +302,7 @@ public final class HARouting implements AutoCloseable {
     } else {
       try {
         LOG.debug("Query {} routed to host {} at timestamp {}.",
-            statement.getStatementText(), node.location(), System.currentTimeMillis());
+            statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
         forwardTo(node, locations, statement, serviceContext, pullQueryQueue, rowFactory,

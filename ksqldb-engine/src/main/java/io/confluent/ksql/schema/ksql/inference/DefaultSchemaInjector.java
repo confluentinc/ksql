@@ -88,7 +88,7 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e), 
-          statement.getStatementText(), 
+          statement.getMaskedStatementText(),
           e.getCause());
     }
   }
@@ -128,7 +128,7 @@ public class DefaultSchemaInjector implements Injector {
         // until we support user-configuration of single key wrapping/unwrapping, we choose
         // to have key schema inference always result in an unwrapped key
         SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat), true),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         true
     ));
   }
@@ -148,7 +148,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getValueSchemaId(),
         valueFormat,
         props.getValueSerdeFeatures(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         false
     ));
   }

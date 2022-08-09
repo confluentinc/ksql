@@ -110,7 +110,7 @@ public class SchemaRegisterInjector implements Injector {
         valueFormat,
         valFeatures,
         cs.getSessionConfig().getConfig(false),
-        cs.getStatementText(),
+        cs.getMaskedStatementText(),
         false
     );
   }
@@ -128,7 +128,7 @@ public class SchemaRegisterInjector implements Injector {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Could not determine output schema for query due to error: "
-              + e.getMessage(), cas.getStatementText(), e);
+              + e.getMessage(), cas.getMaskedStatementText(), e);
     }
 
     registerSchemas(
@@ -139,7 +139,7 @@ public class SchemaRegisterInjector implements Injector {
         createSourceCommand.getFormats().getValueFormat(),
         createSourceCommand.getFormats().getValueFeatures(),
         cas.getSessionConfig().getConfig(false),
-        cas.getStatementText(),
+        cas.getMaskedStatementText(),
         true
     );
   }

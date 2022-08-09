@@ -42,6 +42,6 @@ public final class ListVariablesExecutor {
         .map(e -> new Variable(e.getKey(), e.getValue()))
         .collect(Collectors.toList());
 
-    return Optional.of(new VariablesList(statement.getStatementText(), sessionVariables));
+    return Optional.of(new VariablesList(statement.getMaskedStatementText(), sessionVariables));
   }
 }

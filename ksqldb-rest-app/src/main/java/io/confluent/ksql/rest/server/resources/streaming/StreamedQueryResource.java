@@ -291,7 +291,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         }
 
         // log validated statements for query anonymization
-        QueryLogger.info("Transient query created", statement.getStatementText());
+        QueryLogger.info("Transient query created", statement.getMaskedStatementText());
 
         if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
             configProperties)) {
@@ -382,7 +382,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
               + "this feature."
               + System.lineSeparator(),
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
 
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
@@ -471,7 +471,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         connectionClosedFuture
     );
 
-    log.info("Streaming query '{}'", statement.getStatementText());
+    log.info("Streaming query '{}'", statement.getMaskedStatementText());
     return EndpointResponse.ok(queryStreamWriter);
   }
 
@@ -489,7 +489,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       QueryCapacityUtil.throwTooManyActivePushQueriesException(
               ksqlEngine,
               ksqlRestConfig,
-              statement.getStatementText()
+              statement.getMaskedStatementText()
       );
     }
 
@@ -505,7 +505,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         connectionClosedFuture
     );
 
-    log.info("Streaming query '{}'", statement.getStatementText());
+    log.info("Streaming query '{}'", statement.getMaskedStatementText());
     return EndpointResponse.ok(queryStreamWriter);
   }
 

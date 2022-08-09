@@ -630,7 +630,6 @@ public class RecoveryTest {
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT ROWKEY, C2 FROM A;"
     );
-    server1.close();
     shouldRecover(commands);
   }
 
@@ -783,7 +782,6 @@ public class RecoveryTest {
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(1));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
     assertThat(recovered.ksqlEngine.getAllLiveQueries().size(), is(2));
-    recovered.close();
   }
 
   @Test
@@ -867,7 +865,6 @@ public class RecoveryTest {
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(2));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("A")));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
-    recovered.close();
   }
 
   @Test

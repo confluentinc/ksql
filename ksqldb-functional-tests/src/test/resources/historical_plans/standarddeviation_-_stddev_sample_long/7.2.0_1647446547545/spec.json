@@ -110,7 +110,7 @@
       "topic" : "OUTPUT",
       "key" : 0,
       "value" : {
-        "STDDEV" : 1518500179.2773468
+        "STDDEV" : 1.5185001792773468E9
       }
     }, {
       "topic" : "OUTPUT",
@@ -128,7 +128,7 @@
       "topic" : "OUTPUT",
       "key" : 0,
       "value" : {
-        "STDDEV" : 1239850233.9629574
+        "STDDEV" : 1.2398502339629574E9
       }
     }, {
       "topic" : "OUTPUT",
@@ -146,7 +146,7 @@
       "topic" : "OUTPUT",
       "key" : 0,
       "value" : {
-        "STDDEV" : 1239850233.9629574
+        "STDDEV" : 1.2398502339629574E9
       }
     } ],
     "topics" : [ {
@@ -253,10 +253,12 @@
                   "name" : "M2",
                   "type" : [ "null", "double" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_KSQL_AGG_VARIABLE_0"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "OUTPUT",
@@ -275,7 +277,8 @@
               "name" : "STDDEV",
               "type" : [ "null", "double" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

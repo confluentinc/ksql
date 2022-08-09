@@ -137,7 +137,7 @@ public class PullQueryWriteStreamTest {
     writeStream.write(getData(1));
 
     // When:
-    executorService.schedule(() -> writeStream.poll(), 500, TimeUnit.MILLISECONDS);
+    executorService.schedule(() -> writeStream.poll(), 100, TimeUnit.MILLISECONDS);
     writeStream.awaitCapacity(TEST_TIMEOUT_SECONDS * 2, TimeUnit.SECONDS);
 
     // Then:
@@ -150,7 +150,7 @@ public class PullQueryWriteStreamTest {
     writeStream.setWriteQueueMaxSize(1);
 
     // When:
-    executorService.schedule(() -> writeStream.write(getData(1)), 500, TimeUnit.MILLISECONDS);
+    executorService.schedule(() -> writeStream.write(getData(1)), 100, TimeUnit.MILLISECONDS);
     writeStream.poll(TEST_TIMEOUT_SECONDS * 2, TimeUnit.SECONDS);
 
     // Then:

@@ -56,25 +56,27 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   private static final int DEFAULT_SOFT_CAPACITY = 50;
   private static final FutureFactory FUTURE_FACTORY = new FutureFactoryImpl();
 
-  private final OptionalInt hardLimit;
+  private final OptionalInt queryLimit;
   private final StreamedRowTranslator translator;
 
   // this monitor allows us to implement blocking reads on the poll()
   // methods and also is used to ensure thread safety if multiple threads
   // are using this WriteStream
   private final Monitor monitor = new Monitor();
-  private final Monitor.Guard hasData = monitor.newGuard(() -> !isEmpty());
-  private final Monitor.Guard hasCapacity = monitor.newGuard(() -> !writeQueueFull());
 
-  @GuardedBy("m")
+  @GuardedBy("monitor")
   private final Queue<HandledRow> queue = new ArrayDeque<>();
-  @GuardedBy("m")
+  @GuardedBy("monitor")
   private int totalRowsQueued = 0;
 
-  @GuardedBy("m")
+  @GuardedBy("monitor")
   private boolean closed = false;
-  @GuardedBy("m")
-  private int softLimit = DEFAULT_SOFT_CAPACITY;
+  @GuardedBy("monitor")
+  private int queueCapacity = DEFAULT_SOFT_CAPACITY;
+
+  private final Monitor.Guard hasData = monitor.newGuard(() -> !isEmpty());
+  private final Monitor.Guard atHalfCapacity = monitor.newGuard(
+      () -> isDone() || size() <= queueCapacity / 2);
 
   // this is a bit of a leaky abstraction that is necessary because
   // Vertx's PipeImpl sets the drain handler every single time the
@@ -90,10 +92,10 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   private Runnable queueCallback = () -> { };
 
   public PullQueryWriteStream(
-      final OptionalInt hardLimit,
+      final OptionalInt queryLimit,
       final StreamedRowTranslator translator
   ) {
-    this.hardLimit = hardLimit;
+    this.queryLimit = queryLimit;
     this.translator = translator;
 
     // register a drainHandler that will wake up anyone waiting on hasCapacity
@@ -206,13 +208,12 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
     polled.handler.handle(FUTURE_FACTORY.succeededFuture());
 
-    monitor.enter();
-    try {
-      if (queue.size() < softLimit) {
+    if (monitor.enterIf(atHalfCapacity)) {
+      try {
         drainHandler.forEach(h -> h.handle(null));
+      } finally {
+        monitor.leave();
       }
-    } finally {
-      monitor.leave();
     }
 
     return polled.row;
@@ -255,7 +256,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   private boolean hardLimitHit() {
     monitor.enter();
     try {
-      return hardLimit.isPresent() && totalRowsQueued >= hardLimit.getAsInt();
+      return queryLimit.isPresent() && totalRowsQueued >= queryLimit.getAsInt();
     } finally {
       monitor.leave();
     }
@@ -368,7 +369,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   public PullQueryWriteStream setWriteQueueMaxSize(final int maxSize) {
     monitor.enter();
     try {
-      softLimit = maxSize;
+      queueCapacity = maxSize;
     } finally {
       monitor.leave();
     }
@@ -379,7 +380,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   public boolean writeQueueFull() {
     monitor.enter();
     try {
-      return isDone() || queue.size() >= softLimit;
+      return isDone() || queue.size() >= queueCapacity;
     } finally {
       monitor.leave();
     }
@@ -400,9 +401,16 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
       final long timeout,
       final TimeUnit timeUnit
   ) throws InterruptedException {
-    if (monitor.enterWhen(hasCapacity, timeout, timeUnit)) {
-      monitor.leave();
+    if (!writeQueueFull()) {
       return true;
+    }
+
+    if (monitor.enterWhen(atHalfCapacity, timeout, timeUnit)) {
+      try {
+        return !writeQueueFull();
+      } finally {
+        monitor.leave();
+      }
     } else {
       return false;
     }

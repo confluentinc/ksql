@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.client;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -22,6 +23,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.streams.WriteStream;
 import java.util.function.Function;
 
+@SuppressFBWarnings(value = "EI_EXPOSE_REP2")
 public class BufferMapWriteStream<T> implements WriteStream<Buffer> {
 
   private final Function<Buffer, T> mapper;

@@ -95,20 +95,14 @@ public class PullPhysicalPlan {
     QueryRow row = (QueryRow) next();
 
     while (!pullQueryQueue.isDone() && row != null) {
-      // this mechanism is "best effort" in that it is possible that multiple
-      // threads waiting on this condition may all be signalled and attempt
-      // to write into that queue - this is OK as it is just a mechanism for
-      // backpressure (a soft limit)
-      if (pullQueryQueue.writeQueueFull()) {
-        try {
-          if (!pullQueryQueue.awaitCapacity(100, TimeUnit.MILLISECONDS)) {
-            // only wait 100ms so that pullQueryQueue#isDone has a chance to
-            // re-evaluate the loop condition
-            continue;
-          }
-        } catch (final InterruptedException e) {
-          throw new KsqlException(e);
+      try {
+        // set a high timeout here because awaitCapacity will return early
+        // if the pullQueryQueue is closed
+        if (!pullQueryQueue.awaitCapacity(1, TimeUnit.SECONDS)) {
+          continue;
         }
+      } catch (final InterruptedException e) {
+        throw new KsqlException(e);
       }
 
       final StreamedRow streamedRow = addDebugInfo.apply(

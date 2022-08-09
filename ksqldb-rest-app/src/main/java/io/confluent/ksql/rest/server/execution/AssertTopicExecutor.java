@@ -47,7 +47,7 @@ public final class AssertTopicExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    return AssertExecutor.execute(statement.getStatementText(),
+    return AssertExecutor.execute(statement.getMaskedStatementText(),
         statement.getStatement(),
         executionContext.getKsqlConfig().getInt(KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS),
         serviceContext,

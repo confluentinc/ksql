@@ -44,6 +44,7 @@ package io.confluent.ksql.rest.integration;
   import static org.junit.Assert.fail;
 
   import com.fasterxml.jackson.core.type.TypeReference;
+  import com.google.common.base.Functions;
   import com.google.common.collect.ImmutableList;
   import com.google.common.collect.ImmutableMap;
   import io.confluent.common.utils.IntegrationTest;

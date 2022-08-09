@@ -78,7 +78,7 @@ public class Command {
 
   public static Command of(final ConfiguredStatement<?> configuredStatement) {
     return new Command(
-        configuredStatement.getStatementText(),
+        configuredStatement.getUnMaskedStatementText(),
         configuredStatement.getOverrides(),
         configuredStatement.getConfig().getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty()

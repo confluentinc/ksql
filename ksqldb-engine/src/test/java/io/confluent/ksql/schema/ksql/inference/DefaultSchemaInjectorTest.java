@@ -273,7 +273,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatementText(), is(
         "CREATE STREAM `cs` ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
@@ -298,7 +298,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatementText(), is(
         "CREATE TABLE `ct` ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
@@ -325,7 +325,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatementText(), is(
         "CREATE STREAM `cs` ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
@@ -352,7 +352,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatementText(), is(
         "CREATE TABLE `ct` ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
@@ -379,7 +379,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getProperties().getSchemaId(), is(Optional.of(SCHEMA_ID)));
 
-    assertThat(result.getStatementText(), containsString("SCHEMA_ID=5"));
+    assertThat(result.getMaskedStatementText(), containsString("SCHEMA_ID=5"));
   }
 
   @Test
@@ -393,7 +393,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getProperties().getSchemaId(), is(Optional.of(42)));
 
-    assertThat(result.getStatementText(), containsString("SCHEMA_ID='42'"));
+    assertThat(result.getMaskedStatementText(), containsString("SCHEMA_ID='42'"));
   }
 
   @Test
@@ -413,7 +413,7 @@ public class DefaultSchemaInjectorTest {
         assertThat(e.getRawMessage(),
             containsString("Schema contains types not supported by KSQL:"));
 
-        assertThat(e.getSqlStatement(), is(csStatement.getStatementText()));
+        assertThat(e.getSqlStatement(), is(csStatement.getMaskedStatementText()));
       }
     }
   }
@@ -430,7 +430,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateTable> inject = injector.inject(ctStatement);
 
     // Then:
-    assertThat(inject.getStatementText(), containsString("`CREATE`"));
+    assertThat(inject.getMaskedStatementText(), containsString("`CREATE`"));
   }
 
   @Test

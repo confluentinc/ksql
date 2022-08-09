@@ -145,7 +145,7 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+    throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
   }
 
   public TableRowsEntity execute(
@@ -203,7 +203,7 @@ public final class PullQueryExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e
       );
     }
@@ -237,11 +237,11 @@ public final class PullQueryExecutor {
         return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
       } catch (Exception t) {
         LOG.debug("Error routing query {} to host {} at timestamp {}",
-                 statement.getStatementText(), node, System.currentTimeMillis());
+                 statement.getMaskedStatementText(), node, System.currentTimeMillis());
       }
     }
     throw new MaterializationException(String.format(
-        "Unable to execute pull query: %s", statement.getStatementText()));
+        "Unable to execute pull query: %s", statement.getMaskedStatementText()));
   }
 
   private TableRowsEntity routeQuery(
@@ -254,14 +254,14 @@ public final class PullQueryExecutor {
 
     if (node.isLocal()) {
       LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-               statement.getStatementText(), node.location(), System.currentTimeMillis());
+               statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       return queryRowsLocally(
           statement,
           executionContext,
           pullQueryContext);
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
-                statement.getStatementText(), node.location(), System.currentTimeMillis());
+                statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       return forwardTo(node, statement, serviceContext);
     }
   }
@@ -310,7 +310,7 @@ public final class PullQueryExecutor {
       );
     }
     return new TableRowsEntity(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         pullQueryContext.queryId,
         outputSchema,
         rows
@@ -860,7 +860,8 @@ public final class PullQueryExecutor {
   ) {
     final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
-        .makeQueryRequest(owner.location(), statement.getStatementText(), statement.getOverrides());
+        .makeQueryRequest(owner.location(), statement.getUnMaskedStatementText(),
+            statement.getOverrides());
 
     if (response.isErroneous()) {
       throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
@@ -882,7 +883,7 @@ public final class PullQueryExecutor {
       if (row.getErrorMessage().isPresent()) {
         throw new KsqlStatementException(
             row.getErrorMessage().get().getMessage(),
-            statement.getStatementText()
+            statement.getMaskedStatementText()
         );
       }
 
@@ -894,7 +895,7 @@ public final class PullQueryExecutor {
     }
 
     return new TableRowsEntity(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         header.getQueryId(),
         header.getSchema(),
         rows.build()

@@ -97,7 +97,7 @@ public class TransientQueryResourceCleanerIntTest {
 
             // configure time period for the cleanup service to be low for testing purpose
             .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS, 1)
-        .build();
+            .build();
 
     private static String stateDir;
 

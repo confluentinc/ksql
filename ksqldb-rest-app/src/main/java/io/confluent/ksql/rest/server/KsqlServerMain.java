@@ -54,7 +54,6 @@ public class KsqlServerMain {
         return;
       }
 
-      System.out.println("steven is MIGRATING UP IN HERE asdfasdf");
       final Supplier<Map<String, String>> propertiesLoader =
           () -> PropertiesUtil.applyOverrides(
             PropertiesUtil.loadProperties(serverOptions.getPropertiesFile()),

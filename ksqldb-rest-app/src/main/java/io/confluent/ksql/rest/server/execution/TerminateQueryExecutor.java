@@ -74,7 +74,7 @@ public final class TerminateQueryExecutor {
         }
       }
       return StatementExecutorResponse.handled(Optional.of(
-          new TerminateQueryEntity(statement.getStatementText(), queryId.toString(), true)
+          new TerminateQueryEntity(statement.getMaskedStatementText(), queryId.toString(), true)
       ));
     }
   }

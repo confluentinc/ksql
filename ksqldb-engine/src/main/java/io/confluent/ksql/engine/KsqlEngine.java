@@ -332,7 +332,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       throw e;
     } catch (final KsqlException e) {
       // add the statement text to the KsqlException
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(),
+          e.getCause());
     }
   }
 
@@ -370,7 +371,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           "Pull queries on streams are disabled. To create a push query on the stream,"
               + " add EMIT CHANGES to the end. To enable pull queries on streams, set"
               + " the " + KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED + " config to 'true'.",
-          statementOrig.getStatementText()
+          statementOrig.getMaskedStatementText()
       );
     }
 
@@ -395,7 +396,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     QueryLogger.info(
         "Streaming stream pull query results '{}'",
-        statement.getStatementText()
+        statement.getMaskedStatementText()
     );
 
     return new StreamPullQueryMetadata(transientQueryMetadata, endOffsets);

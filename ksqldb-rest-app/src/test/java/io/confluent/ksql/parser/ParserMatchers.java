@@ -146,7 +146,7 @@ public final class ParserMatchers {
 
     @Override
     protected String featureValueOf(final PreparedStatement<T> actual) {
-      return actual.getStatementText();
+      return actual.getUnMaskedStatementText();
     }
 
     @Factory

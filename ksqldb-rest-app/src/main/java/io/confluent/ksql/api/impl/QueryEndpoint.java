@@ -123,7 +123,7 @@ public class QueryEndpoint {
     } else {
       throw new KsqlStatementException(
           "Unexpected metadata for query",
-          statement.getStatementText()
+          statement.getMaskedStatementText()
       );
     }
   }

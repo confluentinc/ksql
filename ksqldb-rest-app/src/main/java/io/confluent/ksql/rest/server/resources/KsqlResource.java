@@ -303,9 +303,9 @@ public class KsqlResource implements KsqlConfigurable {
       statements.forEach(s -> {
         if (s.getUnMaskedStatementText().toLowerCase().contains("terminate")
             || s.getUnMaskedStatementText().toLowerCase().contains("drop")) {
-          QueryLogger.info("Query terminated", s.getStatementText());
+          QueryLogger.info("Query terminated", s.getMaskedStatementText());
         } else {
-          QueryLogger.info("Query created", s.getStatementText());
+          QueryLogger.info("Query created", s.getMaskedStatementText());
         }
       });
 

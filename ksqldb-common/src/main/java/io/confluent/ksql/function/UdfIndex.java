@@ -115,6 +115,8 @@ public class UdfIndex<T extends FunctionSignature> {
       );
     }
 
+    /* Build the tree for non-variadic functions, or build the tree that includes one variadic
+    argument for variadic functions. */
     final Pair<Node, Integer> variadicParentAndOffset = buildTree(
             root,
             parameters,
@@ -127,13 +129,18 @@ public class UdfIndex<T extends FunctionSignature> {
     if (variadicParent != null) {
       final int offset = variadicParentAndOffset.getRight();
 
-      // Handle var args given inside list
+      // Build a branch of the tree that handles var args given as list.
       buildTree(variadicParent, parameters, function, true, false);
 
-      // Determine which side the variadic parameter is on
+      // Determine which side the variadic parameter is on.
       final boolean isLeftVariadic = parameters.get(offset).isVariadic();
 
-      // Handle no var args
+      /* Build a branch of the tree that handles no var args by excluding the variadic param.
+      Note that non-variadic parameters that are always paired with another non-variadic parameter
+      are not included in paramsWithoutVariadic. For example, if the function signature is
+      (int, boolean..., double, bigint, decimal), then paramsWithoutVariadic will be
+      [double, bigint]. The (int, decimal) edge will be in a node above the variadicParent, so
+      we need to only include parameters that might be paired with a variadic parameter. */
       final List<ParameterInfo> paramsWithoutVariadic = isLeftVariadic
               ? parameters.subList(offset + 1, parameters.size() - offset)
               : parameters.subList(offset, parameters.size() - offset - 1);
@@ -145,16 +152,18 @@ public class UdfIndex<T extends FunctionSignature> {
               false
       );
 
-      // Handle more than two var args
+      // Build branches of the tree that handles more than two var args.
       final ParameterInfo variadicParam = isLeftVariadic
               ? parameters.get(offset)
               : parameters.get(parameters.size() - offset - 1);
 
+      // Create copies of the variadic parameter that will be used to build the tree.
       final int maxAddedVariadics = paramsWithoutVariadic.size() + 1;
       final List<ParameterInfo> addedVariadics = IntStream.range(0, maxAddedVariadics)
               .mapToObj(ignored -> variadicParam)
               .collect(Collectors.toList());
 
+      // Add the copies of the variadic parameter on the same side as the variadic parameter.
       final List<ParameterInfo> combinedAllParams = new ArrayList<>();
       int fromIndex;
       int toIndex;
@@ -170,20 +179,32 @@ public class UdfIndex<T extends FunctionSignature> {
         toIndex = combinedAllParams.size() - maxAddedVariadics + 1;
       }
 
+      /* Successively build branches of the tree that include one additional variadic parameter
+      until maxAddedVariadics have been processed. During the first iteration, buildTree()
+      iterates through the already-created branch for the case where there is one variadic
+      parameter. This is necessary because the variadic loop was not added when that branch
+      was built, but it needs to be added if there are no non-variadic parameters (i.e.
+      paramsWithoutVariadic.size() == 0 and maxAddedVariadics == 1). */
       while (fromIndex >= 0 && toIndex <= combinedAllParams.size()) {
         buildTree(
                 variadicParent,
                 combinedAllParams.subList(fromIndex, toIndex),
                 function,
                 false,
+
+                /* Add the variadic loop after longest branch to handle variadic parameters not
+                paired with a non-variadic parameter. */
                 toIndex - fromIndex == combinedAllParams.size()
+
         );
 
+        // Increment the size of the sublist in the direction of the variadic parameters.
         if (isLeftVariadic) {
           fromIndex--;
         } else {
           toIndex++;
         }
+
       }
 
     }
@@ -216,6 +237,7 @@ public class UdfIndex<T extends FunctionSignature> {
     Node curr = root;
     Node parent = curr;
 
+    // The edge containing the first variadic parameterInfo starts at the parentOfVariadic.
     Node parentOfVariadic = null;
     int variadicOffset = -1;
 
@@ -252,6 +274,8 @@ public class UdfIndex<T extends FunctionSignature> {
         );
       }
 
+      /* Setting isVararg to true makes the Parameter have a different hash, so it won't conflict
+      with any non-variadic functions added later. */
       final ParamType varArgSchema = toType(parameters.get(variadicOffset), keepArrays);
       final Parameter varArg = new Parameter(varArgSchema, true);
 

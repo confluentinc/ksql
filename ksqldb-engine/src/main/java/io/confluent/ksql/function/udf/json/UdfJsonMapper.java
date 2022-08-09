@@ -18,12 +18,14 @@ package io.confluent.ksql.function.udf.json;
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.confluent.ksql.function.KsqlFunctionException;
+import java.util.List;
 
 /**
  * Shared Object mapper used by JSON processing UDFs
@@ -75,6 +77,14 @@ final class UdfJsonMapper {
       return UdfJsonMapper.INSTANCE.writeValueAsString(obj);
     } catch (JsonProcessingException e) {
       throw new KsqlFunctionException("JSON serialization error: " + e.getMessage());
+    }
+  }
+
+  public static List<JsonNode> readAsJsonArray(final String jsonString) {
+    try {
+      return UdfJsonMapper.INSTANCE.readValue(jsonString, new TypeReference<List<JsonNode>>() {});
+    } catch (JsonProcessingException e) {
+      throw new KsqlFunctionException("Invalid JSON format:" + jsonString, e);
     }
   }
 }

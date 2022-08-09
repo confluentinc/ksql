@@ -71,12 +71,10 @@ public class WSQueryEndpointTest {
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private KsqlConfig ksqlConfig;
-<<<<<<< HEAD
   @Mock
   private Context context;
-=======
+  @Mock
   private ListeningScheduledExecutorService exec;
->>>>>>> 4545bf30f9 (chore: terminate websocket connections after token expiration)
 
   private WSQueryEndpoint wsQueryEndpoint;
 
@@ -149,6 +147,6 @@ public class WSQueryEndpointTest {
   }
 
   private void executeStreamQuery(final MultiMap params, final Optional<Long> timeout) {
-    wsQueryEndpoint.executeStreamQuery(serverWebSocket, params, ksqlSecurityContext, timeout);
+    wsQueryEndpoint.executeStreamQuery(serverWebSocket, params, ksqlSecurityContext, context, timeout);
   }
 }

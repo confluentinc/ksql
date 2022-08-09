@@ -62,11 +62,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
-<<<<<<< HEAD
-import java.util.Map;
-=======
 import java.time.Clock;
->>>>>>> 4545bf30f9 (chore: terminate websocket connections after token expiration)
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -127,8 +124,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing,
       final PushRouting pushRouting,
-      final Optional<LocalCommands> localCommands
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<LocalCommands> localCommands,
       final Optional<KsqlAuthTokenProvider> authTokenProvider
   ) {
 
@@ -345,6 +341,7 @@ public class KsqlServerEndpoints implements Endpoints {
             webSocket,
             requestParams,
             ksqlSecurityContext,
+            context,
             new AuthenticationUtil(Clock.systemUTC())
                 .getTokenTimeout(authToken, ksqlConfig, authTokenProvider)
         );

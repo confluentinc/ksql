@@ -371,7 +371,6 @@ public class KsqlConfig extends AbstractConfig {
       + " and the regex pattern will be matched against the error class name and message of any "
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
-<<<<<<< HEAD
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED = "ksql.create.or.replace.enabled";
   public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = true;
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED_DOC =
@@ -925,12 +924,18 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC
         )
         .define(
-<<<<<<< HEAD
             KSQL_CREATE_OR_REPLACE_ENABLED,
             Type.BOOLEAN,
             KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_CREATE_OR_REPLACE_ENABLED_DOC
+        )
+        .define(
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
         )
         .define(
             KSQL_METASTORE_BACKUP_LOCATION,
@@ -994,13 +999,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
             Importance.LOW,
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
-=======
-            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
-            Type.LONG,
-            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
-            Importance.LOW,
-            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
->>>>>>> d69cef321d (chore: terminate websocket connections after token expiration)
         )
         .define(
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING,

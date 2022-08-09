@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import org.apache.kafka.streams.StreamsConfig;
-
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -37,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;

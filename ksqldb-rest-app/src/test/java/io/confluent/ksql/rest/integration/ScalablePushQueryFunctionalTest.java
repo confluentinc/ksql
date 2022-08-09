@@ -130,6 +130,7 @@ public class ScalablePushQueryFunctionalTest {
       // Make rebalances happen quicker for the sake of the test
       .withProperty(KSQL_STREAMS_PREFIX + "max.poll.interval.ms", 5000)
       .withProperty(KSQL_STREAMS_PREFIX + "session.timeout.ms", 10000)
+      .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
       .build();
 
   @ClassRule

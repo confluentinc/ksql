@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -66,6 +67,7 @@ public class ShowQueriesMultiNodeFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
+      .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
       .build();
 
   @ClassRule

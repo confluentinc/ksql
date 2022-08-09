@@ -34,6 +34,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -74,6 +75,7 @@ public class HeartbeatAgentFunctionalTest {
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 2000)
       .withProperty(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
       .withProperties(ClientTrustStore.trustStoreProps())
+      .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
       .build();
 
   @ClassRule

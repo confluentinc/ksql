@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -69,6 +70,7 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
           SERVER_KEY_STORE.getKeyAlias())
       .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
           SERVER_KEY_STORE.getKeyAlias())
+      .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
       .build();
 
   @ClassRule

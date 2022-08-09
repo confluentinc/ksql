@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -83,6 +84,7 @@ public class ClusterTerminationTest {
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8089")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
+      .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
       .build();
 
   @ClassRule

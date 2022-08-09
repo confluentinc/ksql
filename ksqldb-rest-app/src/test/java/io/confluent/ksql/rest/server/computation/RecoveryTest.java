@@ -81,6 +81,8 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsConfig;
@@ -128,6 +130,8 @@ public class RecoveryTest {
 
   @After
   public void tearDown() {
+    server1.ksqlEngine.getPersistentQueries()
+        .forEach(QueryMetadata::close);
     server1.close();
     server2.close();
     serviceContext.close();

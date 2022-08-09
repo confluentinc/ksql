@@ -188,6 +188,10 @@ public class StandaloneExecutor implements Executable {
     ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
   }
 
+  public void closeAllQueries() {
+    ksqlEngine.getPersistentQueries().forEach(QueryMetadata::close);
+  }
+
   private void validateStatements(final List<ParsedStatement> statements) {
     final KsqlExecutionContext sandboxEngine = ksqlEngine.createSandbox(serviceContext);
     final Injector injector = injectorFactory.apply(

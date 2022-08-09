@@ -133,6 +133,7 @@ public class StandaloneExecutorFunctionalTest {
 
   @After
   public void tearDown() throws Exception {
+    standalone.closeAllQueries();
     standalone.shutdown();
   }
 

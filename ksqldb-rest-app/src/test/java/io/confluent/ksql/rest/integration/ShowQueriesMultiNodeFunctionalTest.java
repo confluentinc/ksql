@@ -143,10 +143,10 @@ public class ShowQueriesMultiNodeFunctionalTest {
     assertThatEventually(
         "App0TaskMetadata",
         () -> app0TaskMetadata.get().stream().map(StreamsTaskMetadata::getTaskId).collect(Collectors.toList()),
-        containsInAnyOrder("0_0", "0_1"));
+        containsInAnyOrder("CSAS_S_1__0_0", "CSAS_S_1__0_1"));
     assertThatEventually("App1TaskMetadata",
         () -> app1TaskMetadata.get().stream().map(StreamsTaskMetadata::getTaskId).collect(Collectors.toList()),
-        containsInAnyOrder("0_0", "0_1"));
+        containsInAnyOrder("CSAS_S_1__0_0", "CSAS_S_1__0_1"));
   }
 
   private static QueryExtendedResults getShowQueriesExtendedResult(final TestKsqlRestApp restApp) {

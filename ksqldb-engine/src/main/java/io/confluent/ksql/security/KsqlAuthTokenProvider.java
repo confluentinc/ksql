@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.security;
 
-import java.security.Principal;
-
 /**
  * Interface to extract auth token information to ksqlDB
  */

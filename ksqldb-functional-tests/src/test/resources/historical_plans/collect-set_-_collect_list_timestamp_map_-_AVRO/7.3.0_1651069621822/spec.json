@@ -205,12 +205,15 @@
                     "name" : "value",
                     "type" : [ "null", {
                       "type" : "long",
+                      "connect.version" : 1,
+                      "connect.name" : "org.apache.kafka.connect.data.Timestamp",
                       "logicalType" : "timestamp-millis"
                     } ],
                     "default" : null
                   } ],
                   "connect.internal.type" : "MapEntry"
-                }
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
               } ],
               "default" : null
             }, {
@@ -219,11 +222,14 @@
                 "type" : "array",
                 "items" : [ "null", {
                   "type" : "long",
+                  "connect.version" : 1,
+                  "connect.name" : "org.apache.kafka.connect.data.Timestamp",
                   "logicalType" : "timestamp-millis"
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",
@@ -290,11 +296,14 @@
                 "type" : "array",
                 "items" : [ "null", {
                   "type" : "long",
+                  "connect.version" : 1,
+                  "connect.name" : "org.apache.kafka.connect.data.Timestamp",
                   "logicalType" : "timestamp-millis"
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

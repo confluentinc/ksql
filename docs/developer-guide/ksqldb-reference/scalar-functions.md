@@ -1152,7 +1152,24 @@ JSON_RECORDS('123') => NULL
 JSON_RECORDS(NULL) => NULL
 JSON_RECORDS('abc') => NULL
 ```
+### `JSON_ITEMS`
 
+```sql title="Since: 0.28.0"
+JSON_ITEMS(json_string) => Array<String>
+```
+
+Given a string with JSON array, converts it to a ksqlDB array of JSON strings. 
+
+Returns `NULL` if the string can't be interpreted as a JSON array, for example, 
+when the string is `NULL` or it does not contain valid JSON, or the JSON value is not an array.
+
+```sql title="Examples"
+JSON_ITEMS('[{\"type\": \"A\", \"ts\": \"2022-01-27\"}, {\"type\": \"B\", \"ts\": \"2022-05-18\"}]') => ["{\"type\": \"A\", \"ts\": \"2022-01-27\"}", "{\"type\": \"B\", \"ts\": \"2022-05-18\"}"]
+JSON_ITEMS('[]') => []
+JSON_ITEMS('[1, 2, 3]') => ["1","2","3"]
+JSON_ITEMS(NULL) => NULL
+JSON_ITEMS('abc') => NULL
+```
 ### `TO_JSON_STRING`
 
 ```sql title="Since: 0.24.0"

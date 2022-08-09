@@ -467,7 +467,7 @@ final class QueryBuilder {
             persistentQueryType,
             statementText,
             querySchema,
-            sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+            sources,
             planSummary,
             applicationId,
             topology,

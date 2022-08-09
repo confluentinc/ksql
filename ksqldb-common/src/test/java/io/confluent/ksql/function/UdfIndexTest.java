@@ -461,6 +461,57 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldFindVarargsManyEven() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, 2, INT, INT, STRING_VARARGS, STRING, INT)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex
+            .getFunction(ImmutableList.of(
+                    SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.INTEGER)
+            ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindVarargsManyOdd() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, 2, INT, INT, STRING_VARARGS, STRING, INT)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex
+            .getFunction(ImmutableList.of(
+                    SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+                    SqlArgument.of(SqlTypes.INTEGER)
+            ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
   public void shouldFindVarargWithStruct() {
     // Given:
     givenFunctions(
@@ -490,7 +541,7 @@ public class UdfIndexTest {
   }
 
   @Test
-  public void shouldChooseSpecificOverVarArgs() {
+  public void shouldChooseSpecificOverOnlyVarArgs() {
     // Given:
     givenFunctions(
         function(EXPECTED, -1, STRING),
@@ -499,6 +550,44 @@ public class UdfIndexTest {
 
     // When:
     final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.STRING)));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseSpecificOverVarArgsAtEnd() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, -1, INT, INT, STRING),
+            function(OTHER, 2, INT, INT, STRING_VARARGS)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseSpecificOverVarArgsInMiddle() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, -1, INT, INT, STRING, STRING, STRING, STRING, INT),
+            function(OTHER, 2, INT, INT, STRING_VARARGS, STRING, STRING, STRING, INT)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.INTEGER)
+    ));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));

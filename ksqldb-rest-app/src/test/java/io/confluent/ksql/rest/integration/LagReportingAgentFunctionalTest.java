@@ -135,7 +135,7 @@ public class LagReportingAgentFunctionalTest {
     );
   }
 
-  @Test
+  @Test(timeout = 60000)
   public void shouldExchangeLags() {
     // Given:
     waitForClusterCondition(LagReportingAgentFunctionalTest::allServersDiscovered);

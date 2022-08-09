@@ -74,8 +74,6 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends Resp
                       RowUtil.colNamesFromSchema(schema),
                       RowUtil.colTypesFromSchema(schema),
                       null);
-      // queryResponseMetadata = ApiJsonMapper.INSTANCE.get()
-      //    .readValue(buff.getBytes(), QueryResponseMetadata.class);
     } catch (Exception e) {
       cf.completeExceptionally(e);
       return;

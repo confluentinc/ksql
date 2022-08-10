@@ -22,6 +22,7 @@ import io.vertx.core.http.HttpConnection;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.authorization.Authorization;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.Objects;
@@ -69,6 +70,19 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
           : new DefaultKsqlPrincipal(principal);
     }
 
+    @Override
+    public JsonObject attributes() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public User isAuthorized(
+        final Authorization authority,
+        final Handler<AsyncResult<Boolean>> resultHandler
+    ) {
+      throw new UnsupportedOperationException();
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public User isAuthorized(final String s, final Handler<AsyncResult<Boolean>> handler) {
@@ -89,6 +103,11 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
     @SuppressWarnings("deprecation")
     @Override
     public void setAuthProvider(final AuthProvider authProvider) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public User merge(final User other) {
       throw new UnsupportedOperationException();
     }
 

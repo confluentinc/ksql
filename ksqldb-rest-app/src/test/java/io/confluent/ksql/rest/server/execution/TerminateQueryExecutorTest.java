@@ -131,7 +131,7 @@ public class TerminateQueryExecutorTest {
     ).getEntity();
 
     // Then:
-    assertThat(ksqlEntity, is(Optional.of(new TerminateQueryEntity(terminateTransient.getStatementText(), transientQueryId.toString(), true))));
+    assertThat(ksqlEntity, is(Optional.of(new TerminateQueryEntity(terminateTransient.getMaskedStatement(), transientQueryId.toString(), true))));
   }
 
   @Test

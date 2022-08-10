@@ -29,6 +29,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +45,7 @@ abstract class StructuredDataSource<K> implements DataSource {
   private final LogicalSchema schema;
   private final Optional<TimestampColumn> timestampColumn;
   private final KsqlTopic ksqlTopic;
-  private final String sqlExpression;
+  private final MaskedStatement sqlExpression;
   private final boolean casTarget;
   private final boolean isSource;
 
@@ -58,7 +59,7 @@ abstract class StructuredDataSource<K> implements DataSource {
       new Property<>("schema", DataSource::getSchema);
 
   StructuredDataSource(
-      final String sqlExpression,
+      final MaskedStatement sqlExpression,
       final SourceName dataSourceName,
       final LogicalSchema schema,
       final Optional<TimestampColumn> tsExtractionPolicy,
@@ -120,7 +121,7 @@ abstract class StructuredDataSource<K> implements DataSource {
   }
 
   @Override
-  public String getSqlExpression() {
+  public MaskedStatement getSqlExpression() {
     return sqlExpression;
   }
 

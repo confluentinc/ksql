@@ -40,7 +40,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
+import io.confluent.ksql.util.KsqlConstants.PersistentQueryType;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.util.Collection;
 import java.util.List;
@@ -65,7 +67,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       .getLogger(BinPackedPersistentQueryMetadataImpl.class);
 
   private final KsqlConstants.PersistentQueryType persistentQueryType;
-  private final String statementString;
+  private final MaskedStatement statement;
   private final String executionPlan;
   private final String applicationId;
   private final Optional<MaterializationInfo> materializationInfo;
@@ -95,8 +97,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   public BinPackedPersistentQueryMetadataImpl(
-      final KsqlConstants.PersistentQueryType persistentQueryType,
-      final String statementString,
+      final PersistentQueryType persistentQueryType,
+      final MaskedStatement statement,
       final PhysicalSchema schema,
       final Set<DataSource> sources,
       final String executionPlan,
@@ -118,7 +120,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final ProcessingLoggerFactory loggerFactory) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
-    this.statementString = Objects.requireNonNull(statementString, "statementString");
+    this.statement = Objects.requireNonNull(statement, "statement");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.applicationId = Objects.requireNonNull(applicationId, "applicationId");
     this.topology = Objects.requireNonNull(topology, "namedTopology");
@@ -151,7 +153,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
           final QueryMetadata.Listener listener
   ) {
     this.persistentQueryType = original.getPersistentQueryType();
-    this.statementString = original.statementString;
+    this.statement = original.statement;
     this.executionPlan = original.executionPlan;
     this.applicationId = original.applicationId;
     this.topology = original.topology;
@@ -280,7 +282,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public String getStatementString() {
-    return statementString;
+    return this.statement.toString();
   }
 
   @Override

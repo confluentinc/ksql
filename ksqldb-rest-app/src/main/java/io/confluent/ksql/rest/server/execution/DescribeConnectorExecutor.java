@@ -159,7 +159,7 @@ public final class DescribeConnectorExecutor {
     }
 
     final ConnectorDescription description = new ConnectorDescription(
-        configuredStatement.getStatementText(),
+        configuredStatement.getMaskedStatement().toString(),
         info.config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG),
         status,
         sources,

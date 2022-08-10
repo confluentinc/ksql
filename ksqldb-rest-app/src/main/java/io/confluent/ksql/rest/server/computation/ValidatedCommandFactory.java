@@ -116,8 +116,8 @@ public final class ValidatedCommandFactory {
       final ServiceContext serviceContext,
       final KsqlExecutionContext context
   ) {
-    if (statement.getUnMaskedStatementText().equals(
-        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+    if (statement.getUnMaskedStatement().equals(
+        TerminateCluster.TERMINATE_CLUSTER_STATEMENT)) {
       return Command.of(statement);
     }
 
@@ -206,12 +206,12 @@ public final class ValidatedCommandFactory {
     final PersistentQueryMetadata queryMetadata = context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()));
+            statement.getMaskedStatement()));
 
     if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
       throw new KsqlStatementException(
           String.format("Cannot pause query '%s' because it is linked to a source table.",
-              queryId.get()), statement.getStatementText());
+              queryId.get()), statement.getMaskedStatement());
     }
 
     queryMetadata.pause();
@@ -236,12 +236,12 @@ public final class ValidatedCommandFactory {
     final PersistentQueryMetadata queryMetadata = context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()));
+            statement.getMaskedStatement()));
 
     if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
       throw new KsqlStatementException(
           String.format("Cannot resume query '%s' because it is linked to a source table.",
-              queryId.get()), statement.getStatementText());
+              queryId.get()), statement.getMaskedStatement());
     }
 
     queryMetadata.resume();
@@ -266,12 +266,12 @@ public final class ValidatedCommandFactory {
     final PersistentQueryMetadata queryMetadata = context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()));
+            statement.getMaskedStatement()));
 
     if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
       throw new KsqlStatementException(
           String.format("Cannot terminate query '%s' because it is linked to a source table.",
-              queryId.get()), statement.getStatementText());
+              queryId.get()), statement.getMaskedStatement());
     }
 
     queryMetadata.close();

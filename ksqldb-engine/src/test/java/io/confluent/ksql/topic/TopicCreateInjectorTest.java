@@ -53,6 +53,8 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -108,7 +110,7 @@ public class TopicCreateInjectorTest {
     );
 
     final KsqlStream<?> source = new KsqlStream<>(
-        "",
+        MaskedStatement.EMPTY_MASKED_STATEMENT,
         SourceName.of("SOURCE"),
         SCHEMA,
         Optional.empty(),
@@ -125,7 +127,7 @@ public class TopicCreateInjectorTest {
     );
 
     final KsqlStream<?> joinSource = new KsqlStream<>(
-        "",
+        MaskedStatement.EMPTY_MASKED_STATEMENT,
         SourceName.of("J_SOURCE"),
         SCHEMA,
         Optional.empty(),
@@ -326,7 +328,7 @@ public class TopicCreateInjectorTest {
     final ConfiguredStatement<?> result = injector.inject(statement, builder);
 
     // Then:
-    assertThat(result.getStatementText(),
+    assertThat(result.getMaskedStatement(),
         equalTo(
             "CREATE STREAM X WITH (KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1) AS SELECT *"
                 + "\nFROM SOURCE SOURCE\n"
@@ -466,7 +468,7 @@ public class TopicCreateInjectorTest {
 
   private ConfiguredStatement<?> givenStatement(final String sql) {
     final PreparedStatement<?> preparedStatement =
-        parser.prepare(parser.parse(sql).get(0), metaStore);
+        parser.prepare(parser.parse(UnMaskedStatement.of(sql)).get(0), metaStore);
     final ConfiguredStatement<?> configuredStatement =
         ConfiguredStatement.of(
             preparedStatement,

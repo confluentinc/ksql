@@ -76,6 +76,7 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -2358,7 +2359,7 @@ public class KsqlEngineTest {
   public void shouldCheckStreamPullQueryEnabledFlag() {
     @SuppressWarnings("unchecked") final ConfiguredStatement<Query> statementOrig =
         mock(ConfiguredStatement.class);
-    when(statementOrig.getStatementText()).thenReturn("TEXT");
+    when(statementOrig.getMaskedStatement()).thenReturn(MaskedStatement.of("TEXT"));
 
     final SessionConfig mockSessionConfig = mock(SessionConfig.class);
     final KsqlConfig mockConfig = mock(KsqlConfig.class);

@@ -39,6 +39,7 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -270,7 +271,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   @Override
   public ImmutableAnalysis analyzeQueryWithNoOutputTopic(
       final Query query,
-      final String queryText,
+      final MaskedStatement queryText,
       final Map<String, Object> configOverrides) {
     throw new UnsupportedOperationException();
   }

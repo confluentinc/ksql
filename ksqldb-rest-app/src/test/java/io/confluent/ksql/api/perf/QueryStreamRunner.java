@@ -39,6 +39,7 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.vertx.core.Context;
@@ -102,7 +103,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     private final Set<QueryStreamPublisher> publishers = new HashSet<>();
 
     @Override
-    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final UnMaskedStatement sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
         final Map<String, Object> requestProperties,

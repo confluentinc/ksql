@@ -100,7 +100,6 @@ import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.test.TestUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -861,7 +860,7 @@ public class StandaloneExecutorTest {
   private void givenQueryFileParsesTo(final PreparedStatement<?>... statements) {
     final List<ParsedStatement> parsedStmts = Arrays.stream(statements)
         .map(statement -> ParsedStatement
-            .of(statement.getStatementText(), mock(SingleStatementContext.class)))
+            .of(statement.getUnMaskedStatement(), mock(SingleStatementContext.class)))
         .collect(Collectors.toList());
 
     when(ksqlEngine.parse(any())).thenReturn(parsedStmts);

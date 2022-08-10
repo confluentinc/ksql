@@ -51,8 +51,8 @@ public final class TerminateQueryExecutor {
     );
 
     if (executionContext.getPersistentQuery(queryId).isPresent()
-        || statement.getUnMaskedStatementText().equals(
-            TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+        || statement.getUnMaskedStatement().equals(
+            TerminateCluster.TERMINATE_CLUSTER_STATEMENT)) {
       // do default behaviour for terminating persistent queries
       return StatementExecutorResponse.notHandled();
     } else {
@@ -74,7 +74,8 @@ public final class TerminateQueryExecutor {
         }
       }
       return StatementExecutorResponse.handled(Optional.of(
-          new TerminateQueryEntity(statement.getStatementText(), queryId.toString(), true)
+          new TerminateQueryEntity(statement.getMaskedStatement().toString(), queryId.toString(),
+              true)
       ));
     }
   }

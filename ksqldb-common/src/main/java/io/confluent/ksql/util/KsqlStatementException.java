@@ -15,27 +15,31 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.statement.MaskedStatement.EMPTY_MASKED_STATEMENT;
+
+import io.confluent.ksql.statement.MaskedStatement;
+
 public class KsqlStatementException extends KsqlException {
 
-  private final String sqlStatement;
+  private final MaskedStatement sqlStatement;
   private final String rawMessage;
 
-  public KsqlStatementException(final String message, final String sqlStatement) {
+  public KsqlStatementException(final String message, final MaskedStatement sqlStatement) {
     super(buildMessage(message, sqlStatement));
     this.rawMessage = message == null ? "" : message;
-    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.sqlStatement = sqlStatement == null ? EMPTY_MASKED_STATEMENT : sqlStatement;
   }
 
   public KsqlStatementException(
       final String message,
-      final String sqlStatement,
+      final MaskedStatement sqlStatement,
       final Throwable cause) {
     super(buildMessage(message, sqlStatement), cause);
     this.rawMessage = message == null ? "" : message;
-    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.sqlStatement = sqlStatement == null ? EMPTY_MASKED_STATEMENT : sqlStatement;
   }
 
-  public String getSqlStatement() {
+  public MaskedStatement getSqlStatement() {
     return sqlStatement;
   }
 
@@ -43,7 +47,7 @@ public class KsqlStatementException extends KsqlException {
     return rawMessage;
   }
 
-  private static String buildMessage(final String message, final String sqlStatement) {
+  private static String buildMessage(final String message, final MaskedStatement sqlStatement) {
     return message + System.lineSeparator() + "Statement: " + sqlStatement;
   }
 }

@@ -69,8 +69,8 @@ public final class ConfiguredStatement<T extends Statement> {
    * needs unmasked statement text, please use {@code getUnMaskedStatementText}
    * @return Masked statement text
    */
-  public String getStatementText() {
-    return statement.getStatementText();
+  public MaskedStatement getMaskedStatement() {
+    return statement.getMaskedStatement();
   }
 
   /**
@@ -78,8 +78,8 @@ public final class ConfiguredStatement<T extends Statement> {
    * and other output purposed for debugging etc, please use {@code getStatementText}
    * @return Masked statement text
    */
-  public String getUnMaskedStatementText() {
-    return statement.getUnMaskedStatementText();
+  public UnMaskedStatement getUnMaskedStatement() {
+    return statement.getUnMaskedStatement();
   }
 
   public SessionConfig getSessionConfig() {
@@ -99,10 +99,10 @@ public final class ConfiguredStatement<T extends Statement> {
   }
 
   public ConfiguredStatement<T> withStatement(
-      final String statementText,
+      final UnMaskedStatement unMaskedStatement,
       final T statement) {
     return new ConfiguredStatement<>(
-        PreparedStatement.of(statementText, statement), config);
+        PreparedStatement.of(unMaskedStatement, statement), config);
   }
 
   @Override

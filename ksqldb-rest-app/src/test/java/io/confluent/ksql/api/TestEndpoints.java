@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.AppInfo;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -73,7 +74,7 @@ public class TestEndpoints implements Endpoints {
 
   @Override
   public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(
-      final String sql,
+      final UnMaskedStatement sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
       final Map<String, Object> requestProperties,

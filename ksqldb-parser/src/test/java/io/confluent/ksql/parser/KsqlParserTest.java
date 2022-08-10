@@ -91,6 +91,8 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
 import java.util.List;
@@ -120,7 +122,7 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final PreparedStatement<?> statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
 
-    assertThat(statement.getStatementText(), is(simpleQuery));
+    assertThat(statement.getMaskedStatement().toString(), is(simpleQuery));
     assertThat(statement.getStatement(), is(instanceOf(Query.class)));
     final Query query = (Query) statement.getStatement();
     assertThat(query.getSelect().getSelectItems(), hasSize(3));
@@ -1452,60 +1454,63 @@ public class KsqlParserTest {
   @Test
   public void shouldMaskParsedStatement() {
     // Given
-    final String query = "--this is a comment. \n"
+    final UnMaskedStatement query = UnMaskedStatement.of("--this is a comment. \n"
         + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
         + "    \"connector.class\" = 'PostgresSource', \n"
         + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
         + "    \"mode\"='bulk',\n"
         + "    \"topic.prefix\"='jdbc-',\n"
         + "    \"table.whitelist\"='users',\n"
-        + "    \"key\"='username');";
+        + "    \"key\"='username');");
 
-    final String masked = "CREATE SOURCE CONNECTOR `test-connector` WITH "
-        + "(\"connector.class\"='PostgresSource', "
-        + "'connection.url'='[string]', "
-        + "\"mode\"='[string]', "
-        + "\"topic.prefix\"='[string]', "
-        + "\"table.whitelist\"='[string]', "
-        + "\"key\"='[string]');";
+    final MaskedStatement masked = MaskedStatement.of(
+        "CREATE SOURCE CONNECTOR `test-connector` WITH "
+            + "(\"connector.class\"='PostgresSource', "
+            + "'connection.url'='[string]', "
+            + "\"mode\"='[string]', "
+            + "\"topic.prefix\"='[string]', "
+            + "\"table.whitelist\"='[string]', "
+            + "\"key\"='[string]');");
 
     // when
-    final ParsedStatement parsedStatement = ParsedStatement.of(query, mock(SingleStatementContext.class));
+    final ParsedStatement parsedStatement = ParsedStatement.of(query,
+        mock(SingleStatementContext.class));
 
     // Then
-    assertThat(parsedStatement.getStatementText(), is(masked));
-    assertThat(parsedStatement.getUnMaskedStatementText(), is(query));
-    assertThat(parsedStatement.toString(), is(masked));
+    assertThat(parsedStatement.getMaskedStatement(), is(masked));
+    assertThat(parsedStatement.getUnMaskedStatement(), is(query));
+    assertThat(parsedStatement.toString(), is(masked.toString()));
   }
 
   @Test
   public void shouldMaskPreparedStatement() {
     // Given
-    final String query = "--this is a comment. \n"
+    final UnMaskedStatement query = UnMaskedStatement.of("--this is a comment. \n"
         + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
         + "    \"connector.class\" = 'PostgresSource', \n"
         + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
         + "    \"mode\"='bulk',\n"
         + "    \"topic.prefix\"='jdbc-',\n"
         + "    \"table.whitelist\"='users',\n"
-        + "    \"key\"='username');";
+        + "    \"key\"='username');");
 
-    final String masked = "CREATE SOURCE CONNECTOR `test-connector` WITH "
-        + "(\"connector.class\"='PostgresSource', "
-        + "'connection.url'='[string]', "
-        + "\"mode\"='[string]', "
-        + "\"topic.prefix\"='[string]', "
-        + "\"table.whitelist\"='[string]', "
-        + "\"key\"='[string]');";
+    final MaskedStatement masked = MaskedStatement.of(
+        "CREATE SOURCE CONNECTOR `test-connector` WITH "
+            + "(\"connector.class\"='PostgresSource', "
+            + "'connection.url'='[string]', "
+            + "\"mode\"='[string]', "
+            + "\"topic.prefix\"='[string]', "
+            + "\"table.whitelist\"='[string]', "
+            + "\"key\"='[string]');");
 
     // when
     final PreparedStatement<CreateConnector> preparedStatement =
         PreparedStatement.of(query, mock(CreateConnector.class));
 
     // Then
-    assertThat(preparedStatement.getStatementText(), is(masked));
-    assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
-    assertThat(preparedStatement.toString(), is(masked));
+    assertThat(preparedStatement.getMaskedStatement(), is(masked));
+    assertThat(preparedStatement.getUnMaskedStatement(), is(query));
+    assertThat(preparedStatement.toString(), is(masked.toString()));
   }
 
 

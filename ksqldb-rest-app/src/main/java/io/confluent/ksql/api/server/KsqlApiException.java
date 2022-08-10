@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 
@@ -25,7 +26,7 @@ import java.util.Optional;
 public class KsqlApiException extends KsqlException {
 
   private final int errorCode;
-  private final Optional<String> statement;
+  private final Optional<MaskedStatement> statement;
 
   public KsqlApiException(final String message, final int errorCode) {
     super(message);
@@ -33,7 +34,8 @@ public class KsqlApiException extends KsqlException {
     this.statement = Optional.empty();
   }
 
-  public KsqlApiException(final String message, final int errorCode, final String statement) {
+  public KsqlApiException(final String message, final int errorCode,
+      final MaskedStatement statement) {
     super(message);
     this.errorCode = errorCode;
     this.statement = Optional.of(statement);
@@ -43,7 +45,7 @@ public class KsqlApiException extends KsqlException {
     return errorCode;
   }
 
-  public Optional<String> getStatement() {
+  public Optional<MaskedStatement> getMaskedStatement() {
     return statement;
   }
 }

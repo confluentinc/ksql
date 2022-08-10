@@ -161,7 +161,7 @@ public class StreamedQueryResource {
   }
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
-    final String ksql = request.getUnmaskedKsql();
+    final String ksql = request.getUnmaskedKsql().toString();
     if (ksql.trim().isEmpty()) {
       throw new KsqlRestException(Errors.badRequest("\"ksql\" field must be populated"));
     }
@@ -169,7 +169,7 @@ public class StreamedQueryResource {
     try {
       return statementParser.parseSingleStatement(ksql);
     } catch (final IllegalArgumentException | KsqlException e) {
-      throw new KsqlRestException(Errors.badStatement(e, ksql));
+      throw new KsqlRestException(Errors.badStatement(e, request.getMaskedKsql()));
     }
   }
 

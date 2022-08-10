@@ -34,9 +34,10 @@ import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.PersistentQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
@@ -150,7 +151,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MetaStore metaStore,
-      final String statementText,
+      final MaskedStatement statementText,
       final QueryId queryId,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
@@ -195,7 +196,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MetaStore metaStore,
-      final String statementText,
+      final MaskedStatement statementText,
       final QueryId queryId,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
@@ -254,13 +255,13 @@ public class QueryRegistryImpl implements QueryRegistry {
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MetaStore metaStore,
-      final String statementText,
+      final MaskedStatement statement,
       final QueryId queryId,
       final Optional<DataSource> sinkDataSource,
       final Set<DataSource> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
-      final KsqlConstants.PersistentQueryType persistentQueryType,
+      final PersistentQueryType persistentQueryType,
       final Optional<String> sharedRuntimeId) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryBuilder queryBuilder = queryBuilderFactory.create(
@@ -291,7 +292,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       query = queryBuilder.buildPersistentQueryInSharedRuntime(
           ksqlConfig,
           persistentQueryType,
-          statementText,
+          statement,
           queryId,
           sinkDataSource,
           sources,
@@ -307,7 +308,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,
           persistentQueryType,
-          statementText,
+          statement,
           queryId,
           sinkDataSource,
           sources,

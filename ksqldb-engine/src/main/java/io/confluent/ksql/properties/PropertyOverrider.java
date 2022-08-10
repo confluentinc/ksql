@@ -21,6 +21,7 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ public final class PropertyOverrider {
       final Map<String, Object> mutableProperties
   ) {
     final SetProperty setProperty = statement.getStatement();
-    throwIfInvalidProperty(setProperty.getPropertyName(), statement.getStatementText());
+    throwIfInvalidProperty(setProperty.getPropertyName(), statement.getMaskedStatement());
     throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
@@ -44,7 +45,7 @@ public final class PropertyOverrider {
       final Map<String, Object> mutableProperties
   ) {
     final UnsetProperty unsetProperty = statement.getStatement();
-    throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getStatementText());
+    throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getMaskedStatement());
     mutableProperties.remove(unsetProperty.getPropertyName());
   }
 
@@ -62,14 +63,14 @@ public final class PropertyOverrider {
           ));
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          e.getMessage(), statement.getStatementText(), e.getCause());
+          e.getMessage(), statement.getMaskedStatement(), e.getCause());
     }
   }
 
-  private static void throwIfInvalidProperty(final String propertyName, final String text) {
+  private static void throwIfInvalidProperty(final String propertyName, final MaskedStatement st) {
     new KsqlConfigResolver()
         .resolve(propertyName, true)
-        .orElseThrow(() -> new KsqlStatementException("Unknown property: " + propertyName, text));
+        .orElseThrow(() -> new KsqlStatementException("Unknown property: " + propertyName, st));
   }
 
 }

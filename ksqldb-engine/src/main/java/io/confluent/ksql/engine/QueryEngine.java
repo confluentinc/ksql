@@ -30,6 +30,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -60,7 +61,7 @@ class QueryEngine {
       final Optional<Sink> sink,
       final MetaStore metaStore,
       final KsqlConfig config,
-      final String statementTextMasked
+      final MaskedStatement maskedStatement
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
     final Boolean pullLimitClauseEnabled = config.getBoolean(
@@ -76,7 +77,7 @@ class QueryEngine {
     try {
       analysis = queryAnalyzer.analyze(query, sink);
     } catch (final KsqlException e) {
-      throw new KsqlStatementException(e.getMessage(), statementTextMasked, e);
+      throw new KsqlStatementException(e.getMessage(), maskedStatement, e);
     }
 
     return new LogicalPlanner(config, analysis, metaStore).buildPersistentLogicalPlan();

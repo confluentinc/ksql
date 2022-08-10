@@ -65,6 +65,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -871,7 +872,7 @@ public class AstBuilderTest {
   }
 
   private static SingleStatementContext givenQuery(final String sql) {
-    final List<ParsedStatement> statements = KsqlParserTestUtil.parse(sql);
+    final List<ParsedStatement> statements = KsqlParserTestUtil.parse(UnMaskedStatement.of(sql));
     assertThat(statements, hasSize(1));
     return statements.get(0).getStatement();
   }

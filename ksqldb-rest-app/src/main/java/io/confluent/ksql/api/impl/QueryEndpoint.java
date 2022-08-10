@@ -37,6 +37,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -79,7 +81,7 @@ public class QueryEndpoint {
   }
 
   public QueryPublisher createQueryPublisher(
-      final String sql,
+      final UnMaskedStatement sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
       final Map<String, Object> requestProperties,
@@ -110,7 +112,7 @@ public class QueryEndpoint {
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
       publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics,
-          statement.getPreparedStatement().getStatementText()), true, false);
+          statement.getPreparedStatement().getMaskedStatement()), true, false);
 
       // Start from the worker thread so that errors can bubble up, and we can get a proper response
       // code rather than waiting until later after the header has been written and all we can do
@@ -130,19 +132,19 @@ public class QueryEndpoint {
     } else {
       throw new KsqlStatementException(
           "Unexpected metadata for query",
-          statement.getStatementText()
+          statement.getMaskedStatement()
       );
     }
   }
 
-  private ConfiguredStatement<Query> createStatement(final String queryString,
+  private ConfiguredStatement<Query> createStatement(final UnMaskedStatement queryString,
       final Map<String, Object> properties, final Map<String, Object> sessionVariables) {
-    final List<ParsedStatement> statements = ksqlEngine.parse(queryString);
+    final List<ParsedStatement> statements = ksqlEngine.parse(queryString.toString());
     if ((statements.size() != 1)) {
       throw new KsqlStatementException(
           String
               .format("Expected exactly one KSQL statement; found %d instead", statements.size()),
-          queryString);
+          MaskedStatement.EMPTY_MASKED_STATEMENT);
     }
     final PreparedStatement<?> ps = ksqlEngine.prepare(
         statements.get(0),
@@ -152,7 +154,7 @@ public class QueryEndpoint {
     );
     final Statement statement = ps.getStatement();
     if (!(statement instanceof Query)) {
-      throw new KsqlStatementException("Not a query", queryString);
+      throw new KsqlStatementException("Not a query", MaskedStatement.of(queryString.toString()));
     }
     @SuppressWarnings("unchecked") final PreparedStatement<Query> psq =
         (PreparedStatement<Query>) ps;
@@ -239,16 +241,16 @@ public class QueryEndpoint {
 
     private final PullQueryResult result;
     private final Optional<PullQueryExecutorMetrics>  pullQueryMetrics;
-    private final String maskedStatementText;
+    private final MaskedStatement maskedStatement;
     private final CompletableFuture<Void> future = new CompletableFuture<>();
 
     KsqlPullQueryHandle(final PullQueryResult result,
         final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-        final String maskedStatementText
+        final MaskedStatement maskedStatement
     ) {
       this.result = Objects.requireNonNull(result);
       this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
-      this.maskedStatementText = maskedStatementText;
+      this.maskedStatement = maskedStatement;
     }
 
     @Override
@@ -278,7 +280,7 @@ public class QueryEndpoint {
         // Let this error bubble up since start is called from the worker thread and will fail the
         // query.
         throw new KsqlStatementException("Error starting pull query: " + e.getMessage(),
-            maskedStatementText, e);
+            maskedStatement, e);
       }
     }
 

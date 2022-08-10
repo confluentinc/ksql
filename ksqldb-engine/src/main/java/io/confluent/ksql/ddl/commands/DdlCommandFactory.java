@@ -20,11 +20,12 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.statement.MaskedStatement;
 import java.util.Optional;
 
 public interface DdlCommandFactory {
   DdlCommand create(
-      String sqlExpression,
+      MaskedStatement sqlExpression,
       DdlStatement ddlStatement,
       SessionConfig config
   );

@@ -31,6 +31,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.statement.MaskedStatement;
 import java.util.Optional;
 
 public final class MetaStoreFixture {
@@ -71,7 +72,7 @@ public final class MetaStoreFixture {
     );
 
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("TEST0"),
         test1Schema,
         Optional.empty(),
@@ -89,7 +90,7 @@ public final class MetaStoreFixture {
     );
 
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("TEST1"),
         test1Schema,
         Optional.empty(),
@@ -114,7 +115,7 @@ public final class MetaStoreFixture {
         valueFormat
     );
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("TEST2"),
         test2Schema,
         Optional.empty(),
@@ -166,7 +167,7 @@ public final class MetaStoreFixture {
     );
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("ORDERS"),
         ordersSchema,
         Optional.empty(),
@@ -191,7 +192,7 @@ public final class MetaStoreFixture {
         valueFormat
     );
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("TEST3"),
         testTable3,
         Optional.empty(),
@@ -228,7 +229,7 @@ public final class MetaStoreFixture {
     );
 
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("NESTED_STREAM"),
         nestedArrayStructMapSchema,
         Optional.empty(),
@@ -246,7 +247,7 @@ public final class MetaStoreFixture {
     );
 
     final KsqlStream<?> ksqlStream4 = new KsqlStream<>(
-        "sqlexpression4",
+        MaskedStatement.of("sqlexpression4"),
         SourceName.of("TEST4"),
         test1Schema,
         Optional.empty(),
@@ -271,7 +272,7 @@ public final class MetaStoreFixture {
     );
 
     final KsqlStream<?> ksqlStreamSensorReadings = new KsqlStream<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("SENSOR_READINGS"),
         sensorReadingsSchema,
         Optional.empty(),
@@ -298,7 +299,7 @@ public final class MetaStoreFixture {
         valueFormat
     );
     final KsqlTable<String> ksqlTable5 = new KsqlTable<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("TEST5"),
         testTable5,
         Optional.empty(),

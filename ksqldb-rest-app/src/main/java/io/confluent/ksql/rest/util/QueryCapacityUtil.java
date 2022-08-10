@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
@@ -65,7 +66,7 @@ public final class QueryCapacityUtil {
   public static void throwTooManyActivePushQueriesException(
           final KsqlExecutionContext executionContext,
           final KsqlRestConfig ksqlRestConfig,
-          final String statementStr
+          final MaskedStatement statementStr
   ) {
     throw new KsqlException(
             String.format(

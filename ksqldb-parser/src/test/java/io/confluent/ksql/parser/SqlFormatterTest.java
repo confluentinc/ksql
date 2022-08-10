@@ -72,6 +72,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
@@ -91,6 +92,7 @@ public class SqlFormatterTest {
 
   private static final SourceName TEST = SourceName.of("TEST");
   private static final SourceName SOMETHING = SourceName.of("SOMETHING");
+  private static final MaskedStatement SQL = MaskedStatement.of("sqlexpression");
 
   private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
       new ColumnConstraints.Builder().primaryKey().build();
@@ -209,7 +211,7 @@ public class SqlFormatterTest {
     );
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
-        "sqlexpression",
+        SQL,
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         Optional.empty(),
@@ -226,7 +228,7 @@ public class SqlFormatterTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
-        "sqlexpression",
+        SQL,
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
         Optional.empty(),
@@ -238,7 +240,7 @@ public class SqlFormatterTest {
     metaStore.putSource(ksqlTableOrders, false);
 
     final KsqlTable<String> ksqlTableTable = new KsqlTable<>(
-        "sqlexpression",
+        SQL,
         SourceName.of("TABLE"),
         TABLE_SCHEMA,
         Optional.empty(),

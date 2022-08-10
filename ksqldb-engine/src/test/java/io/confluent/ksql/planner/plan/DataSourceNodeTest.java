@@ -58,6 +58,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
@@ -113,7 +114,7 @@ public class DataSourceNodeTest {
       new TimestampColumn(TIMESTAMP_FIELD, Optional.empty());
 
   private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
-      "sqlExpression",
+      MaskedStatement.of("sqlExpression"),
       SOURCE_NAME,
       REAL_SCHEMA,
       Optional.of(
@@ -236,7 +237,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildSchemaKTableWhenKTableSource() {
     // Given:
-    final KsqlTable<String> table = new KsqlTable<>("sqlExpression",
+    final KsqlTable<String> table = new KsqlTable<>(MaskedStatement.of("sqlExpression"),
         SourceName.of("datasource"),
         REAL_SCHEMA,
         Optional.of(TIMESTAMP_COLUMN),

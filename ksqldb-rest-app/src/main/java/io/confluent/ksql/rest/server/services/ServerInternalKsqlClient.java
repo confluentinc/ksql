@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.streams.WriteStream;
 import java.net.URI;
@@ -63,7 +64,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> requestProperties) {
     final KsqlRequest request = new KsqlRequest(
-        sql, Collections.emptyMap(), requestProperties, null);
+        UnMaskedStatement.of(sql), Collections.emptyMap(), requestProperties, null);
 
     final EndpointResponse response = ksqlResource.handleKsqlStatements(securityContext, request);
 
@@ -89,7 +90,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   @Override
   public RestResponse<Integer> makeQueryRequest(
       final URI serverEndpoint,
-      final String sql,
+      final UnMaskedStatement sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
       final WriteStream<List<StreamedRow>> rowConsumer,
@@ -102,7 +103,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   @Override
   public CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
       final URI serverEndPoint,
-      final String sql,
+      final UnMaskedStatement sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {

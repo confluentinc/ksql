@@ -44,6 +44,7 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -476,7 +477,7 @@ public class AstSanitizerTest {
   }
 
   private static Statement givenQuery(final String sql) {
-    final List<ParsedStatement> statements = new DefaultKsqlParser().parse(sql);
+    final List<ParsedStatement> statements = new DefaultKsqlParser().parse(UnMaskedStatement.of(sql));
     assertThat(statements, hasSize(1));
     return new AstBuilder(META_STORE).buildStatement(statements.get(0).getStatement());
   }

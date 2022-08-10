@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.io.IOException;
@@ -43,6 +44,7 @@ import org.junit.Test;
 public class KsqlRequestTest {
 
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
+  private static final UnMaskedStatement SQL = UnMaskedStatement.of("sql");
   private static final String A_JSON_REQUEST = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
@@ -92,11 +94,11 @@ public class KsqlRequestTest {
   private static final long SOME_COMMAND_NUMBER = 2L;
 
   private static final KsqlRequest A_REQUEST = new KsqlRequest(
-      "sql", SOME_PROPS, SOME_REQUEST_PROPS, null);
+      SQL, SOME_PROPS, SOME_REQUEST_PROPS, null);
   private static final KsqlRequest A_REQUEST_WITH_COMMAND_NUMBER =
-      new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER);
+      new KsqlRequest(SQL, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER);
   private static final KsqlRequest A_REQUEST_WITH_IS_INTERNAL_REQUEST =
-      new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null);
+      new KsqlRequest(SQL, SOME_PROPS, Collections.emptyMap(), null);
 
   @Test
   public void shouldHandleNullStatement() {
@@ -108,21 +110,21 @@ public class KsqlRequestTest {
   @Test
   public void shouldHandleNullProps() {
     assertThat(
-        new KsqlRequest("sql", null, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER).getConfigOverrides(),
+        new KsqlRequest(SQL, null, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER).getConfigOverrides(),
         is(Collections.emptyMap()));
   }
 
   @Test
   public void shouldHandleNullSessionVariables() {
     assertThat(
-        new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null, SOME_COMMAND_NUMBER).getSessionVariables(),
+        new KsqlRequest(SQL, SOME_PROPS, Collections.emptyMap(), null, SOME_COMMAND_NUMBER).getSessionVariables(),
         is(Collections.emptyMap()));
   }
 
   @Test
   public void shouldHandleNullCommandNumber() {
     assertThat(
-        new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null).getCommandSequenceNumber(),
+        new KsqlRequest(SQL, SOME_PROPS, Collections.emptyMap(), null).getCommandSequenceNumber(),
         is(Optional.empty()));
   }
 
@@ -174,16 +176,16 @@ public class KsqlRequestTest {
   @Test
   public void shouldImplementHashCodeAndEqualsCorrectly() {
     new EqualsTester()
-        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER),
-            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER),
-            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, ImmutableMap.of(), SOME_COMMAND_NUMBER),
-            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null, SOME_COMMAND_NUMBER))
+        .addEqualityGroup(new KsqlRequest(SQL, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER),
+            new KsqlRequest(SQL, SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER),
+            new KsqlRequest(SQL, SOME_PROPS, SOME_REQUEST_PROPS, ImmutableMap.of(), SOME_COMMAND_NUMBER),
+            new KsqlRequest(SQL, SOME_PROPS, SOME_REQUEST_PROPS, null, SOME_COMMAND_NUMBER))
         .addEqualityGroup(
-            new KsqlRequest("different-sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
+            new KsqlRequest(UnMaskedStatement.of("different-sql"), SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
         .addEqualityGroup(
-            new KsqlRequest("sql", ImmutableMap.of(), SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
-        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null))
-        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, ImmutableMap.of("", ""), null))
+            new KsqlRequest(SQL, ImmutableMap.of(), SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
+        .addEqualityGroup(new KsqlRequest(SQL, SOME_PROPS, SOME_REQUEST_PROPS, null))
+        .addEqualityGroup(new KsqlRequest(SQL, SOME_PROPS, SOME_REQUEST_PROPS, ImmutableMap.of("", ""), null))
         .testEquals();
   }
 
@@ -207,7 +209,7 @@ public class KsqlRequestTest {
   public void shouldThrowOnInvalidPropertyValue() {
     // Given:
     final KsqlRequest request = new KsqlRequest(
-        "sql",
+        SQL,
         ImmutableMap.of(
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "not-parsable"
         ),
@@ -232,7 +234,7 @@ public class KsqlRequestTest {
   public void shouldHandleNullPropertyValue() {
     // Given:
     final KsqlRequest request = new KsqlRequest(
-        "sql",
+        SQL,
         Collections.singletonMap(
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
         ),
@@ -252,7 +254,7 @@ public class KsqlRequestTest {
   public void shouldHandleOverridesOfTypeList() {
     // Given:
     final KsqlRequest request = new KsqlRequest(
-        "sql",
+        SQL,
         ImmutableMap.of(
             ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, ImmutableList.of("some.type")
         ),

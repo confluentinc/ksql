@@ -439,7 +439,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(INFERRED_KSQL_KEY_SCHEMA_STREAM, INFERRED_KSQL_VALUE_SCHEMA)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `cs` ("
             + "`key` STRING KEY, "
             + "`intField` INTEGER, "
@@ -466,7 +466,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(INFERRED_KSQL_KEY_SCHEMA_TABLE, INFERRED_KSQL_VALUE_SCHEMA)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE TABLE `ct` ("
             + "`key` STRING PRIMARY KEY, "
             + "`intField` INTEGER, "
@@ -494,7 +494,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(SOME_KEY_ELEMENTS_STREAM, INFERRED_KSQL_VALUE_SCHEMA)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `cs` ("
             + "`bob` STRING KEY, "
             + "`intField` INTEGER, "
@@ -522,7 +522,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(SOME_KEY_ELEMENTS_TABLE, INFERRED_KSQL_VALUE_SCHEMA)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE TABLE `ct` ("
             + "`bob` STRING PRIMARY KEY, "
             + "`intField` INTEGER, "
@@ -550,7 +550,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(INFERRED_KSQL_KEY_SCHEMA_STREAM, SOME_VALUE_ELEMENTS)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `cs` ("
             + "`key` STRING KEY, "
             + "`bob` STRING) "
@@ -570,7 +570,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(INFERRED_KSQL_KEY_SCHEMA_TABLE, SOME_VALUE_ELEMENTS)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE TABLE `ct` ("
             + "`key` STRING PRIMARY KEY, "
             + "`bob` STRING) "
@@ -590,7 +590,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(HEADER_ELEMENTS, INFERRED_KSQL_KEY_SCHEMA_STREAM, INFERRED_KSQL_VALUE_SCHEMA)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `cs` ("
             + "`head` BYTES HEADER('header'), "
             + "`key` STRING KEY, "
@@ -619,7 +619,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(HEADER_ELEMENTS, INFERRED_KSQL_KEY_SCHEMA_TABLE, INFERRED_KSQL_VALUE_SCHEMA)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE TABLE `ct` ("
             + "`head` BYTES HEADER('header'), "
             + "`key` STRING PRIMARY KEY, "
@@ -648,7 +648,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(HEADER_ELEMENTS, INFERRED_KSQL_KEY_SCHEMA_STREAM, SOME_VALUE_ELEMENTS)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `cs` ("
             + "`head` BYTES HEADER('header'), "
             + "`key` STRING KEY, "
@@ -669,7 +669,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getElements(),
         is(combineElements(HEADER_ELEMENTS, INFERRED_KSQL_KEY_SCHEMA_TABLE, SOME_VALUE_ELEMENTS)));
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE TABLE `ct` ("
             + "`head` BYTES HEADER('header'), "
             + "`key` STRING PRIMARY KEY, "
@@ -690,7 +690,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStreamAsSelect> result = injector.inject(csasStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `csas` "
             + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', KEY_SCHEMA_FULL_NAME='myrecord', "
             + "KEY_SCHEMA_ID=42, VALUE_FORMAT='delimited') AS SELECT *\nFROM TABLE `sink`"
@@ -709,7 +709,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateTableAsSelect> result = injector.inject(ctasStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE TABLE `ctas` "
             + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', KEY_SCHEMA_FULL_NAME='myrecord', "
             + "KEY_SCHEMA_ID=42, VALUE_FORMAT='delimited') AS SELECT *\nFROM TABLE `sink`"
@@ -728,7 +728,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStreamAsSelect> result = injector.inject(csasStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `csas` "
             + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', VALUE_FORMAT='protobuf', "
             + "VALUE_SCHEMA_FULL_NAME='myrecord', VALUE_SCHEMA_ID=42) AS SELECT *\nFROM TABLE `sink`"
@@ -1007,8 +1007,8 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
-    assertThat(result.getStatementText(), not(containsString("KEY_SCHEMA_ID=18")));
-    assertThat(result.getStatementText(), not(containsString("VALUE_SCHEMA_ID=5")));
+    assertThat(result.getMaskedStatement().toString(), not(containsString("KEY_SCHEMA_ID=18")));
+    assertThat(result.getMaskedStatement().toString(), not(containsString("VALUE_SCHEMA_ID=5")));
 
     verify(schemaSupplier).getKeySchema(Optional.of(KAFKA_TOPIC), Optional.empty(), FormatInfo.of("PROTOBUF"), SerdeFeatures.of());
     verify(schemaSupplier).getValueSchema(Optional.of(KAFKA_TOPIC), Optional.empty(), FormatInfo.of("AVRO"), SerdeFeatures.of());
@@ -1023,7 +1023,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `cs` ("
         + "`intField` INTEGER, "
         + "`bigIntField` BIGINT, "
@@ -1053,7 +1053,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatementText(), is(
+    assertThat(result.getMaskedStatement(), is(
         "CREATE STREAM `cs` ("
             + "`key` STRING KEY) WITH ("
             + "KAFKA_TOPIC='some-topic', "
@@ -1096,7 +1096,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateTable> inject = injector.inject(ctStatement);
 
     // Then:
-    assertThat(inject.getStatementText(), containsString("`CREATE`"));
+    assertThat(inject.getMaskedStatement().toString(), containsString("`CREATE`"));
   }
 
   @Test

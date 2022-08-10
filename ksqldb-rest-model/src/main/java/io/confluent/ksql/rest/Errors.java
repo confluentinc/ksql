@@ -30,6 +30,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import java.util.Objects;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -127,37 +128,37 @@ public final class Errors {
         .build();
   }
 
-  public static EndpointResponse badStatement(final String msg, final String statementText) {
-    return badStatement(msg, statementText, new KsqlEntityList());
+  public static EndpointResponse badStatement(final String msg, final MaskedStatement statement) {
+    return badStatement(msg, statement, new KsqlEntityList());
   }
 
   public static EndpointResponse badStatement(
       final String msg,
-      final String statementText,
+      final MaskedStatement statement,
       final KsqlEntityList entities) {
     return EndpointResponse.create()
         .status(BAD_REQUEST.code())
         .entity(new KsqlStatementErrorMessage(
-            ERROR_CODE_BAD_STATEMENT, msg, statementText, entities))
+            ERROR_CODE_BAD_STATEMENT, msg, statement, entities))
         .build();
   }
 
-  public static EndpointResponse badStatement(final Throwable t, final String statementText) {
-    return badStatement(t, statementText, new KsqlEntityList());
+  public static EndpointResponse badStatement(final Throwable t, final MaskedStatement statement) {
+    return badStatement(t, statement, new KsqlEntityList());
   }
 
   public static EndpointResponse badStatement(
       final Throwable t,
-      final String statementText,
+      final MaskedStatement statement,
       final KsqlEntityList entities) {
     return EndpointResponse.create()
         .status(BAD_REQUEST.code())
         .entity(new KsqlStatementErrorMessage(
-            ERROR_CODE_BAD_STATEMENT, t, statementText, entities))
+            ERROR_CODE_BAD_STATEMENT, t, statement, entities))
         .build();
   }
 
-  public static EndpointResponse queryEndpoint(final String statementText) {
+  public static EndpointResponse queryEndpoint(final MaskedStatement statement) {
     return EndpointResponse.create()
         .status(BAD_REQUEST.code())
         .entity(new KsqlStatementErrorMessage(
@@ -167,7 +168,7 @@ public final class Errors {
                 + "\t* PRINT"
                 + System.lineSeparator()
                 + "\t* SELECT",
-            statementText, new KsqlEntityList()))
+            statement, new KsqlEntityList()))
         .build();
   }
 
@@ -179,15 +180,23 @@ public final class Errors {
   }
 
   public static EndpointResponse serverErrorForStatement(final Throwable t,
-      final String statementText) {
-    return serverErrorForStatement(t, statementText, new KsqlEntityList());
+      final MaskedStatement statement) {
+    return serverErrorForStatement(t, statement, new KsqlEntityList());
   }
 
   public static EndpointResponse serverErrorForStatement(
-      final Throwable t, final String statementText, final KsqlEntityList entities) {
+      final Throwable t, final MaskedStatement statement, final KsqlEntityList entities) {
     return EndpointResponse.create()
         .status(INTERNAL_SERVER_ERROR.code())
-        .entity(new KsqlStatementErrorMessage(ERROR_CODE_SERVER_ERROR, t, statementText, entities))
+        .entity(new KsqlStatementErrorMessage(ERROR_CODE_SERVER_ERROR, t, statement, entities))
+        .build();
+  }
+
+  public static EndpointResponse serverErrorForString(
+      final Throwable t, final String text, final KsqlEntityList entities) {
+    return EndpointResponse.create()
+        .status(INTERNAL_SERVER_ERROR.code())
+        .entity(new KsqlStatementErrorMessage(ERROR_CODE_SERVER_ERROR, t, text, entities))
         .build();
   }
 

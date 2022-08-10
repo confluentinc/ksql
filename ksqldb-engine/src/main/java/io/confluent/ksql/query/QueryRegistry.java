@@ -25,8 +25,9 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.PersistentQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -70,7 +71,7 @@ public interface QueryRegistry {
       ServiceContext serviceContext,
       ProcessingLogContext processingLogContext,
       MetaStore metaStore,
-      String statementText,
+      MaskedStatement statementText,
       QueryId queryId,
       Set<SourceName> sources,
       ExecutionStep<?> physicalPlan,
@@ -91,7 +92,7 @@ public interface QueryRegistry {
       ServiceContext serviceContext,
       ProcessingLogContext processingLogContext,
       MetaStore metaStore,
-      String statementText,
+      MaskedStatement statementText,
       QueryId queryId,
       Set<SourceName> sources,
       ExecutionStep<?> physicalPlan,
@@ -115,13 +116,13 @@ public interface QueryRegistry {
       ServiceContext serviceContext,
       ProcessingLogContext processingLogContext,
       MetaStore metaStore,
-      String statementText,
+      MaskedStatement statementText,
       QueryId queryId,
       Optional<DataSource> sinkDataSource,
       Set<DataSource> sources,
       ExecutionStep<?> physicalPlan,
       String planSummary,
-      KsqlConstants.PersistentQueryType persistentQueryType,
+      PersistentQueryType persistentQueryType,
       Optional<String> sharedRuntimeId
   );
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck

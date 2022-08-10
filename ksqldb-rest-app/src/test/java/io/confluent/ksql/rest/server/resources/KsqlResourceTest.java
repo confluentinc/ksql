@@ -164,6 +164,8 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
@@ -221,7 +223,7 @@ public class KsqlResourceTest {
   private static final long BUFFER_MEMORY_DEFAULT = 32 * 1024 * 1024L;
   private static final Duration DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = Duration.ofMillis(1000);
   private static final KsqlRequest VALID_EXECUTABLE_REQUEST = new KsqlRequest(
-      "CREATE STREAM S AS SELECT * FROM test_stream;",
+      UnMaskedStatement.of("CREATE STREAM S AS SELECT * FROM test_stream;"),
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       emptyMap(),
       0L);
@@ -459,7 +461,7 @@ public class KsqlResourceTest {
         KsqlRestException.class,
         () -> ksqlResource.handleKsqlStatements(
             securityContext,
-            new KsqlRequest("query", emptyMap(), emptyMap(), null)
+            new KsqlRequest(UnMaskedStatement.of("query"), emptyMap(), emptyMap(), null)
         )
     );
 
@@ -1068,7 +1070,7 @@ public class KsqlResourceTest {
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(result.getMessage(),
         containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
-    assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
+    assertThat(((KsqlStatementErrorMessage) result).getMaskedStatement().toString(),
         is("CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');"));
   }
 
@@ -1106,7 +1108,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
-    assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
+    assertThat(((KsqlStatementErrorMessage) result).getMaskedStatement().toString(),
         is("DESCRIBE i_do_not_exist;"));
   }
 
@@ -1203,7 +1205,7 @@ public class KsqlResourceTest {
     // Given:
     givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", SOME_SCHEMA);
     when(sandboxTopicInjector.inject(any()))
-        .thenThrow(new KsqlStatementException("boom", "sql"));
+        .thenThrow(new KsqlStatementException("boom", MaskedStatement.of("sql")));
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1221,7 +1223,7 @@ public class KsqlResourceTest {
     givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", SOME_SCHEMA);
 
     when(topicInjector.inject(any()))
-        .thenThrow(new KsqlStatementException("boom", "some-sql"));
+        .thenThrow(new KsqlStatementException("boom", MaskedStatement.of("some-sql")));
 
     // When:
     final KsqlRestException e = assertThrows(
@@ -1270,7 +1272,7 @@ public class KsqlResourceTest {
     // When:
     final List<CommandStatusEntity> results = makeMultipleRequest(
         new KsqlRequest(
-            csasRaw,
+            UnMaskedStatement.of(csasRaw),
             emptyMap(),
             emptyMap(),
             ImmutableMap.of("streamName", streamName, "fromStream", "test_stream"),
@@ -1308,7 +1310,7 @@ public class KsqlResourceTest {
     verify(sandbox).plan(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getStatementText()))),
+        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getUnMaskedStatement().toString()))),
         any()
     );
   }
@@ -1317,7 +1319,7 @@ public class KsqlResourceTest {
   public void shouldFailWhenAvroInferenceFailsDuringValidate() {
     // Given:
     when(sandboxSchemaInjector.inject(any()))
-        .thenThrow(new KsqlStatementException("boom", "sql"));
+        .thenThrow(new KsqlStatementException("boom", MaskedStatement.of("sql")));
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1336,7 +1338,7 @@ public class KsqlResourceTest {
         .thenReturn((ConfiguredStatement) CFG_0_WITH_SCHEMA);
 
     when(schemaInjector.inject(any()))
-        .thenThrow(new KsqlStatementException("boom", "some-sql"));
+        .thenThrow(new KsqlStatementException("boom", MaskedStatement.of("some-sql")));
 
     // When:
     final KsqlRestException e = assertThrows(
@@ -1561,6 +1563,23 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldThrowOnInsertBadQuery() {
+    // When:
+    final String query = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
+        + "(\"key\", 0.125, 1);";
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest(query)
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
+        "INSERT INTO `FOO` (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]', '[value]');"))));
+  }
+
+  @Test
   public void shouldThrowOnTerminateTerminatedQuery() {
     // Given:
     final String queryId = createQuery(
@@ -1772,7 +1791,7 @@ public class KsqlResourceTest {
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
-        new KsqlRequest("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';\n" + csas,
+        new KsqlRequest(UnMaskedStatement.of("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';\n" + csas),
             localOverrides,
             emptyMap(),
             null),
@@ -1875,7 +1894,7 @@ public class KsqlResourceTest {
 
     // When:
     final PropertiesList props = makeSingleRequest(
-        new KsqlRequest("list properties;", overrides, emptyMap(), null),
+        new KsqlRequest(UnMaskedStatement.of("list properties;"), overrides, emptyMap(), null),
         PropertiesList.class);
 
     // Then:
@@ -2316,7 +2335,7 @@ public class KsqlResourceTest {
                 .prepare(invocation.getArgument(0), Collections.emptyMap()));
     when(sandbox.plan(any(), any())).thenAnswer(
         i -> KsqlPlan.ddlPlanCurrent(
-            ((ConfiguredStatement<?>) i.getArgument(1)).getStatementText(),
+            ((ConfiguredStatement<?>) i.getArgument(1)).getMaskedStatement(),
             new DropSourceCommand(SourceName.of("bob"))
         )
     );
@@ -2378,7 +2397,7 @@ public class KsqlResourceTest {
       final String ksql,
       final Long seqNum,
       final int errorCode) {
-    return makeFailingRequest(new KsqlRequest(ksql, emptyMap(), emptyMap(), seqNum), errorCode);
+    return makeFailingRequest(new KsqlRequest(UnMaskedStatement.of(ksql), emptyMap(), emptyMap(), seqNum), errorCode);
   }
 
   private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final int errorCode) {
@@ -2408,7 +2427,7 @@ public class KsqlResourceTest {
       final Long seqNum,
       final Class<T> expectedEntityType) {
     return makeSingleRequest(
-        new KsqlRequest(sql, emptyMap(), emptyMap(), seqNum), expectedEntityType);
+        new KsqlRequest(UnMaskedStatement.of(sql), emptyMap(), emptyMap(), seqNum), expectedEntityType);
   }
 
   private <T extends KsqlEntity> T makeSingleRequest(
@@ -2432,7 +2451,7 @@ public class KsqlResourceTest {
       final Map<String, ?> props,
       final Class<T> expectedEntityType
   ) {
-    final KsqlRequest request = new KsqlRequest(sql, props, emptyMap(), null);
+    final KsqlRequest request = new KsqlRequest(UnMaskedStatement.of(sql), props, emptyMap(), null);
     return makeMultipleRequest(request, expectedEntityType);
   }
 
@@ -2595,7 +2614,7 @@ public class KsqlResourceTest {
       ksqlResource.handleKsqlStatements(securityContext, VALID_EXECUTABLE_REQUEST);
 
       logger.verify(() -> QueryLogger.info("Query created",
-          VALID_EXECUTABLE_REQUEST.getMaskedKsql()), times(1));
+          VALID_EXECUTABLE_REQUEST.getMaskedKsql().toString()), times(1));
     }
   }
 
@@ -2610,7 +2629,7 @@ public class KsqlResourceTest {
     // When:
     try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
       ksqlResource.handleKsqlStatements(securityContext, new KsqlRequest(
-          terminateSql,
+          UnMaskedStatement.of(terminateSql),
           ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
           emptyMap(),
           0L));
@@ -2651,7 +2670,7 @@ public class KsqlResourceTest {
     final EndpointResponse response = ksqlResource.handleKsqlStatements(
         securityContext,
         new KsqlRequest(
-            "query",
+            UnMaskedStatement.of("query"),
             overrides,  // stream properties
             emptyMap(),
             null
@@ -2731,7 +2750,7 @@ public class KsqlResourceTest {
     switch (type) {
       case KSTREAM:
         source = new KsqlStream<>(
-            "statementText",
+            MaskedStatement.of("statementText"),
             SourceName.of(sourceName),
             schema,
             Optional.empty(),
@@ -2742,7 +2761,7 @@ public class KsqlResourceTest {
         break;
       case KTABLE:
         source = new KsqlTable<>(
-            "statementText",
+            MaskedStatement.of("statementText"),
             SourceName.of(sourceName),
             schema,
             Optional.empty(),
@@ -2812,7 +2831,7 @@ public class KsqlResourceTest {
     return new TypeSafeMatcher<Command>() {
       @Override
       protected boolean matchesSafely(final Command command) {
-        return command.getStatement().equals(statement);
+        return command.getMaskedStatement().equals(statement);
       }
 
       @Override

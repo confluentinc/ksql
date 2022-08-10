@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -130,7 +131,7 @@ public class KsqlTargetTest {
       });
 
       response.set(ksqlTarget.postQueryRequest(
-          QUERY, ImmutableMap.of(), Optional.empty(), writeStream, closeConnection, Function.identity()));
+          UnMaskedStatement.of(QUERY), ImmutableMap.of(), Optional.empty(), writeStream, closeConnection, Function.identity()));
     } catch (Throwable t) {
       error.set(t);
     }

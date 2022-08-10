@@ -19,6 +19,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.function.Function;
@@ -39,7 +40,7 @@ public class DefaultKsqlParser implements KsqlParser {
   public static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
 
   @Override
-  public List<ParsedStatement> parse(final String sql) {
+  public List<ParsedStatement> parse(final UnMaskedStatement sql) {
     try {
       final SqlBaseParser.StatementsContext statementsContext = getParseTree(sql);
 
@@ -49,7 +50,8 @@ public class DefaultKsqlParser implements KsqlParser {
 
     } catch (final ParsingException e) {
       // ParsingException counts lines starting from 1
-      final String failedLine =  sql.split(System.lineSeparator())[e.getLineNumber() - 1];
+      final UnMaskedStatement failedLine = UnMaskedStatement.of(
+          sql.toString().split(System.lineSeparator())[e.getLineNumber() - 1]);
       throw new ParseFailedException(e.getMessage(), failedLine, e);
     } catch (final Exception e) {
       throw new ParseFailedException(e.getMessage(), sql, e);
@@ -58,7 +60,7 @@ public class DefaultKsqlParser implements KsqlParser {
 
   public static ParsedStatement parsedStatement(final SingleStatementContext statement) {
     return ParsedStatement.of(
-        getStatementString(statement),
+        UnMaskedStatement.of(getStatementString(statement)),
         statement
     );
   }
@@ -72,23 +74,23 @@ public class DefaultKsqlParser implements KsqlParser {
       final AstBuilder astBuilder = new AstBuilder(typeRegistry);
       final Statement root = astBuilder.buildStatement(stmt.getStatement());
 
-      return PreparedStatement.of(stmt.getUnMaskedStatementText(), root);
+      return PreparedStatement.of(stmt.getUnMaskedStatement(), root);
     } catch (final ParseFailedException e) {
       if (!e.getSqlStatement().isEmpty()) {
         throw e;
       }
       throw new ParseFailedException(
-          e.getRawMessage(), stmt.getStatementText(), e.getCause());
+          e.getRawMessage(), stmt.getMaskedStatement(), e.getCause());
     } catch (final Exception e) {
       throw new ParseFailedException(
-          "Failed to prepare statement: " + e.getMessage(), stmt.getStatementText(), e);
+          "Failed to prepare statement: " + e.getMessage(), stmt.getMaskedStatement(), e);
     }
   }
 
-  public static SqlBaseParser.StatementsContext getParseTree(final String sql) {
+  public static SqlBaseParser.StatementsContext getParseTree(final UnMaskedStatement sql) {
 
     final SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(
-        new CaseInsensitiveStream(CharStreams.fromString(sql)));
+        new CaseInsensitiveStream(CharStreams.fromString(sql.toString())));
     final CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
     final SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
 

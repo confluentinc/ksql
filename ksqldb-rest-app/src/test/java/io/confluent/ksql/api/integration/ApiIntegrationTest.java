@@ -441,7 +441,7 @@ public class ApiIntegrationTest {
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
-        "Can't coerce a field of type class java.lang.String (bad type) into type STRUCT<`F1` ARRAY<STRING>>");
+        "Can't coerce a field of type class java.lang.String into type STRUCT<`F1` ARRAY<STRING>>");
   }
 
   @Test
@@ -460,7 +460,7 @@ public class ApiIntegrationTest {
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
-        "Can't coerce a field of type class java.lang.String (not a number) into type BIGINT");
+        "Can't coerce a field of type class java.lang.String into type BIGINT");
   }
 
   @Test

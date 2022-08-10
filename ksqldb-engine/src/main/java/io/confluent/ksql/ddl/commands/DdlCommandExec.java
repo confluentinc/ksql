@@ -36,6 +36,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.DuplicateColumnException;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -53,7 +54,7 @@ public class DdlCommandExec {
   }
 
   public DdlCommandResult execute(
-      final String sql,
+      final MaskedStatement sql,
       final DdlCommand ddlCommand,
       final boolean withQuery,
       final Set<SourceName> withQuerySources
@@ -65,7 +66,7 @@ public class DdlCommandExec {
    * execute on metaStore
    */
   public DdlCommandResult execute(
-      final String sql,
+      final MaskedStatement sql,
       final DdlCommand ddlCommand,
       final boolean withQuery,
       final Set<SourceName> withQuerySources,
@@ -75,13 +76,13 @@ public class DdlCommandExec {
   }
 
   private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
-    private final String sql;
+    private final MaskedStatement sql;
     private final boolean withQuery;
     private final Set<SourceName> withQuerySources;
     private final boolean restoreInProgress;
 
     private Executor(
-        final String sql,
+        final MaskedStatement sql,
         final boolean withQuery,
         final Set<SourceName> withQuerySources,
         final boolean restoreInProgress

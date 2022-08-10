@@ -25,6 +25,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 
@@ -73,7 +74,7 @@ public final class FilterTypeValidator {
       return expressionTypeManager.getExpressionSqlType(magicTimestampRewrite);
     } catch (KsqlException e) {
       throw new KsqlStatementException("Error in " + filterType.name() + " expression: "
-          + e.getMessage(), exp.toString());
+          + e.getMessage(), MaskedStatement.of(exp.toString()));
     }
   }
 

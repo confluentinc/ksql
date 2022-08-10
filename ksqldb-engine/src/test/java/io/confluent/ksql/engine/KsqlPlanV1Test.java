@@ -23,6 +23,7 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.statement.MaskedStatement;
 import java.util.Optional;
 
 import io.confluent.ksql.util.KsqlConstants;
@@ -48,12 +49,12 @@ public class KsqlPlanV1Test {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan1)),
-            new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan1)),
+            new KsqlPlanV1(MaskedStatement.of("foo"), Optional.of(ddlCommand1), Optional.of(queryPlan1)),
+            new KsqlPlanV1(MaskedStatement.of("foo"), Optional.of(ddlCommand1), Optional.of(queryPlan1)),
             // statementText is not checked as part of equals
-            new KsqlPlanV1("bar", Optional.of(ddlCommand1), Optional.of(queryPlan1)))
-        .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand2), Optional.of(queryPlan1)))
-        .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan2)))
+            new KsqlPlanV1(MaskedStatement.of("bar"), Optional.of(ddlCommand1), Optional.of(queryPlan1)))
+        .addEqualityGroup(new KsqlPlanV1(MaskedStatement.of("foo"), Optional.of(ddlCommand2), Optional.of(queryPlan1)))
+        .addEqualityGroup(new KsqlPlanV1(MaskedStatement.of("foo"), Optional.of(ddlCommand1), Optional.of(queryPlan2)))
         .testEquals();
   }
 
@@ -61,7 +62,7 @@ public class KsqlPlanV1Test {
   public void shouldReturnNoPersistentQueryTypeOnPlansWithoutQueryPlans() {
     // Given:
     final KsqlPlanV1 plan = new KsqlPlanV1(
-        "stmt",
+        MaskedStatement.of("stmt"),
         Optional.of(ddlCommand1),
         Optional.empty());
 
@@ -73,7 +74,7 @@ public class KsqlPlanV1Test {
   public void shouldReturnInsertPersistentQueryTypeOnPlansWithoutDdlCommands() {
     // Given:
     final KsqlPlanV1 plan = new KsqlPlanV1(
-        "stmt",
+        MaskedStatement.of("stmt"),
         Optional.empty(),
         Optional.of(queryPlan1));
 
@@ -88,7 +89,7 @@ public class KsqlPlanV1Test {
     final CreateTableCommand ddlCommand = Mockito.mock(CreateTableCommand.class);
     when(ddlCommand.getIsSource()).thenReturn(true);
     final KsqlPlanV1 plan = new KsqlPlanV1(
-        "stmt",
+        MaskedStatement.of("stmt"),
         Optional.of(ddlCommand),
         Optional.of(queryPlan1));
 
@@ -103,7 +104,7 @@ public class KsqlPlanV1Test {
     final CreateTableCommand ddlCommand = Mockito.mock(CreateTableCommand.class);
     when(ddlCommand.getIsSource()).thenReturn(false);
     final KsqlPlanV1 plan = new KsqlPlanV1(
-        "stmt",
+        MaskedStatement.of("stmt"),
         Optional.of(ddlCommand),
         Optional.of(queryPlan1));
 
@@ -117,7 +118,7 @@ public class KsqlPlanV1Test {
     // Given:
     final CreateStreamCommand ddlCommand = Mockito.mock(CreateStreamCommand.class);
     final KsqlPlanV1 plan = new KsqlPlanV1(
-        "stmt",
+        MaskedStatement.of("stmt"),
         Optional.of(ddlCommand),
         Optional.of(queryPlan1));
 

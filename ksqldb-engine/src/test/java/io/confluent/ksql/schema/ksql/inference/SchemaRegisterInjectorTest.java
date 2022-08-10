@@ -75,6 +75,8 @@ import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
@@ -178,7 +180,7 @@ public class SchemaRegisterInjectorTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), valFeatures)
     );
     final KsqlStream<?> source = new KsqlStream<>(
-        "",
+        MaskedStatement.of(""),
         SourceName.of("SOURCE"),
         SCHEMA,
         Optional.empty(),
@@ -647,7 +649,7 @@ public class SchemaRegisterInjectorTest {
       final Pair<SchemaAndId, SchemaAndId> rawSchemaAndId
   ) {
     final PreparedStatement<?> preparedStatement =
-        parser.prepare(parser.parse(sql).get(0), metaStore);
+        parser.prepare(parser.parse(UnMaskedStatement.of(sql)).get(0), metaStore);
 
     final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
     if (rawSchemaAndId.left != null) {

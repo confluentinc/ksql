@@ -24,6 +24,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
@@ -53,7 +54,7 @@ public class FailureHandler implements Handler<RoutingContext> {
             statusCode,
             ksqlApiException.getErrorCode(),
             ksqlApiException.getMessage(),
-            ksqlApiException.getStatement()
+            ksqlApiException.getMaskedStatement()
         );
       } else {
         final int errorCode;
@@ -78,7 +79,7 @@ public class FailureHandler implements Handler<RoutingContext> {
   }
 
   private static void handleError(final HttpServerResponse response, final int statusCode,
-      final int errorCode, final String errMsg, final Optional<String> statement) {
+      final int errorCode, final String errMsg, final Optional<MaskedStatement> statement) {
     if (statement.isPresent()) {
       final KsqlStatementErrorMessage errorResponse = new KsqlStatementErrorMessage(
           errorCode, errMsg, statement.get(), new KsqlEntityList());

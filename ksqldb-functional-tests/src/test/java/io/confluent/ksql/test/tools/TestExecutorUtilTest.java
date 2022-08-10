@@ -105,11 +105,11 @@ public class TestExecutorUtilTest {
     }
     assertThat(asList.size(), is(2));
     assertThat(
-        asList.get(0).getPlan().getStatementText(),
+        asList.get(0).getPlan().getMaskedStatement(),
         startsWith("CREATE STREAM TEST")
     );
     assertThat(
-        asList.get(1).getPlan().getStatementText(),
+        asList.get(1).getPlan().getMaskedStatement(),
         startsWith("CREATE STREAM S1 AS SELECT")
     );
   }

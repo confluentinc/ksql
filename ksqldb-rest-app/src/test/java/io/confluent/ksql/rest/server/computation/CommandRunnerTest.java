@@ -127,13 +127,16 @@ public class CommandRunnerTest {
   public void setup() {
     when(statementExecutor.getKsqlEngine()).thenReturn(ksqlEngine);
 
-    when(command.getStatement()).thenReturn("something that is not terminate");
-    when(clusterTerminate.getStatement())
-        .thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
+    when(command.getMaskedStatement()).thenReturn("something that is not terminate");
+    when(clusterTerminate.getMaskedStatement())
+        .thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT);
 
     when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     when(queuedCommand3.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    when(queuedCommand1.getCommandId()).thenReturn(new byte[0]);
+    when(queuedCommand2.getCommandId()).thenReturn(new byte[0]);
+    when(queuedCommand3.getCommandId()).thenReturn(new byte[0]);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand1);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);

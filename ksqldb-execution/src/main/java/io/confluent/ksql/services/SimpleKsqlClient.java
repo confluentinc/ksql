@@ -21,6 +21,7 @@ import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.streams.WriteStream;
 import java.net.URI;
@@ -75,7 +76,7 @@ public interface SimpleKsqlClient {
    */
   RestResponse<Integer> makeQueryRequest(
       URI serverEndPoint,
-      String sql,
+      UnMaskedStatement sql,
       Map<String, ?> configOverrides,
       Map<String, ?> requestProperties,
       WriteStream<List<StreamedRow>> rowConsumer,
@@ -85,19 +86,20 @@ public interface SimpleKsqlClient {
 
   /**
    * Send query request to remote Ksql server.  This method is similar to
-   * {@link #makeQueryRequest(URI, String, Map, Map, WriteStream, CompletableFuture, Function)},
-   * but gives a different API.
-   * First, this is run asynchronously and second, when a response is received, a publisher is
-   * returned which publishes results asynchronously as they become available.
-   * @param serverEndPoint the remote destination
-   * @param sql the pull query statement
-   * @param configOverrides the config overrides provided by the client
+   * {@link #makeQueryRequest(URI, UnMaskedStatement, Map, Map, WriteStream, CompletableFuture,
+   * Function)}, but gives a different API. First, this is run asynchronously and second, when a
+   * response is received, a publisher is returned which publishes results asynchronously as they
+   * become available.
+   *
+   * @param serverEndPoint    the remote destination
+   * @param sql               the pull query statement
+   * @param configOverrides   the config overrides provided by the client
    * @param requestProperties the request metadata provided by the server
    * @return the future containing a publisher of {@link StreamedRow}s.
    */
   CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
       URI serverEndPoint,
-      String sql,
+      UnMaskedStatement sql,
       Map<String, ?> configOverrides,
       Map<String, ?> requestProperties
   );

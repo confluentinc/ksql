@@ -196,7 +196,7 @@ public class InteractiveStatementExecutor {
             restoreInProgress);
         return;
       }
-      final String statementString = command.getStatement();
+      final String statementString = command.getMaskedStatement().toString();
       putStatus(
           commandId,
           commandStatusFuture,

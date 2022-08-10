@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpVersion;
@@ -155,7 +156,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   }
 
   private CommonRequest getRequest(final RoutingContext routingContext) {
-    final String sql;
+    final UnMaskedStatement sql;
     final Map<String, Object> configOverrides;
     final Map<String, Object> sessionProperties;
     final Map<String, Object> requestProperties;
@@ -177,7 +178,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       if (!queryStreamArgs.isPresent()) {
         return null;
       }
-      sql = queryStreamArgs.get().sql;
+      sql = UnMaskedStatement.of(queryStreamArgs.get().sql);
       configOverrides = queryStreamArgs.get().properties;
       sessionProperties = queryStreamArgs.get().sessionVariables;
       requestProperties = queryStreamArgs.get().requestProperties;
@@ -288,13 +289,13 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   }
 
   private static class CommonRequest {
-    final String sql;
+    final UnMaskedStatement sql;
     final Map<String, Object> configOverrides;
     final Map<String, Object> sessionProperties;
     final Map<String, Object> requestProperties;
 
     CommonRequest(
-        final String sql,
+        final UnMaskedStatement sql,
         final Map<String, Object> configOverrides,
         final Map<String, Object> sessionProperties,
         final Map<String, Object> requestProperties

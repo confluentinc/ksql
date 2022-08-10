@@ -33,6 +33,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.util.Collections;
 import java.util.Map;
@@ -48,7 +49,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SandboxedPersistentQueryMetadataImplTest {
-  private static final String SQL = "sql";
+  private static final MaskedStatement SQL = MaskedStatement.of("sql");
   private static final String EXECUTION_PLAN = "execution plan";
   private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final String APPLICATION_ID = "applicationId";

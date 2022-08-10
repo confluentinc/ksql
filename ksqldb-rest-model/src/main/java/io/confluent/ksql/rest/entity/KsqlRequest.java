@@ -23,6 +23,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,16 +38,16 @@ public class KsqlRequest {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlRequest.class);
 
-  private final String ksql;
+  private final UnMaskedStatement ksql;
   private final ImmutableMap<String, Object> configOverrides;
   private final ImmutableMap<String, Object> requestProperties;
   private final ImmutableMap<String, Object> sessionVariables;
   private final Optional<Long> commandSequenceNumber;
   @JsonIgnore
-  private String maskedKsql;
+  private MaskedStatement maskedKsql;
 
   public KsqlRequest(
-      @JsonProperty("ksql") final String ksql,
+      @JsonProperty("ksql") final UnMaskedStatement ksql,
       @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
       @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
       @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
@@ -55,13 +57,13 @@ public class KsqlRequest {
 
   @JsonCreator
   public KsqlRequest(
-      @JsonProperty("ksql") final String ksql,
+      @JsonProperty("ksql") final UnMaskedStatement ksql,
       @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
       @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
       @JsonProperty("sessionVariables") final Map<String, ?> sessionVariables,
       @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
-    this.ksql = ksql == null ? "" : ksql;
+    this.ksql = ksql == null ? UnMaskedStatement.EMPTY_UNMASKED_STATEMENT : ksql;
     this.configOverrides = configOverrides == null
         ? ImmutableMap.of()
         : ImmutableMap.copyOf(serializeClassValues(configOverrides));
@@ -74,17 +76,17 @@ public class KsqlRequest {
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
-  public String getMaskedKsql() {
+  public MaskedStatement getMaskedKsql() {
     Objects.requireNonNull(maskedKsql);
     return maskedKsql;
   }
 
   @JsonProperty("ksql")
-  public String getUnmaskedKsql() {
+  public UnMaskedStatement getUnmaskedKsql() {
     return ksql;
   }
 
-  public void setMaskedKsql(final String maskedKsql) {
+  public void setMaskedKsql(final MaskedStatement maskedKsql) {
     this.maskedKsql = Objects.requireNonNull(maskedKsql, "maskedKsql");
   }
 
@@ -132,7 +134,7 @@ public class KsqlRequest {
 
   @Override
   public String toString() {
-    final String sql = Objects.isNull(maskedKsql) ? ksql : maskedKsql;
+    final String sql = Objects.isNull(maskedKsql) ? ksql.toString() : maskedKsql.toString();
     if (Objects.isNull(maskedKsql)) {
       LOG.warn("maskedKsql is not set, default to unmasked one for toString which "
           + "may leak sensitive information, If this is seen in a test, it may be expected "

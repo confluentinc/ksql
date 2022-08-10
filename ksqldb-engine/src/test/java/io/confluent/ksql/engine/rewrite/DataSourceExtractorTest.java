@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -229,7 +230,7 @@ public class DataSourceExtractorTest {
   }
 
   private static AstNode givenQuery(final String sql) {
-    final List<ParsedStatement> statements = new DefaultKsqlParser().parse(sql);
+    final List<ParsedStatement> statements = new DefaultKsqlParser().parse(UnMaskedStatement.of(sql));
     assertThat(statements, hasSize(1));
     return new AstBuilder(META_STORE).buildStatement(statements.get(0).getStatement());
   }

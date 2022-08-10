@@ -30,6 +30,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -185,9 +186,10 @@ public class TopicCreateInjector implements Injector {
         info.getReplicas()
     ));
 
-    final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
+    final UnMaskedStatement withTopicStatement = UnMaskedStatement.of(
+        SqlFormatter.formatSql(withTopic) + ";");
 
-    return statement.withStatement(withTopicText, withTopic);
+    return statement.withStatement(withTopicStatement, withTopic);
   }
 
   private TopicProperties createTopic(

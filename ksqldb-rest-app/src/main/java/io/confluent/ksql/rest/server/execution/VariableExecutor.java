@@ -53,7 +53,7 @@ public final class VariableExecutor {
 
     if (!sessionProperties.getSessionVariables().containsKey(variableName)) {
       return StatementExecutorResponse.handled(Optional.of(new WarningEntity(
-          statement.getStatementText(),
+          statement.getMaskedStatement().toString(),
           String.format("Cannot undefine variable '%s' which was never defined", variableName)
       )));
     }

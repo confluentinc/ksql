@@ -36,6 +36,7 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.statement.MaskedStatement;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class PersistentQueryMetadataImpl
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadataImpl(
       final KsqlConstants.PersistentQueryType persistentQueryType,
-      final String statementString,
+      final MaskedStatement statement,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
       final Optional<DataSource> sinkDataSource,
@@ -94,7 +95,7 @@ public class PersistentQueryMetadataImpl
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
-        statementString,
+        statement,
         schema.logicalSchema(),
         sourceNames,
         executionPlan,

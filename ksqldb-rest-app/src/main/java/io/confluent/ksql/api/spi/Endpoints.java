@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
@@ -52,7 +53,7 @@ public interface Endpoints {
    * @param workerExecutor The worker executor to use for blocking operations
    * @return A CompletableFuture representing the future result of the operation
    */
-  CompletableFuture<QueryPublisher> createQueryPublisher(String sql,
+  CompletableFuture<QueryPublisher> createQueryPublisher(UnMaskedStatement sql,
       Map<String, Object> properties,
       Map<String, Object> sessionVariables, Map<String, Object> requestProperties,
       Context context, WorkerExecutor workerExecutor,

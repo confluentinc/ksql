@@ -14,6 +14,7 @@ package io.confluent.ksql.engine.rewrite;
 
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.ParsingException;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.approvaltests.Approvals;
 import org.junit.Assert;
@@ -33,7 +34,7 @@ public class QueryAnonymizerTest {
   public void shouldWorkAsExpectedWhenPassedAParseTreeInsteadOfString() {
     // Given:
     final ParserRuleContext tree =
-        DefaultKsqlParser.getParseTree("DESCRIBE my_stream EXTENDED;");
+        DefaultKsqlParser.getParseTree(UnMaskedStatement.of("DESCRIBE my_stream EXTENDED;"));
 
     // Then:
     Assert.assertEquals("DESCRIBE stream1 EXTENDED;",

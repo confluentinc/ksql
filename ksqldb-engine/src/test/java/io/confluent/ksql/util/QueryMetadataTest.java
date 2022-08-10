@@ -44,6 +44,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Arrays;
@@ -110,7 +111,7 @@ public class QueryMetadataTest {
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
     query = new QueryMetadataImpl(
-        "foo",
+        MaskedStatement.of("foo"),
         SOME_SCHEMA,
         SOME_SOURCES,
         "bar",

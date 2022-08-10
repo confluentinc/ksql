@@ -44,6 +44,7 @@ import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -104,12 +105,12 @@ public class KsqlClientTest {
   public void shouldSendKsqlRequest() {
 
     // Given:
-    String ksql = "some ksql";
+    UnMaskedStatement ksql = UnMaskedStatement.of("some ksql");
     Object expectedResponse = setupExpectedResponse();
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<KsqlEntityList> resp = target.postKsqlRequest(ksql, Collections.emptyMap(), Optional.of(123L));
+    RestResponse<KsqlEntityList> resp = target.postKsqlRequest(ksql.toString(), Collections.emptyMap(), Optional.of(123L));
 
     // Then:
     assertThat(resp.get(), is(expectedResponse));
@@ -301,12 +302,12 @@ public class KsqlClientTest {
       expectedResponse.add(sr);
     }
     server.setResponseBuffer(createResponseBuffer(expectedResponse));
-    String sql = "some sql";
+    UnMaskedStatement sql = UnMaskedStatement.of("some sql");
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<List<StreamedRow>> response = target.postQueryRequest(
-        sql, Collections.emptyMap(), Optional.of(321L));
+        sql.toString(), Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -344,12 +345,12 @@ public class KsqlClientTest {
 
     int numRows = 10;
     List<StreamedRow> expectedResponse = setQueryStreamResponse(numRows, false);
-    String sql = "some sql";
+    UnMaskedStatement sql = UnMaskedStatement.of("some sql");
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
+        .postQueryRequestStreamed(sql.toString(), Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -369,12 +370,12 @@ public class KsqlClientTest {
 
     int numRows = 10;
     List<StreamedRow> expectedResponse = setQueryStreamResponse(numRows, true);
-    String sql = "whateva";
+    UnMaskedStatement sql = UnMaskedStatement.of("whateva");
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
+        .postQueryRequestStreamed(sql.toString(), Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -392,12 +393,12 @@ public class KsqlClientTest {
 
     // Given:
     setQueryStreamResponse(1, false);
-    String sql = "some sql";
+    UnMaskedStatement sql = UnMaskedStatement.of("some sql");
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
+        .postQueryRequestStreamed(sql.toString(), Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
@@ -463,12 +464,12 @@ public class KsqlClientTest {
     // Given:
     int numRows = 10;
     List<String> expectedResponse = setupPrintTopicResponse(numRows);
-    String command = "print topic whatever";
+    UnMaskedStatement command = UnMaskedStatement.of("print topic whatever");
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<String>> response = target
-        .postPrintTopicRequest(command, Optional.of(123L));
+        .postPrintTopicRequest(command.toString(), Optional.of(123L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -486,12 +487,12 @@ public class KsqlClientTest {
 
     // Given:
     setupPrintTopicResponse(1);
-    String command = "print topic whatever";
+    UnMaskedStatement command = UnMaskedStatement.of("print topic whatever");
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<String>> response = target
-        .postPrintTopicRequest(command, Optional.of(123L));
+        .postPrintTopicRequest(command.toString(), Optional.of(123L));
 
     // Then:
     assertThat(getKsqlRequest(), is(new KsqlRequest(command, properties, Collections.emptyMap(), 123L)));

@@ -43,6 +43,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
@@ -131,7 +132,7 @@ public class QueryDescriptionFactoryTest {
     when(sinkDataSource.getName()).thenReturn(SourceName.of("sink name"));
 
     transientQuery = new TransientQueryMetadata(
-        SQL_TEXT,
+        MaskedStatement.of(SQL_TEXT),
         TRANSIENT_SCHEMA,
         SOURCE_NAMES,
         "execution plan",
@@ -156,7 +157,7 @@ public class QueryDescriptionFactoryTest {
 
     persistentQuery = new PersistentQueryMetadataImpl(
         KsqlConstants.PersistentQueryType.CREATE_AS,
-        SQL_TEXT,
+        MaskedStatement.of(SQL_TEXT),
         PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
         Optional.of(sinkDataSource),
@@ -276,7 +277,7 @@ public class QueryDescriptionFactoryTest {
         .build();
 
     transientQuery = new TransientQueryMetadata(
-        SQL_TEXT,
+        MaskedStatement.of(SQL_TEXT),
         schema,
         SOURCE_NAMES,
         "execution plan",
@@ -317,7 +318,7 @@ public class QueryDescriptionFactoryTest {
         .build();
 
     transientQuery = new TransientQueryMetadata(
-        SQL_TEXT,
+        MaskedStatement.of(SQL_TEXT),
         schema,
         SOURCE_NAMES,
         "execution plan",

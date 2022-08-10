@@ -44,8 +44,8 @@ public class ConfiguredStatementTest {
         ConfiguredStatement.of(preparedStatement, mock(SessionConfig.class));
 
     // Then
-    assertThat(configuredStatement.getStatementText(), is(masked));
-    assertThat(configuredStatement.getUnMaskedStatementText(), is(query));
+    assertThat(configuredStatement.getMaskedStatement(), is(masked));
+    assertThat(configuredStatement.getUnMaskedStatement(), is(query));
     assertThat(configuredStatement.toString(), containsString(maskedToString));
   }
 }

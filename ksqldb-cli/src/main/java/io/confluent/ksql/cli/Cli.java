@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.VariablesList;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
@@ -420,7 +421,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       return;
     }
 
-    handleStatements(trimmedLine);
+    handleStatements(UnMaskedStatement.of(trimmedLine));
   }
 
   /**
@@ -468,7 +469,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       final boolean isSandbox
   ) {
     if (isVariableSubstitutionEnabled()) {
-      final String replacedStmt = isSandbox
+      final UnMaskedStatement replacedStmt = isSandbox
           ? VariableSubstitutor.substitute(statement, sandboxedSessionVariables)
           : VariableSubstitutor.substitute(statement, sessionVariables);
       return KSQL_PARSER.parse(replacedStmt).get(0);
@@ -478,7 +479,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   }
 
   @SuppressWarnings("rawtypes")
-  private void handleStatements(final String line) {
+  private void handleStatements(final UnMaskedStatement line) {
     final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
 
     // validate all before executing any
@@ -500,18 +501,18 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     final StringBuilder consecutiveStatements = new StringBuilder();
     statements.stream().map(stmt -> this.substituteVariables(stmt, false)).forEach(parsed -> {
       final StatementContext statementContext = parsed.getStatement().statement();
-      final String statementText = parsed.getUnMaskedStatementText();
+      final UnMaskedStatement statement = parsed.getUnMaskedStatement();
 
       final Handler2<StatementContext, Cli, String> handler = STATEMENT_HANDLERS
           .get(statementContext.getClass());
 
       if (handler == null) {
-        consecutiveStatements.append(statementText);
+        consecutiveStatements.append(statement);
       } else {
         makeKsqlRequest(consecutiveStatements.toString());
         consecutiveStatements.setLength(0);
 
-        handler.handle(this, statementText, statementContext);
+        handler.handle(this, statement.toString(), statementContext);
       }
     });
 

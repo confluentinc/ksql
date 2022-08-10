@@ -22,6 +22,7 @@ import static io.confluent.ksql.util.ParserUtil.unquote;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,23 +59,23 @@ public final class VariableSubstitutor {
     }
   }
 
-  public static String substitute(
+  public static UnMaskedStatement substitute(
       final String string,
       final Map<String, String> valueMap
   ) {
-    return StringSubstitutor.replace(
+    return UnMaskedStatement.of(StringSubstitutor.replace(
         string, valueMap.entrySet().stream()
-            .collect(Collectors.toMap(e -> e.getKey(), e -> sanitize(e.getValue())))
+            .collect(Collectors.toMap(e -> e.getKey(), e -> sanitize(e.getValue()))))
     );
   }
 
-  public static String substitute(
+  public static UnMaskedStatement substitute(
       final KsqlParser.ParsedStatement parsedStatement,
       final Map<String, String> valueMap
   ) {
-    final String statementText = parsedStatement.getUnMaskedStatementText();
-    final SqlSubstitutorVisitor visitor = new SqlSubstitutorVisitor(statementText, valueMap);
-    return visitor.replace(parsedStatement.getStatement());
+    final UnMaskedStatement statement = parsedStatement.getUnMaskedStatement();
+    final SqlSubstitutorVisitor visitor = new SqlSubstitutorVisitor(statement.toString(), valueMap);
+    return UnMaskedStatement.of(visitor.replace(parsedStatement.getStatement()));
   }
 
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -198,8 +199,7 @@ public final class VariableSubstitutor {
         throw new ParseFailedException(
             "Illegal argument at " + location.map(NodeLocation::toString).orElse("?")
                 + ". Identifier names cannot start with '@' and may only contain alphanumeric "
-                + "values and '_'. Got: '" + value + "'",
-            statementText);
+                + "values and '_'. Got: '" + value + "' " + statementText);
       }
     }
 
@@ -224,8 +224,7 @@ public final class VariableSubstitutor {
 
       throw new ParseFailedException(
           "Illegal argument at " + location.map(NodeLocation::toString).orElse("?")
-              + ". Got: '" + value + "'",
-          statementText);
+              + ". Got: '" + value + "' " + statementText);
     }
 
     @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity", "BooleanExpressionComplexity"})

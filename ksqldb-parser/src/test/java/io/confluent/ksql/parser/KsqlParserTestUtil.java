@@ -22,6 +22,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,12 +44,12 @@ public final class KsqlParserTestUtil {
   }
 
   public static List<PreparedStatement<?>> buildAst(final String sql, final MetaStore metaStore) {
-    return parse(sql).stream()
+    return parse(UnMaskedStatement.of(sql)).stream()
         .map(parsed -> KSQL_PARSER.prepare(parsed, metaStore))
         .collect(Collectors.toList());
   }
 
-  public static List<ParsedStatement> parse(final String sql) {
+  public static List<ParsedStatement> parse(final UnMaskedStatement sql) {
     return KSQL_PARSER.parse(sql);
   }
 }

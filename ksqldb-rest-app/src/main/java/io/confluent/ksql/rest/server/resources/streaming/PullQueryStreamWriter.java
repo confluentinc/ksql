@@ -94,7 +94,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
           e.getMessage() == null
               ? "Server Error" + Arrays.toString(e.getStackTrace())
               : e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatement(),
           e
       );
     }

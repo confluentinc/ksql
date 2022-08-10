@@ -211,7 +211,7 @@ public class WSQueryEndpoint {
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
     try {
-      return statementParser.parseSingleStatement(request.getUnmaskedKsql());
+      return statementParser.parseSingleStatement(request.getUnmaskedKsql().toString());
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing query: " + e.getMessage(), e);
     }
@@ -265,7 +265,7 @@ public class WSQueryEndpoint {
           startTimeNanos
       ).subscribe(streamSubscriber);
     } else {
-      throw new KsqlStatementException("Unknown query type", statement.getStatementText());
+      throw new KsqlStatementException("Unknown query type", statement.getMaskedStatement());
     }
   }
 

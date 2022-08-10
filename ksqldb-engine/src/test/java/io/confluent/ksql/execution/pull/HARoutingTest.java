@@ -56,6 +56,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -147,7 +148,7 @@ public class HARoutingTest {
   public void setUp() {
     when(pullPhysicalPlan.getMaterialization()).thenReturn(materialization);
     when(pullPhysicalPlan.getMaterialization().locator()).thenReturn(locator);
-    when(statement.getUnMaskedStatementText()).thenReturn("foo");
+    when(statement.getUnMaskedStatement()).thenReturn(UnMaskedStatement.of("foo"));
     when(statement.getSessionConfig()).thenReturn(SessionConfig.of(ksqlConfig,
         ImmutableMap.of()));
     when(node1.isLocal()).thenReturn(true);

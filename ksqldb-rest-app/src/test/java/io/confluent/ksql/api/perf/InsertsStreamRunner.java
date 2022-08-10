@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -160,7 +161,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
   private class InsertsStreamEndpoints implements Endpoints {
 
     @Override
-    public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+    public CompletableFuture<QueryPublisher> createQueryPublisher(final UnMaskedStatement sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
         final Map<String, Object> requestProperties,

@@ -8,6 +8,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.streams.WriteStream;
 import java.net.URI;
@@ -62,7 +63,7 @@ public class NetworkDisruptorClient implements SimpleKsqlClient {
   @Override
   public RestResponse<Integer> makeQueryRequest(
       final URI serverEndPoint,
-      final String sql,
+      final UnMaskedStatement sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
       final WriteStream<List<StreamedRow>> rowConsumer,
@@ -73,7 +74,7 @@ public class NetworkDisruptorClient implements SimpleKsqlClient {
 
   @Override
   public CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
-      URI serverEndPoint, String sql, Map<String, ?> configOverrides,
+      URI serverEndPoint, UnMaskedStatement sql, Map<String, ?> configOverrides,
       Map<String, ?> requestProperties) {
     if (networkState.isFaulty()) {
       CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> exception

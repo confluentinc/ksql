@@ -155,7 +155,7 @@ public final class RestoreCommandsCompactor {
                 LOG.warn("A known bug is found while restoring the command topic. The restoring "
                     + "process will continue, but the query of the affected stream or table won't "
                     + "be executed until https://github.com/confluentinc/ksql/issues/8173 "
-                    + "is fixed. Invalid statement is: " + command.getStatement());
+                    + "is fixed. Invalid statement is: " + command.getMaskedStatement());
               }
             }
 
@@ -167,7 +167,7 @@ public final class RestoreCommandsCompactor {
     }
 
     private static boolean isCreateIfNotExists(final Command command) {
-      final String statement = command.getStatement().toUpperCase();
+      final String statement = command.getMaskedStatement().toString().toUpperCase();
       return statement.startsWith("CREATE STREAM IF NOT EXISTS")
           || statement.startsWith("CREATE TABLE IF NOT EXISTS");
     }
@@ -221,7 +221,7 @@ public final class RestoreCommandsCompactor {
     }
 
     final Command newCommand = new Command(
-        command.getStatement(),
+        command.getMaskedStatement(),
         Optional.of(command.getOverwriteProperties()),
         Optional.of(command.getOriginalProperties()),
         command.getPlan().map(KsqlPlan::withoutQuery),

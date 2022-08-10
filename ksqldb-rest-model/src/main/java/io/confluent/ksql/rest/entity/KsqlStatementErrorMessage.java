@@ -15,37 +15,49 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static io.confluent.ksql.statement.MaskedStatement.EMPTY_MASKED_STATEMENT;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class KsqlStatementErrorMessage extends KsqlErrorMessage {
-  private final String statementText;
+  private final MaskedStatement statement;
   private final KsqlEntityList entities;
 
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
   public KsqlStatementErrorMessage(
       @JsonProperty("error_code") final int errorCode,
       @JsonProperty("message") final String message,
-      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("statement") final MaskedStatement statement,
       @JsonProperty("entities") final KsqlEntityList entities) {
     super(errorCode, message);
     this.entities = new KsqlEntityList(entities);
-    this.statementText = statementText;
+    this.statement = statement;
   }
 
   public KsqlStatementErrorMessage(
       final int errorCode,
       final Throwable t,
-      final String statementText,
+      final String message,
       final KsqlEntityList entityList) {
-    this(errorCode, ErrorMessageUtil.buildErrorMessage(t), statementText, entityList);
+    this(errorCode, ErrorMessageUtil.buildErrorMessage(t) + message, EMPTY_MASKED_STATEMENT,
+        entityList);
   }
 
-  public String getStatementText() {
-    return statementText;
+  public KsqlStatementErrorMessage(
+      final int errorCode,
+      final Throwable t,
+      final MaskedStatement statement,
+      final KsqlEntityList entityList) {
+    this(errorCode, ErrorMessageUtil.buildErrorMessage(t), statement, entityList);
+  }
+
+  public MaskedStatement getMaskedStatement() {
+    return this.statement;
   }
 
   public KsqlEntityList getEntities() {
@@ -64,7 +76,7 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
       return false;
     }
     final KsqlStatementErrorMessage that = (KsqlStatementErrorMessage) o;
-    return Objects.equals(statementText, that.statementText)
+    return Objects.equals(statement, that.statement)
         && Objects.equals(entities, that.entities)
         && Objects.equals(this.getMessage(), that.getMessage())
         && Objects.equals(this.getErrorCode(), that.getErrorCode());
@@ -72,6 +84,6 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), statementText, entities);
+    return Objects.hash(super.hashCode(), statement, entities);
   }
 }

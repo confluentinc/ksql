@@ -60,18 +60,18 @@ public final class DescribeFunctionExecutor {
     if (executionContext.getMetaStore().isAggregate(functionName)) {
       return StatementExecutorResponse.handled(Optional.of(
           describeAggregateFunction(executionContext, functionName,
-              statement.getStatementText())));
+              statement.getMaskedStatement().toString())));
     }
 
     if (executionContext.getMetaStore().isTableFunction(functionName)) {
       return StatementExecutorResponse.handled(Optional.of(
           describeTableFunction(executionContext, functionName,
-              statement.getStatementText())));
+              statement.getMaskedStatement().toString())));
     }
 
     return StatementExecutorResponse.handled(Optional.of(
         describeNonAggregateFunction(executionContext, functionName,
-            statement.getStatementText())));
+            statement.getMaskedStatement().toString())));
   }
 
   private static FunctionDescriptionList describeAggregateFunction(

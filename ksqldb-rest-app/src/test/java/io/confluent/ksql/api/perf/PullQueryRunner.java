@@ -38,7 +38,7 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -123,7 +123,7 @@ public class PullQueryRunner extends BasePerfRunner {
     private final Set<PullQueryPublisher> publishers = new HashSet<>();
 
     @Override
-    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final UnMaskedStatement sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
         final Map<String, Object> requestProperties,

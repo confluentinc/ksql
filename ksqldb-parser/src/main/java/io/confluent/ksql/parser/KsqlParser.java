@@ -20,6 +20,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.QueryMask;
 import java.util.List;
 import java.util.Objects;
@@ -35,7 +37,7 @@ public interface KsqlParser {
    * @param sql the sql to parse.
    * @return the list of parsed statements.
    */
-  List<ParsedStatement> parse(String sql);
+  List<ParsedStatement> parse(UnMaskedStatement sql);
 
   /**
    * Prepare the supplied {@code statement}.
@@ -47,21 +49,29 @@ public interface KsqlParser {
   PreparedStatement<?> prepare(ParsedStatement statement, TypeRegistry typeRegistry);
 
   final class ParsedStatement {
-    private final String statementText;
+    private final UnMaskedStatement unMaskedStatement;
     private final SingleStatementContext statement;
-    private final String maskedStatementText;
+    private final MaskedStatement maskedStatement;
 
-    private ParsedStatement(final String statementText, final SingleStatementContext statement) {
-      this.statementText = Objects.requireNonNull(statementText, "statementText");
+    private ParsedStatement(final UnMaskedStatement unMaskedStatement,
+        final SingleStatementContext statement) {
+      this.unMaskedStatement = Objects.requireNonNull(unMaskedStatement, "UnMaskedStatement");
       this.statement = Objects.requireNonNull(statement, "statement");
-      maskedStatementText = QueryMask.getMaskedStatement(statementText);
+      this.maskedStatement = QueryMask.getMaskedStatement(unMaskedStatement);
     }
 
     public static ParsedStatement of(
-        final String statementText,
+        final UnMaskedStatement unMaskedStatement,
         final SingleStatementContext statement
     ) {
-      return new ParsedStatement(statementText, statement);
+      return new ParsedStatement(unMaskedStatement, statement);
+    }
+
+    public static ParsedStatement of(
+        final String unMaskedStatement,
+        final SingleStatementContext statement
+    ) {
+      return new ParsedStatement(UnMaskedStatement.of(unMaskedStatement), statement);
     }
 
     /**
@@ -70,8 +80,8 @@ public interface KsqlParser {
      * needs unmasked statement text, please use {@code getUnMaskedStatementText}
      * @return Masked statement text
      */
-    public String getStatementText() {
-      return maskedStatementText;
+    public MaskedStatement getMaskedStatement() {
+      return maskedStatement;
     }
 
     /**
@@ -79,8 +89,8 @@ public interface KsqlParser {
      * and other output purposed for debugging etc, please use {@code getStatementText}
      * @return Masked statement text
      */
-    public String getUnMaskedStatementText() {
-      return statementText;
+    public UnMaskedStatement getUnMaskedStatement() {
+      return unMaskedStatement;
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP")
@@ -90,28 +100,35 @@ public interface KsqlParser {
 
     @Override
     public String toString() {
-      return maskedStatementText;
+      return maskedStatement.toString();
     }
   }
 
   @Immutable
   final class PreparedStatement<T extends Statement> {
 
-    private final String statementText;
+    private final UnMaskedStatement unMaskedStatement;
     private final T statement;
-    private final String maskedStatementText;
+    private final MaskedStatement maskedStatement;
 
-    private PreparedStatement(final String statementText, final T statement) {
-      this.statementText = Objects.requireNonNull(statementText, "statementText");
+    private PreparedStatement(final UnMaskedStatement unMaskedStatement, final T statement) {
+      this.unMaskedStatement = Objects.requireNonNull(unMaskedStatement, "unMaskedStatement");
       this.statement = Objects.requireNonNull(statement, "statement");
-      maskedStatementText = QueryMask.getMaskedStatement(statementText);
+      this.maskedStatement = QueryMask.getMaskedStatement(unMaskedStatement);
     }
 
     public static <T extends Statement> PreparedStatement<T> of(
-        final String statementText,
+        final UnMaskedStatement unMaskedStatement,
         final T statement
     ) {
-      return new PreparedStatement<>(statementText, statement);
+      return new PreparedStatement<>(unMaskedStatement, statement);
+    }
+
+    public static <T extends Statement> PreparedStatement<T> of(
+        final String unMaskedStatement,
+        final T statement
+    ) {
+      return new PreparedStatement<>(UnMaskedStatement.of(unMaskedStatement), statement);
     }
 
     /**
@@ -119,8 +136,8 @@ public interface KsqlParser {
      * and other output purposed for debugging etc, please use {@code getStatementText}
      * @return Masked statement text
      */
-    public String getUnMaskedStatementText() {
-      return statementText;
+    public UnMaskedStatement getUnMaskedStatement() {
+      return this.unMaskedStatement;
     }
 
     /**
@@ -129,8 +146,8 @@ public interface KsqlParser {
      * needs unmasked statement text, please use {@code getUnMaskedStatementText}
      * @return Masked statement text
      */
-    public String getStatementText() {
-      return maskedStatementText;
+    public MaskedStatement getMaskedStatement() {
+      return this.maskedStatement;
     }
 
     public T getStatement() {
@@ -139,7 +156,7 @@ public interface KsqlParser {
 
     @Override
     public String toString() {
-      return maskedStatementText;
+      return this.maskedStatement.toString();
     }
 
     @Override
@@ -151,13 +168,13 @@ public interface KsqlParser {
         return false;
       }
       final PreparedStatement<?> that = (PreparedStatement) o;
-      return Objects.equals(this.statementText, that.statementText)
+      return Objects.equals(this.unMaskedStatement, that.unMaskedStatement)
           && Objects.equals(this.statement, that.statement);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(statementText, statement);
+      return Objects.hash(unMaskedStatement, statement);
     }
   }
 }

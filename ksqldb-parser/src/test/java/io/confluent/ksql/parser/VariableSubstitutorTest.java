@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.List;
@@ -248,7 +249,7 @@ public class VariableSubstitutorTest {
     }}.build();
 
     // When
-    final String substituted = VariableSubstitutor.substitute("Happy ${event} to you!", variablesMap);
+    final String substituted = VariableSubstitutor.substitute("Happy ${event} to you!", variablesMap).toString();
 
     // Then
     assertThat(substituted, equalTo("Happy birthday to you!"));
@@ -262,8 +263,8 @@ public class VariableSubstitutorTest {
     }}.build();
 
     // When
-    final String substitutedString = VariableSubstitutor.substitute("ASSERT TOPIC '${name}';", variablesMap);
-    final String substitutedIdentifier = VariableSubstitutor.substitute("ASSERT TOPIC ${name};", variablesMap);
+    final String substitutedString = VariableSubstitutor.substitute("ASSERT TOPIC '${name}';", variablesMap).toString();
+    final String substitutedIdentifier = VariableSubstitutor.substitute("ASSERT TOPIC ${name};", variablesMap).toString();
 
     // Then
     assertThat(substitutedString, equalTo("ASSERT TOPIC 'foo';"));
@@ -275,14 +276,14 @@ public class VariableSubstitutorTest {
       final Map<String, String> variablesMap
   ) {
     for (Pair<String, String> stmt : statements) {
-      KsqlParser.ParsedStatement sqlStatement = KSQL_PARSER.parse(stmt.getLeft()).get(0);
+      KsqlParser.ParsedStatement sqlStatement = KSQL_PARSER.parse(UnMaskedStatement.of(stmt.getLeft())).get(0);
       String sqlReplaced = stmt.getRight();
 
       // When
-      final String sqlResult = VariableSubstitutor.substitute(sqlStatement, variablesMap);
+      final String sqlResult = VariableSubstitutor.substitute(sqlStatement, variablesMap).toString();
 
       // Then
-      assertThat("Should replace: " + sqlStatement.getStatementText(), sqlResult, equalTo(sqlReplaced));
+      assertThat("Should replace: " + sqlStatement.getUnMaskedStatement(), sqlResult, equalTo(sqlReplaced));
     }
   }
 
@@ -291,7 +292,7 @@ public class VariableSubstitutorTest {
       final Map<String, String> variablesMap
   ) {
     for (Pair<String, String> stmt : statements) {
-      KsqlParser.ParsedStatement sqlStatement = KSQL_PARSER.parse(stmt.getLeft()).get(0);
+      KsqlParser.ParsedStatement sqlStatement = KSQL_PARSER.parse(UnMaskedStatement.of(stmt.getLeft())).get(0);
       String sqlError = stmt.getRight();
 
       // When
@@ -301,7 +302,7 @@ public class VariableSubstitutorTest {
       );
 
       // Then
-      assertThat("Should fail replace: " + sqlStatement.getStatementText(),
+      assertThat("Should fail replace: " + sqlStatement.getUnMaskedStatement(),
           e.getMessage(), containsString(sqlError));
     }
   }

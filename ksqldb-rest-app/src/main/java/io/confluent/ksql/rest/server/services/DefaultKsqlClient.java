@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
@@ -118,7 +119,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public RestResponse<Integer> makeQueryRequest(
       final URI serverEndPoint,
-      final String sql,
+      final UnMaskedStatement sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
       final WriteStream<List<StreamedRow>> rowConsumer,
@@ -143,7 +144,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   @Override
   public CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
       final URI serverEndPoint,
-      final String sql,
+      final UnMaskedStatement sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {

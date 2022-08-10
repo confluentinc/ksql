@@ -39,6 +39,7 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -191,7 +192,7 @@ public final class KsqlTarget {
   }
 
   public RestResponse<Integer> postQueryRequest(
-      final String ksql,
+      final UnMaskedStatement ksql,
       final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum,
       final WriteStream<List<StreamedRow>> rowConsumer,
@@ -264,7 +265,7 @@ public final class KsqlTarget {
   }
 
   private KsqlRequest createKsqlRequest(
-      final String ksql,
+      final UnMaskedStatement ksql,
       final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
   ) {

@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
 import io.confluent.ksql.util.KsqlException;
@@ -96,7 +97,7 @@ public class CommandFactories implements DdlCommandFactory {
 
   @Override
   public DdlCommand create(
-      final String sqlExpression,
+      final MaskedStatement sqlExpression,
       final DdlStatement ddlStatement,
       final SessionConfig config
   ) {
@@ -169,11 +170,11 @@ public class CommandFactories implements DdlCommandFactory {
 
   private static final class CallInfo {
 
-    final String sqlExpression;
+    final MaskedStatement sqlExpression;
     final SessionConfig config;
 
     private CallInfo(
-        final String sqlExpression,
+        final MaskedStatement sqlExpression,
         final SessionConfig config
     ) {
       this.sqlExpression = Objects.requireNonNull(sqlExpression, "sqlExpression");

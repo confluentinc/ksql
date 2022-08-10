@@ -8,13 +8,14 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.statement.UnMaskedStatement;
 
 public final class ExpressionParseTestUtil {
   public static Expression parseExpression(final String asText, final MetaStore metaStore) {
     final KsqlParser parser = new DefaultKsqlParser();
     final String ksql = String.format("SELECT %s FROM test1;", asText);
 
-    final ParsedStatement parsedStatement = parser.parse(ksql).get(0);
+    final ParsedStatement parsedStatement = parser.parse(UnMaskedStatement.of(ksql)).get(0);
     final PreparedStatement preparedStatement = parser.prepare(parsedStatement, metaStore);
     final SingleColumn singleColumn = (SingleColumn) ((Query)preparedStatement.getStatement())
         .getSelect()

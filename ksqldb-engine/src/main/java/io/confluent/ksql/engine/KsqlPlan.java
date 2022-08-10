@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
 
@@ -33,22 +34,22 @@ public interface KsqlPlan {
 
   Optional<QueryPlan> getQueryPlan();
 
-  String getStatementText();
+  MaskedStatement getMaskedStatement();
 
   KsqlPlan withoutQuery();
 
   @JsonIgnore
   Optional<KsqlConstants.PersistentQueryType> getPersistentQueryType();
 
-  static KsqlPlan ddlPlanCurrent(final String statementText, final DdlCommand ddlCommand) {
-    return new KsqlPlanV1(statementText, Optional.of(ddlCommand), Optional.empty());
+  static KsqlPlan ddlPlanCurrent(final MaskedStatement statement, final DdlCommand ddlCommand) {
+    return new KsqlPlanV1(statement, Optional.of(ddlCommand), Optional.empty());
   }
 
   static KsqlPlan queryPlanCurrent(
-      final String statementText,
+      final MaskedStatement statement,
       final Optional<DdlCommand> ddlCommand,
       final QueryPlan queryPlan
   ) {
-    return new KsqlPlanV1(statementText, ddlCommand, Optional.of(queryPlan));
+    return new KsqlPlanV1(statement, ddlCommand, Optional.of(queryPlan));
   }
 }

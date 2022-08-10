@@ -45,6 +45,7 @@ import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -84,7 +85,7 @@ public class SchemaRegisterInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e),
-          statement.getStatementText(),
+          statement.getMaskedStatement(),
           e.getCause());
     }
     // Remove schema id from SessionConfig
@@ -118,7 +119,7 @@ public class SchemaRegisterInjector implements Injector {
 
     final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
         statement.getProperties(), statement.getName());
-    final Format keyFormat = tryGetFormat(keyFormatInfo, true, cs.getStatementText());
+    final Format keyFormat = tryGetFormat(keyFormatInfo, true, cs.getMaskedStatement());
     final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
         schema,
         keyFormat
@@ -126,7 +127,7 @@ public class SchemaRegisterInjector implements Injector {
 
     final FormatInfo valueFormatInfo = SourcePropertiesUtil.getValueFormat(
         statement.getProperties());
-    final Format valueFormat = tryGetFormat(valueFormatInfo, false, cs.getStatementText());
+    final Format valueFormat = tryGetFormat(valueFormatInfo, false, cs.getMaskedStatement());
     final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
         schema,
         valueFormat,
@@ -148,7 +149,7 @@ public class SchemaRegisterInjector implements Injector {
         valueFormatInfo,
         valFeatures,
         cs.getSessionConfig().getConfig(false),
-        cs.getStatementText(),
+        cs.getMaskedStatement(),
         false
     );
   }
@@ -156,7 +157,7 @@ public class SchemaRegisterInjector implements Injector {
   private static Format tryGetFormat(
       final FormatInfo formatInfo,
       final boolean isKey,
-      final String statementText
+      final MaskedStatement statementText
   ) {
     try {
       return FormatFactory.of(formatInfo);
@@ -186,7 +187,7 @@ public class SchemaRegisterInjector implements Injector {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Could not determine output schema for query due to error: "
-              + e.getMessage(), cas.getStatementText(), e);
+              + e.getMessage(), cas.getMaskedStatement(), e);
     }
 
     final SchemaAndId rawKeySchema = (SchemaAndId) cas.getSessionConfig().getOverrides()
@@ -203,7 +204,7 @@ public class SchemaRegisterInjector implements Injector {
         createSourceCommand.getFormats().getValueFormat(),
         createSourceCommand.getFormats().getValueFeatures(),
         cas.getSessionConfig().getConfig(false),
-        cas.getStatementText(),
+        cas.getMaskedStatement(),
         true
     );
   }
@@ -217,7 +218,7 @@ public class SchemaRegisterInjector implements Injector {
       final FormatInfo valueFormat,
       final SerdeFeatures valueSerdeFeatures,
       final KsqlConfig config,
-      final String statementText,
+      final MaskedStatement statementText,
       final boolean registerIfSchemaExists
   ) {
     final boolean registerRawKey = kvRawSchema.left != null;
@@ -282,7 +283,7 @@ public class SchemaRegisterInjector implements Injector {
       final FormatInfo formatInfo,
       final String topic,
       final KsqlConfig config,
-      final String statementText,
+      final MaskedStatement statementText,
       final boolean isKey
   ) {
     final String schemaIdPropStr =
@@ -307,7 +308,7 @@ public class SchemaRegisterInjector implements Injector {
   private void registerRawSchema(
       final SchemaAndId schemaAndId,
       final String topic,
-      final String statementText,
+      final MaskedStatement statementText,
       final String subject,
       final Boolean isKey
   ) {
@@ -366,7 +367,7 @@ public class SchemaRegisterInjector implements Injector {
       final FormatInfo formatInfo,
       final SerdeFeatures serdeFeatures,
       final KsqlConfig config,
-      final String statementText,
+      final MaskedStatement statementText,
       final boolean registerIfSchemaExists,
       final String subject,
       final boolean isKey

@@ -33,6 +33,7 @@ import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryBuilderFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -612,7 +613,7 @@ public class QueryRegistryImplTest {
         serviceContext,
         logContext,
         metaStore,
-        "sql",
+        MaskedStatement.of("sql"),
         queryId,
         Optional.of(sinkSource),
         ImmutableSet.of(dataSource),
@@ -639,7 +640,7 @@ public class QueryRegistryImplTest {
         serviceContext,
         logContext,
         metaStore,
-        "sql",
+        MaskedStatement.of("sql"),
         queryId,
         ImmutableSet.of(SourceName.of("some-source")),
         mock(ExecutionStep.class),
@@ -668,7 +669,7 @@ public class QueryRegistryImplTest {
         serviceContext,
         logContext,
         metaStore,
-        "sql",
+        MaskedStatement.of("sql"),
         queryId,
         ImmutableSet.of(SourceName.of("some-source")),
         mock(ExecutionStep.class),

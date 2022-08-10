@@ -114,7 +114,7 @@ public final class RemoteHostExecutor {
       final Map<HostInfo, CompletableFuture<RestResponse<KsqlEntityList>>> futureResponses =
           new HashMap<>();
       for (HostInfo host : remoteHosts) {
-        futureResponses.put(host, fetchRemoteData(statement.getUnMaskedStatementText(), host,
+        futureResponses.put(host, fetchRemoteData(statement.getUnMaskedStatement().toString(), host,
             executorService));
       }
 
@@ -133,7 +133,7 @@ public final class RemoteHostExecutor {
           }
         } catch (final Exception cause) {
           LOG.warn("Failed to retrieve info from host: {}, statement: {}, cause: {}",
-              e.getKey(), statement.getStatementText(), cause.getMessage());
+              e.getKey(), statement.getMaskedStatement(), cause.getMessage());
           unresponsiveHosts.add(e.getKey());
         }
       }

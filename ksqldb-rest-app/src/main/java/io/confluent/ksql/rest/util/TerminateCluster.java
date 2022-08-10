@@ -16,11 +16,19 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import java.util.Optional;
 
 public class TerminateCluster extends Statement {
 
-  public static final String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
+  public static final UnMaskedStatement TERMINATE_CLUSTER_STATEMENT = UnMaskedStatement.of(
+      "TERMINATE CLUSTER;");
+
+  public static final MaskedStatement TERMINATE_CLUSTER_STATEMENT_MASKED = MaskedStatement.of(
+      "TERMINATE CLUSTER;");
+  public static final String TERMINATE_CLUSTER_STATEMENT_TEXT =
+      TERMINATE_CLUSTER_STATEMENT.toString();
 
   public TerminateCluster() {
     super(Optional.empty());

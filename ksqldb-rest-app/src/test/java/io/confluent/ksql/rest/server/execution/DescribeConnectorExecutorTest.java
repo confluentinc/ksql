@@ -61,6 +61,8 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
@@ -85,7 +87,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DescribeConnectorExecutorTest {
 
   private static final String TOPIC = "kafka-topic";
-  private static final String STATEMENT = "statement";
+  private static final MaskedStatement STATEMENT = MaskedStatement.of("statement");
   private static final String CONNECTOR_NAME = "connector";
   private static final String CONNECTOR_CLASS = "io.confluent.ConnectorClazz";
 
@@ -157,7 +159,7 @@ public class DescribeConnectorExecutorTest {
     final DescribeConnector describeConnector = new DescribeConnector(Optional.empty(), "connector");
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     describeStatement = ConfiguredStatement
-        .of(PreparedStatement.of("statementText", describeConnector),
+        .of(PreparedStatement.of(UnMaskedStatement.of("statementText"), describeConnector),
             SessionConfig.of(ksqlConfig, ImmutableMap.of()));
   }
 

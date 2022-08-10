@@ -26,6 +26,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.statement.MaskedStatement;
 import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,7 +76,7 @@ public class StructuredDataSourceTest {
   public void shouldEnforceSameNameCompatbility() {
     // Given:
     final KsqlStream<String> streamA = new KsqlStream<>(
-        "sql",
+        MaskedStatement.of("sql"),
         SourceName.of("A"),
         SOME_SCHEMA,
         Optional.empty(),
@@ -84,7 +85,7 @@ public class StructuredDataSourceTest {
         false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
-        "sql",
+        MaskedStatement.of("sql"),
         SourceName.of("B"),
         SOME_SCHEMA,
         Optional.empty(),
@@ -105,7 +106,7 @@ public class StructuredDataSourceTest {
   public void shouldEnforceSameTimestampColumn() {
     // Given:
     final KsqlStream<String> streamA = new KsqlStream<>(
-        "sql",
+        MaskedStatement.of("sql"),
         SourceName.of("A"),
         SOME_SCHEMA,
         Optional.empty(),
@@ -114,7 +115,7 @@ public class StructuredDataSourceTest {
         false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
-        "sql",
+        MaskedStatement.of("sql"),
         SourceName.of("A"),
         SOME_SCHEMA,
         Optional.of(new TimestampColumn(ColumnName.of("foo"), Optional.empty())),
@@ -135,7 +136,7 @@ public class StructuredDataSourceTest {
   public void shouldEnforceSameTopic() {
     // Given:
     final KsqlStream<String> streamA = new KsqlStream<>(
-        "sql",
+        MaskedStatement.of("sql"),
         SourceName.of("A"),
         SOME_SCHEMA,
         Optional.empty(),
@@ -144,7 +145,7 @@ public class StructuredDataSourceTest {
         false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
-        "sql",
+        MaskedStatement.of("sql"),
         SourceName.of("A"),
         SOME_SCHEMA,
         Optional.empty(),
@@ -165,7 +166,7 @@ public class StructuredDataSourceTest {
   public void shouldEnforceSameType() {
     // Given:
     final KsqlStream<String> streamA = new KsqlStream<>(
-        "sql",
+        MaskedStatement.of("sql"),
         SourceName.of("A"),
         SOME_SCHEMA,
         Optional.empty(),
@@ -174,7 +175,7 @@ public class StructuredDataSourceTest {
         false
     );
     final KsqlTable<String> streamB = new KsqlTable<>(
-        "sql",
+        MaskedStatement.of("sql"),
         SourceName.of("A"),
         SOME_SCHEMA,
         Optional.empty(),
@@ -332,7 +333,7 @@ public class StructuredDataSourceTest {
         final LogicalSchema schema
     ) {
       super(
-          "some SQL",
+          MaskedStatement.of("some SQL"),
           SourceName.of("some name"),
           schema,
           Optional.empty(),
@@ -344,7 +345,7 @@ public class StructuredDataSourceTest {
     }
 
     @Override
-    public DataSource with(String sql, LogicalSchema schema) {
+    public DataSource with(MaskedStatement sql, LogicalSchema schema) {
       return new TestStructuredDataSource(schema);
     }
   }

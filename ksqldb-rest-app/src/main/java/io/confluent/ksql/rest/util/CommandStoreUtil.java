@@ -44,7 +44,7 @@ public final class CommandStoreUtil {
           + "sequence number to execute. sequence number: " + seqNum
           + ", request: " + request.getMaskedKsql();
       throw new KsqlRestException(
-          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
+          Errors.serverErrorForString(e, errorMsg, new KsqlEntityList()));
     } catch (final TimeoutException e) {
       throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(
           request.getCommandSequenceNumber().orElse(-1L)));

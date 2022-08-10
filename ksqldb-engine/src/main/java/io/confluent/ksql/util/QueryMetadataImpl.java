@@ -34,6 +34,7 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
@@ -60,7 +61,7 @@ import org.slf4j.LoggerFactory;
 public class QueryMetadataImpl implements QueryMetadata {
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
   private final AtomicBoolean isPaused = new AtomicBoolean(false);
-  private final String statementString;
+  private final MaskedStatement statementString;
   private final String executionPlan;
   private final String queryApplicationId;
   private final Topology topology;
@@ -94,7 +95,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   QueryMetadataImpl(
-      final String statementString,
+      final MaskedStatement statementString,
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
       final String executionPlan,
@@ -113,7 +114,7 @@ public class QueryMetadataImpl implements QueryMetadata {
       final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    this.statementString = Objects.requireNonNull(statementString, "statementString");
+    this.statementString = Objects.requireNonNull(statementString, "statement");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
@@ -145,7 +146,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   // Used for sandboxing
   QueryMetadataImpl(final QueryMetadataImpl other, final Listener listener) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    this.statementString = other.getStatementString();
+    this.statementString = other.getStatement();
     this.kafkaStreams = other.getKafkaStreams();
     this.executionPlan = other.getExecutionPlan();
     this.queryApplicationId = other.getQueryApplicationId();
@@ -188,7 +189,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     QueryError.Type errorType = Type.UNKNOWN;
     try {
       QueryLogger.error(String.format("Uncaught exception in query %s", e),
-          this.statementString);
+          this.getStatementString());
       errorType = errorClassifier.classify(e);
     } catch (final Exception classificationException) {
       LOG.error("Error classifying unhandled exception", classificationException);
@@ -233,8 +234,12 @@ public class QueryMetadataImpl implements QueryMetadata {
     return overriddenProperties;
   }
 
-  public String getStatementString() {
+  public MaskedStatement getStatement() {
     return statementString;
+  }
+
+  public String getStatementString() {
+    return statementString.toString();
   }
 
   public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {

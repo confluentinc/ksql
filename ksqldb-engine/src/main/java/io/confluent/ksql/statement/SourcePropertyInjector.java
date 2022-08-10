@@ -61,7 +61,7 @@ public class SourcePropertyInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e),
-          statement.getStatementText(),
+          statement.getMaskedStatement(),
           e.getCause());
     }
   }
@@ -118,6 +118,6 @@ public class SourcePropertyInjector implements Injector {
   private static <T extends Statement> PreparedStatement<T> buildPreparedStatement(
       final T stmt
   ) {
-    return PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);
+    return PreparedStatement.of(UnMaskedStatement.of(SqlFormatter.formatSql(stmt)), stmt);
   }
 }

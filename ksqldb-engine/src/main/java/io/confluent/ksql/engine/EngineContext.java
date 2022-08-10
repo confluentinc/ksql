@@ -44,6 +44,8 @@ import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
@@ -157,7 +159,7 @@ final class EngineContext {
   }
 
   List<ParsedStatement> parse(final String sql) {
-    return parser.parse(sql);
+    return parser.parse(UnMaskedStatement.of(sql));
   }
 
   QueryIdGenerator idGenerator() {
@@ -189,7 +191,7 @@ final class EngineContext {
       final Map<String, String> variablesMap
   ) {
     return (!variablesMap.isEmpty())
-        ? parse(VariableSubstitutor.substitute(stmt, variablesMap)).get(0)
+        ? parse(VariableSubstitutor.substitute(stmt, variablesMap).toString()).get(0)
         : stmt ;
   }
 
@@ -199,7 +201,7 @@ final class EngineContext {
       final PreparedStatement<?> preparedStatement =
           parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
       return PreparedStatement.of(
-          preparedStatement.getUnMaskedStatementText(),
+          preparedStatement.getUnMaskedStatement(),
           AstSanitizer.sanitize(
               preparedStatement.getStatement(),
               metaStore,
@@ -209,7 +211,8 @@ final class EngineContext {
       throw e;
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          "Exception while preparing statement: " + e.getMessage(), stmt.getStatementText(), e);
+          "Exception while preparing statement: " + e.getMessage(), stmt.getMaskedStatement(),
+          e);
     }
   }
 
@@ -225,7 +228,7 @@ final class EngineContext {
   }
 
   DdlCommand createDdlCommand(
-      final String sqlExpression,
+      final MaskedStatement sqlExpression,
       final ExecutableDdlStatement statement,
       final SessionConfig config
   ) {
@@ -244,7 +247,7 @@ final class EngineContext {
   }
 
   String executeDdl(
-      final String sqlExpression,
+      final MaskedStatement sqlExpression,
       final DdlCommand command,
       final boolean withQuery,
       final Set<SourceName> withQuerySources,

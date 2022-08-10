@@ -58,9 +58,11 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.PersistentQueryType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetricsTagsUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -68,6 +70,7 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryMetadata.Listener;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
@@ -172,7 +175,7 @@ final class QueryBuilder {
 
   @SuppressWarnings("ParameterNumber")
   TransientQueryMetadata buildTransientQuery(
-      final String statementText,
+      final MaskedStatement statementText,
       final QueryId queryId,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
@@ -181,7 +184,7 @@ final class QueryBuilder {
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones,
-      final QueryMetadata.Listener listener,
+      final Listener listener,
       final StreamsBuilder streamsBuilder,
       final Optional<ImmutableMap<TopicPartition, Long>> endOffsets,
       final MetricCollectors metricCollectors
@@ -270,7 +273,7 @@ final class QueryBuilder {
   PersistentQueryMetadata buildPersistentQueryInDedicatedRuntime(
       final KsqlConfig ksqlConfig,
       final KsqlConstants.PersistentQueryType persistentQueryType,
-      final String statementText,
+      final MaskedStatement statement,
       final QueryId queryId,
       final Optional<DataSource> sinkDataSource,
       final Set<DataSource> sources,
@@ -354,7 +357,7 @@ final class QueryBuilder {
 
     return new PersistentQueryMetadataImpl(
         persistentQueryType,
-        statementText,
+        statement,
         querySchema,
         sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
         sinkDataSource,
@@ -384,14 +387,14 @@ final class QueryBuilder {
   @SuppressWarnings("ParameterNumber")
   PersistentQueryMetadata buildPersistentQueryInSharedRuntime(
       final KsqlConfig ksqlConfig,
-      final KsqlConstants.PersistentQueryType persistentQueryType,
-      final String statementText,
+      final PersistentQueryType persistentQueryType,
+      final MaskedStatement statement,
       final QueryId queryId,
       final Optional<DataSource> sinkDataSource,
       final Set<DataSource> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
-      final QueryMetadata.Listener listener,
+      final Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
       final String applicationId,
       final MetricCollectors metricCollectors
@@ -465,7 +468,7 @@ final class QueryBuilder {
     final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
         = new BinPackedPersistentQueryMetadataImpl(
             persistentQueryType,
-            statementText,
+            statement,
             querySchema,
             sources,
             planSummary,

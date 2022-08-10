@@ -34,6 +34,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -119,9 +120,10 @@ public class TopicDeleteInjector implements Injector {
     }
 
     final T withoutDelete = (T) dropStatement.withoutDeleteClause();
-    final String withoutDeleteText = SqlFormatter.formatSql(withoutDelete) + ";";
+    final UnMaskedStatement withoutDeleteStatement =
+        UnMaskedStatement.of(SqlFormatter.formatSql(withoutDelete) + ";");
 
-    return statement.withStatement(withoutDeleteText, withoutDelete);
+    return statement.withStatement(withoutDeleteStatement, withoutDelete);
   }
 
   private void deleteTopic(final DataSource source) {

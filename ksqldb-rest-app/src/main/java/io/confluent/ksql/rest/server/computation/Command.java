@@ -29,6 +29,7 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -40,7 +41,7 @@ public class Command {
   @VisibleForTesting
   public static final int VERSION = 17;
 
-  private final String statement;
+  private final MaskedStatement statement;
   private final Map<String, Object> overwriteProperties;
   private final Map<String, String> originalProperties;
   private final Optional<KsqlPlan> plan;
@@ -48,7 +49,7 @@ public class Command {
 
   @JsonCreator
   public Command(
-      @JsonProperty(value = "statement", required = true) final String statement,
+      @JsonProperty(value = "statement", required = true) final MaskedStatement statement,
       @JsonProperty("streamsProperties") final Optional<Map<String, Object>> overwriteProperties,
       @JsonProperty("originalProperties") final Optional<Map<String, String>> originalProperties,
       @JsonProperty("plan") final Optional<KsqlPlan> plan,
@@ -66,7 +67,7 @@ public class Command {
 
   @VisibleForTesting
   public Command(
-      final String statement,
+      final MaskedStatement statement,
       final Map<String, Object> overwriteProperties,
       final Map<String, String> originalProperties,
       final Optional<KsqlPlan> plan
@@ -83,7 +84,7 @@ public class Command {
 
   @VisibleForTesting
   public Command(
-      final String statement,
+      final MaskedStatement statement,
       final Map<String, Object> overwriteProperties,
       final Map<String, String> originalProperties,
       final Optional<KsqlPlan> plan,
@@ -108,7 +109,7 @@ public class Command {
     }
   }
 
-  public String getStatement() {
+  public MaskedStatement getMaskedStatement() {
     return statement;
   }
 
@@ -139,7 +140,7 @@ public class Command {
 
   public static Command of(final ConfiguredKsqlPlan configuredPlan) {
     return new Command(
-        configuredPlan.getPlan().getStatementText(),
+        configuredPlan.getPlan().getMaskedStatement(),
         configuredPlan.getConfig().getOverrides(),
         configuredPlan.getConfig().getConfig(false).getAllConfigPropsWithSecretsObfuscated(),
         Optional.of(configuredPlan.getPlan()),
@@ -152,7 +153,7 @@ public class Command {
     final SessionConfig sessionConfig = configuredStatement.getSessionConfig();
 
     return new Command(
-        configuredStatement.getStatementText(),
+        configuredStatement.getMaskedStatement(),
         sessionConfig.getOverrides(),
         sessionConfig.getConfig(false).getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty(),

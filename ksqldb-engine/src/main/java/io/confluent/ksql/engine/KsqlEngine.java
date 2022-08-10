@@ -59,6 +59,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConfigurable;
@@ -317,7 +318,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
       // add the statement text to the KsqlException
       throw new KsqlStatementException(
           e.getMessage(),
-          plan.getPlan().getStatementText(),
+          plan.getPlan().getMaskedStatement(),
           e.getCause()
       );
     }
@@ -352,7 +353,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
       throw e;
     } catch (final KsqlException e) {
       // add the statement text to the KsqlException
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatement(),
+          e.getCause());
     }
   }
 
@@ -398,7 +400,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
           "Pull queries on streams are disabled. To create a push query on the stream,"
               + " add EMIT CHANGES to the end. To enable pull queries on streams, set"
               + " the " + KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED + " config to 'true'.",
-          statementOrig.getStatementText()
+          statementOrig.getMaskedStatement()
       );
     }
 
@@ -423,7 +425,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
 
     QueryLogger.info(
         "Streaming stream pull query results '{}' from earliest to " + endOffsets,
-        statement.getStatementText()
+        statement.getMaskedStatement().toString()
     );
 
     return new StreamPullQueryMetadata(transientQueryMetadata, endOffsets);
@@ -670,7 +672,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
    */
   public ImmutableAnalysis analyzeQueryWithNoOutputTopic(
       final Query query,
-      final String queryText,
+      final MaskedStatement queryText,
       final Map<String, Object> configOverrides) {
 
     final KsqlConfig ksqlConfig = this.primaryContext.getKsqlConfig();

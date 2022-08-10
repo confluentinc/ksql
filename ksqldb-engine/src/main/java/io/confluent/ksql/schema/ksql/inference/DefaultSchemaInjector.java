@@ -51,6 +51,8 @@ import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -133,7 +135,7 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e),
-          statement.getStatementText(),
+          statement.getMaskedStatement(),
           e.getCause());
     }
   }
@@ -160,7 +162,7 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Could not determine output schema for query due to error: "
-              + e.getMessage(), statement.getStatementText(), e);
+              + e.getMessage(), statement.getMaskedStatement(), e);
     }
 
     final Optional<SchemaAndId> keySchema = getCreateAsKeySchema(statement, createSourceCommand);
@@ -216,7 +218,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKeySchemaId(),
         keyFormat,
         serdeFeatures,
-        statement.getStatementText(),
+        statement.getMaskedStatement(),
         true
     );
 
@@ -243,7 +245,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getValueSchemaId(),
         valueFormat,
         createSourceCommand.getFormats().getValueFeatures(),
-        statement.getStatementText(),
+        statement.getMaskedStatement(),
         false
     );
 
@@ -302,7 +304,7 @@ public class DefaultSchemaInjector implements Injector {
         // until we support user-configuration of single key wrapping/unwrapping, we choose
         // to have key schema inference always result in an unwrapped key
         SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat), true),
-        statement.getStatementText(),
+        statement.getMaskedStatement(),
         true
     ));
   }
@@ -322,7 +324,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getValueSchemaId(),
         valueFormat,
         props.getValueSerdeFeatures(),
-        statement.getStatementText(),
+        statement.getMaskedStatement(),
         false
     ));
   }
@@ -332,7 +334,7 @@ public class DefaultSchemaInjector implements Injector {
       final Optional<Integer> schemaId,
       final FormatInfo expectedFormat,
       final SerdeFeatures serdeFeatures,
-      final String statementText,
+      final MaskedStatement statementText,
       final boolean isKey
   ) {
     final SchemaResult result = isKey
@@ -629,6 +631,6 @@ public class DefaultSchemaInjector implements Injector {
   private static <T extends Statement> PreparedStatement<T> buildPreparedStatement(
       final T stmt
   ) {
-    return PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);
+    return PreparedStatement.of(UnMaskedStatement.of(SqlFormatter.formatSql(stmt)), stmt);
   }
 }

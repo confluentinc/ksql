@@ -27,6 +27,7 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryMetadata.Listener;
@@ -48,7 +49,7 @@ public class TransientQueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "queryApplicationId";
   private static final String EXECUTION_PLAN = "execution plan";
-  private static final String SQL = "sql";
+  private static final MaskedStatement SQL = MaskedStatement.of("sql");
   private static final long CLOSE_TIMEOUT = 10L;
 
   @Mock

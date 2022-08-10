@@ -47,6 +47,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -176,7 +177,7 @@ public class AnalyzerFunctionalTest {
         .build();
 
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
-        "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
+        MaskedStatement.of("create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');"),
         SourceName.of("S0"),
         schema,
         Optional.empty(),
@@ -413,7 +414,7 @@ public class AnalyzerFunctionalTest {
     );
 
     final KsqlStream<?> stream = new KsqlStream<>(
-        "sqlexpression",
+        MaskedStatement.of("sqlexpression"),
         SourceName.of("KAFKA_SOURCE"),
         schema,
         Optional.empty(),

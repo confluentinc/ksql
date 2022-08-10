@@ -20,12 +20,13 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.statement.MaskedStatement;
 import java.util.Optional;
 
 @Immutable
 public class KsqlTable<K> extends StructuredDataSource<K> {
   public KsqlTable(
-      final String sqlExpression,
+      final MaskedStatement sqlExpression,
       final SourceName datasourceName,
       final LogicalSchema schema,
       final Optional<TimestampColumn> timestampExtractionPolicy,
@@ -46,9 +47,9 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
   }
 
   @Override
-  public DataSource with(final String sql, final LogicalSchema schema) {
+  public DataSource with(final MaskedStatement sql, final LogicalSchema schema) {
     return new KsqlTable<>(
-        getSqlExpression() + '\n' + sql,
+        MaskedStatement.of(getSqlExpression().toString() + '\n' + sql),
         getName(),
         schema,
         getTimestampColumn(),

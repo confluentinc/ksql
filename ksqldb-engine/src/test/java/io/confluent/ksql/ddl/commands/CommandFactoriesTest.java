@@ -62,6 +62,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -80,7 +81,7 @@ public class CommandFactoriesTest {
 
   private static final SourceName SOME_NAME = SourceName.of("bob");
   private static final SourceName TABLE_NAME = SourceName.of("tablename");
-  private static final String sqlExpression = "sqlExpression";
+  private static final MaskedStatement sqlExpression = MaskedStatement.of("sqlExpression");
   private static final TableElement ELEMENT1 =
       tableElement("bob", new Type(SqlTypes.STRING));
   private static final TableElements SOME_ELEMENTS = TableElements.of(ELEMENT1);
@@ -334,7 +335,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DropTypeCommand cmd = (DropTypeCommand) commandFactories.create(
-        "sqlExpression",
+        MaskedStatement.of("sqlExpression"),
         dropType,
         SessionConfig.of(ksqlConfig, emptyMap())
     );

@@ -15,21 +15,34 @@
 
 package io.confluent.ksql.parser.exception;
 
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 
 public class ParseFailedException extends KsqlStatementException {
 
   public ParseFailedException(final String message) {
-    super(message, "");
+    super(message, MaskedStatement.EMPTY_MASKED_STATEMENT);
   }
 
-  public ParseFailedException(final String message, final String sqlStatement) {
-    super(message, sqlStatement);
+  public ParseFailedException(final String message, final UnMaskedStatement sqlStatement) {
+    // Statement parsing failure -- just treat it as MaskedStatement
+    // Maybe warn? Or best effort Mask?
+    super(message, MaskedStatement.of(sqlStatement.toString()));
   }
 
   public ParseFailedException(
       final String message,
-      final String sqlStatement,
+      final UnMaskedStatement sqlStatement,
+      final Throwable cause) {
+    // Statement parsing failure -- just treat it as MaskedStatement
+    // Maybe warn? Or best effort Mask?
+    super(message, MaskedStatement.of(sqlStatement.toString()), cause);
+  }
+
+  public ParseFailedException(
+      final String message,
+      final MaskedStatement sqlStatement,
       final Throwable cause) {
     super(message, sqlStatement, cause);
   }

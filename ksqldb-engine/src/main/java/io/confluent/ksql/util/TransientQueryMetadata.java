@@ -25,6 +25,7 @@ import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +44,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TransientQueryMetadata(
-      final String statementString,
+      final MaskedStatement statement,
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
       final String executionPlan,
@@ -64,7 +65,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
-        statementString,
+        statement,
         logicalSchema,
         sourceNames,
         executionPlan,

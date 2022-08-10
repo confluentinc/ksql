@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TestStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.ParserUtil;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -185,10 +186,12 @@ public final class SqlTestReader implements Iterator<TestStatement> {
     }
 
     try {
-      cachedRunScript.addAll(new DefaultKsqlParser().parse(String.join("\n", lines)));
+      cachedRunScript.addAll(new DefaultKsqlParser().parse(
+          UnMaskedStatement.of(String.join("\n", lines))));
     } catch (final ParseFailedException e) {
       throw new ParseFailedException(
-          "Failed to parse contents of RUN SCRIPT", "RUN SCRIPT '" + script + "';", e);
+          "Failed to parse contents of RUN SCRIPT",
+          UnMaskedStatement.of("RUN SCRIPT '" + script + "';"), e);
     }
 
     if (cachedRunScript.isEmpty()) {

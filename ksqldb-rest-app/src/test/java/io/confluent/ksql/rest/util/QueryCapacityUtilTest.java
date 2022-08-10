@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -124,7 +125,7 @@ public class QueryCapacityUtilTest {
     // When:
     final KsqlException e = assertThrows(
             KsqlException.class,
-            () -> QueryCapacityUtil.throwTooManyActivePushQueriesException(ksqlEngine, ksqlRestConfig, statementStr)
+            () -> QueryCapacityUtil.throwTooManyActivePushQueriesException(ksqlEngine, ksqlRestConfig, MaskedStatement.of(statementStr))
     );
 
     // Then:

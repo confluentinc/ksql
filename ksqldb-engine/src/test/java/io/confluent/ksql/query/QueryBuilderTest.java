@@ -49,6 +49,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -97,6 +98,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryBuilderTest {
 
   private static final String STATEMENT_TEXT = "KSQL STATEMENT";
+  private static final MaskedStatement MASKED_STATEMENT = MaskedStatement.of(STATEMENT_TEXT);
   private static final QueryId QUERY_ID = new QueryId("queryid");
   private static final QueryId QUERY_ID_2 = new QueryId("queryid-2");
   private static final Set<DataSource> SOURCES
@@ -260,7 +262,7 @@ public class QueryBuilderTest {
 
     // When:
     final TransientQueryMetadata queryMetadata = queryBuilder.buildTransientQuery(
-        STATEMENT_TEXT,
+        MASKED_STATEMENT,
         QUERY_ID,
         SOURCES.stream().map(DataSource::getName).collect(Collectors.toSet()),
         physicalPlan,
@@ -784,7 +786,7 @@ public class QueryBuilderTest {
       return queryBuilder.buildPersistentQueryInSharedRuntime(
           ksqlConfig,
           persistentQueryType,
-          STATEMENT_TEXT,
+          MASKED_STATEMENT,
           queryId,
           sink,
           sources,
@@ -801,7 +803,7 @@ public class QueryBuilderTest {
       return queryBuilder.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,
           persistentQueryType,
-          STATEMENT_TEXT,
+          MASKED_STATEMENT,
           queryId,
           sink,
           SOURCES,

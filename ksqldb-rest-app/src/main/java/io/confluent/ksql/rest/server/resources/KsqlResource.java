@@ -91,7 +91,7 @@ public class KsqlResource implements KsqlConfigurable {
   private static final Logger LOG = LoggerFactory.getLogger(KsqlResource.class);
 
   private static final List<ParsedStatement> TERMINATE_CLUSTER =
-      new DefaultKsqlParser().parse(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
+      new DefaultKsqlParser().parse(TerminateCluster.TERMINATE_CLUSTER_STATEMENT);
 
   private static final Set<Class<? extends Statement>> SYNC_BLACKLIST =
       ImmutableSet.<Class<? extends Statement>>builder()
@@ -238,7 +238,7 @@ public class KsqlResource implements KsqlConfigurable {
       return EndpointResponse.ok(entities);
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
-          e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());
+          e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_MASKED, new KsqlEntityList());
     }
   }
 
@@ -292,7 +292,8 @@ public class KsqlResource implements KsqlConfigurable {
 
       final KsqlRequestConfig requestConfig =
           new KsqlRequestConfig(request.getRequestProperties());
-      final List<ParsedStatement> statements = ksqlEngine.parse(request.getUnmaskedKsql());
+      final List<ParsedStatement> statements = ksqlEngine.parse(
+          request.getUnmaskedKsql().toString());
 
       validator.validate(
           SandboxedServiceContext.create(securityContext.getServiceContext()),
@@ -304,16 +305,16 @@ public class KsqlResource implements KsqlConfigurable {
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
               request.getSessionVariables()
           ),
-          request.getUnmaskedKsql()
+          request.getUnmaskedKsql().toString()
       );
 
       // log validated statements for query anonymization
       statements.forEach(s -> {
-        if (s.getUnMaskedStatementText().toLowerCase().contains("terminate")
-            || s.getUnMaskedStatementText().toLowerCase().contains("drop")) {
-          QueryLogger.info("Query terminated", s.getStatementText());
+        if (s.getUnMaskedStatement().toString().toLowerCase().contains("terminate")
+            || s.getUnMaskedStatement().toString().toLowerCase().contains("drop")) {
+          QueryLogger.info("Query terminated", s.getMaskedStatement().toString());
         } else {
-          QueryLogger.info("Query created", s.getStatementText());
+          QueryLogger.info("Query created", s.getMaskedStatement().toString());
         }
       });
 

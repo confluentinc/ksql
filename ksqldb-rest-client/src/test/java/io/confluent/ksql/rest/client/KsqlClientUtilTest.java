@@ -34,6 +34,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.JsonObject;
@@ -176,7 +177,7 @@ public class KsqlClientUtilTest {
     // Given:
     Map<String, Object> props = new HashMap<>();
     props.put("auto.offset.reset", "latest");
-    KsqlRequest request = new KsqlRequest("some ksql", props, Collections.emptyMap(), 21345L);
+    KsqlRequest request = new KsqlRequest(UnMaskedStatement.of("some ksql"), props, Collections.emptyMap(), 21345L);
 
     // When:
     Buffer buff = KsqlClientUtil.serialize(request);

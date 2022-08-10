@@ -75,7 +75,7 @@ public final class ConnectExecutor {
     if (response.datum().isPresent()) {
       return StatementExecutorResponse.handled(Optional.of(
           new CreateConnectorEntity(
-              statement.getStatementText(),
+              statement.getMaskedStatement().toString(),
               response.datum().get()
           )
       ));
@@ -119,7 +119,7 @@ public final class ConnectExecutor {
     }
 
     return StatementExecutorResponse.handled(Optional.of(new CreateConnectorEntity(
-        statement.getStatementText(),
+        statement.getMaskedStatement().toString(),
         DUMMY_CREATE_RESPONSE
     )));
   }
@@ -203,7 +203,7 @@ public final class ConnectExecutor {
       }
 
       if (connectorExists(createConnector, connectorsResponse)) {
-        return Optional.of(new WarningEntity(statement.getStatementText(),
+        return Optional.of(new WarningEntity(statement.getMaskedStatement().toString(),
             String.format("Connector %s already exists", createConnector.getName())));
       }
     }

@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,10 +50,10 @@ public final class KsqlParserTestUtil {
       final String sql,
       final MetaStore metaStore
   ) {
-    return KSQL_PARSER.parse(sql).stream()
+    return KSQL_PARSER.parse(UnMaskedStatement.of(sql)).stream()
         .map(parsed -> KSQL_PARSER.prepare(parsed, metaStore))
         .map(prepared -> PreparedStatement.of(
-            prepared.getUnMaskedStatementText(),
+            prepared.getUnMaskedStatement(),
             AstSanitizer.sanitize(
                 prepared.getStatement(), metaStore)))
         .collect(Collectors.toList());

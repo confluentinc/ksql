@@ -496,7 +496,7 @@ public class RestTestExecutor implements Closeable {
     final Optional<Matcher<RestResponse<?>>> expectedError = testCase.expectedError();
     if (!expectedError.isPresent()) {
       final String statement = resp.getErrorMessage() instanceof KsqlStatementErrorMessage
-          ? ((KsqlStatementErrorMessage) resp.getErrorMessage()).getStatementText()
+          ? ((KsqlStatementErrorMessage) resp.getErrorMessage()).getMaskedStatement().toString()
           : "";
 
       throw new AssertionError(

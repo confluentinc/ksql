@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Optional;
 
@@ -84,7 +85,7 @@ public interface DataSource {
   /**
    * @return the SQL statement used to create this source.
    */
-  String getSqlExpression();
+  MaskedStatement getSqlExpression();
 
   /**
    * @return returns whether this stream/table was created by a C(T|S)AS
@@ -102,7 +103,7 @@ public interface DataSource {
    * @param schema a schema
    * @return a new DataSource object with all attributes the same as this, but with a new schema
    */
-  DataSource with(String sql, LogicalSchema schema);
+  DataSource with(MaskedStatement sql, LogicalSchema schema);
 
   /**
    * @return returns true if this source is read-only

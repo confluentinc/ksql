@@ -46,7 +46,7 @@ public class CommandTest {
         "}";
     final ObjectMapper mapper = PlanJsonMapper.INSTANCE.get();
     final Command command = mapper.readValue(commandStr, Command.class);
-    assertThat(command.getStatement(), equalTo("test statement;"));
+    assertThat(command.getMaskedStatement(), equalTo("test statement;"));
     final Map<String, Object> expecteOverwriteProperties
         = Collections.singletonMap("foo", "bar");
     assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
@@ -82,7 +82,7 @@ public class CommandTest {
         "}";
     final ObjectMapper mapper = PlanJsonMapper.INSTANCE.get();
     final Command command = mapper.readValue(commandStr, Command.class);
-    assertThat(command.getStatement(), equalTo("test statement;"));
+    assertThat(command.getMaskedStatement(), equalTo("test statement;"));
     final Map<String, Object> expecteOverwriteProperties
         = Collections.singletonMap("foo", "bar");
     assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));

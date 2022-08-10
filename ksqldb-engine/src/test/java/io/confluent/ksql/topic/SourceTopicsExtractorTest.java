@@ -41,6 +41,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -166,7 +167,7 @@ public class SourceTopicsExtractorTest {
       final KsqlTopic sourceTopic
   ) {
     final KsqlStream<?> streamSource = new KsqlStream<>(
-        "",
+        MaskedStatement.EMPTY_MASKED_STATEMENT,
         SourceName.of(streamName.toUpperCase()),
         SCHEMA,
         Optional.empty(),

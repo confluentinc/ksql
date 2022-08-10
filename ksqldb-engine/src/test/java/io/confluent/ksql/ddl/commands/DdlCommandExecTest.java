@@ -35,6 +35,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -51,7 +52,7 @@ import org.mockito.junit.MockitoRule;
 
 public class DdlCommandExecTest {
   private static final Set<SourceName> NO_QUERY_SOURCES = Collections.emptySet(); 
-  private static final String SQL_TEXT = "some ksql";
+  private static final MaskedStatement SQL_TEXT = MaskedStatement.of("some ksql");
   private static final SourceName STREAM_NAME = SourceName.of("s1");
   private static final SourceName OTHER_STREAM_NAME = SourceName.of("other-s1");
   private static final SourceName TABLE_NAME = SourceName.of("t1");

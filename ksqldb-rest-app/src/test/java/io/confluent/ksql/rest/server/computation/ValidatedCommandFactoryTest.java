@@ -114,7 +114,7 @@ public class ValidatedCommandFactoryTest {
   public void shouldValidateTerminateCluster() {
     // Given:
     configuredStatement = configuredStatement(
-        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+        TerminateCluster.TERMINATE_CLUSTER_STATEMENT,
         terminateQuery
     );
 

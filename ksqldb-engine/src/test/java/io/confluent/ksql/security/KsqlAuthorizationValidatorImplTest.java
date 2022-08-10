@@ -42,6 +42,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -531,7 +532,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
   private void givenStreamWithTopic(final String streamName, final KsqlTopic sourceTopic) {
     final KsqlStream<?> streamSource = new KsqlStream<>(
-        "",
+        MaskedStatement.EMPTY_MASKED_STATEMENT,
         SourceName.of(streamName.toUpperCase()),
         SCHEMA,
         Optional.empty(),

@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.statement.MaskedStatement;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,16 +34,16 @@ final class KsqlPlanV1 implements KsqlPlan {
    * {@code hashCode()} methods of this class, and is also not validated to be unchanging by
    * query translation test historic plans.
    */
-  private final String statementText;
+  private final MaskedStatement statement;
   private final Optional<DdlCommand> ddlCommand;
   private final Optional<QueryPlan> queryPlan;
 
   KsqlPlanV1(
-      @JsonProperty(value = "statementText", required = true) final String statementText,
+      @JsonProperty(value = "statement", required = true) final MaskedStatement statement,
       @JsonProperty(value = "ddlCommand") final Optional<DdlCommand> ddlCommand,
       @JsonProperty(value = "queryPlan") final Optional<QueryPlan> queryPlan
   ) {
-    this.statementText = Objects.requireNonNull(statementText, "statementText");
+    this.statement = Objects.requireNonNull(statement, "statement");
     this.ddlCommand = Objects.requireNonNull(ddlCommand, "ddlCommand");
     this.queryPlan = Objects.requireNonNull(queryPlan, "queryPlan");
 
@@ -59,13 +60,13 @@ final class KsqlPlanV1 implements KsqlPlan {
     return queryPlan;
   }
 
-  public String getStatementText() {
-    return statementText;
+  public MaskedStatement getMaskedStatement() {
+    return statement;
   }
 
   @Override
   public KsqlPlan withoutQuery() {
-    return new KsqlPlanV1(statementText, ddlCommand, Optional.empty());
+    return new KsqlPlanV1(statement, ddlCommand, Optional.empty());
   }
 
   @Override

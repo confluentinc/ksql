@@ -338,16 +338,15 @@ public class CommandRunner implements Closeable {
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
-    final String commandStatement =
-        queuedCommand.getAndDeserializeCommand(commandDeserializer).getStatement();
-    LOG.info("Executing statement: " + commandStatement);
+    final String commandId = queuedCommand.getAndDeserializeCommandId().toString();
+    LOG.info("Executing statement: " + commandId);
 
     final Runnable task = () -> {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        LOG.info("Executed statement: " + commandStatement);
+        LOG.info("Executed statement: " + commandId);
       }
     };
 
@@ -367,8 +366,9 @@ public class CommandRunner implements Closeable {
       final Deserializer<Command> commandDeserializer
   ) {
     return restoreCommands.stream()
-        .filter(command -> command.getAndDeserializeCommand(commandDeserializer).getStatement()
-            .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))
+        .filter(
+            command -> command.getAndDeserializeCommand(commandDeserializer).getMaskedStatement()
+                .equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT))
         .findFirst();
   }
 

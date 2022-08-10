@@ -68,6 +68,8 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.MaskedStatement;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Duration;
@@ -290,7 +292,7 @@ public class RecoveryTest {
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
         final EndpointResponse response = ksqlResource.handleKsqlStatements(securityContext,
-            new KsqlRequest(statement, Collections.emptyMap(), Collections.emptyMap(), null));
+            new KsqlRequest(UnMaskedStatement.of(statement), Collections.emptyMap(), Collections.emptyMap(), null));
         assertThat("Bad response: " + response.getEntity(), response.getStatus(), equalTo(200));
         executeCommands();
       }
@@ -358,7 +360,7 @@ public class RecoveryTest {
     final Matcher<DataSource.DataSourceType> typeMatcher;
     final Matcher<SourceName> nameMatcher;
     final Matcher<LogicalSchema> schemaMatcher;
-    final Matcher<String> sqlMatcher;
+    final Matcher<MaskedStatement> sqlMatcher;
     final Matcher<Optional<TimestampColumn>> extractionColumnMatcher;
     final Matcher<KsqlTopic> topicMatcher;
 
@@ -746,10 +748,10 @@ public class RecoveryTest {
     // ksqlDB does not allow a DROP STREAM A because 'A' is used by 'B'.
     // However, if a ksqlDB upgrade is done, then this order can be possible.
     final Command dropACommand = new Command(
-        "DROP STREAM A;",
+        MaskedStatement.of("DROP STREAM A;"),
         Optional.of(ImmutableMap.of()),
         Optional.of(ImmutableMap.of()),
-        Optional.of(KsqlPlan.ddlPlanCurrent("DROP STREAM A;",
+        Optional.of(KsqlPlan.ddlPlanCurrent(MaskedStatement.of("DROP STREAM A;"),
             new DropSourceCommand(SourceName.of("A")))),
         Optional.of(Command.VERSION)
     );
@@ -791,10 +793,10 @@ public class RecoveryTest {
     // ksqlDB does not allow a DROP STREAM A because 'A' is used by 'B'.
     // However, if a ksqlDB upgrade is done, then this order can be possible.
     final Command dropACommand = new Command(
-        "DROP STREAM A;",
+        MaskedStatement.of("DROP STREAM A;"),
         Optional.of(ImmutableMap.of()),
         Optional.of(ImmutableMap.of()),
-        Optional.of(KsqlPlan.ddlPlanCurrent("DROP STREAM A;",
+        Optional.of(KsqlPlan.ddlPlanCurrent(MaskedStatement.of("DROP STREAM A;"),
             new DropSourceCommand(SourceName.of("A")))),
         Optional.of(Command.VERSION)
     );
@@ -810,11 +812,11 @@ public class RecoveryTest {
 
     // Add CREATE STREAM after the DROP again
     final Command createACommand = new Command(
-        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        MaskedStatement.of("CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');"),
         Optional.of(ImmutableMap.of()),
         Optional.of(ImmutableMap.of()),
         Optional.of(KsqlPlan.ddlPlanCurrent(
-            "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+            MaskedStatement.of("CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');"),
             new CreateStreamCommand(
                 SourceName.of("A"),
                 LogicalSchema.builder()

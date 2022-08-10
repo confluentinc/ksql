@@ -24,6 +24,7 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.UnMaskedStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -76,7 +77,7 @@ public class DefaultFormatInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatement(),
           e.getCause());
     }
   }
@@ -146,7 +147,7 @@ public class DefaultFormatInjector implements Injector {
   private static PreparedStatement<CreateSource> buildPreparedStatement(
       final CreateSource stmt
   ) {
-    return PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);
+    return PreparedStatement.of(UnMaskedStatement.of(SqlFormatter.formatSql(stmt)), stmt);
   }
 
 }

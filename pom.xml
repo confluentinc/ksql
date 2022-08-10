@@ -45,7 +45,13 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-
+    <distributionManagement>
+    <repository>
+        <id>codeartifact</id>
+        <name>confluent-dev-huiz-test-1</name>
+        <url>https://confluent-dev-755363985185.d.codeartifact.us-west-2.amazonaws.com/maven/huiz-test-1/</url>
+    </repository>
+    </distributionManagement>
     <modules>
         <module>ksqldb-udf</module>
         <module>ksqldb-common</module>

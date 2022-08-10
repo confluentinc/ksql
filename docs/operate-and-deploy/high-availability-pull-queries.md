@@ -79,4 +79,16 @@ ensure that your pull queries succeed with controlled lag and low latency.
 
 !!! note 
     {{ site.ccloud }} is configured with HA enabled by default on clusters 8 CSUs or more.
- 
+
+## Compatability with Authentication
+`authentication.skip.paths` should be set with both `/lag` and `/heartbeat`.
+This would allow ksqlDB cluster instances to communicate without authenticating between each other.
+
+
+The configuration prevents the error below.
+```
+ksqldb-server1     | [...] ERROR Failed to handle request 401 /heartbeat (io.confluent.ksql.api.server.FailureHandler:38)
+ksqldb-server1     | io.confluent.ksql.api.server.KsqlApiException: Unauthorized
+```
+
+It's recommended to block the traffic from outside your cluster to those endpoints for security reasons.

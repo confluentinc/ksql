@@ -46,7 +46,7 @@ public final class ListConnectorPluginsExecutor {
         serviceContext.getConnectClient().connectorPlugins();
     if (plugins.error().isPresent()) {
       return Optional.of(new ErrorEntity(
-        configuredStatement.getStatementText(),
+        configuredStatement.getMaskedStatementText(),
         plugins.error().get()
       ));
     }
@@ -62,7 +62,7 @@ public final class ListConnectorPluginsExecutor {
 
     return Optional.of(
       new ConnectorPluginsList(
-        configuredStatement.getStatementText(),
+        configuredStatement.getMaskedStatementText(),
         Collections.emptyList(),
         pluginInfos
       )

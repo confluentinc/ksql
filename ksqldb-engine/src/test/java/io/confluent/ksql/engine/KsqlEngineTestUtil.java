@@ -109,7 +109,8 @@ public final class KsqlEngineTestUtil {
     } catch (final KsqlStatementException e) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement
-      throw new KsqlStatementException(e.getRawMessage(), stmt.getStatementText(), e.getCause());
+      throw new KsqlStatementException(e.getRawMessage(), stmt.getMaskedStatementText(),
+          e.getCause());
     }
   }
 
@@ -162,7 +163,8 @@ public final class KsqlEngineTestUtil {
     } catch (final KsqlStatementException e) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement
-      throw new KsqlStatementException(e.getRawMessage(), stmt.getStatementText(), e.getCause());
+      throw new KsqlStatementException(e.getRawMessage(), stmt.getMaskedStatementText(),
+          e.getCause());
     }
   }
 }

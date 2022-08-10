@@ -65,8 +65,8 @@ public final class ConfiguredStatement<T extends Statement> {
    * needs unmasked statement text, please use {@code getUnMaskedStatementText}
    * @return Masked statement text
    */
-  public String getStatementText() {
-    return statement.getStatementText();
+  public String getMaskedStatementText() {
+    return statement.getMaskedStatementText();
   }
 
   /**

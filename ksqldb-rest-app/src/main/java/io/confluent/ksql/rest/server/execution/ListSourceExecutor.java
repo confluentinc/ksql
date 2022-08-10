@@ -119,7 +119,7 @@ public final class ListSourceExecutor {
         .collect(Collectors.toList());
     return Optional.of(
         new SourceDescriptionList(
-            statement.getStatementText(),
+            statement.getMaskedStatementText(),
             descriptions.stream().map(d -> d.description).collect(Collectors.toList()),
             descriptions.stream().flatMap(d -> d.warnings.stream()).collect(Collectors.toList())
         )
@@ -147,7 +147,7 @@ public final class ListSourceExecutor {
     }
 
     return Optional.of(new StreamsList(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         ksqlStreams.stream()
             .map(ListSourceExecutor::sourceSteam)
             .collect(Collectors.toList())));
@@ -173,7 +173,7 @@ public final class ListSourceExecutor {
       );
     }
     return Optional.of(new TablesList(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         ksqlTables.stream()
             .map(ListSourceExecutor::sourceTable)
             .collect(Collectors.toList())));
@@ -234,7 +234,7 @@ public final class ListSourceExecutor {
     );
     return Optional.of(
         new SourceDescriptionEntity(
-            statement.getStatementText(),
+            statement.getMaskedStatementText(),
             descriptionWithWarnings.description,
             descriptionWithWarnings.warnings
         )
@@ -279,7 +279,7 @@ public final class ListSourceExecutor {
       throw new KsqlStatementException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",
           name.text()
-      ), statement.getStatementText());
+      ), statement.getMaskedStatementText());
     }
 
     final List<RunningQuery> readQueries = getQueries(ksqlEngine,

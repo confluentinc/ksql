@@ -47,13 +47,14 @@ public final class DropConnectorExecutor {
 
     if (response.error().isPresent()) {
       if (ifExists && response.httpCode() == HttpStatus.SC_NOT_FOUND) {
-        return Optional.of(new WarningEntity(statement.getStatementText(),
+        return Optional.of(new WarningEntity(statement.getMaskedStatementText(),
                 "Connector '" + connectorName + "' does not exist."));
       } else {
-        return Optional.of(new ErrorEntity(statement.getStatementText(), response.error().get()));
+        return Optional.of(
+            new ErrorEntity(statement.getMaskedStatementText(), response.error().get()));
       }
     }
 
-    return Optional.of(new DropConnectorEntity(statement.getStatementText(), connectorName));
+    return Optional.of(new DropConnectorEntity(statement.getMaskedStatementText(), connectorName));
   }
 }

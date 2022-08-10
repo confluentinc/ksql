@@ -75,6 +75,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
@@ -131,11 +132,11 @@ final class EngineExecutor {
 
   ExecuteResult execute(final KsqlPlan plan) {
     final Optional<QueryPlan> queryPlan = plan.getQueryPlan();
-
+    final String maskedStatement = QueryMask.getMaskedStatement(plan.getStatementText());
     if (!queryPlan.isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
-          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet()))
+          .map(ddl -> executeDdl(ddl, maskedStatement, false, Collections.emptySet()))
           .orElseThrow(
               () -> new IllegalStateException(
                   "DdlResult should be present if there is no physical plan."));
@@ -143,7 +144,7 @@ final class EngineExecutor {
     }
 
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, plan.getStatementText(), true, queryPlan.get().getSources()));
+        executeDdl(ddl, maskedStatement, true, queryPlan.get().getSources()));
 
     // Return if the source to create already exists.
     if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
@@ -152,7 +153,7 @@ final class EngineExecutor {
 
     return ExecuteResult.of(executePersistentQuery(
         queryPlan.get(),
-        plan.getStatementText(),
+        maskedStatement,
         plan.getDdlCommand().isPresent())
     );
   }
@@ -226,7 +227,7 @@ final class EngineExecutor {
           Optional.ofNullable(finalPlanType).orElse(PullPhysicalPlanType.UNKNOWN),
           Optional.ofNullable(finalRoutingNodeType).orElse(RoutingNodeType.UNKNOWN)));
 
-      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
       final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
       final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
 
@@ -250,13 +251,13 @@ final class EngineExecutor {
             queryPlannerOptions.debugString(),
             e);
       }
-      LOG.debug("Failed pull query text {}, {}", statement.getStatementText(), e);
+      LOG.debug("Failed pull query text {}, {}", statement.getMaskedStatementText(), e);
 
       throw new KsqlStatementException(
           e.getMessage() == null
               ? "Server Error" + Arrays.toString(e.getStackTrace())
               : e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e
       );
     }
@@ -308,7 +309,7 @@ final class EngineExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e
       );
     }
@@ -333,7 +334,7 @@ final class EngineExecutor {
         serviceContext,
         engineContext.getProcessingLogContext(),
         engineContext.getMetaStore(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         plans.physicalPlan.getQueryId(),
         getSourceNames(outputNode),
         plans.physicalPlan.getPhysicalPlan(),
@@ -355,12 +356,12 @@ final class EngineExecutor {
 
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
         final DdlCommand ddlCommand = engineContext.createDdlCommand(
-            statement.getStatementText(),
+            statement.getMaskedStatementText(),
             (ExecutableDdlStatement) statement.getStatement(),
             config
         );
 
-        return KsqlPlan.ddlPlanCurrent(statement.getStatementText(), ddlCommand);
+        return KsqlPlan.ddlPlanCurrent(statement.getMaskedStatementText(), ddlCommand);
       }
 
       final QueryContainer queryContainer = (QueryContainer) statement.getStatement();
@@ -395,14 +396,14 @@ final class EngineExecutor {
       );
 
       return KsqlPlan.queryPlanCurrent(
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           ddlCommand,
           queryPlan
       );
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
     }
   }
 
@@ -565,7 +566,7 @@ final class EngineExecutor {
       throw new KsqlStatementException("Invalid result type. "
                                            + "Your SELECT query produces a TABLE. "
                                            + "Please use CREATE TABLE AS SELECT statement instead.",
-                                       statement.getStatementText());
+                                       statement.getMaskedStatementText());
     }
 
     if (statement.getStatement() instanceof CreateTableAsSelect
@@ -573,13 +574,14 @@ final class EngineExecutor {
       throw new KsqlStatementException(
           "Invalid result type. Your SELECT query produces a STREAM. "
            + "Please use CREATE STREAM AS SELECT statement instead.",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
   }
 
   private static void throwOnNonExecutableStatement(final ConfiguredStatement<?> statement) {
     if (!KsqlEngine.isExecutableStatement(statement.getStatement())) {
-      throw new KsqlStatementException("Statement not executable", statement.getStatementText());
+      throw new KsqlStatementException("Statement not executable",
+          statement.getMaskedStatementText());
     }
   }
 

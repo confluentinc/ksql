@@ -80,10 +80,10 @@ public class PushRouting implements AutoCloseable {
 
     if (hosts.isEmpty()) {
       LOG.error("Unable to execute push query: {}. No nodes executing persistent queries",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
       throw new KsqlException(String.format(
           "Unable to execute push query. No nodes executing persistent queries %s",
-          statement.getStatementText()));
+          statement.getMaskedStatementText()));
     }
 
     return connectToHosts(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
@@ -126,13 +126,13 @@ public class PushRouting implements AutoCloseable {
               .findFirst()
               .orElse(null);
           LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
-              statement.getStatementText(), node, System.currentTimeMillis(), t.getCause());
+              statement.getMaskedStatementText(), node, System.currentTimeMillis(), t.getCause());
 
           pushConnectionsHandle.close();
           pushConnectionsHandle.completeExceptionally(
               new KsqlException(String.format(
                   "Unable to execute push query \"%s\". %s",
-                  statement.getStatementText(), t.getCause().getMessage())));
+                  statement.getMaskedStatementText(), t.getCause().getMessage())));
 
           return pushConnectionsHandle;
         });
@@ -150,7 +150,7 @@ public class PushRouting implements AutoCloseable {
   ) {
     if (node.isLocal()) {
       LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-          statement.getStatementText(), node.location(), System.currentTimeMillis());
+          statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       final AtomicReference<BufferedPublisher<List<?>>> publisherRef
           = new AtomicReference<>(null);
       return CompletableFuture.completedFuture(null)
@@ -166,7 +166,7 @@ public class PushRouting implements AutoCloseable {
           })
           .exceptionally(t -> {
             LOG.error("Error executing query {} locally at node {}",
-                statement.getStatementText(), node.location(), t.getCause());
+                statement.getMaskedStatementText(), node.location(), t.getCause());
             final BufferedPublisher<List<?>> publisher = publisherRef.get();
             pushPhysicalPlan.close();
             if (publisher != null) {
@@ -180,7 +180,7 @@ public class PushRouting implements AutoCloseable {
           });
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
-          statement.getStatementText(), node.location(), System.currentTimeMillis());
+          statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       final AtomicReference<BufferedPublisher<StreamedRow>> publisherRef
           = new AtomicReference<>(null);
       final CompletableFuture<BufferedPublisher<StreamedRow>> publisherFuture
@@ -192,7 +192,7 @@ public class PushRouting implements AutoCloseable {
         return new RoutingResult(RoutingResultStatus.SUCCESS, publisher::close);
       }).exceptionally(t -> {
         LOG.error("Error forwarding query {} to node {}",
-            statement.getStatementText(), node, t.getCause());
+            statement.getMaskedStatementText(), node, t.getCause());
         final BufferedPublisher<StreamedRow> publisher = publisherRef.get();
         if (publisher != null) {
           publisher.close();

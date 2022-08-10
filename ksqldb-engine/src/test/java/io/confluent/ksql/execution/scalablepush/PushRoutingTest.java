@@ -147,7 +147,7 @@ public class PushRoutingTest {
   public void setUp() {
     vertx = Vertx.vertx();
     context = vertx.getOrCreateContext();
-    when(statement.getStatementText()).thenReturn("SELECT * FROM STREAM EMIT CHANGES");
+    when(statement.getMaskedStatementText()).thenReturn("SELECT * FROM STREAM EMIT CHANGES");
     when(statement.getUnMaskedStatementText()).thenReturn("SELECT * FROM STREAM EMIT CHANGES");
     when(statement.getSessionConfig()).thenReturn(sessionConfig);
     when(sessionConfig.getOverrides()).thenReturn(ImmutableMap.of());

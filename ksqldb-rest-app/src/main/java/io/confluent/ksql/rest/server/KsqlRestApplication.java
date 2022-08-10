@@ -1063,8 +1063,7 @@ public final class KsqlRestApplication implements Executable {
       try {
         CommandTopicMigrationUtil.commandTopicMigration(commandTopic, restConfig, ksqlConfigNoPort);
       } catch (final Exception e) {
-        internalTopicClient.deleteTopics(Collections.singletonList(commandTopic));
-        throw new KsqlException("Error migrating command topic");
+        throw new KsqlException("Error migrating command topic", e);
       }
     }
 

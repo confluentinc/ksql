@@ -14,7 +14,7 @@ common {
     pinnedNanoVersions = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
+    extraBuildArgs = "-Dmaven.gitcommitid.skip -Dmaven.artifact.threads=16"
     mavenBuildGoals = "clean install"
 }
 

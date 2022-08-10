@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
  *   <li>If two methods exist that match given the above rules, return the
  *       method with fewer generic arguments.</li>
  *   <li>If two methods exist that match given the above rules, return the
- *       method the variadic argument in the later position.</li>
+ *       method with the variadic argument in the later position.</li>
  *   <li>If two methods exist that match given the above rules, the function
  *       call is ambiguous and an exception is thrown.</li>
  * </ul>

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.client;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.streams.WriteStream;
@@ -41,20 +42,18 @@ public class BufferMapWriteStream<T> implements WriteStream<Buffer> {
   }
 
   @Override
-  public WriteStream<Buffer> write(final Buffer data) {
-    delegate.write(mapper.apply(data));
-    return this;
+  public Future<Void> write(final Buffer data) {
+    return delegate.write(mapper.apply(data));
   }
 
   @Override
-  public WriteStream<Buffer> write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
+  public void write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
     delegate.write(mapper.apply(data), handler);
-    return this;
   }
 
   @Override
-  public void end() {
-    delegate.end();
+  public Future<Void> end() {
+    return delegate.end();
   }
 
   @Override

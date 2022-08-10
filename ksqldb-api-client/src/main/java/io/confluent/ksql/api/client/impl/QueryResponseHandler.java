@@ -17,8 +17,6 @@ package io.confluent.ksql.api.client.impl;
 
 import static io.confluent.ksql.util.BytesUtils.toJsonMsg;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.api.client.util.JsonMapper;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
@@ -29,8 +27,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends ResponseHandler<T> {
-
-  private static final ObjectMapper JSON_MAPPER = JsonMapper.get();
 
   protected boolean hasReadArguments;
 

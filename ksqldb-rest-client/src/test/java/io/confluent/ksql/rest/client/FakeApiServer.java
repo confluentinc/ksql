@@ -73,7 +73,7 @@ public class FakeApiServer extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(stopPromise.future());
+      httpServer.close(x -> stopPromise.complete());
     }
   }
 

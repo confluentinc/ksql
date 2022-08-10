@@ -119,10 +119,10 @@ public final class HARouting implements AutoCloseable {
         .anyMatch(location -> location.getNodes().isEmpty());
     if (anyPartitionsEmpty) {
       LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
-                statement.getStatementText());
+                statement.getMaskedStatementText());
       throw new MaterializationException(String.format(
           "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
-          statement.getStatementText()));
+          statement.getMaskedStatementText()));
     }
 
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
@@ -193,7 +193,7 @@ public final class HARouting implements AutoCloseable {
           future.get();
         } catch (ExecutionException e) {
           LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
-              statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
+              statement.getMaskedStatementText(), node, System.currentTimeMillis(), e.getCause());
           nextRoundRemaining.addAll(groupedByHost.get(node));
         }
       }
@@ -226,7 +226,7 @@ public final class HARouting implements AutoCloseable {
       if (round >= location.getNodes().size()) {
         throw new MaterializationException(String.format(
             "Unable to execute pull query: %s. Exhausted standby hosts to try.",
-            statement.getStatementText()));
+            statement.getMaskedStatementText()));
       }
       final KsqlNode nextHost = location.getNodes().get(round);
       groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);
@@ -269,33 +269,33 @@ public final class HARouting implements AutoCloseable {
     if (node.isLocal()) {
       try {
         LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-                  statement.getStatementText(), node.location(), System.currentTimeMillis());
+                  statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
         pullPhysicalPlan.execute(locations, pullQueryQueue,  rowFactory);
       } catch (Exception e) {
         LOG.error("Error executing query {} locally at node {} with exception",
-            statement.getStatementText(), node, e.getCause());
+            statement.getMaskedStatementText(), node, e.getCause());
         throw new KsqlException(
             String.format("Error executing query %s locally at node %s",
-                          statement.getStatementText(), node),
+                          statement.getMaskedStatementText(), node),
             e
         );
       }
     } else {
       try {
         LOG.debug("Query {} routed to host {} at timestamp {}.",
-                  statement.getStatementText(), node.location(), System.currentTimeMillis());
+                  statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
         forwardTo(node, locations, statement, serviceContext, pullQueryQueue, rowFactory,
             outputSchema);
       } catch (Exception e) {
         LOG.error("Error forwarding query {} to node {} with exception {}",
-                  statement.getStatementText(), node, e.getCause());
+                  statement.getMaskedStatementText(), node, e.getCause());
         throw new KsqlException(
             String.format("Error forwarding query %s to node %s",
-                          statement.getStatementText(), node),
+                          statement.getMaskedStatementText(), node),
             e
         );
       }
@@ -326,7 +326,7 @@ public final class HARouting implements AutoCloseable {
         .getKsqlClient()
         .makeQueryRequest(
             owner.location(),
-            statement.getStatementText(),
+            statement.getUnMaskedStatementText(),
             statement.getSessionConfig().getOverrides(),
             requestProperties,
             streamedRowsHandler(owner, statement, requestProperties, pullQueryQueue, rowFactory,
@@ -380,7 +380,7 @@ public final class HARouting implements AutoCloseable {
         if (row.getErrorMessage().isPresent()) {
           throw new KsqlStatementException(
               row.getErrorMessage().get().getMessage(),
-              statement.getStatementText()
+              statement.getMaskedStatementText()
           );
         }
 

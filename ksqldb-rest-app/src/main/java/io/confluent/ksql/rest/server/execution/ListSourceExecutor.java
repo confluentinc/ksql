@@ -94,12 +94,12 @@ public final class ListSourceExecutor {
                 serviceContext,
                 s.getName(),
                 extended,
-                statement.getStatementText())
+                statement.getMaskedStatementText())
         )
         .collect(Collectors.toList());
     return Optional.of(
         new SourceDescriptionList(
-            statement.getStatementText(),
+            statement.getMaskedStatementText(),
             descriptions.stream().map(d -> d.description).collect(Collectors.toList()),
             descriptions.stream().flatMap(d -> d.warnings.stream()).collect(Collectors.toList())
         )
@@ -127,7 +127,7 @@ public final class ListSourceExecutor {
     }
 
     return Optional.of(new StreamsList(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         ksqlStreams.stream()
             .map(ListSourceExecutor::sourceSteam)
             .collect(Collectors.toList())));
@@ -153,7 +153,7 @@ public final class ListSourceExecutor {
       );
     }
     return Optional.of(new TablesList(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         ksqlTables.stream()
             .map(ListSourceExecutor::sourceTable)
             .collect(Collectors.toList())));
@@ -208,11 +208,11 @@ public final class ListSourceExecutor {
         serviceContext,
         showColumns.getTable(),
         showColumns.isExtended(),
-        statement.getStatementText()
+        statement.getMaskedStatementText()
     );
     return Optional.of(
         new SourceDescriptionEntity(
-            statement.getStatementText(),
+            statement.getMaskedStatementText(),
             descriptionWithWarnings.description,
             descriptionWithWarnings.warnings
         )

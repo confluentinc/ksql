@@ -46,7 +46,7 @@ public class ListVariablesExecutorTest {
 
   private Optional<KsqlEntity> executeListVariables(final String sql) {
     final ConfiguredStatement<?> configuredStatement = mock(ConfiguredStatement.class);
-    when(configuredStatement.getStatementText()).thenReturn(sql);
+    when(configuredStatement.getMaskedStatementText()).thenReturn(sql);
 
     return CustomExecutors.LIST_VARIABLES.execute(
         configuredStatement,

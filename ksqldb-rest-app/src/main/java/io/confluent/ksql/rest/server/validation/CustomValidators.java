@@ -70,7 +70,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomValidators {
   QUERY_ENDPOINT(Query.class, (statement, sessionProperties, executionContext, serviceContext) -> {
-    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+    throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
   }),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
 

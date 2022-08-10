@@ -1220,7 +1220,7 @@ public class KsqlResourceTest {
     verify(sandbox).plan(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getStatementText()))),
+        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getUnMaskedStatementText()))),
         any()
     );
   }
@@ -1470,6 +1470,23 @@ public class KsqlResourceTest {
         "Unknown queryId: UNKNOWN_QUERY_ID"))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
         "TERMINATE unknown_query_id;"))));
+  }
+
+  @Test
+  public void shouldThrowOnInsertBadQuery() {
+    // When:
+    final String query = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
+        + "(\"key\", 0.125, 1);";
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest(query)
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
+        "INSERT INTO `FOO` (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]', '[value]');"))));
   }
 
   @Test
@@ -2227,7 +2244,7 @@ public class KsqlResourceTest {
                 .prepare(invocation.getArgument(0), Collections.emptyMap()));
     when(sandbox.plan(any(), any())).thenAnswer(
         i -> KsqlPlan.ddlPlanCurrent(
-            ((ConfiguredStatement<?>) i.getArgument(1)).getStatementText(),
+            ((ConfiguredStatement<?>) i.getArgument(1)).getMaskedStatementText(),
             new DropSourceCommand(SourceName.of("bob"))
         )
     );

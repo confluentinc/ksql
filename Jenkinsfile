@@ -14,7 +14,7 @@ common {
     pinnedNanoVersions = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
+    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dtest="*rest*" -Dsurefire.failIfNoSpecifiedTests=false"
     mavenBuildGoals = "clean install -pl ksqldb-rest-app -am"
 }
 

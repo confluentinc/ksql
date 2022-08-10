@@ -143,9 +143,9 @@ public class UdfIndexTest {
   public void shouldFindPreferredOneArgWithCast() {
     // Given:
     final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
-        function(EXPECTED, -1, LONG),
+        function(OTHER, -1, LONG),
         function(EXPECTED, -1, INT),
-        function(EXPECTED, -1, DOUBLE)
+        function(OTHER, -1, DOUBLE)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
@@ -191,7 +191,7 @@ public class UdfIndexTest {
     // Given:
     givenFunctions(
         function(EXPECTED, -1, STRING),
-        function(EXPECTED, -1, INT)
+        function(OTHER, -1, INT)
     );
 
     // When:
@@ -206,7 +206,7 @@ public class UdfIndexTest {
     // Given:
     givenFunctions(
         function(EXPECTED, -1, STRING, STRING),
-        function(EXPECTED, -1, STRING, INT)
+        function(OTHER, -1, STRING, INT)
     );
 
     // When:
@@ -220,7 +220,7 @@ public class UdfIndexTest {
   public void shouldChooseCorrectStruct() {
     // Given:
     givenFunctions(
-        function(EXPECTED, -1, STRUCT2),
+        function(OTHER, -1, STRUCT2),
         function(EXPECTED, -1, STRUCT1)
     );
 
@@ -235,7 +235,7 @@ public class UdfIndexTest {
   public void shouldChooseCorrectMap() {
     // Given:
     givenFunctions(
-        function(EXPECTED, -1, MAP2),
+        function(OTHER, -1, MAP2),
         function(EXPECTED, -1, MAP1)
     );
 

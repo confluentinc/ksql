@@ -59,6 +59,8 @@ import org.slf4j.LoggerFactory;
  *       arguments.</li>
  *   <li>If two methods exist that match given the above rules, return the
  *       method with fewer generic arguments.</li>
+ *   <li>If two methods exist that match given the above rules, return the
+ *       method the variadic argument in the later position.</li>
  *   <li>If two methods exist that match given the above rules, the function
  *       call is ambiguous and an exception is thrown.</li>
  * </ul>
@@ -494,7 +496,9 @@ public class UdfIndex<T extends FunctionSignature> {
     }
 
     private void update(final T function) {
-      if (compareFunctions.compare(function, value) > 0) {
+      final int compareVal = compareFunctions.compare(function, value);
+      final boolean otherHasLaterVariadic = indexOfVariadic(function) - indexOfVariadic(value) > 0;
+      if (compareVal > 0 || (compareVal == 0 && otherHasLaterVariadic)) {
         value = function;
       }
     }
@@ -528,6 +532,17 @@ public class UdfIndex<T extends FunctionSignature> {
           .filter(GenericsUtil::hasGenerics)
           .mapToInt(p -> 1)
           .sum();
+    }
+
+    private int indexOfVariadic(final T function) {
+      if (function == null) {
+        return -1;
+      }
+
+      return IntStream.range(0, function.parameterInfo().size())
+              .filter((index) -> function.parameterInfo().get(index).isVariadic())
+              .findFirst()
+              .orElse(-1);
     }
 
   }

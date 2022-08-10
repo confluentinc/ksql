@@ -42,6 +42,6 @@ public class DefaultConnectServerErrors implements ConnectServerErrors {
   public Optional<KsqlEntity> handleDefault(
       final ConfiguredStatement<? extends Statement> statement,
       final ConnectResponse<?> response) {
-    return response.error().map(err -> new ErrorEntity(statement.getStatementText(), err));
+    return response.error().map(err -> new ErrorEntity(statement.getMaskedStatementText(), err));
   }
 }

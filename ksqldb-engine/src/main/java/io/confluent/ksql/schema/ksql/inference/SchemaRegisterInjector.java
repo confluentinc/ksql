@@ -80,7 +80,7 @@ public class SchemaRegisterInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e.getCause());
     }
     return statement;
@@ -95,7 +95,7 @@ public class SchemaRegisterInjector implements Injector {
 
     final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
         statement.getProperties(), statement.getName());
-    final Format keyFormat = tryGetFormat(keyFormatInfo, true, cs.getStatementText());
+    final Format keyFormat = tryGetFormat(keyFormatInfo, true, cs.getMaskedStatementText());
     final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
         schema,
         keyFormat
@@ -103,7 +103,7 @@ public class SchemaRegisterInjector implements Injector {
 
     final FormatInfo valueFormatInfo = SourcePropertiesUtil.getValueFormat(
         statement.getProperties());
-    final Format valueFormat = tryGetFormat(valueFormatInfo, false, cs.getStatementText());
+    final Format valueFormat = tryGetFormat(valueFormatInfo, false, cs.getMaskedStatementText());
     final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
         schema,
         valueFormat,
@@ -125,7 +125,7 @@ public class SchemaRegisterInjector implements Injector {
         valueFormatInfo,
         valFeatures,
         cs.getSessionConfig().getConfig(false),
-        cs.getStatementText(),
+        cs.getMaskedStatementText(),
         false
     );
   }
@@ -163,7 +163,7 @@ public class SchemaRegisterInjector implements Injector {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Could not determine output schema for query due to error: "
-              + e.getMessage(), cas.getStatementText(), e);
+              + e.getMessage(), cas.getMaskedStatementText(), e);
     }
 
     final SchemaAndId rawKeySchema = (SchemaAndId) cas.getSessionConfig().getOverrides()
@@ -180,7 +180,7 @@ public class SchemaRegisterInjector implements Injector {
         createSourceCommand.getFormats().getValueFormat(),
         createSourceCommand.getFormats().getValueFeatures(),
         cas.getSessionConfig().getConfig(false),
-        cas.getStatementText(),
+        cas.getMaskedStatementText(),
         true
     );
   }

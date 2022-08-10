@@ -194,12 +194,12 @@ public final class ValidatedCommandFactory {
     final PersistentQueryMetadata queryMetadata = context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()));
+            statement.getMaskedStatementText()));
 
     if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
       throw new KsqlStatementException(
           String.format("Cannot terminate query '%s' because it is linked to a source table.",
-              queryId.get()), statement.getStatementText());
+              queryId.get()), statement.getMaskedStatementText());
     }
 
     queryMetadata.close();

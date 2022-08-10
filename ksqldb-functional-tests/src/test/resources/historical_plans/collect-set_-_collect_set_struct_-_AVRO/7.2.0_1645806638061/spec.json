@@ -217,7 +217,8 @@
                   "name" : "B",
                   "type" : [ "null", "long" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
               } ],
               "default" : null
             }, {
@@ -235,11 +236,13 @@
                     "name" : "B",
                     "type" : [ "null", "long" ],
                     "default" : null
-                  } ]
+                  } ],
+                  "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_KSQL_AGG_VARIABLE_0"
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",
@@ -302,11 +305,13 @@
                     "name" : "B",
                     "type" : [ "null", "long" ],
                     "default" : null
-                  } ]
+                  } ],
+                  "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_COLLECTED"
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

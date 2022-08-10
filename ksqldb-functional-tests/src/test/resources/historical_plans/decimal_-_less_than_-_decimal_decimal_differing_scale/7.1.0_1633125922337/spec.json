@@ -29,7 +29,7 @@
       "key" : null,
       "value" : {
         "A" : 10.01,
-        "B" : 10.010
+        "B" : 10.01
       }
     }, {
       "topic" : "test",
@@ -43,7 +43,7 @@
       "key" : null,
       "value" : {
         "A" : null,
-        "B" : 10.010
+        "B" : 10.01
       }
     }, {
       "topic" : "test",
@@ -214,7 +214,8 @@
               "name" : "RESULT",
               "type" : [ "null", "boolean" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

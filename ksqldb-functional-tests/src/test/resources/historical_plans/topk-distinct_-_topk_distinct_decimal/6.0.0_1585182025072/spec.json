@@ -220,6 +220,12 @@
                 "type" : "bytes",
                 "scale" : 1,
                 "precision" : 2,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "1",
+                  "connect.decimal.precision" : "2"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
                 "logicalType" : "decimal"
               } ],
               "default" : null
@@ -231,11 +237,18 @@
                   "type" : "bytes",
                   "scale" : 1,
                   "precision" : 2,
+                  "connect.version" : 1,
+                  "connect.parameters" : {
+                    "scale" : "1",
+                    "connect.decimal.precision" : "2"
+                  },
+                  "connect.name" : "org.apache.kafka.connect.data.Decimal",
                   "logicalType" : "decimal"
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",
@@ -301,11 +314,18 @@
                   "type" : "bytes",
                   "scale" : 1,
                   "precision" : 2,
+                  "connect.version" : 1,
+                  "connect.parameters" : {
+                    "scale" : "1",
+                    "connect.decimal.precision" : "2"
+                  },
+                  "connect.name" : "org.apache.kafka.connect.data.Decimal",
                   "logicalType" : "decimal"
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

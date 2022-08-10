@@ -2,7 +2,7 @@
 
 common {
     slackChannel = '#ksqldb-quality-oncall'
-    timeoutHours = 5
+    timeoutHours = 4
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'
     dockerPush = false
@@ -14,6 +14,7 @@ common {
     pinnedNanoVersions = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = isPrJob ? "-Dmaven.gitcommitid.nativegit=true" : "-Dassembly.skipAssembly -Dmaven.gitcommitid.skip -Dmaven.site.skip -Dprofile -DprofileFormat=CONSOLE"
+    extraBuildArgs = "-Dprofile -DprofileFormat=CONSOLE"
+    mavenBuildGoals = "clean install"
 }
 

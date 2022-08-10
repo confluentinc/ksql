@@ -103,6 +103,7 @@ public class LagReportingAgentFunctionalTest {
       // Lag Reporting
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
+      .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
       .withProperty("ksql.runtime.feature.shared.enabled", true)
       .build();
 

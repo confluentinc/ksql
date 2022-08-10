@@ -57,6 +57,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
@@ -197,10 +198,20 @@ public class WSQueryEndpoint {
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
-      final KsqlSecurityContext ksqlSecurityContext, final Context context) {
+      final KsqlSecurityContext ksqlSecurityContext, final Context context,
+      final Optional<Long> timeout) {
 
     try {
       final long startTimeNanos = Time.SYSTEM.nanoseconds();
+      if (timeout.isPresent()) {
+        log.info("Setting websocket timeout to " + timeout.get() + " ms");
+        exec.schedule(
+            () -> SessionUtil.closeSilently(
+                webSocket, INTERNAL_SERVER_ERROR.code(), "The request token has expired."),
+            timeout.get(),
+            TimeUnit.MILLISECONDS
+        );
+      }
 
       activenessRegistrar.updateLastRequestTime();
 

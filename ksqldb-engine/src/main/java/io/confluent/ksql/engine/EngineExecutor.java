@@ -179,11 +179,10 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan, final boolean restoreInProgress) {
-    final String maskedStatement = QueryMask.getMaskedStatement(plan.getStatementText());
     if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
-          .map(ddl -> executeDdl(ddl, maskedStatement, false, Collections.emptySet(),
+          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet(),
               restoreInProgress))
           .orElseThrow(
               () -> new IllegalStateException(
@@ -209,7 +208,7 @@ final class EngineExecutor {
     }
 
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, maskedStatement, true, queryPlan.getSources(),
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources(),
             restoreInProgress));
 
     // Return if the source to create already exists.
@@ -224,14 +223,14 @@ final class EngineExecutor {
         && !isSourceTableMaterializationEnabled()) {
       LOG.info(String.format(
           "Source table query '%s' won't be materialized because '%s' is disabled.",
-          maskedStatement,
+          plan.getStatementText(),
           KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED));
       return ExecuteResult.of(ddlResult.get());
     }
 
     return ExecuteResult.of(executePersistentQuery(
         queryPlan,
-        maskedStatement,
+        plan.getStatementText(),
         persistentQueryType)
     );
   }

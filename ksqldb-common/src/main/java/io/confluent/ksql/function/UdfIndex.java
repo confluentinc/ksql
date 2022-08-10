@@ -47,10 +47,10 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Resolving a method signature takes the following precedence rules:
  * <ul>
- *   <li>If only one exact method exists, return it</li>
+ *   <li>If only one exact method exists, return it.</li>
  *   <li>If a method exists such that all non-null {@code Schema} in the
- *       parameters match, and all other parameters are optional, return
- *       that method</li>
+ *       parameters match, and all of the method's other parameters are null,
+ *       return that method.</li>
  *   <li>If two methods exist that match given the above rules, and one
  *       does not have variable arguments (e.g. {@code String...}, return
  *       that one.</li>

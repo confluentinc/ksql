@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.state.ServerState.State;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -84,7 +85,8 @@ public class HealthCheckAgent {
         ));
     final boolean allHealthy = results.values().stream()
         .allMatch(HealthCheckResponseDetail::getIsHealthy);
-    return new HealthCheckResponse(allHealthy, results);
+    State serverState = commandRunner.checkServerState();
+    return new HealthCheckResponse(allHealthy, results, serverState.toString());
   }
 
   private interface Check {

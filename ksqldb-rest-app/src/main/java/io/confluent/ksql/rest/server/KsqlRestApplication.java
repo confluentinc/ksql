@@ -358,7 +358,8 @@ public final class KsqlRestApplication implements Executable {
           pullQueryRateLimiter,
           pullConcurrencyLimiter,
           pullQueryRouting,
-          localCommands
+          localCommands,
+          securityExtension.getAuthTokenProvider()
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);

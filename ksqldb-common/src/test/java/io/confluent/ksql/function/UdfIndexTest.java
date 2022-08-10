@@ -551,7 +551,7 @@ public class UdfIndexTest {
     final Exception e = assertThrows(
             KsqlException.class,
             () -> udfIndex.getFunction(ImmutableList.of(
-                    SqlArgument.of(SqlArray.of(SqlTypes.INTEGER))
+                    SqlArgument.of(SqlTypes.INTEGER)
             ))
     );
 

@@ -450,7 +450,6 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   private static <T extends FunctionSignature> String formatAvailableSignatures(final T function) {
-    final boolean variadicFunction = function.isVariadic();
     final List<ParameterInfo> parameters = function.parameterInfo();
 
     final StringBuilder result = new StringBuilder();
@@ -458,8 +457,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     for (int i = 0; i < parameters.size(); i++) {
       final ParameterInfo param = parameters.get(i);
-      final boolean variadicParam = variadicFunction && i == (parameters.size() - 1);
-      final String type = variadicParam
+      final String type = param.isVariadic()
           ? ((ArrayType) param.type()).element().toString() + "..."
           : param.type().toString();
 

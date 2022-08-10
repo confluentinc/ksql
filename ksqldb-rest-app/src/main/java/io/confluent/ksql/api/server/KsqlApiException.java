@@ -24,17 +24,20 @@ import java.util.Optional;
  */
 public class KsqlApiException extends KsqlException {
 
+  private final String message;
   private final int errorCode;
   private final Optional<String> statement;
 
   public KsqlApiException(final String message, final int errorCode) {
     super(message);
+    this.message = message;
     this.errorCode = errorCode;
     this.statement = Optional.empty();
   }
 
   public KsqlApiException(final String message, final int errorCode, final String statement) {
-    super(message);
+    super(message + ": " + statement);
+    this.message = message;
     this.errorCode = errorCode;
     this.statement = Optional.of(statement);
   }
@@ -45,5 +48,10 @@ public class KsqlApiException extends KsqlException {
 
   public Optional<String> getStatement() {
     return statement;
+  }
+
+  @Override
+  public String toString() {
+    return message;
   }
 }

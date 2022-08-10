@@ -15,6 +15,6 @@ common {
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
-    mavenBuildGoals = "clean install"
+    mavenBuildGoals = "clean install -pl ksqldb-rest-app -am"
 }
 

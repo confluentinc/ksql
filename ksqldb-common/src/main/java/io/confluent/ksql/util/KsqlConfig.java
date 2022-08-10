@@ -365,6 +365,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final boolean KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT = true;
   public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
       = "Enable variable substitution on SQL statements.";
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
+      = "ksql.websocket.connection.max.timeout.ms";
+  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 3600000;
+  public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
+      = "If this config is set to a positive number, then ksqlDB will terminate websocket"
+      + " connections after a timeout. The timeout will be the lower of the auth token's "
+      + "lifespan (if present) and the value of this config. If this config is set to 0, then "
+      + "ksqlDB will not close websockets even if the token has an expiration time.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -841,6 +849,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
             Importance.LOW,
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
+        )
+        .define(
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
         )
         .withClientSslSupport();
 

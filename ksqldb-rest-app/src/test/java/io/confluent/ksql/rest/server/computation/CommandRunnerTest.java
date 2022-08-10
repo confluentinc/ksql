@@ -37,6 +37,9 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.CommandId;
+import io.confluent.ksql.rest.entity.CommandId.Action;
+import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -134,6 +137,12 @@ public class CommandRunnerTest {
     when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     when(queuedCommand3.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    when(queuedCommand1.getAndDeserializeCommandId()).thenReturn(
+        new CommandId(Type.STREAM, "foo1", Action.CREATE));
+    when(queuedCommand2.getAndDeserializeCommandId()).thenReturn(
+        new CommandId(Type.STREAM, "foo2", Action.CREATE));
+    when(queuedCommand3.getAndDeserializeCommandId()).thenReturn(
+        new CommandId(Type.STREAM, "foo3", Action.CREATE));
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand1);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);

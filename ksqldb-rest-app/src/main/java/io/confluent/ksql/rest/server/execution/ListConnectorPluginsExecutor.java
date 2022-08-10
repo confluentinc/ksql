@@ -62,7 +62,7 @@ public final class ListConnectorPluginsExecutor {
 
     return StatementExecutorResponse.handled(Optional.of(
       new ConnectorPluginsList(
-        configuredStatement.getStatementText(),
+        configuredStatement.getMaskedStatementText(),
         Collections.emptyList(),
         pluginInfos
       )

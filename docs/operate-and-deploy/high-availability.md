@@ -42,17 +42,17 @@ forwarded to servers whose current offset is more than `10,000` positions
 behind the end offset of the changelog topic are rejected.
 
 ## Compatability with Authentication
-`authentication.skip.paths` should be set with both `/lag` and `/heartbeat`.
-This would allow ksqlDB cluster instances to communicate without authenticating between each other.
+Set the `authentication.skip.paths` config with both `/lag` and `/heartbeat`.
+This enables ksqlDB cluster instances to communicate without authenticating between each other.
 
 
-The configuration prevents the error below.
+This configuration prevents the following error.
 ```
 ksqldb-server1     | [...] ERROR Failed to handle request 401 /heartbeat (io.confluent.ksql.api.server.FailureHandler:38)
 ksqldb-server1     | io.confluent.ksql.api.server.KsqlApiException: Unauthorized
 ```
 
-It's recommended to block the traffic from outside your cluster to those endpoints for security reasons.
+For security reasons, this configuration is recommended to block the traffic from outside your cluster to those endpoints.
 
 # Recommended Resources
 - [Course: Inside ksqlDB High Availability](https://developer.confluent.io/learn-kafka/inside-ksqldb/high-availability/)

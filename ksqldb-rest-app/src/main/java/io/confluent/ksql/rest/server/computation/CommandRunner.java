@@ -381,6 +381,7 @@ public class CommandRunner implements Closeable {
         .getOrDefault(ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, Collections.emptyList());
 
     clusterTerminator.terminateCluster(deleteTopicList);
+    serverState.setTerminated();
     LOG.info("The KSQL server was terminated.");
     closeEarly();
     LOG.debug("The KSQL command runner was closed.");

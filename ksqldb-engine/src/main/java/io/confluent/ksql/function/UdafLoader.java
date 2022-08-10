@@ -117,12 +117,12 @@ public class UdafLoader {
       final Method method,
       final FunctionName functionName,
       final String description,
-      final String inputSchema,
+      final String[] inputSchemas,
       final String aggregateSchema,
       final String outputSchema
   ) {
-    return new UdafFactoryInvoker(method, functionName, description, inputSchema,
-        aggregateSchema, outputSchema, typeParser, metrics
+    return new UdafFactoryInvoker(method, functionName, description, inputSchemas,
+            aggregateSchema, outputSchema, typeParser, metrics
     );
   }
 }

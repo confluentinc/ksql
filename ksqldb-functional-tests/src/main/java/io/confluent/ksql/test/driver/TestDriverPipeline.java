@@ -20,12 +20,14 @@ import com.google.common.collect.ListMultimap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.TestInputTopic;
@@ -35,60 +37,31 @@ import org.apache.kafka.streams.test.TestRecord;
 
 public class TestDriverPipeline {
   /*
-   * The pipeline is represented as a DAG of input/output nodes. The key aspect
-   * to notice is that each output topic may be the input topic for one or more
-   * topologies. Since each TopologyTestDriver is independent from one another,
-   * we need to pipe the output of one topology into each other topology that
-   * uses that topic as an input node manually.
+   * The pipeline is represented as a tree of topic nodes. Each node keeps track of what nodes
+   * read from them, as well as the "pipes" flowing in and out of them.
    *
-   * Take, for example, the pipeline below.
+   * For example, the pipeline for
    *
-   *                                                  +----------+     +-------+
-   *                                      +---------->+  bar.in  +---->+ topo2 |
-   *                                      |           +----------+     +-------+
-   *  +----------+     +-------+     +----+-----+
-   *  |  foo.in  +---->+ topo1 +---->+  bar.out |
-   *  +----------+     +-------+     +----+-----+
-   *                                      |           +----------+     +-------+
-   *                                      +---------->+  bar.in  +---->+ topo3 |
-   *                                                  +----------+     +-------+
-   *  +----------+     +-------+     +----------+
-   *  |  foo.in  +---->+ topo4 +---->+  baz.out |
-   *  +----------+     +-------+     +----------+
+   * CREATE STREAM B AS SELECT * FROM A;
+   * CREATE STREAM C AS SELECT * FROM A;
+   * CREATE STREAM D AS SELECT * FROM C;
    *
-   * There are four topologies which are all somehow related. topo1 and topo4 both
-   * read from foo.in but produce to different output topics. The output topic for
-   * topo1 (bar) is used as the input topic for two other topologies (topo2 as well
-   * as topo3).
-   *
-   * To model this pipeline, we track a mapping from topic to its corresponding input
-   * and output topics as well as a tree representation of the pipeline. In the diagram
-   * above, each ".in" is an independent input node and each ".out" is an independent
-   * output node (even if they share the same name).
+   * looks like:
+   *                               ---------------
+   *                               | Topic B     |
+   *                           |---| Input pipes |
+   *                           |   | Output pipes|
+   *    ---------------        |   ---------------
+   *    | Topic A     |        |
+   *    | Input pipes |        |   ---------------
+   *    | Output pipes|--------|   | Topic C     |         ----------------
+   *    ----------- ---        |---| Input pipes |         | Topic D      |
+   *                               | Output pipes|---------| Input pipes  |
+   *                               ---------------         | Output pipes |
+   *                                                       ----------------
    */
 
   // ----------------------------------------------------------------------------------
-  private static final class Input {
-
-    private final TestInputTopic<GenericKey, GenericRow> topic;
-    private final List<Output> receivers;
-
-    private Input(final TestInputTopic<GenericKey, GenericRow> topic) {
-      this.topic = topic;
-      this.receivers = new ArrayList<>();
-    }
-  }
-
-  private static final class Output {
-
-    private final String name;
-    private final TestOutputTopic<GenericKey, GenericRow> topic;
-
-    private Output(final String name, final TestOutputTopic<GenericKey, GenericRow> topic) {
-      this.name = name;
-      this.topic = topic;
-    }
-  }
 
   public static final class TopicInfo {
     final String name;
@@ -106,11 +79,33 @@ public class TestDriverPipeline {
     }
   }
 
+  private static final class Topic {
+    // Topics that read from this topic
+    private final List<Topic> receivers;
+    // Drivers that take this topic as an input
+    private final List<TopologyTestDriver> drivers;
+    // Pipes flowing out of this topic
+    private final List<TestInputTopic<GenericKey, GenericRow>> topicAsInput;
+    // Pipe flowing into this topic.
+    // For now, it's left as Optional because we don't support INSERT INTO...SELECT yet.
+    private Optional<TestOutputTopic<GenericKey, GenericRow>> topicAsOutput;
+    private final String name;
+
+    private Topic(
+        final String name
+    ) {
+      this.receivers = new ArrayList<>();
+      this.drivers = new ArrayList<>();
+      this.topicAsInput = new ArrayList<>();
+      this.topicAsOutput = Optional.empty();
+      this.name = name;
+    }
+  }
+
   // ----------------------------------------------------------------------------------
 
-  private final ListMultimap<String, Input> inputs;
-  private final ListMultimap<String, Output> outputs;
-  private final ListMultimap<String, TestRecord<GenericKey, GenericRow>> outputCache;
+  private final Map<String, Topic> topics;
+  private final ListMultimap<String, TestRecord<GenericKey, GenericRow>> topicCache;
 
   // this map indexes into the outputCache to track which records we've already
   // read - we don't need to worry about concurrent modification while iterating
@@ -118,11 +113,31 @@ public class TestDriverPipeline {
   private final Map<String, Integer> assertPositions;
 
   public TestDriverPipeline() {
-    inputs = ArrayListMultimap.create();
-    outputs = ArrayListMultimap.create();
-    outputCache = ArrayListMultimap.create();
-
+    topics = new HashMap<>();
+    topicCache = ArrayListMultimap.create();
     assertPositions = new HashMap<>();
+  }
+
+  private TestInputTopic createInputTopic(final TopologyTestDriver driver, final TopicInfo topic) {
+    return driver.createInputTopic(
+        topic.name,
+        topic.keySerde.serializer(),
+        topic.valueSerde.serializer()
+    );
+  }
+
+  private void replaceAllInputs(final TopicInfo topic) {
+    topics.get(topic.name).topicAsInput.clear();
+    topics.get(topic.name).drivers.forEach(driver ->
+            topics.get(topic.name).topicAsInput.add(createInputTopic(driver, topic)));
+  }
+
+  public void addDdlTopic(final TopicInfo topic) {
+    if (!topics.containsKey(topic.name)) {
+      topics.put(topic.name, new Topic(topic.name));
+    } else {
+      replaceAllInputs(topic);
+    }
   }
 
   public void addDriver(
@@ -130,30 +145,27 @@ public class TestDriverPipeline {
       final List<TopicInfo> inputTopics,
       final TopicInfo outputTopic
   ) {
-    // first create the output node, since whenever an event is piped to the
-    // input nodes we will need to read and propagate events to the output
-    // node
-    final Output output = new Output(
+    final TestOutputTopic output = driver.createOutputTopic(
         outputTopic.name,
-        driver.createOutputTopic(
-            outputTopic.name,
-            outputTopic.keySerde.deserializer(),
-            outputTopic.valueSerde.deserializer())
-    );
-    outputs.put(outputTopic.name, output);
+        outputTopic.keySerde.deserializer(),
+        outputTopic.valueSerde.deserializer());
+
+    if (!topics.containsKey(outputTopic.name)) {
+      topics.put(outputTopic.name, new Topic(outputTopic.name));
+    } else {
+      replaceAllInputs(outputTopic);
+    }
+    topics.get(outputTopic.name).topicAsOutput = Optional.of(output);
 
     for (TopicInfo inputTopic : inputTopics) {
-      final Input input = new Input(
-          driver.createInputTopic(
-              inputTopic.name,
-              inputTopic.keySerde.serializer(),
-              inputTopic.valueSerde.serializer())
-      );
-      inputs.put(inputTopic.name, input);
+      final TestInputTopic input = createInputTopic(driver, inputTopic);
 
-      // whenever we pipe data into input, we will need to also propagate the
-      // output for any topic that uses "outputTopic" as an input topic
-      input.receivers.add(output);
+      if (!topics.containsKey(inputTopic.name)) {
+        topics.put(inputTopic.name, new Topic(inputTopic.name));
+      }
+      topics.get(inputTopic.name).topicAsInput.add(input);
+      topics.get(inputTopic.name).receivers.add(topics.get(outputTopic.name));
+      topics.get(inputTopic.name).drivers.add(driver);
     }
   }
 
@@ -167,48 +179,52 @@ public class TestDriverPipeline {
   }
 
   private void pipeInput(
-      final String topic,
+      final String topicName,
       final GenericKey key,
       final GenericRow value,
       final long timestampMs,
       final Set<String> loopDetection,
       final String path
   ) {
-    final boolean added = loopDetection.add(topic);
+    final boolean added = loopDetection.add(topicName);
     if (!added) {
       throw new KsqlException("Detected illegal cycle in topology: " + path);
     }
 
-    final List<Input> inputs = this.inputs.get(topic);
-    if (inputs.isEmpty()) {
-      throw new KsqlException("Cannot pipe input to unknown source: " + topic);
+    if (!topics.containsKey(topicName)) {
+      throw new KsqlException("Cannot pipe input to unknown source: " + topicName);
     }
 
-    for (final Input input : inputs) {
-      input.topic.pipeInput(key, value, timestampMs);
+    final Topic topic = this.topics.get(topicName);
 
-      // handle the fallout of piping in a record (propagation)
-      for (final Output receiver : input.receivers) {
-        for (final TestRecord<GenericKey, GenericRow> record : receiver.topic.readRecordsToList()) {
-          outputCache.put(receiver.name, record);
+    if (topicName.equals(path)) {
+      topicCache.put(topicName, new TestRecord(key, value, Instant.ofEpochMilli(timestampMs)));
+    }
 
-          if (this.inputs.containsKey(receiver.name)) {
-            pipeInput(
-                receiver.name,
-                record.key(),
-                record.value(),
-                record.timestamp(),
-                new HashSet<>(loopDetection),
-                path + "->" + receiver.name
-            );
-          }
+    for (final TestInputTopic input : topic.topicAsInput) {
+      input.pipeInput(key, value, timestampMs);
+    }
+
+    for (final Topic receiver : topic.receivers) {
+      for (final TestRecord<GenericKey, GenericRow> record :
+          receiver.topicAsOutput.get().readRecordsToList()) {
+        topicCache.put(receiver.name, record);
+        if (topics.get(receiver.name).topicAsInput.size() > 0) {
+          pipeInput(
+              receiver.name,
+              record.key(),
+              record.value(),
+              record.timestamp(),
+              new HashSet<>(loopDetection),
+              path + "->" + receiver.name
+          );
         }
       }
     }
   }
 
   public List<TestRecord<GenericKey, GenericRow>> getAllRecordsForTopic(final String topic) {
-    return outputCache.get(topic);
+    return topicCache.get(topic);
   }
 
   public Iterator<TestRecord<GenericKey, GenericRow>> getRecordsForTopic(final String topic) {
@@ -216,14 +232,14 @@ public class TestDriverPipeline {
       @Override
       public boolean hasNext() {
         final int idx = assertPositions.getOrDefault(topic, 0);
-        return outputCache.get(topic).size() > idx;
+        return topicCache.get(topic).size() > idx;
       }
 
       @Override
       public TestRecord<GenericKey, GenericRow> next() {
         final int idx = assertPositions.getOrDefault(topic, 0);
         assertPositions.put(topic, idx + 1);
-        return outputCache.get(topic).get(idx);
+        return topicCache.get(topic).get(idx);
       }
     };
   }

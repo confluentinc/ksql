@@ -574,7 +574,7 @@ public class TestExecutorTest {
       final List<Header> headers
   ) {
     final byte[] serializedKey = keySerializer.serialize("", key);
-    final byte[] serializeValue = new ValueSpecJsonSerdeSupplier(false, ImmutableMap.of())
+    final byte[] serializeValue = new ValueSpecJsonSerdeSupplier(ImmutableMap.of())
         .getSerializer(null, false)
         .serialize("", value);
 

@@ -230,4 +230,8 @@ public final class RuntimeBuildContext {
         (topicName, key) -> schemas.trackSerdeOp(topicName, key, loggerNamePrefix)
     );
   }
+
+  public MaterializedFactory getMaterializedFactory() {
+    return new MaterializedFactory();
+  }
 }

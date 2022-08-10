@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
@@ -104,7 +105,7 @@ public class KsqlTargetUtilTest {
     final List<StreamedRow> rows =  KsqlTargetUtil.toRows(Buffer.buffer(
         "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
         + "{\"row\":{\"columns\":[\"Row1\"]}},\n"
-        + "{\"row\":{\"columns\":[\"Row2\"]}},\n"));
+        + "{\"row\":{\"columns\":[\"Row2\"]}},\n"), Functions.identity());
 
     // Then:
     assertThat(rows.size(), is(3));
@@ -132,7 +133,7 @@ public class KsqlTargetUtilTest {
         () -> KsqlTargetUtil.toRows(Buffer.buffer(
             "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
                 + "{\"row\":{\"columns\"\n"
-                + "{\"row\":{\"columns\":[\"Row2\"]}},\n"))
+                + "{\"row\":{\"columns\":[\"Row2\"]}},\n"), Functions.identity())
     );
 
     // Then:
@@ -152,7 +153,7 @@ public class KsqlTargetUtilTest {
             "  double B = 2;\\n" +
             "  repeated string C = 3;\\n" +
             "}\\n" +
-            "\"}}]"));
+            "\"}}]"), Functions.identity());
 
     StreamedRow row = rows.get(0);
 
@@ -180,7 +181,7 @@ public class KsqlTargetUtilTest {
             "\"}},\n" +
             "{\"row\":{\"protobufBytes\":\"CHsRAAAAAABAbUAaBWhlbGxv\"}},\n" +
             "{\"row\":{\"protobufBytes\":\"CMgDEQAAAAAAqIhAGgNieWU=\"}},\n" +
-            "{\"finalMessage\":\"limit hit!\"}]"));
+            "{\"finalMessage\":\"limit hit!\"}]"), Functions.identity());
 
     // Then:
     assertThat(rows.size(), is(4));
@@ -223,7 +224,7 @@ public class KsqlTargetUtilTest {
                     "}\\n" +
                     "\"}},\n" +
                     "{\"row\":{\"protobufBytes\":\"CHsRAAAAAABAbUAaBWhlbGxv\"}},\n" +
-                    "{\"row\":{\"protobufBytes\":\"CMgDEQAA"))
+                    "{\"row\":{\"protobufBytes\":\"CMgDEQAA"), Functions.identity())
     );
 
     // Then:

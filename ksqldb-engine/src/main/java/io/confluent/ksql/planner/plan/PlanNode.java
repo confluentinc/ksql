@@ -35,7 +35,6 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.GrammaticalJoiner;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -196,8 +195,7 @@ public abstract class PlanNode {
   @SuppressWarnings("UnstableApiUsage")
   static Stream<ColumnName> orderColumns(
       final List<Column> columns,
-      final LogicalSchema schema,
-      final KsqlConfig ksqlConfig
+      final LogicalSchema schema
   ) {
     // When doing a `select *` key columns should be at the front of the column list
     // but are added at the back during processing for performance reasons. Furthermore,
@@ -213,7 +211,7 @@ public abstract class PlanNode {
 
     final Stream<Column> values = columns.stream()
         .filter(c -> !SystemColumns.isWindowBound(c.name()))
-        .filter(c -> !SystemColumns.isPseudoColumn(c.name(), ksqlConfig))
+        .filter(c -> !SystemColumns.isPseudoColumn(c.name()))
         .filter(c -> !schema.isKeyColumn(c.name()));
 
     return Streams.concat(keys, windowBounds, values).map(Column::name);

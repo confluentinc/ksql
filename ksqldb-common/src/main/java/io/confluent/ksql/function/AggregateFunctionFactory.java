@@ -21,13 +21,13 @@ import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -73,8 +73,7 @@ public abstract class AggregateFunctionFactory {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
   }
 
-  public abstract KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
-      List<SqlArgument> argTypeList, AggregateFunctionInitArguments initArgs);
+  public abstract FunctionSource getFunction(List<SqlType> argTypeList);
 
   protected abstract List<List<ParamType>> supportedArgs();
 
@@ -92,13 +91,11 @@ public abstract class AggregateFunctionFactory {
         .map(args -> args
             .stream()
             .map(AggregateFunctionFactory::getSampleSqlType)
-            .map(SqlArgument::of)
             .collect(Collectors.toList()))
         .forEach(args -> {
-          final KsqlAggregateFunction<?, ?, ?> function = createAggregateFunction(
-                  args,
-                  getDefaultArguments()
-          );
+          final KsqlAggregateFunction<?, ?, ?> function = getFunction(
+                  args
+          ).source.apply(getDefaultArguments());
           consumer.accept(function, function.getDescription());
         });
   }
@@ -120,6 +117,18 @@ public abstract class AggregateFunctionFactory {
 
   public AggregateFunctionInitArguments getDefaultArguments() {
     return AggregateFunctionInitArguments.EMPTY_ARGS;
+  }
+
+  public static class FunctionSource {
+    public final int initArgs;
+    public final Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>> source;
+
+    public FunctionSource(
+            final int initArgs,
+            final Function<AggregateFunctionInitArguments, KsqlAggregateFunction<?, ?, ?>> source) {
+      this.initArgs = initArgs;
+      this.source = source;
+    }
   }
 
 }

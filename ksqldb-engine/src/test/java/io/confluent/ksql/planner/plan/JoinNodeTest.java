@@ -127,15 +127,15 @@ public class JoinNodeTest {
   }
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
-      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = prependAlias(
-      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final LogicalSchema RIGHT2_NODE_SCHEMA = prependAlias(
-      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final ValueFormat VALUE_FORMAT = ValueFormat

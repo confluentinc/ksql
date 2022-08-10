@@ -41,6 +41,8 @@ import org.junit.Test;
 public class UdfIndexTest {
 
   private static final ParamType STRING_VARARGS = ArrayType.of(ParamTypes.STRING);
+
+  private static final ParamType INT_VARARGS = ArrayType.of(ParamTypes.INTEGER);
   private static final ParamType STRING = ParamTypes.STRING;
   private static final ParamType DECIMAL = ParamTypes.DECIMAL;
   private static final ParamType INT = ParamTypes.INTEGER;
@@ -58,8 +60,6 @@ public class UdfIndexTest {
 
   private static final ParamType GENERIC_LIST = ArrayType.of(GenericType.of("T"));
   private static final ParamType GENERIC_MAP = MapType.of(GenericType.of("A"), GenericType.of("B"));
-
-  private static final SqlType ARRAY_ARG = SqlTypes.array(INTEGER);
   private static final SqlType MAP1_ARG = SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING);
   private static final SqlType MAP2_ARG = SqlTypes.map(SqlTypes.STRING, INTEGER);
   private static final SqlType DECIMAL1_ARG = SqlTypes.decimal(4, 2);
@@ -541,6 +541,26 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldNotCreateListWhenNotVariadic() {
+    // Given:
+    givenFunctions(
+            function(FIRST_FUNC, -1, ArrayType.of(ParamTypes.INTEGER))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> udfIndex.getFunction(ImmutableList.of(
+                    SqlArgument.of(SqlArray.of(SqlTypes.INTEGER))
+            ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+            + "(INTEGER)"));
+  }
+
+  @Test
   public void shouldChooseSpecificOverOnlyVarArgs() {
     // Given:
     givenFunctions(
@@ -594,6 +614,101 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldChooseSpecificOverVarArgsAtBeginning() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, -1, STRING, STRING, STRING, STRING, INT),
+            function(OTHER, 0, STRING_VARARGS, STRING, STRING, STRING, INT)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.INTEGER)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseSpecificOverOnlyVarArgsReversedInsertionOrder() {
+    // Given:
+    givenFunctions(
+            function(OTHER, 0, STRING_VARARGS),
+            function(EXPECTED, -1, STRING, STRING, STRING, STRING)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseSpecificOverVarArgsAtEndReversedInsertionOrder() {
+    // Given:
+    givenFunctions(
+            function(OTHER, 2, INT, INT, STRING_VARARGS),
+            function(EXPECTED, -1, INT, INT, STRING, STRING, STRING, STRING)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseSpecificOverVarArgsInMiddleReversedInsertionOrder() {
+    // Given:
+    givenFunctions(
+            function(OTHER, 2, INT, INT, STRING_VARARGS, INT),
+            function(EXPECTED, -1, INT, INT, STRING, STRING, STRING, STRING, INT)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.INTEGER)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseSpecificOverVarArgsAtBeginningReversedInsertionOrder() {
+    // Given:
+    givenFunctions(
+            function(OTHER, 0, STRING_VARARGS, INT),
+            function(EXPECTED, -1, STRING, STRING, STRING, STRING, INT)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.INTEGER)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
   public void shouldChooseSpecificOverMultipleVarArgs() {
     // Given:
     givenFunctions(
@@ -613,13 +728,33 @@ public class UdfIndexTest {
   public void shouldChooseVarArgsIfSpecificDoesntMatch() {
     // Given:
     givenFunctions(
-        function(EXPECTED, -1, STRING),
+        function(OTHER, -1, STRING),
         function(EXPECTED, 0, STRING_VARARGS)
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex
-        .getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING)));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseVarArgsIfSpecificDoesntMatchMultipleArgs() {
+    // Given:
+    givenFunctions(
+            function(OTHER, -1, STRING, STRING, STRING, STRING),
+            function(EXPECTED, 0, STRING_VARARGS)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING)
+    ));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -668,6 +803,22 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldFindMiddleVarargWithSomeNullValues() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, 1, INT, STRING_VARARGS, STRING)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(
+            SqlArgument.of(SqlTypes.INTEGER), null, SqlArgument.of(SqlTypes.STRING)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
   public void shouldChooseNonVarargWithNullValues() {
     // Given:
     givenFunctions(
@@ -677,6 +828,23 @@ public class UdfIndexTest {
 
     // When:
     final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(null));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseMidVarargWithNullValues() {
+    // Given:
+    givenFunctions(
+            function(OTHER, -1, INT, STRING),
+            function(EXPECTED, 1, INT, STRING_VARARGS, STRING)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(
+            SqlArgument.of(SqlTypes.INTEGER), null, SqlArgument.of(SqlTypes.STRING)
+    ));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -1050,12 +1218,30 @@ public class UdfIndexTest {
     // Given:
     givenFunctions(
         function(EXPECTED, -1, INT, GenericType.of("A"), INT),
-        function(EXPECTED, -1, INT, GenericType.of("A"), GenericType.of("B"))
+        function(OTHER, -1, INT, GenericType.of("A"), GenericType.of("B"))
     );
 
     // When:
     final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList
         .of(SqlArgument.of(INTEGER), SqlArgument.of(INTEGER), SqlArgument.of(INTEGER)));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindFewerGenericsWithEarlierVariadic() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, 0, INT_VARARGS, GenericType.of("A"), INT, INT),
+            function(OTHER, 3, INT, GenericType.of("A"), GenericType.of("B"), INT_VARARGS)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(INTEGER), SqlArgument.of(INTEGER),
+            SqlArgument.of(INTEGER), SqlArgument.of(INTEGER)
+    ));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -1079,6 +1265,88 @@ public class UdfIndexTest {
     assertThat(e.getMessage(), containsString("Function 'name' cannot be resolved due " +
         "to ambiguous method parameters "
         + "(INTEGER, INTEGER, INTEGER)"));
+  }
+
+  @Test
+  public void shouldThrowOnAmbiguousImplicitCastWithGenericsAndVariadics() {
+    // Given:
+    givenFunctions(
+            function(FIRST_FUNC, 3, LONG, GenericType.of("A"), GenericType.of("B"), INT_VARARGS),
+            function(SECOND_FUNC, 3, DOUBLE, GenericType.of("A"), GenericType.of("B"), INT_VARARGS)
+    );
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class,
+            () -> udfIndex.getFunction(ImmutableList.of(
+                    SqlArgument.of(INTEGER), SqlArgument.of(INTEGER),
+                    SqlArgument.of(INTEGER), SqlArgument.of(INTEGER))
+            ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Function 'name' cannot be resolved due "
+            + "to ambiguous method parameters "
+            + "(INTEGER, INTEGER, INTEGER, INTEGER)"));
+  }
+
+  @Test
+  public void shouldChooseSpecificWhenTwoVariadicsAndSpecificMatch() {
+    // Given:
+    givenFunctions(
+            function(OTHER, 1, LONG, INT_VARARGS, STRING, DOUBLE),
+            function(EXPECTED, -1, LONG, INT, STRING, DOUBLE),
+            function(OTHER, 2, LONG, INT, STRING_VARARGS, DOUBLE)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.BIGINT),
+            SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.DOUBLE))
+    );
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseLaterVariadicWhenTwoVariadicsMatch() {
+    // Given:
+    givenFunctions(
+            function(OTHER, 1, LONG, INT_VARARGS, STRING, DOUBLE),
+            function(EXPECTED, 2, LONG, INT, STRING_VARARGS, DOUBLE)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.BIGINT),
+            SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.DOUBLE))
+    );
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseLaterVariadicWhenTwoVariadicsMatchReversedInsertionOrder() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, 2, LONG, INT, STRING_VARARGS, DOUBLE),
+            function(OTHER, 1, LONG, INT_VARARGS, STRING, DOUBLE)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.BIGINT),
+            SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.DOUBLE))
+    );
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
   }
 
   private void givenFunctions(final KsqlScalarFunction... functions) {

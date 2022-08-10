@@ -50,7 +50,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.SourcePropertyInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -229,14 +228,14 @@ public final class TestCaseBuilderUtil {
       final List<ParsedStatement> parsed = parser.parse(sql);
       if (parsed.size() > 1) {
         throw new IllegalArgumentException("SQL contains more than one statement: " + sql);
-      }
+      } else if (parsed.size() == 1) {
+        final ParsedStatement stmt = parsed.get(0);
 
-      final List<Topic> topics = new ArrayList<>();
-      for (ParsedStatement stmt : parsed) {
         // in order to extract the topics, we may need to also register type statements
         if (stmt.getStatement().statement() instanceof SqlBaseParser.RegisterTypeContext) {
           final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
           registerType(prepare, metaStore);
+          return null;
         }
 
         if (isCsOrCT(stmt)) {
@@ -246,11 +245,11 @@ public final class TestCaseBuilderUtil {
           final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
           final ConfiguredStatement<?> withSourceProps =
               new SourcePropertyInjector().inject(withFormats);
-          topics.add(extractTopic.apply(withSourceProps));
+          return extractTopic.apply(withSourceProps);
         }
       }
 
-      return topics.isEmpty() ? null : topics.get(0);
+      return null;
     } catch (final Exception e) {
       // Statement won't parse: this will be detected/handled later.
       System.out.println("Error parsing statement (which may be expected): " + sql);

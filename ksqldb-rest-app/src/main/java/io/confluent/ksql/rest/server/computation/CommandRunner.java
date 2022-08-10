@@ -337,9 +337,8 @@ public class CommandRunner implements Closeable {
     }
   }
 
-  @SuppressFBWarnings("DMI_INVOKING_TOSTRING_ON_ARRAY")
   private void executeStatement(final QueuedCommand queuedCommand) {
-    final String commandId = queuedCommand.getCommandId().toString();
+    final String commandId = queuedCommand.getAndDeserializeCommandId().toString();
     LOG.info("Executing statement: " + commandId);
 
     final Runnable task = () -> {

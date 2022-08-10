@@ -23,7 +23,7 @@ public class SchemaWithId {
   private Optional<ParsedSchema> schema;
   private Optional<Integer> id;
 
-  public SchemaWithId(Optional<ParsedSchema> schema, Optional<Integer> id) {
+  public SchemaWithId(final Optional<ParsedSchema> schema, final Optional<Integer> id) {
     this.schema = schema;
     this.id = id;
   }

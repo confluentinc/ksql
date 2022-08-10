@@ -336,7 +336,7 @@ public class InsertValuesExecutor {
         dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    Optional<Integer> schemaId =
+    final Optional<Integer> schemaId =
         ensureKeySchemasMatch(physicalSchema.keySchema(), dataSource, serviceContext);
 
     final FormatInfo formatInfo = addSerializerMissingFormatFields(
@@ -433,7 +433,7 @@ public class InsertValuesExecutor {
       // to specify one definition only. To verify the source key schema matches SR, then we
       // extract the single schema based on the FULL_SCHEMA_NAME and then compare with the
       // source schema.
-      ProtobufSchemaTranslator protoTranslator = new ProtobufSchemaTranslator(
+      final ProtobufSchemaTranslator protoTranslator = new ProtobufSchemaTranslator(
           new ProtobufProperties(formatProps)
       );
 
@@ -466,16 +466,16 @@ public class InsertValuesExecutor {
       final PersistenceSchema keySchema,
       final ParsedSchema ksqlSchema,
       final ParsedSchema srSchema) {
-    List<SimpleColumn> columns = getColumns(translator, keySchema, ksqlSchema, true);
-    List<SimpleColumn> srColumns = getColumns(translator, keySchema, srSchema, true);
+    final List<SimpleColumn> columns = getColumns(translator, keySchema, ksqlSchema, true);
+    final List<SimpleColumn> srColumns = getColumns(translator, keySchema, srSchema, true);
 
     if (columns.size() != srColumns.size()) {
       return false;
     }
 
     for (int i = 0; i < columns.size(); i++) {
-      SimpleColumn column = columns.get(i);
-      SimpleColumn srColumn = srColumns.get(i);
+      final SimpleColumn column = columns.get(i);
+      final SimpleColumn srColumn = srColumns.get(i);
       if (!column.name().equals(srColumn.name()) || !column.type().equals(srColumn.type())) {
         return false;
       }

@@ -138,7 +138,7 @@ public final class SchemaRegistryUtil {
   ) {
     final String subject = KsqlConstants.getSRSubject(topic, isKey);
 
-    Optional<Integer> optSchemaId = getSchemaId(srClient, topic, isKey);
+    final Optional<Integer> optSchemaId = getSchemaId(srClient, topic, isKey);
     if (!optSchemaId.isPresent()) {
       return new SchemaWithId(Optional.empty(), Optional.empty());
     }

@@ -40,6 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.util.Collection;
 import java.util.List;
@@ -48,6 +49,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -72,7 +74,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
   private final ImmutableMap<String, Object> overriddenProperties;
-  private final Set<SourceName> sourceNames;
+  private final Set<DataSource> sources;
   private final QueryId queryId;
   private final Optional<DataSource> sinkDataSource;
   private final ProcessingLogger processingLogger;
@@ -86,6 +88,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   private final ProcessingLoggerFactory loggerFactory;
   public boolean everStarted = false;
+  private boolean isPaused = false;
   private boolean corruptionCommandTopic = false;
 
 
@@ -95,7 +98,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementString,
       final PhysicalSchema schema,
-      final Set<SourceName> sourceNames,
+      final Set<DataSource> sources,
       final String executionPlan,
       final String applicationId,
       final NamedTopology topology,
@@ -126,7 +129,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.overriddenProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
-    this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
+    this.sources = Objects.requireNonNull(sources, "sourceNames");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
@@ -157,7 +160,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.schemas = original.schemas;
     this.overriddenProperties =
             ImmutableMap.copyOf(original.getOverriddenProperties());
-    this.sourceNames = original.getSourceNames();
+    this.sources = original.getSources();
     this.queryId = original.getQueryId();
     this.processingLogger = original.processingLogger;
     this.physicalPlan = original.getPhysicalPlan();
@@ -238,11 +241,11 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void stop() {
-    stop(false);
+    stop(true);
   }
 
-  public void stop(final boolean isCreateOrReplace) {
-    sharedKafkaStreamsRuntime.stop(queryId, isCreateOrReplace);
+  public void stop(final boolean resetOffsets) {
+    sharedKafkaStreamsRuntime.stop(queryId, resetOffsets);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
   }
 
@@ -347,7 +350,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Set<SourceName> getSourceNames() {
-    return ImmutableSet.copyOf(sourceNames);
+    return ImmutableSet.copyOf(sources.stream()
+        .map(DataSource::getName)
+        .collect(Collectors.toSet()));
   }
 
   @Override
@@ -403,7 +408,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public void close() {
     loggerFactory.getLoggersWithPrefix(queryId.toString()).forEach(ProcessingLogger::close);
-    sharedKafkaStreamsRuntime.stop(queryId, false);
+    sharedKafkaStreamsRuntime.stop(queryId, true);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);
   }
@@ -417,6 +422,29 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   }
 
   @Override
+  public KsqlQueryStatus getQueryStatus() {
+    if (isPaused) {
+      return KsqlQueryStatus.PAUSED;
+    } else {
+      return KsqlConstants.fromStreamsState(getState());
+    }
+  }
+
+  @Override
+  public void pause() {
+    sharedKafkaStreamsRuntime.getKafkaStreams().pauseNamedTopology(topology.name());
+    isPaused = true;
+    listener.onPause(this);
+  }
+
+  @Override
+  public void resume() {
+    sharedKafkaStreamsRuntime.getKafkaStreams().resumeNamedTopology(topology.name());
+    isPaused = false;
+    listener.onPause(this);
+  }
+
+  @Override
   public void register() {
     sharedKafkaStreamsRuntime.register(
         this
@@ -425,6 +453,18 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   Listener getListener() {
     return listener;
+  }
+
+  @Override
+  public Collection<String> getSourceTopicNames() {
+    return sources.stream()
+        .map(s -> s.getKsqlTopic()
+            .getKafkaTopicName())
+        .collect(Collectors.toSet());
+  }
+
+  private Set<DataSource> getSources() {
+    return sources;
   }
 
 }

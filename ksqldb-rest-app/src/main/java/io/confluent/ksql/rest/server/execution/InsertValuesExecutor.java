@@ -76,6 +76,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -183,20 +184,24 @@ public class InsertValuesExecutor {
       // missing. In this case, we include additional context to help the user
       // distinguish this type of failure from other permissions exceptions
       // such as the ones thrown above when TopicAuthorizationException is caught.
-      final Exception rootCause = new KsqlTopicAuthorizationException(
-          AclOperation.WRITE,
-          Collections.singletonList(dataSource.getKafkaTopicName()),
-          // Ideally we would forward e.getMessage() instead of the hard-coded
-          // message below, but until this error message is improved on the Kafka
-          // side, e.getMessage() is not helpful. (Today it is just "Cluster
-          // authorization failed.")
-          "The producer is not authorized to do idempotent sends. "
-              + "Check that you have write permissions to the specified topic, "
-              + "and disable idempotent sends by setting 'enable.idempotent=false' "
-              + " if necessary."
+      throw new KsqlException(
+          createInsertFailedExceptionMessage(insertValues),
+          createClusterAuthorizationExceptionRootCause(dataSource)
       );
-
-      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
+    } catch (final KafkaException e) {
+      if (e.getCause() != null && e.getCause() instanceof ClusterAuthorizationException) {
+        // The error message thrown when an idempotent producer is missing permissions
+        // is (nondeterministically) inconsistent: it is either a raw ClusterAuthorizationException,
+        // as checked for above, or a ClusterAuthorizationException wrapped inside a KafkaException.
+        // ksqlDB handles these two the same way, accordingly.
+        // See https://issues.apache.org/jira/browse/KAFKA-14138 for more.
+        throw new KsqlException(
+            createInsertFailedExceptionMessage(insertValues),
+            createClusterAuthorizationExceptionRootCause(dataSource)
+        );
+      } else {
+        throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
+      }
     } catch (final Exception e) {
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
     }
@@ -301,6 +306,22 @@ public class InsertValuesExecutor {
           + "To enable it, restart your ksqlDB server "
           + "with 'ksql.insert.into.values.enabled'=true");
     }
+  }
+
+  private static Exception createClusterAuthorizationExceptionRootCause(
+      final DataSource dataSource) {
+    return new KsqlTopicAuthorizationException(
+        AclOperation.WRITE,
+        Collections.singletonList(dataSource.getKafkaTopicName()),
+        // Ideally we would forward the message from the ClusterAuthorizationException
+        // instead of the hard-coded message below, but until this error message
+        // is improved on the Kafka side, e.getMessage() is not helpful.
+        // (Today it is just "Cluster authorization failed.")
+        "The producer is not authorized to do idempotent sends. "
+            + "Check that you have write permissions to the specified topic, "
+            + "and disable idempotent sends by setting 'enable.idempotent=false' "
+            + " if necessary."
+    );
   }
 
   private byte[] serializeKey(

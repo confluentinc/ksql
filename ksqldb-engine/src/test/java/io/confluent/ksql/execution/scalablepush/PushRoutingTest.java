@@ -44,6 +44,7 @@ import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushOffsetVector;
 import io.vertx.core.Context;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import java.net.URI;
 import java.util.HashSet;
@@ -147,6 +148,7 @@ public class PushRoutingTest {
     vertx = Vertx.vertx();
     context = vertx.getOrCreateContext();
     when(statement.getStatementText()).thenReturn("SELECT * FROM STREAM EMIT CHANGES");
+    when(statement.getUnMaskedStatementText()).thenReturn("SELECT * FROM STREAM EMIT CHANGES");
     when(statement.getSessionConfig()).thenReturn(sessionConfig);
     when(sessionConfig.getOverrides()).thenReturn(ImmutableMap.of());
     when(serviceContext.getKsqlClient()).thenReturn(simpleKsqlClient);
@@ -772,9 +774,9 @@ public class PushRoutingTest {
       sendError(e);
     }
 
-    public void close() {
+    public Future<Void> close() {
       closed = true;
-      super.close();
+      return super.close();
     }
 
     public boolean isClosed() {
@@ -794,9 +796,9 @@ public class PushRoutingTest {
       sendError(e);
     }
 
-    public void close() {
+    public Future<Void> close() {
       closed = true;
-      super.close();
+      return super.close();
     }
 
     public boolean isClosed() {

@@ -151,6 +151,10 @@
         },
         "size" : {
           "type" : "integer"
+        },
+        "emitStrategy" : {
+          "type" : "string",
+          "enum" : [ "CHANGES", "FINAL" ]
         }
       },
       "required" : [ "type" ]

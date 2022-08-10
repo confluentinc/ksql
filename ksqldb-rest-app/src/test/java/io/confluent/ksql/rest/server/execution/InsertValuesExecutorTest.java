@@ -94,6 +94,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -739,6 +740,88 @@ public class InsertValuesExecutorTest {
             + "Check that you have write permissions to the specified topic, "
             + "and disable idempotent sends by setting 'enable.idempotent=false' "
             + " if necessary."))));
+  }
+
+  @Test
+  public void shouldThrowOnClusterAuthorizationExceptionWrappedInKafkaException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new KafkaException(
+        "Cannot execute transactional method because we are in an error state",
+        new ClusterAuthorizationException("Cluster authorization failed"))
+    ).when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(
+        containsString("Authorization denied to Write on topic(s): [" + TOPIC_NAME + "]. "
+            + "Caused by: The producer is not authorized to do idempotent sends. "
+            + "Check that you have write permissions to the specified topic, "
+            + "and disable idempotent sends by setting 'enable.idempotent=false' "
+            + " if necessary."))));
+  }
+
+  @Test
+  public void shouldThrowOnOtherException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new RuntimeException("boom"))
+        .when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString("boom"))));
+  }
+
+  @Test
+  public void shouldThrowOnOtherExceptionWrappedInKafkaException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new KafkaException(
+        "Cannot execute transactional method because we are in an error state",
+        new RuntimeException("boom"))
+    ).when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(
+        containsString("Cannot execute transactional method because we are in an error state"))));
   }
 
   @Test

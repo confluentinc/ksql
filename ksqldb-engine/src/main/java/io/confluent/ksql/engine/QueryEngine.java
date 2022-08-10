@@ -60,8 +60,7 @@ class QueryEngine {
       final Optional<Sink> sink,
       final MetaStore metaStore,
       final KsqlConfig config,
-      final boolean rowpartitionRowoffsetEnabled,
-      final String statementText
+      final String statementTextMasked
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
     final Boolean pullLimitClauseEnabled = config.getBoolean(
@@ -70,7 +69,6 @@ class QueryEngine {
     final QueryAnalyzer queryAnalyzer =
         new QueryAnalyzer(metaStore,
             outputPrefix,
-            rowpartitionRowoffsetEnabled,
             pullLimitClauseEnabled
         );
 
@@ -78,7 +76,7 @@ class QueryEngine {
     try {
       analysis = queryAnalyzer.analyze(query, sink);
     } catch (final KsqlException e) {
-      throw new KsqlStatementException(e.getMessage(), statementText, e);
+      throw new KsqlStatementException(e.getMessage(), statementTextMasked, e);
     }
 
     return new LogicalPlanner(config, analysis, metaStore).buildPersistentLogicalPlan();

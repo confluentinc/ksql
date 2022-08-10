@@ -865,7 +865,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the grouping expression NAME in its projection."
+        "message": "The query used to build `OUTPUT` must include the grouping expression NAME in its projection (eg, SELECT NAME...)."
       }
     },
     {
@@ -876,7 +876,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the grouping expression NAME in its projection."
+        "message": "The query used to build `OUTPUT` must include the grouping expression NAME in its projection (eg, SELECT NAME...)."
       }
     },
     {
@@ -887,7 +887,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the grouping expression F1 in its projection."
+        "message": "The query used to build `OUTPUT` must include the grouping expression F1 in its projection (eg, SELECT F1...)."
       }
     },
     {
@@ -909,7 +909,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the grouping expressions F1, F2 and F3 in its projection."
+        "message": "The query used to build `OUTPUT` must include the grouping expressions F1, F2 and F3 in its projection (eg, SELECT F1, F2, F3...)."
       }
     },
     {
@@ -2806,7 +2806,8 @@
                 "fields": [
                   { "name": "A", "type": [ "null", "int" ], "default": null },
                   { "name": "B", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
               },
               "valueFormat" : { "format" : "AVRO" },
               "valueSchema": {
@@ -2815,7 +2816,8 @@
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "COUNT", "type": [ "null", "long" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
               }
             }
           ]
@@ -2885,7 +2887,8 @@
                 "fields": [
                   { "name": "A", "type": [ "null", "int" ], "default": null },
                   { "name": "B", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
               },
               "valueFormat" : { "format" : "JSON" }
             }

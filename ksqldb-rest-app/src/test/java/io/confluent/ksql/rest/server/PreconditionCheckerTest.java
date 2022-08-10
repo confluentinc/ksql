@@ -32,6 +32,7 @@ import io.vertx.core.Vertx;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.clients.admin.Admin;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,6 +53,10 @@ public class PreconditionCheckerTest {
   @Mock
   private Vertx vertx;
   @Mock
+  private Vertx clientVertx;
+  @Mock
+  private Admin admin;
+  @Mock
   private ServiceContext serviceContext;
   @Mock
   private KafkaTopicClient topicClient;
@@ -68,9 +73,8 @@ public class PreconditionCheckerTest {
   public void setup() {
     checker = new PreconditionChecker(
         propertiesLoader,
-        serviceContext,
         restConfig,
-        topicClient,
+        () -> new PreconditionChecker.Clients(serviceContext, clientVertx, admin, topicClient),
         vertx,
         ImmutableList.of(precondition1, precondition2),
         server,
@@ -87,9 +91,8 @@ public class PreconditionCheckerTest {
     // Given:
     PreconditionChecker checker = new PreconditionChecker(
         propertiesLoader,
-        serviceContext,
         restConfig,
-        topicClient,
+        () -> new PreconditionChecker.Clients(serviceContext, clientVertx, admin, topicClient),
         vertx,
         ImmutableList.of(),
         server,
@@ -110,6 +113,17 @@ public class PreconditionCheckerTest {
 
     // Then:
     verifyNoInteractions(server);
+  }
+
+  @Test
+  public void shouldCloseClientsIfPreconditionsPass() {
+    // When:
+    checker.startAsync();
+
+    // Then:
+    verify(serviceContext).close();
+    verify(admin).close();
+    verify(clientVertx).close();
   }
 
   @Test
@@ -139,6 +153,21 @@ public class PreconditionCheckerTest {
 
   @Test
   public void shouldRecheckPreconditions() {
+    // Given:
+    givenPreconditionFailures(precondition1);
+
+    // When:
+    checker.startAsync();
+    checker.awaitTerminated();
+
+    // Then:
+    verify(serviceContext, times(4)).close();
+    verify(admin, times(4)).close();
+    verify(clientVertx, times(4)).close();
+  }
+
+  @Test
+  public void shouldCloseClientsWhenPreconditionsCheckedInServer() {
     // Given:
     givenPreconditionFailures(precondition1);
 

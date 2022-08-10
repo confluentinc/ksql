@@ -44,7 +44,9 @@
         "type" : "object",
         "properties" : {
           "c1" : {
-            "type" : "integer"
+            "type" : "integer",
+            "connect.index": 0,
+            "connect.type": "int64"
           }
         }
       },
@@ -56,7 +58,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM INPUT (C1 BIGINT) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='JSON_SR');", "CREATE STREAM OUTPUT WITH (PARTITIONS=4) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "statements" : [ "CREATE STREAM INPUT (C1 BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON_SR');", "CREATE STREAM OUTPUT WITH (PARTITIONS=4) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
@@ -93,7 +95,9 @@
             "type" : "object",
             "properties" : {
               "c1" : {
-                "type" : "integer"
+                "type" : "integer",
+                "connect.index": 0,
+                "connect.type": "int64"
               }
             }
           }

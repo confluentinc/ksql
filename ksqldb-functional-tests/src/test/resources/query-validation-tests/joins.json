@@ -243,7 +243,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions L.A or R.A in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expressions L.A or R.A in its projection (eg, SELECT L.A...)."
       }
     },
     {
@@ -255,7 +255,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Key missing from projection. See https://cnfl.io/2LV7ouS.\nThe query used to build `OUTPUT` must include the join expression ROWKEY in its projection.\nROWKEY was added as a synthetic key column because the join criteria did not match any source column. This expression must be included in the projection and may be aliased."
+        "message": "Key missing from projection (ie, SELECT). See https://cnfl.io/2LV7ouS.\nThe query used to build `OUTPUT` must include the join expression ROWKEY in its projection (eg, SELECT ROWKEY...).\nROWKEY was added as a synthetic key column because the join criteria did not match any source column. This expression must be included in the projection and may be aliased."
       }
     },
     {
@@ -348,7 +348,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions L.A or R.A in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expressions L.A or R.A in its projection (eg, SELECT L.A...)."
       }
     },
     {
@@ -360,7 +360,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression R.A in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expression R.A in its projection (eg, SELECT R.A...)."
       }
     },
     {
@@ -372,7 +372,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Key missing from projection. See https://cnfl.io/2LV7ouS.\nThe query used to build `OUTPUT` must include the join expression ROWKEY in its projection.\nROWKEY was added as a synthetic key column because the join criteria did not match any source column."
+        "message": "Key missing from projection (ie, SELECT). See https://cnfl.io/2LV7ouS.\nThe query used to build `OUTPUT` must include the join expression ROWKEY in its projection (eg, SELECT ROWKEY...).\nROWKEY was added as a synthetic key column because the join criteria did not match any source column."
       }
     },
     {
@@ -405,7 +405,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression ROWKEY in its projection.\nROWKEY was added as a synthetic key column because the join criteria did not match any source column."
+        "message": "The query used to build `OUTPUT` must include the join expression ROWKEY in its projection (eg, SELECT ROWKEY...).\nROWKEY was added as a synthetic key column because the join criteria did not match any source column."
       }
     },
     {
@@ -417,7 +417,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions L.A or R.A in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expressions L.A or R.A in its projection (eg, SELECT L.A...)."
       }
     },
     {

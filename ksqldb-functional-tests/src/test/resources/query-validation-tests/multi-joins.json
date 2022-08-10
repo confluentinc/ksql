@@ -102,7 +102,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID, T2.ID or T3.ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID, T2.ID or T3.ID in its projection (eg, SELECT S1.ID...)."
       }
     },
     {
@@ -115,7 +115,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID or T3.ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID or T3.ID in its projection (eg, SELECT S1.ID...)."
       }
     },
     {
@@ -128,7 +128,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression T3.ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expression T3.ID in its projection (eg, SELECT T3.ID...)."
       }
     },
     {
@@ -141,7 +141,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID, T2.ID or T3.ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID, T2.ID or T3.ID in its projection (eg, SELECT S1.ID...)."
       }
     },
     {
@@ -154,7 +154,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID or T3.ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID or T3.ID in its projection (eg, SELECT S1.ID...)."
       }
     },
     {
@@ -167,7 +167,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression T3.ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expression T3.ID in its projection (eg, SELECT T3.ID...)."
       }
     },
     {

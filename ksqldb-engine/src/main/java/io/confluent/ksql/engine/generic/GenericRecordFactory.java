@@ -75,14 +75,14 @@ public class GenericRecordFactory {
               + ". Got " + expressions);
     }
 
-    final LogicalSchema schemaWithPseudoColumns = withPseudoColumns(schema, config);
+    final LogicalSchema schemaWithPseudoColumns = withPseudoColumns(schema);
     for (ColumnName col : columns) {
 
       if (!schemaWithPseudoColumns.findColumn(col).isPresent()) {
         throw new KsqlException("Column name " + col + " does not exist.");
       }
 
-      if (SystemColumns.isDisallowedForInsertValues(col, config)) {
+      if (SystemColumns.isDisallowedForInsertValues(col)) {
         throw new KsqlException("Inserting into column " + col + " is not allowed.");
       }
     }
@@ -126,23 +126,15 @@ public class GenericRecordFactory {
   }
 
   private static LogicalSchema withPseudoColumns(
-      final LogicalSchema schema,
-      final KsqlConfig ksqlConfig) {
+      final LogicalSchema schema) {
     // The set of columns users can supply values for includes pseudocolumns,
-    // so include them in the schema based on pseudoColumnVersion
+    // so include them in the schema
 
     final LogicalSchema.Builder builder = schema.asBuilder();
 
-    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
-
-    if (pseudoColumnVersion >= 0) {
-      builder.valueColumn(SystemColumns.ROWTIME_NAME, SystemColumns.ROWTIME_TYPE);
-    }
-
-    if (pseudoColumnVersion >= 1) {
-      builder.valueColumn(SystemColumns.ROWPARTITION_NAME, SystemColumns.ROWPARTITION_TYPE);
-      builder.valueColumn(SystemColumns.ROWOFFSET_NAME, SystemColumns.ROWOFFSET_TYPE);
-    }
+    builder.valueColumn(SystemColumns.ROWTIME_NAME, SystemColumns.ROWTIME_TYPE);
+    builder.valueColumn(SystemColumns.ROWPARTITION_NAME, SystemColumns.ROWPARTITION_TYPE);
+    builder.valueColumn(SystemColumns.ROWOFFSET_NAME, SystemColumns.ROWOFFSET_TYPE);
 
     return builder.build();
   }

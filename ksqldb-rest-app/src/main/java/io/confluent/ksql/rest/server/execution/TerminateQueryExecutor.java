@@ -51,7 +51,8 @@ public final class TerminateQueryExecutor {
     );
 
     if (executionContext.getPersistentQuery(queryId).isPresent()
-        || statement.getStatementText().equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+        || statement.getUnMaskedStatementText().equals(
+            TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
       // do default behaviour for terminating persistent queries
       return StatementExecutorResponse.notHandled();
     } else {

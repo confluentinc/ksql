@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.security;
 
-import java.security.Principal;
-import java.util.Optional;
-
 /**
  * Interface to extract auth token information to ksqlDB
  */
@@ -26,8 +23,8 @@ public interface KsqlAuthTokenProvider {
   /**
    * Extract the lifetime of a token from the Principal.
    *
-   * @param principal The {@link Principal} that's carrying the auth token.
-   * @return An {@Optional} containing the expiration time of the token in ms if there is one
+   * @param token The auth token.
+   * @return The expiration time of the token in ms
    */
-  Optional<Long> getLifetimeMs(Principal principal);
+  long getLifetimeMs(String token);
 }

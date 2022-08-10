@@ -17,17 +17,27 @@ package io.confluent.ksql.parser.json;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import java.io.IOException;
 
 class KsqlWindowExpressionSerializer extends JsonSerializer<KsqlWindowExpression> {
+  private static final ObjectMapper mapper = new ObjectMapper();
+
+  static {
+    mapper.registerModule(new Jdk8Module());
+    mapper.registerModule(new JavaTimeModule());
+  }
+
   @Override
   public void serialize(
       final KsqlWindowExpression expression,
       final JsonGenerator jsonGenerator,
       final SerializerProvider serializerProvider
   ) throws IOException {
-    jsonGenerator.writeObject(expression.toString());
+    jsonGenerator.writeObject(mapper.valueToTree(expression));
   }
 }

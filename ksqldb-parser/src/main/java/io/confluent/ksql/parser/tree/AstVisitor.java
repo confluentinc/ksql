@@ -154,6 +154,14 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
+  protected R visitPauseQuery(final PauseQuery node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitResumeQuery(final ResumeQuery node, final C context) {
+    return visitStatement(node, context);
+  }
+
   protected R visitTerminateQuery(final TerminateQuery node, final C context) {
     return visitStatement(node, context);
   }

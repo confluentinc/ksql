@@ -65,7 +65,7 @@ public class BytesTopKDistinctKudafTest {
     final List<ByteBuffer> array1 = toBytes(ImmutableList.of("D", "B", "A"));
     final List<ByteBuffer> array2 = toBytes(ImmutableList.of("E", "D", "C"));
 
-    assertThat("Invalid results.", bytesTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", bytesTopkDistinctKudaf.merge(array1, array2),
             equalTo(toBytes(ImmutableList.of("E", "D", "C"))));
   }
 
@@ -74,7 +74,7 @@ public class BytesTopKDistinctKudafTest {
     final List<ByteBuffer> array1 = toBytes(ImmutableList.of("B", "A"));
     final List<ByteBuffer> array2 = toBytes(ImmutableList.of("C"));
 
-    assertThat("Invalid results.", bytesTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", bytesTopkDistinctKudaf.merge(array1, array2),
             equalTo(toBytes(ImmutableList.of("C", "B", "A"))));
   }
 
@@ -83,7 +83,7 @@ public class BytesTopKDistinctKudafTest {
     final List<ByteBuffer> array1 = toBytes(ImmutableList.of("B", "A"));
     final List<ByteBuffer> array2 = toBytes(ImmutableList.of("C", "B"));
 
-    assertThat("Invalid results.", bytesTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", bytesTopkDistinctKudaf.merge(array1, array2),
             equalTo(toBytes(ImmutableList.of("C", "B", "A"))));
   }
 
@@ -92,7 +92,7 @@ public class BytesTopKDistinctKudafTest {
     final List<ByteBuffer> array1 = toBytes(ImmutableList.of("A"));
     final List<ByteBuffer> array2 = toBytes(ImmutableList.of("A"));
 
-    assertThat("Invalid results.", bytesTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", bytesTopkDistinctKudaf.merge(array1, array2),
             equalTo(toBytes(ImmutableList.of("A"))));
   }
 

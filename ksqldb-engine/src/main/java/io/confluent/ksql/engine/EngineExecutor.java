@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.pull.PullPhysicalPlan;
 import io.confluent.ksql.execution.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.execution.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.pull.StreamedRowTranslator;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanBuilder;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanCreator;
@@ -89,7 +90,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.VerifiableNode;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -121,7 +122,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -285,15 +285,24 @@ final class EngineExecutor {
       );
       final PullPhysicalPlan physicalPlan = plan;
 
-      final PullQueryQueue pullQueryQueue = new PullQueryQueue(analysis.getLimitClause());
+      final PullQueryWriteStream pullQueryQueue = new PullQueryWriteStream(
+          analysis.getLimitClause(),
+          new StreamedRowTranslator(physicalPlan.getOutputSchema(), consistencyOffsetVector));
+
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
-          physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests, consistencyOffsetVector);
+          physicalPlan,
+          statement,
+          routingOptions,
+          pullQueryQueue,
+          shouldCancelRequests
+      );
+
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
           physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource,
           shouldCancelRequests, consistencyOffsetVector);
+
       if (startImmediately) {
         result.start();
       }
@@ -603,7 +612,7 @@ final class EngineExecutor {
         plans.executionPlan.getPhysicalPlan(),
         plans.executionPlan.getQueryId(),
         getApplicationId(plans.executionPlan.getQueryId(),
-            getSourceNames(outputNode))
+            getSourceTopicNames(outputNode))
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -680,7 +689,7 @@ final class EngineExecutor {
           plans.executionPlan.getPhysicalPlan(),
           plans.executionPlan.getQueryId(),
           getApplicationId(plans.executionPlan.getQueryId(),
-              getSourceNames(outputNode))
+              getSourceTopicNames(outputNode))
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -702,7 +711,7 @@ final class EngineExecutor {
   }
 
   private Optional<String> getApplicationId(final QueryId queryId,
-                                            final Collection<SourceName> sources) {
+                                            final Collection<String> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         ? Optional.of(
         engineContext.getRuntimeAssignor()
@@ -791,7 +800,6 @@ final class EngineExecutor {
 
       return new ExecutorPlans(
           new StubbedOutputNode(
-              ksqlConfig,
               metaStore.getSource(logicalPlan.getSourceNames().stream().findFirst().get()),
               getSinkTopic(root.getFormats(), sink.get()),
               schemaBuilder.build()
@@ -804,14 +812,10 @@ final class EngineExecutor {
           sink,
           metaStore,
           ksqlConfig,
-          getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
           statement.getStatementText()
       );
 
-      final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-          statement.getStatementText(),
-          Optional.of(outputNode)
-      );
+      final LogicalPlanNode logicalPlan = new LogicalPlanNode(Optional.of(outputNode));
 
       final QueryId queryId = QueryIdUtil.buildId(
           statement.getStatement(),
@@ -896,7 +900,6 @@ final class EngineExecutor {
 
   private static final class StubbedOutputNode extends KsqlStructuredDataOutputNode {
     private StubbedOutputNode(
-        final KsqlConfig ksqlConfig,
         final DataSource source,
         final KsqlTopic sinkTopic,
         final LogicalSchema sinkSchema) {
@@ -906,8 +909,7 @@ final class EngineExecutor {
               new PlanNodeId("stubbedSource"),
               source,
               source.getName(),
-              false,
-              ksqlConfig
+              false
           ),
           sinkSchema,
           Optional.empty(),
@@ -929,10 +931,9 @@ final class EngineExecutor {
         final PlanNodeId id,
         final DataSource dataSource,
         final SourceName alias,
-        final boolean isWindowed,
-        final KsqlConfig ksqlConfig
+        final boolean isWindowed
     ) {
-      super(id, dataSource, alias, isWindowed, ksqlConfig);
+      super(id, dataSource, alias, isWindowed);
     }
 
     @Override
@@ -956,10 +957,7 @@ final class EngineExecutor {
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
         .buildQueryLogicalPlan(queryPlannerOptions, isScalablePush);
-    return new LogicalPlanNode(
-        statement.getStatementText(),
-        Optional.of(outputNode)
-    );
+    return new LogicalPlanNode(Optional.of(outputNode));
   }
 
   private PushPhysicalPlan buildScalablePushPhysicalPlan(
@@ -1036,7 +1034,10 @@ final class EngineExecutor {
       ));
     }
 
-    return Optional.of(engineContext.createDdlCommand(outputNode));
+    return Optional.of(engineContext.createDdlCommand(
+        outputNode,
+        ((QueryContainer) statement).getQuery().getRefinement())
+    );
   }
 
   private void validateExistingSink(
@@ -1106,6 +1107,14 @@ final class EngineExecutor {
         .collect(Collectors.toSet());
   }
 
+  private static Set<String> getSourceTopicNames(final PlanNode outputNode) {
+    return outputNode.getSourceNodes()
+        .map(DataSourceNode::getDataSource)
+        .map(DataSource::getKsqlTopic)
+        .map(KsqlTopic::getKafkaTopicName)
+        .collect(Collectors.toSet());
+  }
+
   private String executeDdl(
       final DdlCommand ddlCommand,
       final String statementText,
@@ -1162,18 +1171,5 @@ final class EngineExecutor {
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {
     return new PlanSummary(queryId, config.getConfig(true), engineContext.getMetaStore())
         .summarize(plan);
-  }
-
-  private static boolean getRowpartitionRowoffsetEnabled(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> configOverrides
-  ) {
-    final Object rowpartitionRowoffsetEnabled =
-        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
-    if (rowpartitionRowoffsetEnabled != null) {
-      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
-    }
-
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 }

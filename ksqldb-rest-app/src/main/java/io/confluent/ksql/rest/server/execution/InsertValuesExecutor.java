@@ -418,6 +418,10 @@ public class InsertValuesExecutor {
           + "operation potentially overrides existing key schema in schema registry.", e);
     }
 
+    if (!latest.getSchema().isPresent()) {
+      throw new KsqlException("Failed to fetch schema from Schema Registry. Please try again.");
+    }
+
     final Map<String, String> formatProps = keyFormat.getFormatInfo().getProperties();
     final SchemaTranslator translator = format.getSchemaTranslator(formatProps);
     ParsedSchema srSchema = latest.getSchema().get();

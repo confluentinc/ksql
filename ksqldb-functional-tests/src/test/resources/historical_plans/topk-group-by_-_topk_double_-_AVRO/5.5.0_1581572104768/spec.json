@@ -49,7 +49,7 @@
         "ID" : 0,
         "NAME" : "zero",
         "key" : 0,
-        "value" : 2147483648.9
+        "value" : 2.1474836489E9
       }
     }, {
       "topic" : "test_topic",
@@ -93,35 +93,35 @@
       "key" : 0,
       "value" : {
         "ID" : 0,
-        "TOPK" : [ 2147483648.9 ]
+        "TOPK" : [ 2.1474836489E9 ]
       }
     }, {
       "topic" : "S2",
       "key" : 0,
       "value" : {
         "ID" : 0,
-        "TOPK" : [ 2147483648.9, 100.5 ]
+        "TOPK" : [ 2.1474836489E9, 100.5 ]
       }
     }, {
       "topic" : "S2",
       "key" : 0,
       "value" : {
         "ID" : 0,
-        "TOPK" : [ 2147483648.9, 100.5, 99.9 ]
+        "TOPK" : [ 2.1474836489E9, 100.5, 99.9 ]
       }
     }, {
       "topic" : "S2",
       "key" : 0,
       "value" : {
         "ID" : 0,
-        "TOPK" : [ 2147483648.9, 100.5, 99.9 ]
+        "TOPK" : [ 2.1474836489E9, 100.5, 99.9 ]
       }
     }, {
       "topic" : "S2",
       "key" : 0,
       "value" : {
         "ID" : 0,
-        "TOPK" : [ 2147483648.9, 100.5, 100.5 ]
+        "TOPK" : [ 2.1474836489E9, 100.5, 100.5 ]
       }
     } ],
     "topics" : [ {
@@ -204,7 +204,8 @@
                 "items" : [ "null", "double" ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",
@@ -258,7 +259,8 @@
                 "items" : [ "null", "double" ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

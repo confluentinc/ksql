@@ -25,6 +25,8 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.Quadruple;
+import io.confluent.ksql.util.Quintuple;
 import io.confluent.ksql.util.Triple;
 import java.util.List;
 import java.util.Objects;
@@ -166,6 +168,21 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
         return (objects) -> Triple.of(
                 objects.get(0),
                 objects.get(1),
+                getLastObject.apply(objects)
+        );
+      case 4:
+        return (objects) -> Quadruple.of(
+                objects.get(0),
+                objects.get(1),
+                objects.get(2),
+                getLastObject.apply(objects)
+        );
+      case 5:
+        return (objects) -> Quintuple.of(
+                objects.get(0),
+                objects.get(1),
+                objects.get(2),
+                objects.get(3),
                 getLastObject.apply(objects)
         );
       default:

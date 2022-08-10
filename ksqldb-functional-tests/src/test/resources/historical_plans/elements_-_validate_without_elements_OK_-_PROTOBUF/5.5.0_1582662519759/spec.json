@@ -49,7 +49,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM INPUT (C1 INTEGER) WITH (AVRO_SCHEMA_ID=1, KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT WITH (PARTITIONS=4) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "statements" : [ "CREATE STREAM INPUT (C1 INTEGER) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT WITH (PARTITIONS=4) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",

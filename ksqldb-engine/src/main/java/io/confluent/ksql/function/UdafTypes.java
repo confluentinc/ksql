@@ -27,6 +27,8 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.Quadruple;
+import io.confluent.ksql.util.Quintuple;
 import io.confluent.ksql.util.Triple;
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
@@ -81,6 +83,8 @@ class UdafTypes {
           ImmutableSet.<Type>builder()
                   .add(Pair.class)
                   .add(Triple.class)
+                  .add(Quadruple.class)
+                  .add(Quintuple.class)
                   .build();
   private static final Type VARIADIC_TYPE = VariadicArgs.class;
 

@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.pull.PullPhysicalPlan;
 import io.confluent.ksql.execution.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.execution.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.pull.StreamedRowTranslator;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanBuilder;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanCreator;
@@ -89,7 +90,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.VerifiableNode;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -284,15 +285,24 @@ final class EngineExecutor {
       );
       final PullPhysicalPlan physicalPlan = plan;
 
-      final PullQueryQueue pullQueryQueue = new PullQueryQueue(analysis.getLimitClause());
+      final PullQueryWriteStream pullQueryQueue = new PullQueryWriteStream(
+          analysis.getLimitClause(),
+          new StreamedRowTranslator(physicalPlan.getOutputSchema(), consistencyOffsetVector));
+
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
-          physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests, consistencyOffsetVector);
+          physicalPlan,
+          statement,
+          routingOptions,
+          pullQueryQueue,
+          shouldCancelRequests
+      );
+
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
           physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource,
           shouldCancelRequests, consistencyOffsetVector);
+
       if (startImmediately) {
         result.start();
       }
@@ -602,7 +612,7 @@ final class EngineExecutor {
         plans.executionPlan.getPhysicalPlan(),
         plans.executionPlan.getQueryId(),
         getApplicationId(plans.executionPlan.getQueryId(),
-            getSourceNames(outputNode))
+            getSourceTopicNames(outputNode))
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -679,7 +689,7 @@ final class EngineExecutor {
           plans.executionPlan.getPhysicalPlan(),
           plans.executionPlan.getQueryId(),
           getApplicationId(plans.executionPlan.getQueryId(),
-              getSourceNames(outputNode))
+              getSourceTopicNames(outputNode))
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -701,7 +711,7 @@ final class EngineExecutor {
   }
 
   private Optional<String> getApplicationId(final QueryId queryId,
-                                            final Collection<SourceName> sources) {
+                                            final Collection<String> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         ? Optional.of(
         engineContext.getRuntimeAssignor()
@@ -1094,6 +1104,14 @@ final class EngineExecutor {
     return outputNode.getSourceNodes()
         .map(DataSourceNode::getDataSource)
         .map(DataSource::getName)
+        .collect(Collectors.toSet());
+  }
+
+  private static Set<String> getSourceTopicNames(final PlanNode outputNode) {
+    return outputNode.getSourceNodes()
+        .map(DataSourceNode::getDataSource)
+        .map(DataSource::getKsqlTopic)
+        .map(KsqlTopic::getKafkaTopicName)
         .collect(Collectors.toSet());
   }
 

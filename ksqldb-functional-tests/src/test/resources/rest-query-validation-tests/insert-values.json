@@ -146,7 +146,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Failed to prepare statement: Expected number columns and values to match: [K, ID], ['10']",
+        "message": "Failed to prepare statement: Expected number columns and values to match: 2, 1",
         "status": 400
       }
     },

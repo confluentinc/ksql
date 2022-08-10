@@ -173,14 +173,15 @@ final class EngineContext {
       final PreparedStatement<?> preparedStatement =
           parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
       return PreparedStatement.of(
-          preparedStatement.getStatementText(),
+          preparedStatement.getUnMaskedStatementText(),
           AstSanitizer.sanitize(preparedStatement.getStatement(), metaStore)
       );
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          "Exception while preparing statement: " + e.getMessage(), stmt.getStatementText(), e);
+          "Exception while preparing statement: " + e.getMessage(), stmt.getMaskedStatementText(),
+          e);
     }
   }
 

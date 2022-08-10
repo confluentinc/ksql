@@ -188,7 +188,7 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+    throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
   }
 
   public PullQueryResult execute(
@@ -212,7 +212,7 @@ public final class PullQueryExecutor {
               + System.lineSeparator()
               + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
               + "this feature.",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
 
     try {
@@ -288,7 +288,7 @@ public final class PullQueryExecutor {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e
       );
     }
@@ -347,10 +347,10 @@ public final class PullQueryExecutor {
         .anyMatch(location -> location.getNodes().isEmpty());
     if (anyPartitionsEmpty) {
       LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
       throw new MaterializationException(String.format(
           "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
-          statement.getStatementText()));
+          statement.getMaskedStatementText()));
     }
 
     // The source nodes associated with each of the rows
@@ -407,7 +407,7 @@ public final class PullQueryExecutor {
           tableRows.addAll(result.getTableRows().getRows());
         } catch (ExecutionException e) {
           LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
-              statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
+              statement.getMaskedStatementText(), node, System.currentTimeMillis(), e.getCause());
           nextRoundRemaining.addAll(groupedByHost.get(node));
         }
       }
@@ -417,7 +417,7 @@ public final class PullQueryExecutor {
       if (remainingLocations.size() == 0) {
         validateSchemas(schemas);
         return new PullQueryResult(
-            new TableRows(statement.getStatementText(), queryId, Iterables.getLast(schemas),
+            new TableRows(statement.getMaskedStatementText(), queryId, Iterables.getLast(schemas),
                 tableRows),
             sourceNodes.isEmpty() ? Optional.empty() : Optional.of(sourceNodes));
       }
@@ -442,7 +442,7 @@ public final class PullQueryExecutor {
       if (round >= location.getNodes().size()) {
         throw new MaterializationException(String.format(
             "Unable to execute pull query: %s. Exhausted standby hosts to try.",
-            statement.getStatementText()));
+            statement.getMaskedStatementText()));
       }
       final KsqlNode nextHost = location.getNodes().get(round);
       groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);
@@ -459,7 +459,7 @@ public final class PullQueryExecutor {
   ) {
     if (node.isLocal()) {
       LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-               statement.getStatementText(), node.location(), System.currentTimeMillis());
+               statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       pullQueryContext.pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
       return queryRowsLocally(
@@ -468,7 +468,7 @@ public final class PullQueryExecutor {
           pullQueryContext);
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
-                statement.getStatementText(), node.location(), System.currentTimeMillis());
+                statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       pullQueryContext.pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
       return forwardTo(node, statement, serviceContext, pullQueryContext);
@@ -543,7 +543,7 @@ public final class PullQueryExecutor {
       );
     }
     return new TableRows(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         pullQueryContext.queryId,
         outputSchema,
         rows
@@ -570,7 +570,7 @@ public final class PullQueryExecutor {
         .getKsqlClient()
         .makeQueryRequest(
             owner.location(),
-            statement.getStatementText(),
+            statement.getUnMaskedStatementText(),
             statement.getSessionConfig().getOverrides(),
             requestProperties
         );
@@ -593,7 +593,7 @@ public final class PullQueryExecutor {
       if (row.getErrorMessage().isPresent()) {
         throw new KsqlStatementException(
             row.getErrorMessage().get().getMessage(),
-            statement.getStatementText()
+            statement.getMaskedStatementText()
         );
       }
 
@@ -605,7 +605,7 @@ public final class PullQueryExecutor {
     }
 
     return new TableRows(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         header.getQueryId(),
         header.getSchema(),
         rows.build()

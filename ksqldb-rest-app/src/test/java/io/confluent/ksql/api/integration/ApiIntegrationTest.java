@@ -405,7 +405,7 @@ public class ApiIntegrationTest {
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
-        "Can't coerce a field of type class java.lang.Boolean (true) into type STRING");
+        "Can't coerce a field of type class java.lang.Boolean into type STRING");
   }
 
   @Test
@@ -423,7 +423,7 @@ public class ApiIntegrationTest {
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
-        "Can't coerce a field of type class java.lang.String (not a number) into type BIGINT");
+        "Can't coerce a field of type class java.lang.String into type BIGINT");
   }
 
   @Test

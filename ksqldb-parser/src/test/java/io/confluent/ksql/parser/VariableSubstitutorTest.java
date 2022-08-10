@@ -195,7 +195,7 @@ public class VariableSubstitutorTest {
       final String sqlResult = VariableSubstitutor.substitute(sqlStatement, variablesMap);
 
       // Then
-      assertThat("Should replace: " + sqlStatement.getStatementText(), sqlResult, equalTo(sqlReplaced));
+      assertThat("Should replace: " + sqlStatement.getUnMaskedStatementText(), sqlResult, equalTo(sqlReplaced));
     }
   }
 
@@ -214,7 +214,7 @@ public class VariableSubstitutorTest {
       );
 
       // Then
-      assertThat("Should fail replace: " + sqlStatement.getStatementText(),
+      assertThat("Should fail replace: " + sqlStatement.getUnMaskedStatementText(),
           e.getMessage(), containsString(sqlError));
     }
   }

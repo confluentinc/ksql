@@ -1088,6 +1088,28 @@ public class CliTest {
   }
 
   @Test
+  public void shouldDescribeVariadicAggregateFunction() {
+    final String expectedSummary =
+            "Name        : MID_VAR_ARG\n"
+                    + "Author      : Confluent\n"
+                    + "Overview    : Returns the sum of the provided longs, lengths of strings, and initial arguments.\n"
+                    + "Type        : AGGREGATE\n"
+                    + "Jar         : internal\n"
+                    + "Variations  : \n";
+
+    final String expectedVariant =
+            "\tVariation   : MID_VAR_ARG(val1 BIGINT, val2 VARCHAR[], first INT, second INT)\n"
+                    + "\tReturns     : BIGINT\n"
+                    + "\tDescription : Testing factory";
+
+    localCli.handleLine("describe function mid_var_arg;");
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
+  }
+
+  @Test
   public void shouldDescribeTableFunction() {
     final String expectedOutput =
         "Name        : EXPLODE\n"

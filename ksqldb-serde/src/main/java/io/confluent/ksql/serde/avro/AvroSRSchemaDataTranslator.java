@@ -16,7 +16,14 @@
 package io.confluent.ksql.serde.avro;
 
 import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -44,9 +51,14 @@ public class AvroSRSchemaDataTranslator extends ConnectSRSchemaDataTranslator {
     }
     final Schema schema = getSchema();
     final Struct struct = new Struct(schema);
-    final Struct originalData = (Struct) ksqlData;
-    final Schema originalSchema = originalData.schema();
-
+    Struct originalData = (Struct) ksqlData;
+    Schema originalSchema = originalData.schema();
+    if (originalSchema.name() == null && schema.name() != null) {
+      originalSchema = AvroSchemas.getAvroCompatibleConnectSchema(
+          schema, schema.name()
+      );
+      originalData = convertStruct(originalData, originalSchema);
+    }
     validate(originalSchema, schema);
 
     for (final Field field : schema.fields()) {
@@ -62,6 +74,57 @@ public class AvroSRSchemaDataTranslator extends ConnectSRSchemaDataTranslator {
               + "]. This field appears in Avro schema in Schema Registry");
         }
       }
+    }
+
+    return struct;
+  }
+
+  private static Object replaceSchema(final Schema schema, final Object object) {
+    if (object == null) {
+      return null;
+    }
+    switch (schema.type()) {
+      case ARRAY:
+        final List<Object> ksqlArray = new ArrayList<>(((List) object).size());
+        ((List) object).forEach(
+            e -> ksqlArray.add(replaceSchema(schema.valueSchema(), e)));
+        return ksqlArray;
+
+      case MAP:
+        final Map<Object, Object> ksqlMap = new HashMap<>();
+        ((Map<Object, Object>) object).forEach(
+            (key, value) -> ksqlMap.put(
+                replaceSchema(schema.keySchema(), key),
+                replaceSchema(schema.valueSchema(), value)
+            ));
+        return ksqlMap;
+
+      case STRUCT:
+        return convertStruct((Struct) object, schema);
+      case BYTES:
+        if (DecimalUtil.isDecimal(schema)) {
+          return DecimalUtil.ensureFit((BigDecimal) object, schema);
+        } else {
+          return object;
+        }
+      default:
+        return object;
+    }
+  }
+
+  private static Struct convertStruct(
+      final Struct source,
+      final Schema targetSchema
+  ) {
+    final Struct struct = new Struct(targetSchema);
+
+    final Iterator<Field> sourceIt = source.schema().fields().iterator();
+
+    for (final Field targetField : targetSchema.fields()) {
+      final Field sourceField = sourceIt.next();
+      final Object value = source.get(sourceField);
+      final Object adjusted = replaceSchema(targetField.schema(), value);
+      struct.put(targetField, adjusted);
     }
 
     return struct;

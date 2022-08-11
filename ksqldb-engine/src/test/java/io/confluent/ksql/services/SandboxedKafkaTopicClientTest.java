@@ -60,6 +60,7 @@ import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.ConfigResource.Type;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.internals.KafkaFutureImpl;
 import org.junit.Before;
@@ -125,7 +126,9 @@ public class SandboxedKafkaTopicClientTest {
     private Admin mockedAdmin;
 
     private KafkaTopicClient sandboxedClient;
-    private final Map<String, ?> configs = ImmutableMap.of("some config", 1);
+    private final Map<String, ?> configs = ImmutableMap.of(
+        "some config", 1,
+        TopicConfig.RETENTION_MS_CONFIG, 8640000000L);
 
     @Before
     public void setUp() {
@@ -303,7 +306,7 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
-          + "exists, with different partition/replica configuration than required"));
+          + "exists, with different partition/replica/retention configuration than required"));
     }
 
     @Test
@@ -319,7 +322,25 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
-          + "exists, with different partition/replica configuration than required"));
+          + "exists, with different partition/replica/retention configuration than required"));
+    }
+
+    @Test
+    public void shouldThrowOnCreateIfTopicPreviouslyCreatedInScopeWithDifferentRetentionMs() {
+      // Given:
+      sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
+
+      // When:
+      final Map<String, ?> newConfigs = ImmutableMap.of(
+          TopicConfig.RETENTION_MS_CONFIG, 5000L);
+      final KafkaTopicExistsException e = assertThrows(
+          KafkaTopicExistsException.class,
+          () -> sandboxedClient.createTopic("some topic", 2, (short) 3, newConfigs)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
+          + "exists, with different partition/replica/retention configuration than required"));
     }
 
     @Test
@@ -335,7 +356,7 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
-          + "exists, with different partition/replica configuration than required"));
+          + "exists, with different partition/replica/retention configuration than required"));
     }
 
     @Test
@@ -351,7 +372,25 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
-          + "exists, with different partition/replica configuration than required"));
+          + "exists, with different partition/replica/retention configuration than required"));
+    }
+
+    @Test
+    public void shouldThrowOnCreateIfTopicAlreadyExistsWithDifferentRetentionMs() {
+      // Given:
+      givenTopicExists("some topic", 2, 1);
+
+      // When:
+      final Map<String, ?> newConfigs = ImmutableMap.of(
+          TopicConfig.RETENTION_MS_CONFIG, 5000L);
+      final KafkaTopicExistsException e = assertThrows(
+          KafkaTopicExistsException.class,
+          () -> sandboxedClient.createTopic("some topic", 2, (short) 1, newConfigs)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
+          + "exists, with different partition/replica/retention configuration than required"));
     }
 
     @Test
@@ -425,6 +464,7 @@ public class SandboxedKafkaTopicClientTest {
           .thenReturn(Collections.singletonMap(
               topic,
               new TopicDescription(topic, false, topicPartitions(numPartitions, numReplicas))));
+      when(delegate.getTopicConfig(topic)).thenReturn((Map<String, String>) configs);
     }
 
     private static List<TopicPartitionInfo> topicPartitions(

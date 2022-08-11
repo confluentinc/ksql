@@ -53,6 +53,8 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import org.apache.kafka.common.config.TopicConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -373,8 +375,9 @@ public class ExecutionPlanBuilderTest {
   }
 
   private void givenKafkaTopicsExist(final String... names) {
+    final Map<String, ?> config = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 5000L);
     Arrays.stream(names).forEach(name ->
-        kafkaTopicClient.createTopic(name, 1, (short) 1, Collections.emptyMap())
+        kafkaTopicClient.createTopic(name, 1, (short) 1, config)
     );
   }
 }

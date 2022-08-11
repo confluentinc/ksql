@@ -37,6 +37,7 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 /**
@@ -105,6 +106,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   private final Map<String, FakeTopic> topicMap = new HashMap<>();
   private final Map<String, FakeTopic> createdTopics = new HashMap<>();
 
+  private final Map<String, Map<String, ?>> createdTopicsConfig = new HashMap<>();
+
   public void preconditionTopicExists(
       final String topic
   ) {
@@ -133,13 +136,14 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
     final FakeTopic existing = topicMap.get(topic);
     if (existing != null) {
-      validateTopicProperties(numPartitions, replicas, existing);
+      validateTopicProperties(numPartitions, replicas, existing, configs, getTopicConfig(topic));
       return;
     }
 
     final FakeTopic info = createFakeTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
     createdTopics.put(topic, info);
+    createdTopicsConfig.put(topic, configs);
   }
 
   public Map<String, FakeTopic> createdTopics() {
@@ -174,7 +178,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, String> getTopicConfig(final String topicName) {
-    return Collections.emptyMap();
+    return (Map<String, String>) createdTopicsConfig.get(topicName);
   }
 
   @Override
@@ -221,13 +225,22 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   private static void validateTopicProperties(
       final int requiredNumPartition,
       final int requiredNumReplicas,
-      final FakeTopic existing
+      final FakeTopic existing,
+      final Map<String, ?> config,
+      final Map<String, ?> existingConfig
   ) {
+    final long requiredRetentionMs = KafkaTopicClient.getRetentionMs(config);
+    final long actualRetentionMs = KafkaTopicClient.getRetentionMs(existingConfig);
+    //final long requiredRetentionMs = (long) ((Object) config.get(TopicConfig.RETENTION_MS_CONFIG));
+    //final long actualRetentionMs = (long) ((Object) existingConfig.get(TopicConfig.RETENTION_MS_CONFIG));
     TopicValidationUtil.validateTopicProperties(
         existing.topicName,
         requiredNumPartition,
         requiredNumReplicas,
+        requiredRetentionMs,
         existing.numPartitions,
-        existing.replicationFactor);
+        existing.replicationFactor,
+        actualRetentionMs);
   }
+
 }

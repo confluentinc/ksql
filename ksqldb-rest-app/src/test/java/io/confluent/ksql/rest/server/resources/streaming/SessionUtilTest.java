@@ -25,7 +25,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.vertx.core.Handler;
 import io.vertx.core.http.ServerWebSocket;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +46,7 @@ public class SessionUtilTest {
 
   @Before
   public void setUp() {
-    when(websocket.writeFinalTextFrame(any(), any())).thenReturn(websocket);
+    when(websocket.writeFinalTextFrame(any(String.class))).thenReturn(websocket);
   }
 
   @Test
@@ -74,7 +73,7 @@ public class SessionUtilTest {
     SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
-    verify(websocket).writeFinalTextFrame(any(String.class), any(Handler.class));
+    verify(websocket).writeFinalTextFrame(any(String.class));
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
     assertThat(reasonCaptor.getValue(), is(reason));
   }
@@ -90,7 +89,7 @@ public class SessionUtilTest {
     SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
-    verify(websocket).writeFinalTextFrame(any(String.class), any(Handler.class));
+    verify(websocket).writeFinalTextFrame(any(String.class));
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
     assertThat(reasonCaptor.getValue(), is(
         "A long message that is longer than the maximum size that the CloseReason class "
@@ -110,7 +109,7 @@ public class SessionUtilTest {
     SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
-    verify(websocket).writeFinalTextFrame(any(String.class), any(Handler.class));
+    verify(websocket).writeFinalTextFrame(any(String.class));
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
     assertThat(reasonCaptor.getValue(), is(
         "A long message that is longer than the maximum size that the CloseReason class will "

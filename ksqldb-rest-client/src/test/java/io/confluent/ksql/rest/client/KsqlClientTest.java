@@ -19,7 +19,6 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -206,7 +205,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody(), nullValue());
+    assertThat(server.getBody().length(), is(0));
     assertThat(server.getPath(), is("/info"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(response.get(), is(expectedResponse));
@@ -227,7 +226,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody(), nullValue());
+    assertThat(server.getBody().length(), is(0));
     assertThat(server.getPath(), is("/healthcheck"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(response.get(), is(healthCheckResponse));
@@ -246,7 +245,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody(), nullValue());
+    assertThat(server.getBody().length(), is(0));
     // Yikes - this is camel case!
     assertThat(server.getPath(), is("/clusterStatus"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
@@ -266,7 +265,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody(), nullValue());
+    assertThat(server.getBody().length(), is(0));
     assertThat(server.getPath(), is("/status"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(response.get(), is(commandStatuses));
@@ -285,7 +284,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody(), nullValue());
+    assertThat(server.getBody().length(), is(0));
     assertThat(server.getPath(), is("/status/foo"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(response.get(), is(commandStatus));

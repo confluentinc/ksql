@@ -18,7 +18,6 @@ package io.confluent.ksql.reactive;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import java.util.Objects;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -66,9 +65,8 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     }
   }
 
-  public Future<Void> close() {
+  public void close() {
     ctx.runOnContext(v -> doClose());
-    return Future.succeededFuture();
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "ctx should be mutable")

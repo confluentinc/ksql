@@ -63,7 +63,7 @@ public class PreconditionVerticle extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(ar -> stopPromise.complete());
+      httpServer.close(stopPromise.future());
     }
   }
 

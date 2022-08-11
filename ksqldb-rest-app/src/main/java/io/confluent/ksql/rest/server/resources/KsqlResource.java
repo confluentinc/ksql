@@ -339,7 +339,10 @@ public class KsqlResource implements KsqlConfigurable {
       throw e;
     } catch (final KsqlStatementException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
-      return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
+      return errorHandler.generateResponse(
+          e,
+          Errors.badStatement(e.getRawMessage(), e.getSqlStatement())
+      );
     } catch (final KsqlException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
       return errorHandler.generateResponse(e, Errors.badRequest(e));

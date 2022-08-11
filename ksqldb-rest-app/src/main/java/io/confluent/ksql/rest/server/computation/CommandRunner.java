@@ -339,16 +339,15 @@ public class CommandRunner implements Closeable {
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
-    LOG.info("Executing statement"
-        + Base64.getEncoder().encodeToString(queuedCommand.getCommandId()));
+    final String commandId = queuedCommand.getAndDeserializeCommandId().toString();
+    LOG.info("Executing statement: " + commandId);
 
     final Runnable task = () -> {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        LOG.info("Executed statement"
-            + Base64.getEncoder().encodeToString(queuedCommand.getCommandId()));
+        LOG.info("Executed statement: " + commandId);
       }
     };
 

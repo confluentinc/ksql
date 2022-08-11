@@ -265,7 +265,7 @@ public class WSQueryEndpoint {
           startTimeNanos
       ).subscribe(streamSubscriber);
     } else {
-      throw new KsqlStatementException("Unknown query type", statement.getStatementText());
+      throw new KsqlStatementException("Unknown query type", statement.getMaskedStatementText());
     }
   }
 

@@ -38,11 +38,11 @@ final class KsqlPlanV1 implements KsqlPlan {
   private final Optional<QueryPlan> queryPlan;
 
   KsqlPlanV1(
-      @JsonProperty(value = "statementText", required = true) final String statementText,
+      @JsonProperty(value = "statementText", required = true) final String maskedStatement,
       @JsonProperty(value = "ddlCommand") final Optional<DdlCommand> ddlCommand,
       @JsonProperty(value = "queryPlan") final Optional<QueryPlan> queryPlan
   ) {
-    this.statementText = Objects.requireNonNull(statementText, "statementText");
+    this.statementText = Objects.requireNonNull(maskedStatement, "statementText");
     this.ddlCommand = Objects.requireNonNull(ddlCommand, "ddlCommand");
     this.queryPlan = Objects.requireNonNull(queryPlan, "queryPlan");
 

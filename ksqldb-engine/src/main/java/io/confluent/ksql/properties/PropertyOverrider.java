@@ -34,7 +34,7 @@ public final class PropertyOverrider {
       final Map<String, Object> mutableProperties
   ) {
     final SetProperty setProperty = statement.getStatement();
-    throwIfInvalidProperty(setProperty.getPropertyName(), statement.getStatementText());
+    throwIfInvalidProperty(setProperty.getPropertyName(), statement.getMaskedStatementText());
     throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
@@ -44,7 +44,7 @@ public final class PropertyOverrider {
       final Map<String, Object> mutableProperties
   ) {
     final UnsetProperty unsetProperty = statement.getStatement();
-    throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getStatementText());
+    throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getMaskedStatementText());
     mutableProperties.remove(unsetProperty.getPropertyName());
   }
 
@@ -62,7 +62,7 @@ public final class PropertyOverrider {
           ));
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          e.getMessage(), statement.getStatementText(), e.getCause());
+          e.getMessage(), statement.getMaskedStatementText(), e.getCause());
     }
   }
 

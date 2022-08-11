@@ -122,7 +122,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -320,7 +319,7 @@ final class EngineExecutor {
         ));
       }
 
-      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
       final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
       final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
 
@@ -344,13 +343,13 @@ final class EngineExecutor {
             queryPlannerOptions.debugString(),
             e);
       }
-      LOG.debug("Failed pull query text {}, {}", statement.getStatementText(), e);
+      LOG.debug("Failed pull query text {}, {}", statement.getMaskedStatementText(), e);
 
       throw new KsqlStatementException(
           e.getMessage() == null
               ? "Server Error" + Arrays.toString(e.getStackTrace())
               : e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e
       );
     }
@@ -433,7 +432,7 @@ final class EngineExecutor {
         ));
       }
 
-      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
       final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
       final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
 
@@ -457,13 +456,13 @@ final class EngineExecutor {
                 queryPlannerOptions.debugString(),
                 e);
       }
-      LOG.debug("Failed push query V2 text {}, {}", statement.getStatementText(), e);
+      LOG.debug("Failed push query V2 text {}, {}", statement.getMaskedStatementText(), e);
 
       throw new KsqlStatementException(
               e.getMessage() == null
                       ? "Server Error" + Arrays.toString(e.getStackTrace())
                       : e.getMessage(),
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               e
       );
     }
@@ -486,7 +485,7 @@ final class EngineExecutor {
         serviceContext,
         engineContext.getProcessingLogContext(),
         engineContext.getMetaStore(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         plans.executionPlan.getQueryId(),
         getSourceNames(outputNode),
         plans.executionPlan.getPhysicalPlan(),
@@ -518,7 +517,7 @@ final class EngineExecutor {
         serviceContext,
         engineContext.getProcessingLogContext(),
         engineContext.getMetaStore(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         plans.executionPlan.getQueryId(),
         getSourceNames(outputNode),
         plans.executionPlan.getPhysicalPlan(),
@@ -538,7 +537,7 @@ final class EngineExecutor {
       final ConfiguredStatement<?> statement) {
     final CreateTable createTable = (CreateTable) statement.getStatement();
     final CreateTableCommand ddlCommand = (CreateTableCommand) engineContext.createDdlCommand(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         (ExecutableDdlStatement) statement.getStatement(),
         config
     );
@@ -583,7 +582,7 @@ final class EngineExecutor {
     final MutableMetaStore tempMetastore = new MetaStoreImpl(new InternalFunctionRegistry());
     final Formats formats = ddlCommand.getFormats();
     tempMetastore.putSource(new KsqlTable<>(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         createTable.getName(),
         ddlCommand.getSchema(),
         Optional.empty(),
@@ -623,7 +622,7 @@ final class EngineExecutor {
     );
 
     return KsqlPlan.queryPlanCurrent(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         Optional.of(ddlCommand),
         queryPlan);
   }
@@ -647,20 +646,20 @@ final class EngineExecutor {
 
         if ((isSourceStream || isSourceTable) && !isSourceTableMaterializationEnabled()) {
           throw new KsqlStatementException("Cannot execute command because source table "
-              + "materialization is disabled.", statement.getStatementText());
+              + "materialization is disabled.", statement.getMaskedStatementText());
         }
 
         if (isSourceTable) {
           return sourceTablePlan(statement);
         } else {
           final DdlCommand ddlCommand = engineContext.createDdlCommand(
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               (ExecutableDdlStatement) statement.getStatement(),
               config
           );
 
           return KsqlPlan.ddlPlanCurrent(
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               ddlCommand);
         }
       }
@@ -700,14 +699,14 @@ final class EngineExecutor {
       );
 
       return KsqlPlan.queryPlanCurrent(
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           ddlCommand,
           queryPlan
       );
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
     }
   }
 
@@ -801,7 +800,6 @@ final class EngineExecutor {
 
       return new ExecutorPlans(
           new StubbedOutputNode(
-              ksqlConfig,
               metaStore.getSource(logicalPlan.getSourceNames().stream().findFirst().get()),
               getSinkTopic(root.getFormats(), sink.get()),
               schemaBuilder.build()
@@ -814,8 +812,7 @@ final class EngineExecutor {
           sink,
           metaStore,
           ksqlConfig,
-          getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
-          statement.getStatementText()
+          statement.getMaskedStatementText()
       );
 
       final LogicalPlanNode logicalPlan = new LogicalPlanNode(Optional.of(outputNode));
@@ -903,7 +900,6 @@ final class EngineExecutor {
 
   private static final class StubbedOutputNode extends KsqlStructuredDataOutputNode {
     private StubbedOutputNode(
-        final KsqlConfig ksqlConfig,
         final DataSource source,
         final KsqlTopic sinkTopic,
         final LogicalSchema sinkSchema) {
@@ -913,8 +909,7 @@ final class EngineExecutor {
               new PlanNodeId("stubbedSource"),
               source,
               source.getName(),
-              false,
-              ksqlConfig
+              false
           ),
           sinkSchema,
           Optional.empty(),
@@ -936,10 +931,9 @@ final class EngineExecutor {
         final PlanNodeId id,
         final DataSource dataSource,
         final SourceName alias,
-        final boolean isWindowed,
-        final KsqlConfig ksqlConfig
+        final boolean isWindowed
     ) {
-      super(id, dataSource, alias, isWindowed, ksqlConfig);
+      super(id, dataSource, alias, isWindowed);
     }
 
     @Override
@@ -1088,7 +1082,7 @@ final class EngineExecutor {
       throw new KsqlStatementException("Invalid result type. "
                                            + "Your SELECT query produces a TABLE. "
                                            + "Please use CREATE TABLE AS SELECT statement instead.",
-                                       statement.getStatementText());
+                                       statement.getMaskedStatementText());
     }
 
     if (statement.getStatement() instanceof CreateTableAsSelect
@@ -1096,13 +1090,14 @@ final class EngineExecutor {
       throw new KsqlStatementException(
           "Invalid result type. Your SELECT query produces a STREAM. "
            + "Please use CREATE STREAM AS SELECT statement instead.",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
   }
 
   private static void throwOnNonExecutableStatement(final ConfiguredStatement<?> statement) {
     if (!KsqlEngine.isExecutableStatement(statement.getStatement())) {
-      throw new KsqlStatementException("Statement not executable", statement.getStatementText());
+      throw new KsqlStatementException("Statement not executable",
+          statement.getMaskedStatementText());
     }
   }
 
@@ -1177,18 +1172,5 @@ final class EngineExecutor {
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {
     return new PlanSummary(queryId, config.getConfig(true), engineContext.getMetaStore())
         .summarize(plan);
-  }
-
-  private static boolean getRowpartitionRowoffsetEnabled(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> configOverrides
-  ) {
-    final Object rowpartitionRowoffsetEnabled =
-        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
-    if (rowpartitionRowoffsetEnabled != null) {
-      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
-    }
-
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 }

@@ -70,7 +70,7 @@ public interface KsqlParser {
      * needs unmasked statement text, please use {@code getUnMaskedStatementText}
      * @return Masked statement text
      */
-    public String getStatementText() {
+    public String getMaskedStatementText() {
       return maskedStatementText;
     }
 
@@ -129,7 +129,7 @@ public interface KsqlParser {
      * needs unmasked statement text, please use {@code getUnMaskedStatementText}
      * @return Masked statement text
      */
-    public String getStatementText() {
+    public String getMaskedStatementText() {
       return maskedStatementText;
     }
 

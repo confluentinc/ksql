@@ -319,7 +319,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
 
   private Expression getPredicate(final String querySql) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst(querySql, metaStore, true)
+        .buildSingleAst(querySql, metaStore)
         .getStatement();
 
     return statement.getWhere().get();

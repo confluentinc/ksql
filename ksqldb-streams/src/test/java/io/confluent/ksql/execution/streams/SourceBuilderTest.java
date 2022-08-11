@@ -123,8 +123,7 @@ public class SourceBuilderTest {
 
   private static final GenericKey KEY = GenericKey.genericKey(A_KEY);
 
-  private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
-      .withPseudoAndKeyColsInValue(false, SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+  private static final LogicalSchema SCHEMA = SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 

@@ -58,13 +58,11 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
 
 import org.apache.kafka.clients.admin.MockAdminClient;
+import org.apache.kafka.common.Node;
 import org.junit.rules.ExternalResource;
 
 import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
@@ -95,9 +93,11 @@ public class TemporaryEngine extends ExternalResource {
 
     // Here we call this constructor in order to pass in a MockAdminClient with no node
     // This helps Jenkins run these tests faster.
+
+    final Node node = new Node(0, "localhost", 30000 - new Random().nextInt(10000));
     serviceContext = TestServiceContext.create(
             new FakeKafkaClientSupplier(),
-            new MockAdminClient(),
+            new MockAdminClient(Collections.singletonList(node), node),
             new FakeKafkaTopicClient(),
             MockSchemaRegistryClient::new,
             new DefaultConnectClient(

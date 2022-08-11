@@ -85,6 +85,7 @@ public class TemporaryEngine extends ExternalResource {
   private KsqlEngine engine;
   private ServiceContext serviceContext;
   private ImmutableMap<String, Object> configs = ImmutableMap.of();
+  private static Random rand = new Random();
 
   @Override
   protected void before() {
@@ -94,7 +95,7 @@ public class TemporaryEngine extends ExternalResource {
     // Here we call this constructor in order to pass in a MockAdminClient with no node
     // This helps Jenkins run these tests faster.
 
-    final Node node = new Node(0, "localhost", 30000 - new Random().nextInt(10000));
+    final Node node = new Node(0, "localhost", 30000 - rand.nextInt(10000));
     serviceContext = TestServiceContext.create(
             new FakeKafkaClientSupplier(),
             new MockAdminClient(Collections.singletonList(node), node),

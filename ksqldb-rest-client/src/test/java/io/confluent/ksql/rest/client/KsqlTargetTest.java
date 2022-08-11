@@ -8,7 +8,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,8 +15,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -25,7 +22,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpConnection;
-import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.streams.WriteStream;
 import java.util.Collections;
@@ -92,20 +88,15 @@ public class KsqlTargetTest {
     closeConnection = new CompletableFuture<>();
     executor = Executors.newSingleThreadExecutor();
 
-    when(httpClientRequest.response(any(Handler.class))).thenAnswer(a -> {
-      final Handler<AsyncResult<HttpClientResponse>> handler = a.getArgument(0);
-      vertx.runOnContext(v -> {
-        handler.handle(Future.succeededFuture(httpClientResponse));
-        requestStarted.set(true);
-      });
-      return null;
-    });
-    doAnswer(a -> {
-      final Handler<AsyncResult<HttpClientRequest>> handler = a.getArgument(1);
-      handler.handle(Future.succeededFuture(httpClientRequest));
-      return null;
-    }).when(httpClient).request(any(RequestOptions.class), any(Handler.class));
-
+    when(httpClient.request(any(), any(), anyInt(), any(), any(), any()))
+        .thenAnswer(a -> {
+          final Handler<HttpClientResponse> handler = a.getArgument(5);
+          vertx.runOnContext(v -> {
+            handler.handle(httpClientResponse);
+            requestStarted.set(true);
+          });
+          return httpClientRequest;
+        });
     when(httpClientResponse.handler(handlerCaptor.capture()))
         .thenReturn(httpClientResponse);
     when(httpClientResponse.bodyHandler(handlerCaptor.capture()))
@@ -130,13 +121,13 @@ public class KsqlTargetTest {
 
   private void expectPostQueryRequestChunkHandler() {
     try {
-      doAnswer(inv -> {
+      when(writeStream.write(any(), any())).thenAnswer(inv -> {
         final List<StreamedRow> rs = inv.getArgument(0);
         if (rs != null) {
           rows.addAll(rs);
         }
         return writeStream;
-      }).when(writeStream).write(any(), any());
+      });
 
       response.set(ksqlTarget.postQueryRequest(
           QUERY, ImmutableMap.of(), Optional.empty(), writeStream, closeConnection, Function.identity()));

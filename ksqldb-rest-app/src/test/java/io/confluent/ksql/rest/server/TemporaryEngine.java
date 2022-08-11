@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -49,17 +50,20 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.services.FakeKafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.services.*;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
+import org.apache.kafka.clients.admin.MockAdminClient;
 import org.junit.rules.ExternalResource;
+
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 
 public class TemporaryEngine extends ExternalResource {
 
@@ -85,7 +89,22 @@ public class TemporaryEngine extends ExternalResource {
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     metaStore = new MetaStoreImpl(functionRegistry);
 
-    serviceContext = TestServiceContext.create();
+    // Here we call this constructor in order to pass in a MockAdminClient with no node
+    // This helps Jenkins run these tests faster.
+    serviceContext = TestServiceContext.create(
+            new FakeKafkaClientSupplier(),
+            new MockAdminClient(),
+            new FakeKafkaTopicClient(),
+            MockSchemaRegistryClient::new,
+            new DefaultConnectClient(
+                    "http://localhost:8083",
+                    Optional.empty(),
+                    Collections.emptyMap(),
+                    Optional.empty(),
+                    false,
+                    CONNECT_REQUEST_TIMEOUT_DEFAULT),
+            new FakeKafkaConsumerGroupClient()
+    );
     engine = (KsqlEngineTestUtil.createKsqlEngine(getServiceContext(), metaStore,
         new MetricCollectors()
     ));

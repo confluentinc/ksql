@@ -45,7 +45,6 @@ package io.confluent.ksql.rest.integration;
   import static org.junit.Assert.fail;
 
   import com.fasterxml.jackson.core.type.TypeReference;
-  import com.google.common.base.Functions;
   import com.google.common.collect.ImmutableList;
   import com.google.common.collect.ImmutableMap;
   import com.google.protobuf.DynamicMessage;
@@ -1077,7 +1076,7 @@ public class RestApiTest {
         // Then:
         , is(6));
 
-        List<StreamedRow> rows = KsqlTargetUtil.toRows(resp[0].bodyAsBuffer(), Functions.identity());
+        List<StreamedRow> rows = KsqlTargetUtil.toRows(resp[0].bodyAsBuffer());
         ProtobufSchema protobufSchema = new ProtobufSchema(
             rows.get(0)
                 .getHeader()

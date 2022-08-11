@@ -19,7 +19,7 @@ import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.query.PullQueryWriteStream;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
@@ -40,7 +40,7 @@ public class PullQueryResult {
   private final LogicalSchema schema;
   private final PullQueryQueuePopulator populator;
   private final QueryId queryId;
-  private final PullQueryWriteStream pullQueryQueue;
+  private final PullQueryQueue pullQueryQueue;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final QuerySourceType sourceType;
   private final PullPhysicalPlanType planType;
@@ -61,7 +61,7 @@ public class PullQueryResult {
       final LogicalSchema schema,
       final PullQueryQueuePopulator populator,
       final QueryId queryId,
-      final PullQueryWriteStream pullQueryQueue,
+      final PullQueryQueue pullQueryQueue,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
@@ -93,7 +93,7 @@ public class PullQueryResult {
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
-  public PullQueryWriteStream getPullQueryQueue() {
+  public PullQueryQueue getPullQueryQueue() {
     return pullQueryQueue;
   }
 
@@ -124,7 +124,7 @@ public class PullQueryResult {
 
   public void stop() {
     try {
-      pullQueryQueue.end();
+      pullQueryQueue.close();
     } catch (final Throwable t) {
       LOG.error("Error closing pull query queue", t);
     }

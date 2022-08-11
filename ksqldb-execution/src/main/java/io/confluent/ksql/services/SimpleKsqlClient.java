@@ -22,12 +22,11 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.vertx.core.streams.WriteStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -70,7 +69,6 @@ public interface SimpleKsqlClient {
    * @param configOverrides the config overrides provided by the client
    * @param requestProperties the request metadata provided by the server
    * @param rowConsumer A consumer that's fed lists of rows as they stream in
-   * @param addHostInfo a function that adds the host information, if necessary, to the row
    * @return the number of rows returned by pull query
    */
   RestResponse<Integer> makeQueryRequest(
@@ -78,15 +76,14 @@ public interface SimpleKsqlClient {
       String sql,
       Map<String, ?> configOverrides,
       Map<String, ?> requestProperties,
-      WriteStream<List<StreamedRow>> rowConsumer,
-      CompletableFuture<Void> shouldCloseConnection,
-      Function<StreamedRow, StreamedRow> addHostInfo
+      Consumer<List<StreamedRow>> rowConsumer,
+      CompletableFuture<Void> shouldCloseConnection
   );
 
   /**
    * Send query request to remote Ksql server.  This method is similar to
-   * {@link #makeQueryRequest(URI, String, Map, Map, WriteStream, CompletableFuture, Function)},
-   * but gives a different API.
+   * {@link #makeQueryRequest(URI, String, Map, Map, Consumer, CompletableFuture)}, but gives a
+   * different API.
    * First, this is run asynchronously and second, when a response is received, a publisher is
    * returned which publishes results asynchronously as they become available.
    * @param serverEndPoint the remote destination

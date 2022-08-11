@@ -106,7 +106,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
     }
     final KsqlErrorMessage errorResponse = new KsqlErrorMessage(
         ERROR_CODE_SERVER_ERROR, stringBuilder.toString());
-    log.error("Error in processing query {}", stringBuilder, t);
+    log.error("Error in processing query {}", stringBuilder);
     queryStreamResponseWriter.writeError(errorResponse).end();
   }
 

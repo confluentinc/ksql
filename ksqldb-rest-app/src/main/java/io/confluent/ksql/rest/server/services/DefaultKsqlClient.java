@@ -33,7 +33,6 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
-import io.vertx.core.streams.WriteStream;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,9 +120,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
-      final WriteStream<List<StreamedRow>> rowConsumer,
-      final CompletableFuture<Void> shouldCloseConnection,
-      final Function<StreamedRow, StreamedRow> addHostInfo
+      final Consumer<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection
   ) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
@@ -131,7 +129,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
     final RestResponse<Integer> resp = getTarget(target)
         .postQueryRequest(sql, requestProperties, Optional.empty(), rowConsumer,
-            shouldCloseConnection, addHostInfo);
+            shouldCloseConnection);
 
     if (resp.isErroneous()) {
       return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());

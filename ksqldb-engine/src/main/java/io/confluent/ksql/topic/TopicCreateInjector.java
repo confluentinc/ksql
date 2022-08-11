@@ -221,6 +221,10 @@ public class TopicCreateInjector implements Injector {
     }
     config.putAll(additionalTopicConfigs);
 
+    if (topicCleanUpPolicy.equals(TopicConfig.CLEANUP_POLICY_COMPACT)) {
+      config.remove(TopicConfig.RETENTION_MS_CONFIG);
+    }
+
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 
     return info;

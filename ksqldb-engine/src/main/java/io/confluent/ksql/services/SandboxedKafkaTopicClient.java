@@ -40,6 +40,7 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.config.TopicConfig;
 
 /**
  * A topic client to use when trying out operations.
@@ -98,7 +99,8 @@ final class SandboxedKafkaTopicClient {
       final Map<String, Object> configs
   ) {
     if (isTopicExists(topic)) {
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      final long retentionMs = KafkaTopicClient.getRetentionMs(configs);
+      validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
       return;
     }
 
@@ -175,7 +177,10 @@ final class SandboxedKafkaTopicClient {
   }
 
   public Map<String, String> getTopicConfig(final String topicName) {
-    return createdTopicsConfig.getOrDefault(topicName, Collections.emptyMap());
+    if (createdTopicsConfig.containsKey(topicName)) {
+      return createdTopicsConfig.get(topicName);
+    }
+    return delegate.getTopicConfig(topicName);
   }
 
   private void deleteTopics(final Collection<String> topicsToDelete) {
@@ -185,11 +190,18 @@ final class SandboxedKafkaTopicClient {
   private void validateTopicProperties(
       final String topic,
       final int requiredNumPartition,
-      final int requiredNumReplicas
+      final int requiredNumReplicas,
+      final long requiredRetentionMs
   ) {
     final TopicDescription existingTopic = describeTopic(topic);
+    final Map<String, String> existingConfig = getTopicConfig(topic);
     TopicValidationUtil
-        .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
+        .validateTopicProperties(
+            requiredNumPartition,
+            requiredNumReplicas,
+            requiredRetentionMs,
+            existingTopic,
+            existingConfig);
   }
 
   private Map<TopicPartition, Long> listTopicsStartOffsets(final Collection<String> topics) {

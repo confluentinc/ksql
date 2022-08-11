@@ -17,7 +17,9 @@ package io.confluent.ksql.services;
 
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.topic.TopicProperties;
+import java.util.Map;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.config.TopicConfig;
 
 final class TopicValidationUtil {
 
@@ -28,40 +30,55 @@ final class TopicValidationUtil {
   public static void validateTopicProperties(
       final int requiredNumPartition,
       final int requiredNumReplicas,
-      final TopicDescription existingTopic
+      final long requiredRetentionMs,
+      final TopicDescription existingTopic,
+      final Map<String, String> existingConfig
   ) {
     final int actualNumPartitions = existingTopic.partitions().size();
     final int actualNumReplicas = existingTopic.partitions().get(0).replicas().size();
+    final long actualRetentionMs = KafkaTopicClient.getRetentionMs(existingConfig);
 
     final String topicName = existingTopic.name();
     validateTopicProperties(
         topicName,
         requiredNumPartition,
         requiredNumReplicas,
+        requiredRetentionMs,
         actualNumPartitions,
-        actualNumReplicas);
+        actualNumReplicas,
+        actualRetentionMs);
   }
 
   public static void validateTopicProperties(
       final String topicName,
       final int requiredNumPartition,
       final int requiredNumReplicas,
+      final long requiredRetentionMs,
       final int actualNumPartitions,
-      final int actualNumReplicas
+      final int actualNumReplicas,
+      final long actualRetentionMs
   ) {
     if (actualNumPartitions != requiredNumPartition
         || (requiredNumReplicas != TopicProperties.DEFAULT_REPLICAS
-        && actualNumReplicas < requiredNumReplicas)) {
+        && actualNumReplicas < requiredNumReplicas)
+        || isValidRetention(actualRetentionMs, requiredRetentionMs)) {
       throw new KafkaTopicExistsException(String.format(
-          "A Kafka topic with the name '%s' already exists, with different partition/replica "
-              + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
-              + "replication factor (topic has %d).",
+          "A Kafka topic with the name '%s' already exists, with different partition/replica"
+              + "/retention configuration than required. KSQL expects %d partitions (topic has %d),"
+              + " %d replication factor (topic has %d), and %d retention (topic has %d).",
           topicName,
           requiredNumPartition,
           actualNumPartitions,
           requiredNumReplicas,
-          actualNumReplicas
+          actualNumReplicas,
+          requiredRetentionMs,
+          actualRetentionMs
       ), true);
     }
   }
+
+  private static boolean isValidRetention(final long actualRetentionMs, final long requiredRetentionMs) {
+    return requiredRetentionMs != -1 && actualRetentionMs != requiredRetentionMs;
+  }
+
 }

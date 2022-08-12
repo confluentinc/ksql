@@ -25,8 +25,10 @@ public class DescribeFunction extends Statement {
 
   private final String functionName;
 
-  public DescribeFunction(final Optional<NodeLocation> location, final String functionName) {
-    super(location);
+  public DescribeFunction(final Optional<NodeLocation> location,
+                          final Optional<NodeLocation> endLocation,
+                          final String functionName) {
+    super(location, endLocation);
     this.functionName = Objects.requireNonNull(functionName, "can't be null");
   }
 

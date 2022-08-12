@@ -26,8 +26,10 @@ import java.util.Optional;
 public class UndefineVariable extends Statement {
   private final String variableName;
 
-  public UndefineVariable(final Optional<NodeLocation> location, final String variableName) {
-    super(location);
+  public UndefineVariable(final Optional<NodeLocation> location,
+                          final Optional<NodeLocation> endLocation,
+                          final String variableName) {
+    super(location, endLocation);
     this.variableName = requireNonNull(variableName, "variableName");
   }
 

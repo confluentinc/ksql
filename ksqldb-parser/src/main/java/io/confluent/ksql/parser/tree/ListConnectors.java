@@ -31,8 +31,10 @@ public class ListConnectors extends Statement {
     SINK
   }
 
-  public ListConnectors(final Optional<NodeLocation> location, final Scope scope) {
-    super(location);
+  public ListConnectors(final Optional<NodeLocation> location,
+                        final Optional<NodeLocation> endLocation,
+                        final Scope scope) {
+    super(location, endLocation);
     this.scope = Objects.requireNonNull(scope, "scope");
   }
 

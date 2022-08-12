@@ -28,11 +28,13 @@ public class StructAll extends SelectItem {
   private final Expression baseStruct;
 
   public StructAll(final Expression identifier) {
-    this(Optional.empty(), identifier);
+    this(Optional.empty(), Optional.empty(), identifier);
   }
 
-  public StructAll(final Optional<NodeLocation> location, final Expression baseStruct) {
-    super(location);
+  public StructAll(final Optional<NodeLocation> location,
+                   final Optional<NodeLocation> endLocation,
+                   final Expression baseStruct) {
+    super(location, endLocation);
     this.baseStruct = requireNonNull(baseStruct, "identifier");
   }
 

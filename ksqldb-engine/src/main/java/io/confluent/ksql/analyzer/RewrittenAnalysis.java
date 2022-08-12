@@ -95,6 +95,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
                 final SingleColumn singleColumn = (SingleColumn) si;
                 return new SingleColumn(
                     singleColumn.getLocation(),
+                    singleColumn.getEndLocation(),
                     rewrite(singleColumn.getExpression()),
                     singleColumn.getAlias()
                 );
@@ -102,6 +103,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
                 final StructAll structAll = (StructAll) si;
                 return new StructAll(
                     structAll.getLocation(),
+                    structAll.getEndLocation(),
                     rewrite(structAll.getBaseStruct())
                 );
               }
@@ -205,6 +207,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getPartitionBy()
         .map(partitionBy -> new PartitionBy(
             partitionBy.getLocation(),
+            partitionBy.getEndLocation(),
             rewriteList(partitionBy.getExpressions())
         ));
   }
@@ -214,6 +217,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getGroupBy()
         .map(groupBy -> new GroupBy(
             groupBy.getLocation(),
+            groupBy.getEndLocation(),
             rewriteList(groupBy.getGroupingExpressions())
         ));
   }

@@ -39,16 +39,17 @@ public class InsertInto
       final SourceName target,
       final Query query
   ) {
-    this(Optional.empty(), target, query, InsertIntoProperties.none());
+    this(Optional.empty(), Optional.empty(), target, query, InsertIntoProperties.none());
   }
 
   public InsertInto(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName target,
       final Query query,
       final InsertIntoProperties properties
   ) {
-    super(location);
+    super(location, endLocation);
     this.target = requireNonNull(target, "target");
     this.query = requireNonNull(query, "query");
     this.properties = requireNonNull(properties, "properties");

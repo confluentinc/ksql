@@ -25,8 +25,9 @@ import java.util.Optional;
 @Immutable
 public class ListProperties extends Statement {
 
-  public ListProperties(final Optional<NodeLocation> location) {
-    super(location);
+  public ListProperties(final Optional<NodeLocation> location,
+                        final Optional<NodeLocation> endLocation) {
+    super(location, endLocation);
   }
 
   @Override

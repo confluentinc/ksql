@@ -27,10 +27,11 @@ public class ListTopics extends StatementWithExtendedClause {
 
   public ListTopics(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final boolean showAll,
       final boolean showExtended
   ) {
-    super(location, showExtended);
+    super(location, endLocation, showExtended);
     this.showAll = showAll;
   }
 

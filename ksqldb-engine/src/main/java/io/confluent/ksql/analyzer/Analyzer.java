@@ -672,7 +672,7 @@ class Analyzer {
           if (metaStore.isAggregate(functionName)) {
             analysis.addAggregateFunction(functionCall);
             // Since this is a dummy group by, we don't actually need a correct node location
-            analysis.setGroupBy(new GroupBy(Optional.empty(),
+            analysis.setGroupBy(new GroupBy(Optional.empty(), Optional.empty(),
                 ImmutableList.of(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))));
           }
 

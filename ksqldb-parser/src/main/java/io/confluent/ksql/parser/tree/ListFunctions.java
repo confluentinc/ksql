@@ -24,8 +24,9 @@ import java.util.Optional;
 @Immutable
 public class ListFunctions extends Statement {
 
-  public ListFunctions(final Optional<NodeLocation> location) {
-    super(location);
+  public ListFunctions(final Optional<NodeLocation> location,
+                       final Optional<NodeLocation> endLocation) {
+    super(location, endLocation);
   }
 
   @Override

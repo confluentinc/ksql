@@ -34,15 +34,16 @@ public class AliasedRelation extends Relation {
       final Relation relation,
       final SourceName alias
   ) {
-    this(Optional.empty(), relation, alias);
+    this(Optional.empty(), Optional.empty(), relation, alias);
   }
 
   public AliasedRelation(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Relation relation,
       final SourceName alias
   ) {
-    super(location);
+    super(location, endLocation);
     this.relation = requireNonNull(relation, "relation");
     this.alias = requireNonNull(alias, "alias");
   }

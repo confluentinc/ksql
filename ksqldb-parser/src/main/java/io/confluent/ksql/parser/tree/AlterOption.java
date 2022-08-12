@@ -27,15 +27,16 @@ public class AlterOption extends AstNode {
   private final Type type;
 
   public AlterOption(final String columnName, final Type type) {
-    this(Optional.empty(), columnName, type);
+    this(Optional.empty(), Optional.empty(), columnName, type);
   }
 
   public AlterOption(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String columnName,
       final Type type
   ) {
-    super(location);
+    super(location, endLocation);
     this.columnName = columnName;
     this.type = type;
   }

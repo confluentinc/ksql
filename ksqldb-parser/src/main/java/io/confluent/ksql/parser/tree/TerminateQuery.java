@@ -27,16 +27,21 @@ public final class TerminateQuery extends Statement {
   public static final String ALL_QUERIES = "ALL";
   private final Optional<QueryId> queryId;
 
-  public static TerminateQuery all(final Optional<NodeLocation> location) {
-    return new TerminateQuery(location, Optional.empty());
+  public static TerminateQuery all(final Optional<NodeLocation> location,
+                                   final Optional<NodeLocation> endLocation) {
+    return new TerminateQuery(location, endLocation, Optional.empty());
   }
 
-  public static TerminateQuery query(final Optional<NodeLocation> location, final QueryId queryId) {
-    return new TerminateQuery(location, Optional.of(queryId));
+  public static TerminateQuery query(final Optional<NodeLocation> location,
+                                     final Optional<NodeLocation> endLocation,
+                                     final QueryId queryId) {
+    return new TerminateQuery(location, endLocation, Optional.of(queryId));
   }
 
-  private TerminateQuery(final Optional<NodeLocation> location, final Optional<QueryId> queryId) {
-    super(location);
+  private TerminateQuery(final Optional<NodeLocation> location,
+                         final Optional<NodeLocation> endLocation,
+                         final Optional<QueryId> queryId) {
+    super(location, endLocation);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 

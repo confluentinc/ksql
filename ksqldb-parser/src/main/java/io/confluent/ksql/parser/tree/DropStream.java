@@ -30,21 +30,22 @@ public class DropStream extends DropStatement implements ExecutableDdlStatement 
       final boolean ifExists,
       final boolean deleteTopic
   ) {
-    this(Optional.empty(), streamName, ifExists, deleteTopic);
+    this(Optional.empty(), Optional.empty(), streamName, ifExists, deleteTopic);
   }
 
   public DropStream(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName streamName,
       final boolean ifExists,
       final boolean deleteTopic
   ) {
-    super(location, streamName, ifExists, deleteTopic);
+    super(location, endLocation, streamName, ifExists, deleteTopic);
   }
 
   @Override
   public DropStatement withoutDeleteClause() {
-    return new DropStream(getLocation(), getName(), getIfExists(), false);
+    return new DropStream(getLocation(), getEndLocation(), getName(), getIfExists(), false);
   }
 
   @Override

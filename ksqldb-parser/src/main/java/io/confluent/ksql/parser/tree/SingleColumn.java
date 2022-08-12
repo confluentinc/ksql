@@ -34,22 +34,23 @@ public class SingleColumn extends SelectItem {
       final Expression expression,
       final Optional<ColumnName> alias
   ) {
-    this(Optional.empty(), expression, alias);
+    this(Optional.empty(), Optional.empty(), expression, alias);
   }
 
   public SingleColumn(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Expression expression,
       final Optional<ColumnName> alias
   ) {
-    super(location);
+    super(location, endLocation);
 
     this.expression = requireNonNull(expression, "expression");
     this.alias = requireNonNull(alias, "alias");
   }
 
   public SingleColumn copyWithExpression(final Expression expression) {
-    return new SingleColumn(getLocation(), expression, alias);
+    return new SingleColumn(getLocation(), getLocation(), expression, alias);
   }
 
   public Optional<ColumnName> getAlias() {

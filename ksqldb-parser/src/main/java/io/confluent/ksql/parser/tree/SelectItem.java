@@ -22,7 +22,8 @@ import java.util.Optional;
 @Immutable
 public abstract class SelectItem extends AstNode {
 
-  protected SelectItem(final Optional<NodeLocation> location) {
-    super(location);
+  protected SelectItem(final Optional<NodeLocation> location,
+                       final Optional<NodeLocation> endLocation) {
+    super(location, endLocation);
   }
 }

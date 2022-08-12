@@ -32,14 +32,15 @@ public class Select extends AstNode {
   private final ImmutableList<SelectItem> selectItems;
 
   public Select(final List<SelectItem> selectItems) {
-    this(Optional.empty(), selectItems);
+    this(Optional.empty(), Optional.empty(), selectItems);
   }
 
   public Select(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final List<SelectItem> selectItems
   ) {
-    super(location);
+    super(location, endLocation);
     this.selectItems = ImmutableList.copyOf(requireNonNull(selectItems, "selectItems"));
   }
 

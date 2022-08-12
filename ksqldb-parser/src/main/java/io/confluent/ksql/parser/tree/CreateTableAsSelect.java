@@ -31,18 +31,19 @@ public class CreateTableAsSelect extends CreateAsSelect {
       final boolean orReplace,
       final CreateSourceAsProperties properties
   ) {
-    this(Optional.empty(), name, query, notExists, orReplace, properties);
+    this(Optional.empty(), Optional.empty(), name, query, notExists, orReplace, properties);
   }
 
   public CreateTableAsSelect(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName name,
       final Query query,
       final boolean notExists,
       final boolean orReplace,
       final CreateSourceAsProperties properties
   ) {
-    super(location, name, query, orReplace, notExists, properties);
+    super(location, endLocation, name, query, orReplace, notExists, properties);
   }
 
   private CreateTableAsSelect(

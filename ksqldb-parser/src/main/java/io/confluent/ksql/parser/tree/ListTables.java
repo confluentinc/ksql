@@ -23,8 +23,10 @@ import java.util.Optional;
 public class ListTables extends StatementWithExtendedClause {
 
 
-  public ListTables(final Optional<NodeLocation> location, final boolean showExtended) {
-    super(location, showExtended);
+  public ListTables(final Optional<NodeLocation> location,
+                    final Optional<NodeLocation> endLocation,
+                    final boolean showExtended) {
+    super(location, endLocation, showExtended);
   }
 
   @Override

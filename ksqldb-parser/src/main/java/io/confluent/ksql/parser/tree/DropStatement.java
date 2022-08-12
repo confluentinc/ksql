@@ -30,11 +30,12 @@ public abstract class DropStatement extends Statement {
 
   DropStatement(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName name,
       final boolean ifExists,
       final boolean deleteTopic
   ) {
-    super(location);
+    super(location, endLocation);
     this.name = Objects.requireNonNull(name, "name");
     this.ifExists = ifExists;
     this.deleteTopic = deleteTopic;

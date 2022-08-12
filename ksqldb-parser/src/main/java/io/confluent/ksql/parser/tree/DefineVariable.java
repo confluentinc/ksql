@@ -29,10 +29,11 @@ public class DefineVariable extends Statement {
 
   public DefineVariable(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String variableName,
       final String variableValue
   ) {
-    super(location);
+    super(location, endLocation);
     this.variableName = requireNonNull(variableName, "variableName");
     this.variableValue = requireNonNull(variableValue, "variableValue");
   }

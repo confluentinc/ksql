@@ -27,9 +27,10 @@ public class AssertValues extends AssertStatement {
 
   public AssertValues(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final InsertValues statement
   ) {
-    super(location);
+    super(location, endLocation);
     this.statement = Objects.requireNonNull(statement, "statement");
   }
 

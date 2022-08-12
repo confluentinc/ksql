@@ -22,8 +22,9 @@ import java.util.Optional;
 @Immutable
 public abstract class Relation extends AstNode {
 
-  protected Relation(final Optional<NodeLocation> location) {
-    super(location);
+  protected Relation(final Optional<NodeLocation> location,
+                     final Optional<NodeLocation> endLocation) {
+    super(location, endLocation);
   }
 
   @Override

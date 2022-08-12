@@ -37,12 +37,18 @@ public class WithinExpression extends AstNode {
   private final Optional<WindowTimeClause> gracePeriod;
 
   public WithinExpression(final long size, final TimeUnit timeUnit) {
-    this(Optional.empty(), size, size, timeUnit, timeUnit, Optional.empty());
+    this(Optional.empty(), Optional.empty(), size, size, timeUnit, timeUnit, Optional.empty());
   }
 
   public WithinExpression(final long size, final TimeUnit timeUnit,
                           final WindowTimeClause gracePeriod) {
-    this(Optional.empty(), size, size, timeUnit, timeUnit, Optional.of(gracePeriod));
+    this(Optional.empty(),
+        Optional.empty(),
+        size,
+        size,
+        timeUnit,
+        timeUnit,
+        Optional.of(gracePeriod));
   }
 
   public WithinExpression(
@@ -52,7 +58,13 @@ public class WithinExpression extends AstNode {
       final TimeUnit afterTimeUnit,
       final WindowTimeClause gracePeriod
   ) {
-    this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit, Optional.of(gracePeriod));
+    this(Optional.empty(),
+        Optional.empty(),
+        before,
+        after,
+        beforeTimeUnit,
+        afterTimeUnit,
+        Optional.of(gracePeriod));
   }
 
   public WithinExpression(
@@ -61,18 +73,25 @@ public class WithinExpression extends AstNode {
       final TimeUnit beforeTimeUnit,
       final TimeUnit afterTimeUnit
   ) {
-    this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit, Optional.empty());
+    this(Optional.empty(),
+        Optional.empty(),
+        before,
+        after,
+        beforeTimeUnit,
+        afterTimeUnit,
+        Optional.empty());
   }
 
   public WithinExpression(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final long before,
       final long after,
       final TimeUnit beforeTimeUnit,
       final TimeUnit afterTimeUnit,
       final Optional<WindowTimeClause> gracePeriod
   ) {
-    super(location);
+    super(location, endLocation);
     this.before = before;
     this.after = after;
     this.beforeTimeUnit = requireNonNull(beforeTimeUnit, "beforeTimeUnit");

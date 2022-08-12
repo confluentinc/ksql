@@ -211,6 +211,16 @@ public final class ParserUtil {
     return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
   }
 
+  public static Optional<NodeLocation> getEndLocation(final ParserRuleContext parserRuleContext) {
+    requireNonNull(parserRuleContext, "parserRuleContext is null");
+    return getEndLocation(parserRuleContext.getStop());
+  }
+
+  private static Optional<NodeLocation> getEndLocation(final Token stop) {
+    return Optional.of(new NodeLocation(stop.getLine(),
+        stop.getCharPositionInLine() + stop.getStopIndex() - stop.getStartIndex() + 1));
+  }
+
   /**
    * Checks if the token is a reserved keyword or not
    * @param token the String that caused the parsing error

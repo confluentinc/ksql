@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
+import static io.confluent.ksql.util.ParserUtil.getEndLocation;
 import static io.confluent.ksql.util.ParserUtil.getIdentifierText;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static io.confluent.ksql.util.ParserUtil.processIntegerNumber;
@@ -252,7 +253,7 @@ public class AstBuilder {
         final Statement statement = (Statement) visitSingleStatement(stmtContext);
         statementList.add(statement);
       }
-      return new Statements(getLocation(context), statementList);
+      return new Statements(getLocation(context), getEndLocation(context), statementList);
     }
 
     @Override
@@ -296,6 +297,7 @@ public class AstBuilder {
 
       return new CreateTable(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
           context.REPLACE() != null,
@@ -315,6 +317,7 @@ public class AstBuilder {
 
       return new CreateStream(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
           context.REPLACE() != null,
@@ -334,6 +337,7 @@ public class AstBuilder {
 
       return new CreateStreamAsSelect(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
@@ -352,6 +356,7 @@ public class AstBuilder {
 
       return new CreateTableAsSelect(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
@@ -368,6 +373,7 @@ public class AstBuilder {
 
       return new CreateConnector(
           getLocation(context),
+          getEndLocation(context),
           name,
           properties,
           type,
@@ -383,6 +389,7 @@ public class AstBuilder {
 
       return new InsertInto(
           getLocation(context),
+          getEndLocation(context),
           targetName,
           query,
           InsertIntoProperties.from(properties));
@@ -392,6 +399,8 @@ public class AstBuilder {
     public Node visitInsertValues(final InsertValuesContext context) {
       final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
       final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
+      final Optional<NodeLocation> targetEndLocation = getEndLocation(context.sourceName());
+
 
       final List<ColumnName> columns;
       if (context.columns() != null) {
@@ -406,6 +415,7 @@ public class AstBuilder {
 
       return new InsertValues(
           targetLocation,
+          targetEndLocation,
           targetName,
           columns,
           visit(context.values().valueExpression(), Expression.class));
@@ -415,6 +425,7 @@ public class AstBuilder {
     public Node visitDropTable(final SqlBaseParser.DropTableContext context) {
       return new DropTable(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           context.EXISTS() != null,
           context.DELETE() != null
@@ -425,6 +436,7 @@ public class AstBuilder {
     public Node visitDropStream(final SqlBaseParser.DropStreamContext context) {
       return new DropStream(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           context.EXISTS() != null,
           context.DELETE() != null
@@ -435,6 +447,7 @@ public class AstBuilder {
     public Node visitDropConnector(final DropConnectorContext context) {
       return new DropConnector(
           getLocation(context),
+          getEndLocation(context),
           context.EXISTS() != null,
           ParserUtil.getIdentifierText(context.identifier())
       );
@@ -446,6 +459,7 @@ public class AstBuilder {
 
       final Select select = new Select(
           getLocation(context.SELECT()),
+          getEndLocation(context),
           visit(context.selectItem(), SelectItem.class)
       );
 
@@ -478,6 +492,7 @@ public class AstBuilder {
 
       return new Query(
           getLocation(context),
+          getEndLocation(context),
           select,
           from,
           visitIfPresent(context.windowExpression(), WindowExpression.class),
@@ -503,6 +518,7 @@ public class AstBuilder {
             visitTumblingWindowExpression(ctx.tumblingWindowExpression());
         return new WindowExpression(
             getLocation(ctx.tumblingWindowExpression()),
+            getEndLocation(ctx.tumblingWindowExpression()),
             windowName,
             tumblingWindowExpression);
       } else if (ctx.hoppingWindowExpression() != null) {
@@ -510,6 +526,7 @@ public class AstBuilder {
             visitHoppingWindowExpression(ctx.hoppingWindowExpression());
         return new WindowExpression(
             getLocation(ctx.hoppingWindowExpression()),
+            getEndLocation(ctx.hoppingWindowExpression()),
             windowName,
             hoppingWindowExpression);
       } else if (ctx.sessionWindowExpression() != null) {
@@ -517,6 +534,7 @@ public class AstBuilder {
             visitSessionWindowExpression(ctx.sessionWindowExpression());
         return new WindowExpression(
             getLocation(ctx.sessionWindowExpression()),
+            getEndLocation(ctx.sessionWindowExpression()),
             windowName,
             sessionWindowExpression);
       }
@@ -613,6 +631,7 @@ public class AstBuilder {
       }
       return new WithinExpression(
           getLocation(ctx),
+          getEndLocation(ctx),
           beforeSize.left,
           afterSize.left,
           beforeSize.right,
@@ -633,14 +652,14 @@ public class AstBuilder {
     public Node visitGroupBy(final SqlBaseParser.GroupByContext ctx) {
       final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
 
-      return new GroupBy(getLocation(ctx), expressions);
+      return new GroupBy(getLocation(ctx), getEndLocation(ctx), expressions);
     }
 
     @Override
     public Node visitPartitionBy(final SqlBaseParser.PartitionByContext ctx) {
       final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
 
-      return new PartitionBy(getLocation(ctx), expressions);
+      return new PartitionBy(getLocation(ctx), getEndLocation(ctx), expressions);
     }
 
     @Override
@@ -650,7 +669,7 @@ public class AstBuilder {
           .map(SourceName::of);
 
       prefix.ifPresent(this::throwOnUnknownNameOrAlias);
-      return new AllColumns(getLocation(context), prefix);
+      return new AllColumns(getLocation(context), getEndLocation(context), prefix);
     }
 
     @Override
@@ -660,11 +679,15 @@ public class AstBuilder {
       if (context.identifier() != null) {
         return new SingleColumn(
             getLocation(context),
+            getEndLocation(context),
             selectItem,
             Optional.of(ColumnName.of(ParserUtil.getIdentifierText(context.identifier())))
         );
       } else {
-        return new SingleColumn(getLocation(context), selectItem, Optional.empty());
+        return new SingleColumn(getLocation(context),
+            getEndLocation(context),
+            selectItem,
+            Optional.empty());
       }
     }
 
@@ -684,31 +707,32 @@ public class AstBuilder {
 
     @Override
     public Node visitListTopics(final SqlBaseParser.ListTopicsContext context) {
-      return new ListTopics(getLocation(context),
+      return new ListTopics(getLocation(context), getEndLocation(context),
           context.ALL() != null, context.EXTENDED() != null);
     }
 
     @Override
     public Node visitListStreams(final SqlBaseParser.ListStreamsContext context) {
-      return new ListStreams(
-          getLocation(context), context.EXTENDED() != null);
+      return new ListStreams(getLocation(context),
+          getEndLocation(context),
+          context.EXTENDED() != null);
     }
 
     @Override
     public Node visitListTables(final SqlBaseParser.ListTablesContext context) {
       return new ListTables(
-          getLocation(context), context.EXTENDED() != null);
+          getLocation(context), getEndLocation(context), context.EXTENDED() != null);
     }
 
     @Override
     public Node visitListQueries(final SqlBaseParser.ListQueriesContext context) {
       return new ListQueries(
-          getLocation(context), context.EXTENDED() != null);
+          getLocation(context), getEndLocation(context), context.EXTENDED() != null);
     }
 
     @Override
     public Node visitListFunctions(final SqlBaseParser.ListFunctionsContext ctx) {
-      return new ListFunctions(getLocation(ctx));
+      return new ListFunctions(getLocation(ctx), getEndLocation(ctx));
     }
 
     @Override
@@ -722,18 +746,19 @@ public class AstBuilder {
         scope = Scope.ALL;
       }
 
-      return new ListConnectors(getLocation(ctx), scope);
+      return new ListConnectors(getLocation(ctx), getEndLocation(ctx), scope);
     }
 
     @Override
     public Node visitListConnectorPlugins(final SqlBaseParser.ListConnectorPluginsContext ctx) {
-      return new ListConnectorPlugins((getLocation(ctx)));
+      return new ListConnectorPlugins(getLocation(ctx), getEndLocation(ctx));
     }
 
     @Override
     public Node visitDropType(final DropTypeContext ctx) {
       return new DropType(
           getLocation(ctx),
+          getEndLocation(ctx),
           getIdentifierText(ctx.identifier()),
           ctx.EXISTS() != null
       );
@@ -761,17 +786,19 @@ public class AstBuilder {
 
     @Override
     public Node visitListTypes(final ListTypesContext ctx) {
-      return new ListTypes(getLocation(ctx));
+      return new ListTypes(getLocation(ctx), getEndLocation(ctx));
     }
 
     @Override
     public Node visitPauseQuery(final PauseQueryContext context) {
       final Optional<NodeLocation> location = getLocation(context);
+      final Optional<NodeLocation> endLocation = getEndLocation(context);
 
       return context.ALL() != null
-          ? PauseQuery.all(location)
+          ? PauseQuery.all(location, endLocation)
           : PauseQuery.query(
               location,
+              endLocation,
               new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
           );
     }
@@ -779,11 +806,13 @@ public class AstBuilder {
     @Override
     public Node visitResumeQuery(final ResumeQueryContext context) {
       final Optional<NodeLocation> location = getLocation(context);
+      final Optional<NodeLocation> endLocation = getEndLocation(context);
 
       return context.ALL() != null
-          ? ResumeQuery.all(location)
+          ? ResumeQuery.all(location, endLocation)
           : ResumeQuery.query(
               location,
+              endLocation,
               new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
           );
     }
@@ -791,11 +820,13 @@ public class AstBuilder {
     @Override
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
       final Optional<NodeLocation> location = getLocation(context);
+      final Optional<NodeLocation> endLocation = getEndLocation(context);
 
       return context.ALL() != null
-          ? TerminateQuery.all(location)
+          ? TerminateQuery.all(location, endLocation)
           : TerminateQuery.query(
               location,
+              endLocation,
               new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
           );
     }
@@ -806,10 +837,13 @@ public class AstBuilder {
       // users to maintain statements that used TABLES as a column name
       if (context.sourceName().identifier() instanceof SqlBaseParser.UnquotedIdentifierContext
           && context.sourceName().getText().toUpperCase().equals("TABLES")) {
-        return new DescribeTables(getLocation(context), context.EXTENDED() != null);
+        return new DescribeTables(getLocation(context),
+            getEndLocation(context),
+            context.EXTENDED() != null);
       }
       return new ShowColumns(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           context.EXTENDED() != null
       );
@@ -817,45 +851,54 @@ public class AstBuilder {
 
     @Override
     public Node visitListProperties(final SqlBaseParser.ListPropertiesContext context) {
-      return new ListProperties(getLocation(context));
+      return new ListProperties(getLocation(context), getEndLocation(context));
     }
 
     @Override
     public Node visitListVariables(final SqlBaseParser.ListVariablesContext context) {
-      return new ListVariables(getLocation(context));
+      return new ListVariables(getLocation(context), getEndLocation(context));
     }
 
     @Override
     public Node visitSetProperty(final SqlBaseParser.SetPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
       final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
-      return new SetProperty(getLocation(context), propertyName, propertyValue);
+      return new SetProperty(getLocation(context),
+          getEndLocation(context),
+          propertyName,
+          propertyValue);
     }
 
     @Override
     public Node visitAlterSystemProperty(final SqlBaseParser.AlterSystemPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
       final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
-      return new AlterSystemProperty(getLocation(context), propertyName, propertyValue);
+      return new AlterSystemProperty(getLocation(context),
+          getEndLocation(context),
+          propertyName,
+          propertyValue);
     }
 
     @Override
     public Node visitUnsetProperty(final SqlBaseParser.UnsetPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING().getText(), "'");
-      return new UnsetProperty(getLocation(context), propertyName);
+      return new UnsetProperty(getLocation(context), getEndLocation(context), propertyName);
     }
 
     @Override
     public Node visitDefineVariable(final SqlBaseParser.DefineVariableContext context) {
       final String variableName = context.variableName().getText();
       final String variableValue = ParserUtil.unquote(context.variableValue().getText(), "'");
-      return new DefineVariable(getLocation(context), variableName, variableValue);
+      return new DefineVariable(getLocation(context),
+          getEndLocation(context),
+          variableName,
+          variableValue);
     }
 
     @Override
     public Node visitUndefineVariable(final SqlBaseParser.UndefineVariableContext context) {
       final String variableName = context.variableName().getText();
-      return new UndefineVariable(getLocation(context), variableName);
+      return new UndefineVariable(getLocation(context), getEndLocation(context), variableName);
     }
 
     @Override
@@ -873,6 +916,7 @@ public class AstBuilder {
 
       return new PrintTopic(
           getLocation(context),
+          getEndLocation(context),
           topicName,
           fromBeginning,
           interval,
@@ -915,7 +959,10 @@ public class AstBuilder {
           .map(this::visitJoinedSource)
           .collect(ImmutableList.toImmutableList());
 
-      return new Join(getLocation(joinRelationContext), left, rights);
+      return new Join(getLocation(joinRelationContext),
+          getEndLocation(joinRelationContext),
+          left,
+          rights);
     }
 
     @Override
@@ -953,6 +1000,7 @@ public class AstBuilder {
 
       return new JoinedSource(
           getLocation(context),
+          getEndLocation(context),
           right,
           joinType,
           criteria,
@@ -986,13 +1034,14 @@ public class AstBuilder {
           );
       }
 
-      return new AliasedRelation(getLocation(context), child, alias);
+      return new AliasedRelation(getLocation(context), getEndLocation(context), child, alias);
     }
 
     @Override
     public Node visitTableName(final SqlBaseParser.TableNameContext context) {
       return new Table(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName())
       );
     }
@@ -1229,7 +1278,7 @@ public class AstBuilder {
     @Override
     public Node visitSelectStructAll(final SqlBaseParser.SelectStructAllContext context) {
       final Expression baseExpression = (Expression) visit(context.base);
-      return new StructAll(getLocation(context), baseExpression);
+      return new StructAll(getLocation(context), getEndLocation(context), baseExpression);
     }
 
     @Override
@@ -1313,6 +1362,7 @@ public class AstBuilder {
       }
       return new TableElement(
           getLocation(context),
+          getEndLocation(context),
           ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
           type,
           constraints);
@@ -1391,18 +1441,21 @@ public class AstBuilder {
       final Optional<Statement> statement = Optional.ofNullable(ctx.statement())
           .map(s -> (Statement) visit(s));
 
-      return new Explain(getLocation(ctx), queryId, statement);
+      return new Explain(getLocation(ctx), getEndLocation(ctx), queryId, statement);
     }
 
     @Override
     public Node visitDescribeFunction(final SqlBaseParser.DescribeFunctionContext ctx) {
-      return new DescribeFunction(getLocation(ctx), ctx.identifier().getText());
+      return new DescribeFunction(getLocation(ctx),
+          getEndLocation(ctx),
+          ctx.identifier().getText());
     }
 
     @Override
     public Node visitDescribeConnector(final DescribeConnectorContext ctx) {
       return new DescribeConnector(
           getLocation(ctx),
+          getEndLocation(ctx),
           ParserUtil.getIdentifierText(ctx.identifier())
       );
     }
@@ -1410,7 +1463,7 @@ public class AstBuilder {
     @Override
     public Node visitDescribeStreams(final SqlBaseParser.DescribeStreamsContext context) {
       return new DescribeStreams(
-          getLocation(context), context.EXTENDED() != null);
+          getLocation(context), getEndLocation(context), context.EXTENDED() != null);
     }
 
     @Override
@@ -1435,6 +1488,7 @@ public class AstBuilder {
     public Node visitRegisterType(final RegisterTypeContext context) {
       return new RegisterType(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getIdentifierText(context.identifier()),
           typeParser.getType(context.type()),
           context.EXISTS() != null
@@ -1445,6 +1499,7 @@ public class AstBuilder {
     public Node visitAssertTopic(final AssertTopicContext context) {
       return new AssertTopic(
           getLocation(context),
+          getEndLocation(context),
           getResourceName(context.resourceName()),
           context.WITH() == null
               ? ImmutableMap.of()
@@ -1477,6 +1532,7 @@ public class AstBuilder {
 
       return new AssertSchema(
           getLocation(context),
+          getEndLocation(context),
           context.resourceName() == null
               ? Optional.empty()
               : Optional.of(getResourceName(context.resourceName())),
@@ -1493,6 +1549,7 @@ public class AstBuilder {
     public Node visitAssertValues(final AssertValuesContext context) {
       final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
       final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
+      final Optional<NodeLocation> targetEndLocation = getEndLocation(context.sourceName());
 
       final List<ColumnName> columns;
       if (context.columns() != null) {
@@ -1507,17 +1564,19 @@ public class AstBuilder {
 
       final InsertValues insertValues = new InsertValues(
           targetLocation,
+          targetEndLocation,
           targetName,
           columns,
           visit(context.values().valueExpression(), Expression.class));
 
-      return new AssertValues(targetLocation, insertValues);
+      return new AssertValues(targetLocation, targetEndLocation, insertValues);
     }
 
     @Override
     public Node visitAssertTombstone(final AssertTombstoneContext context) {
       final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
       final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
+      final Optional<NodeLocation> targetEndLocation = getEndLocation(context.sourceName());
 
       final List<ColumnName> keyColumns;
       if (context.columns() != null) {
@@ -1532,11 +1591,12 @@ public class AstBuilder {
 
       final InsertValues insertValues = new InsertValues(
           targetLocation,
+          targetEndLocation,
           targetName,
           keyColumns,
           visit(context.values().valueExpression(), Expression.class));
 
-      return new AssertTombstone(targetLocation, insertValues);
+      return new AssertTombstone(targetLocation, targetEndLocation, insertValues);
     }
 
     @Override
@@ -1549,6 +1609,7 @@ public class AstBuilder {
 
       final CreateStream createStream = new CreateStream(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
           false,
@@ -1557,7 +1618,7 @@ public class AstBuilder {
           false
       );
 
-      return new AssertStream(getLocation(context), createStream);
+      return new AssertStream(getLocation(context), getEndLocation(context), createStream);
     }
 
     @Override
@@ -1570,6 +1631,7 @@ public class AstBuilder {
 
       final CreateTable createTable = new CreateTable(
           getLocation(context),
+          getEndLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
           false,
@@ -1578,7 +1640,7 @@ public class AstBuilder {
           false
       );
 
-      return new AssertTable(getLocation(context), createTable);
+      return new AssertTable(getLocation(context), getEndLocation(context), createTable);
     }
 
 

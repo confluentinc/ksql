@@ -26,10 +26,11 @@ public abstract class AssertResource extends Statement {
 
   protected AssertResource(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Optional<WindowTimeClause> timeout,
       final boolean exists
   ) {
-    super(location);
+    super(location, endLocation);
     this.timeout = Objects.requireNonNull(timeout, "timeout");
     this.exists = exists;
   }

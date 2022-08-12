@@ -28,10 +28,11 @@ public class DropConnector extends Statement {
 
   public DropConnector(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final boolean ifExists,
       final String connectorName
   ) {
-    super(location);
+    super(location, endLocation);
     this.ifExists = ifExists;
     this.connectorName = connectorName;
   }

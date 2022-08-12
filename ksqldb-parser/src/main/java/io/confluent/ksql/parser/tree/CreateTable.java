@@ -34,11 +34,19 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final CreateSourceProperties properties,
       final boolean isSource
   ) {
-    this(Optional.empty(), name, elements, orReplace, notExists, properties, isSource);
+    this(Optional.empty(),
+        Optional.empty(),
+        name,
+        elements,
+        orReplace,
+        notExists,
+        properties,
+        isSource);
   }
 
   public CreateTable(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName name,
       final TableElements elements,
       final boolean orReplace,
@@ -46,7 +54,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final CreateSourceProperties properties,
       final boolean isSource
   ) {
-    super(location, name, elements, orReplace, notExists, properties, isSource);
+    super(location, endLocation, name, elements, orReplace, notExists, properties, isSource);
 
     throwOnNonPrimaryKeys(elements);
   }
@@ -63,6 +71,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
   ) {
     return new CreateTable(
         getLocation(),
+        getEndLocation(),
         getName(),
         elements,
         isOrReplace(),

@@ -28,10 +28,11 @@ public class RegisterType extends Statement implements ExecutableDdlStatement {
 
   public RegisterType(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String name, final Type type,
       final boolean ifNotExists
   ) {
-    super(location);
+    super(location, endLocation);
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
     this.ifNotExists = Objects.requireNonNull(ifNotExists, "ifNotExists");

@@ -25,9 +25,10 @@ public class AssertTombstone extends AssertStatement {
 
   public AssertTombstone(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final InsertValues statement
   ) {
-    super(location);
+    super(location, endLocation);
     this.statement = Objects.requireNonNull(statement, "statement");
   }
 

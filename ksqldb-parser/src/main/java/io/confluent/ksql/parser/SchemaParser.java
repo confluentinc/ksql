@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.util.ParserUtil.getEndLocation;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static java.util.Objects.requireNonNull;
 
@@ -86,6 +87,7 @@ public final class SchemaParser {
         .stream()
         .map(ctx -> new TableElement(
             getLocation(ctx),
+            getEndLocation(ctx),
             ColumnName.of(ParserUtil.getIdentifierText(ctx.identifier())),
             typeParser.getType(ctx.type()),
             ParserUtil.getColumnConstraints(ctx.columnConstraints())

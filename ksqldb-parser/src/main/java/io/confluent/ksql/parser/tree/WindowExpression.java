@@ -34,15 +34,16 @@ public class WindowExpression extends AstNode {
       final String windowName,
       final KsqlWindowExpression ksqlWindowExpression
   ) {
-    this(Optional.empty(), windowName, ksqlWindowExpression);
+    this(Optional.empty(), Optional.empty(), windowName, ksqlWindowExpression);
   }
 
   public WindowExpression(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String windowName,
       final KsqlWindowExpression ksqlWindowExpression
   ) {
-    super(location);
+    super(location, endLocation);
     this.windowName = requireNonNull(windowName, "windowName");
     this.ksqlWindowExpression = requireNonNull(ksqlWindowExpression, "ksqlWindowExpression");
   }

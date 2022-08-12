@@ -30,10 +30,11 @@ public class DropType extends Statement implements ExecutableDdlStatement {
 
   public DropType(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String typeName,
       final boolean ifExists
   ) {
-    super(location);
+    super(location, endLocation);
     this.typeName = Objects.requireNonNull(typeName, "typeName");
     this.ifExists = ifExists;
   }

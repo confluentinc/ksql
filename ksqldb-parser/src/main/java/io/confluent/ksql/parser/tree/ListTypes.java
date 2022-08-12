@@ -23,8 +23,9 @@ import java.util.Optional;
 @Immutable
 public class ListTypes extends Statement {
 
-  public ListTypes(final Optional<NodeLocation> location) {
-    super(location);
+  public ListTypes(final Optional<NodeLocation> location,
+                   final Optional<NodeLocation> endLocation) {
+    super(location, endLocation);
   }
 
   @Override

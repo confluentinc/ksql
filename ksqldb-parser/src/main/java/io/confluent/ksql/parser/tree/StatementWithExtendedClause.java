@@ -26,9 +26,10 @@ public abstract class StatementWithExtendedClause extends Statement {
 
   protected StatementWithExtendedClause(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final boolean showExtended
   ) {
-    super(location);
+    super(location, endLocation);
     this.showExtended = showExtended;
   }
 

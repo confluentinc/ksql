@@ -27,9 +27,10 @@ public class AssertStream extends AssertStatement {
 
   public AssertStream(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final CreateStream statement
   ) {
-    super(location);
+    super(location, endLocation);
     this.statement = Objects.requireNonNull(statement, "statement");
   }
 

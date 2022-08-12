@@ -23,7 +23,7 @@ public class TerminateCluster extends Statement {
   public static final String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
 
   public TerminateCluster() {
-    super(Optional.empty());
+    super(Optional.empty(), Optional.empty());
   }
 
   @Override

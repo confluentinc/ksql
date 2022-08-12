@@ -32,12 +32,13 @@ public class AssertTopic extends AssertResource {
 
   public AssertTopic(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String topic,
       final Map<String, Literal> config,
       final Optional<WindowTimeClause> timeout,
       final boolean exists
   ) {
-    super(location, timeout, exists);
+    super(location, endLocation, timeout, exists);
     this.topic = Objects.requireNonNull(topic, "topic");
     this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
   }

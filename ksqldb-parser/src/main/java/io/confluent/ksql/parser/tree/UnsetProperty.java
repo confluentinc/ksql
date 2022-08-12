@@ -27,8 +27,10 @@ public class UnsetProperty extends Statement {
 
   private final String propertyName;
 
-  public UnsetProperty(final Optional<NodeLocation> location, final String propertyName) {
-    super(location);
+  public UnsetProperty(final Optional<NodeLocation> location,
+                       final Optional<NodeLocation> endLocation,
+                       final String propertyName) {
+    super(location, endLocation);
     this.propertyName = requireNonNull(propertyName, "propertyName");
   }
 

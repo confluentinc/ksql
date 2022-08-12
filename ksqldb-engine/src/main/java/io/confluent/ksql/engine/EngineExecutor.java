@@ -565,6 +565,7 @@ final class EngineExecutor {
     // source table.
     final Query query = new Query(
         Optional.empty(),
+        Optional.empty(),
         select,
         from,
         Optional.empty(),

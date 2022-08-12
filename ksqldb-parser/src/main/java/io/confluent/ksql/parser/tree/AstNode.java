@@ -22,13 +22,20 @@ import java.util.Optional;
 
 @Immutable
 public abstract class AstNode extends Node {
+  private final Optional<NodeLocation> endLocation;
 
-  protected AstNode(final Optional<NodeLocation> location) {
+  protected AstNode(final Optional<NodeLocation> location,
+                    final Optional<NodeLocation> endLocation) {
     super(location);
+    this.endLocation = endLocation;
   }
 
   /**
    * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(AstNode, Object)} instead.
    */
   protected abstract <R, C> R accept(AstVisitor<R, C> visitor, C context);
+
+  public Optional<NodeLocation> getEndLocation() {
+    return this.endLocation;
+  }
 }

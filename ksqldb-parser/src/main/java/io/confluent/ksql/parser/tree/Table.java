@@ -27,14 +27,15 @@ public class Table extends Relation {
   private final SourceName name;
 
   public Table(final SourceName name) {
-    this(Optional.empty(), name);
+    this(Optional.empty(), Optional.empty(), name);
   }
 
   public Table(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName name
   ) {
-    super(location);
+    super(location, endLocation);
     this.name = Objects.requireNonNull(name, "name");
   }
 

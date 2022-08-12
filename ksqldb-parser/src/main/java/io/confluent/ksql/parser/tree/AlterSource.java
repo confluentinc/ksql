@@ -36,16 +36,17 @@ public class AlterSource extends Statement implements ExecutableDdlStatement {
       final DataSourceType dataSourceType,
       final List<AlterOption> alterOptions
   ) {
-    this(Optional.empty(), name, dataSourceType, alterOptions);
+    this(Optional.empty(), Optional.empty(), name, dataSourceType, alterOptions);
   }
 
   public AlterSource(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName name,
       final DataSourceType dataSourceType,
       final List<AlterOption> alterOptions
   ) {
-    super(location);
+    super(location, endLocation);
     this.name = name;
     this.dataSourceType = dataSourceType;
     this.alterOptions = ImmutableList.copyOf(alterOptions);

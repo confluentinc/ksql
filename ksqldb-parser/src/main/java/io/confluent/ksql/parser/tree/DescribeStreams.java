@@ -22,8 +22,10 @@ import java.util.Optional;
 @Immutable
 public class DescribeStreams extends StatementWithExtendedClause {
 
-  public DescribeStreams(final Optional<NodeLocation> location, final boolean showExtended) {
-    super(location, showExtended);
+  public DescribeStreams(final Optional<NodeLocation> location,
+                         final Optional<NodeLocation> endLocation,
+                         final boolean showExtended) {
+    super(location, endLocation, showExtended);
   }
 
   @Override

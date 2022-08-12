@@ -27,9 +27,10 @@ public class DescribeConnector extends Statement {
 
   public DescribeConnector(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String connectorName
   ) {
-    super(location);
+    super(location, endLocation);
     this.connectorName = Objects.requireNonNull(connectorName, "connectorName");
   }
 

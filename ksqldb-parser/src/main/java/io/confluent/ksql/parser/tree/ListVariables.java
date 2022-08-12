@@ -24,8 +24,9 @@ import java.util.Optional;
 
 @Immutable
 public class ListVariables extends Statement {
-  public ListVariables(final Optional<NodeLocation> location) {
-    super(location);
+  public ListVariables(final Optional<NodeLocation> location,
+                       final Optional<NodeLocation> endLocation) {
+    super(location, endLocation);
   }
 
 

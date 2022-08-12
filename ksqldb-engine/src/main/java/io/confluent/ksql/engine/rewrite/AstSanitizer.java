@@ -169,7 +169,10 @@ public final class AstSanitizer {
       }
 
       return Optional.of(
-          new SingleColumn(singleColumn.getLocation(), expression, Optional.of(alias))
+          new SingleColumn(singleColumn.getLocation(),
+              singleColumn.getEndLocation(),
+              expression,
+              Optional.of(alias))
       );
     }
   }

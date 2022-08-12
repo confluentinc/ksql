@@ -166,6 +166,7 @@ public final class StatementRewriter<C> {
 
       return new Statements(
           node.getLocation(),
+          node.getEndLocation(),
           rewrittenStatements
       );
     }
@@ -198,6 +199,7 @@ public final class StatementRewriter<C> {
 
       return new Query(
           node.getLocation(),
+          node.getEndLocation(),
           select,
           from,
           windowExpression,
@@ -227,6 +229,7 @@ public final class StatementRewriter<C> {
 
       return new Explain(
           node.getLocation(),
+          node.getEndLocation(),
           node.getQueryId(),
           Optional.of(rewritten)
       );
@@ -246,6 +249,7 @@ public final class StatementRewriter<C> {
 
       return new Select(
           node.getLocation(),
+          node.getEndLocation(),
           rewrittenItems
       );
     }
@@ -292,6 +296,7 @@ public final class StatementRewriter<C> {
 
       return new AliasedRelation(
           node.getLocation(),
+          node.getEndLocation(),
           rewrittenRelation,
           node.getAlias());
     }
@@ -307,6 +312,7 @@ public final class StatementRewriter<C> {
 
       return new Join(
           node.getLocation(),
+          node.getEndLocation(),
           rewrittenLeft,
           node.getRights()
               .stream()
@@ -329,6 +335,7 @@ public final class StatementRewriter<C> {
 
       return new JoinedSource(
           rightSource.getLocation(),
+          rightSource.getEndLocation(),
           rewrittenRight,
           rightSource.getType(),
           rewrittenCriteria,
@@ -348,6 +355,7 @@ public final class StatementRewriter<C> {
       }
       return new WindowExpression(
           node.getLocation(),
+          node.getEndLocation(),
           node.getWindowName(),
           node.getKsqlWindowExpression()
       );
@@ -361,6 +369,7 @@ public final class StatementRewriter<C> {
       }
       return new TableElement(
           node.getLocation(),
+          node.getEndLocation(),
           node.getName(),
           (Type) processExpression(node.getType(), context),
           node.getConstraints()
@@ -392,6 +401,7 @@ public final class StatementRewriter<C> {
 
       return new CreateStreamAsSelect(
           node.getLocation(),
+          node.getEndLocation(),
           node.getName(),
           (Query) rewriter.apply(node.getQuery(), context),
           node.isNotExists(),
@@ -425,6 +435,7 @@ public final class StatementRewriter<C> {
 
       return new CreateTableAsSelect(
           node.getLocation(),
+          node.getEndLocation(),
           node.getName(),
           (Query) rewriter.apply(node.getQuery(), context),
           node.isNotExists(),
@@ -442,6 +453,7 @@ public final class StatementRewriter<C> {
 
       return new InsertInto(
           node.getLocation(),
+          node.getEndLocation(),
           node.getTarget(),
           (Query) rewriter.apply(node.getQuery(), context),
           node.getProperties()
@@ -464,7 +476,7 @@ public final class StatementRewriter<C> {
           .map(exp -> processExpression(exp, context))
           .collect(Collectors.toList());
 
-      return new PartitionBy(node.getLocation(), rewrittenPartitionBys);
+      return new PartitionBy(node.getLocation(), node.getEndLocation(), rewrittenPartitionBys);
     }
 
     @Override
@@ -478,7 +490,7 @@ public final class StatementRewriter<C> {
           .map(exp -> processExpression(exp, context))
           .collect(Collectors.toList());
 
-      return new GroupBy(node.getLocation(), rewrittenGroupings);
+      return new GroupBy(node.getLocation(), node.getEndLocation(), rewrittenGroupings);
     }
 
     @Override
@@ -490,6 +502,7 @@ public final class StatementRewriter<C> {
 
       return new RegisterType(
           node.getLocation(),
+          node.getEndLocation(),
           node.getName(),
           (Type) processExpression(node.getType(), context),
           node.getIfNotExists()

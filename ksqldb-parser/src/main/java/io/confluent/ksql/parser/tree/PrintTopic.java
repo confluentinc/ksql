@@ -34,12 +34,13 @@ public class PrintTopic extends Statement {
 
   public PrintTopic(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String topic,
       final boolean fromBeginning,
       final OptionalInt intervalValue,
       final OptionalInt limit
   ) {
-    super(location);
+    super(location, endLocation);
     this.topic = requireNonNull(topic, "topic");
     this.fromBeginning = fromBeginning;
     this.intervalValue = requireNonNull(intervalValue, "intervalValue").orElse(1);

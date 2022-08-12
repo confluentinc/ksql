@@ -30,15 +30,16 @@ public class ShowColumns extends StatementWithExtendedClause {
   private final boolean isExtended;
 
   public ShowColumns(final SourceName table, final boolean isExtended) {
-    this(Optional.empty(), table, isExtended);
+    this(Optional.empty(), Optional.empty(), table, isExtended);
   }
 
   public ShowColumns(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName table,
       final boolean isExtended
   ) {
-    super(location, isExtended);
+    super(location, endLocation, isExtended);
     this.table = requireNonNull(table, "table");
     this.isExtended = isExtended;
   }

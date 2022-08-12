@@ -27,16 +27,21 @@ public final class PauseQuery extends Statement {
   public static final String ALL_QUERIES = "ALL";
   private final Optional<QueryId> queryId;
 
-  public static PauseQuery all(final Optional<NodeLocation> location) {
-    return new PauseQuery(location, Optional.empty());
+  public static PauseQuery all(final Optional<NodeLocation> location,
+                               final Optional<NodeLocation> endLocation) {
+    return new PauseQuery(location, endLocation, Optional.empty());
   }
 
-  public static PauseQuery query(final Optional<NodeLocation> location, final QueryId queryId) {
-    return new PauseQuery(location, Optional.of(queryId));
+  public static PauseQuery query(final Optional<NodeLocation> location,
+                                 final Optional<NodeLocation> endLocation,
+                                 final QueryId queryId) {
+    return new PauseQuery(location, endLocation, Optional.of(queryId));
   }
 
-  private PauseQuery(final Optional<NodeLocation> location, final Optional<QueryId> queryId) {
-    super(location);
+  private PauseQuery(final Optional<NodeLocation> location,
+                     final Optional<NodeLocation> endLocation,
+                     final Optional<QueryId> queryId) {
+    super(location, endLocation);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 

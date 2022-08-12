@@ -33,9 +33,10 @@ public class Statements extends AstNode {
 
   public Statements(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final List<Statement> statements
   ) {
-    super(location);
+    super(location, endLocation);
     this.statements = ImmutableList.copyOf(requireNonNull(statements, "statements"));
   }
 

@@ -35,9 +35,10 @@ public class PartitionBy extends AstNode {
 
   public PartitionBy(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final List<Expression> partitionByExpressions
   ) {
-    super(location);
+    super(location, endLocation);
     this.partitionByExpressions = ImmutableList
         .copyOf(requireNonNull(partitionByExpressions, "partitionByExpressions"));
 

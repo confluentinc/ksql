@@ -29,12 +29,13 @@ public class AssertSchema extends AssertResource {
 
   public AssertSchema(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Optional<String> subject,
       final Optional<Integer> id,
       final Optional<WindowTimeClause> timeout,
       final boolean exists
   ) {
-    super(location, timeout, exists);
+    super(location, endLocation, timeout, exists);
     this.subject = Objects.requireNonNull(subject, "subject");
     this.id = Objects.requireNonNull(id, "id");
   }

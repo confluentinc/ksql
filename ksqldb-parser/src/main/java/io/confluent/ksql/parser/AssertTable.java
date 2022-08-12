@@ -27,9 +27,10 @@ public class AssertTable extends AssertStatement {
 
   public AssertTable(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final CreateTable statement
   ) {
-    super(location);
+    super(location, endLocation);
     this.statement = Objects.requireNonNull(statement, "statement");
   }
 

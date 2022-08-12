@@ -35,9 +35,10 @@ public class GroupBy extends AstNode {
 
   public GroupBy(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final List<Expression> groupingExpressions
   ) {
-    super(location);
+    super(location, endLocation);
     this.groupingExpressions = ImmutableList
         .copyOf(requireNonNull(groupingExpressions, "groupingElements"));
 

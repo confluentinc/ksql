@@ -25,9 +25,10 @@ import java.util.Optional;
 public abstract class AssertStatement extends AstNode  {
 
   protected AssertStatement(
-      final Optional<NodeLocation> location
+      final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation
   ) {
-    super(location);
+    super(location, endLocation);
   }
 
 }

@@ -27,16 +27,21 @@ public final class ResumeQuery extends Statement {
   public static final String ALL_QUERIES = "ALL";
   private final Optional<QueryId> queryId;
 
-  public static ResumeQuery all(final Optional<NodeLocation> location) {
-    return new ResumeQuery(location, Optional.empty());
+  public static ResumeQuery all(final Optional<NodeLocation> location,
+                                final Optional<NodeLocation> endLocation) {
+    return new ResumeQuery(location, endLocation, Optional.empty());
   }
 
-  public static ResumeQuery query(final Optional<NodeLocation> location, final QueryId queryId) {
-    return new ResumeQuery(location, Optional.of(queryId));
+  public static ResumeQuery query(final Optional<NodeLocation> location,
+                                  final Optional<NodeLocation> endLocation,
+                                  final QueryId queryId) {
+    return new ResumeQuery(location, endLocation, Optional.of(queryId));
   }
 
-  private ResumeQuery(final Optional<NodeLocation> location, final Optional<QueryId> queryId) {
-    super(location);
+  private ResumeQuery(final Optional<NodeLocation> location,
+                      final Optional<NodeLocation> endLocation,
+                      final Optional<QueryId> queryId) {
+    super(location, endLocation);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 

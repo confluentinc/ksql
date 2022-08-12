@@ -30,21 +30,22 @@ public class DropTable extends DropStatement implements ExecutableDdlStatement {
       final boolean ifExists,
       final boolean deleteTopic
   ) {
-    this(Optional.empty(), tableName, ifExists, deleteTopic);
+    this(Optional.empty(), Optional.empty(), tableName, ifExists, deleteTopic);
   }
 
   public DropTable(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName tableName,
       final boolean ifExists,
       final boolean deleteTopic
   ) {
-    super(location, tableName, ifExists, deleteTopic);
+    super(location, endLocation, tableName, ifExists, deleteTopic);
   }
 
   @Override
   public DropStatement withoutDeleteClause() {
-    return new DropTable(getLocation(), getName(), getIfExists(), false);
+    return new DropTable(getLocation(), getEndLocation(), getName(), getIfExists(), false);
   }
 
   @Override

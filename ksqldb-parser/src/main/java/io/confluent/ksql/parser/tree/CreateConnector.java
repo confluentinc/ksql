@@ -39,12 +39,13 @@ public class CreateConnector extends Statement {
 
   public CreateConnector(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String name,
       final Map<String, Literal> config,
       final Type type,
       final boolean notExists
   ) {
-    super(location);
+    super(location, endLocation);
     this.name = Objects.requireNonNull(name, "name");
     this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
     this.type = Objects.requireNonNull(type, "type");
@@ -58,7 +59,7 @@ public class CreateConnector extends Statement {
       final Type type,
       final boolean notExists
   ) {
-    this(Optional.empty(), name, config, type, notExists);
+    this(Optional.empty(), Optional.empty(), name, config, type, notExists);
   }
 
 

@@ -30,12 +30,13 @@ public class JoinedSource extends Relation {
 
   public JoinedSource(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Relation relation,
       final Type type,
       final JoinCriteria criteria,
       final Optional<WithinExpression> withinExpression
   ) {
-    super(location);
+    super(location, endLocation);
     this.relation = Objects.requireNonNull(relation, "relation");
     this.type = Objects.requireNonNull(type, "type");
     this.criteria = Objects.requireNonNull(criteria, "criteria");

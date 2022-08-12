@@ -45,6 +45,7 @@ public class Query extends Statement {
   public Query(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Select select,
       final Relation from,
       final Optional<WindowExpression> window,
@@ -56,7 +57,7 @@ public class Query extends Statement {
       final boolean pullQuery,
       final OptionalInt limit
   ) {
-    super(location);
+    super(location, endLocation);
     this.select = requireNonNull(select, "select");
     this.from = requireNonNull(from, "from");
     this.window = requireNonNull(window, "window");

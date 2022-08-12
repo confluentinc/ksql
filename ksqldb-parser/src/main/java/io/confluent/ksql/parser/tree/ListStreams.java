@@ -21,8 +21,10 @@ import java.util.Optional;
 
 @Immutable
 public class ListStreams extends StatementWithExtendedClause {
-  public ListStreams(final Optional<NodeLocation> location, final boolean showExtended) {
-    super(location, showExtended);
+  public ListStreams(final Optional<NodeLocation> location,
+                     final Optional<NodeLocation> endLocation,
+                     final boolean showExtended) {
+    super(location, endLocation, showExtended);
   }
 
   @Override

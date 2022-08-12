@@ -23,8 +23,9 @@ import java.util.Optional;
 
 @Immutable
 public class ListConnectorPlugins extends Statement {
-  public ListConnectorPlugins(final Optional<NodeLocation> location) {
-    super(location);
+  public ListConnectorPlugins(final Optional<NodeLocation> location,
+                              final Optional<NodeLocation> endLocation) {
+    super(location, endLocation);
   }
 
   @Override

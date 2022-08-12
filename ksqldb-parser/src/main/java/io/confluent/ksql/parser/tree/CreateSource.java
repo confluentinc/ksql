@@ -52,6 +52,7 @@ public abstract class CreateSource extends Statement {
 
   CreateSource(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName name,
       final TableElements elements,
       final boolean orReplace,
@@ -59,7 +60,7 @@ public abstract class CreateSource extends Statement {
       final CreateSourceProperties properties,
       final boolean isSource
   ) {
-    super(location);
+    super(location, endLocation);
     this.name = requireNonNull(name, "name");
     this.elements = requireNonNull(elements, "elements");
     this.orReplace = orReplace;

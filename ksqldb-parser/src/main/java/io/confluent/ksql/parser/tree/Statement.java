@@ -25,8 +25,9 @@ import java.util.Optional;
 @Immutable
 public abstract class Statement extends AstNode {
 
-  protected Statement(final Optional<NodeLocation> location) {
-    super(location);
+  protected Statement(final Optional<NodeLocation> location,
+                      final Optional<NodeLocation> endLocation) {
+    super(location, endLocation);
   }
 
   @Override

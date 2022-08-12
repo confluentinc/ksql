@@ -33,13 +33,14 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
 
   CreateAsSelect(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName name,
       final Query query,
       final boolean orReplace,
       final boolean notExists,
       final CreateSourceAsProperties properties
   ) {
-    super(location);
+    super(location, endLocation);
     this.name = requireNonNull(name, "name");
     this.query = requireNonNull(query, "query");
     this.orReplace = orReplace;
@@ -53,6 +54,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
   ) {
     this(
         other.getLocation(),
+        other.getEndLocation(),
         other.name,
         other.query,
         other.orReplace,

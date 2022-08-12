@@ -29,14 +29,15 @@ public class AllColumns extends SelectItem {
   private final Optional<SourceName> source;
 
   public AllColumns(final Optional<SourceName> source) {
-    this(Optional.empty(), source);
+    this(Optional.empty(), Optional.empty(), source);
   }
 
   public AllColumns(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Optional<SourceName> source
   ) {
-    super(location);
+    super(location, endLocation);
     this.source = requireNonNull(source, "source");
   }
 

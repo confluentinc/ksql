@@ -36,15 +36,16 @@ public class Join extends Relation {
       final Relation left,
       final List<JoinedSource> rights
   ) {
-    this(Optional.empty(), left, rights);
+    this(Optional.empty(), Optional.empty(), left, rights);
   }
 
   public Join(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Relation left,
       final List<JoinedSource> rights
   ) {
-    super(location);
+    super(location, endLocation);
     this.left = requireNonNull(left, "left");
     this.rights = ImmutableList.copyOf(Objects.requireNonNull(rights, "sources"));
     Preconditions.checkArgument(!rights.isEmpty(), "Cannot join without any right sources!");

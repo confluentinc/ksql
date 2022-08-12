@@ -54,7 +54,7 @@ public final class TableElement extends AstNode {
       final Type type,
       final ColumnConstraints constraints
   ) {
-    this(Optional.empty(), name, type, constraints);
+    this(Optional.empty(), Optional.empty(), name, type, constraints);
   }
 
   /**
@@ -65,11 +65,12 @@ public final class TableElement extends AstNode {
    */
   public TableElement(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final ColumnName name,
       final Type type,
       final ColumnConstraints constraints
   ) {
-    super(location);
+    super(location, endLocation);
     this.name = requireNonNull(name, "name");
     this.type = requireNonNull(type, "type");
     this.constraints = requireNonNull(constraints, "constraints");

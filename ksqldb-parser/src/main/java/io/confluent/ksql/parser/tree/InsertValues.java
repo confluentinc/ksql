@@ -40,16 +40,17 @@ public class InsertValues extends Statement {
       final List<ColumnName> columns,
       final List<Expression> values
   ) {
-    this(Optional.empty(), target, columns, values);
+    this(Optional.empty(), Optional.empty(), target, columns, values);
   }
 
   public InsertValues(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final SourceName target,
       final List<ColumnName> columns,
       final List<Expression> values
   ) {
-    super(location);
+    super(location, endLocation);
     this.target = Objects.requireNonNull(target, "target");
     this.columns = ImmutableList.copyOf(Objects.requireNonNull(columns, "columns"));
     this.values = ImmutableList.copyOf(Objects.requireNonNull(values, "values"));

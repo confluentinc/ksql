@@ -30,10 +30,11 @@ public class SetProperty extends Statement {
 
   public SetProperty(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final String propertyName,
       final String propertyValue
   ) {
-    super(location);
+    super(location, endLocation);
     this.propertyName = requireNonNull(propertyName, "propertyName");
     this.propertyValue = requireNonNull(propertyValue, "propertyValue");
   }

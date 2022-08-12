@@ -32,15 +32,16 @@ public class Explain extends Statement {
       final Optional<String> queryId,
       final Optional<Statement> statement
   ) {
-    this(Optional.empty(), queryId, statement);
+    this(Optional.empty(), Optional.empty(), queryId, statement);
   }
 
   public Explain(
       final Optional<NodeLocation> location,
+      final Optional<NodeLocation> endLocation,
       final Optional<String> queryId,
       final Optional<Statement> statement
   ) {
-    super(location);
+    super(location, endLocation);
     this.statement = Objects.requireNonNull(statement, "statement");
     this.queryId = queryId;
 

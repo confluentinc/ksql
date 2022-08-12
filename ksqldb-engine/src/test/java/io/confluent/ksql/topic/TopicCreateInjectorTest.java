@@ -330,7 +330,7 @@ public class TopicCreateInjectorTest {
     final ConfiguredStatement<?> result = injector.inject(statement, builder);
 
     // Then:
-    assertThat(result.getStatementText(),
+    assertThat(result.getMaskedStatementText(),
         equalTo(
             "CREATE STREAM X WITH (KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1, RETENTION_MS=100) AS SELECT *"
                 + "\nFROM SOURCE SOURCE\n"

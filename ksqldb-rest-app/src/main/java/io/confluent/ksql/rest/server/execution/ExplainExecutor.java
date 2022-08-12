@@ -80,9 +80,9 @@ public final class ExplainExecutor {
           .orElseGet(() -> explainStatement(
               statement, executionContext, serviceContext));
 
-      return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
+      return new QueryDescriptionEntity(statement.getMaskedStatementText(), queryDescription);
     } catch (final KsqlException e) {
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
     }
   }
 
@@ -95,7 +95,7 @@ public final class ExplainExecutor {
         .getStatement()
         .orElseThrow(() -> new KsqlStatementException(
             "must have either queryID or statement",
-            explain.getStatementText()));
+            explain.getMaskedStatementText()));
 
     if (!(statement instanceof Query || statement instanceof QueryContainer)) {
       throw new KsqlException("The provided statement does not run a ksql query");

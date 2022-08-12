@@ -118,7 +118,7 @@ public class ServerVerticle extends AbstractVerticle {
       router.route().handler(new SniHandler());
     }
 
-    KsqlCorsHandler.setupCorsHandler(server, router);
+    KsqlCorsHandler.setupCorsHandler(server.getConfig(), router);
 
     // /chc endpoints need to be before server state handler but after CORS handler as they
     // need to be usable from browser with cross origin policy

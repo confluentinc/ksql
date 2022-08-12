@@ -390,9 +390,7 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of(
-            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
-            TopicConfig.RETENTION_MS_CONFIG, 100L));
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT));
   }
 
   @Test
@@ -409,9 +407,7 @@ public class TopicCreateInjectorTest {
         "topic",
         10,
         (short) 10,
-        ImmutableMap.of(
-            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
-            TopicConfig.RETENTION_MS_CONFIG, 5000L));
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT));
   }
 
   @Test

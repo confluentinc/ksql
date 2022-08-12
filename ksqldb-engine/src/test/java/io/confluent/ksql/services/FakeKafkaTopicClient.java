@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collection;
@@ -104,14 +105,15 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   private final Map<String, FakeTopic> topicMap = new HashMap<>();
+  private final Map<String, Map<String, ?>> topicMapConfig = new HashMap<>();
   private final Map<String, FakeTopic> createdTopics = new HashMap<>();
-
   private final Map<String, Map<String, ?>> createdTopicsConfig = new HashMap<>();
 
   public void preconditionTopicExists(
       final String topic
   ) {
-    preconditionTopicExists(topic, 1, 1, Collections.emptyMap());
+    Map<String, ?> configs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 604800000L);
+    preconditionTopicExists(topic, 1, 1, configs);
   }
 
   public void preconditionTopicExists(
@@ -119,7 +121,11 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       final int numPartitions,
       final int replicationFactor,
       final Map<String, ?> configs) {
-    topicMap.put(topic, createFakeTopic(topic, numPartitions, replicationFactor, configs));
+    final FakeTopic info = createFakeTopic(topic, numPartitions, replicationFactor, configs);
+    topicMap.put(topic, info);
+    topicMapConfig.put(topic, configs);
+    //createdTopics.put(topic, info);
+    //createdTopicsConfig.put(topic, configs);
   }
 
   @Override
@@ -178,7 +184,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, String> getTopicConfig(final String topicName) {
-    return (Map<String, String>) createdTopicsConfig.get(topicName);
+    return (Map<String, String>) createdTopicsConfig.getOrDefault(topicName, topicMapConfig.get(topicName));
   }
 
   @Override
@@ -231,8 +237,6 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   ) {
     final long requiredRetentionMs = KafkaTopicClient.getRetentionMs(config);
     final long actualRetentionMs = KafkaTopicClient.getRetentionMs(existingConfig);
-    //final long requiredRetentionMs = (long) ((Object) config.get(TopicConfig.RETENTION_MS_CONFIG));
-    //final long actualRetentionMs = (long) ((Object) existingConfig.get(TopicConfig.RETENTION_MS_CONFIG));
     TopicValidationUtil.validateTopicProperties(
         existing.topicName,
         requiredNumPartition,

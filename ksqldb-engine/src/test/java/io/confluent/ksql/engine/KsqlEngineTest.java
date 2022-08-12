@@ -103,6 +103,7 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.KafkaStreams;
 
 import org.apache.kafka.common.config.ConfigException;
@@ -2059,7 +2060,8 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCreateAnyTopicsDuringTryExecute() {
     // Given:
-    topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, Collections.emptyMap());
+    Map<String, ?> configs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 604800000L);
+    topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, configs);
 
     final List<ParsedStatement> statements = parse(
         "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');"

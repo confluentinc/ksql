@@ -158,7 +158,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   public void ensureTopics(final int partitionCount, final String... topicNames) {
     final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
     final Map<String, String> config = ImmutableMap.of(
-        TopicConfig.RETENTION_MS_CONFIG, "8640000000");
+        TopicConfig.RETENTION_MS_CONFIG, "-1");
 
     Arrays.stream(topicNames)
         .filter(name -> !topicClient.isTopicExists(name))

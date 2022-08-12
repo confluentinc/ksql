@@ -800,7 +800,8 @@ public class KsMaterializationFunctionalTest {
         + " (" + USER_DATA_PROVIDER.ksqlSchemaString(false) + ")"
         + " WITH ("
         + "    kafka_topic='" + USERS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT.name() + "'"
+        + "    value_format='" + VALUE_FORMAT.name() + "', "
+        + "    retention_ms=-1"
         + ");"
     );
 
@@ -808,7 +809,8 @@ public class KsMaterializationFunctionalTest {
         + " (" + PAGE_VIEW_DATA_PROVIDER.ksqlSchemaString(false) + ")"
         + " WITH ("
         + "    kafka_topic='" + PAGE_VIEWS_TOPIC + "', "
-        + "    value_format='" + VALUE_FORMAT.name() + "'"
+        + "    value_format='" + VALUE_FORMAT.name() + "', "
+        + "    retention_ms=-1"
         + ");"
     );
   }

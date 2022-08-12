@@ -133,9 +133,9 @@ public final class TopicProperties {
         final Short replicas = (short) description.partitions().get(0).replicas().size();
 
         final Map<String, String> configs = configsSupplier.get();
-        final Long retentionMs = Long.valueOf(
-            configs.getOrDefault(
-                TopicConfig.RETENTION_MS_CONFIG, String.valueOf(DEFAULT_RETENTION_IN_MS))
+        final Long retentionMs = Long.parseLong(
+            String.valueOf(configs.getOrDefault(
+                TopicConfig.RETENTION_MS_CONFIG, String.valueOf(DEFAULT_RETENTION_IN_MS)))
         );
 
         return new TopicProperties(null, partitions, replicas, retentionMs);

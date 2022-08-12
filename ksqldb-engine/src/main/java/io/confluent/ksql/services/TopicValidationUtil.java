@@ -19,7 +19,6 @@ import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.topic.TopicProperties;
 import java.util.Map;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.config.TopicConfig;
 
 final class TopicValidationUtil {
 
@@ -77,7 +76,10 @@ final class TopicValidationUtil {
     }
   }
 
-  private static boolean isValidRetention(final long actualRetentionMs, final long requiredRetentionMs) {
+  private static boolean isValidRetention(
+      final long actualRetentionMs,
+      final long requiredRetentionMs
+  ) {
     return requiredRetentionMs != -1 && actualRetentionMs != requiredRetentionMs;
   }
 

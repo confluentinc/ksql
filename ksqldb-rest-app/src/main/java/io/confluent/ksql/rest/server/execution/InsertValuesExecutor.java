@@ -36,8 +36,8 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.registry.SchemaAndId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.schema.registry.SchemaWithId;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -379,6 +379,8 @@ public class InsertValuesExecutor {
    * Otherwise, it is possible that we will publish messages with a new
    * schemaID, meaning that logically identical keys might be routed to
    * different partitions.
+   * If the schemas match, we return the schema id we got from the schema
+   * registry and use that id to avoid auto registering a new schema
    */
   private static Optional<Integer> ensureKeySchemasMatch(
       final PersistenceSchema keySchema,
@@ -391,22 +393,19 @@ public class InsertValuesExecutor {
       return Optional.empty();
     }
 
+    final Map<String, String> formatProps = keyFormat.getFormatInfo().getProperties();
+    final SchemaTranslator translator = format.getSchemaTranslator(formatProps);
+    final ParsedSchema schema = translator.toParsedSchema(keySchema);
+
     final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
 
-    final FormatInfo formatInfo = addSerializerMissingFormatFields(
-        dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
-        dataSource.getKafkaTopicName(),
-        true,
-        Optional.empty()
-    );
-
-    final ParsedSchema schema = format
-        .getSchemaTranslator(formatInfo.getProperties())
-        .toParsedSchema(keySchema);
-
-    final SchemaWithId latest;
+    final Optional<SchemaAndId> latest;
     try {
-      latest = SchemaRegistryUtil.getLatestParsedSchema(
+      // Note: We fetch the latest schema from Schema Registry and compare it with the parsed schema
+      // even if the user has specified a schema_id. This may not be what the user requested during
+      // the create command but the check here ensures we fail the insert statement if the schemas
+      // don't match
+      latest = SchemaRegistryUtil.getLatestSchemaAndId(
           schemaRegistryClient,
           dataSource.getKafkaTopicName(),
           true);
@@ -418,13 +417,11 @@ public class InsertValuesExecutor {
           + "operation potentially overrides existing key schema in schema registry.", e);
     }
 
-    if (!latest.getSchema().isPresent()) {
+    if (!latest.isPresent()) {
       throw new KsqlException("Failed to fetch schema from Schema Registry. Please try again.");
     }
 
-    final Map<String, String> formatProps = keyFormat.getFormatInfo().getProperties();
-    final SchemaTranslator translator = format.getSchemaTranslator(formatProps);
-    ParsedSchema srSchema = latest.getSchema().get();
+    ParsedSchema srSchema = latest.get().getSchema();
 
     if (format instanceof ProtobufFormat
         && formatProps.containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
@@ -438,18 +435,18 @@ public class InsertValuesExecutor {
       );
 
       srSchema = protoTranslator.fromConnectSchema(
-          protoTranslator.toConnectSchema(latest.getSchema().get())
+          protoTranslator.toConnectSchema(latest.get().getSchema())
       );
     }
 
-    if (keySchemaCompatible(translator, keySchema, schema, srSchema)) {
-      return latest.getId();
+    if (schemaEquals(translator, keySchema, schema, srSchema)) {
+      return Optional.of(latest.get().getId());
     }
 
     throw new KsqlException("Cannot INSERT VALUES into data source " + dataSource.getName()
         + ". ksqlDB generated schema would overwrite existing key schema."
         + "\n\tExisting Schema: "
-        + getColumns(translator, keySchema, latest.getSchema().get(), true).toString()
+        + getColumns(translator, keySchema, latest.get().getSchema(), true).toString()
         + "\n\tksqlDB Generated: " + keySchema.columns());
   }
 
@@ -461,7 +458,7 @@ public class InsertValuesExecutor {
     return translator.toColumns(parsedSchema, schema.features(), isKey);
   }
 
-  private static boolean keySchemaCompatible(
+  private static boolean schemaEquals(
       final SchemaTranslator translator,
       final PersistenceSchema keySchema,
       final ParsedSchema ksqlSchema,
@@ -553,12 +550,11 @@ public class InsertValuesExecutor {
       return formatInfo;
     }
 
-    if (schemaId.isPresent()) {
+    if (schemaId.isPresent()
+        && !formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
       final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
       propertiesBuilder.putAll(formatInfo.getProperties());
-      if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
-        propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId.get()));
-      }
+      propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId.get()));
 
       return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
     }

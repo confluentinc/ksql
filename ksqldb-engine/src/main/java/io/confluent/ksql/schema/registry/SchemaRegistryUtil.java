@@ -131,7 +131,7 @@ public final class SchemaRegistryUtil {
     return Optional.of(schemaId);
   }
 
-  public static SchemaWithId getLatestParsedSchema(
+  public static Optional<SchemaAndId> getLatestSchemaAndId(
       final SchemaRegistryClient srClient,
       final String topic,
       final boolean isKey
@@ -140,13 +140,13 @@ public final class SchemaRegistryUtil {
 
     final Optional<Integer> optSchemaId = getSchemaId(srClient, topic, isKey);
     if (!optSchemaId.isPresent()) {
-      return new SchemaWithId(Optional.empty(), Optional.empty());
+      return Optional.empty();
     }
 
     final int schemaId = optSchemaId.get();
 
     try {
-      return new SchemaWithId(Optional.of(srClient.getSchemaById(schemaId)), Optional.of(schemaId));
+      return Optional.of(new SchemaAndId(srClient.getSchemaById(schemaId), schemaId));
     } catch (final Exception e) {
       throwOnAuthError(e, subject);
 

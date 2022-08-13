@@ -16,23 +16,22 @@
 package io.confluent.ksql.schema.registry;
 
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import java.util.Optional;
 
-public class SchemaWithId {
+public class SchemaAndId {
 
-  private Optional<ParsedSchema> schema;
-  private Optional<Integer> id;
+  private ParsedSchema schema;
+  private Integer id;
 
-  public SchemaWithId(final Optional<ParsedSchema> schema, final Optional<Integer> id) {
+  public SchemaAndId(final ParsedSchema schema, final int id) {
     this.schema = schema;
     this.id = id;
   }
 
-  public Optional<ParsedSchema> getSchema() {
+  public ParsedSchema getSchema() {
     return schema;
   }
 
-  public Optional<Integer> getId() {
+  public Integer getId() {
     return id;
   }
 

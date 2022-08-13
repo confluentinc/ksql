@@ -136,6 +136,7 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
       return type;
     }
 
+    @Override
     public String toString() {
       return toString(FormatOptions.none());
     }

@@ -91,7 +91,7 @@ public final class AuthHandlers {
    * some handlers run code asynchronously from the event loop, which must be run while the
    * request is paused (see https://vertx.io/docs/vertx-web/java/#_request_body_handling).
    *
-   * the calls to #pauseHandler are defensive in case an underlying handler calls resume
+   * <p>the calls to #pauseHandler are defensive in case an underlying handler calls resume
    * on the context without our knowledge (which is what the default BasicAuthHandler in
    * vertx-web does as of version 4.x)
    */

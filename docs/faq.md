@@ -249,8 +249,8 @@ command topic.
 
 The ksqlDB command topic stores all data definition language (DDL)
 statements: CREATE STREAM, CREATE TABLE, DROP STREAM, and DROP TABLE.
-Also, the ksqlDB command topic stores TERMINATE statements, which stop
-persistent queries based on CREATE STREAM AS SELECT (CSAS) and CREATE
+Also, the ksqlDB command topic stores PAUSE, RESUME, TERMINATE statements, 
+which operate on persistent queries based on CREATE STREAM AS SELECT (CSAS) and CREATE
 TABLE AS SELECT (CTAS).
 
 Currently, data manipulation language (DML) statements, like UPDATE and

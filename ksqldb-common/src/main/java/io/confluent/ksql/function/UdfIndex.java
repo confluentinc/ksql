@@ -68,30 +68,33 @@ import org.slf4j.LoggerFactory;
 public class UdfIndex<T extends FunctionSignature> {
   // this class is implemented as a custom Trie data structure that resolves
   // the rules described above. the Trie is built so that each node in the
-  // trie references a single possible parameter in the signature. take for
-  // example the following method signatures:
+  // trie references a single possible pair of parameters in the signature.
+  // take for example the following method signatures:
   //
   // A: void foo(String a)
   // B: void foo(String a, Integer b)
   // C: void foo(String a, Integer... ints)
   // D: void foo(Integer a)
-  // E: void foo(Integer... ints)
   //
   // The final constructed trie would look like:
   //
-  //                 Ø -> E
-  //               /   \
-  //    A <-- String   Integer -> D
-  //         /            \
-  // B <-- Integer      Integer (VARARG) -> E
-  //        /
-  // C <-- Integer (VARARG)
+  // D <-- (int, ?) -- Ø
+  //                 /   \
+  //                /     \
+  //   A <-- (str, ?)     (str, int) --> B
+  //                       /       \
+  //                      /        (int, ?) --> C
+  //                     /
+  //                   (int, int) (VARARGS) --> C
+  //                   /
+  //                 (int, ?) --> C
   //
   // To resolve a query against the trie, this class simply traverses down each
   // matching path of the trie until it exhausts the input List<Schema>. The
-  // final node that it reaches will contain the method that is returned. If
-  // multiple methods are returned, the rules described above are used to select
-  // the best candidate (e.g. foo(null, int) matches B, C and E).
+  // List<Schema> is consumed at both ends, one parameter at a time, to make a
+  // pair. The final node that it reaches will contain the method that is returned.
+  // If multiple methods are returned, the rules described above are used to select
+  // the best candidate (e.g. foo(null, int) matches B and C).
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
 
@@ -190,7 +193,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
       The number of nodes added here is quadratic with respect to paramsWithoutVariadic.size().
       However, this tree is only built on ksql startup, and this tree structure allows resolving
-      functions with variadic arguments in the middle in linear time. The number of edges generated
+      functions with variadic arguments in the middle in linear time. The number of node generated
       as a function of paramsWithoutVariadic.size() is roughly 0.25x^2 + 1.5x + 3, which is not
       excessive for reasonable numbers of arguments. */
       while (fromIndex >= 0 && toIndex <= combinedAllParams.size()) {

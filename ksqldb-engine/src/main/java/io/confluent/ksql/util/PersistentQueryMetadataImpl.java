@@ -36,6 +36,8 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -236,6 +238,10 @@ public class PersistentQueryMetadataImpl
 
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
+  }
+
+  public Collection<String> getSourceTopicNames() {
+    return Collections.emptySet();
   }
 
 }

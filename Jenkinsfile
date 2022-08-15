@@ -2,7 +2,7 @@
 
 common {
     slackChannel = '#ksqldb-quality-oncall'
-    timeoutHours = 5
+    timeoutHours = 4
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'
     dockerPush = false
@@ -15,5 +15,6 @@ common {
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Djava.io.tmpdir=/mnt/ramdisk"
+    mavenBuildGoals = "clean install"
 }
 

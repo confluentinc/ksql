@@ -47,6 +47,7 @@ import io.vertx.core.Vertx;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -183,7 +184,13 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
     // header, row
     assertThatEventually(() ->  subscriber.getRows().size(), is (2));
     subscriber.close();
-    publisher.close();
+
+    // http2 connections are reused, meaning if we close the request
+    // and then start a new one immediately afterwards we're at risk
+    // of garbling writes
+    final CountDownLatch latch = new CountDownLatch(1);
+    publisher.close().onComplete(x -> latch.countDown());
+    latch.await();
 
     // scalable push query should fail on 11th try since it exceeds 1MB bandwidth limit
     try {

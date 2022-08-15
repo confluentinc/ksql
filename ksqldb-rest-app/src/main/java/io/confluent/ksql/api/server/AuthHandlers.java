@@ -22,27 +22,32 @@ import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
+import io.confluent.ksql.api.auth.RoleBasedAuthZHandler;
 import io.confluent.ksql.api.auth.SystemAuthenticationHandler;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.vertx.core.Handler;
 import io.vertx.core.http.ClientAuth;
-import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
 import java.net.URI;
 import java.util.Optional;
 
 public final class AuthHandlers {
 
+  private static final String PROVIDER_KEY = "provider";
+
+  private enum Provider {
+    SYSTEM, JAAS, PLUGIN
+  }
+
   private AuthHandlers() {
   }
 
   static void setupAuthHandlers(final Server server, final Router router,
       final boolean isInternalListener) {
-    final Optional<AuthHandler> jaasAuthHandler = getJaasAuthHandler(server);
+    final Optional<BasicAuthHandler> jaas = getJaasAuthHandler(server);
     final KsqlSecurityExtension securityExtension = server.getSecurityExtension();
     final Optional<AuthenticationPlugin> authenticationPlugin = server.getAuthenticationPlugin();
     final Optional<Handler<RoutingContext>> pluginHandler =
@@ -50,52 +55,98 @@ public final class AuthHandlers {
     final Optional<SystemAuthenticationHandler> systemAuthenticationHandler
         = getSystemAuthenticationHandler(server, isInternalListener);
 
-    systemAuthenticationHandler.ifPresent(handler -> router.route().handler(handler));
+    systemAuthenticationHandler.ifPresent(handler -> registerAuthHandler(router, handler));
 
-    if (jaasAuthHandler.isPresent() || authenticationPlugin.isPresent()) {
-      router.route().handler(AuthHandlers::pauseHandler);
+    if (jaas.isPresent() || authenticationPlugin.isPresent()) {
+      registerAuthHandler(
+          router,
+          rc -> selectHandler(rc, jaas.isPresent(), pluginHandler.isPresent()));
 
-      router.route().handler(rc -> wrappedAuthHandler(rc, jaasAuthHandler, pluginHandler));
+      // set up using JAAS
+      jaas.ifPresent(h -> registerAuthHandler(router, wrappedHandler(h, Provider.JAAS)));
+
+      registerAuthHandler(
+          router,
+          wrappedHandler(new RoleBasedAuthZHandler(
+              server.getConfig().getList(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG)),
+              Provider.JAAS));
+
+      // set up using PLUGIN
+      pluginHandler.ifPresent(h -> registerAuthHandler(router, wrappedHandler(h, Provider.PLUGIN)));
 
       // For authorization use auth provider configured via security extension (if any)
       securityExtension.getAuthorizationProvider()
-          .ifPresent(ksqlAuthorizationProvider -> router.route()
-              .handler(new KsqlAuthorizationProviderHandler(server, ksqlAuthorizationProvider)));
+          .ifPresent(ksqlAuthorizationProvider ->
+              registerAuthHandler(
+                  router,
+                  new KsqlAuthorizationProviderHandler(server, ksqlAuthorizationProvider)));
 
+      // since we're done with all the authorization plugins, we can resume the
+      // request context
       router.route().handler(AuthHandlers::resumeHandler);
     }
   }
 
-  private static void wrappedAuthHandler(final RoutingContext routingContext,
-      final Optional<AuthHandler> jaasAuthHandler,
-      final Optional<Handler<RoutingContext>> pluginHandler) {
-    if (SystemAuthenticationHandler.isAuthenticatedAsSystemUser(routingContext)) {
-      routingContext.next();
+  /**
+   * some handlers run code asynchronously from the event loop, which must be run while the
+   * request is paused (see https://vertx.io/docs/vertx-web/java/#_request_body_handling).
+   *
+   * <p>the calls to #pauseHandler are defensive in case an underlying handler calls resume
+   * on the context without our knowledge (which is what the default BasicAuthHandler in
+   * vertx-web does as of version 4.x)
+   */
+  private static void registerAuthHandler(
+      final Router router,
+      final Handler<RoutingContext> routingContext
+  ) {
+    router.route().handler(AuthHandlers::pauseHandler);
+    router.route().handler(routingContext);
+  }
+
+  private static Handler<RoutingContext> wrappedHandler(
+      final Handler<RoutingContext> handler,
+      final Provider provider
+  ) {
+    return rc -> {
+      if (rc.data().get(PROVIDER_KEY) != provider) {
+        rc.next();
+      } else {
+        handler.handle(rc);
+      }
+    };
+  }
+
+  /**
+   * In order of preference, we see if the user is the system user, then we check for
+   * JAAS configurations, and finally we check to see if there's a plugin we can use
+   */
+  private static void selectHandler(
+      final RoutingContext context,
+      final boolean jaasAvailable,
+      final boolean pluginAvailable
+  ) {
+    if (SystemAuthenticationHandler.isAuthenticatedAsSystemUser(context)) {
+      context.data().put(PROVIDER_KEY, Provider.SYSTEM);
+      context.next();
       return;
     }
-    // Fall through to authing with Jaas
-    if (jaasAuthHandler.isPresent()) {
-      // If we have a Jaas handler configured and we have Basic credentials then we should auth
-      // with that
-      final String authHeader = routingContext.request().getHeader("Authorization");
-      if (authHeader != null && authHeader.toLowerCase().startsWith("basic ")) {
-        jaasAuthHandler.get().handle(routingContext);
-        return;
-      }
-    }
-    // Fall through to authing with any authentication plugin
-    if (pluginHandler.isPresent()) {
-      pluginHandler.get().handle(routingContext);
+
+    final String authHeader = context.request().getHeader("Authorization");
+    if (jaasAvailable && authHeader != null && authHeader.toLowerCase().startsWith("basic ")) {
+      context.data().put(PROVIDER_KEY, Provider.JAAS);
+    } else if (pluginAvailable) {
+      context.data().put(PROVIDER_KEY, Provider.PLUGIN);
     } else {
       // Fail the request as unauthorized - this will occur if no auth plugin but Jaas handler
       // is configured, but auth header is not basic auth
-      routingContext
-          .fail(UNAUTHORIZED.code(),
-              new KsqlApiException("Unauthorized", ERROR_CODE_UNAUTHORIZED));
+      context.fail(
+          UNAUTHORIZED.code(),
+          new KsqlApiException("Unauthorized", ERROR_CODE_UNAUTHORIZED));
     }
+    context.next();
   }
 
-  private static Optional<AuthHandler> getJaasAuthHandler(final Server server) {
+  private static Optional<BasicAuthHandler> getJaasAuthHandler(final Server server) {
     final String authMethod = server.getConfig()
         .getString(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG);
     switch (authMethod) {
@@ -112,15 +163,10 @@ public final class AuthHandlers {
     }
   }
 
-  private static AuthHandler basicAuthHandler(final Server server) {
-    final AuthProvider authProvider = new JaasAuthProvider(server, server.getConfig());
+  private static BasicAuthHandler basicAuthHandler(final Server server) {
     final String realm = server.getConfig().getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG);
-    final AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, realm);
-    // It doesn't matter what we set here as we actually do the authorisation at the
-    // authentication stage and cache the result, but we must add an authority or
-    // no authorisation will be done
-    basicAuthHandler.addAuthority("ksql");
-    return basicAuthHandler;
+    final JaasAuthProvider authProvider = new JaasAuthProvider(server, realm);
+    return BasicAuthHandler.create(authProvider, realm);
   }
 
   /**

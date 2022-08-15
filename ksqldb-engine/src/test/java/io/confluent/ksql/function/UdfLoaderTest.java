@@ -196,9 +196,9 @@ public class UdfLoaderTest {
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void shouldLoadUdafs() {
-    final KsqlAggregateFunction instance = FUNC_REG
-        .getAggregateFunction(FunctionName.of("test_udaf"), SqlTypes.BIGINT,
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+    final KsqlAggregateFunction instance = FUNC_REG.getAggregateFactory(of("test_udaf"))
+            .getFunction(singletonList(SqlTypes.BIGINT))
+            .source.apply(AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
     assertThat(instance.getMerger().apply(null, 2L, 3L), equalTo(5L));
@@ -218,8 +218,10 @@ public class UdfLoaderTest {
         .build();
 
     final KsqlAggregateFunction instance = FUNC_REG
-        .getAggregateFunction(FunctionName.of("test_udaf"), sqlSchema,
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+            .getAggregateFactory(of("test_udaf"))
+            .getFunction(singletonList(sqlSchema))
+            .source
+            .apply(AggregateFunctionInitArguments.EMPTY_ARGS);
 
     assertThat(instance.getInitialValueSupplier().get(),
         equalTo(new Struct(schema).put("A", 0).put("B", 0)));
@@ -250,8 +252,10 @@ public class UdfLoaderTest {
         KsqlException.class,
         () -> {
           KsqlAggregateFunction function = FUNC_REG
-              .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.array(SqlTypes.INTEGER),
-                  AggregateFunctionInitArguments.EMPTY_ARGS);
+                  .getAggregateFactory(of("bad_test_udaf"))
+                  .getFunction(singletonList(SqlTypes.array(SqlTypes.INTEGER)))
+                  .source
+                  .apply(AggregateFunctionInitArguments.EMPTY_ARGS);
           function.aggregate("foo", 2L);
         }
     );
@@ -276,8 +280,11 @@ public class UdfLoaderTest {
         KsqlException.class,
         () ->
             ((Configurable)FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.INTEGER,
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).configure(Collections.emptyMap())
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(SqlTypes.INTEGER))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).configure(Collections.emptyMap())
     );
 
     // Then:
@@ -299,8 +306,11 @@ public class UdfLoaderTest {
     final Exception e3 = assertThrows(
         SecurityException.class,
         () -> FUNC_REG
-            .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.DOUBLE,
-                AggregateFunctionInitArguments.EMPTY_ARGS).getInitialValueSupplier().get()
+                .getAggregateFactory(of("bad_test_udaf"))
+                .getFunction(singletonList(SqlTypes.DOUBLE))
+                .source
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+                .getInitialValueSupplier().get()
     );
 
     // Then:
@@ -324,8 +334,11 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((KsqlAggregateFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.BOOLEAN,
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).getResultMapper().apply(true)
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(SqlTypes.BOOLEAN))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).getResultMapper().apply(true)
     );
 
     // Then:
@@ -358,9 +371,12 @@ public class UdfLoaderTest {
     final Exception e5 = assertThrows(
         SecurityException.class,
         () ->
-            ((KsqlAggregateFunction) FUNC_REG.getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                sqlSchema,
-                AggregateFunctionInitArguments.EMPTY_ARGS)).getMerger().apply(null, input, input)
+            ((KsqlAggregateFunction) FUNC_REG
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(sqlSchema))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).getMerger().apply(null, input, input)
     );
 
     // Then:
@@ -384,8 +400,11 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((KsqlAggregateFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.STRING,
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).aggregate("foo", 2L)
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(SqlTypes.STRING))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).aggregate("foo", 2L)
     );
 
     // Then:
@@ -409,8 +428,11 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((TableAggregationFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.BIGINT,
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).undo(1L, 1L)
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(SqlTypes.BIGINT))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).undo(1L, 1L)
     );
 
     // Then:
@@ -432,9 +454,10 @@ public class UdfLoaderTest {
     final Exception error = assertThrows(
         KsqlException.class,
         () -> FUNC_REG
-            .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                SqlTypes.array(SqlTypes.BIGINT),
-                AggregateFunctionInitArguments.EMPTY_ARGS)
+                .getAggregateFactory(of("bad_test_udaf"))
+                .getFunction(singletonList(SqlTypes.array(SqlTypes.BIGINT)))
+                .source
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
     );
 
     // Then:
@@ -456,8 +479,10 @@ public class UdfLoaderTest {
     final Exception error = assertThrows(
         KsqlException.class,
         () -> FUNC_REG
-            .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.array(SqlTypes.BOOLEAN),
-                AggregateFunctionInitArguments.EMPTY_ARGS)
+                .getAggregateFactory(of("bad_test_udaf"))
+                .getFunction(singletonList(SqlTypes.array(SqlTypes.BOOLEAN)))
+                .source
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
     );
 
     // Then:
@@ -1104,7 +1129,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
     assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.emptyList()),
@@ -1120,11 +1145,13 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumInt"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+         new String[]{""},
         "",
         "");
     final AggregateFunctionInitArguments initArgs = new AggregateFunctionInitArguments(
-        0, ImmutableMap.of("ksql.functions.test_udaf.init", 100L));
+            Collections.singletonList(0),
+            ImmutableMap.of("ksql.functions.test_udaf.init", 100L)
+    );
 
     // When:
     final KsqlAggregateFunction function = creator.createFunction(initArgs, Collections.emptyList());
@@ -1156,7 +1183,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
     final KsqlAggregateFunction function = creator
@@ -1174,11 +1201,13 @@ public class UdfLoaderTest {
             String.class),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
-    final KsqlAggregateFunction instance =
-        creator.createFunction(new AggregateFunctionInitArguments(0, "foo"), Collections.emptyList());
+    final KsqlAggregateFunction instance = creator.createFunction(
+            new AggregateFunctionInitArguments(Collections.singletonList(0), "foo"),
+            Collections.emptyList()
+    );
     assertThat(instance,
         not(nullValue()));
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
@@ -1194,7 +1223,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
 
@@ -1217,7 +1246,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumT"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
 
@@ -1242,7 +1271,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("invalidInputTypeUdaf"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         ""
     );
@@ -1257,7 +1286,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("missingInputSchemaAnnotationUdaf"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1274,7 +1303,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
         of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         ""
     );
@@ -1298,7 +1327,7 @@ public class UdfLoaderTest {
                 UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
                 of("test"),
                 "desc",
-                "",
+                new String[]{""},
                 "",
                 ""
         )
@@ -1363,7 +1392,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createBlah"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1379,7 +1408,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createLongDouble"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1390,7 +1419,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createDoubleLong"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1401,7 +1430,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createIntegerString"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1412,7 +1441,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createStringInteger"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1423,7 +1452,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createBooleanList"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1434,7 +1463,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createListBoolean"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1445,7 +1474,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createMapMap"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1456,7 +1485,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createMapMap", int.class),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1467,7 +1496,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createStructStruct"),
         FunctionName.of("test"),
         "desc",
-        "STRUCT<A VARCHAR>",
+        new String[]{"STRUCT<A VARCHAR>"},
         "STRUCT<B VARCHAR>",
         "STRUCT<B VARCHAR>");
   }
@@ -1481,7 +1510,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createBad"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1500,7 +1529,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createNonStatic"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );

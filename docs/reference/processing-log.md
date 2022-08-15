@@ -110,7 +110,9 @@ setting the ksqlDB property `ksql.logging.processing.rows.include` to
 !!! important
     In {{ site.ccloud }}, `ksql.logging.processing.rows.include` is set
     to `true`, so the default behavior is to include row data in the
-    processing log. Contact support to disable this default setting.
+    processing log. It can be configured manually when provisioning the cluster in 
+    {{ site.ccloud }} by toggling **Hide row data in processing log** when provisioning 
+    in the UI, or by setting the `log-exclude-rows` flag in the CLI.
 
 When `ksql.logging.processing.rows.include` is set to `true`, ensure that the
 log is configured to write to a destination where it is safe to write the data

@@ -30,15 +30,12 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -105,7 +102,7 @@ public class ServerVerticle extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(stopPromise.future());
+      httpServer.close(ar -> stopPromise.complete());
     }
   }
 
@@ -370,33 +367,22 @@ public class ServerVerticle extends AbstractVerticle {
         .setStatusCode(TEMPORARY_REDIRECT.code()).end();
   }
 
-  private static final class VertexHandler implements Handler<AsyncResult<ServerWebSocket>> {
-    ServerWebSocket serverWebSocket;
-
-    @Override
-    public void handle(final AsyncResult<ServerWebSocket> event) {
-      serverWebSocket = event.result();
-    }
-
-    ServerWebSocket getServerWebSocket() {
-      if (serverWebSocket == null) {
-        throw new IllegalStateException();
-      }
-      return serverWebSocket;
-    }
-  }
-
   private void handleWebsocket(final RoutingContext routingContext) {
     final ApiSecurityContext apiSecurityContext =
         DefaultApiSecurityContext.create(routingContext, server);
-
-    final VertexHandler handler = new VertexHandler();
-    routingContext.request().toWebSocket(handler);
-    final ServerWebSocket serverWebSocket = handler.getServerWebSocket();
-
-    endpoints
-        .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
-            server.getWorkerExecutor(), apiSecurityContext, context);
+    routingContext.request().toWebSocket(serverWebSocket -> {
+          if (serverWebSocket.failed()) {
+            routingContext.fail(serverWebSocket.cause());
+          } else {
+            endpoints.executeWebsocketStream(
+                serverWebSocket.result(),
+                routingContext.request().params(),
+                server.getWorkerExecutor(),
+                apiSecurityContext,
+                context);
+          }
+        }
+    );
   }
 
   private static void chcHandler(final RoutingContext routingContext) {

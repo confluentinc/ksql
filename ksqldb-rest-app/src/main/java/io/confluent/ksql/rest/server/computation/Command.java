@@ -38,7 +38,7 @@ import java.util.Optional;
 public class Command {
 
   @VisibleForTesting
-  public static final int VERSION = 16;
+  public static final int VERSION = 17;
 
   private final String statement;
   private final Map<String, Object> overwriteProperties;
@@ -152,7 +152,7 @@ public class Command {
     final SessionConfig sessionConfig = configuredStatement.getSessionConfig();
 
     return new Command(
-        configuredStatement.getStatementText(),
+        configuredStatement.getUnMaskedStatementText(),
         sessionConfig.getOverrides(),
         sessionConfig.getConfig(false).getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty(),

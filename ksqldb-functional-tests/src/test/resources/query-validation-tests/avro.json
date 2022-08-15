@@ -1046,7 +1046,8 @@
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "F1", "type": [ "null", "string" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
               },
               "valueFormat" : { "format" : "AVRO" },
               "valueSchema": {
@@ -1055,7 +1056,8 @@
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "FOO", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
               }
             }
           ]

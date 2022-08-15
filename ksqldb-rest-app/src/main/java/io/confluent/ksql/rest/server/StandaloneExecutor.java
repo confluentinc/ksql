@@ -308,7 +308,7 @@ public class StandaloneExecutor implements Executable {
             + "Only the following statements are supporting in standalone mode:"
             + System.lineSeparator()
             + SUPPORTED_STATEMENTS,
-            statement.getStatementText());
+            statement.getMaskedStatementText());
       }
 
       handler.handle(this, (ConfiguredStatement<Statement>) configured);
@@ -338,7 +338,7 @@ public class StandaloneExecutor implements Executable {
 
       throw new KsqlStatementException("statement does not define the schema "
           + "and the supplied format does not support schema inference",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
 
     private void handleSetProperty(final ConfiguredStatement<SetProperty> statement) {
@@ -359,7 +359,7 @@ public class StandaloneExecutor implements Executable {
           .filter(q -> q instanceof PersistentQueryMetadata)
           .orElseThrow((() -> new KsqlStatementException(
               "Could not build the query",
-              statement.getStatementText())));
+              statement.getMaskedStatementText())));
     }
 
     private static String generateSupportedMessage() {

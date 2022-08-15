@@ -467,7 +467,7 @@ final class QueryBuilder {
             persistentQueryType,
             statementText,
             querySchema,
-            sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+            sources,
             planSummary,
             applicationId,
             topology,
@@ -575,11 +575,16 @@ final class QueryBuilder {
         ThroughputMetricsReporter.class.getName()
     );
 
-    if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+    final String type = queryId.isPresent() && queryId.get().toString().contains("transient")
+        ? queryId.get().toString()
+        : QueryApplicationId.PERSISTENT_QUERY_INDICATOR;
+
+    if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+        && type.equals(QueryApplicationId.PERSISTENT_QUERY_INDICATOR)) {
       newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
           ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
               + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-              + "query");
+              + type);
     }
 
     // Passing shared state into managed components

@@ -352,7 +352,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
       throw e;
     } catch (final KsqlException e) {
       // add the statement text to the KsqlException
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(),
+          e.getCause());
     }
   }
 
@@ -398,7 +399,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
           "Pull queries on streams are disabled. To create a push query on the stream,"
               + " add EMIT CHANGES to the end. To enable pull queries on streams, set"
               + " the " + KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED + " config to 'true'.",
-          statementOrig.getStatementText()
+          statementOrig.getMaskedStatementText()
       );
     }
 
@@ -423,7 +424,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
 
     QueryLogger.info(
         "Streaming stream pull query results '{}' from earliest to " + endOffsets,
-        statement.getStatementText()
+        statement.getMaskedStatementText()
     );
 
     return new StreamPullQueryMetadata(transientQueryMetadata, endOffsets);
@@ -677,7 +678,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         getMetaStore(),
         "",
-        getRowpartitionRowoffsetEnabled(ksqlConfig, configOverrides),
         ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)
     );
 
@@ -761,19 +761,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
         ((StreamsErrorCollector) o).cleanup();
       }
     }
-  }
-
-  private static boolean getRowpartitionRowoffsetEnabled(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> configOverrides
-  ) {
-    final Object rowpartitionRowoffsetEnabled =
-        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
-    if (rowpartitionRowoffsetEnabled != null) {
-      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
-    }
-
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 
   private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {

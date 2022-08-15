@@ -28,12 +28,14 @@ import java.util.concurrent.atomic.AtomicReference;
  *                   initialing the engine, etc).
  *     READY:        The server is ready to serve the KSQL API.
  *     TERMINATING:  The server has been asked to shut down and is cleaning up state.
+ *     TERMINATED:   The server has cleaned up all state.
  */
 public class ServerState {
   public enum State {
     INITIALIZING,
     READY,
-    TERMINATING
+    TERMINATING,
+    TERMINATED
   }
 
   private static final class StateWithErrorMessage {
@@ -93,6 +95,13 @@ public class ServerState {
   }
 
   /**
+   * Sets the server state to TERMINATED.
+   */
+  public void setTerminated() {
+    this.state.set(new StateWithErrorMessage(State.TERMINATED));
+  }
+
+  /**
    * Checks whether the server is READY (and can therefore server requests). If it is not READY then
    * returns an API error to be sent back to the user.
    *
@@ -106,6 +115,8 @@ public class ServerState {
         return Optional.of(Errors.serverNotReady(state.errorMessage));
       case TERMINATING:
         return Optional.of(Errors.serverShuttingDown());
+      case TERMINATED:
+        return Optional.of(Errors.serverShutDown());
       default:
     }
     return Optional.empty();

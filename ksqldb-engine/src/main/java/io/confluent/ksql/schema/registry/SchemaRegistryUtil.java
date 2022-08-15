@@ -137,22 +137,17 @@ public final class SchemaRegistryUtil {
       final boolean isKey
   ) {
     final String subject = KsqlConstants.getSRSubject(topic, isKey);
+    return getLatestSchemaId(srClient, topic, isKey)
+        .map(id -> {
+          try {
+            return new SchemaAndId(srClient.getSchemaById(id), id);
+          } catch (final Exception e) {
+            throwOnAuthError(e, subject);
+            throw new KsqlException(
+                "Could not get schema for subject " + subject + " and id " + id, e);
+          }
+        });
 
-    final Optional<Integer> optSchemaId = getSchemaId(srClient, topic, isKey);
-    if (!optSchemaId.isPresent()) {
-      return Optional.empty();
-    }
-
-    final int schemaId = optSchemaId.get();
-
-    try {
-      return Optional.of(new SchemaAndId(srClient.getSchemaById(schemaId), schemaId));
-    } catch (final Exception e) {
-      throwOnAuthError(e, subject);
-
-      throw new KsqlException(
-          "Could not get schema for subject " + subject + " and id " + schemaId, e);
-    }
   }
 
   private static void throwOnAuthError(final Exception e, final String subject) {

@@ -418,7 +418,10 @@ public class InsertValuesExecutor {
     }
 
     if (!latest.isPresent()) {
-      throw new KsqlException("Failed to fetch schema from Schema Registry. Please try again.");
+      // Note: This will result in auto-registering a key schema if the schema is not found from SR
+      // This is a known issue and, we will tackle this in a separate issue once we have determined
+      // whether we want to continue auto-registering during INSERT
+      return Optional.empty();
     }
 
     ParsedSchema srSchema = latest.get().getSchema();
@@ -550,6 +553,10 @@ public class InsertValuesExecutor {
       return formatInfo;
     }
 
+    // Note: We have done all the validation against the latest schema, however
+    // if the user has specified a schema_id we use that for serialization.
+    // There could be a mismatch between the two schemas. This is a known issue
+    // and, we will tackle this is in a separate issue.
     if (schemaId.isPresent()
         && !formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
       final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();

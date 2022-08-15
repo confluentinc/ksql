@@ -121,8 +121,4 @@ public class ServerState {
     }
     return Optional.empty();
   }
-
-  public State getState() {
-    return this.state.get().state;
-  }
 }

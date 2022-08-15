@@ -218,7 +218,7 @@ public class KsqlClientTest {
     // Given:
     Map<String, HealthCheckResponseDetail> map = new HashMap<>();
     map.put("foo", new HealthCheckResponseDetail(true));
-    HealthCheckResponse healthCheckResponse = new HealthCheckResponse(true, map, null);
+    HealthCheckResponse healthCheckResponse = new HealthCheckResponse(true, map);
     server.setResponseObject(healthCheckResponse);
 
     // When:

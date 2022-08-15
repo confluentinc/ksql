@@ -113,7 +113,7 @@ public class UdfIndex<T extends FunctionSignature> {
           "Can't add function " + function.name()
               + " with parameters " + function.parameters()
               + " as a function with the same name and parameter types already exists "
-              + allFunctions.get(parameters)
+              + allFunctions.get(function.parameters())
       );
     }
 
@@ -310,7 +310,7 @@ public class UdfIndex<T extends FunctionSignature> {
     return Pair.of(parentOfVariadic, variadicOffset);
   }
 
-  private int indexAfterCenter(int size) {
+  private int indexAfterCenter(final int size) {
     return (size + 1) / 2;
   }
 

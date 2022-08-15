@@ -112,6 +112,20 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldFindNoArgsVariadic() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, 0, STRING_VARARGS)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of());
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
   public void shouldFindOneArg() {
     // Given:
     givenFunctions(

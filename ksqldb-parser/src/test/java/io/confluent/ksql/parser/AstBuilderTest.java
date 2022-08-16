@@ -24,17 +24,20 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
+import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -52,7 +55,9 @@ import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Explain;
+import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.Query;
@@ -63,12 +68,14 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
@@ -1141,5 +1148,103 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(e.getMessage(), is("ID must be an integer"));
+  }
+
+  @Test
+  public void shouldGetCorrectLocationsComplexCtas() {
+    // Given:
+    final String statementString = "CREATE TABLE customer_bookings\n" +
+        "  WITH (KAFKA_TOPIC = 'customer_bookings', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON') AS\n" +
+        "  SELECT C.EMAIL,\n" +
+        "         B.id,\n" +
+        "         B.flight_id,\n" +
+        "         COUNT(*)\n" +
+        "  FROM bookings B\n" +
+        "  INNER JOIN customers C ON B.customer_id = C.id\n" +
+        "  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)\n" +
+        "  WHERE B.customer_id > 0 AND INSTR(C.EMAIL, '@') > 0\n" +
+        "  GROUP BY C.EMAIL, B.ID, B.flight_id\n" +
+        "  HAVING COUNT(*) > 0;";
+    final SingleStatementContext stmt = givenQuery(statementString);
+
+    // When:
+    final CreateTableAsSelect result = ((CreateTableAsSelect) builder.buildStatement(stmt));
+
+    // Then:
+    assertTrue(result.getLocation().isPresent());
+    final NodeLocation createTableLocation = result.getLocation().get();
+
+    assertThat(createTableLocation.getLineNumber(), is(1));
+    assertThat(createTableLocation.getColumnNumber(), is(1));
+    assertThat(createTableLocation.getEndLine(), is(OptionalInt.of(12)));
+    assertThat(createTableLocation.getEndColumnNumber(), is(OptionalInt.of(21)));
+    assertThat(createTableLocation.getLength(), is(OptionalInt.of(statementString.length() - 1)));
+
+    final Query query = result.getQuery();
+    assertTrue(query.getLocation().isPresent());
+    final NodeLocation queryLocation = query.getLocation().get();
+    assertThat(queryLocation.getLineNumber(), is(3));
+    assertThat(queryLocation.getColumnNumber(), is(3));
+    assertThat(queryLocation.getEndLine(), is(OptionalInt.of(12)));
+    assertThat(queryLocation.getEndColumnNumber(), is(OptionalInt.of(21)));
+    assertThat(queryLocation.getLength(), is(OptionalInt.of(305)));
+
+    final Select select = query.getSelect();
+    assertTrue(select.getLocation().isPresent());
+    final NodeLocation selectLocation = select.getLocation().get();
+    assertThat(selectLocation.getLineNumber(), is(3));
+    assertThat(selectLocation.getColumnNumber(), is(3));
+    assertThat(selectLocation.getEndLine(), is(OptionalInt.of(3)));
+    assertThat(selectLocation.getEndColumnNumber(), is(OptionalInt.of(8)));
+    assertThat(selectLocation.getLength(), is(OptionalInt.of(6)));
+
+    final Join join = (Join) query.getFrom();
+    assertTrue(join.getLocation().isPresent());
+    final NodeLocation joinLocation = join.getLocation().get();
+    assertThat(joinLocation.getLineNumber(), is(7));
+    assertThat(joinLocation.getColumnNumber(), is(8));
+    assertThat(joinLocation.getEndLine(), is(OptionalInt.of(8)));
+    assertThat(joinLocation.getEndColumnNumber(), is(OptionalInt.of(48)));
+    assertThat(joinLocation.getLength(), is(OptionalInt.of(59)));
+
+    assertTrue(query.getWindow().isPresent());
+    final WindowExpression window = query.getWindow().get();
+    assertTrue(window.getLocation().isPresent());
+    final NodeLocation windowLocation = window.getLocation().get();
+    assertThat(windowLocation.getLineNumber(), is(9));
+    assertThat(windowLocation.getColumnNumber(), is(10));
+    assertThat(windowLocation.getEndLine(), is(OptionalInt.of(9)));
+    assertThat(windowLocation.getEndColumnNumber(), is(OptionalInt.of(53)));
+    assertThat(windowLocation.getLength(), is(OptionalInt.of(44)));
+
+    assertTrue(query.getWhere().isPresent());
+    final LogicalBinaryExpression where = (LogicalBinaryExpression) query.getWhere().get();
+    assertTrue(where.getLocation().isPresent());
+    final NodeLocation whereLocation = where.getLocation().get();
+    assertThat(whereLocation.getLineNumber(), is(10));
+    assertThat(whereLocation.getColumnNumber(), is(27));
+    assertThat(whereLocation.getEndLine(), is(OptionalInt.of(10)));
+    assertThat(whereLocation.getEndColumnNumber(), is(OptionalInt.of(29)));
+    assertThat(whereLocation.getLength(), is(OptionalInt.of(3)));
+
+    assertTrue(query.getGroupBy().isPresent());
+    final GroupBy groupBy = query.getGroupBy().get();
+    assertTrue(groupBy.getLocation().isPresent());
+    final NodeLocation groupByLocation = groupBy.getLocation().get();
+    assertThat(groupByLocation.getLineNumber(), is(11));
+    assertThat(groupByLocation.getColumnNumber(), is(12));
+    assertThat(groupByLocation.getEndLine(), is(OptionalInt.of(11)));
+    assertThat(groupByLocation.getEndColumnNumber(), is(OptionalInt.of(37)));
+    assertThat(groupByLocation.getLength(), is(OptionalInt.of(26)));
+
+    assertTrue(query.getHaving().isPresent());
+    final ComparisonExpression having = (ComparisonExpression) query.getHaving().get();
+    assertTrue(having.getLocation().isPresent());
+    final NodeLocation havingLocation = having.getLocation().get();
+    assertThat(havingLocation.getLineNumber(), is(12));
+    assertThat(havingLocation.getColumnNumber(), is(19));
+    assertThat(havingLocation.getEndLine(), is(OptionalInt.of(12)));
+    assertThat(havingLocation.getEndColumnNumber(), is(OptionalInt.of(19)));
+    assertThat(havingLocation.getLength(), is(OptionalInt.of(1)));
   }
 }

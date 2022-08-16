@@ -70,6 +70,21 @@ public final class NodeLocation {
     return startCharPositionInLine + 1;
   }
 
+  public OptionalInt getEndLine() {
+    return endLine;
+  }
+
+  public OptionalInt getEndColumnNumber() {
+    return OptionalInt.of(stopCharPositionInLine.getAsInt()
+        + stopStopIndex.getAsInt()
+        - stopStartIndex.getAsInt()
+        + 1);
+  }
+
+  public OptionalInt getLength() {
+    return OptionalInt.of(stopStopIndex.getAsInt() - startStartIndex.getAsInt() + 1);
+  }
+
   public String asPrefix() {
     return toString() + ": ";
   }

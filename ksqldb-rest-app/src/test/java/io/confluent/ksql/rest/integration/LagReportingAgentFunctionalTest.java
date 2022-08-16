@@ -17,6 +17,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.KsqlTestFolder;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.io.IOException;
 import java.util.Comparator;

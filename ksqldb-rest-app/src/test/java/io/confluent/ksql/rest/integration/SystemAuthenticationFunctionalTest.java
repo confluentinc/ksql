@@ -113,6 +113,7 @@ public class SystemAuthenticationFunctionalTest {
         .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
         .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
         .putAll(SERVER_KEY_STORE.keyStoreProps())
+        .put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false)
         .build();
   }
 
@@ -300,7 +301,8 @@ public class SystemAuthenticationFunctionalTest {
     @Test(timeout = 60000)
     public void shouldHeartbeatSuccessfully() throws InterruptedException {
       // Given:
-      waitForClusterToBeDiscovered(REST_APP_0, 2);
+      waitForClusterToBeDiscovered(REST_APP_0, 1);
+      waitForClusterToBeDiscovered(REST_APP_1, 1);
 
       // This ensures that we can't hit the initial optimistic alive status
       Thread.sleep(6000);

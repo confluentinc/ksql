@@ -211,9 +211,11 @@ public final class ParserUtil {
     requireNonNull(start, "Start token is null");
     requireNonNull(stop, "Stop token is null");
     return Optional.of(new NodeLocation(start.getLine(),
-        start.getStartIndex(),
+        start.getCharPositionInLine(),
+        OptionalInt.of(start.getStartIndex()),
         OptionalInt.of(start.getStopIndex()),
         OptionalInt.of(stop.getLine()),
+        OptionalInt.of(stop.getCharPositionInLine()),
         OptionalInt.of(stop.getStartIndex()),
         OptionalInt.of(stop.getStopIndex())));
   }

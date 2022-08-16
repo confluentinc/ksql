@@ -24,31 +24,39 @@ import java.util.OptionalInt;
 public final class NodeLocation {
 
   private final int startLine;
-  private final int startStartIndex;
+  private final int startCharPositionInLine;
+  private final OptionalInt startStartIndex;
   private final OptionalInt startStopIndex;
   private final OptionalInt endLine;
+  private final OptionalInt stopCharPositionInLine;
   private final OptionalInt stopStartIndex;
   private final OptionalInt stopStopIndex;
 
   public NodeLocation(final int startLine,
-                      final int startStartIndex,
+                      final int startCharPositionInLine,
+                      final OptionalInt startStartIndex,
                       final OptionalInt startStopIndex,
                       final OptionalInt endLine,
+                      final OptionalInt stopCharPositionInLine,
                       final OptionalInt stopStartIndex,
                       final OptionalInt stopStopIndex) {
     this.startLine = startLine;
+    this.startCharPositionInLine = startCharPositionInLine;
     this.startStartIndex = startStartIndex;
     this.startStopIndex = startStopIndex;
     this.endLine = endLine;
+    this.stopCharPositionInLine = stopCharPositionInLine;
     this.stopStartIndex = stopStartIndex;
     this.stopStopIndex = stopStopIndex;
   }
 
-  public NodeLocation(final int startLine, final int startStartIndex) {
+  public NodeLocation(final int startLine, final int startCharPositionInLine) {
     this.startLine = startLine;
-    this.startStartIndex = startStartIndex;
+    this.startCharPositionInLine = startCharPositionInLine;
+    this.startStartIndex = OptionalInt.empty();
     this.startStopIndex = OptionalInt.empty();
     this.endLine = OptionalInt.empty();
+    this.stopCharPositionInLine = OptionalInt.empty();
     this.stopStartIndex = OptionalInt.empty();
     this.stopStopIndex = OptionalInt.empty();
   }
@@ -58,19 +66,7 @@ public final class NodeLocation {
   }
 
   public int getColumnNumber() {
-    return startStartIndex + 1;
-  }
-
-  public OptionalInt getEndLineNumber() {
-    return endLine;
-  }
-
-  public OptionalInt getEndColumnNumber() {
-    return this.stopStartIndex;
-  }
-
-  public OptionalInt getStopStopIndex() {
-    return this.stopStopIndex;
+    return startCharPositionInLine + 1;
   }
 
   public String asPrefix() {
@@ -85,7 +81,7 @@ public final class NodeLocation {
 
   @Override
   public String toString() {
-    return String.format("Line: %d, Col: %d", startLine, startStartIndex + 1);
+    return String.format("Line: %d, Col: %d", startLine, startCharPositionInLine + 1);
   }
 
   @Override

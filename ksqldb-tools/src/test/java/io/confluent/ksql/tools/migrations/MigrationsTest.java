@@ -125,6 +125,7 @@ public class MigrationsTest {
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false)
       .build();
 
   @ClassRule

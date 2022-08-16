@@ -49,7 +49,7 @@ public class AvroSRSchemaDataTranslator extends ConnectSRSchemaDataTranslator {
     Schema originalSchema = originalData.schema();
     if (originalSchema.name() == null && schema.name() != null) {
       originalSchema = AvroSchemas.getAvroCompatibleConnectSchema(
-          schema, schema.name()
+          originalSchema, schema.name()
       );
       originalData = ConnectSchemas.withCompatibleRowSchema(originalData, originalSchema);
     }

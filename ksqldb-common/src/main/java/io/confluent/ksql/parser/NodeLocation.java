@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 @Immutable
+@SuppressWarnings("checkstyle:CyclomaticComplexity")
 public final class NodeLocation {
 
   private final int startLine;
@@ -96,11 +97,24 @@ public final class NodeLocation {
 
     final NodeLocation that = (NodeLocation) o;
     return startLine == that.startLine
-        && startStartIndex == that.startStartIndex;
+        && startCharPositionInLine == that.startCharPositionInLine
+        && startStartIndex == that.startStartIndex
+        && startStopIndex == that.startStopIndex
+        && endLine == that.endLine
+        && stopCharPositionInLine == that.stopCharPositionInLine
+        && stopStartIndex == that.stopStartIndex
+        && stopStopIndex == that.stopStartIndex;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(startLine, startStartIndex);
+    return Objects.hash(startLine,
+        startCharPositionInLine,
+        startStartIndex,
+        startStopIndex,
+        endLine,
+        stopCharPositionInLine,
+        stopStartIndex,
+        stopStopIndex);
   }
 }

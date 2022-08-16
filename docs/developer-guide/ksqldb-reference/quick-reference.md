@@ -524,12 +524,26 @@ CREATE STREAM stream_name
   EMIT CHANGES;
 ```
 
+## PAUSE
+Pause a persistent query. For more information, see [PAUSE](../../ksqldb-reference/pause).
+
+```sql
+PAUSE query_id;
+```
+
 ## PRINT
 Print the contents of {{ site.ak }} topics to the ksqlDB CLI. For more
 information, see [PRINT](../../ksqldb-reference/print).
 
 ```sql
 PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
+```
+
+## RESUME
+End a paused persistent query. For more information, see [RESUME](../../ksqldb-reference/resume).
+
+```sql
+RESUME query_id;
 ```
 
 ## RIGHT JOIN

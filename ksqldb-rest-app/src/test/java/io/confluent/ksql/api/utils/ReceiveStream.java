@@ -42,24 +42,24 @@ public class ReceiveStream implements WriteStream<Buffer> {
   }
 
   @Override
-  public synchronized WriteStream<Buffer> write(final Buffer data) {
+  public synchronized Future<Void> write(final Buffer data) {
     firstReceivedTime = System.currentTimeMillis();
     body.appendBuffer(data);
-    return this;
+    return Future.succeededFuture();
   }
 
   @Override
-  public WriteStream<Buffer> write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
+  public void write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
     body.appendBuffer(data);
     if (handler != null) {
       vertx.runOnContext(v -> handler.handle(Future.succeededFuture()));
     }
-    return this;
   }
 
   @Override
-  public synchronized void end() {
+  public synchronized Future<Void> end() {
     ended = true;
+    return Future.succeededFuture();
   }
 
   @Override

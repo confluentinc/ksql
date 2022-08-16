@@ -36,8 +36,8 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.registry.SchemaAndId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.schema.registry.SchemaWithId;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -289,7 +289,7 @@ public class InsertValuesExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e);
     }
   }
@@ -336,7 +336,7 @@ public class InsertValuesExecutor {
         dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    Optional<Integer> schemaId =
+    final Optional<Integer> schemaId =
         ensureKeySchemasMatch(physicalSchema.keySchema(), dataSource, serviceContext);
 
     final FormatInfo formatInfo = addSerializerMissingFormatFields(
@@ -368,7 +368,7 @@ public class InsertValuesExecutor {
             AclOperation.WRITE,
             e);
         LOG.error("Could not serialize key.", e);
-        throw new KsqlException("Could not serialize key: " + keyValue, e);
+        throw new KsqlException("Could not serialize key", e);
       }
     }
   }
@@ -379,6 +379,8 @@ public class InsertValuesExecutor {
    * Otherwise, it is possible that we will publish messages with a new
    * schemaID, meaning that logically identical keys might be routed to
    * different partitions.
+   * If the schemas match, we return the schema id we got from the schema
+   * registry and use that id to avoid auto registering a new schema
    */
   private static Optional<Integer> ensureKeySchemasMatch(
       final PersistenceSchema keySchema,
@@ -391,22 +393,19 @@ public class InsertValuesExecutor {
       return Optional.empty();
     }
 
+    final Map<String, String> formatProps = keyFormat.getFormatInfo().getProperties();
+    final SchemaTranslator translator = format.getSchemaTranslator(formatProps);
+    final ParsedSchema schema = translator.toParsedSchema(keySchema);
+
     final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
 
-    final FormatInfo formatInfo = addSerializerMissingFormatFields(
-        dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
-        dataSource.getKafkaTopicName(),
-        true,
-        Optional.empty()
-    );
-
-    final ParsedSchema schema = format
-        .getSchemaTranslator(formatInfo.getProperties())
-        .toParsedSchema(keySchema);
-
-    final SchemaWithId latest;
+    final Optional<SchemaAndId> latest;
     try {
-      latest = SchemaRegistryUtil.getLatestParsedSchema(
+      // Note: We fetch the latest schema from Schema Registry and compare it with the parsed schema
+      // even if the user has specified a schema_id. This may not be what the user requested during
+      // the create command but the check here ensures we fail the insert statement if the schemas
+      // don't match
+      latest = SchemaRegistryUtil.getLatestSchemaAndId(
           schemaRegistryClient,
           dataSource.getKafkaTopicName(),
           true);
@@ -418,9 +417,14 @@ public class InsertValuesExecutor {
           + "operation potentially overrides existing key schema in schema registry.", e);
     }
 
-    final Map<String, String> formatProps = keyFormat.getFormatInfo().getProperties();
-    final SchemaTranslator translator = format.getSchemaTranslator(formatProps);
-    ParsedSchema srSchema = latest.getSchema().get();
+    if (!latest.isPresent()) {
+      // Note: This will result in auto-registering a key schema if the schema is not found from SR
+      // This is a known issue and, we will tackle this in a separate issue once we have determined
+      // whether we want to continue auto-registering during INSERT
+      return Optional.empty();
+    }
+
+    ParsedSchema srSchema = latest.get().getSchema();
 
     if (format instanceof ProtobufFormat
         && formatProps.containsKey(ConnectProperties.FULL_SCHEMA_NAME)) {
@@ -429,23 +433,23 @@ public class InsertValuesExecutor {
       // to specify one definition only. To verify the source key schema matches SR, then we
       // extract the single schema based on the FULL_SCHEMA_NAME and then compare with the
       // source schema.
-      ProtobufSchemaTranslator protoTranslator = new ProtobufSchemaTranslator(
+      final ProtobufSchemaTranslator protoTranslator = new ProtobufSchemaTranslator(
           new ProtobufProperties(formatProps)
       );
 
       srSchema = protoTranslator.fromConnectSchema(
-          protoTranslator.toConnectSchema(latest.getSchema().get())
+          protoTranslator.toConnectSchema(latest.get().getSchema())
       );
     }
 
-    if (keySchemaCompatible(translator, keySchema, schema, srSchema)) {
-      return latest.getId();
+    if (schemaEquals(translator, keySchema, schema, srSchema)) {
+      return Optional.of(latest.get().getId());
     }
 
     throw new KsqlException("Cannot INSERT VALUES into data source " + dataSource.getName()
         + ". ksqlDB generated schema would overwrite existing key schema."
         + "\n\tExisting Schema: "
-        + getColumns(translator, keySchema, latest.getSchema().get(), true).toString()
+        + getColumns(translator, keySchema, latest.get().getSchema(), true).toString()
         + "\n\tksqlDB Generated: " + keySchema.columns());
   }
 
@@ -457,21 +461,21 @@ public class InsertValuesExecutor {
     return translator.toColumns(parsedSchema, schema.features(), isKey);
   }
 
-  private static boolean keySchemaCompatible(
+  private static boolean schemaEquals(
       final SchemaTranslator translator,
       final PersistenceSchema keySchema,
       final ParsedSchema ksqlSchema,
       final ParsedSchema srSchema) {
-    List<SimpleColumn> columns = getColumns(translator, keySchema, ksqlSchema, true);
-    List<SimpleColumn> srColumns = getColumns(translator, keySchema, srSchema, true);
+    final List<SimpleColumn> columns = getColumns(translator, keySchema, ksqlSchema, true);
+    final List<SimpleColumn> srColumns = getColumns(translator, keySchema, srSchema, true);
 
     if (columns.size() != srColumns.size()) {
       return false;
     }
 
     for (int i = 0; i < columns.size(); i++) {
-      SimpleColumn column = columns.get(i);
-      SimpleColumn srColumn = srColumns.get(i);
+      final SimpleColumn column = columns.get(i);
+      final SimpleColumn srColumn = srColumns.get(i);
       if (!column.name().equals(srColumn.name()) || !column.type().equals(srColumn.type())) {
         return false;
       }
@@ -520,7 +524,7 @@ public class InsertValuesExecutor {
             AclOperation.WRITE,
             e);
         LOG.error("Could not serialize value.", e);
-        throw new KsqlException("Could not serialize value: " + row + ". " + e.getMessage(), e);
+        throw new KsqlException("Could not serialize value" + e.getMessage(), e);
       }
     }
   }
@@ -549,12 +553,15 @@ public class InsertValuesExecutor {
       return formatInfo;
     }
 
-    if (schemaId.isPresent()) {
+    // Note: We have done all the validation against the latest schema, however
+    // if the user has specified a schema_id we use that for serialization.
+    // There could be a mismatch between the two schemas. This is a known issue
+    // and, we will tackle this is in a separate issue.
+    if (schemaId.isPresent()
+        && !formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
       final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
       propertiesBuilder.putAll(formatInfo.getProperties());
-      if (!formatInfo.getProperties().containsKey(ConnectProperties.SCHEMA_ID)) {
-        propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId.get()));
-      }
+      propertiesBuilder.put(ConnectProperties.SCHEMA_ID, String.valueOf(schemaId.get()));
 
       return FormatInfo.of(formatInfo.getFormat(), propertiesBuilder.build());
     }

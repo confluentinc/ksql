@@ -133,7 +133,7 @@ public interface Client extends Closeable {
 
   /**
    * Sends a SQL request to the ksqlDB server. This method supports 'CREATE', 'CREATE ... AS
-   * SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS SELECT' statements.
+   * SELECT', 'DROP', 'PAUSE', 'RESUME', 'TERMINATE', and 'INSERT INTO ... AS SELECT' statements.
    *
    * <p>Each request should contain exactly one statement. Requests that contain multiple statements
    * will be rejected by the client, in the form of failing the {@code CompletableFuture}, and the

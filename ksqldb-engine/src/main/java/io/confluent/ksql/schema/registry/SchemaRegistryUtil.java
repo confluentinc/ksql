@@ -115,28 +115,13 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject).map(SchemaMetadata::getId);
   }
 
-  public static Optional<Integer> getSchemaId(
-      final SchemaRegistryClient srClient,
-      final String topic,
-      final boolean isKey
-  ) {
-    final String subject = KsqlConstants.getSRSubject(topic, isKey);
-
-    final Optional<SchemaMetadata> metadata = getLatestSchema(srClient, subject);
-    if (!metadata.isPresent()) {
-      return Optional.empty();
-    }
-
-    final int schemaId = metadata.get().getId();
-    return Optional.of(schemaId);
-  }
-
   public static Optional<SchemaAndId> getLatestSchemaAndId(
       final SchemaRegistryClient srClient,
       final String topic,
       final boolean isKey
   ) {
     final String subject = KsqlConstants.getSRSubject(topic, isKey);
+
     return getLatestSchemaId(srClient, topic, isKey)
         .map(id -> {
           try {
@@ -147,7 +132,6 @@ public final class SchemaRegistryUtil {
                 "Could not get schema for subject " + subject + " and id " + id, e);
           }
         });
-
   }
 
   private static void throwOnAuthError(final Exception e, final String subject) {

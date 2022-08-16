@@ -1153,18 +1153,21 @@ public class AstBuilderTest {
   @Test
   public void shouldGetCorrectLocationsComplexCtas() {
     // Given:
-    final String statementString = "CREATE TABLE customer_bookings\n" +
-        "  WITH (KAFKA_TOPIC = 'customer_bookings', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON') AS\n" +
-        "  SELECT C.EMAIL,\n" +
-        "         B.id,\n" +
-        "         B.flight_id,\n" +
-        "         COUNT(*)\n" +
-        "  FROM bookings B\n" +
-        "  INNER JOIN customers C ON B.customer_id = C.id\n" +
-        "  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)\n" +
-        "  WHERE B.customer_id > 0 AND INSTR(C.EMAIL, '@') > 0\n" +
-        "  GROUP BY C.EMAIL, B.ID, B.flight_id\n" +
-        "  HAVING COUNT(*) > 0;";
+    final String statementString =
+    //   1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+        "CREATE TABLE customer_bookings\n" +                                                               // 1
+        "  WITH (KAFKA_TOPIC = 'customer_bookings', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON') AS\n" +    // 2
+        "  SELECT C.EMAIL,\n" +                                                                            // 3
+        "         B.id,\n" +                                                                               // 4
+        "         B.flight_id,\n" +                                                                        // 5
+        "         COUNT(*)\n" +                                                                            // 6
+        "  FROM bookings B\n" +                                                                            // 7
+        "  INNER JOIN customers C ON B.customer_id = C.id\n" +                                             // 8
+        "  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)\n" +                                        // 9
+        "  WHERE B.customer_id > 0 AND INSTR(C.EMAIL, '@') > 0\n" +                                        // 10
+        "  GROUP BY C.EMAIL, B.ID, B.flight_id\n" +                                                        // 11
+        "  HAVING COUNT(*) > 0;";                                                                          // 12
+    //   1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
     final SingleStatementContext stmt = givenQuery(statementString);
 
     // When:

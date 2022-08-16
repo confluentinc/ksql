@@ -272,3 +272,17 @@ INSERT INTO foo (rowtime, id, col1, col2) VALUES (1, 2, 3, 'ABC');
 ASSERT VALUES bar (col2, rowtime, id) VALUES ('ABC', 1, 2);
 INSERT INTO foo (rowtime, id, col1, col2) VALUES (1, 2, 3, 'ABC');
 ASSERT VALUES bar (col1, id) VALUES (3, 2);
+
+----------------------------------------------------------------------------------------------------
+--@test: assert tombstones
+--@expected.error: java.lang.AssertionError
+--@expected.message: Expected record does not match actual
+----------------------------------------------------------------------------------------------------
+CREATE TABLE a (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
+CREATE TABLE b AS SELECT * FROM a WHERE col1 > 0;
+
+INSERT INTO a (id, col1) VALUES (1, 0);
+INSERT INTO a (id, col1) VALUES (2, 2);
+
+ASSERT NULL VALUES b (id) KEY (1);
+ASSERT NULL VALUES b (id) KEY (2);

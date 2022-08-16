@@ -176,13 +176,6 @@ public final class AssertExecutor {
         dataSource.getDataSourceType()
     );
 
-    if (isTombstone) {
-      if (expected.value.values().stream().anyMatch(Objects::nonNull)) {
-        throw new AssertionError("Unexpected value columns specified in ASSERT NULL VALUES.");
-      }
-      expected = KsqlGenericRecord.of(expected.key, null, expected.ts);
-    }
-
     final Iterator<TestRecord<GenericKey, GenericRow>> records = driverPipeline
         .getRecordsForTopic(dataSource.getKafkaTopicName());
     if (!records.hasNext()) {
@@ -204,7 +197,7 @@ public final class AssertExecutor {
         actualTestRecord.timestamp()
     );
 
-    if (!verifyValues(expected, actual, dataSource, values.getColumns())) {
+    if (!verifyValues(expected, actual, dataSource, values.getColumns(), isTombstone)) {
       throwAssertionError(
           "Expected record does not match actual.",
           dataSource,
@@ -217,8 +210,20 @@ public final class AssertExecutor {
       final KsqlGenericRecord expected,
       final KsqlGenericRecord actual,
       final DataSource dataSource,
-      final List<ColumnName> columns
+      final List<ColumnName> columns,
+      final boolean isTombstone
   ) {
+    if (isTombstone) {
+      if (expected.value.values().stream().anyMatch(Objects::nonNull)) {
+        throw new AssertionError("Unexpected value columns specified in ASSERT NULL VALUES.");
+      }
+      return actual.value == null && actual.key.equals(expected.key);
+    }
+
+    if (expected.key.size() != actual.key.size() || expected.value.size() != actual.value.size()) {
+      return false;
+    }
+
     final LogicalSchema schema = dataSource.getSchema().withPseudoAndKeyColsInValue(false);
     for (final ColumnName col : columns) {
       if (schema.isKeyColumn(col)) {

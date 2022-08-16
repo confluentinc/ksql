@@ -291,14 +291,16 @@ public class CommandRunner implements Closeable {
           .getKsqlEngine()
           .getPersistentQueries();
 
-      queryCleanup.cleanupLeakedQueries(queries);
-
       if (commandStore.corruptionDetected()) {
         LOG.info("Corruption detected, queries will not be started.");
         queries.forEach(QueryMetadata::setCorruptionQueryError);
       } else {
         LOG.info("Restarting {} queries.", queries.size());
         queries.forEach(PersistentQueryMetadata::start);
+        queryCleanup.cleanupLeakedQueries(queries);
+        //We only want to clean up if the queries are read properly
+        //We do not want to clean up potentially important stuff
+        //when the cluster is in a bad state
       }
 
       LOG.info("Restore complete");

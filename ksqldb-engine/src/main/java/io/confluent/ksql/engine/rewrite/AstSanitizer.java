@@ -45,6 +45,7 @@ import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -123,8 +124,11 @@ public final class AstSanitizer {
             .map(
                 l -> new NodeLocation(
                     l.getLineNumber(),
-                    l.getColumnNumber() + "INSERT INTO".length()
-                )
+                    l.getColumnNumber() + "INSERT INTO".length(),
+                    OptionalInt.empty(),
+                    OptionalInt.empty(),
+                    OptionalInt.empty(),
+                    OptionalInt.empty())
             );
 
         throw new UnknownSourceException(targetLocation, node.getTarget());

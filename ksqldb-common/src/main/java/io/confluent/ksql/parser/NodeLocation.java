@@ -18,24 +18,59 @@ package io.confluent.ksql.parser;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 @Immutable
 public final class NodeLocation {
 
-  private final int line;
-  private final int charPositionInLine;
+  private final int startLine;
+  private final int startStartIndex;
+  private final OptionalInt startStopIndex;
+  private final OptionalInt endLine;
+  private final OptionalInt stopStartIndex;
+  private final OptionalInt stopStopIndex;
 
-  public NodeLocation(final int line, final int charPositionInLine) {
-    this.line = line;
-    this.charPositionInLine = charPositionInLine;
+  public NodeLocation(final int startLine,
+                      final int startStartIndex,
+                      final OptionalInt startStopIndex,
+                      final OptionalInt endLine,
+                      final OptionalInt stopStartIndex,
+                      final OptionalInt stopStopIndex) {
+    this.startLine = startLine;
+    this.startStartIndex = startStartIndex;
+    this.startStopIndex = startStopIndex;
+    this.endLine = endLine;
+    this.stopStartIndex = stopStartIndex;
+    this.stopStopIndex = stopStopIndex;
+  }
+
+  public NodeLocation(final int startLine, final int startStartIndex) {
+    this.startLine = startLine;
+    this.startStartIndex = startStartIndex;
+    this.startStopIndex = OptionalInt.empty();
+    this.endLine = OptionalInt.empty();
+    this.stopStartIndex = OptionalInt.empty();
+    this.stopStopIndex = OptionalInt.empty();
   }
 
   public int getLineNumber() {
-    return line;
+    return startLine;
   }
 
   public int getColumnNumber() {
-    return charPositionInLine + 1;
+    return startStartIndex + 1;
+  }
+
+  public OptionalInt getEndLineNumber() {
+    return endLine;
+  }
+
+  public OptionalInt getEndColumnNumber() {
+    return this.stopStartIndex;
+  }
+
+  public OptionalInt getStopStopIndex() {
+    return this.stopStopIndex;
   }
 
   public String asPrefix() {
@@ -50,7 +85,7 @@ public final class NodeLocation {
 
   @Override
   public String toString() {
-    return String.format("Line: %d, Col: %d", line, charPositionInLine + 1);
+    return String.format("Line: %d, Col: %d", startLine, startStartIndex + 1);
   }
 
   @Override
@@ -64,12 +99,12 @@ public final class NodeLocation {
     }
 
     final NodeLocation that = (NodeLocation) o;
-    return line == that.line
-        && charPositionInLine == that.charPositionInLine;
+    return startLine == that.startLine
+        && startStartIndex == that.startStartIndex;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(line, charPositionInLine);
+    return Objects.hash(startLine, startStartIndex);
   }
 }

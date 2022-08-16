@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -165,11 +166,6 @@ public final class AssertExecutor {
       final TestDriverPipeline driverPipeline,
       final boolean isTombstone
   ) {
-    final boolean compareTimestamp = values
-        .getColumns()
-        .stream()
-        .anyMatch(SystemColumns.ROWTIME_NAME::equals);
-
     final DataSource dataSource = engine.getMetaStore().getSource(values.getTarget());
     KsqlGenericRecord expected = new GenericRecordFactory(
         config, engine.getMetaStore(), System::currentTimeMillis
@@ -205,16 +201,43 @@ public final class AssertExecutor {
     final KsqlGenericRecord actual = KsqlGenericRecord.of(
         actualTestRecord.key(),
         actualTestRecord.value(),
-        compareTimestamp ? actualTestRecord.timestamp() : expected.ts
+        actualTestRecord.timestamp()
     );
 
-    if (!actual.equals(expected)) {
+    if (!verifyValues(expected, actual, dataSource, values.getColumns())) {
       throwAssertionError(
           "Expected record does not match actual.",
           dataSource,
           expected,
           ImmutableList.of(actual));
     }
+  }
+
+  private static boolean verifyValues(
+      final KsqlGenericRecord expected,
+      final KsqlGenericRecord actual,
+      final DataSource dataSource,
+      final List<ColumnName> columns
+  ) {
+    final LogicalSchema schema = dataSource.getSchema().withPseudoAndKeyColsInValue(false);
+    for (final ColumnName col : columns) {
+      if (schema.isKeyColumn(col)) {
+        final int index = schema.findColumn(col).get().index();
+        if (!expected.key.get(index).equals(actual.key.get(index))) {
+          return false;
+        }
+      }  else if (col.equals(SystemColumns.ROWTIME_NAME)) {
+          if (expected.ts != actual.ts) {
+            return false;
+          }
+      } else if (schema.findValueColumn(col).isPresent()) {
+        final int index = schema.findColumn(col).get().index();
+        if (!expected.value.get(index).equals(actual.value.get(index))) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   private static void throwAssertionError(

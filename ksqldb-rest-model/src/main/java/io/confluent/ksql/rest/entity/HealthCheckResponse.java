@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-//@JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
 @JsonIgnoreProperties()
 @Immutable
 public final class HealthCheckResponse {
@@ -40,7 +39,7 @@ public final class HealthCheckResponse {
   public HealthCheckResponse(
       @JsonProperty("isHealthy") final boolean isHealthy,
       @JsonProperty("details") final Map<String, HealthCheckResponseDetail> details,
-      @JsonProperty(value = "serverState") final Optional<String> serverState
+      @JsonProperty("serverState") final Optional<String> serverState
   ) {
     this.isHealthy = isHealthy;
     this.details = ImmutableMap.copyOf(requireNonNull(details, "details"));

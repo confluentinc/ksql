@@ -298,6 +298,9 @@ public class CommandRunner implements Closeable {
         LOG.info("Restarting {} queries.", queries.size());
         queries.forEach(PersistentQueryMetadata::start);
         queryCleanup.cleanupLeakedQueries(queries);
+        //We only want to clean up if the queries are read properly
+        //We do not want to clean up potentially important stuff
+        //when the cluster is in a bad state
       }
 
       LOG.info("Restore complete");

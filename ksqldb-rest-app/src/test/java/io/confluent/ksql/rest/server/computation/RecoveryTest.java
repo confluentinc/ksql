@@ -86,6 +86,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.errors.ProcessorStateException;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -130,8 +131,14 @@ public class RecoveryTest {
 
   @After
   public void tearDown() {
-    server1.ksqlEngine.getPersistentQueries()
-        .forEach(QueryMetadata::close);
+    try {
+      server1.ksqlEngine.getPersistentQueries()
+          .forEach(QueryMetadata::close);
+    } catch (ProcessorStateException e){
+      if(!e.getMessage().contains("doesn't exist and couldn't be created")) {
+        throw e;
+      }
+    }
     server1.close();
     server2.close();
     serviceContext.close();
@@ -699,6 +706,7 @@ public class RecoveryTest {
         "CREATE STREAM IF NOT EXISTS B AS SELECT * FROM A;",
         "CREATE STREAM IF NOT EXISTS B AS SELECT * FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 

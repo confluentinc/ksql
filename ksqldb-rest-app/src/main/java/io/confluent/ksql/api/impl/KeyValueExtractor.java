@@ -96,8 +96,8 @@ public final class KeyValueExtractor {
   ) {
     return sqlValueCoercer.coerce(value, sqlType)
         .orElseThrow(() -> new KsqlApiException(
-            String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),
-                value, sqlType),
+            String.format("Can't coerce a field of type %s into type %s", value.getClass(),
+                sqlType),
             Errors.ERROR_CODE_BAD_REQUEST))
         .orElse(null);
   }

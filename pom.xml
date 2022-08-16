@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.4.0-0, 7.4.1-0)</version>
+        <version>7.4.0-26</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -132,7 +132,7 @@
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.12</vertx.version>
+        <vertx.version>4.3.2</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -144,15 +144,15 @@
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.4.0-0</io.confluent.ksql.version>
-        <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.53.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.72.Final</netty.version>
-        <netty-codec-http2-version>4.1.72.Final</netty-codec-http2-version>
+        <netty.version>4.1.78.Final</netty.version>
+        <netty-codec-http2-version>4.1.78.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
     </properties>
 
@@ -291,25 +291,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
-                <version>7.3.0-745</version>
+                <version>7.4.0-26</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>7.3.0-745</version>
+                <version>7.4.0-26</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
-                <version>7.3.0-745</version>
+                <version>7.4.0-26</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
-                <version>7.3.0-745</version>
+                <version>7.4.0-26</version>
             </dependency>
 
             <dependency>
@@ -333,25 +333,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
-                <version>7.3.0-745</version>
+                <version>7.4.0-26</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
-                <version>7.3.0-745</version>
+                <version>7.4.0-26</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
-                <version>7.3.0-745</version>
+                <version>7.4.0-26</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
-                <version>7.3.0-745</version>
+                <version>7.4.0-26</version>
             </dependency>
 
             <!-- End Confluent dependencies -->

@@ -45,7 +45,7 @@ public final class AssertSchemaExecutor {
       final ServiceContext serviceContext
   ) {
     return AssertExecutor.execute(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         statement.getStatement(),
         executionContext.getKsqlConfig().getInt(KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS),
         serviceContext,

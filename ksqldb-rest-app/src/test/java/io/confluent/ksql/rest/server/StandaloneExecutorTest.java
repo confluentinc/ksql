@@ -861,7 +861,7 @@ public class StandaloneExecutorTest {
   private void givenQueryFileParsesTo(final PreparedStatement<?>... statements) {
     final List<ParsedStatement> parsedStmts = Arrays.stream(statements)
         .map(statement -> ParsedStatement
-            .of(statement.getStatementText(), mock(SingleStatementContext.class)))
+            .of(statement.getUnMaskedStatementText(), mock(SingleStatementContext.class)))
         .collect(Collectors.toList());
 
     when(ksqlEngine.parse(any())).thenReturn(parsedStmts);

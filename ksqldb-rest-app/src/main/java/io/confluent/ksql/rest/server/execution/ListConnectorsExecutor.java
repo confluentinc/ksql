@@ -89,7 +89,7 @@ public final class ListConnectorsExecutor {
 
     return StatementExecutorResponse.handled(Optional.of(
         new ConnectorList(
-            configuredStatement.getStatementText(),
+            configuredStatement.getMaskedStatementText(),
             warnings,
             infos)
     ));

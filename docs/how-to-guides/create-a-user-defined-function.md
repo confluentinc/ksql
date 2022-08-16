@@ -395,7 +395,7 @@ There are many things to observe in this class:
     occur anywhere in the function signature. This means that if the 
     `UdafFactory` is variadic, none of the function's column arguments 
     can be variadic. A variadic column argument outside a tuple is not supported.
-    For example, the input type could be `Pair<Double, VariadicArgs<Double>>`
+    For example, the input type would be `Pair<Double, VariadicArgs<Double>>`
     for a function that accepts at least one double column.
 
 - All types, including inputs, intermediate representations, and final

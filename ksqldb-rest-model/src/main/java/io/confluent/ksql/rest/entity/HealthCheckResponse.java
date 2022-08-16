@@ -25,20 +25,22 @@ import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+//@JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
+@JsonIgnoreProperties()
 @Immutable
 public final class HealthCheckResponse {
 
   private final boolean isHealthy;
   private final ImmutableMap<String, HealthCheckResponseDetail> details;
-  private final String serverState;
+  private final Optional<String> serverState;
 
   @JsonCreator
   public HealthCheckResponse(
       @JsonProperty("isHealthy") final boolean isHealthy,
       @JsonProperty("details") final Map<String, HealthCheckResponseDetail> details,
-      @JsonProperty("serverState") final String serverState
+      @JsonProperty(value = "serverState") final Optional<String> serverState
   ) {
     this.isHealthy = isHealthy;
     this.details = ImmutableMap.copyOf(requireNonNull(details, "details"));
@@ -54,7 +56,7 @@ public final class HealthCheckResponse {
     return details;
   }
 
-  public String getServerState() {
+  public Optional<String> getServerState() {
     return serverState;
   }
 

@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-@JsonIgnoreProperties()
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable
 public final class HealthCheckResponse {
 

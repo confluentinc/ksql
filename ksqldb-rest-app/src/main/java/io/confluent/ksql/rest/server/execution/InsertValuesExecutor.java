@@ -418,10 +418,10 @@ public class InsertValuesExecutor {
     }
 
     if (!latest.isPresent()) {
-      // Note: This will result in auto-registering a key schema if the schema is not found from SR
-      // This is a known issue and, we will tackle this in a separate issue once we have determined
-      // whether we want to continue auto-registering during INSERT
-      return Optional.empty();
+      final String subject = KsqlConstants.getSRSubject(dataSource.getKafkaTopicName(), true);
+      throw new KsqlException(
+          String.format("Failed to fetch key schema (%s). Please check if schema "
+          + "exists in Schema Registry and/or check connection with Schema Registry.", subject));
     }
 
     ParsedSchema srSchema = latest.get().getSchema();

@@ -1162,7 +1162,7 @@ public class AstBuilderTest {
         "         B.flight_id,\n" +                                                                        // 5
         "         COUNT(*)\n" +                                                                            // 6
         "  FROM bookings B\n" +                                                                            // 7
-        "  INNER JOIN customers C ON B.customer_id = C.id\n" +                                             // 8
+        "       INNER JOIN customers C ON B.customer_id = C.id\n" +                                        // 8
         "  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)\n" +                                        // 9
         "  WHERE B.customer_id > 0 AND INSTR(C.EMAIL, '@') > 0\n" +                                        // 10
         "  GROUP BY C.EMAIL, B.ID, B.flight_id\n" +                                                        // 11
@@ -1190,7 +1190,7 @@ public class AstBuilderTest {
     assertThat(queryLocation.getColumnNumber(), is(3));
     assertThat(queryLocation.getEndLine(), is(OptionalInt.of(12)));
     assertThat(queryLocation.getEndColumnNumber(), is(OptionalInt.of(21)));
-    assertThat(queryLocation.getLength(), is(OptionalInt.of(305)));
+    assertThat(queryLocation.getLength(), is(OptionalInt.of(310)));
 
     final Select select = query.getSelect();
     assertTrue(select.getLocation().isPresent());
@@ -1207,8 +1207,8 @@ public class AstBuilderTest {
     assertThat(joinLocation.getLineNumber(), is(7));
     assertThat(joinLocation.getColumnNumber(), is(8));
     assertThat(joinLocation.getEndLine(), is(OptionalInt.of(8)));
-    assertThat(joinLocation.getEndColumnNumber(), is(OptionalInt.of(48)));
-    assertThat(joinLocation.getLength(), is(OptionalInt.of(59)));
+    assertThat(joinLocation.getEndColumnNumber(), is(OptionalInt.of(53)));
+    assertThat(joinLocation.getLength(), is(OptionalInt.of(64)));
 
     assertTrue(query.getWindow().isPresent());
     final WindowExpression window = query.getWindow().get();

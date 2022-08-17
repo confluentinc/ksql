@@ -19,6 +19,8 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -41,13 +43,16 @@ public class InsertionIntegrationTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private  static final String SIMPLE_TOPIC = "simple_topic";
   private  static final String EVOLVING_TOPIC = "evolving_topic";
+  private  static final String BASE_TOPIC = "base_topic";
+
 
   private  static final String SIMPLE_STREAM = "simple_stream";
   private  static final String DECIMAL_STREAM = "decimal_stream";
   private  static final String MAP_STREAM = "map_stream";
   private  static final String ARRAY_STREAM = "array_stream";
   private  static final String STRUCT_STREAM = "struct_stream";
-
+  private  static final String STRUCT_BASE_STREAM = "base_stream";
+  private  static final String FOLLOWER_STREAM = "follower_stream";
 
 
 
@@ -101,6 +106,11 @@ public class InsertionIntegrationTest {
         ("CREATE STREAM " + EVOLVING_STREAM + " (K0 INT KEY, V0 BOOLEAN) " +
             "WITH (KAFKA_TOPIC = '" + EVOLVING_TOPIC + "', VALUE_FORMAT = 'AVRO', " +
             "PARTITIONS = 1);");
+
+    ksqlRestClient.makeKsqlRequest
+        ("CREATE STREAM " + STRUCT_BASE_STREAM + " (K0 INT KEY, "
+            + "V0 STRUCT<A INT, B STRING, C BOOLEAN>, V1 ARRAY<INT>, V2 STRING) "
+            + "WITH (KAFKA_TOPIC = '" + BASE_TOPIC + "', VALUE_FORMAT = 'AVRO',  PARTITIONS = 1);");
   }
 
   @After
@@ -170,6 +180,23 @@ public class InsertionIntegrationTest {
 
     assertThat(TEST_HARNESS.getLatestSchemaVersion(key), is(1));
     assertThat(TEST_HARNESS.getLatestSchemaVersion(value), is(1));
+  }
+  @Test
+  public void shouldInsertValuesToStreamsCreatedWithSchemaID() {
+
+    String value = KsqlConstants.getSRSubject(BASE_TOPIC, false);
+
+    ksqlRestClient.makeKsqlRequest
+        ("CREATE STREAM " + FOLLOWER_STREAM + " WITH (KAFKA_TOPIC = '" + BASE_TOPIC + "',"
+            + " KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'AVRO',"
+            + " VALUE_SCHEMA_ID = " + TEST_HARNESS.getLatestSchemaID(value) + ", PARTITIONS = 1);");
+
+    RestResponse<KsqlEntityList> response =  ksqlRestClient.makeKsqlRequest
+        ("INSERT INTO " + FOLLOWER_STREAM + " (V0, V1, V2) VALUES "
+            + "(STRUCT(A := 10, B := 'foo', C := true), ARRAY[1,2,3], 'bar');");
+
+    assertThat(response.getStatusCode(), is(200));
+    assertThat(response.isSuccessful(), is(true));
   }
   @Test
   public void shouldSupportEvolvingSchemasOnInsert() {

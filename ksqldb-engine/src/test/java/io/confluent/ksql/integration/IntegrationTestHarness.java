@@ -727,6 +727,14 @@ public final class IntegrationTestHarness extends ExternalResource {
     }
   }
 
+  public int getLatestSchemaID(final String subjectName) {
+    try {
+      return getSchemaRegistryClient().getLatestSchemaMetadata(subjectName).getId();
+    } catch (Exception e) {
+      throw new AssertionError("Failed to get schema: " + subjectName, e);
+    }
+  }
+
   protected void before() throws Exception {
     kafkaCluster.start();
   }

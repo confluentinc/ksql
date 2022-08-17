@@ -1784,6 +1784,15 @@ for example:
 - "PDT"
 - "Europe/London"
 
+!!! note
+    To use the `FORMAT_TIMESTAMP` function with a BIGINT millisecond timestamp
+    parameter, convert the millisecond value to a `TIMESTAMP` by using the
+    `FROM_UNIXTIME` function, for example:
+
+    ```sql
+    FORMAT_TIMESTAMP(FROM_UNIXTIME(unix_timestamp))
+    ```
+
 For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 

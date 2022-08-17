@@ -112,6 +112,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.utilization.PersistentQuerySaturationMetrics;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
@@ -151,7 +152,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -1065,6 +1069,55 @@ public final class KsqlRestApplication implements Executable {
       } catch (final Exception e) {
         throw new KsqlException("Error migrating command topic", e);
       }
+    } else if (restConfig.getString(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_CONFIG)
+        .equals(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING)) {
+      final TopicPartition topicPartition = new TopicPartition(commandTopic, 0);
+
+      final org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> oldBrokerConsumer =
+          new KafkaConsumer<>(
+              restConfig.originals(),
+              new ByteArrayDeserializer(),
+              new ByteArrayDeserializer()
+          );
+      oldBrokerConsumer.assign(Collections.singleton(topicPartition));
+
+      final Map<String, Object> newConsumerConfig = restConfig.getCommandConsumerProperties();
+      final org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> newBrokerConsumer =
+          new KafkaConsumer<>(
+              newConsumerConfig,
+              new ByteArrayDeserializer(),
+              new ByteArrayDeserializer()
+          );
+      newBrokerConsumer.assign(Collections.singleton(topicPartition));
+
+      RetryUtil.retryWithBackoff(
+          Integer.MAX_VALUE,
+          10000,
+          10000,
+          () -> {
+            if (!internalTopicClient.isTopicExists(commandTopic)) {
+              throw new RuntimeException("command topic migration still in process, "
+                  + "no new command topic");
+            }
+
+            final long numRecords = CommandTopic.getAllCommandsInCommandTopic(
+                oldBrokerConsumer,
+                topicPartition,
+                Optional.empty(),
+                CommandStore.POLLING_TIMEOUT_FOR_COMMAND_TOPIC
+            ).size();
+            final long numNewRecords = CommandTopic.getAllCommandsInCommandTopic(
+                newBrokerConsumer,
+                topicPartition,
+                Optional.empty(),
+                CommandStore.POLLING_TIMEOUT_FOR_COMMAND_TOPIC
+            ).size();
+            if (numNewRecords < numRecords - 1) {
+              throw new RuntimeException("command topic migration still in process");
+            }
+          },
+          WakeupException.class
+      );
     }
 
     if (CommandTopicBackupUtil.commandTopicMissingWithValidBackup(
@@ -1083,6 +1136,7 @@ public final class KsqlRestApplication implements Executable {
     );
   }
 
+  // only migrate command topic if the server is designated as the migrator
   private boolean checkMigrationConditions(final String commandTopic) {
     final boolean emptyCommandTopic;
     if (internalTopicClient.isTopicExists(commandTopic)) {
@@ -1096,7 +1150,8 @@ public final class KsqlRestApplication implements Executable {
 
     return emptyCommandTopic
         && serviceContext.getTopicClient().isTopicExists(commandTopic)
-        && restConfig.getBoolean(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_ENABLE);
+        && restConfig.getString(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_CONFIG)
+            .equals(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_MIGRATOR);
   }
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {

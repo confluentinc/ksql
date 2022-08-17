@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 public final class CommandTopicMigrationUtil {
 
   private static final Logger log = LoggerFactory.getLogger(CommandTopicMigrationUtil.class);
+
   private CommandTopicMigrationUtil() {
 
   }

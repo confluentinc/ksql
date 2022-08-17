@@ -19,10 +19,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.DefaultErrorMessages;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlWarning;
-import io.confluent.ksql.rest.entity.SourceInfo;
-import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.*;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -65,7 +62,8 @@ public class CommandTopicMigrationIntegrationTest {
       .around(OTHER_TEST_HARNESS);
 
   private static TestKsqlRestApp REST_APP;
-  private static TestKsqlRestApp NEW_REST_APP;
+  private static TestKsqlRestApp NEW_REST_APP_MIGRATOR;
+  private static TestKsqlRestApp NEW_REST_APP_MIGRATING;
   private String commandTopic;
 
   @BeforeClass
@@ -73,11 +71,17 @@ public class CommandTopicMigrationIntegrationTest {
     REST_APP = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .build();
-    NEW_REST_APP = TestKsqlRestApp
+    NEW_REST_APP_MIGRATOR = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withProperty(KsqlRestConfig.COMMAND_CONSUMER_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, OTHER_TEST_HARNESS.kafkaBootstrapServers())
         .withProperty(KsqlRestConfig.COMMAND_PRODUCER_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, OTHER_TEST_HARNESS.kafkaBootstrapServers())
-        .withProperty(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_ENABLE, true)
+        .withProperty(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_CONFIG, KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_MIGRATOR)
+        .build();
+    NEW_REST_APP_MIGRATING = TestKsqlRestApp
+        .builder(TEST_HARNESS::kafkaBootstrapServers)
+        .withProperty(KsqlRestConfig.COMMAND_CONSUMER_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, OTHER_TEST_HARNESS.kafkaBootstrapServers())
+        .withProperty(KsqlRestConfig.COMMAND_PRODUCER_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, OTHER_TEST_HARNESS.kafkaBootstrapServers())
+        .withProperty(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_CONFIG, KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING)
         .build();
   }
 
@@ -92,6 +96,8 @@ public class CommandTopicMigrationIntegrationTest {
   @After
   public void teardown() {
     REST_APP.stop();
+    NEW_REST_APP_MIGRATOR.stop();
+    NEW_REST_APP_MIGRATING.stop();
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
     OTHER_TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
   }
@@ -103,7 +109,7 @@ public class CommandTopicMigrationIntegrationTest {
     setUpStreams(commandTopic);
 
     // When
-    NEW_REST_APP.start();
+    NEW_REST_APP_MIGRATOR.start();
 
     // Then
     assertThatEventually("Server should be in degraded state", () -> isDegradedState(REST_APP), is(true));
@@ -111,7 +117,7 @@ public class CommandTopicMigrationIntegrationTest {
 
     assertTrue(OTHER_TEST_HARNESS.topicExists(commandTopic));
     OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
-    final List<String> streamsNames = showStreams(NEW_REST_APP);
+    final List<String> streamsNames = showStreams(NEW_REST_APP_MIGRATOR);
     assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
     assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
     assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
@@ -123,9 +129,10 @@ public class CommandTopicMigrationIntegrationTest {
     // Given
     OTHER_TEST_HARNESS.ensureTopics(commandTopic);
     setUpStreams(commandTopic);
+    OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 0);
 
     // When
-    NEW_REST_APP.start();
+    NEW_REST_APP_MIGRATOR.start();
 
     // Then
     assertThatEventually("Server should be in degraded state", () -> isDegradedState(REST_APP), is(true));
@@ -133,7 +140,7 @@ public class CommandTopicMigrationIntegrationTest {
 
     assertTrue(OTHER_TEST_HARNESS.topicExists(commandTopic));
     OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
-    final List<String> streamsNames = showStreams(NEW_REST_APP);
+    final List<String> streamsNames = showStreams(NEW_REST_APP_MIGRATOR);
     assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
     assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
     assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
@@ -148,11 +155,58 @@ public class CommandTopicMigrationIntegrationTest {
     setUpStreams(commandTopic);
 
     // When
-    NEW_REST_APP.start();
+    NEW_REST_APP_MIGRATOR.start();
 
     // Then
+    assertThatEventually("Server should not be in degraded state", () -> isDegradedState(REST_APP), is(false));
+    TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
+    OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 1);
+  }
+
+  @Test
+  public void shouldOnlyHaveMigratorDoTheMigration() throws InterruptedException {
+    // Given
+    assertFalse(OTHER_TEST_HARNESS.topicExists(commandTopic));
+    setUpStreams(commandTopic);
+
+    // When
+    new Thread(() -> NEW_REST_APP_MIGRATING.start()).start();
+
+    // let the migrating server start running for a bit on its own
+    Thread.sleep(20000);
+
+    // a server designated as migrating shouldn't migrate the command topic and should just wait
     assertThatEventually("Server should be in degraded state", () -> isDegradedState(REST_APP), is(false));
     TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
+    assertFalse(OTHER_TEST_HARNESS.topicExists(commandTopic));
+
+    // now the actual migration happens
+    NEW_REST_APP_MIGRATOR.start();
+
+    // Then
+    assertThatEventually("Server should be in degraded state", () -> isDegradedState(REST_APP), is(true));
+    TEST_HARNESS.verifyAvailableRecords(commandTopic, 5);
+
+    assertTrue(OTHER_TEST_HARNESS.topicExists(commandTopic));
+    OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
+    List<String> streamsNames = showStreams(NEW_REST_APP_MIGRATOR);
+    assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
+    assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
+    assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
+    assertThat("Should have STREAM2", streamsNames.contains("STREAM2"), is(true));
+
+    assertThatEventually("server marked as migrating should be up and have correct streams", () -> {
+      try{
+        return showStreams(NEW_REST_APP_MIGRATING).size();
+      } catch (final Exception e) {
+        return 0;
+      }
+    }, is(4));
+    streamsNames = showStreams(NEW_REST_APP_MIGRATOR);
+    assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
+    assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
+    assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
+    assertThat("Should have STREAM2", streamsNames.contains("STREAM2"), is(true));
   }
 
   private static void setUpStreams(final String commandTopic) {

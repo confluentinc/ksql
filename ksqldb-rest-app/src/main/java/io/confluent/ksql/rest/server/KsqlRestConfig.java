@@ -408,18 +408,30 @@ public class KsqlRestConfig extends AbstractConfig {
   protected static final String KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC =
       "The maximum amount of time to wait before checking the KSQL server preconditions again.";
 
-  public static final String KSQL_COMMAND_TOPIC_MIGRATION_ENABLE =
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_CONFIG =
       KSQL_CONFIG_PREFIX + "server.command.topic.migration.enabled";
-  public static final boolean KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DEFAULT = false;
-  protected static final String KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DOC =
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_NONE = "NONE";
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_MIGRATOR = "MIGRATOR";
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING = "MIGRATING";
+
+  protected static final String KSQL_COMMAND_TOPIC_MIGRATION_DOC =
       "Whether or not to migrate the command topic to another Kafka cluster. If the command topic "
-          + "doesn't exist on the Kafka the command producer/consumer are reading from, the server "
-          + "then checks for the existence of the command topic on the broker that the server is "
-          + "connected to in the bootstrap.servers config. If it exists, it recreates the command "
-          + "topic on the new broker, then issues a new command to the old command topic to mark "
-          + "it as degraded for other servers that may be running in the cluster. If any exceptions"
-          + "occurs during recreation of the new command topic, delete the new command topic and "
-          + "throw an exception.";
+          + "doesn't exist on the Kafka the command producer/consumer are reading from or exists, "
+          + "but is empty, the server then checks for the existence of the command topic on the "
+          + "broker that the server is connected to in the bootstrap.servers config. "
+          + "If it exists, it recreates the command topic on the new broker, "
+          + "then issues a new command to the old command topic to mark "
+          + "it as degraded for other servers that may be running in the cluster. "
+          + "One server should be designated as the MIGRATOR server while the "
+          + "rest of the servers should be set as MIGRATING. Servers that are MIGRATING will wait "
+          + "until the main MIGRATOR has completed the migration.";
+
+  public static final ConfigDef.ValidString KSQL_COMMAND_TOPIC_MIGRATION_VALIDATOR =
+      ConfigDef.ValidString.in(
+          KSQL_COMMAND_TOPIC_MIGRATION_NONE,
+          KSQL_COMMAND_TOPIC_MIGRATION_MIGRATOR,
+          KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING
+      );
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -787,11 +799,12 @@ public class KsqlRestConfig extends AbstractConfig {
             Importance.MEDIUM,
             KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC
         ).define(
-            KSQL_COMMAND_TOPIC_MIGRATION_ENABLE,
-            Type.BOOLEAN,
-            KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DEFAULT,
-            Importance.LOW,
-            KSQL_COMMAND_TOPIC_MIGRATION_ENABLE_DOC
+            KSQL_COMMAND_TOPIC_MIGRATION_CONFIG,
+            Type.STRING,
+            KSQL_COMMAND_TOPIC_MIGRATION_NONE,
+            KSQL_COMMAND_TOPIC_MIGRATION_VALIDATOR,
+            Importance.MEDIUM,
+            KSQL_COMMAND_TOPIC_MIGRATION_DOC
         );
   }
 

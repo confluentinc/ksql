@@ -54,6 +54,7 @@ import io.confluent.ksql.parser.tree.AssertSchema;
 import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Explain;
@@ -1151,6 +1152,120 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void shouldGetCorrectLocationsSimpleCs() {
+    // Given:
+    final String query = "CREATE STREAM X WITH (kafka_topic='X');";
+    final SingleStatementContext stmt = givenQuery(query);
+
+    // When:
+    final CreateStream result = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    final NodeLocation loc = result.getLocation().get();
+    assertThat(loc.getLineNumber(), is(1));
+    assertThat(loc.getColumnNumber(), is(1));
+    assertThat(loc.getEndLine(), is(OptionalInt.of(1)));
+    assertThat(loc.getEndColumnNumber(), is(OptionalInt.of(query.length() - 1)));
+    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
+  }
+
+  @Test
+  public void shouldGetCorrectLocationsSimpleCsas() {
+    // Given:
+    final String query = "CREATE STREAM X AS SELECT * FROM TEST1;";
+    final SingleStatementContext stmt = givenQuery(query);
+
+    // When:
+    final CreateStreamAsSelect result = (CreateStreamAsSelect) builder.buildStatement(stmt);
+
+    // Then:
+    final NodeLocation loc = result.getLocation().get();
+    assertThat(loc.getLineNumber(), is(1));
+    assertThat(loc.getColumnNumber(), is(1));
+    assertThat(loc.getEndLine(), is(OptionalInt.of(1)));
+    assertThat(loc.getEndColumnNumber(), is(OptionalInt.of(query.length() - 1)));
+    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
+  }
+
+  @Test
+  public void shouldGetCorrectLocationsSimpleCsasMultiline() {
+    // Given:
+    final String query =
+        "CREATE STREAM X AS\n" +
+        "  SELECT * FROM TEST1;";
+    final SingleStatementContext stmt = givenQuery(query);
+
+    // When:
+    final CreateStreamAsSelect result = (CreateStreamAsSelect) builder.buildStatement(stmt);
+
+    // Then:
+    final NodeLocation loc = result.getLocation().get();
+    assertThat(loc.getLineNumber(), is(1));
+    assertThat(loc.getColumnNumber(), is(1));
+    assertThat(loc.getEndLine(), is(OptionalInt.of(2)));
+    assertThat(loc.getEndColumnNumber(), is(OptionalInt.of("  SELECT * FROM TEST1".length())));
+    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
+  }
+
+  @Test
+  public void shouldGetCorrectLocationsSimpleCt() {
+    // Given:
+    final String query = "CREATE TABLE X WITH (kafka_topic='X');";
+    final SingleStatementContext stmt = givenQuery(query);
+
+    // When:
+    final CreateTable result = (CreateTable) builder.buildStatement(stmt);
+
+    // Then:
+    final NodeLocation loc = result.getLocation().get();
+    assertThat(loc.getLineNumber(), is(1));
+    assertThat(loc.getColumnNumber(), is(1));
+    assertThat(loc.getEndLine(), is(OptionalInt.of(1)));
+    assertThat(loc.getEndColumnNumber(), is(OptionalInt.of(query.length() - 1)));
+    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
+  }
+
+  @Test
+  public void shouldGetCorrectLocationsSimpleCtas() {
+    // Given:
+    final String query = "CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY;";
+    final SingleStatementContext stmt = givenQuery(query);
+
+    // When:
+    final CreateTableAsSelect result = (CreateTableAsSelect) builder.buildStatement(stmt);
+
+    // Then:
+    final NodeLocation loc = result.getLocation().get();
+    assertThat(loc.getLineNumber(), is(1));
+    assertThat(loc.getColumnNumber(), is(1));
+    assertThat(loc.getEndLine(), is(OptionalInt.of(1)));
+    assertThat(loc.getEndColumnNumber(), is(OptionalInt.of(query.length() - 1)));
+    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
+  }
+
+  @Test
+  public void shouldGetCorrectLocationsSimpleCtasMultiLine() {
+    // Given:
+    final String query =
+        "CREATE TABLE X AS\n" +
+        "  SELECT COUNT(1)\n" +
+        "  FROM TEST1\n" +
+        "  GROUP BY ROWKEY;";
+    final SingleStatementContext stmt = givenQuery(query);
+
+    // When:
+    final CreateTableAsSelect result = (CreateTableAsSelect) builder.buildStatement(stmt);
+
+    // Then:
+    final NodeLocation loc = result.getLocation().get();
+    assertThat(loc.getLineNumber(), is(1));
+    assertThat(loc.getColumnNumber(), is(1));
+    assertThat(loc.getEndLine(), is(OptionalInt.of(4)));
+    assertThat(loc.getEndColumnNumber(), is(OptionalInt.of("  GROUP BY ROWKEY".length())));
+    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
+  }
+
+  @Test
   public void shouldGetCorrectLocationsComplexCtas() {
     // Given:
     final String statementString =
@@ -1180,7 +1295,7 @@ public class AstBuilderTest {
     assertThat(createTableLocation.getLineNumber(), is(1));
     assertThat(createTableLocation.getColumnNumber(), is(1));
     assertThat(createTableLocation.getEndLine(), is(OptionalInt.of(12)));
-    assertThat(createTableLocation.getEndColumnNumber(), is(OptionalInt.of(("  HAVING COUNT(*) > 0;").length())));
+    assertThat(createTableLocation.getEndColumnNumber(), is(OptionalInt.of(("  HAVING COUNT(*) > 0").length())));
     assertThat(createTableLocation.getLength(), is(OptionalInt.of(statementString.length() - 1)));
 
     final Query query = result.getQuery();
@@ -1189,7 +1304,7 @@ public class AstBuilderTest {
     assertThat(queryLocation.getLineNumber(), is(3));
     assertThat(queryLocation.getColumnNumber(), is(3));
     assertThat(queryLocation.getEndLine(), is(OptionalInt.of(12)));
-    assertThat(queryLocation.getEndColumnNumber(), is(OptionalInt.of(("  HAVING COUNT(*) > 0").length() + 1)));
+    assertThat(queryLocation.getEndColumnNumber(), is(OptionalInt.of(("  HAVING COUNT(*) > 0").length())));
     assertThat(queryLocation.getLength(),
         is(OptionalInt.of((
             "SELECT C.EMAIL,\n" +
@@ -1201,7 +1316,7 @@ public class AstBuilderTest {
             "  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)\n" +
             "  WHERE B.customer_id > 0 AND INSTR(C.EMAIL, '@') > 0\n" +
             "  GROUP BY C.EMAIL, B.ID, B.flight_id\n" +
-            "  HAVING COUNT(*) > 0").length() + 1)));
+            "  HAVING COUNT(*) > 0").length())));
 
     final Select select = query.getSelect();
     assertTrue(select.getLocation().isPresent());
@@ -1209,7 +1324,8 @@ public class AstBuilderTest {
     assertThat(selectLocation.getLineNumber(), is(3));
     assertThat(selectLocation.getColumnNumber(), is(3));
     assertThat(selectLocation.getEndLine(), is(OptionalInt.of(3)));
-    assertThat(selectLocation.getEndColumnNumber(), is(OptionalInt.of("  SELECT".length() + 1)));
+    assertThat(selectLocation.getEndColumnNumber(),
+        is(OptionalInt.of("  SELECT".length())));
     assertThat(selectLocation.getLength(),
         is(OptionalInt.of("SELECT".length())));
 
@@ -1220,11 +1336,11 @@ public class AstBuilderTest {
     assertThat(joinLocation.getColumnNumber(), is(8));
     assertThat(joinLocation.getEndLine(), is(OptionalInt.of(8)));
     assertThat(joinLocation.getEndColumnNumber(),
-        is(OptionalInt.of(("       INNER JOIN customers C ON B.customer_id = C.id").length() + 1)));
+        is(OptionalInt.of(("       INNER JOIN customers C ON B.customer_id = C.id").length())));
     assertThat(joinLocation.getLength(),
         is(OptionalInt.of((
                    "bookings B\n" +
-            "       INNER JOIN customers C ON B.customer_id = C.id\n").length())));
+            "       INNER JOIN customers C ON B.customer_id = C.id").length())));
 
     assertTrue(query.getWindow().isPresent());
     final WindowExpression window = query.getWindow().get();
@@ -1233,9 +1349,10 @@ public class AstBuilderTest {
     assertThat(windowLocation.getLineNumber(), is(9));
     assertThat(windowLocation.getColumnNumber(), is(10));
     assertThat(windowLocation.getEndLine(), is(OptionalInt.of(9)));
-    assertThat(windowLocation.getEndColumnNumber(), is(OptionalInt.of(("TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)").length() + 1)));
+    assertThat(windowLocation.getEndColumnNumber(),
+        is(OptionalInt.of(("  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)").length())));
     assertThat(windowLocation.getLength(),
-        is(OptionalInt.of(("TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)\n").length())));
+        is(OptionalInt.of(("TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)").length())));
 
     assertTrue(query.getWhere().isPresent());
     final LogicalBinaryExpression where = (LogicalBinaryExpression) query.getWhere().get();
@@ -1254,9 +1371,10 @@ public class AstBuilderTest {
     assertThat(groupByLocation.getLineNumber(), is(11));
     assertThat(groupByLocation.getColumnNumber(), is(12));
     assertThat(groupByLocation.getEndLine(), is(OptionalInt.of(11)));
-    assertThat(groupByLocation.getEndColumnNumber(), is(OptionalInt.of("C.EMAIL, B.ID, B.flight_id".length() + 1)));
+    assertThat(groupByLocation.getEndColumnNumber(),
+        is(OptionalInt.of("  GROUP BY C.EMAIL, B.ID, B.flight_id".length())));
     assertThat(groupByLocation.getLength(),
-        is(OptionalInt.of("C.EMAIL, B.ID, B.flight_id\n".length())));
+        is(OptionalInt.of("C.EMAIL, B.ID, B.flight_id".length())));
 
     assertTrue(query.getHaving().isPresent());
     final ComparisonExpression having = (ComparisonExpression) query.getHaving().get();

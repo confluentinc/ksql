@@ -205,6 +205,7 @@ final class QueryBuilder {
     final TransientQueryQueue queue =
         buildTransientQueryQueue(buildResult, limit, excludeTombstones, endOffsets);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
+    System.out.println("--------->" + topology.describe().toString());
 
     final TransientQueryMetadata.ResultType resultType = buildResult instanceof KTableHolder
         ? windowInfo.isPresent() ? ResultType.WINDOWED_TABLE : ResultType.TABLE

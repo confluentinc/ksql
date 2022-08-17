@@ -30,12 +30,14 @@ import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamGroupByV1;
+import io.confluent.ksql.execution.plan.StreamNoOpPreJoinSelect;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
+import io.confluent.ksql.execution.plan.StreamStreamSelfJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -83,6 +85,7 @@ public final class StepSchemaResolver {
       .put(StreamGroupBy.class, StepSchemaResolver::handleStreamGroupBy)
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
+      .put(StreamNoOpPreJoinSelect.class, StepSchemaResolver::handleStreamNoOpSelect)
       .put(StreamSelectKeyV1.class, StepSchemaResolver::handleStreamSelectKeyV1)
       .put(StreamSelectKey.class, StepSchemaResolver::handleStreamSelectKey)
       .put(StreamSink.class, StepSchemaResolver::sameSchema)
@@ -111,6 +114,7 @@ public final class StepSchemaResolver {
       .put(StreamStreamJoin.class, StepSchemaResolver::handleStreamStreamJoin)
       .put(TableTableJoin.class, StepSchemaResolver::handleTableTableJoin)
       .put(ForeignKeyTableTableJoin.class, StepSchemaResolver::handleForeignKeyTableTableJoin)
+      .put(StreamStreamSelfJoin.class, StepSchemaResolver::handleStreamStreamJoin)
       .build();
 
   private final KsqlConfig ksqlConfig;
@@ -258,6 +262,19 @@ public final class StepSchemaResolver {
         step.getSelectExpressions()
     );
   }
+
+  private LogicalSchema handleStreamNoOpSelect(
+      final LogicalSchema schema,
+      final StreamNoOpPreJoinSelect<?> step
+  ) {
+    return buildSelectSchema(
+        schema,
+        step.getKeyColumnNames(),
+        step.getSelectedKeys(),
+        step.getSelectExpressions()
+    );
+  }
+
 
   private LogicalSchema handleStreamSelectKeyV1(
       final LogicalSchema sourceSchema,

@@ -76,7 +76,8 @@ final class SourceBuilderV1 extends SourceBuilderBase {
   public KStreamHolder<GenericKey> buildStream(
       final RuntimeBuildContext buildContext,
       final StreamSource source,
-      final ConsumedFactory consumedFactory
+      final ConsumedFactory consumedFactory,
+      final boolean addToTopology
   ) {
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
@@ -97,12 +98,22 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         consumedFactory
     );
 
-    final KStream<GenericKey, GenericRow> kstream = buildKStream(
-        source,
-        buildContext,
-        consumed,
-        nonWindowedKeyGenerator(source.getSourceSchema())
-    );
+    final KStream<GenericKey, GenericRow> kstream;
+    if (addToTopology) {
+      kstream = buildKStream(
+          source,
+          buildContext,
+          consumed,
+          nonWindowedKeyGenerator(source.getSourceSchema())
+      );
+    } else {
+      kstream = buildKStreamNoTransformValues(
+          source,
+          buildContext,
+          consumed,
+          nonWindowedKeyGenerator(source.getSourceSchema())
+      );
+    }
 
     return new KStreamHolder<>(
         kstream,
@@ -304,6 +315,17 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         .transformValues(new AddKeyAndPseudoColumns<>(
             keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()));
   }
+
+  private <K> KStream<K, GenericRow> buildKStreamNoTransformValues(
+      final SourceStep<?> streamSource,
+      final RuntimeBuildContext buildContext,
+      final Consumed<K, GenericRow> consumed,
+      final Function<K, Collection<?>> keyGenerator
+  ) {
+    return buildContext.getStreamsBuilder()
+        .stream(streamSource.getTopicName(), consumed);
+  }
+
 
   private static Function<GenericKey, Collection<?>> nonWindowedKeyGenerator(
       final LogicalSchema schema

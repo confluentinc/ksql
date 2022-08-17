@@ -73,6 +73,7 @@ public final class StreamStreamJoinBuilder {
         leftFormats.getValueFeatures()
     );
 
+    // Vicky: In N-way self-join the second join has 11 columns `A_ID` STRING KEY, `A_VALUE` STRING, `A_ROWTIME` BIGINT, `A_ROWPARTITION` INTEGER, `A_ROWOFFSET` BIGINT, `A_ID` STRING, `B_VALUE` STRING, `B_ROWTIME` BIGINT, `B_ROWPARTITION` INTEGER, `B_ROWOFFSET` BIGINT, `B_ID` STRING
     final Serde<GenericRow> leftSerde = buildContext.buildValueSerde(
         leftFormats.getValueFormat(),
         leftPhysicalSchema,

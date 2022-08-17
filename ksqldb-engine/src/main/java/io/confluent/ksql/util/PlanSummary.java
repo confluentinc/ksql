@@ -27,12 +27,14 @@ import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamGroupByV1;
+import io.confluent.ksql.execution.plan.StreamNoOpPreJoinSelect;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
+import io.confluent.ksql.execution.plan.StreamStreamSelfJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -80,11 +82,13 @@ public class PlanSummary {
           .put(StreamGroupBy.class, "GROUP_BY")
           .put(StreamGroupByKey.class, "GROUP_BY")
           .put(StreamSelect.class, "PROJECT")
+          .put(StreamNoOpPreJoinSelect.class, "NO_OP_PROJECT")
           .put(StreamSelectKeyV1.class, "REKEY")
           .put(StreamSelectKey.class, "REKEY")
           .put(StreamSink.class, "SINK")
           .put(StreamSource.class, "SOURCE")
           .put(StreamStreamJoin.class, "JOIN")
+          .put(StreamStreamSelfJoin.class, "SELF_JOIN")
           .put(StreamTableJoin.class, "JOIN")
           .put(WindowedStreamSource.class, "SOURCE")
           .put(TableAggregate.class, "AGGREGATE")

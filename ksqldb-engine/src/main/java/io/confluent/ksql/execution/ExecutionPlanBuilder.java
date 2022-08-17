@@ -18,9 +18,15 @@ package io.confluent.ksql.execution;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
+import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PreJoinProjectNode;
+import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
@@ -69,6 +75,7 @@ public class ExecutionPlanBuilder {
         oldPlanInfo
     );
 
+    optimizeForSelfJoin(outputNode);
     final SchemaKStream<?> resultStream = outputNode.buildStream(buildContext);
 
     final LogicalSchema logicalSchema = outputNode.getSchema();
@@ -86,5 +93,56 @@ public class ExecutionPlanBuilder {
         queryId,
         resultStream.getSourceStep()
     );
+  }
+
+  private void optimizeForSelfJoin(final PlanNode currentNode) {
+
+    if (currentNode instanceof JoinNode) {
+      final JoinNode joinNode = (JoinNode) currentNode;
+      if (joinNode.getLeft() instanceof PreJoinProjectNode
+          && joinNode.getRight() instanceof PreJoinProjectNode) {
+
+        final PreJoinProjectNode preJoinProjectNodeLeft =
+            (PreJoinProjectNode)joinNode.getLeft();
+        final PreJoinProjectNode preJoinProjectNodeRight =
+            (PreJoinProjectNode)joinNode.getRight();
+        final PreJoinRepartitionNode preJoinRepartitionNodeLeft =
+            (PreJoinRepartitionNode) preJoinProjectNodeLeft.getSource();
+        final PreJoinRepartitionNode preJoinRepartitionNodeRight =
+            (PreJoinRepartitionNode) preJoinProjectNodeRight.getSource();
+
+        // Check if Repartition is on the same key
+        if (! preJoinRepartitionNodeLeft.getPartitionBy()
+            .equals(preJoinRepartitionNodeRight.getPartitionBy())) {
+          return;
+        }
+
+        // Check if sources are the same stream
+        if (! (preJoinRepartitionNodeLeft.getSource() instanceof DataSourceNode)
+            || ! (preJoinRepartitionNodeRight.getSource() instanceof DataSourceNode)) {
+          return;
+        }
+        final DataSourceNode leftSource = (DataSourceNode) preJoinRepartitionNodeLeft.getSource();
+        final DataSourceNode rightSource =
+            (DataSourceNode) preJoinRepartitionNodeRight.getSource();
+
+        if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
+            rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
+            leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
+
+          // Annotate join as self-join
+          joinNode.setSelfJoin(true);
+          return;
+        }
+      } else {
+        // N-ary join not handled
+        return;
+      }
+
+    }
+
+    for (final PlanNode child: currentNode.getSources()) {
+      optimizeForSelfJoin(child);
+    }
   }
 }

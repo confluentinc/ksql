@@ -564,7 +564,7 @@ class Analyzer {
       }
 
       final Optional<AliasedDataSource> existing = analysis.getSourceByName(source.getName());
-      if (existing.isPresent()) {
+      /*if (existing.isPresent()) {
         final String errorMsg = analysis.getAllDataSources().size() > 1
             ? "N-way joins do not support multiple occurrences of the same source. "
                 + "Source: '" + sourceName.toString(FormatOptions.noEscape()) + "'."
@@ -574,7 +574,7 @@ class Analyzer {
                 + existing.get().getDataSource().getName().toString(FormatOptions.noEscape())
                 + "': self joins are not yet supported.";
         throw new KsqlException(errorMsg);
-      }
+      }*/
       analysis.addDataSource(node.getAlias(), source);
       return node;
     }

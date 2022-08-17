@@ -48,6 +48,10 @@ public class PlanInfoExtractor {
     return visitSingleSourceStep(streamSelect);
   }
 
+  public <K> PlanInfo visitStreamNoOpSelect(final StreamNoOpPreJoinSelect<K> streamSelect) {
+    return visitSingleSourceStep(streamSelect);
+  }
+
   public <K> PlanInfo visitFlatMap(final StreamFlatMap<K> streamFlatMap) {
     return visitSingleSourceStep(streamFlatMap);
   }
@@ -74,6 +78,11 @@ public class PlanInfoExtractor {
 
   public <K> PlanInfo visitStreamStreamJoin(final StreamStreamJoin<K> streamStreamJoin) {
     return visitJoinStep(streamStreamJoin);
+  }
+
+  public <K> PlanInfo visitStreamStreamSelfJoin(
+      final StreamStreamSelfJoin<K> streamStreamSelfJoin) {
+    return visitJoinStep(streamStreamSelfJoin);
   }
 
   public <K> PlanInfo visitStreamTableJoin(final StreamTableJoin<K> streamTableJoin) {

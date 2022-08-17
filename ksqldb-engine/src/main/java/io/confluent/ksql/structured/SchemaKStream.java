@@ -32,9 +32,11 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.execution.plan.StreamNoOpPreJoinSelect;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
+import io.confluent.ksql.execution.plan.StreamStreamSelfJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
@@ -164,6 +166,32 @@ public class SchemaKStream<K> {
     );
   }
 
+  public SchemaKStream<K> noOpSelect(
+      final List<ColumnName> keyColumnNames,
+      final List<SelectExpression> selectExpressions,
+      final Stacker contextStacker,
+      final PlanBuildContext buildContext,
+      final FormatInfo valueFormat
+  ) {
+
+    final StreamNoOpPreJoinSelect<K> step = ExecutionStepFactory.streamNoOpSelect(
+        contextStacker,
+        sourceStep,
+        keyColumnNames,
+        Optional.empty(),
+        selectExpressions
+    );
+
+    return new SchemaKStream<>(
+        step,
+        resolveSchema(step),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+
+  }
+
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
@@ -251,6 +279,25 @@ public class SchemaKStream<K> {
     );
   }
 
+  public SchemaKStream<K> selfJoin(
+      final SchemaKStream<K> otherSchemaKStream,
+      final ColumnName keyColName,
+      final WithinExpression withinExpression,
+      final FormatInfo leftFormat,
+      final FormatInfo rightFormat,
+      final Stacker contextStacker
+  ) {
+    return selfJoin(
+        otherSchemaKStream,
+        keyColName,
+        withinExpression,
+        leftFormat,
+        rightFormat,
+        contextStacker,
+        JoinType.INNER
+    );
+  }
+
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
@@ -323,6 +370,38 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         step,
         resolveSchema(step, schemaKTable),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  private SchemaKStream<K> selfJoin(
+      final SchemaKStream<K> otherSchemaKStream,
+      final ColumnName keyColName,
+      final WithinExpression withinExpression,
+      final FormatInfo leftFormat,
+      final FormatInfo rightFormat,
+      final Stacker contextStacker,
+      final JoinType joinType
+  ) {
+    throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
+
+    final StreamStreamSelfJoin<K> step = ExecutionStepFactory.streamStreamSelfJoin(
+        contextStacker,
+        joinType,
+        keyColName,
+        InternalFormats.of(keyFormat, leftFormat),
+        InternalFormats.of(keyFormat, rightFormat),
+        sourceStep,
+        otherSchemaKStream.sourceStep,
+        withinExpression.joinWindow(),
+        withinExpression.getGrace()
+    );
+
+    return new SchemaKStream<>(
+        step,
+        resolveSchema(step, otherSchemaKStream),
         keyFormat,
         ksqlConfig,
         functionRegistry

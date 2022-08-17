@@ -69,7 +69,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 public class JoinNode extends PlanNode implements JoiningNode {
 
   public enum JoinType {
-    INNER, LEFT, RIGHT, OUTER;
+    INNER, LEFT, RIGHT, OUTER, SELF;
 
     @Override
     public String toString() {
@@ -82,6 +82,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
           return "RIGHT [OUTER] JOIN";
         case OUTER:
           return "[FULL] OUTER JOIN";
+        case SELF:
+          return "[INNER SELF] JOIN";
         default:
           throw new IllegalStateException();
       }
@@ -98,6 +100,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private final Optional<WithinExpression> withinExpression;
   private final LogicalSchema schema;
   private final String defaultKeyFormat;
+  private boolean isSelfJoin;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public JoinNode(
@@ -175,6 +178,18 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   public PlanNode getRight() {
     return right;
+  }
+
+  public boolean isSelfJoin() {
+    return isSelfJoin;
+  }
+
+  public void setSelfJoin(final boolean selfJoin) {
+    isSelfJoin = selfJoin;
+  }
+
+  public JoinType getJoinType() {
+    return joinType;
   }
 
   @Override
@@ -454,14 +469,25 @@ public class JoinNode extends PlanNode implements JoiningNode {
               contextStacker
           );
         case INNER:
-          return leftStream.innerJoin(
-              rightStream,
-              joinNode.getKeyColumnName(),
-              joinNode.withinExpression.get(),
-              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
-              JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
-              contextStacker
-          );
+          if (joinNode.isSelfJoin) {
+            return leftStream.selfJoin(
+                rightStream,
+                joinNode.getKeyColumnName(),
+                joinNode.withinExpression.get(),
+                JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+                JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
+                contextStacker
+            );
+          } else {
+            return leftStream.innerJoin(
+                rightStream,
+                joinNode.getKeyColumnName(),
+                joinNode.withinExpression.get(),
+                JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+                JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
+                contextStacker
+            );
+          }
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
       }

@@ -26,10 +26,12 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.planner.RequiredColumns.Builder;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -127,6 +129,24 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
     });
 
     return super.validateColumns(builder.build());
+  }
+
+  @Override
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final SchemaKStream<?> stream = getSource().buildStream(buildContext);
+
+    final List<ColumnName> keyColumnNames = getSchema().key().stream()
+        .map(Column::name)
+        .collect(Collectors.toList());
+
+    return stream.noOpSelect(
+        keyColumnNames,
+        getSelectExpressions(),
+        buildContext.buildNodeContext(getId().toString()),
+        buildContext,
+        getFormatInfo()
+    );
+
   }
 
   private static ImmutableBiMap<ColumnName, ColumnName> buildAliasMapping(

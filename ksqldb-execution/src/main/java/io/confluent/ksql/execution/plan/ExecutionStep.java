@@ -68,6 +68,10 @@ public interface ExecutionStep<S> {
     return build(planBuilder, extractPlanInfo(new PlanInfoExtractor()));
   }
 
+  default S build(PlanBuilder planBuilder, PlanInfo planInfo, boolean addToTopology) {
+    return build(planBuilder, extractPlanInfo(new PlanInfoExtractor()));
+  }
+
   S build(PlanBuilder planBuilder, PlanInfo planInfo);
 
   PlanInfo extractPlanInfo(PlanInfoExtractor planInfoExtractor);

@@ -18,7 +18,7 @@ CREATE [OR REPLACE] TABLE table_name
   [ WHERE condition ]
   [ GROUP BY grouping_expression ]
   [ HAVING having_expression ]
-  [ EMIT CHANGES ];
+  [ EMIT output_refinement ];
 ```
 
 ## Description

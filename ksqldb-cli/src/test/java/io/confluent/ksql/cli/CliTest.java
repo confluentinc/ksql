@@ -1076,7 +1076,7 @@ public class CliTest {
             + "Variations  : \n";
 
     final String expectedVariant =
-        "\tVariation   : TOPK(val INT, k INT)\n"
+        "\tVariation   : TOPK(val1 INT, k INT)\n"
         + "\tReturns     : ARRAY<INT>\n"
         + "\tDescription : Calculates the top k values for an integer column, per key.";
 

@@ -203,14 +203,14 @@ final class EngineContext {
           AstSanitizer.sanitize(
               preparedStatement.getStatement(),
               metaStore,
-              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED),
-              ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED)
           ));
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          "Exception while preparing statement: " + e.getMessage(), stmt.getStatementText(), e);
+          "Exception while preparing statement: " + e.getMessage(), stmt.getMaskedStatementText(),
+          e);
     }
   }
 

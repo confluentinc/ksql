@@ -258,21 +258,12 @@ public class KsqlTesterTest {
           ? ((CreateSource) injected.getStatement()).getName()
           : ((AlterSource) injected.getStatement()).getName();
       final DataSource input = engine.getMetaStore().getSource(name);
-      final Topology topology = new Topology();
-      topology.addSource(input.getKafkaTopicName(), input.getKafkaTopicName());
-      final Properties properties = new Properties();
-      properties.put(StreamsConfig.STATE_DIR_CONFIG, tmpFolder.getRoot().getAbsolutePath());
-      properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-      properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-
-      final TopologyTestDriver driver = new TopologyTestDriver(topology, properties);
       final TopicInfo inputTopic = new TopicInfo(
           input.getKafkaTopicName(),
           keySerde(input),
           valueSerde(input)
       );
-
-      driverPipeline.addDdlTopic(driver, inputTopic);
+      driverPipeline.addDdlTopic(inputTopic);
       return;
     }
 

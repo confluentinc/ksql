@@ -32,9 +32,10 @@ public class ThroughputMetricsReporterTest {
   private static final String RECORDS_PRODUCED_TOTAL = "records-produced-total";
   private static final String BYTES_PRODUCED_TOTAL = "bytes-produced-total";
   private static final String QUERY_ID = "CTAS_TEST";
-  private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-blahblah";
-  private static final String THREAD_ID_2 = "_confluent_blahblah_query_CTAS_TEST_2-blahblah";
-  private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-blahblah";
+  private static final String THREAD_ID_SUFFIX = "3d62ddb9-d520-4cb3-9c23-968f8e61e201-StreamThread-1";
+  private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-" + THREAD_ID_SUFFIX;
+  private static final String THREAD_ID_2 = "_confluent_blahblah_query_CTAS_TEST_2-" + THREAD_ID_SUFFIX;
+  private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-" + THREAD_ID_SUFFIX;
   private static final String TASK_ID_1 = "0_1";
   private static final String TASK_ID_2 = "0_2";
   private static final String PROCESSOR_NODE_ID = "sink-node";
@@ -353,6 +354,60 @@ public class ThroughputMetricsReporterTest {
     bytesConsumedValue = bytesConsumed.measure(new MetricConfig().tags(sharedRuntimeQueryTags), 0L);
 
     assertThat(bytesConsumedValue, equalTo(17D));
+  }
+
+  @Test
+  public void shouldExtractQueryIdWithHyphenInSharedRuntimes() {
+    // Given:
+    final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
+        "logical_cluster_id", "lksqlc-12345",
+        "query-id", "CSAS_TEST_COPY-STREAM_1_23",
+        "member", "_confluent_blahblah_query-1-blahblah",
+        "topic", TOPIC_NAME
+    );
+    listener.metricChange(mockMetric(
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        ImmutableMap.of(
+            "thread-id", "_confluent_blahblah_query-1-blahblah",
+            "task-id", "CSAS_TEST_COPY-STREAM_1_23__" + TASK_ID_1,
+            "processor-node-id", PROCESSOR_NODE_ID,
+            "topic", TOPIC_NAME))
+    );
+
+    Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, sharedRuntimeQueryTags);
+    Object bytesConsumedValue =
+        bytesConsumed.measure(new MetricConfig().tags(sharedRuntimeQueryTags), 0L);
+    assertThat(bytesConsumedValue, equalTo(2D));
+  }
+
+  @Test
+  public void shouldExtractQueryIdWithHyphenInUnsharedRuntimes() {
+    // Given:
+    final String threadId =
+        "_confluent-ksql-pksqlc-d1m0zquery_"                           // thread prefix
+            + "CSAS_TEST_COPY-STREAM_1_23"                             // query id
+            + "-3d62ddb9-d520-4cb3-9c23-968f8e61e201-StreamThread-1";  // thread    suffix
+    final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
+        "logical_cluster_id", "lksqlc-12345",
+        "query-id", "CSAS_TEST_COPY-STREAM_1_23",
+        "member", threadId,
+        "topic", TOPIC_NAME
+    );
+    listener.metricChange(mockMetric(
+        BYTES_CONSUMED_TOTAL,
+        2D,
+        ImmutableMap.of(
+            "thread-id", threadId,
+            "task-id", TASK_ID_1,
+            "processor-node-id", PROCESSOR_NODE_ID,
+            "topic", TOPIC_NAME))
+    );
+
+    Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, sharedRuntimeQueryTags);
+    Object bytesConsumedValue =
+        bytesConsumed.measure(new MetricConfig().tags(sharedRuntimeQueryTags), 0L);
+    assertThat(bytesConsumedValue, equalTo(2D));
   }
 
   @Test

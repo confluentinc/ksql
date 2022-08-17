@@ -171,6 +171,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
           "internal topics"
       );
       if (!topologyName.isPresent() || isTransient) {
+        LOG.info("Deleting offsets for appId: {}", appId);
         tryRun(
             () -> serviceContext
                 .getConsumerGroupClient()

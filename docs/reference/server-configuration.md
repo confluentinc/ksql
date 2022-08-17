@@ -375,7 +375,9 @@ messages. By default, this property has the value `false`.
 !!! important
     In {{ site.ccloud }}, `ksql.logging.processing.rows.include` is set
     to `true`, so the default behavior is to include row data in the
-    processing log. Contact support to disable this default setting.
+    processing log. It can be configured manually when provisioning the cluster in 
+    {{ site.ccloud }} by toggling **Hide row data in processing log** when provisioning 
+    in the UI, or by setting the `log-exclude-rows` flag in the CLI.
 
 ## `ksql.logging.server.rate.limited.response.codes`
 
@@ -868,6 +870,13 @@ at the limit.
 Sets the maximum number of concurrent pull queries. This limit is enforced per host, not per cluster.
 After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
+
+## `ksql.suppress.enabled`
+
+**Per query:** yes
+
+Enable the EMIT FINAL output refinement in a SELECT statement to suppress
+intermediate results on a windowed aggregation. The default is `true`.
 
 ## `ksql.idle.connection.timeout.seconds`
 

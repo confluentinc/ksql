@@ -76,11 +76,11 @@ public class SchemaRegistryUtilTest {
         .thenReturn(AVRO_SCHEMA);
 
     // When:
-    final Optional<ParsedSchema> parsedSchema =
-        SchemaRegistryUtil.getLatestParsedSchema(schemaRegistryClient, "bar", false);
+    final Optional<SchemaAndId> schemaAndId =
+        SchemaRegistryUtil.getLatestSchemaAndId(schemaRegistryClient, "bar", false);
 
     // Then:
-    assertThat(parsedSchema.get(), equalTo(AVRO_SCHEMA));
+    assertThat(schemaAndId.get().getSchema(), equalTo(AVRO_SCHEMA));
   }
 
   @Test
@@ -124,11 +124,11 @@ public class SchemaRegistryUtilTest {
         .thenReturn(AVRO_SCHEMA);
 
     // When:
-    final Optional<ParsedSchema> parsedSchema =
-        SchemaRegistryUtil.getLatestParsedSchema(schemaRegistryClient, "bar", true);
+    final Optional<SchemaAndId> schemaAndId =
+        SchemaRegistryUtil.getLatestSchemaAndId(schemaRegistryClient, "bar", true);
 
     // Then:
-    assertThat(parsedSchema.get(), equalTo(AVRO_SCHEMA));
+    assertThat(schemaAndId.get().getSchema(), equalTo(AVRO_SCHEMA));
   }
 
   @Test

@@ -31,12 +31,13 @@ import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -60,7 +61,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-
 public class AggregateNode extends SingleSourcePlanNode implements VerifiableNode {
 
   private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
@@ -82,7 +82,9 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   private final ValueFormat valueFormat;
   private final LogicalSchema schema;
   private final KsqlConfig ksqlConfig;
+  private final ExpressionTypeManager sourceTypeManager;
 
+  @SuppressWarnings("checkstyle:ParameterNumber")
   public AggregateNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -93,7 +95,8 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final AggregateAnalysisResult rewrittenAggregateAnalysis,
       final List<SelectExpression> projectionExpressions,
       final boolean persistentQuery,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final LogicalSchema sourceSchema
   ) {
     super(id, DataSourceType.KTABLE, Optional.empty(), source);
 
@@ -132,6 +135,8 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         .getDataSource()
         .getKsqlTopic()
         .getValueFormat();
+
+    this.sourceTypeManager = new ExpressionTypeManager(sourceSchema, functionRegistry);
   }
 
   @Override
@@ -152,8 +157,12 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
     final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
     final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(buildContext);
 
-    final InternalSchema internalSchema =
-        new InternalSchema(requiredColumns, aggregateFunctionArguments);
+    final InternalSchema internalSchema = new InternalSchema(
+            requiredColumns,
+            aggregateFunctionArguments,
+            buildContext.getFunctionRegistry(),
+            sourceTypeManager
+    );
 
     final SchemaKStream<?> preSelected = selectRequiredInputColumns(
         sourceSchemaKStream, internalSchema, contextStacker, buildContext);
@@ -267,13 +276,19 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
 
     private final List<SelectExpression> aggArgExpansions = new ArrayList<>();
     private final Map<String, ColumnName> expressionToInternalColumnName = new HashMap<>();
+    private final FunctionRegistry functionRegistry;
+    private final ExpressionTypeManager sourceTypeManager;
 
     InternalSchema(
         final List<ColumnReferenceExp> requiredColumns,
-        final List<Expression> aggregateFunctionArguments
+        final List<Expression> aggregateFunctionArguments,
+        final FunctionRegistry functionRegistry,
+        final ExpressionTypeManager sourceTypeManager
     ) {
       collectAggregateArgExpressions(requiredColumns);
       collectAggregateArgExpressions(aggregateFunctionArguments);
+      this.functionRegistry = functionRegistry;
+      this.sourceTypeManager = sourceTypeManager;
     }
 
     private void collectAggregateArgExpressions(
@@ -297,34 +312,41 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
     /**
      * Return the aggregate function arguments based on the internal expressions.
      *
-     * <p>Aggregate functions can take any number of arguments. All but the first argument must be
-     * literals, i.e. a constant.
+     * <p>Aggregate functions can take any number of arguments.
      *
+     * @param functionName The name of the aggregate function.
      * @param params The list of parameters for the aggregate function.
      * @return The list of arguments based on the internal expressions for the aggregate function.
      */
-    List<Expression> updateArgsExpressionList(final List<Expression> params) {
+    List<Expression> updateArgsExpressionList(final FunctionName functionName,
+                                              final List<Expression> params) {
       if (params.isEmpty()) {
         return ImmutableList.of();
       }
 
-      for (int idx = 1; idx != params.size(); idx++) {
-        final Expression param = params.get(idx);
-        if (!(param instanceof Literal)) {
-          throw new IllegalArgumentException("Parameter " + (idx + 1)
-              + " must be a constant, but was expression: " + param);
-        }
-      }
+      final int numInitArgs = functionRegistry.getAggregateFactory(functionName).getFunction(
+              params.stream()
+                      .map(sourceTypeManager::getExpressionSqlType)
+                      .collect(Collectors.toList())
+      ).initArgs;
+      final int numColArgs = params.size() - numInitArgs;
 
       final List<Expression> internalParams = new ArrayList<>(params.size());
-      internalParams.add(resolveToInternal(params.get(0)));
-      internalParams.addAll(params.subList(1, params.size()));
+
+      internalParams.addAll(params.subList(0, numColArgs).stream()
+              .map(this::resolveToInternal)
+              .collect(Collectors.toList()));
+      internalParams.addAll(params.subList(numColArgs, params.size()));
+
       return internalParams;
     }
 
     List<FunctionCall> updateFunctionList(final ImmutableList<FunctionCall> functions) {
       return functions.stream()
-          .map(fc -> new FunctionCall(fc.getName(), updateArgsExpressionList(fc.getArguments())))
+          .map(fc -> new FunctionCall(fc.getName(), updateArgsExpressionList(
+                  fc.getName(),
+                  fc.getArguments()
+          )))
           .collect(Collectors.toList());
     }
 

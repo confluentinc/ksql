@@ -263,6 +263,38 @@ public class AggregateNodeTest {
   }
 
   @Test
+  public void shouldBuildCorrectMultiArgAggregateSchema() {
+    // When:
+    final SchemaKStream<?> stream = buildQuery("SELECT col0, multi_arg(col0, col1, 20) FROM test1 "
+            + "window TUMBLING (size 2 second) "
+            + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
+
+    // Then:
+    assertThat(stream.getSchema(), is(LogicalSchema.builder()
+            .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.BIGINT)
+            .build()
+    ));
+  }
+
+  @Test
+  public void shouldBuildCorrectVarArgAggregateSchema() {
+    // When:
+    final SchemaKStream<?> stream = buildQuery("SELECT col0, var_arg(col0, col1, col2) FROM test1 "
+            + "window TUMBLING (size 2 second) "
+            + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
+
+    // Then:
+    assertThat(stream.getSchema(), is(LogicalSchema.builder()
+            .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.BIGINT)
+            .build()
+    ));
+  }
+
+  @Test
   public void shouldBeSchemaKTableResult() {
     final SchemaKStream stream = build();
     assertThat(stream.getClass(), equalTo(SchemaKTable.class));

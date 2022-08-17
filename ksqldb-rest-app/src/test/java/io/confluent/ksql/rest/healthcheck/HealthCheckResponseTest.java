@@ -31,13 +31,13 @@ import org.junit.Test;
 public class HealthCheckResponseTest {
   private static final boolean IS_HEALTHY_BOOLEAN =  true;
   private static final HealthCheckResponseDetail IS_HEALTHY_DETAIL =  new HealthCheckResponseDetail(IS_HEALTHY_BOOLEAN);
-
+  private static final String SERVER_STATE = "READY";
   @Test
   public void shouldDeserializeCorrectly() throws IOException {
     final String healthCheckResponseStr = "{" +
         "\"isHealthy\": true, " +
         "\"details\": {\"metastore\": {\"isHealthy\": true}, \"kafka\": {\"isHealthy\": true}}, " +
-        "\"serverState\": \"RUNNING\"" +
+        "\"serverState\": \"READY\"" +
         "}";
     final ObjectMapper mapper = PlanJsonMapper.INSTANCE.get();
     final HealthCheckResponse healthCheckResponse = mapper.readValue(healthCheckResponseStr, HealthCheckResponse.class);
@@ -46,7 +46,7 @@ public class HealthCheckResponseTest {
     details.put("metastore",IS_HEALTHY_DETAIL);
     details.put("kafka", IS_HEALTHY_DETAIL);
     assertThat(healthCheckResponse.getDetails(), equalTo(details));
-    final String serverState = "RUNNING";
+    final Optional<String> serverState = Optional.of(SERVER_STATE);
     assertThat(healthCheckResponse.getServerState(), equalTo(serverState));
   }
 
@@ -77,7 +77,7 @@ public class HealthCheckResponseTest {
     final HashMap<String, HealthCheckResponseDetail> details = new HashMap<>();
     details.put("metastore", IS_HEALTHY_DETAIL);
     details.put("kafka", IS_HEALTHY_DETAIL);
-    final Optional<String> serverState = Optional.of("RUNNING");
+    final Optional<String> serverState = Optional.of(SERVER_STATE);
 
     final HealthCheckResponse healthCheckResponse = new HealthCheckResponse(
         IS_HEALTHY_BOOLEAN,
@@ -88,7 +88,7 @@ public class HealthCheckResponseTest {
     final String serialized = mapper.writeValueAsString(healthCheckResponse);
     grep(serialized, ".*\"isHealthy\":true.*");
     grep(serialized, ".*\"details\":\\{\"metastore\":\\{\"isHealthy\":true\\},\"kafka\":\\{\"isHealthy\":true\\}\\}.*");
-    grep(serialized, ".*\"serverState\":\"RUNNING\".*");
+    grep(serialized, ".*\"serverState\":\"READY\".*");
     final HealthCheckResponse deserialized = mapper.readValue(serialized, HealthCheckResponse.class);
     assertThat(deserialized, equalTo(healthCheckResponse));
   }

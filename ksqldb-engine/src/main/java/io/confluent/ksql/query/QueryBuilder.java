@@ -579,8 +579,7 @@ final class QueryBuilder {
         ? queryId.get().toString()
         : QueryApplicationId.PERSISTENT_QUERY_INDICATOR;
 
-    if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        && type.equals(QueryApplicationId.PERSISTENT_QUERY_INDICATOR)) {
+    if (!queryId.isPresent()) {
       newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
           ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
               + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)

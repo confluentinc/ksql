@@ -1180,7 +1180,7 @@ public class AstBuilderTest {
     assertThat(createTableLocation.getLineNumber(), is(1));
     assertThat(createTableLocation.getColumnNumber(), is(1));
     assertThat(createTableLocation.getEndLine(), is(OptionalInt.of(12)));
-    assertThat(createTableLocation.getEndColumnNumber(), is(OptionalInt.of(21)));
+    assertThat(createTableLocation.getEndColumnNumber(), is(OptionalInt.of(("  HAVING COUNT(*) > 0;").length())));
     assertThat(createTableLocation.getLength(), is(OptionalInt.of(statementString.length() - 1)));
 
     final Query query = result.getQuery();
@@ -1189,8 +1189,19 @@ public class AstBuilderTest {
     assertThat(queryLocation.getLineNumber(), is(3));
     assertThat(queryLocation.getColumnNumber(), is(3));
     assertThat(queryLocation.getEndLine(), is(OptionalInt.of(12)));
-    assertThat(queryLocation.getEndColumnNumber(), is(OptionalInt.of(21)));
-    assertThat(queryLocation.getLength(), is(OptionalInt.of(310)));
+    assertThat(queryLocation.getEndColumnNumber(), is(OptionalInt.of(("  HAVING COUNT(*) > 0").length() + 1)));
+    assertThat(queryLocation.getLength(),
+        is(OptionalInt.of((
+            "SELECT C.EMAIL,\n" +
+            "         B.id,\n" +
+            "         B.flight_id,\n" +
+            "         COUNT(*)\n" +
+            "  FROM bookings B\n" +
+            "       INNER JOIN customers C ON B.customer_id = C.id\n" +
+            "  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)\n" +
+            "  WHERE B.customer_id > 0 AND INSTR(C.EMAIL, '@') > 0\n" +
+            "  GROUP BY C.EMAIL, B.ID, B.flight_id\n" +
+            "  HAVING COUNT(*) > 0").length() + 1)));
 
     final Select select = query.getSelect();
     assertTrue(select.getLocation().isPresent());
@@ -1198,8 +1209,9 @@ public class AstBuilderTest {
     assertThat(selectLocation.getLineNumber(), is(3));
     assertThat(selectLocation.getColumnNumber(), is(3));
     assertThat(selectLocation.getEndLine(), is(OptionalInt.of(3)));
-    assertThat(selectLocation.getEndColumnNumber(), is(OptionalInt.of(8)));
-    assertThat(selectLocation.getLength(), is(OptionalInt.of(6)));
+    assertThat(selectLocation.getEndColumnNumber(), is(OptionalInt.of("  SELECT".length() + 1)));
+    assertThat(selectLocation.getLength(),
+        is(OptionalInt.of("SELECT".length())));
 
     final Join join = (Join) query.getFrom();
     assertTrue(join.getLocation().isPresent());
@@ -1207,8 +1219,12 @@ public class AstBuilderTest {
     assertThat(joinLocation.getLineNumber(), is(7));
     assertThat(joinLocation.getColumnNumber(), is(8));
     assertThat(joinLocation.getEndLine(), is(OptionalInt.of(8)));
-    assertThat(joinLocation.getEndColumnNumber(), is(OptionalInt.of(53)));
-    assertThat(joinLocation.getLength(), is(OptionalInt.of(64)));
+    assertThat(joinLocation.getEndColumnNumber(),
+        is(OptionalInt.of(("       INNER JOIN customers C ON B.customer_id = C.id").length() + 1)));
+    assertThat(joinLocation.getLength(),
+        is(OptionalInt.of((
+                   "bookings B\n" +
+            "       INNER JOIN customers C ON B.customer_id = C.id\n").length())));
 
     assertTrue(query.getWindow().isPresent());
     final WindowExpression window = query.getWindow().get();
@@ -1217,8 +1233,9 @@ public class AstBuilderTest {
     assertThat(windowLocation.getLineNumber(), is(9));
     assertThat(windowLocation.getColumnNumber(), is(10));
     assertThat(windowLocation.getEndLine(), is(OptionalInt.of(9)));
-    assertThat(windowLocation.getEndColumnNumber(), is(OptionalInt.of(53)));
-    assertThat(windowLocation.getLength(), is(OptionalInt.of(44)));
+    assertThat(windowLocation.getEndColumnNumber(), is(OptionalInt.of(("TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)").length() + 1)));
+    assertThat(windowLocation.getLength(),
+        is(OptionalInt.of(("TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)\n").length())));
 
     assertTrue(query.getWhere().isPresent());
     final LogicalBinaryExpression where = (LogicalBinaryExpression) query.getWhere().get();
@@ -1237,8 +1254,9 @@ public class AstBuilderTest {
     assertThat(groupByLocation.getLineNumber(), is(11));
     assertThat(groupByLocation.getColumnNumber(), is(12));
     assertThat(groupByLocation.getEndLine(), is(OptionalInt.of(11)));
-    assertThat(groupByLocation.getEndColumnNumber(), is(OptionalInt.of(37)));
-    assertThat(groupByLocation.getLength(), is(OptionalInt.of(26)));
+    assertThat(groupByLocation.getEndColumnNumber(), is(OptionalInt.of("C.EMAIL, B.ID, B.flight_id".length() + 1)));
+    assertThat(groupByLocation.getLength(),
+        is(OptionalInt.of("C.EMAIL, B.ID, B.flight_id\n".length())));
 
     assertTrue(query.getHaving().isPresent());
     final ComparisonExpression having = (ComparisonExpression) query.getHaving().get();

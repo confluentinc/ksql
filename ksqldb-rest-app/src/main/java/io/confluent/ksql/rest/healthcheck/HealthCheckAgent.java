@@ -86,7 +86,7 @@ public class HealthCheckAgent {
         ));
     final boolean allHealthy = results.values().stream()
         .allMatch(HealthCheckResponseDetail::getIsHealthy);
-    State serverState = commandRunner.checkServerState();
+    final State serverState = commandRunner.checkServerState();
     return new HealthCheckResponse(allHealthy, results, Optional.of(serverState.toString()));
   }
 

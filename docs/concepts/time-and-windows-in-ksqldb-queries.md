@@ -614,3 +614,27 @@ CREATE TABLE pageviews_per_region AS
 Note that the specified retention period should be larger than the sum of window size and any grace
 period.
 
+### Window final results
+
+In ksqlDB, windowed aggregations update their results continuously. As new data
+arrives for a window, freshly computed results are emitted downstream. For many
+applications, this is ideal, since fresh results are always available, and
+ksqlDB is designed to make programming continuous computations seamless.
+
+However, some applications need to take action only on the final result of a
+windowed computation. Common examples include sending alerts or delivering
+results to a system that doesn't support updates.
+
+Suppose that you have an hourly windowed count of events per user. If you want
+to send an alert when a user has less than three events in an hour, you have a
+real challenge. All users would match this condition at first, until they
+accrue enough events, so you can’t simply send an alert when someone matches
+the condition; you have to wait until you know you won’t see any more events
+for a particular window, and then send the alert.
+
+ksqlDB offers a clean way to define this logic: after defining your windowed
+aggregation, you can suppress the intermediate results, emitting the final
+count for each user when the window is closed.
+
+Specify EMIT FINAL in your SELECT statement to suppress intermediate results.
+

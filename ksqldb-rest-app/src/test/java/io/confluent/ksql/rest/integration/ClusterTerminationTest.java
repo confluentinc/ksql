@@ -20,6 +20,7 @@ import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
@@ -133,7 +134,7 @@ public class ClusterTerminationTest {
     );
 
     // Then:
-    shouldReturn50304WhenTerminating();
+    shouldReturn50303or50304WhenTerminating();
   }
 
   @Test
@@ -178,7 +179,7 @@ public class ClusterTerminationTest {
     assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(1));
 
     // Then:
-    shouldReturn50304WhenTerminating();
+    shouldReturn50303or50304WhenTerminating();
   }
 
   private void waitForTopicsToBeAbsentWithTimeout(final String topic) {
@@ -217,17 +218,18 @@ public class ClusterTerminationTest {
     );
 
     // Then:
-    shouldReturn50304WhenTerminating();
+    shouldReturn50303or50304WhenTerminating();
   }
 
-  private void shouldReturn50304WhenTerminating() {
+  private void shouldReturn50303or50304WhenTerminating() {
     // Given: TERMINATE CLUSTER has been issued
 
     // When:
     final KsqlErrorMessage error = RestIntegrationTestUtil.makeKsqlRequestWithError(REST_APP_0, "SHOW STREAMS;");
 
     // Then:
-    assertThatEventually(() -> error.getErrorCode(), is(Errors.ERROR_CODE_SERVER_SHUT_DOWN));
+    assertThatEventually(error::getErrorCode,
+        either(is(Errors.ERROR_CODE_SERVER_SHUT_DOWN)).or(is(Errors.ERROR_CODE_SERVER_SHUTTING_DOWN)));
   }
 
   private static void terminateCluster(final List<String> deleteTopicList, final TestKsqlRestApp app) {

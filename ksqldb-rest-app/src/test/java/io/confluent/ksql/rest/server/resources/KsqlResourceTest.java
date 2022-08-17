@@ -1073,17 +1073,64 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
+  public void shouldReturnCustomErrorOnRawException() {
     // Given:
     final String errorMsg = "some error";
-    when(errorsHandler.generateResponse(any(), any())).thenReturn(EndpointResponse.create()
+    final Exception e = new KsqlTopicAuthorizationException(
+        AclOperation.DELETE,
+        Collections.singleton("topic"));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
         .status(FORBIDDEN.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
         .build());
-    doThrow(new KsqlTopicAuthorizationException(
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "DROP STREAM TEST_STREAM DELETE TOPIC;",
+        FORBIDDEN.code());
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(errorMsg));
+  }
+
+  @Test
+  public void shouldReturnCustomErrorOnKsqlException() {
+    // Given:
+    final String errorMsg = "some error";
+    final Exception e = new KsqlException(new KsqlTopicAuthorizationException(
         AclOperation.DELETE,
-        Collections.singleton("topic"))).when(authorizationValidator)
-        .checkAuthorization(any(), any(), any());
+        Collections.singleton("topic")));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
+        .status(FORBIDDEN.code())
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
+        .build());
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "DROP STREAM TEST_STREAM DELETE TOPIC;",
+        FORBIDDEN.code());
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(errorMsg));
+  }
+
+  @Test
+  public void shouldReturnCustomErrorOnKsqlStatementException() {
+    // Given:
+    final String errorMsg = "some error";
+    final Exception e = new KsqlStatementException("foo", "sql",
+        new KsqlTopicAuthorizationException(AclOperation.DELETE, Collections.singleton("topic")));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
+        .status(FORBIDDEN.code())
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
+        .build());
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1308,7 +1355,7 @@ public class KsqlResourceTest {
     verify(sandbox).plan(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getStatementText()))),
+        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getUnMaskedStatementText()))),
         any()
     );
   }
@@ -1558,6 +1605,23 @@ public class KsqlResourceTest {
         "Unknown queryId: UNKNOWN_QUERY_ID"))));
     assertThat(e, exceptionStatementErrorMessage(statement(is(
         "TERMINATE unknown_query_id;"))));
+  }
+
+  @Test
+  public void shouldThrowOnInsertBadQuery() {
+    // When:
+    final String query = "--this is a comment. \n"
+        + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
+        + "(\"key\", 0.125, 1);";
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> makeRequest(query)
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
+    assertThat(e, exceptionStatementErrorMessage(statement(is(
+        "INSERT INTO `FOO` (`KEY_COL`, `COL_A`) VALUES ('[value]', '[value]', '[value]');"))));
   }
 
   @Test
@@ -2316,7 +2380,7 @@ public class KsqlResourceTest {
                 .prepare(invocation.getArgument(0), Collections.emptyMap()));
     when(sandbox.plan(any(), any())).thenAnswer(
         i -> KsqlPlan.ddlPlanCurrent(
-            ((ConfiguredStatement<?>) i.getArgument(1)).getStatementText(),
+            ((ConfiguredStatement<?>) i.getArgument(1)).getMaskedStatementText(),
             new DropSourceCommand(SourceName.of("bob"))
         )
     );

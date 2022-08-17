@@ -13,18 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.security;
+package io.confluent.ksql.schema.registry;
 
-/**
- * Interface to extract auth token information to ksqlDB
- */
-public interface KsqlAuthTokenProvider {
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 
-  /**
-   * Extract the lifetime of a token from the Principal.
-   *
-   * @param token The auth token.
-   * @return The expiration time of the token in ms
-   */
-  long getLifetimeMs(String token);
+public class SchemaAndId {
+
+  private ParsedSchema schema;
+  private Integer id;
+
+  public SchemaAndId(final ParsedSchema schema, final int id) {
+    this.schema = schema;
+    this.id = id;
+  }
+
+  public ParsedSchema getSchema() {
+    return schema;
+  }
+
+  public Integer getId() {
+    return id;
+  }
+
 }

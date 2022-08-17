@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -37,6 +38,9 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.CommandId;
+import io.confluent.ksql.rest.entity.CommandId.Action;
+import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -134,6 +138,12 @@ public class CommandRunnerTest {
     when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     when(queuedCommand3.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    when(queuedCommand1.getAndDeserializeCommandId()).thenReturn(
+        new CommandId(Type.STREAM, "foo1", Action.CREATE));
+    when(queuedCommand2.getAndDeserializeCommandId()).thenReturn(
+        new CommandId(Type.STREAM, "foo2", Action.CREATE));
+    when(queuedCommand3.getAndDeserializeCommandId()).thenReturn(
+        new CommandId(Type.STREAM, "foo3", Action.CREATE));
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand1);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);
@@ -525,6 +535,42 @@ public class CommandRunnerTest {
 
     // Then:
     verify(statementExecutor, never()).handleRestore(queuedCommand2);
+  }
+
+  @Test
+  public void shouldNotCleanUpInDegradedMode() {
+    // Given:
+    when(commandStore.corruptionDetected()).thenReturn(true);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
+
+    // When:
+    commandRunner.processPriorCommands(persistentQueryCleanupImpl);
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(persistentQueryCleanupImpl, never()).cleanupLeakedQueries(any());
+  }
+
+  @Test
+  public void shouldCleanUpInNotDegradedMode() {
+    // Given:
+    when(commandStore.corruptionDetected()).thenReturn(false);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
+
+    // When:
+    commandRunner.processPriorCommands(persistentQueryCleanupImpl);
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(persistentQueryCleanupImpl, atLeastOnce()).cleanupLeakedQueries(any());
   }
 
   @Test

@@ -37,7 +37,8 @@ public class KsqlCorsHandler implements Handler<RoutingContext> {
       .asList("X-Requested-With", "Content-Type", "Accept", "Origin");
   private static final List<String> EXCLUDED_PATH_PREFIXES = Collections.singletonList("/ws/");
 
-  static void setupCorsHandler(final KsqlRestConfig ksqlRestConfig, final Router router) {
+  static void setupCorsHandler(final Server server, final Router router) {
+    final KsqlRestConfig ksqlRestConfig = server.getConfig();
     final String allowedOrigins = ksqlRestConfig
         .getString(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG);
     if (allowedOrigins.trim().isEmpty()) {

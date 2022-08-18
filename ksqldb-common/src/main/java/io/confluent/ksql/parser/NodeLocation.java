@@ -24,65 +24,48 @@ import java.util.OptionalInt;
 @SuppressWarnings("checkstyle:CyclomaticComplexity")
 public final class NodeLocation {
 
-  private final int startLine;
-  private final int startCharPositionInLine;
-  private final OptionalInt startStartIndex;
-  private final OptionalInt startStopIndex;
-  private final OptionalInt endLine;
-  private final OptionalInt stopCharPositionInLine;
-  private final OptionalInt stopStartIndex;
-  private final OptionalInt stopStopIndex;
+  private final TokenLocation start;
+  private final TokenLocation stop;
 
-  public NodeLocation(final int startLine,
-                      final int startCharPositionInLine,
-                      final OptionalInt startStartIndex,
-                      final OptionalInt startStopIndex,
-                      final OptionalInt endLine,
-                      final OptionalInt stopCharPositionInLine,
-                      final OptionalInt stopStartIndex,
-                      final OptionalInt stopStopIndex) {
-    this.startLine = startLine;
-    this.startCharPositionInLine = startCharPositionInLine;
-    this.startStartIndex = startStartIndex;
-    this.startStopIndex = startStopIndex;
-    this.endLine = endLine;
-    this.stopCharPositionInLine = stopCharPositionInLine;
-    this.stopStartIndex = stopStartIndex;
-    this.stopStopIndex = stopStopIndex;
+  public NodeLocation(final TokenLocation start, final TokenLocation stop) {
+    this.start = start;
+    this.stop = stop;
   }
 
   public NodeLocation(final int startLine, final int startCharPositionInLine) {
-    this.startLine = startLine;
-    this.startCharPositionInLine = startCharPositionInLine;
-    this.startStartIndex = OptionalInt.empty();
-    this.startStopIndex = OptionalInt.empty();
-    this.endLine = OptionalInt.empty();
-    this.stopCharPositionInLine = OptionalInt.empty();
-    this.stopStartIndex = OptionalInt.empty();
-    this.stopStopIndex = OptionalInt.empty();
+    this.start = TokenLocation.of(startLine, startCharPositionInLine);
+    this.stop = TokenLocation.empty();
   }
 
-  public int getLineNumber() {
-    return startLine;
+  public int getStartLineNumber() {
+    return start.getLine().getAsInt();
   }
 
-  public int getColumnNumber() {
-    return startCharPositionInLine + 1;
+  public int getStartColumnNumber() {
+    return start.getCharPositionInLine().getAsInt() + 1;
   }
 
-  public OptionalInt getEndLine() {
-    return endLine;
+  public OptionalInt getStopLine() {
+    return stop.getLine();
   }
 
-  public OptionalInt getEndColumnNumber() {
-    return OptionalInt.of(stopCharPositionInLine.getAsInt()
-        + stopStopIndex.getAsInt()
-        - stopStartIndex.getAsInt()
+  public OptionalInt getStopColumnNumber() {
+    return OptionalInt.of(stop.getCharPositionInLine().getAsInt()
+        + stop.getStopIndex().getAsInt()
+        - stop.getStartIndex().getAsInt()
         + 1);
   }
 
   public OptionalInt getLength() {
-    return OptionalInt.of(stopStopIndex.getAsInt() - startStartIndex.getAsInt() + 1);
+    return OptionalInt.of(stop.getStopIndex().getAsInt() - start.getStartIndex().getAsInt() + 1);
+  }
+
+  public TokenLocation getStartTokenLocation() {
+    return start;
+  }
+
+  public TokenLocation getStopTokenLocation() {
+    return stop;
   }
 
   public String asPrefix() {
@@ -97,7 +80,9 @@ public final class NodeLocation {
 
   @Override
   public String toString() {
-    return String.format("Line: %d, Col: %d", startLine, startCharPositionInLine + 1);
+    return String.format("Line: %d, Col: %d",
+        start.getLine().getAsInt(),
+        start.getCharPositionInLine().getAsInt() + 1);
   }
 
   @Override
@@ -111,25 +96,12 @@ public final class NodeLocation {
     }
 
     final NodeLocation that = (NodeLocation) o;
-    return startLine == that.startLine
-        && startCharPositionInLine == that.startCharPositionInLine
-        && startStartIndex == that.startStartIndex
-        && startStopIndex == that.startStopIndex
-        && endLine == that.endLine
-        && stopCharPositionInLine == that.stopCharPositionInLine
-        && stopStartIndex == that.stopStartIndex
-        && stopStopIndex == that.stopStartIndex;
+    return start.equals(that.start)
+        && stop.equals(that.stop);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(startLine,
-        startCharPositionInLine,
-        startStartIndex,
-        startStopIndex,
-        endLine,
-        stopCharPositionInLine,
-        stopStartIndex,
-        stopStopIndex);
+    return Objects.hash(start, stop);
   }
 }

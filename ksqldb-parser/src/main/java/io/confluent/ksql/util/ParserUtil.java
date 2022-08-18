@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
+import io.confluent.ksql.parser.TokenLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import java.math.BigDecimal;
@@ -210,14 +211,22 @@ public final class ParserUtil {
   public static Optional<NodeLocation> getLocation(final Token start, final Token stop) {
     requireNonNull(start, "Start token is null");
     requireNonNull(stop, "Stop token is null");
-    return Optional.of(new NodeLocation(start.getLine(),
-        start.getCharPositionInLine(),
+
+    final TokenLocation startLocation = new TokenLocation(
+        OptionalInt.of(start.getLine()),
+        OptionalInt.of(start.getCharPositionInLine()),
         OptionalInt.of(start.getStartIndex()),
-        OptionalInt.of(start.getStopIndex()),
+        OptionalInt.of(start.getStopIndex())
+    );
+
+    final TokenLocation stopLocation = new TokenLocation(
         OptionalInt.of(stop.getLine()),
         OptionalInt.of(stop.getCharPositionInLine()),
         OptionalInt.of(stop.getStartIndex()),
-        OptionalInt.of(stop.getStopIndex())));
+        OptionalInt.of(stop.getStopIndex())
+    );
+
+    return Optional.of(new NodeLocation(startLocation, stopLocation));
   }
 
   public static Optional<NodeLocation> getLocation(final Token token) {

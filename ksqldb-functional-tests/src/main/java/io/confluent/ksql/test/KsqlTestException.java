@@ -83,7 +83,7 @@ public class KsqlTestException extends KsqlException {
         message,
         new LocationWithinFile(
             file,
-            loc.map(NodeLocation::getLineNumber).orElse(1))
+            loc.map(NodeLocation::getStartLineNumber).orElse(1))
     );
   }
 
@@ -99,7 +99,7 @@ public class KsqlTestException extends KsqlException {
         message,
         new LocationWithinFile(
             file,
-            assertStatement.getLocation().map(NodeLocation::getLineNumber).orElse(1))
+            assertStatement.getLocation().map(NodeLocation::getStartLineNumber).orElse(1))
     );
   }
 
@@ -115,7 +115,7 @@ public class KsqlTestException extends KsqlException {
         message,
         new LocationWithinFile(
             file,
-            directive.getLocation().getLineNumber())
+            directive.getLocation().getStartLineNumber())
     );
   }
 

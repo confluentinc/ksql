@@ -21,12 +21,12 @@ import java.util.OptionalInt;
 /**
  * Wrapper class for encapsulating the location information of the
  * antlr Token {@link org.antlr.v4.runtime.Token}
- * */
+ */
 public class TokenLocation {
 
   /**
    * line number returned by {@link org.antlr.v4.runtime.Token#getLine()}
-   * */
+   */
   private final OptionalInt line;
 
   /**
@@ -42,7 +42,7 @@ public class TokenLocation {
 
   /**
    * stop index returned by {@link org.antlr.v4.runtime.Token#getStopIndex()}
-   * */
+   */
   private final OptionalInt stopIndex;
 
   public static TokenLocation empty() {

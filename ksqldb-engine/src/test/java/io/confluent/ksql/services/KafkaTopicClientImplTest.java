@@ -135,6 +135,19 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldCreateTopicWithEmptyConfigs() {
+    Map<String, ?> configs = ImmutableMap.of();
+    // When:
+    kafkaTopicClient.createTopic("someTopic", 1, (short) 2);
+
+    // Then:
+    verify(adminClient).createTopics(
+        eq(ImmutableSet.of(newTopic("someTopic", 1, 2, configs))),
+        argThat(createOptions -> !createOptions.shouldValidateOnly())
+    );
+  }
+
+  @Test
   public void shouldNotCreateTopicIfItAlreadyExistsWithMatchingDetails() {
     // Given:
     givenTopicExists("someTopic", 3, 2);
@@ -204,7 +217,7 @@ public class KafkaTopicClientImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "and 1000 retention (topic has 8640000000)"));
+        "and 1000 retention (topic has 8640000000)."));
   }
 
   @Test

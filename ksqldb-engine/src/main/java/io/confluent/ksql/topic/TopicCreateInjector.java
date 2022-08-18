@@ -103,6 +103,9 @@ public class TopicCreateInjector implements Injector {
     final CreateSource createSource = statement.getStatement();
     final CreateSourceProperties properties = createSource.getProperties();
 
+    final String topicCleanUpPolicy = createSource instanceof CreateTable
+        ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
+
     final String topicName = properties.getKafkaTopic();
 
     if (topicClient.isTopicExists(topicName)) {
@@ -122,6 +125,8 @@ public class TopicCreateInjector implements Injector {
               + "For example: " + SqlFormatter.formatSql(example));
     }
 
+    throwIfRetentionPresentForTable(topicCleanUpPolicy, properties.getRetentionInMillis());
+
     topicPropertiesBuilder
         .withName(topicName)
         .withWithClause(
@@ -129,9 +134,6 @@ public class TopicCreateInjector implements Injector {
             properties.getPartitions(),
             properties.getReplicas(),
             properties.getRetentionInMillis());
-
-    final String topicCleanUpPolicy = createSource instanceof CreateTable
-        ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
 
     createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
 
@@ -183,6 +185,8 @@ public class TopicCreateInjector implements Injector {
       }
     }
 
+    throwIfRetentionPresentForTable(topicCleanUpPolicy, properties.getRetentionInMillis());
+
     final TopicProperties info
         = createTopic(topicPropertiesBuilder, topicCleanUpPolicy, additionalTopicConfigs);
 
@@ -197,6 +201,16 @@ public class TopicCreateInjector implements Injector {
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
 
     return statement.withStatement(withTopicText, withTopic);
+  }
+
+  private void throwIfRetentionPresentForTable(
+      final String topicCleanUpPolicy,
+      final Optional<Long> retentionInMillis
+  ) {
+    if (topicCleanUpPolicy.equals(TopicConfig.CLEANUP_POLICY_COMPACT)
+        && retentionInMillis.isPresent()) {
+      throw new KsqlException("Invalid config variable in the WITH clause: RETENTION_MS");
+    }
   }
 
   private TopicProperties createTopic(
@@ -215,12 +229,24 @@ public class TopicCreateInjector implements Injector {
 
     final Map<String, Object> config = new HashMap<>();
     config.put(TopicConfig.CLEANUP_POLICY_CONFIG, topicCleanUpPolicy);
-    // This is to make sure WINDOW RETENTION config is honored over WITH RETENTION_MS config
-    if (!additionalTopicConfigs.containsKey(TopicConfig.RETENTION_MS_CONFIG)) {
+
+    // Set the retention.ms as max(RETENTION_MS, RETENTION)
+    if (additionalTopicConfigs.containsKey(TopicConfig.RETENTION_MS_CONFIG)) {
+      config.put(
+          TopicConfig.RETENTION_MS_CONFIG,
+          Math.max(
+              info.getRetentionInMillis(),
+              (Long) additionalTopicConfigs.get(TopicConfig.RETENTION_MS_CONFIG))
+      );
+      additionalTopicConfigs.remove(TopicConfig.RETENTION_MS_CONFIG);
+    } else {
       config.put(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis());
     }
+
     config.putAll(additionalTopicConfigs);
 
+    // Note: The retention.ms config has no effect if cleanup.policy=compact
+    // cleanup.policy=compact is set for topics that are backed by tables
     if (topicCleanUpPolicy.equals(TopicConfig.CLEANUP_POLICY_COMPACT)) {
       config.remove(TopicConfig.RETENTION_MS_CONFIG);
     }

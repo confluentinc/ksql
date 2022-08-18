@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -98,7 +99,7 @@ final class SandboxedKafkaTopicClient {
       final Map<String, Object> configs
   ) {
     if (isTopicExists(topic)) {
-      final long retentionMs = KafkaTopicClient.getRetentionMs(configs);
+      final Optional<Long> retentionMs = KafkaTopicClient.getRetentionMs(configs);
       validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
       return;
     }
@@ -190,7 +191,7 @@ final class SandboxedKafkaTopicClient {
       final String topic,
       final int requiredNumPartition,
       final int requiredNumReplicas,
-      final long requiredRetentionMs
+      final Optional<Long> requiredRetentionMs
   ) {
     final TopicDescription existingTopic = describeTopic(topic);
     final Map<String, String> existingConfig = getTopicConfig(topic);

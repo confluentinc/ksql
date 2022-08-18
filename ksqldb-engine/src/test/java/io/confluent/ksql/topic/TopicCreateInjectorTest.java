@@ -454,6 +454,29 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
+  public void shouldCreateMissingTopicWithLargerRetentionForWindowedTables() {
+    // Given:
+    givenStatement("CREATE TABLE x WITH (kafka_topic='topic', partitions=2, replicas=1, format='avro', retention_ms=432000000) "
+        + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 4 DAYS);");
+    when(builder.build()).thenReturn(new TopicProperties("topic", 2, (short) 1, (long) 432000000));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(topicClient).createTopic(
+        "topic",
+        2,
+        (short) 1,
+        ImmutableMap.of(
+            TopicConfig.CLEANUP_POLICY_CONFIG,
+            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE,
+            TopicConfig.RETENTION_MS_CONFIG,
+            Duration.ofDays(5).toMillis()
+        ));
+  }
+
+  @Test
   public void shouldHaveSuperUsefulErrorMessageIfCreateWithNoPartitions() {
     // Given:
     givenStatement("CREATE STREAM foo (FOO STRING) WITH (value_format='avro', kafka_topic='doesntexist');");
@@ -471,6 +494,36 @@ public class TopicCreateInjectorTest {
         + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
         + "CREATE STREAM FOO (FOO STRING) "
         + "WITH (KAFKA_TOPIC='doesntexist', PARTITIONS=2, VALUE_FORMAT='avro');"));
+  }
+
+  @Test
+  public void shouldThrowIfRetentionConfigPresentInCreateTable() {
+    // Given:
+    givenStatement("CREATE TABLE foo_bar (FOO STRING PRIMARY KEY, BAR STRING) WITH (kafka_topic='doesntexist', partitions=2, format='avro', retention_ms=30000);");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid config variable in the WITH clause: RETENTION_MS"));
+  }
+
+  @Test
+  public void shouldThrowIfRetentionConfigPresentInCreateTableAs() {
+    // Given:
+    givenStatement("CREATE TABLE foo_bar WITH (kafka_topic='doesntexist', partitions=2, format='avro', retention_ms=30000) AS SELECT * FROM SOURCE;");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid config variable in the WITH clause: RETENTION_MS"));
   }
 
   private ConfiguredStatement<?> givenStatement(final String sql) {

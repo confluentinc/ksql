@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -97,7 +98,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final Map<String, ?> configs,
       final CreateTopicsOptions createOptions
   ) {
-    final long retentionMs = KafkaTopicClient.getRetentionMs(configs);
+    final Optional<Long> retentionMs = KafkaTopicClient.getRetentionMs(configs);
 
     if (isTopicExists(topic)) {
       validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
@@ -386,7 +387,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final String topic,
       final int requiredNumPartition,
       final int requiredNumReplicas,
-      final long requiredRetentionMs
+      final Optional<Long> requiredRetentionMs
   ) {
     final TopicDescription existingTopic = describeTopic(topic);
     final Map<String, String> existingConfig = getTopicConfig(topic);

@@ -216,14 +216,13 @@ public interface KafkaTopicClient {
     return listTopicsOffsets(topicName, OffsetSpec.latest());
   }
 
-  static long getRetentionMs(Map<String, ?> config) {
-    final long retentionMs;
+  static Optional<Long> getRetentionMs(Map<String, ?> config) {
     if (config.containsKey(TopicConfig.RETENTION_MS_CONFIG)) {
-      retentionMs = Long.parseLong(String.valueOf(config.get(TopicConfig.RETENTION_MS_CONFIG)));
+      return Optional.ofNullable(
+          Long.parseLong(String.valueOf(config.get(TopicConfig.RETENTION_MS_CONFIG))));
     } else {
-      retentionMs = -1L;
+      return Optional.empty();
     }
-    return retentionMs;
   }
 
 }

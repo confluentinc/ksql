@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -124,8 +125,6 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     final FakeTopic info = createFakeTopic(topic, numPartitions, replicationFactor, configs);
     topicMap.put(topic, info);
     topicMapConfig.put(topic, configs);
-    //createdTopics.put(topic, info);
-    //createdTopicsConfig.put(topic, configs);
   }
 
   @Override
@@ -235,8 +234,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       final Map<String, ?> config,
       final Map<String, ?> existingConfig
   ) {
-    final long requiredRetentionMs = KafkaTopicClient.getRetentionMs(config);
-    final long actualRetentionMs = KafkaTopicClient.getRetentionMs(existingConfig);
+    final Optional<Long> requiredRetentionMs = KafkaTopicClient.getRetentionMs(config);
+    final Optional<Long> actualRetentionMs = KafkaTopicClient.getRetentionMs(existingConfig);
     TopicValidationUtil.validateTopicProperties(
         existing.topicName,
         requiredNumPartition,

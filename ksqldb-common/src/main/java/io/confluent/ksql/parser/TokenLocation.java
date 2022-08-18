@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -18,11 +18,31 @@ package io.confluent.ksql.parser;
 import java.util.Objects;
 import java.util.OptionalInt;
 
+/**
+ * Wrapper class for encapsulating the location information of the
+ * antlr Token {@link org.antlr.v4.runtime.Token}
+ * */
 public class TokenLocation {
 
+  /**
+   * line number returned by {@link org.antlr.v4.runtime.Token#getLine()}
+   * */
   private final OptionalInt line;
+
+  /**
+   * position of character in line returned
+   * by {@link org.antlr.v4.runtime.Token#getCharPositionInLine()}
+   */
   private final OptionalInt charPositionInLine;
+
+  /**
+   * start index returned by {@link org.antlr.v4.runtime.Token#getStartIndex()}
+   */
   private final OptionalInt startIndex;
+
+  /**
+   * stop index returned by {@link org.antlr.v4.runtime.Token#getStopIndex()}
+   * */
   private final OptionalInt stopIndex;
 
   public static TokenLocation empty() {
@@ -41,6 +61,13 @@ public class TokenLocation {
     );
   }
 
+  /**
+   * @param line line number returned by {@link org.antlr.v4.runtime.Token#getLine()}
+   * @param charPositionInLine position of character in line returned
+   *                           by {@link org.antlr.v4.runtime.Token#getCharPositionInLine()}
+   * @param startIndex start index returned by {@link org.antlr.v4.runtime.Token#getStartIndex()}
+   * @param stopIndex stop index returned by {@link org.antlr.v4.runtime.Token#getStopIndex()}
+   */
   public TokenLocation(final OptionalInt line,
                        final OptionalInt charPositionInLine,
                        final OptionalInt startIndex,

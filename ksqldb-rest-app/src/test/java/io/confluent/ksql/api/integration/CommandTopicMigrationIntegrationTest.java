@@ -190,6 +190,7 @@ public class CommandTopicMigrationIntegrationTest {
     assertTrue(OTHER_TEST_HARNESS.topicExists(commandTopic));
     OTHER_TEST_HARNESS.verifyAvailableRecords(commandTopic, 4);
     List<String> streamsNames = showStreams(NEW_REST_APP_MIGRATOR);
+    assertThatEventually("Server shouldn't be in degraded state", () -> isDegradedState(NEW_REST_APP_MIGRATOR), is(false));
     assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
     assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
     assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
@@ -202,7 +203,8 @@ public class CommandTopicMigrationIntegrationTest {
         return 0;
       }
     }, is(4));
-    streamsNames = showStreams(NEW_REST_APP_MIGRATOR);
+    streamsNames = showStreams(NEW_REST_APP_MIGRATING);
+    assertThatEventually("Server shouldn't be in degraded state", () -> isDegradedState(NEW_REST_APP_MIGRATING), is(false));
     assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
     assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
     assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));

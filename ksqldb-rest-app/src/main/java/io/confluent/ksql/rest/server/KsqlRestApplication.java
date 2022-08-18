@@ -153,10 +153,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -1070,33 +1068,10 @@ public final class KsqlRestApplication implements Executable {
           ksqlConfigNoPort,
           internalTopicClient
       );
+      CommandTopicMigrationUtil.commandTopicMigration(commandTopic, restConfig, ksqlConfigNoPort);
 
-      try {
-        CommandTopicMigrationUtil.commandTopicMigration(commandTopic, restConfig, ksqlConfigNoPort);
-      } catch (final Exception e) {
-        throw new KsqlException("Error migrating command topic", e);
-      }
     } else if (restConfig.getString(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_CONFIG)
         .equals(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING)) {
-      final TopicPartition topicPartition = new TopicPartition(commandTopic, 0);
-
-      final org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> oldBrokerConsumer =
-          new KafkaConsumer<>(
-              restConfig.originals(),
-              new ByteArrayDeserializer(),
-              new ByteArrayDeserializer()
-          );
-      oldBrokerConsumer.assign(Collections.singleton(topicPartition));
-
-      final Map<String, Object> newConsumerConfig = restConfig.getCommandConsumerProperties();
-      final org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> newBrokerConsumer =
-          new KafkaConsumer<>(
-              newConsumerConfig,
-              new ByteArrayDeserializer(),
-              new ByteArrayDeserializer()
-          );
-      newBrokerConsumer.assign(Collections.singleton(topicPartition));
-
       RetryUtil.retryWithBackoff(
           Integer.MAX_VALUE,
           10000,
@@ -1104,23 +1079,15 @@ public final class KsqlRestApplication implements Executable {
           () -> {
             if (!internalTopicClient.isTopicExists(commandTopic)) {
               throw new RuntimeException("command topic migration still in process, "
-                  + "no new command topic");
-            }
+                  + "no new command topic on command producer/consumer Kafka.");
+            } else {
+              final Map<TopicPartition, Long> commandTopicEndOffset =
+                  internalTopicClient.listTopicsEndOffsets(Collections.singletonList(commandTopic));
 
-            final long numRecords = CommandTopic.getAllCommandsInCommandTopic(
-                oldBrokerConsumer,
-                topicPartition,
-                Optional.empty(),
-                CommandStore.POLLING_TIMEOUT_FOR_COMMAND_TOPIC
-            ).size();
-            final long numNewRecords = CommandTopic.getAllCommandsInCommandTopic(
-                newBrokerConsumer,
-                topicPartition,
-                Optional.empty(),
-                CommandStore.POLLING_TIMEOUT_FOR_COMMAND_TOPIC
-            ).size();
-            if (numNewRecords < numRecords - 1) {
-              throw new RuntimeException("command topic migration still in process");
+              if (commandTopicEndOffset.get(new TopicPartition(commandTopic, 0)) == 0L) {
+                throw new RuntimeException("command topic migration still in process, "
+                    + "empty command topic on command producer/consumer Kafka.");
+              }
             }
           },
           WakeupException.class

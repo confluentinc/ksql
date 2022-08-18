@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -58,10 +59,12 @@ public final class CommandTopicMigrationUtil {
         InternalTopicSerdes.serializer(),
         InternalTopicSerdes.serializer()
     );
+    final CommandId migrationCommandId =
+        new CommandId(CommandId.Type.CLUSTER, "migration", CommandId.Action.ALTER);
     final ProducerRecord<CommandId, Command> degradedCommand = new ProducerRecord<>(
         commandTopic,
         topicPartition.partition(),
-        new CommandId(CommandId.Type.CLUSTER, "", CommandId.Action.ALTER),
+        migrationCommandId,
         new Command(
             "",
             Collections.emptyMap(),
@@ -80,7 +83,7 @@ public final class CommandTopicMigrationUtil {
             config.originals(),
             new ByteArrayDeserializer(),
             new ByteArrayDeserializer()
-    );
+        );
     oldBrokerConsumer.assign(Collections.singleton(topicPartition));
 
     final List<QueuedCommand> commands = CommandTopic.getAllCommandsInCommandTopic(
@@ -92,7 +95,16 @@ public final class CommandTopicMigrationUtil {
     oldBrokerConsumer.close();
 
     // remove the incompatible command that was just written to the command topic
-    commands.remove(commands.size() - 1);
+    final List<QueuedCommand> commandsToMigrate = new ArrayList<>();
+    for (QueuedCommand command : commands) {
+      final CommandId currentCommandId = command.getAndDeserializeCommandId();
+      if (currentCommandId.equals(migrationCommandId)) {
+        log.info("skipping migration command sent to old command "
+            + "topic when migrating to new one");
+      } else {
+        commandsToMigrate.add(command);
+      }
+    }
 
     // producer for the new command topic
     final Map<String, Object> newBrokerProducerConfigs = restConfig.getCommandProducerProperties();
@@ -109,7 +121,7 @@ public final class CommandTopicMigrationUtil {
       newBrokerProducer.beginTransaction();
 
       // re-create command topic
-      for (QueuedCommand command : commands) {
+      for (QueuedCommand command : commandsToMigrate) {
         final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
             commandTopic,
             0,

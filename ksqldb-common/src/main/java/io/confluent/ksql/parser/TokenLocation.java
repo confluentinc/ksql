@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.OptionalInt;
 
@@ -22,7 +23,8 @@ import java.util.OptionalInt;
  * Wrapper class for encapsulating the location information of the
  * antlr Token {@link org.antlr.v4.runtime.Token}
  */
-public class TokenLocation {
+@Immutable
+public final class TokenLocation {
 
   /**
    * line number returned by {@link org.antlr.v4.runtime.Token#getLine()}

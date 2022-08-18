@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 @Immutable
-@SuppressWarnings("checkstyle:CyclomaticComplexity")
 public final class NodeLocation {
 
   private final TokenLocation start;

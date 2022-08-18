@@ -1170,6 +1170,47 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldNotAllowInsertWhenSchemaMetadataIsNull() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(null);
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.PROTOBUF.name(), ImmutableMap.of(
+            AvroProperties.FULL_SCHEMA_NAME,"io.proto.MultiKeys",
+            AvroProperties.SCHEMA_ID, "1"
+        )),
+        FormatInfo.of(FormatFactory.JSON.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K1, K0, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("K1"),
+            new StringLiteral("K0"),
+            new StringLiteral("V0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Failed to insert values into 'TOPIC'. Failed to fetch key schema (topic-key). " +
+            "Please check if schema exists in Schema Registry and/or check connection with Schema Registry.")
+    );
+  }
+
+  @Test
   public void shouldIgnoreConnectNameComparingKeySchema() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))

@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.state.ServerState.State;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -35,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.Admin;
@@ -84,7 +86,8 @@ public class HealthCheckAgent {
         ));
     final boolean allHealthy = results.values().stream()
         .allMatch(HealthCheckResponseDetail::getIsHealthy);
-    return new HealthCheckResponse(allHealthy, results);
+    final State serverState = commandRunner.checkServerState();
+    return new HealthCheckResponse(allHealthy, results, Optional.of(serverState.toString()));
   }
 
   private interface Check {

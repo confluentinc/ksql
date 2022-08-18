@@ -21,6 +21,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.server.state.ServerState.State;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
@@ -428,6 +429,10 @@ public class CommandRunner implements Closeable {
     }
 
     return state.getStatus();
+  }
+
+  public State checkServerState() {
+    return this.serverState.getState();
   }
 
   public CommandRunnerDegradedReason getCommandRunnerDegradedReason() {

@@ -98,6 +98,25 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldThrowOnAddFunctionSameParamsExceptOneVariadic() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, -1, STRING_VARARGS)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+            KsqlFunctionException.class,
+            () -> udfIndex.addFunction(function(EXPECTED, 0, STRING_VARARGS))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), startsWith("Can't add function `expected` with parameters"
+            + " [ARRAY<VARCHAR>] as a function with the same name and parameter types already"
+            + " exists"));
+  }
+
+  @Test
   public void shouldFindNoArgs() {
     // Given:
     givenFunctions(
@@ -549,6 +568,21 @@ public class UdfIndexTest {
     // When:
     final KsqlScalarFunction fun = udfIndex
         .getFunction(ImmutableList.of(SqlArgument.of(SqlArray.of(SqlTypes.STRING))));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindNonVarargWithList() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, -1, STRING_VARARGS)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex
+            .getFunction(ImmutableList.of(SqlArgument.of(SqlArray.of(SqlTypes.STRING))));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));

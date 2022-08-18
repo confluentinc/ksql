@@ -27,6 +27,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -95,6 +96,10 @@ public class UdfIndex<T extends FunctionSignature> {
   // pair. The final node that it reaches will contain the method that is returned.
   // If multiple methods are returned, the rules described above are used to select
   // the best candidate (e.g. foo(null, int) matches B and C).
+  //
+  // See also:
+  // Tree diagram: Docs: https://docs.google.com/document/d/14cfKl6A8HGM4zwnGvwuCMaJiGWKH4yUNdysEPX-Wy1Y/edit?usp=sharing
+  //               Gist: https://gist.github.com/reneesoika/2ec934940c98dad6b0f68c89769fbe42
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
 
@@ -164,9 +169,10 @@ public class UdfIndex<T extends FunctionSignature> {
 
       // Create copies of the variadic parameter that will be used to build the tree.
       final int maxAddedVariadics = paramsWithoutVariadic.size() + 1;
-      final List<ParameterInfo> addedVariadics = IntStream.range(0, maxAddedVariadics)
-              .mapToObj(ignored -> variadicParam)
-              .collect(Collectors.toList());
+      final List<ParameterInfo> addedVariadics = Collections.nCopies(
+              maxAddedVariadics,
+              variadicParam
+      );
 
       // Add the copies of the variadic parameter on the same side as the variadic parameter.
       final List<ParameterInfo> combinedAllParams = new ArrayList<>();
@@ -240,6 +246,8 @@ public class UdfIndex<T extends FunctionSignature> {
     throw createNoMatchingFunctionException(arguments);
   }
 
+  /* The given node will be modified so that it is the root of a tree that can resolve a function
+  with the given parameters. */
   private Pair<Node, Integer> buildTree(final Node root, final List<ParameterInfo> parameters,
                                         final T function, final boolean keepArrays,
                                         final boolean appendVariadicLoop) {
@@ -281,7 +289,14 @@ public class UdfIndex<T extends FunctionSignature> {
       since parameters.get() will fail anyway. */
       if (variadicOffset < 0) {
         throw new IllegalStateException(
-                "appendVariadicLoop was set for a function that is not variadic"
+                String.format(
+                        "appendVariadicLoop was set for a function named %s "
+                          + "with parameters %s. The actual parameter types "
+                          + "being used to build the tree were %s.",
+                        function.name(),
+                        function.parameterInfo(),
+                        parameters
+                )
         );
       }
 

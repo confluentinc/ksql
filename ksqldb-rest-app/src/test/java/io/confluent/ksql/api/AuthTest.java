@@ -52,7 +52,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-
 import org.apache.kafka.common.acl.AclOperation;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -528,13 +527,30 @@ public class AuthTest extends ApiTest {
       public CompletableFuture<Principal> handleAuth(final RoutingContext routingContext,
           final WorkerExecutor workerExecutor) {
         handlerCalled.set(true);
-        if (authenticate) {
-          return CompletableFuture.completedFuture(new StringPrincipal(expectedUser));
-        } else {
-          routingContext.fail(401,
-              new KsqlApiException("Unauthorized", ERROR_CODE_UNAUTHORIZED));
-          return CompletableFuture.completedFuture(null);
-        }
+
+        // simulate a blocking execution, which plugins may do since they have access to
+        // a worker executor
+        final VertxCompletableFuture<Principal> vcf = new VertxCompletableFuture<>();
+        workerExecutor.executeBlocking(promise -> {
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            routingContext.fail(401, e);
+            promise.fail("interrupted");
+          }
+
+          if (authenticate) {
+            promise.complete(new StringPrincipal(expectedUser));
+          } else {
+            final KsqlApiException e = new KsqlApiException(
+                "Unauthorized", ERROR_CODE_UNAUTHORIZED);
+
+            routingContext.fail(401, e);
+            promise.fail(e);
+          }
+        }, vcf);
+
+        return vcf;
       }
     };
 

@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -77,6 +78,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.StreamsConfig.InternalConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
@@ -321,6 +323,11 @@ public class QueryBuilderTest {
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
     assertThat(queryMetadata.getPersistentQueryType(),
         equalTo(KsqlConstants.PersistentQueryType.CREATE_AS));
+    // queries in dedicated runtimes must not include alternative topic prefix
+    assertThat(
+        queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE),
+        is(nullValue())
+    );
   }
 
   @Test

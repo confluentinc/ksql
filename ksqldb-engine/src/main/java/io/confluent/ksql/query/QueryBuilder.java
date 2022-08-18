@@ -575,15 +575,12 @@ final class QueryBuilder {
         ThroughputMetricsReporter.class.getName()
     );
 
-    final String type = queryId.isPresent() && queryId.get().toString().contains("transient")
-        ? queryId.get().toString()
-        : QueryApplicationId.PERSISTENT_QUERY_INDICATOR;
-
     if (!queryId.isPresent()) {
+      //QueryId is empty for shared runtimes when building the runtime
       newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
           ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
               + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-              + type);
+              + QueryApplicationId.PERSISTENT_QUERY_INDICATOR);
     }
 
     // Passing shared state into managed components

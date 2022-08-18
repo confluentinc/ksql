@@ -215,7 +215,9 @@ public final class AssertExecutor {
   ) {
     if (isTombstone) {
       if (expected.value.values().stream().anyMatch(Objects::nonNull)) {
-        throw new AssertionError("Unexpected value columns specified in ASSERT NULL VALUES.");
+        throw new AssertionError(
+            "Unexpected value columns specified in ASSERT NULL VALUES."
+        );
       }
       return actual.value == null && actual.key.equals(expected.key);
     }
@@ -226,24 +228,37 @@ public final class AssertExecutor {
 
     final LogicalSchema schema = dataSource.getSchema().withPseudoAndKeyColsInValue(false);
     for (final ColumnName col : columns) {
-      if (schema.isKeyColumn(col)) {
-        final int index = schema.findColumn(col).get().index();
-        if (!expected.key.get(index).equals(actual.key.get(index))) {
-          return false;
-        }
-      }  else if (col.equals(SystemColumns.ROWTIME_NAME)) {
-          if (expected.ts != actual.ts) {
-            return false;
-          }
-      } else if (schema.findValueColumn(col).isPresent()) {
-        final int index = schema.findColumn(col).get().index();
-        if (!expected.value.get(index).equals(actual.value.get(index))) {
-          return false;
-        }
+      if (!checkColumn(col, schema, expected, actual)) {
+        return false;
       }
     }
     return true;
   }
+
+  private static boolean checkColumn(
+      final ColumnName col,
+      final LogicalSchema schema,
+      final KsqlGenericRecord expected,
+      final KsqlGenericRecord actual
+  ) {
+    if (schema.isKeyColumn(col)) {
+      final int index = schema.findColumn(col).get().index();
+      if (!expected.key.get(index).equals(actual.key.get(index))) {
+        return false;
+      }
+    }  else if (col.equals(SystemColumns.ROWTIME_NAME)) {
+      if (expected.ts != actual.ts) {
+        return false;
+      }
+    } else if (schema.findValueColumn(col).isPresent()) {
+      final int index = schema.findColumn(col).get().index();
+      if (!expected.value.get(index).equals(actual.value.get(index))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
 
   private static void throwAssertionError(
       final String message,

@@ -167,7 +167,7 @@ public final class AssertExecutor {
       final boolean isTombstone
   ) {
     final DataSource dataSource = engine.getMetaStore().getSource(values.getTarget());
-    KsqlGenericRecord expected = new GenericRecordFactory(
+    final KsqlGenericRecord expected = new GenericRecordFactory(
         config, engine.getMetaStore(), System::currentTimeMillis
     ).build(
         values.getColumns(),

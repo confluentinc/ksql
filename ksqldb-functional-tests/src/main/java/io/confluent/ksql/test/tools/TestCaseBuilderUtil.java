@@ -147,6 +147,11 @@ public final class TestCaseBuilderUtil {
                 topic.getNumPartitions(),
                 topic.getReplicas(),
 
+                // key/value schema ID (if not empty) should be related to the key/value schema
+                // already found in the 'Topic', not in the 'topicFromStatement'
+                topic.getKeySchemaId(),
+                topic.getValueSchemaId(),
+
                 // Use the key/value schema built for the CREATE statement
                 keySchema,
                 valueSchema,
@@ -256,8 +261,17 @@ public final class TestCaseBuilderUtil {
     final short rf = props.getReplicas()
         .orElse(Topic.DEFAULT_RF);
 
-    return Optional.of(new Topic(props.getKafkaTopic(), partitions, rf, keySchema, valueSchema,
-        keySerdeFeats, valSerdeFeats));
+    return Optional.of(new Topic(
+        props.getKafkaTopic(),
+        partitions,
+        rf,
+        // key/value schemas IDs do not exist if schema is found on the statement
+        Optional.empty(),
+        Optional.empty(),
+        keySchema,
+        valueSchema,
+        keySerdeFeats,
+        valSerdeFeats));
   }
 
   private static Optional<ParsedSchema> buildSchema(

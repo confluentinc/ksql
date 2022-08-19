@@ -29,6 +29,7 @@ import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
+import java.util.Optional;
 
 @JsonInclude(Include.NON_EMPTY)
 public final class TopicNode {
@@ -37,6 +38,8 @@ public final class TopicNode {
   private static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   private final String name;
+  private final Optional<Integer> keySchemaId;
+  private final Optional<Integer> valueSchemaId;
   private final JsonNode keySchema;
   private final JsonNode valueSchema;
   private final int numPartitions;
@@ -46,8 +49,11 @@ public final class TopicNode {
   private final SerdeFeatures keySerdeFeatures;
   private final SerdeFeatures valueSerdeFeatures;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TopicNode(
       @JsonProperty("name") final String name,
+      @JsonProperty("keySchemaId") final Optional<Integer> keySchemaId,
+      @JsonProperty("valueSchemaId") final Optional<Integer> valueSchemaId,
       @JsonProperty("keySchema") final JsonNode keySchema,
       @JsonProperty("valueSchema") final JsonNode valueSchema,
       @JsonProperty("keyFormat") final String keyFormat,
@@ -57,8 +63,11 @@ public final class TopicNode {
       @JsonProperty("keySerdeFeatures") final SerdeFeatures keySerdeFeatures,
       @JsonProperty("valueSerdeFeatures") final SerdeFeatures valueSerdeFeatures
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
     this.name = name == null ? "" : name;
+    this.keySchemaId = keySchemaId;
+    this.valueSchemaId = valueSchemaId;
     this.keySchema = keySchema;
     this.valueSchema = valueSchema;
     this.keyFormat = keyFormat;
@@ -79,6 +88,14 @@ public final class TopicNode {
 
   public String getName() {
     return name;
+  }
+
+  public Optional<Integer> getKeySchemaId() {
+    return keySchemaId;
+  }
+
+  public Optional<Integer> getValueSchemaId() {
+    return valueSchemaId;
   }
 
   @JsonInclude(Include.NON_NULL)
@@ -120,6 +137,8 @@ public final class TopicNode {
         name,
         numPartitions,
         replicas,
+        keySchemaId,
+        valueSchemaId,
         SerdeUtil.buildSchema(keySchema, keyFormat),
         SerdeUtil.buildSchema(valueSchema, valueFormat),
         keySerdeFeatures,
@@ -137,6 +156,8 @@ public final class TopicNode {
 
     return new TopicNode(
         topic.getName(),
+        topic.getKeySchemaId(),
+        topic.getValueSchemaId(),
         topic.getKeySchema()
             .map(schema -> buildSchemaNode(schema, keyFormat))
             .orElseGet(NullNode::getInstance),

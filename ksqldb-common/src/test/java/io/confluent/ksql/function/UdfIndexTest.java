@@ -1378,6 +1378,26 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldChooseLaterVariadicWhenTwoVariadicsMatchDiffBranches() {
+    // Given:
+    givenFunctions(
+            function(OTHER, 1, GenericType.of("A"), INT_VARARGS, STRING, DOUBLE),
+            function(EXPECTED, 2, GenericType.of("B"), INT, STRING_VARARGS, DOUBLE)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.BIGINT),
+            SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.DOUBLE))
+    );
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
   public void shouldChooseLaterVariadicWhenTwoVariadicsMatchReversedInsertionOrder() {
     // Given:
     givenFunctions(

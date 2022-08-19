@@ -501,6 +501,8 @@ public class UdfIndex<T extends FunctionSignature> {
             Comparator
                 .<T, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
                 .thenComparing(fun -> fun.parameters().size())
+                .thenComparing(fun -> -countGenerics(fun))
+                .thenComparing(this::indexOfVariadic)
         );
 
     private final Map<Pair<Parameter, Parameter>, Node> children;
@@ -513,8 +515,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     private void update(final T function) {
       final int compareVal = compareFunctions.compare(function, value);
-      final boolean otherHasLaterVariadic = indexOfVariadic(function) - indexOfVariadic(value) > 0;
-      if (compareVal > 0 || (compareVal == 0 && otherHasLaterVariadic)) {
+      if (compareVal > 0) {
         value = function;
       }
     }
@@ -539,12 +540,11 @@ public class UdfIndex<T extends FunctionSignature> {
     }
 
     int compare(final Node other) {
-      final int compareVal = compareFunctions.compare(value, other.value);
-      return compareVal == 0 ? countGenerics(other) - countGenerics(this) : compareVal;
+      return compareFunctions.compare(value, other.value);
     }
 
-    private int countGenerics(final Node node) {
-      return node.value.parameters().stream()
+    private int countGenerics(final T function) {
+      return function.parameters().stream()
           .filter(GenericsUtil::hasGenerics)
           .mapToInt(p -> 1)
           .sum();

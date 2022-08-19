@@ -30,6 +30,8 @@ public class Topic {
   private final String name;
   private final int numPartitions;
   private final short replicas;
+  final Optional<Integer> keySchemaId;
+  final Optional<Integer> valueSchemaId;
   private final Optional<ParsedSchema> keySchema;
   private final Optional<ParsedSchema> valueSchema;
   private final SerdeFeatures keyFeatures;
@@ -40,20 +42,24 @@ public class Topic {
       final Optional<ParsedSchema> keySchema,
       final Optional<ParsedSchema> valueSchema
   ) {
-    this(name, DEFAULT_PARTITIONS, DEFAULT_RF, keySchema, valueSchema,
-        SerdeFeatures.of(), SerdeFeatures.of());
+    this(name, DEFAULT_PARTITIONS, DEFAULT_RF, Optional.empty(), Optional.empty(),
+        keySchema, valueSchema, SerdeFeatures.of(), SerdeFeatures.of());
   }
 
   public Topic(
       final String name,
       final int numPartitions,
       final int replicas,
+      final Optional<Integer> keySchemaId,
+      final Optional<Integer> valueSchemaId,
       final Optional<ParsedSchema> keySchema,
       final Optional<ParsedSchema> valueSchema,
       final SerdeFeatures keyFeatures,
       final SerdeFeatures valueFeatures
   ) {
     this.name = requireNonNull(name, "name");
+    this.keySchemaId = requireNonNull(keySchemaId, "keySchemaId");
+    this.valueSchemaId = requireNonNull(valueSchemaId, "valueSchemaId");
     this.keySchema = requireNonNull(keySchema, "keySchema");
     this.valueSchema = requireNonNull(valueSchema, "valueSchema");
     this.numPartitions = numPartitions;
@@ -64,6 +70,14 @@ public class Topic {
 
   public String getName() {
     return name;
+  }
+
+  public Optional<Integer> getKeySchemaId() {
+    return keySchemaId;
+  }
+
+  public Optional<Integer> getValueSchemaId() {
+    return valueSchemaId;
   }
 
   public Optional<ParsedSchema> getKeySchema() {
@@ -103,12 +117,15 @@ public class Topic {
     return numPartitions == topic.numPartitions
         && replicas == topic.replicas
         && Objects.equals(name, topic.name)
+        && Objects.equals(keySchemaId, topic.keySchemaId)
+        && Objects.equals(valueSchemaId, topic.valueSchemaId)
         && Objects.equals(keySchema, topic.keySchema)
         && Objects.equals(valueSchema, topic.valueSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, numPartitions, replicas, keySchema, valueSchema);
+    return Objects.hash(name, numPartitions, replicas, keySchemaId,
+        valueSchemaId, keySchema, valueSchema);
   }
 }

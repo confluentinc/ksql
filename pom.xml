@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.4.0-45</version>
+        <version>7.4.0-52</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -291,25 +291,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
-                <version>7.4.0-46</version>
+                <version>7.4.0-52</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>7.4.0-46</version>
+                <version>7.4.0-52</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
-                <version>7.4.0-46</version>
+                <version>7.4.0-52</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
-                <version>7.4.0-46</version>
+                <version>7.4.0-52</version>
             </dependency>
 
             <dependency>
@@ -333,25 +333,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
-                <version>7.4.0-46</version>
+                <version>7.4.0-52</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
-                <version>7.4.0-46</version>
+                <version>7.4.0-52</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
-                <version>7.4.0-46</version>
+                <version>7.4.0-52</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
-                <version>7.4.0-46</version>
+                <version>7.4.0-52</version>
             </dependency>
 
             <!-- End Confluent dependencies -->

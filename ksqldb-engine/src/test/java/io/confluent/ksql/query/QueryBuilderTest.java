@@ -287,6 +287,7 @@ public class QueryBuilderTest {
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
     assertThat(queryMetadata.getStreamsProperties(), equalTo(propertyCaptor.getValue()));
+    assertThat(queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE), nullValue());
   }
 
   @Test
@@ -363,6 +364,7 @@ public class QueryBuilderTest {
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
     assertThat(queryMetadata.getPersistentQueryType(),
         equalTo(KsqlConstants.PersistentQueryType.INSERT));
+    assertThat(queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE), nullValue());
   }
 
   @Test
@@ -403,6 +405,8 @@ public class QueryBuilderTest {
 
     // Then:
     assertThat(result.get(), is(materialization));
+    assertThat(queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE),
+        is("_confluent-ksql-service-query"));
   }
 
   @Test

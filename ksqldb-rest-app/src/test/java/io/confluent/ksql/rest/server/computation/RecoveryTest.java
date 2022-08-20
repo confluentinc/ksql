@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -136,7 +137,7 @@ public class RecoveryTest {
           .forEach(QueryMetadata::close);
     } catch (ProcessorStateException e){
       if(!e.getMessage().contains("doesn't exist and couldn't be created")) {
-        throw e;
+        fail(e.getMessage());
       }
     }
     server1.close();

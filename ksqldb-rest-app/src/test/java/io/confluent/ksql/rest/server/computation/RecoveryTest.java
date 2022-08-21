@@ -132,14 +132,6 @@ public class RecoveryTest {
 
   @After
   public void tearDown() {
-    try {
-      server1.ksqlEngine.getPersistentQueries()
-          .forEach(QueryMetadata::close);
-    } catch (ProcessorStateException e){
-      if(!e.getMessage().contains("doesn't exist and couldn't be created")) {
-        fail(e.getMessage());
-      }
-    }
     server1.close();
     server2.close();
     serviceContext.close();
@@ -617,6 +609,7 @@ public class RecoveryTest {
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -626,6 +619,7 @@ public class RecoveryTest {
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='newTopic', VALUE_FORMAT='JSON', PARTITIONS=1);",
         "CREATE STREAM B AS SELECT * FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
   @Test
@@ -638,6 +632,7 @@ public class RecoveryTest {
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT ROWKEY, C2 FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -662,6 +657,7 @@ public class RecoveryTest {
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -720,6 +716,7 @@ public class RecoveryTest {
         "TERMINATE CSAS_B_1;",
         "TERMINATE InsertQuery_2;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -733,6 +730,7 @@ public class RecoveryTest {
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT * FROM A;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -744,6 +742,7 @@ public class RecoveryTest {
         "TERMINATE CSAS_B_1;",
         "DROP STREAM B;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -791,6 +790,7 @@ public class RecoveryTest {
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(1));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
     assertThat(recovered.ksqlEngine.getAllLiveQueries().size(), is(2));
+    recovered.close();
   }
 
   @Test
@@ -861,6 +861,7 @@ public class RecoveryTest {
         Optional.empty(),
         (long) commands.size()
     ));
+    server1.close();
 
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
@@ -874,6 +875,7 @@ public class RecoveryTest {
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(2));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("A")));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
+    recovered.close();
   }
 
   @Test
@@ -883,6 +885,7 @@ public class RecoveryTest {
         "CREATE STREAM B AS SELECT * FROM A;",
         "DROP STREAM B;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -895,6 +898,7 @@ public class RecoveryTest {
         "CREATE STREAM B AS SELECT * FROM A;",
         "DROP STREAM B;"
     );
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -913,7 +917,7 @@ public class RecoveryTest {
     );
 
     addDuplicateOfLastCommand(); // Add duplicate of "DROP STREAM B;"
-
+    server1.close();
     shouldRecover(commands);
   }
 
@@ -926,7 +930,7 @@ public class RecoveryTest {
         "TERMINATE CSAS_B_1;",
         "DROP STREAM B DELETE TOPIC;"
     );
-
+    server1.close();
     assertThat(topicClient.listTopicNames(), not(hasItem("B")));
 
     topicClient.preconditionTopicExists("B");
@@ -941,7 +945,6 @@ public class RecoveryTest {
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM C AS SELECT * FROM A;");
     server1.close();
-
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
@@ -957,7 +960,7 @@ public class RecoveryTest {
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
         "TERMINATE CSAS_B_1;");
-
+    server1.close();
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     server.submitCommands("CREATE STREAM C AS SELECT * FROM A;");

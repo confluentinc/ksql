@@ -72,7 +72,7 @@ import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
  */
 public class TopicInfoCache {
 
-  private static final String TOPIC_PATTERN_PREFIX = "_confluent.*query_(?<queryId>.*_\\d+)-";
+  private static final String TOPIC_PATTERN_PREFIX = "_confluent.*query-(?<queryId>.*_\\d+)-";
 
   private static final List<InternalTopicPattern> INTERNAL_TOPIC_PATTERNS = ImmutableList.of(
       // GROUP BY change-logs and repartition topics:

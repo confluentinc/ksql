@@ -72,6 +72,7 @@ import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -79,6 +80,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.hamcrest.StringDescription;
@@ -116,12 +118,15 @@ public final class TestExecutorUtil {
     for (final PersistentQueryAndSources persistentQueryAndSources : queryMetadataList) {
       final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSources
           .getPersistentQueryMetadata();
-      final Properties streamsProperties = new Properties();
-      streamsProperties.putAll(persistentQueryMetadata.getStreamsProperties());
+      final Map<String, Object> streamsProperties = new HashMap<>(persistentQueryMetadata.getStreamsProperties());
+      streamsProperties.put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/DEFAULT" + persistentQueryMetadata.getQueryId());
+      streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "testdriver" + persistentQueryMetadata.getQueryId());
       final Topology topology = persistentQueryMetadata.getTopology();
+      final Properties properties = new Properties();
+      properties.putAll(streamsProperties);
       final TopologyTestDriver topologyTestDriver = new TopologyTestDriver(
           topology,
-          streamsProperties,
+          properties,
           Instant.EPOCH);
       final List<Topic> sourceTopics = persistentQueryAndSources.getSources()
           .stream()

@@ -241,6 +241,17 @@ public class CliTest {
     assertThat(rowCaptor.getRows(), matcher);
   }
 
+  private void assertCommandFail(
+      final String command,
+      final Matcher<Iterable<? extends Iterable<? extends String>>> matcher
+  ) {
+    rowCaptor.resetTestResult();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> localCli.handleLine(command)
+    );
+  }
+
   private static void run(final String command, final Cli localCli) {
     try {
       localCli.handleLine(command);
@@ -442,27 +453,10 @@ public class CliTest {
   }
 
   @Test
-  public void testDisableVariableSubstitution() {
-    // Given:
-    assertRunCommand(
-        "set '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'false';", is(EMPTY_RESULT));
-    assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
-
-    // When:
-    run("PRINT ${topicName} FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
-
-    // Then:
-    assertThatEventually(() -> terminal.getOutputString(),
-        containsString("Failed to Describe Kafka Topic(s): [${topicName}]"));
-    assertThatEventually(() -> terminal.getOutputString(),
-        containsString("Caused by: The request attempted to perform an operation on an invalid topic."));
-  }
-
-  @Test
   public void testVariableSubstitution() {
     // Given:
     assertRunCommand(
-        "set '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';", is(EMPTY_RESULT));
+        "ALTER SYSTEM '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';", is(EMPTY_RESULT));
     assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
 
     // When:
@@ -514,27 +508,27 @@ public class CliTest {
   @Test
   public void testPropertySetUnset() {
     assertRunCommand("set 'auto.offset.reset' = 'latest';", is(EMPTY_RESULT));
-    assertRunCommand("set 'application.id' = 'Test_App';", is(EMPTY_RESULT));
-    assertRunCommand("set 'producer.batch.size' = '16384';", is(EMPTY_RESULT));
-    assertRunCommand("set 'max.request.size' = '1048576';", is(EMPTY_RESULT));
-    assertRunCommand("set 'consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
-    assertRunCommand("set 'enable.auto.commit' = 'true';", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.application.id' = 'Test_App';", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.producer.batch.size' = '16384';", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.max.request.size' = '1048576';", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true';", is(EMPTY_RESULT));
+    assertCommandFail("set 'application.id' = 'Test_App';", is(EMPTY_RESULT));
+    assertCommandFail("set 'producer.batch.size' = '16384';", is(EMPTY_RESULT));
+    assertCommandFail("set 'max.request.size' = '1048576';", is(EMPTY_RESULT));
+    assertCommandFail("set 'consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
+    assertCommandFail("set 'enable.auto.commit' = 'true';", is(EMPTY_RESULT));
+    assertCommandFail("set 'ksql.streams.application.id' = 'Test_App';", is(EMPTY_RESULT));
+    assertCommandFail("set 'ksql.streams.producer.batch.size' = '16384';", is(EMPTY_RESULT));
+    assertCommandFail("set 'ksql.streams.max.request.size' = '1048576';", is(EMPTY_RESULT));
+    assertCommandFail("set 'ksql.streams.consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
+    assertCommandFail("set 'ksql.streams.enable.auto.commit' = 'true';", is(EMPTY_RESULT));
 
-    assertRunCommand("unset 'application.id';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'producer.batch.size';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'max.request.size';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'consumer.max.poll.records';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'enable.auto.commit';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.application.id';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.producer.batch.size';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.max.request.size';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.consumer.max.poll.records';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.enable.auto.commit';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'application.id';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'producer.batch.size';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'max.request.size';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'consumer.max.poll.records';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'enable.auto.commit';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'ksql.streams.application.id';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'ksql.streams.producer.batch.size';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'ksql.streams.max.request.size';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'ksql.streams.consumer.max.poll.records';", is(EMPTY_RESULT));
+    assertCommandFail("unset 'ksql.streams.enable.auto.commit';", is(EMPTY_RESULT));
 
     assertRunListCommand("properties", hasRows(
         // SERVER OVERRIDES:
@@ -1201,7 +1195,7 @@ public class CliTest {
   public void shouldSubstituteVariablesOnRunCommand()  {
     // Given:
     final StringBuilder builder = new StringBuilder();
-    builder.append("SET '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';");
+    builder.append("ALTER SYSTEM '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';");
     builder.append("DEFINE var = '" + ORDER_DATA_PROVIDER.sourceName() + "';");
     builder.append("CREATE STREAM shouldRunCommand AS SELECT * FROM ${var};");
 

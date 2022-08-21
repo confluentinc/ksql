@@ -119,8 +119,6 @@ public final class TestExecutorUtil {
       final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSources
           .getPersistentQueryMetadata();
       final Map<String, Object> streamsProperties = new HashMap<>(persistentQueryMetadata.getStreamsProperties());
-      streamsProperties.put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/DEFAULT" + persistentQueryMetadata.getQueryId());
-      streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "testdriver" + persistentQueryMetadata.getQueryId());
       final Topology topology = persistentQueryMetadata.getTopology();
       final Properties properties = new Properties();
       properties.putAll(streamsProperties);

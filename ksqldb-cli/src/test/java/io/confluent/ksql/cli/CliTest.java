@@ -1110,6 +1110,28 @@ public class CliTest {
   }
 
   @Test
+  public void shouldDescribeVariadicObjectAggregateFunction() {
+    final String expectedSummary =
+            "Name        : OBJ_COL_ARG\n"
+                    + "Author      : Confluent\n"
+                    + "Overview    : Returns an array of rows where all the given columns are non-null.\n"
+                    + "Type        : AGGREGATE\n"
+                    + "Jar         : internal\n"
+                    + "Variations  : \n";
+
+    final String expectedVariant =
+            "\tVariation   : OBJ_COL_ARG(val1 INT, val2 ANY[])\n"
+                    + "\tReturns     : ARRAY<INT>\n"
+                    + "\tDescription : Testing factory";
+
+    localCli.handleLine("describe function obj_col_arg;");
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
+  }
+
+  @Test
   public void shouldDescribeTableFunction() {
     final String expectedOutput =
         "Name        : EXPLODE\n"

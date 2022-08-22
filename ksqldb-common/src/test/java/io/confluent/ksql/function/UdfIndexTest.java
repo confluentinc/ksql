@@ -43,6 +43,8 @@ public class UdfIndexTest {
   private static final ParamType STRING_VARARGS = ArrayType.of(ParamTypes.STRING);
 
   private static final ParamType INT_VARARGS = ArrayType.of(ParamTypes.INTEGER);
+
+  private static final ParamType OBJ_VARARGS = ArrayType.of(ParamTypes.ANY);
   private static final ParamType STRING = ParamTypes.STRING;
   private static final ParamType DECIMAL = ParamTypes.DECIMAL;
   private static final ParamType INT = ParamTypes.INTEGER;
@@ -1296,6 +1298,42 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldFindFewerGenericsWithoutObjVariadic() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, 3, INT, GenericType.of("A"), INT, INT_VARARGS),
+            function(OTHER, 3, INT, GenericType.of("B"), INT, OBJ_VARARGS)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(INTEGER), SqlArgument.of(INTEGER),
+            SqlArgument.of(INTEGER), SqlArgument.of(INTEGER)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindPreferGenericVariadicToObjVariadic() {
+    // Given:
+    givenFunctions(
+            function(EXPECTED, 3, INT, GenericType.of("A"), INT, ArrayType.of(GenericType.of("C"))),
+            function(OTHER, 3, INT, GenericType.of("B"), INT, OBJ_VARARGS)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(INTEGER), SqlArgument.of(INTEGER),
+            SqlArgument.of(INTEGER), SqlArgument.of(INTEGER)
+    ));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
   public void shouldThrowOnAmbiguousImplicitCastWithGenerics() {
     // Given:
     givenFunctions(
@@ -1403,6 +1441,26 @@ public class UdfIndexTest {
     givenFunctions(
             function(EXPECTED, 2, LONG, INT, STRING_VARARGS, DOUBLE),
             function(OTHER, 1, LONG, INT_VARARGS, STRING, DOUBLE)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(
+            SqlArgument.of(SqlTypes.BIGINT),
+            SqlArgument.of(SqlTypes.INTEGER),
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.DOUBLE))
+    );
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseLaterVariadicWhenTwoObjVariadicsMatch() {
+    // Given:
+    givenFunctions(
+            function(OTHER, 1, GenericType.of("A"), OBJ_VARARGS, STRING, DOUBLE),
+            function(EXPECTED, 2, GenericType.of("B"), INT, OBJ_VARARGS, DOUBLE)
     );
 
     // When:

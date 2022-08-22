@@ -133,15 +133,11 @@ public class UdafTypesTest {
     assertThat(e.getMessage(), is("A UDAF and its factory can have at most one variadic argument"));
   }
 
-  // TEMPORARY: until variadic args in the middle are added
   @Test
-  public void shouldThrowWhenOnlyColArgIsVariadic() {
-    final Exception e = assertThrows(
-            KsqlException.class,
-            () -> createTypes("udafWithInitArgAndVariadicColArg", int.class)
-    );
-
-    assertThat(e.getMessage(), is("Methods with variadic column args cannot have factory args"));
+  public void shouldNotThrowWhenOnlyColArgIsVariadic() {
+    UdafTypes udafTypes = createTypes("udafWithInitArgAndVariadicColArg", int.class);
+    assertTrue(udafTypes.isVariadic());
+    assertTrue(udafTypes.literalParams().stream().noneMatch(ParameterInfo::isVariadic));
   }
 
   @Test

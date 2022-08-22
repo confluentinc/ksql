@@ -131,11 +131,6 @@ class UdafTypes {
       this.inputTypes[variadicColIndex] = ((ParameterizedType) inputTypes[variadicColIndex])
               .getActualTypeArguments()[0];
 
-      // TEMPORARY: Disallow initial args when col arg is variadic
-      if (method.getParameterCount() > 0) {
-        throw new KsqlException("Methods with variadic column args cannot have factory args");
-      }
-
     } else if (variadicColIndex > -1) {
 
       // Prevent zero column arguments
@@ -236,12 +231,10 @@ class UdafTypes {
   }
 
   private static int indexOfVariadic(final Type[] types) {
-    final int lastTypeIndex = types.length - 1;
-    if (types.length > 0 && getRawType(types[lastTypeIndex]) == VARIADIC_TYPE) {
-      return lastTypeIndex;
-    }
-
-    return -1;
+    return IntStream.range(0, types.length)
+            .filter((index) -> getRawType(types[index]) == VARIADIC_TYPE)
+            .findFirst()
+            .orElse(-1);
   }
 
   private static void validateStructAnnotation(

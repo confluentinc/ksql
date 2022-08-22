@@ -80,7 +80,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.hamcrest.StringDescription;
@@ -118,7 +117,8 @@ public final class TestExecutorUtil {
     for (final PersistentQueryAndSources persistentQueryAndSources : queryMetadataList) {
       final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSources
           .getPersistentQueryMetadata();
-      final Map<String, Object> streamsProperties = new HashMap<>(persistentQueryMetadata.getStreamsProperties());
+      final Map<String, Object> streamsProperties = new HashMap<>(
+          persistentQueryMetadata.getStreamsProperties());
       final Topology topology = persistentQueryMetadata.getTopology();
       final Properties properties = new Properties();
       properties.putAll(streamsProperties);

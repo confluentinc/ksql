@@ -51,6 +51,7 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.test.TestRecord;
 
 /**
@@ -190,9 +191,12 @@ public final class AssertExecutor {
       );
     }
 
-    final TestRecord<GenericKey, GenericRow> actualTestRecord = records.next();
+    final TestRecord<?, GenericRow> actualTestRecord = records.next();
+    final GenericKey actualKey = actualTestRecord.key() instanceof Windowed
+        ? (GenericKey) ((Windowed) actualTestRecord.key()).key()
+        : (GenericKey) actualTestRecord.key();
     final KsqlGenericRecord actual = KsqlGenericRecord.of(
-        actualTestRecord.key(),
+        actualKey,
         actualTestRecord.value(),
         actualTestRecord.timestamp()
     );
@@ -222,7 +226,9 @@ public final class AssertExecutor {
       return actual.value == null && actual.key.equals(expected.key);
     }
 
-    if (expected.key.size() != actual.key.size() || expected.value.size() != actual.value.size()) {
+    if (actual.value == null
+        || expected.key.size() != actual.key.size()
+        || expected.value.size() != actual.value.size()) {
       return false;
     }
 

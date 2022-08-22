@@ -577,6 +577,17 @@ public class KsqlConfig extends AbstractConfig {
       "Controls how many runtimes queries are allocated over initially."
           + "this is only used when ksql.runtime.feature.shared.enabled is true.";
 
+  public static final String KSQL_PRECONDITION_TOPIC_CLEANUP_CONFIG
+      = "ksql.server.preconditions.topic.cleanup.enabled";
+  public static final String KSQL_PRECONDITION_TOPIC_CLEANUP_CLEANUP = "cleanup";
+  public static final String KSQL_PRECONDITION_TOPIC_CLEANUP_DRYRUN = "dryrun";
+  public static final String KSQL_PRECONDITION_TOPIC_CLEANUP_NONE = "none";
+  private static final ConfigDef.ValidString KSQL_PRECONDITION_TOPIC_CLEANUP_VALIDATOR =
+      ConfigDef.ValidString.in(
+          KSQL_PRECONDITION_TOPIC_CLEANUP_CLEANUP,
+          KSQL_PRECONDITION_TOPIC_CLEANUP_DRYRUN,
+          KSQL_PRECONDITION_TOPIC_CLEANUP_NONE
+      );
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
@@ -1392,6 +1403,14 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SHARED_RUNTIMES_COUNT_DEFAULT,
             Importance.MEDIUM,
             KSQL_SHARED_RUNTIMES_COUNT_DOC
+        )
+        .define(
+            KSQL_PRECONDITION_TOPIC_CLEANUP_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_PRECONDITION_TOPIC_CLEANUP_NONE,
+            KSQL_PRECONDITION_TOPIC_CLEANUP_VALIDATOR,
+            Importance.LOW,
+            ""
         )
         .define(
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,

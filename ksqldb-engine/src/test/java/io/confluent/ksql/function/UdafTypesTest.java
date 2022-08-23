@@ -199,7 +199,7 @@ public class UdafTypesTest {
     );
 
     assertThat(e.getMessage(),
-            is("The Object type can only be used in a variadic column argument"));
+            is("The Object type can only be used as a variadic column argument"));
   }
 
   @Test
@@ -210,7 +210,7 @@ public class UdafTypesTest {
     );
 
     assertThat(e.getMessage(),
-            is("The Object type can only be used in a variadic column argument"));
+            is("The Object type can only be used as a variadic column argument"));
   }
 
   @Test
@@ -221,7 +221,7 @@ public class UdafTypesTest {
     );
 
     assertThat(e.getMessage(),
-            is("The Object type can only be used in a variadic column argument"));
+            is("The Object type can only be used as a variadic column argument"));
   }
 
   @Test
@@ -232,7 +232,7 @@ public class UdafTypesTest {
     );
 
     assertThat(e.getMessage(),
-            is("The Object type can only be used in a variadic column argument"));
+            is("The Object type can only be used as a variadic column argument"));
   }
 
   @SuppressWarnings({"unused", "MethodMayBeStatic"})

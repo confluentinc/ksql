@@ -177,6 +177,11 @@ any further values are silently ignored, by setting this configuration to N.
 For more information, see
 [aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_list).
 
+!!! note
+
+    In {{ site.ccloud }}, the `ksql.functions.collect_list.limit` config is set
+    to 1000 and can't be changed.
+
 ## `ksql.functions.collect_set.limit`
 
 **Per query:** no
@@ -186,6 +191,11 @@ any further values are silently ignored, by setting this configuration to N.
 
 For more information, see
 [aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_set).
+
+!!! note
+
+    In {{ site.ccloud }}, the `ksql.functions.collect_set.limit` config is set
+    to 1000 and can't be changed.
 
 ## `ksql.endpoint.logging.log.queries`
 

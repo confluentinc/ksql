@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static com.google.common.io.Files.getNameWithoutExtension;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -155,6 +156,8 @@ public final class TestCaseBuilderUtil {
                 // Use the key/value schema built for the CREATE statement
                 keySchema,
                 valueSchema,
+                topic.getKeySchemaReferences(),
+                topic.getValueSchemaReferences(),
 
                 // Use the serde features built for the CREATE statement
                 topicFromStatement.getKeyFeatures(),
@@ -270,6 +273,8 @@ public final class TestCaseBuilderUtil {
         Optional.empty(),
         keySchema,
         valueSchema,
+        ImmutableList.of(),
+        ImmutableList.of(),
         keySerdeFeats,
         valSerdeFeats));
   }

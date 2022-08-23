@@ -74,6 +74,8 @@ public class StubKafkaServiceTest {
         topic.getValueSchemaId(),
         topic.getKeySchema(),
         topic.getValueSchema(),
+        topic.getKeySchemaReferences(),
+        topic.getValueSchemaReferences(),
         topic.getKeyFeatures(),
         topic.getValueFeatures()
     );

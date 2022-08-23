@@ -664,6 +664,39 @@
       ]
     },
     {
+      "name": "specify a protobuf schema with external references",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=1);",
+        "CREATE STREAM OUTPUT as SELECT * from INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event event = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 timestamp = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        { "topic": "input", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "`event` STRUCT<`timestamp` BIGINT>"},
+          {"name": "OUTPUT", "type": "stream", "schema": "`event` STRUCT<`timestamp` BIGINT>"}
+        ]
+      }
+    },
+    {
       "name": "fail if protobuf schema name is not found",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input_topic', value_format='PROTOBUF', VALUE_SCHEMA_FULL_NAME='ProtobufValue1000');"

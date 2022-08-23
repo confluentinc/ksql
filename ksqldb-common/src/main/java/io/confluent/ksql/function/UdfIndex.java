@@ -105,6 +105,7 @@ public class UdfIndex<T extends FunctionSignature> {
   //               Gist: https://gist.github.com/reneesoika/2ec934940c98dad6b0f68c89769fbe42
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
+  private static final ParamType OBJ_VAR_ARG = ArrayType.of(ParamTypes.ANY);
 
   private final String udfName;
   private final Node root = new Node();
@@ -497,8 +498,6 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   private final class Node {
-    private final ParamType objVarArg = ArrayType.of(ParamTypes.ANY);
-
     @VisibleForTesting
     private final Comparator<T> compareFunctions =
         Comparator.nullsFirst(
@@ -508,7 +507,7 @@ public class UdfIndex<T extends FunctionSignature> {
                 .thenComparing(fun -> -countGenerics(fun))
                 .thenComparing(fun ->
                         fun.parameters().stream().anyMatch(
-                                (param) -> param.equals(objVarArg)
+                                (param) -> param.equals(OBJ_VAR_ARG)
                         )
                         ? 0 : 1
                 ).thenComparing(this::indexOfVariadic)
@@ -555,7 +554,7 @@ public class UdfIndex<T extends FunctionSignature> {
     private int countGenerics(final T function) {
       return function.parameters().stream()
           .filter((param) -> GenericsUtil.hasGenerics(param)
-                  || param.equals(objVarArg))
+                  || param.equals(OBJ_VAR_ARG))
           .mapToInt(p -> 1)
           .sum();
     }

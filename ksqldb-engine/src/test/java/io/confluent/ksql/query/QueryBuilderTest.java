@@ -95,7 +95,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class QueryBuilderTest {
 
   private static final String STATEMENT_TEXT = "KSQL STATEMENT";
@@ -361,7 +361,6 @@ public class QueryBuilderTest {
     assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(namedTopology));
-    assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
     assertThat(queryMetadata.getPersistentQueryType(),

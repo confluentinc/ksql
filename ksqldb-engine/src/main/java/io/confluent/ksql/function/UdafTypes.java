@@ -145,7 +145,7 @@ class UdafTypes {
     final int indexOfFirstObj = indexOfType(inputTypes, Object.class);
     final boolean objArgIsNotVariadic = indexOfFirstObj >= 0 && indexOfFirstObj != variadicColIndex;
     if (hasMultipleObjectArgs || objArgIsNotVariadic) {
-      throw new KsqlException("The Object type can only be used in a variadic column argument");
+      throw new KsqlException("The Object type can only be used as a variadic column argument");
     }
 
     this.aggregateType = type.getActualTypeArguments()[1];

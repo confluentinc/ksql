@@ -281,10 +281,17 @@ Rows that have `col1` set to `NULL` are ignored.
 ## **`TOPK`**
 
 ```sql title="Applies to: stream<br>"
-TOPK(col1, k)
+TOPK(col1, otherCols..., k)
 ```
 
 Returns the Top *K* values for the given column and window.
+
+If only `col1` is provided, then an array of values for that column is 
+returned. If `otherCols` are provided, then a `STRUCT` is returned. The 
+`STRUCT` has a field named `sort_col` that contains value of `col1` in the 
+associated record. `otherCols` are in fields named `col0`, `col1`, `col2`, 
+etc. in the order they were provided. `otherCols` do not all have to 
+be of the same type.
 
 Rows that have `col1` set to `NULL` are ignored.
 

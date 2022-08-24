@@ -17,8 +17,11 @@ package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.serde.SerdeFeatures;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -34,6 +37,8 @@ public class Topic {
   final Optional<Integer> valueSchemaId;
   private final Optional<ParsedSchema> keySchema;
   private final Optional<ParsedSchema> valueSchema;
+  private final List<SchemaReference> keySchemaReferences;
+  private final List<SchemaReference> valueSchemaReferences;
   private final SerdeFeatures keyFeatures;
   private final SerdeFeatures valueFeatures;
 
@@ -43,9 +48,11 @@ public class Topic {
       final Optional<ParsedSchema> valueSchema
   ) {
     this(name, DEFAULT_PARTITIONS, DEFAULT_RF, Optional.empty(), Optional.empty(),
-        keySchema, valueSchema, SerdeFeatures.of(), SerdeFeatures.of());
+        keySchema, valueSchema, ImmutableList.of(), ImmutableList.of(),
+        SerdeFeatures.of(), SerdeFeatures.of());
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumber
   public Topic(
       final String name,
       final int numPartitions,
@@ -54,14 +61,20 @@ public class Topic {
       final Optional<Integer> valueSchemaId,
       final Optional<ParsedSchema> keySchema,
       final Optional<ParsedSchema> valueSchema,
+      final List<SchemaReference> keySchemaReferences,
+      final List<SchemaReference> valueSchemaReferences,
       final SerdeFeatures keyFeatures,
       final SerdeFeatures valueFeatures
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumber
+
     this.name = requireNonNull(name, "name");
     this.keySchemaId = requireNonNull(keySchemaId, "keySchemaId");
     this.valueSchemaId = requireNonNull(valueSchemaId, "valueSchemaId");
     this.keySchema = requireNonNull(keySchema, "keySchema");
     this.valueSchema = requireNonNull(valueSchema, "valueSchema");
+    this.keySchemaReferences = requireNonNull(keySchemaReferences, "keySchemaReferences");
+    this.valueSchemaReferences = requireNonNull(valueSchemaReferences, "valueSchemaReferences");
     this.numPartitions = numPartitions;
     this.replicas = (short) replicas;
     this.keyFeatures = keyFeatures;
@@ -78,6 +91,18 @@ public class Topic {
 
   public Optional<Integer> getValueSchemaId() {
     return valueSchemaId;
+  }
+
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP",
+      justification = "keySchemaReferences is ImmutableList")
+  public List<SchemaReference> getKeySchemaReferences() {
+    return keySchemaReferences;
+  }
+
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP",
+      justification = "valueSchemaReferences is ImmutableList")
+  public List<SchemaReference> getValueSchemaReferences() {
+    return valueSchemaReferences;
   }
 
   public Optional<ParsedSchema> getKeySchema() {

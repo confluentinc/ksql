@@ -21,6 +21,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.server.state.ServerState.State;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
@@ -291,14 +292,16 @@ public class CommandRunner implements Closeable {
           .getKsqlEngine()
           .getPersistentQueries();
 
-      queryCleanup.cleanupLeakedQueries(queries);
-
       if (commandStore.corruptionDetected()) {
         LOG.info("Corruption detected, queries will not be started.");
         queries.forEach(QueryMetadata::setCorruptionQueryError);
       } else {
         LOG.info("Restarting {} queries.", queries.size());
         queries.forEach(PersistentQueryMetadata::start);
+        queryCleanup.cleanupLeakedQueries(queries);
+        //We only want to clean up if the queries are read properly
+        //We do not want to clean up potentially important stuff
+        //when the cluster is in a bad state
       }
 
       LOG.info("Restore complete");
@@ -338,16 +341,15 @@ public class CommandRunner implements Closeable {
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
-    final String commandStatement =
-        queuedCommand.getAndDeserializeCommand(commandDeserializer).getStatement();
-    LOG.info("Executing statement: " + commandStatement);
+    final String commandId = queuedCommand.getAndDeserializeCommandId().toString();
+    LOG.info("Executing statement: " + commandId);
 
     final Runnable task = () -> {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        LOG.info("Executed statement: " + commandStatement);
+        LOG.info("Executed statement: " + commandId);
       }
     };
 
@@ -381,6 +383,7 @@ public class CommandRunner implements Closeable {
         .getOrDefault(ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, Collections.emptyList());
 
     clusterTerminator.terminateCluster(deleteTopicList);
+    serverState.setTerminated();
     LOG.info("The KSQL server was terminated.");
     closeEarly();
     LOG.debug("The KSQL command runner was closed.");
@@ -426,6 +429,10 @@ public class CommandRunner implements Closeable {
     }
 
     return state.getStatus();
+  }
+
+  public State checkServerState() {
+    return this.serverState.getState();
   }
 
   public CommandRunnerDegradedReason getCommandRunnerDegradedReason() {

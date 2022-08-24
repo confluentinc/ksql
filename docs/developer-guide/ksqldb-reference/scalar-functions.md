@@ -116,6 +116,16 @@ Converts one type to another. The following casts are supported:
 
 ---
 
+### **`CBRT`**
+
+```sql title="Since: 0.29.0"
+CBRT(col1)
+```
+
+Returns the cube root of `col1`.
+
+---
+
 ### **`CEIL`**
 
 ```sql title="Since: 0.1.0"
@@ -268,6 +278,19 @@ The value of `col1` must be greater than 0.
 
 ---
 
+### **`LOG`**
+
+```sql title="Since: 0.29.0"
+LOG(value)
+LOG(base, value)
+```
+
+The single-parameter version of this method returns the base 10 logarithm of the `value`. The two-parameter version returns the logarithm with the given `base` of the `value`.
+
+This function returns `-Infinity` for any `base` when the `value` is `0`. It returns `NaN` when the `value` is negative, when the `base` is negative, when the `base` is `0`, or when the `base` is `1`.
+
+---
+
 ### **`PI`**
 
 ```sql title="Since: 0.28.0"
@@ -275,6 +298,18 @@ PI()
 ```
 
 Returns an approximate value of _π_.
+
+---
+
+### **`POWER`**
+
+```sql title="Since: 0.29.0"
+POWER(base, exponent)
+```
+
+Calculates the value of the `base` raised to the `exponent`.
+
+This function returns `Infinity` when the result overflows the `DOUBLE` type.
 
 ---
 
@@ -1117,7 +1152,24 @@ JSON_RECORDS('123') => NULL
 JSON_RECORDS(NULL) => NULL
 JSON_RECORDS('abc') => NULL
 ```
+### `JSON_ITEMS`
 
+```sql title="Since: 0.28.0"
+JSON_ITEMS(json_string) => Array<String>
+```
+
+Given a string with JSON array, converts it to a ksqlDB array of JSON strings. 
+
+Returns `NULL` if the string can't be interpreted as a JSON array, for example, 
+when the string is `NULL` or it does not contain valid JSON, or the JSON value is not an array.
+
+```sql title="Examples"
+JSON_ITEMS('[{\"type\": \"A\", \"ts\": \"2022-01-27\"}, {\"type\": \"B\", \"ts\": \"2022-05-18\"}]') => ["{\"type\": \"A\", \"ts\": \"2022-01-27\"}", "{\"type\": \"B\", \"ts\": \"2022-05-18\"}"]
+JSON_ITEMS('[]') => []
+JSON_ITEMS('[1, 2, 3]') => ["1","2","3"]
+JSON_ITEMS(NULL) => NULL
+JSON_ITEMS('abc') => NULL
+```
 ### `TO_JSON_STRING`
 
 ```sql title="Since: 0.24.0"
@@ -1783,6 +1835,15 @@ for example:
 - "America/Los_Angeles"
 - "PDT"
 - "Europe/London"
+
+!!! note
+    To use the `FORMAT_TIMESTAMP` function with a BIGINT millisecond timestamp
+    parameter, convert the millisecond value to a `TIMESTAMP` by using the
+    `FROM_UNIXTIME` function, for example:
+
+    ```sql
+    FORMAT_TIMESTAMP(FROM_UNIXTIME(unix_timestamp))
+    ```
 
 For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).

@@ -3,7 +3,10 @@ package io.confluent.ksql.rest.server;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +29,7 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.URI;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.streams.LagInfo;
@@ -237,9 +241,7 @@ public class LagReportingAgentTest {
     assertEquals(M2_B4_LAG, lag.getOffsetLag());
   }
 
-  @Test
-  public void shouldSendLags() {
-    // Given:
+  private void setupLags() {
     when(clock.millis()).thenReturn(TIME_NOW_MS);
     when(lagInfo0.currentOffsetPosition()).thenReturn(M2_A1_CUR);
     when(lagInfo0.endOffsetPosition()).thenReturn(M2_A1_END);
@@ -265,7 +267,47 @@ public class LagReportingAgentTest {
     when(query0.getQueryId()).thenReturn(new QueryId(QUERY_ID0));
     when(query1.getAllLocalStorePartitionLags()).thenReturn(query1Lag);
     when(query1.getQueryId()).thenReturn(new QueryId(QUERY_ID1));
+  }
+
+  @Test
+  public void shouldSendLags() {
+    // Given:
+    setupLags();
     SendLagService sendLagService = lagReportingAgent.new SendLagService();
+
+    // When:
+    lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
+    sendLagService.runOneIteration();
+
+    // Then:
+    LagReportingMessage exp = hostLag(LOCALHOST_INFO, LAG_MAP2, TIME_NOW_MS);
+    verify(ksqlClient).makeAsyncLagReportRequest(eq(URI.create("http://host2:1234/")), eq(exp));
+    verify(ksqlClient).makeAsyncLagReportRequest(eq(URI.create("http://host1:1234/")), eq(exp));
+  }
+
+  @Test
+  public void shouldSendLags_generalError() {
+    // Given:
+    ArrayList<PersistentQueryMetadata> queries = new ArrayList<>();
+    queries.add(null);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(queries);
+    SendLagService sendLagService = lagReportingAgent.new SendLagService();
+
+    // When:
+    lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);
+    sendLagService.runOneIteration();
+
+    // Then:
+    verify(ksqlClient, never()).makeAsyncLagReportRequest(any(), any());
+  }
+
+  @Test
+  public void shouldSendLags_networkError() {
+    // Given:
+    setupLags();
+    SendLagService sendLagService = lagReportingAgent.new SendLagService();
+    doThrow(new RuntimeException("Error!"))
+        .when(ksqlClient).makeAsyncLagReportRequest(eq(URI.create("http://host1:1234/")), any());
 
     // When:
     lagReportingAgent.onHostStatusUpdated(HOSTS_ALIVE);

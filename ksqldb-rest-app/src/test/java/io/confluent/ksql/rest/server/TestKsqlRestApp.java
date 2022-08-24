@@ -21,6 +21,8 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
@@ -55,6 +57,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,7 +71,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -335,6 +337,8 @@ public class TestKsqlRestApp extends ExternalResource {
 
     try {
       Vertx vertx = Vertx.vertx();
+      final MetricCollectors metricsCollector = new MetricCollectors();
+      final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           ksqlRestConfig,
@@ -351,8 +355,16 @@ public class TestKsqlRestApp extends ExternalResource {
               vertx),
           TestRestServiceContextFactory.createDefault(internalSimpleKsqlClientFactory),
           TestRestServiceContextFactory.createUser(internalSimpleKsqlClientFactory),
-          new MetricCollectors()
+          metricsCollector,
+          functionRegistry,
+          Instant.now()
       );
+      UserFunctionLoader.newInstance(
+          new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties()),
+          functionRegistry,
+          ksqlRestConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG),
+          metricsCollector.getMetrics()
+      ).load();
 
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);

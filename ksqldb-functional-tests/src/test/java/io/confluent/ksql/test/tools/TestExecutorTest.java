@@ -498,6 +498,8 @@ public class TestExecutorTest {
                 KeyFormat.nonWindowed(FormatInfo.of("Kafka"), SerdeFeatures.of()),
                 ValueFormat.of(FormatInfo.of("Json"), SerdeFeatures.of()),
                 OptionalInt.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 NullNode.getInstance(),
                 NullNode.getInstance()
             )
@@ -574,7 +576,7 @@ public class TestExecutorTest {
       final List<Header> headers
   ) {
     final byte[] serializedKey = keySerializer.serialize("", key);
-    final byte[] serializeValue = new ValueSpecJsonSerdeSupplier(false, ImmutableMap.of())
+    final byte[] serializeValue = new ValueSpecJsonSerdeSupplier(ImmutableMap.of())
         .getSerializer(null, false)
         .serialize("", value);
 

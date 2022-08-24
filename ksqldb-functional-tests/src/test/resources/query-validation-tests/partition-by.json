@@ -927,7 +927,8 @@
                 "fields": [
                   { "name": "F1", "type": [ "null", "int" ], "default": null },
                   { "name": "F2", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
               }
             }
           ]
@@ -963,12 +964,14 @@
                         "fields": [
                           { "name": "F1", "type": [ "null", "int" ], "default": null },
                           { "name": "F2", "type": [ "null", "int" ], "default": null }
-                        ]
+                        ],
+                        "connect.name":"io.confluent.ksql.avro_schemas.OutputKey_F1"
                       }
                     ],
                     "default": null
                   }
-                ]
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
               }
             }
           ]
@@ -997,7 +1000,8 @@
                 "fields": [
                   { "name": "F1", "type": [ "null", "int" ], "default": null },
                   { "name": "F2", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
               }
             }
           ]

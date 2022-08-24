@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.avro;
 
 import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
@@ -44,9 +45,14 @@ public class AvroSRSchemaDataTranslator extends ConnectSRSchemaDataTranslator {
     }
     final Schema schema = getSchema();
     final Struct struct = new Struct(schema);
-    final Struct originalData = (Struct) ksqlData;
-    final Schema originalSchema = originalData.schema();
-
+    Struct originalData = (Struct) ksqlData;
+    Schema originalSchema = originalData.schema();
+    if (originalSchema.name() == null && schema.name() != null) {
+      originalSchema = AvroSchemas.getAvroCompatibleConnectSchema(
+          originalSchema, schema.name()
+      );
+      originalData = ConnectSchemas.withCompatibleRowSchema(originalData, originalSchema);
+    }
     validate(originalSchema, schema);
 
     for (final Field field : schema.fields()) {
@@ -63,7 +69,6 @@ public class AvroSRSchemaDataTranslator extends ConnectSRSchemaDataTranslator {
         }
       }
     }
-
     return struct;
   }
 }

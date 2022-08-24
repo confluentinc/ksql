@@ -467,7 +467,7 @@ final class QueryBuilder {
             persistentQueryType,
             statementText,
             querySchema,
-            sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+            sources,
             planSummary,
             applicationId,
             topology,
@@ -575,11 +575,12 @@ final class QueryBuilder {
         ThroughputMetricsReporter.class.getName()
     );
 
-    if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+    if (!queryId.isPresent()) {
+      //QueryId is empty for shared runtimes when building the runtime
       newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
           ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
               + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-              + "query");
+              + QueryApplicationId.PERSISTENT_QUERY_INDICATOR);
     }
 
     // Passing shared state into managed components
@@ -653,7 +654,8 @@ final class QueryBuilder {
         .and(new AuthorizationClassifier(applicationId))
         .and(new KsqlFunctionClassifier(applicationId))
         .and(new MissingSubjectClassifier(applicationId))
-        .and(new SchemaAuthorizationClassifier(applicationId));
+        .and(new SchemaAuthorizationClassifier(applicationId))
+        .and(new KsqlSerializationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);

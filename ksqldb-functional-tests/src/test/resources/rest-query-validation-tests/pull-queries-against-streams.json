@@ -228,9 +228,6 @@
     },
     {
       "name": "should not allow pull query with disallowed pseudocolumn in SELECT clause",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (mykey INT KEY, myvalue INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT mykey, myvalue, ROWOFFSET FROM S1;"
@@ -243,9 +240,6 @@
     },
     {
       "name": "should not allow pull query with disallowed pseudocolumn in WHERE clause",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM S1 WHERE mykey < 1 AND ROWPARTITION != 2;"

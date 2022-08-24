@@ -87,9 +87,10 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
       }
 
       final T schema;
+      final int id;
       try {
         final String subject = KsqlConstants.getSRSubject(topic, isKey);
-        final int id = srClient.getLatestSchemaMetadata(subject).getId();
+        id = srClient.getLatestSchemaMetadata(subject).getId();
         schema = (T) srClient.getSchemaBySubjectAndId(subject, id);
       } catch (Exception e) {
         throw new KsqlException(e);

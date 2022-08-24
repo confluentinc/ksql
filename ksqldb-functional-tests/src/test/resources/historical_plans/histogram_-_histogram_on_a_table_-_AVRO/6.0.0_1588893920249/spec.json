@@ -222,7 +222,8 @@
               "name" : "NAME",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",
@@ -282,10 +283,12 @@
                     "default" : null
                   } ],
                   "connect.internal.type" : "MapEntry"
-                }
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_COUNTS"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
@@ -324,10 +327,12 @@
                     "default" : null
                   } ],
                   "connect.internal.type" : "MapEntry"
-                }
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_KSQL_AGG_VARIABLE_0"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

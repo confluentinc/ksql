@@ -71,14 +71,14 @@ public final class ListTopicsExecutor {
           .collect(Collectors.toList());
 
       return StatementExecutorResponse.handled(Optional.of(
-          new KafkaTopicsListExtended(statement.getStatementText(), topicInfoExtendedList)));
+          new KafkaTopicsListExtended(statement.getMaskedStatementText(), topicInfoExtendedList)));
     } else {
       final List<KafkaTopicInfo> topicInfoList = topicDescriptions.values()
           .stream().map(ListTopicsExecutor::topicDescriptionToTopicInfo)
           .collect(Collectors.toList());
 
       return StatementExecutorResponse.handled(Optional.of(
-          new KafkaTopicsList(statement.getStatementText(), topicInfoList)));
+          new KafkaTopicsList(statement.getMaskedStatementText(), topicInfoList)));
     }
   }
 

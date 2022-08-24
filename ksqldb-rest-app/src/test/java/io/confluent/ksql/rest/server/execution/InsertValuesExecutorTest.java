@@ -94,6 +94,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -143,6 +144,13 @@ public class InsertValuesExecutorTest {
       + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
       + "\"fields\":["
       + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+
+  private static final String AVRO_RAW_ONE_KEY_SCHEMA_WITH_CUSTOM_METADATA =
+      "{\"type\":\"record\","
+          + "\"name\":\"MyRecord\","
+          + "\"namespace\":\"io.xyz.records\","
+          + "\"fields\":["
+          + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
 
   private static final LogicalSchema SCHEMA_WITH_MUTI_KEYS = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.STRING)
@@ -742,6 +750,88 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldThrowOnClusterAuthorizationExceptionWrappedInKafkaException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new KafkaException(
+        "Cannot execute transactional method because we are in an error state",
+        new ClusterAuthorizationException("Cluster authorization failed"))
+    ).when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(
+        containsString("Authorization denied to Write on topic(s): [" + TOPIC_NAME + "]. "
+            + "Caused by: The producer is not authorized to do idempotent sends. "
+            + "Check that you have write permissions to the specified topic, "
+            + "and disable idempotent sends by setting 'enable.idempotent=false' "
+            + " if necessary."))));
+  }
+
+  @Test
+  public void shouldThrowOnOtherException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new RuntimeException("boom"))
+        .when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(containsString("boom"))));
+  }
+
+  @Test
+  public void shouldThrowOnOtherExceptionWrappedInKafkaException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new KafkaException(
+        "Cannot execute transactional method because we are in an error state",
+        new RuntimeException("boom"))
+    ).when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(
+        containsString("Cannot execute transactional method because we are in an error state"))));
+  }
+
+  @Test
   public void shouldThrowWhenInsertingValuesOnSourceTable() {
     // Given:
     givenDataSourceWithSchema("source_table_1", SCHEMA,
@@ -1028,6 +1118,99 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldNotAllowInsertOnMultipleKeySchemaDefinitionsWithDifferentOrder() throws Exception {
+    final String protoMultiSchema = "syntax = \"proto3\";\n"
+        + "package io.proto;\n"
+        + "\n"
+        + "message SingleKey {\n"
+        + "  string k0 = 1;\n"
+        + "}\n"
+        + "message MultiKeys {\n"
+        + "  string k1 = 1;\n"
+        + "  string k0 = 2;\n"
+        + "}\n";
+
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, protoMultiSchema));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new ProtobufSchema(protoMultiSchema));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.PROTOBUF.name(), ImmutableMap.of(
+            AvroProperties.FULL_SCHEMA_NAME,"io.proto.MultiKeys",
+            AvroProperties.SCHEMA_ID, "1"
+        )),
+        FormatInfo.of(FormatFactory.JSON.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K1, K0, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("K1"),
+            new StringLiteral("K0"),
+            new StringLiteral("V0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
+    assertThat(e.getMessage(), containsString("Existing Schema: [`K1` STRING, `K0` STRING]"));
+    assertThat(e.getMessage(), containsString("ksqlDB Generated: [`k0` STRING KEY, `k1` STRING KEY]"));
+  }
+
+  @Test
+  public void shouldNotAllowInsertWhenSchemaMetadataIsNull() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(null);
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.PROTOBUF.name(), ImmutableMap.of(
+            AvroProperties.FULL_SCHEMA_NAME,"io.proto.MultiKeys",
+            AvroProperties.SCHEMA_ID, "1"
+        )),
+        FormatInfo.of(FormatFactory.JSON.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K1, K0, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("K1"),
+            new StringLiteral("K0"),
+            new StringLiteral("V0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Failed to insert values into 'TOPIC'. Failed to fetch key schema (topic-key). " +
+            "Please check if schema exists in Schema Registry and/or check connection with Schema Registry.")
+    );
+  }
+
+  @Test
   public void shouldIgnoreConnectNameComparingKeySchema() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
@@ -1096,6 +1279,39 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldSupportInsertIntoWithSchemaInferenceMatchAndCustomMetadata() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, ""));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new AvroSchema(AVRO_RAW_ONE_KEY_SCHEMA_WITH_CUSTOM_METADATA));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE, SerdeFeature.WRAP_SINGLES),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0),
+        ImmutableList.of(
+            new StringLiteral("foo"),
+            new StringLiteral("bar"))
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("foo"));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("bar", null));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
   public void shouldThrowOnSchemaInferenceMismatchForKey() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
@@ -1127,8 +1343,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
-    assertThat(e.getMessage(), containsString("Existing Schema: " + RAW_SCHEMA));
-    assertThat(e.getMessage(), containsString("ksqlDB Generated: {\"type\":"));
+    assertThat(e.getMessage(), containsString("Existing Schema: [`K0` STRING, `K1` STRING]"));
+    assertThat(e.getMessage(), containsString("ksqlDB Generated: [`k0` STRING KEY]"));
   }
 
   @Test

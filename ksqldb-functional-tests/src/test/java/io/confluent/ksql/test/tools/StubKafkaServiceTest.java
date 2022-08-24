@@ -70,8 +70,12 @@ public class StubKafkaServiceTest {
         topic.getName(),
         topic.getNumPartitions() + 1,
         topic.getReplicas() + 1,
+        topic.getKeySchemaId(),
+        topic.getValueSchemaId(),
         topic.getKeySchema(),
         topic.getValueSchema(),
+        topic.getKeySchemaReferences(),
+        topic.getValueSchemaReferences(),
         topic.getKeyFeatures(),
         topic.getValueFeatures()
     );

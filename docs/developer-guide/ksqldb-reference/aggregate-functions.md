@@ -6,6 +6,11 @@ description: Aggregate functions to use in SQL statements and queries
 keywords: ksqlDB, SQL, function, aggregate
 ---
 
+!!! Important
+    In an aggregation function, providing a `*` character or an empty argument
+    list causes the function to return only the ROWTIME column. For example,
+    calling `AVG(*)` or `AVG()`  returns the  average of ROWTIME.
+
 ## **`AVG`**
 
 ```sql title="Applies to: stream, table<br>Since: 0.6.0"
@@ -32,6 +37,11 @@ The size of the result ARRAY can be limited to a maximum of
 `ksql.functions.collect_list.limit` entries, and any values beyond this
 limit are ignored silently.
 
+!!! note
+
+    In {{ site.ccloud }}, the `ksql.functions.collect_list.limit` config is set
+    to 1000 and can't be changed.
+
 When used with `SESSION` window, sometimes two session windows are merged
 together into one, when a out-of-order record with a timestamp between
 the two windows is processed. In this case, the record limit is calculated by
@@ -57,12 +67,31 @@ The size of the result ARRAY can be limited to a maximum of
 `ksql.functions.collect_set.limit` entries, and any values beyond this
 limit are ignored silently.
 
+!!! note
+
+    In {{ site.ccloud }}, the `ksql.functions.collect_set.limit` config is set
+    to 1000 and can't be changed.
+
 When used with a `SESSION` window, sometimes two session windows are merged
 together into one, when a out-of-order record with a timestamp between
 the two windows is processed. In this case, the record limit is calculated by
 first considering all the records from the first window, then the out-of-order
 record, then the records from the second window in the order they were
 originally processed.
+
+---
+
+## **`CORRELATION`**
+
+```sql title="Applies to: stream, table<br>Since: 0.29.0"
+CORRELATION(x, y)
+```
+
+Returns the Pearson correlation coefficient between columns `x` and `y`. If either value in `x` or `y` is `NULL` for a particular row, that row is ignored.
+
+If all rows contain `NULL` for `x` or `y`, or if there is only one non-null row, `NaN` is returned. When there are only two non-null rows, either `1.0` or `-1.0` is returned, depending on the sign of the slope of the line that would be drawn between the two points.
+
+If all the values in one column are equal, `NaN` is returned.
 
 ---
 

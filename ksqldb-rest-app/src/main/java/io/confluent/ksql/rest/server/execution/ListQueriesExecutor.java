@@ -76,7 +76,7 @@ public final class ListQueriesExecutor {
         remoteHostExecutor.fetchAllRemoteResults()
     );
     return StatementExecutorResponse.handled(Optional.of(new Queries(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         runningQueries.values())));
   }
 
@@ -168,7 +168,7 @@ public final class ListQueriesExecutor {
     );
 
     return StatementExecutorResponse.handled(Optional.of(new QueryDescriptionList(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         queryDescriptions.values())));
   }
 

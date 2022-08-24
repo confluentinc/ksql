@@ -27,6 +27,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.QueryMask;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collections;
@@ -63,8 +64,8 @@ import org.slf4j.LoggerFactory;
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandStore implements CommandQueue, Closeable {
 
+  public static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
   private static final Logger LOG = LoggerFactory.getLogger(CommandStore.class);
-  private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
   private static final int COMMAND_TOPIC_PARTITION = 0;
 
   private final CommandTopic commandTopic;
@@ -228,7 +229,7 @@ public class CommandStore implements CommandQueue, Closeable {
           String.format(
               "Could not write the statement '%s' into the "
                   + "command topic"
-                  + ".", command.getStatement()
+                  + ".", QueryMask.getMaskedStatement(command.getStatement())
           ),
           e
       );

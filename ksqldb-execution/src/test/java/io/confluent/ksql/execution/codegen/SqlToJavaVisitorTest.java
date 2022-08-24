@@ -65,7 +65,6 @@ import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
-import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
@@ -85,7 +84,6 @@ import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -259,24 +257,6 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldCreateCorrectCastJavaExpression() {
-    // Given:
-    final Expression castBigintInteger = new Cast(
-        COL0,
-        new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("INTEGER"))
-    );
-
-    // When:
-    final String actual = sqlToJavaVisitor.process(castBigintInteger);
-
-    // Then:
-    final String expected = CastEvaluator
-        .generateCode("COL0", SqlTypes.BIGINT, SqlTypes.INTEGER, ksqlConfig);
-
-    assertThat(actual, is(expected));
-  }
-
-  @Test
   public void shouldPostfixFunctionInstancesWithUniqueId() {
     // Given:
     final UdfFactory ssFactory = mock(UdfFactory.class);
@@ -348,11 +328,13 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
-    final String doubleCast = CastEvaluator.generateCode(
-        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+      final String doubleCast = sqlToJavaVisitor.process(new Cast(
+              new DecimalLiteral(new BigDecimal("1.2")),
+              new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DOUBLE)));
 
-    final String longCast = CastEvaluator.generateCode(
-        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+      final String longCast = sqlToJavaVisitor.process(new Cast(
+              new IntegerLiteral(1),
+              new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.BIGINT)));
 
     assertThat(javaExpression, is(
         "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + "))"
@@ -380,11 +362,13 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
-    final String doubleCast = CastEvaluator.generateCode(
-        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+    final String doubleCast = sqlToJavaVisitor.process(new Cast(
+            new DecimalLiteral(new BigDecimal("1.2")),
+            new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DOUBLE)));
 
-    final String longCast = CastEvaluator.generateCode(
-        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+    final String longCast = sqlToJavaVisitor.process(new Cast(
+            new IntegerLiteral(1),
+            new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.BIGINT)));
 
     assertThat(javaExpression, is(
         "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + ", " + longCast + "))"
@@ -1314,24 +1298,32 @@ public class SqlToJavaVisitorTest {
     // Then
     assertThat(
         javaExpression, equalTo(
-            "(((Double) nested_0.evaluate(COL4, ((Double)NullSafe.apply(0,new Function() {\n"
+            "(((Double) nested_0.evaluate(COL4,  (new Supplier<java.lang.Double>() " +
+                    "{@Override public java.lang.Double get() { " +
+                    "try {  return ((Double)NullSafe.apply(0,new Function() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1) {\n"
                 + "   final Integer val = (Integer) arg1;\n"
                 + "   return val.doubleValue();\n"
                 + " }\n"
-                + "})), new BiFunction() {\n"
+                + "})); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    " +
+                    "\"Error processing DOUBLE\",    e instanceof InvocationTargetException? e.getCause() : e,    " +
+                    "row));  return (java.lang.Double) defaultValue; }}}).get(), new BiFunction() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1, Object arg2) {\n"
                 + "   final Double A = (Double) arg1;\n"
                 + "   final Integer B = (Integer) arg2;\n"
-                + "   return (((Double) nested_1.evaluate(COL4, ((Double)NullSafe.apply(0,new Function() {\n"
+                + "   return (((Double) nested_1.evaluate(COL4,  (new Supplier<java.lang.Double>() " +
+                    "{@Override public java.lang.Double get() { try {  " +
+                    "return ((Double)NullSafe.apply(0,new Function() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1) {\n"
                 + "   final Integer val = (Integer) arg1;\n"
                 + "   return val.doubleValue();\n"
                 + " }\n"
-                + "})), new BiFunction() {\n"
+                + "})); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    " +
+                    "\"Error processing DOUBLE\",    e instanceof InvocationTargetException? e.getCause() : e,    " +
+                    "row));  return (java.lang.Double) defaultValue; }}}).get(), new BiFunction() {\n"
                 + " @Override\n"
                 + " public Object apply(Object arg1, Object arg2) {\n"
                 + "   final Double Q = (Double) arg1;\n"
@@ -1376,10 +1368,5 @@ public class SqlToJavaVisitorTest {
     when(function.getReturnType(anyList())).thenReturn(returnType);
     final UdfMetadata metadata = mock(UdfMetadata.class);
     when(factory.getMetadata()).thenReturn(metadata);
-  }
-
-  private String onException(final String type) {
-    return String.format("logger.error(RecordProcessingError.recordProcessingError(    \"Error processing %s\",    "
-        + "e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue;", type);
   }
 }

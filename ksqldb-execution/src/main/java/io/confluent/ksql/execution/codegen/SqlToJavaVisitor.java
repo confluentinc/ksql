@@ -539,6 +539,7 @@ public class SqlToJavaVisitor {
         final SqlType sqlType =
             argumentInfos.get(i).getSqlArgument().getSqlType().orElse(null);
 
+        // Since scalar UDFs are being handled here, varargs cannot be in the middle.
         final ParamType paramType;
         if (i >= function.parameters().size() - 1 && function.isVariadic()) {
           paramType = ((ArrayType) Iterables.getLast(function.parameters())).element();
@@ -858,7 +859,10 @@ public class SqlToJavaVisitor {
     ) {
       final Pair<String, SqlType> expr = process(node.getExpression(), context);
       final SqlType to = node.getType().getSqlType();
-      return Pair.of(genCastCode(expr, to), to);
+      final String javaType = SchemaConverters.sqlToJavaConverter()
+              .toJavaType(node.getType().getSqlType()).getTypeName();
+      final String code = evaluateOrReturnNull(genCastCode(expr,to), to.toString(), javaType);
+      return Pair.of(code, to);
     }
 
     @Override
@@ -1079,13 +1083,14 @@ public class SqlToJavaVisitor {
 
         case MAP:
           final SqlMap map = (SqlMap) internalSchema;
+          final String baseCode = process(node.getBase(), context).getLeft();
           final String mapCode = String.format(
               "((%s) (%s == null ? null : ((%s)%s).get(%s)))",
               SchemaConverters.sqlToJavaConverter()
                   .toJavaType(map.getValueType()).getSimpleName(),
-              process(node.getBase(), context).getLeft(),
+              baseCode,
               internalSchemaJavaType,
-              process(node.getBase(), context).getLeft(),
+              baseCode,
               process(node.getIndex(), context).getLeft());
           return new Pair<>(mapCode, map.getValueType()
           );
@@ -1189,6 +1194,25 @@ public class SqlToJavaVisitor {
             + "  return defaultValue;"
             + " }"
             + "}}).get()";
+      } else {
+        return s;
+      }
+    }
+
+    private String evaluateOrReturnNull(final String s, final String type, final String javaType) {
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NESTED_ERROR_HANDLING_CONFIG)) {
+        return " (new " + Supplier.class.getSimpleName() + "<" + javaType + ">() {"
+                + "@Override public " + javaType + " get() {"
+                + " try {"
+                + "  return " + s + ";"
+                + " } catch (Exception e) {"
+                + "  logger.error(RecordProcessingError.recordProcessingError("
+                + "    \"Error processing " + type + "\","
+                + "    e instanceof InvocationTargetException? e.getCause() : e,"
+                + "    row));"
+                + "  return (" + javaType + ") defaultValue;"
+                + " }"
+                + "}}).get()";
       } else {
         return s;
       }

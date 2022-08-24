@@ -69,7 +69,6 @@ public class QueryValidatorUtilTest {
     when(dataSource.getSchema()).thenReturn(logicalSchema);
     when(logicalSchema.value()).thenReturn(ImmutableList.of(column));
     when(column.name()).thenReturn(SystemColumns.ROWPARTITION_NAME);
-    when(analysis.getRowpartitionRowoffsetEnabled()).thenReturn(true);
   }
 
 }

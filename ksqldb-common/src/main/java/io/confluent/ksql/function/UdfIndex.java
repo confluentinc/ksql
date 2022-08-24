@@ -59,7 +59,10 @@ import org.slf4j.LoggerFactory;
  *       have variable arguments, return the method with the more non-variable
  *       arguments.</li>
  *   <li>If two methods exist that match given the above rules, return the
- *       method with fewer generic arguments.</li>
+ *       method with fewer generic arguments, including any
+ *       {@code Object...} arguments.</li>
+ *   <li>If two methods exist that match given the above rules, return the
+ *       method without an {@code Object...} argument.</li>
  *   <li>If two methods exist that match given the above rules, return the
  *       method with the variadic argument in the later position.</li>
  *   <li>If two methods exist that match given the above rules, the function
@@ -102,6 +105,7 @@ public class UdfIndex<T extends FunctionSignature> {
   //               Gist: https://gist.github.com/reneesoika/2ec934940c98dad6b0f68c89769fbe42
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
+  private static final ParamType OBJ_VAR_ARG = ArrayType.of(ParamTypes.ANY);
 
   private final String udfName;
   private final Node root = new Node();
@@ -494,7 +498,6 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   private final class Node {
-
     @VisibleForTesting
     private final Comparator<T> compareFunctions =
         Comparator.nullsFirst(
@@ -502,7 +505,12 @@ public class UdfIndex<T extends FunctionSignature> {
                 .<T, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
                 .thenComparing(fun -> fun.parameters().size())
                 .thenComparing(fun -> -countGenerics(fun))
-                .thenComparing(this::indexOfVariadic)
+                .thenComparing(fun ->
+                        fun.parameters().stream().anyMatch(
+                                (param) -> param.equals(OBJ_VAR_ARG)
+                        )
+                        ? 0 : 1
+                ).thenComparing(this::indexOfVariadic)
         );
 
     private final Map<Pair<Parameter, Parameter>, Node> children;
@@ -545,7 +553,8 @@ public class UdfIndex<T extends FunctionSignature> {
 
     private int countGenerics(final T function) {
       return function.parameters().stream()
-          .filter(GenericsUtil::hasGenerics)
+          .filter((param) -> GenericsUtil.hasGenerics(param)
+                  || param.equals(OBJ_VAR_ARG))
           .mapToInt(p -> 1)
           .sum();
     }

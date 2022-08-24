@@ -539,6 +539,7 @@ public class SqlToJavaVisitor {
         final SqlType sqlType =
             argumentInfos.get(i).getSqlArgument().getSqlType().orElse(null);
 
+        // Since scalar UDFs are being handled here, varargs cannot be in the middle.
         final ParamType paramType;
         if (i >= function.parameters().size() - 1 && function.isVariadic()) {
           paramType = ((ArrayType) Iterables.getLast(function.parameters())).element();

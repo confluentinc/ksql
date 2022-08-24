@@ -119,6 +119,58 @@ public class DescribeFunctionExecutorTest {
   }
 
   @Test
+  public void shouldDescribeUDAFWithVarArgsInMiddle() {
+    // When:
+    final FunctionDescriptionList functionList = (FunctionDescriptionList)
+            CustomExecutors.DESCRIBE_FUNCTION.execute(
+                    engine.configure("DESCRIBE FUNCTION MID_VAR_ARG;"),
+                    mock(SessionProperties.class),
+                    engine.getEngine(),
+                    engine.getServiceContext()
+            ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
+      @Override
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
+        return functionList.getName().equals("MID_VAR_ARG")
+                && functionList.getType().equals(FunctionType.AGGREGATE);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(functionList.getName());
+      }
+    });
+  }
+
+  @Test
+  public void shouldDescribeUDAFWithObjVarArgs() {
+    // When:
+    final FunctionDescriptionList functionList = (FunctionDescriptionList)
+            CustomExecutors.DESCRIBE_FUNCTION.execute(
+                    engine.configure("DESCRIBE FUNCTION OBJ_COL_ARG;"),
+                    mock(SessionProperties.class),
+                    engine.getEngine(),
+                    engine.getServiceContext()
+            ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
+      @Override
+      protected boolean matchesSafely(final FunctionDescriptionList item) {
+        return functionList.getName().equals("OBJ_COL_ARG")
+                && functionList.getType().equals(FunctionType.AGGREGATE);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(functionList.getName());
+      }
+    });
+  }
+
+  @Test
   public void shouldDescribeUDTF() {
     // When:
     final FunctionDescriptionList functionList = (FunctionDescriptionList)

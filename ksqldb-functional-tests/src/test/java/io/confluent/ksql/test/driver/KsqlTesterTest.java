@@ -395,21 +395,34 @@ public class KsqlTesterTest {
     }
   }
 
-  private Serde<GenericKey> keySerde(final DataSource sinkSource) {
+  private Serde<?> keySerde(final DataSource sinkSource) {
     final PersistenceSchema schema = PersistenceSchema.from(
         sinkSource.getSchema().key(),
         sinkSource.getKsqlTopic().getKeyFormat().getFeatures()
     );
 
-    return new GenericKeySerDe().create(
-        sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
-        schema,
-        config,
-        serviceContext.getSchemaRegistryClientFactory(),
-        "",
-        NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
+    if (sinkSource.getKsqlTopic().getKeyFormat().getWindowInfo().isPresent()) {
+      return new GenericKeySerDe().create(
+          sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+          sinkSource.getKsqlTopic().getKeyFormat().getWindowInfo().get(),
+          schema,
+          config,
+          serviceContext.getSchemaRegistryClientFactory(),
+          "",
+          NoopProcessingLogContext.INSTANCE,
+          Optional.empty()
+      );
+    } else {
+      return new GenericKeySerDe().create(
+          sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+          schema,
+          config,
+          serviceContext.getSchemaRegistryClientFactory(),
+          "",
+          NoopProcessingLogContext.INSTANCE,
+          Optional.empty()
+      );
+    }
   }
 
   private Serde<GenericRow> valueSerde(final DataSource sinkSource) {

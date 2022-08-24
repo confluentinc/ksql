@@ -99,6 +99,10 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
+  public Optional<Long> getRetentionInMillis() {
+    return Optional.ofNullable(props.getLong(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS));
+  }
+
   public Optional<WindowType> getWindowType() {
     try {
       return Optional.ofNullable(props.getString(CreateConfigs.WINDOW_TYPE_PROPERTY))

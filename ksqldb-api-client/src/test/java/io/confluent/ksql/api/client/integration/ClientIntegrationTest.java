@@ -972,7 +972,7 @@ public class ClientIntegrationTest {
             hasProperty("queryType", is(QueryType.PERSISTENT)),
             hasProperty("id", startsWith("CTAS_" + AGG_TABLE)),
             hasProperty("sql", is(
-                    "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+                    "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1, RETENTION_MS=-1) AS SELECT\n"
                             + "  " + TEST_STREAM + ".K K,\n"
                             + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
                             + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
@@ -1005,7 +1005,7 @@ public class ClientIntegrationTest {
     assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
     assertThat(description.readQueries().get(0).getId(), startsWith("CTAS_" + AGG_TABLE));
     assertThat(description.readQueries().get(0).getSql(), is(
-        "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+        "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1, RETENTION_MS=-1) AS SELECT\n"
             + "  " + TEST_STREAM + ".K K,\n"
             + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
             + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"

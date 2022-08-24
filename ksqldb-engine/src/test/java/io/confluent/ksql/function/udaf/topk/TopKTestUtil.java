@@ -27,20 +27,17 @@ public class TopKTestUtil {
                                         final List<Boolean> expectedCol0s,
                                         final List<String> expectedCol1s,
                                         final List<Struct> actual) {
-    final List<Object> sortCols = actual.stream()
-            .map((struct) -> struct.get("sort_col"))
-            .collect(Collectors.toList());
-    assertThat("Invalid results.", sortCols, equalTo(expectedSortCols));
+    checkStructField(expectedSortCols, actual, "sort_col");
+    checkStructField(expectedCol0s, actual, "col0");
+    checkStructField(expectedCol1s, actual, "col1");
+  }
 
-    final List<Object> colOnes = actual.stream()
-            .map((struct) -> struct.get("col0"))
+  private static void checkStructField(final List<?> expected,
+                                       final List<Struct> actual, final String fieldName) {
+    final List<Object> actualCols = actual.stream()
+            .map((struct) -> struct.get(fieldName))
             .collect(Collectors.toList());
-    assertThat("Invalid results.", colOnes, equalTo(expectedCol0s));
-
-    final List<Object> colTwos = actual.stream()
-            .map((struct) -> struct.get("col1"))
-            .collect(Collectors.toList());
-    assertThat("Invalid results.", colTwos, equalTo(expectedCol1s));
+    assertThat("Invalid results.", actualCols, equalTo(expected));
   }
 
 }

@@ -209,7 +209,9 @@ public class TopicCreateInjector implements Injector {
   ) {
     if (topicCleanUpPolicy.equals(TopicConfig.CLEANUP_POLICY_COMPACT)
         && retentionInMillis.isPresent()) {
-      throw new KsqlException("Invalid config variable in the WITH clause: RETENTION_MS");
+      throw new KsqlException(
+          "Invalid config variable in the WITH clause: RETENTION_MS."
+          + " Non-windowed tables do not support retention.");
     }
   }
 
@@ -246,7 +248,7 @@ public class TopicCreateInjector implements Injector {
     config.putAll(additionalTopicConfigs);
 
     // Note: The retention.ms config has no effect if cleanup.policy=compact
-    // cleanup.policy=compact is set for topics that are backed by tables
+    // config is set for topics that are backed by tables
     if (topicCleanUpPolicy.equals(TopicConfig.CLEANUP_POLICY_COMPACT)) {
       config.remove(TopicConfig.RETENTION_MS_CONFIG);
     }

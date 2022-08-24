@@ -508,7 +508,10 @@ public class TopicCreateInjectorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Invalid config variable in the WITH clause: RETENTION_MS"));
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: RETENTION_MS."
+            + " Non-windowed tables do not support retention."));
   }
 
   @Test
@@ -523,7 +526,10 @@ public class TopicCreateInjectorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Invalid config variable in the WITH clause: RETENTION_MS"));
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: RETENTION_MS."
+            + " Non-windowed tables do not support retention."));
   }
 
   private ConfiguredStatement<?> givenStatement(final String sql) {

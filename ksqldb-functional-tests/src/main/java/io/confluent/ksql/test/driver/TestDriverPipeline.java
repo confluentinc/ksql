@@ -65,12 +65,12 @@ public class TestDriverPipeline {
 
   public static final class TopicInfo {
     final String name;
-    final Serde<GenericKey> keySerde;
+    final Serde<?> keySerde;
     final Serde<GenericRow> valueSerde;
 
     public TopicInfo(
         final String name,
-        final Serde<GenericKey> keySerde,
+        final Serde<?> keySerde,
         final Serde<GenericRow> valueSerde
     ) {
       this.name = name;

@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static com.google.common.io.Files.getNameWithoutExtension;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -147,9 +148,16 @@ public final class TestCaseBuilderUtil {
                 topic.getNumPartitions(),
                 topic.getReplicas(),
 
+                // key/value schema ID (if not empty) should be related to the key/value schema
+                // already found in the 'Topic', not in the 'topicFromStatement'
+                topic.getKeySchemaId(),
+                topic.getValueSchemaId(),
+
                 // Use the key/value schema built for the CREATE statement
                 keySchema,
                 valueSchema,
+                topic.getKeySchemaReferences(),
+                topic.getValueSchemaReferences(),
 
                 // Use the serde features built for the CREATE statement
                 topicFromStatement.getKeyFeatures(),
@@ -256,8 +264,19 @@ public final class TestCaseBuilderUtil {
     final short rf = props.getReplicas()
         .orElse(Topic.DEFAULT_RF);
 
-    return Optional.of(new Topic(props.getKafkaTopic(), partitions, rf, keySchema, valueSchema,
-        keySerdeFeats, valSerdeFeats));
+    return Optional.of(new Topic(
+        props.getKafkaTopic(),
+        partitions,
+        rf,
+        // key/value schemas IDs do not exist if schema is found on the statement
+        Optional.empty(),
+        Optional.empty(),
+        keySchema,
+        valueSchema,
+        ImmutableList.of(),
+        ImmutableList.of(),
+        keySerdeFeats,
+        valSerdeFeats));
   }
 
   private static Optional<ParsedSchema> buildSchema(

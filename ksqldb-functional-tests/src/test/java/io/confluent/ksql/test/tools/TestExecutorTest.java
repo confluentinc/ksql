@@ -498,6 +498,8 @@ public class TestExecutorTest {
                 KeyFormat.nonWindowed(FormatInfo.of("Kafka"), SerdeFeatures.of()),
                 ValueFormat.of(FormatInfo.of("Json"), SerdeFeatures.of()),
                 OptionalInt.empty(),
+                Optional.empty(),
+                Optional.empty(),
                 NullNode.getInstance(),
                 NullNode.getInstance()
             )

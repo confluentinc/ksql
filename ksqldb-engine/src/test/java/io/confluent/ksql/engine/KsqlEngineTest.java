@@ -1445,7 +1445,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldNotHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
+  public void shouldHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
     // Given:
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
@@ -1483,14 +1483,15 @@ public class KsqlEngineTest {
     // Then:
     awaitCleanupComplete();
     verify(schemaRegistryClient, times(4)).deleteSubject(any());
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Key, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Key, true);
+    verify(schemaRegistryClient, never()).deleteSubject("subject2");
   }
 
   @Test
-  public void shouldNotHardDeleteSubjectForPersistentQuerySharedRuntimes() throws IOException, RestClientException {
+  public void shouldHardDeleteSubjectForPersistentQuerySharedRuntimes() throws IOException, RestClientException {
     // Given:
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
@@ -1523,12 +1524,12 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(schemaRegistryClient).getAllSubjects();
     verify(schemaRegistryClient, times(4)).deleteSubject(any());
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Key, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Key, true);
+    verify(schemaRegistryClient, never()).deleteSubject("subject2");
   }
 
   @Test
@@ -2416,7 +2417,7 @@ public class KsqlEngineTest {
     } else {
       nameTopology = Optional.empty();
     }
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", nameTopology, false, "", KsqlConfig.KSQL_SERVICE_ID_DEFAULT, KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT) {
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", nameTopology, false, false, "", KsqlConfig.KSQL_SERVICE_ID_DEFAULT, KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT) {
       @Override
       public void run() {
         // do nothing

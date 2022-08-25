@@ -96,6 +96,7 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
                 ? Optional.of(storeName.split("__")[1])
                 : Optional.empty(),
             false,
+            true,
             stateDir,
             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
             ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))));

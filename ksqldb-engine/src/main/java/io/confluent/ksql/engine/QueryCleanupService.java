@@ -99,6 +99,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     private final Optional<String> topologyName;
     private final String pathName;
     private final boolean isTransient;
+    private final boolean isPersistent;
     private final ServiceContext serviceContext;
 
     public QueryCleanupTask(
@@ -106,6 +107,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
         final String appId,
         final Optional<String> queryId,
         final boolean isTransient,
+        final boolean isPersistent,
         final String stateDir,
         final String serviceId,
         final String persistentQueryPrefix) {
@@ -124,6 +126,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
           .orElse(appId);
       //generate the prefix depending on if using named topologies
       this.isTransient = isTransient;
+      this.isPersistent = isPersistent;
       pathName = queryId
           .map(s -> stateDir + "/" + appId + "/__" + s + "__")
           .orElse(stateDir + "/" + appId);
@@ -157,7 +160,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
             SchemaRegistryUtil.cleanupInternalTopicSchemas(
                 queryTopicPrefix,
                 serviceContext.getSchemaRegistryClient(),
-                isTransient);
+                isTransient || isPersistent);
           },
           "internal topic schemas"
       );

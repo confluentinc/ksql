@@ -58,10 +58,10 @@ public class LagReportingAgentFunctionalTest {
   private static final int NUM_ROWS = PAGE_VIEWS_PROVIDER.data().size();
 
   private static final QueryStateStoreId STORE_0 = QueryStateStoreId.of(
-      "_confluent-ksql-default_query_CTAS_USER_VIEWS_3",
+      "CTAS_USER_VIEWS_3",
       "Aggregate-Aggregate-Materialize");
   private static final QueryStateStoreId STORE_1 = QueryStateStoreId.of(
-      "_confluent-ksql-default_query_CTAS_USER_LATEST_VIEWTIME_5",
+      "CTAS_USER_LATEST_VIEWTIME_5",
       "Aggregate-Aggregate-Materialize");
 
   private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", 8188);
@@ -84,6 +84,7 @@ public class LagReportingAgentFunctionalTest {
       // Lag Reporting
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
+      .withProperty("ksql.runtime.feature.shared.enabled", true)
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -102,6 +103,8 @@ public class LagReportingAgentFunctionalTest {
       // Lag Reporting
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
+      .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
+      .withProperty("ksql.runtime.feature.shared.enabled", true)
       .build();
 
   @ClassRule
@@ -148,7 +151,7 @@ public class LagReportingAgentFunctionalTest {
     // Then:
     // Read the raw Kafka data from the topic to verify the reported lags
     final List<ConsumerRecord<byte[], byte[]>> records =
-        TEST_HARNESS.verifyAvailableRecords("_confluent-ksql-default_query_CTAS_USER_VIEWS_3-"
+        TEST_HARNESS.verifyAvailableRecords("_confluent-ksql-default_query-CTAS_USER_VIEWS_3-"
             + "Aggregate-Aggregate-Materialize-changelog", NUM_ROWS);
     Map<Integer, Optional<ConsumerRecord<byte[], byte[]>>> partitionToMaxOffset =
         records.stream()

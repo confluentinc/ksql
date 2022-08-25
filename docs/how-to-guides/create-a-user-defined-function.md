@@ -382,11 +382,24 @@ There are many things to observe in this class:
 
 - UDAFs must be parameterized with three generic types. In this
   example, they are `<Integer, List<Integer>, Integer>`. The first
-  parameter represents the type of the column to aggregate over. The
+  parameter represents the type of the column(s) to aggregate over. The
   second column represents the internal representation of the
   aggregation, which is established in `initialize()`. The third
   parameter represents the type that the query interacts with, which
   is converted by `map()`.
+  - The input type can be a tuple of supported column types. Currently, 
+    `Pair`, `Triple`, `Quadruple`, and `Quintuple` are supported. Tuple 
+    types cannot be nested.
+  - One input column inside a tuple can be variadic by wrapping it with 
+    `VariadicArgs`. Only one variadic argument is supported, but it may 
+    occur anywhere in the function signature. This means that if the 
+    `UdafFactory` is variadic, none of the function's column arguments 
+    may be variadic. A variadic column argument may have `Object` as its 
+    type parameter to accept any number of columns of any type, though a
+    variadic `Object` factory argument is not supported. A variadic 
+    column argument outside a tuple is not supported. For example, the 
+    input type would be `Pair<Double, VariadicArgs<Double>>` for a function 
+    that accepts at least one double column.
 
 - All types, including inputs, intermediate representations, and final
   representations, must be [types that ksqlDB

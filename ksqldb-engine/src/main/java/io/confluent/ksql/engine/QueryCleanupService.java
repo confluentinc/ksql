@@ -96,7 +96,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     private final String queryTopicPrefix;
     private final String altQueryTopicPrefix;
     //There was a mixup with - and _ for now we check both
-    private final Optional<String> topologyName;
     private final String pathName;
     private final ServiceContext serviceContext;
 
@@ -110,7 +109,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
         final String persistentQueryPrefix) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
-      this.topologyName = Objects.requireNonNull(queryId, "queryId");
       queryTopicPrefix = queryId
           .map(s -> QueryApplicationId.buildInternalTopicPrefix(
               serviceId,

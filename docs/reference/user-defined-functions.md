@@ -202,7 +202,7 @@ SQL. The annotation supports the following fields:
 
 !!! note
       If `paramSchema` , `aggregateSchema` or `returnSchema` is supplied in
-      the `@UdfParameter` annotation for a `STRUCT`, it's considered
+      the `@UdafFactory` annotation for a `STRUCT`, it's considered
       "strict" - any inputs must match exactly, including order and names of
       the fields.
 

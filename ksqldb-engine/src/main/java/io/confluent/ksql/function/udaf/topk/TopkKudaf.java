@@ -118,7 +118,7 @@ public class TopkKudaf<T extends Comparable<? super T>, S>
   @Override
   public List<S> aggregate(final Pair<T, VariadicArgs<Object>> currentValue,
                            final List<S> aggregateValue) {
-    if (currentValue == null) {
+    if (currentValue.getLeft() == null) {
       return aggregateValue;
     }
 

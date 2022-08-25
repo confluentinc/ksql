@@ -98,7 +98,7 @@
     },
     {
       "name": "topk integer struct",
-      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
+      "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}');",
         "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;"
@@ -107,20 +107,42 @@
         {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 0}},
         {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": 100}},
         {"topic": "test_topic", "key": 0, "value": {"NAME": "two", "key": 0, "value": 99}},
-        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": 7}},
-        {"topic": "test_topic", "key": 0, "value": {"NAME": "four", "key": 0, "value": 100}}
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": null, "key": 0, "value": 100}}
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 0, "col0": "zero"}]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 0, "col0": "zero"}]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}, {"sort_col": 0, "col0": "zero"}]}},
-        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}, {"sort_col": 7, "col0": "three"}]}},
-        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 100, "col0": "four"}, {"sort_col": 99, "col0": "two"}]}}
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}, {"sort_col": 0, "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 100, "col0": null}, {"sort_col": 99, "col0": "two"}]}}
+      ]
+    },
+    {
+      "name": "topk integer struct protobuf",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 0}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": 100}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "two", "key": 0, "value": 99}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": null, "key": 0, "value": 100}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 0, "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 0, "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}, {"sort_col": 0, "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}, {"sort_col": 0, "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 100, "col0": "one"}, {"sort_col": 100, "col0": ""}, {"sort_col": 99, "col0": "two"}]}}
       ]
     },
     {
       "name": "topk long struct",
-      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
+      "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;"
@@ -129,20 +151,42 @@
         {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 2147483648}},
         {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": 100}},
         {"topic": "test_topic", "key": 0, "value": {"NAME": "two", "key": 0, "value": 99}},
-        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": 7}},
-        {"topic": "test_topic", "key": 0, "value": {"NAME": "four", "key": 0, "value": 100}}
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": null, "key": 0, "value": 100}}
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}]}},
-        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}, {"sort_col": 100, "col0": "four"}]}}
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}, {"sort_col": 100, "col0": null}]}}
+      ]
+    },
+    {
+      "name": "topk long struct protobuf",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 2147483648}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": 100}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "two", "key": 0, "value": 99}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": null, "key": 0, "value": 100}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}, {"sort_col": 99, "col0": "two"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2147483648, "col0": "zero"}, {"sort_col": 100, "col0": "one"}, {"sort_col": 100, "col0": ""}]}}
       ]
     },
     {
       "name": "topk double struct",
-      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
+      "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;"
@@ -151,37 +195,81 @@
         {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 2147483648.9}},
         {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": 100.5}},
         {"topic": "test_topic", "key": 0, "value": {"NAME": "two", "key": 0, "value": 99.9}},
-        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": 7.3}},
-        {"topic": "test_topic", "key": 0, "value": {"NAME": "four", "key": 0, "value": 100.5}}
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": null, "key": 0, "value": 100.5}}
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}, {"sort_col": 99.9, "col0": "two"}]}},
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}, {"sort_col": 99.9, "col0": "two"}]}},
-        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}, {"sort_col": 100.5, "col0": "four"}]}}
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}, {"sort_col": 100.5, "col0": null}]}}
+      ]
+    },
+    {
+      "name": "topk double struct protobuf",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": 2147483648.9}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": 100.5}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "two", "key": 0, "value": 99.9}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": null, "key": 0, "value": 100.5}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}, {"sort_col": 99.9, "col0": "two"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}, {"sort_col": 99.9, "col0": "two"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": 2.1474836489E9, "col0": "zero"}, {"sort_col": 100.5, "col0": "one"}, {"sort_col": 100.5, "col0": ""}]}}
       ]
     },
     {
       "name": "topk string struct",
-      "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
+      "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE string) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": "a"}},
-        {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": "b"}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": null}},
         {"topic": "test_topic", "key": 0, "value": {"NAME": "two", "key": 0, "value": "c"}},
         {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": "b"}},
-        {"topic": "test_topic", "key": 0, "value": {"NAME": "four", "key": 0, "value": "d"}}
+        {"topic": "test_topic", "key": 0, "value": {"NAME": null, "key": 0, "value": "d"}}
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "a", "col0": "zero"}]}},
-        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "b", "col0": "one"}, {"sort_col": "a", "col0": "zero"}]}},
-        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "c", "col0": "two"}, {"sort_col": "b", "col0": "one"}, {"sort_col": "a", "col0": "zero"}]}},
-        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "c", "col0": "two"}, {"sort_col": "b", "col0": "one"}, {"sort_col": "b", "col0": "three"}]}},
-        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "d", "col0": "four"}, {"sort_col": "c", "col0": "two"}, {"sort_col": "b", "col0": "one"}]}}
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "a", "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "c", "col0": "two"}, {"sort_col": "a", "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "c", "col0": "two"}, {"sort_col": "b", "col0": "three"}, {"sort_col": "a", "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "d", "col0": null}, {"sort_col": "c", "col0": "two"}, {"sort_col": "b", "col0": "three"}]}}
+      ]
+    },
+    {
+      "name": "topk string struct",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE string) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "zero", "key": 0, "value": "a"}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "one", "key": 0, "value": null}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "two", "key": 0, "value": "c"}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "three", "key": 0, "value": "b"}},
+        {"topic": "test_topic", "key": 0, "value": {"NAME": null, "key": 0, "value": "d"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "a", "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "a", "col0": "zero"}, {"sort_col": "", "col0": "one"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "c", "col0": "two"}, {"sort_col": "a", "col0": "zero"}, {"sort_col": "", "col0": "one"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "c", "col0": "two"}, {"sort_col": "b", "col0": "three"}, {"sort_col": "a", "col0": "zero"}]}},
+        {"topic": "S2", "key": 0, "value": {"TOPK":[{"sort_col": "d", "col0": ""}, {"sort_col": "c", "col0": "two"}, {"sort_col": "b", "col0": "three"}]}}
       ]
     },
     {

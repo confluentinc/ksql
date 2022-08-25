@@ -98,8 +98,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     //There was a mixup with - and _ for now we check both
     private final Optional<String> topologyName;
     private final String pathName;
-    private final boolean isTransient;
-    private final boolean isPersistent;
     private final ServiceContext serviceContext;
 
     public QueryCleanupTask(
@@ -107,7 +105,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
         final String appId,
         final Optional<String> queryId,
         final boolean isTransient,
-        final boolean isPersistent,
         final String stateDir,
         final String serviceId,
         final String persistentQueryPrefix) {
@@ -125,8 +122,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
               persistentQueryPrefix.split("_")[0] + "-") + s)
           .orElse(appId);
       //generate the prefix depending on if using named topologies
-      this.isTransient = isTransient;
-      this.isPersistent = isPersistent;
       pathName = queryId
           .map(s -> stateDir + "/" + appId + "/__" + s + "__")
           .orElse(stateDir + "/" + appId);
@@ -159,8 +154,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
             LOG.info("Deleting schemas for prefix {}", queryTopicPrefix);
             SchemaRegistryUtil.cleanupInternalTopicSchemas(
                 queryTopicPrefix,
-                serviceContext.getSchemaRegistryClient(),
-                isTransient || isPersistent);
+                serviceContext.getSchemaRegistryClient());
           },
           "internal topic schemas"
       );
@@ -173,14 +167,13 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
           },
           "internal topics"
       );
-      if (!topologyName.isPresent() || isTransient) {
-        LOG.info("Deleting offsets for appId: {}", appId);
-        tryRun(
-            () -> serviceContext
-                .getConsumerGroupClient()
-                .deleteConsumerGroups(ImmutableSet.of(appId)),
-            "internal consumer groups");
-      }
+
+      LOG.info("Deleting offsets for appId: {}", appId);
+      tryRun(
+          () -> serviceContext
+              .getConsumerGroupClient()
+              .deleteConsumerGroups(ImmutableSet.of(appId)),
+          "internal consumer groups");
     }
 
     private void tryRun(final Runnable runnable, final String resource) {

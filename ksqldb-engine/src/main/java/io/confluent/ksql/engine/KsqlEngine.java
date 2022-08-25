@@ -741,7 +741,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
                 applicationId,
                 topologyName,
                 query instanceof TransientQueryMetadata,
-                query instanceof PersistentQueryMetadata,
                 ksqlConfig.getKsqlStreamConfigProps()
                     .getOrDefault(
                         StreamsConfig.STATE_DIR_CONFIG,

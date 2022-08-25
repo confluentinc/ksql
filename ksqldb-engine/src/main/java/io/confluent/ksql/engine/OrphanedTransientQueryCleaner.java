@@ -74,7 +74,6 @@ public class OrphanedTransientQueryCleaner {
               queryApplicationId,
               Optional.empty(),
               true,
-              false,
               ksqlConfig.getKsqlStreamConfigProps()
                   .getOrDefault(
                       StreamsConfig.STATE_DIR_CONFIG,

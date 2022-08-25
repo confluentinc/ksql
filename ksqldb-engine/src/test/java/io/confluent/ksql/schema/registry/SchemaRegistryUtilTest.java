@@ -140,7 +140,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient); //false
 
     // Then not exception:
     verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-changelog-key");
@@ -156,7 +156,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);///false
 
     // Then not exception:
     verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-key");
@@ -172,7 +172,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, true);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);//false
 
     // Then not exception:
     final InOrder inOrder = inOrder(schemaRegistryClient);
@@ -191,7 +191,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);//false
 
     // Then not exception:
     verify(schemaRegistryClient, never()).deleteSubject(any());
@@ -206,7 +206,7 @@ public class SchemaRegistryUtilTest {
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);//false
 
     // Then not exception:
     verify(schemaRegistryClient, never()).deleteSubject(any());
@@ -218,7 +218,7 @@ public class SchemaRegistryUtilTest {
     when(schemaRegistryClient.getAllSubjects()).thenThrow(new RuntimeException("Boom!"));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);//false
 
     // Then not exception:
     verify(schemaRegistryClient).getAllSubjects();
@@ -235,7 +235,7 @@ public class SchemaRegistryUtilTest {
     when(schemaRegistryClient.deleteSubject(any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);//false
 
     // Then not exception:
     verify(schemaRegistryClient, times(5)).deleteSubject(APP_ID + "SOME-changelog-key");
@@ -253,7 +253,7 @@ public class SchemaRegistryUtilTest {
     when(schemaRegistryClient.deleteSubject(any())).thenThrow(new RestClientException("foo", 404, 40401));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);//false
 
     // Then not exception (only tried once):
     verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "SOME-changelog-key");

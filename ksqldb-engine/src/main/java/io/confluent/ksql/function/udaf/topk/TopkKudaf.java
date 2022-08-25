@@ -36,31 +36,35 @@ import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(
         name = "TOPK",
-        description = "Computes the top k values for a column, per key.",
+        description = "Returns the top k values for a column and other values in those records.",
         author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class TopkKudaf<T extends Comparable<? super T>, S>
         implements Udaf<Pair<T, VariadicArgs<Object>>, List<S>, List<S>> {
 
-  @UdafFactory(description = "Calculates the top k values for an integer column, per key.")
+  @UdafFactory(description = "Returns the top k values for an integer column and other values in "
+          + "those records.")
   public static <S> Udaf<Pair<Integer, VariadicArgs<Object>>, List<S>, List<S>>
       createTopKInt(final int k) {
     return new TopkKudaf<>(k);
   }
 
-  @UdafFactory(description = "Calculates the top k values for a long column, per key.")
+  @UdafFactory(description = "Returns the top k values for a bigint column and other values in "
+          + "those records.")
   public static <S> Udaf<Pair<Long, VariadicArgs<Object>>, List<S>, List<S>>
       createTopKLong(final int k) {
     return new TopkKudaf<>(k);
   }
 
-  @UdafFactory(description = "Calculates the top k values for a double column, per key.")
+  @UdafFactory(description = "Returns the top k values for a double column and other values in "
+          + "those records.")
   public static <S> Udaf<Pair<Double, VariadicArgs<Object>>, List<S>, List<S>>
       createTopKDouble(final int k) {
     return new TopkKudaf<>(k);
   }
 
-  @UdafFactory(description = "Calculates the top k values for a string column, per key.")
+  @UdafFactory(description = "Returns the top k values for a string column and other values in "
+          + "those records.")
   public static <S> Udaf<Pair<String, VariadicArgs<Object>>, List<S>, List<S>>
       createTopKString(final int k) {
     return new TopkKudaf<>(k);

@@ -1023,12 +1023,12 @@ public final class KsqlRestApplication implements Executable {
       final KsqlConfig configWithApplicationServer,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent) {
-    return (routingOptions, hosts, active, applicationQueryId, storeName, partition) -> {
+    return (routingOptions, hosts, active, queryId, storeName, partition) -> {
       final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
 
       // If the lookup is for a forwarded request, apply only MaxLagFilter for localhost
       if (routingOptions.getIsSkipForwardRequest()) {
-        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, queryId,
                                 storeName, partition)
             .map(filterBuilder::add);
       } else {
@@ -1037,7 +1037,7 @@ public final class KsqlRestApplication implements Executable {
           filterBuilder.add(new ActiveHostFilter(active));
         }
         filterBuilder.add(new LivenessFilter(heartbeatAgent));
-        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, queryId,
                                 storeName, partition)
             .map(filterBuilder::add);
       }

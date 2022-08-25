@@ -394,9 +394,12 @@ There are many things to observe in this class:
     `VariadicArgs`. Only one variadic argument is supported, but it may 
     occur anywhere in the function signature. This means that if the 
     `UdafFactory` is variadic, none of the function's column arguments 
-    can be variadic. A variadic column argument outside a tuple is not supported.
-    For example, the input type would be `Pair<Double, VariadicArgs<Double>>`
-    for a function that accepts at least one double column.
+    may be variadic. A variadic column argument may have `Object` as its 
+    type parameter to accept any number of columns of any type, though a
+    variadic `Object` factory argument is not supported. A variadic 
+    column argument outside a tuple is not supported. For example, the 
+    input type would be `Pair<Double, VariadicArgs<Double>>` for a function 
+    that accepts at least one double column.
 
 - All types, including inputs, intermediate representations, and final
   representations, must be [types that ksqlDB

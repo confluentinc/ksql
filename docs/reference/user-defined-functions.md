@@ -160,8 +160,9 @@ Both `Udaf` and `TableUdaf` are parameterized by three generic types:
 1. `I` is the input type of the UDAF. `I` can be a tuple type, one of `Pair`, `Triple`, `Quadruple`, 
    or `Quintuple`, when there are multiple column arguments. `VariadicArgs` can be nested inside a tuple 
    to create a variadic column argument. A function can have at most one variadic argument anywhere in its 
-   signature (including the parameters of `UdafFactory`). A variadic column argument outside a tuple is not 
-   supported.
+   signature (including the parameters of `UdafFactory`). A variadic column argument may have `Object` as its
+   type parameter to accept any number of columns of any type, though a variadic `Object` factory argument is 
+   not supported. A variadic column argument outside a tuple is not supported.
 2. `A` is the data type of the intermediate storage used to keep track of the state of the UDAF. 
 3. `O` is the data type of the return value. 
 

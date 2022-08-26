@@ -214,7 +214,7 @@ public class TruncTest {
 
   @Test
   public void shoulldHandleNullValues() {
-    assertThat(udf.trunc((Integer) null), is((Integer) null));
+    assertThat(udf.trunc((Integer) null), is((Long) null));
     assertThat(udf.trunc((Long) null), is((Long) null));
     assertThat(udf.trunc((Double) null), is((Long) null));
     assertThat(udf.trunc((Double) null), is((Long) null));

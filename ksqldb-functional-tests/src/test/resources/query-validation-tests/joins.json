@@ -3754,6 +3754,198 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385."
       }
+    },
+    {
+      "name": "stream-table value-to-key join with protobuf schema and schema_id in stream",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.B=SS.K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        },
+        {
+          "name": "source2",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 800, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"S_B": "falcon"}, "value": {"S_A": 123, "S_K": "0", "SS_A": 123, "SS_B": "falcon", "SS_K": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_B": "giraffe"}, "value": {"S_A": 456, "S_K": "0", "SS_A": 456, "SS_B": "giraffe", "SS_K": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_B": "turtle"}, "value": {"S_A": 789, "S_K": "0", "SS_A": 789, "SS_B": "turtle", "SS_K": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "S_B STRING KEY, S_K STRING, S_A BIGINT, SS_K STRING, SS_A BIGINT, SS_B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream-table key-to-key join with protobuf schema and schema_id in stream",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.K=SS.K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        },
+        {
+          "name": "source2",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "falcon"}, "value": {"A": 1230, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "giraffe"}, "value": {"A": 4560, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "turtle"}, "value": {"A": 7890, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 8000, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"S_K": "falcon"}, "value": {"S_A": 1230, "S_B": "falcon", "SS_A": 123, "SS_B": "falcon", "SS_K": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_K": "giraffe"}, "value": {"S_A": 4560, "S_B": "giraffe", "SS_A": 456, "SS_B": "giraffe", "SS_K": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_K": "turtle"}, "value": {"S_A": 7890, "S_B": "turtle", "SS_A": 789, "SS_B": "turtle", "SS_K": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "S_K STRING KEY, S_A BIGINT, S_B STRING, SS_K STRING, SS_A BIGINT, SS_B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream-table value-to-key join with protobuf schema and schema_id in table",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.B=SS.K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        },
+        {
+          "name": "source2",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 800, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"S_B": "falcon"}, "value": {"S_A": 123, "S_K": "0", "SS_A": 123, "SS_B": "falcon", "SS_K": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_B": "giraffe"}, "value": {"S_A": 456, "S_K": "0", "SS_A": 456, "SS_B": "giraffe", "SS_K": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_B": "turtle"}, "value": {"S_A": 789, "S_K": "0", "SS_A": 789, "SS_B": "turtle", "SS_K": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "S_B STRING KEY, S_K STRING, S_A BIGINT, SS_K STRING, SS_A BIGINT, SS_B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream-table key-to-key join with protobuf schema and schema_id in table",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.K=SS.K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        },
+        {
+          "name": "source2",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "falcon"}, "value": {"A": 1230, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "giraffe"}, "value": {"A": 4560, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "turtle"}, "value": {"A": 7890, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 800, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"S_K": "falcon"}, "value": {"S_A": 1230, "S_B": "falcon", "SS_A": 123, "SS_B": "falcon", "SS_K": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_K": "giraffe"}, "value": {"S_A": 4560, "S_B": "giraffe", "SS_A": 456, "SS_B": "giraffe", "SS_K": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_K": "turtle"}, "value": {"S_A": 7890, "S_B": "turtle", "SS_A": 789, "SS_B": "turtle", "SS_K": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "S_K STRING KEY, S_A BIGINT, S_B STRING, SS_K STRING, SS_A BIGINT, SS_B STRING"
+          }
+        ]
+      }
     }
   ]
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde;
 
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.none.NoneFormat;
 
 /**
@@ -45,22 +46,24 @@ public final class InternalFormats {
    * tracks the removal.
    *
    * @param keyFormat key format.
-   * @param valueFormat value format.
+   * @param valueFormatInfo value format info.
    * @return Formats instance.
    * @see <a href=https://github.com/confluentinc/ksql/issues/6296>Issue 6296</a>
    * @see SerdeFeaturesFactory#buildInternal
    */
-  public static Formats of(final KeyFormat keyFormat, final FormatInfo valueFormat) {
+  public static Formats of(final KeyFormat keyFormat, final FormatInfo valueFormatInfo) {
     // Do not use NONE format for internal topics:
     if (keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)) {
       throw new IllegalArgumentException(NoneFormat.NAME + " can not be used for internal topics");
     }
 
+    // Internal formats should not use user-specified schema ids
     return Formats.of(
-        keyFormat.getFormatInfo(),
-        valueFormat,
+        keyFormat.getFormatInfo().copyWithoutProperty(ConnectProperties.SCHEMA_ID),
+        valueFormatInfo.copyWithoutProperty(ConnectProperties.SCHEMA_ID),
         keyFormat.getFeatures(),
         SerdeFeatures.of()
     );
   }
+
 }

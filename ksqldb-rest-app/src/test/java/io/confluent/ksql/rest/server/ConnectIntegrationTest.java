@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.stringContainsInOrder;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
@@ -37,6 +38,8 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorPluginsList;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -224,6 +227,40 @@ public class ConnectIntegrationTest {
   }
 
   @Test
+  public void shouldCreateSourceConnectorSuccessfully() {
+    // Given:
+    String connectorName = "source-mock-connector";
+    connectNames.add(connectorName);
+
+    // When:
+    final RestResponse<KsqlEntityList> response = ksqlRestClient
+        .makeKsqlRequest("CREATE SOURCE CONNECTOR `" + connectorName + "` "
+            + "WITH(\"connector.class\"='org.apache.kafka.connect.tools.MockSourceConnector');");
+
+    //Then
+    assertThat(response.isSuccessful(), is(true));
+    assertNotEquals(response.getResponse().get(0), instanceOf(WarningEntity.class));
+    assertThat(response.getResponse().get(0), instanceOf(CreateConnectorEntity.class));
+  }
+
+  @Test
+  public void shouldCreateSinkConnectorSuccessfully() {
+    // Given:
+    String connectorName = "sink-mock-connector";
+    connectNames.add(connectorName);
+
+    // When:
+    final RestResponse<KsqlEntityList> response = ksqlRestClient
+        .makeKsqlRequest("CREATE SINK CONNECTOR `" + connectorName + "` "
+            + "WITH(\"connector.class\"='org.apache.kafka.connect.tools.MockSinkConnector',"
+            + "\"topics\"='BAR');");
+
+    //Then
+    assertThat(response.isSuccessful(), is(true));
+    assertNotEquals(response.getResponse().get(0), instanceOf(WarningEntity.class));
+    assertThat(response.getResponse().get(0), instanceOf(CreateConnectorEntity.class));
+  }
+  @Test
   public void shouldReturnWarning() {
     // Given:
     create("mock-connector", ImmutableMap.of(
@@ -324,6 +361,21 @@ public class ConnectIntegrationTest {
           }
         },
         stringContainsInOrder(sinkOutputParts), TIMEOUT_NS, TimeUnit.NANOSECONDS);
+  }
+
+  @Test
+  public void shouldListConnectorPlugins() {
+    // Given:
+    create("mock-connector", ImmutableMap.of(
+        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"));
+
+    // When:
+    final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest("LIST CONNECTOR PLUGINS;");
+
+    // Then:
+    assertThat(response.isSuccessful(), is(true));
+    assertThat(response.getResponse().get(0), instanceOf(ConnectorPluginsList.class));
+    assertThat(((ConnectorPluginsList)response.getResponse().get(0)).getConnectorsPlugins().size(), is(0));
   }
 
   private void create(final String name, final Map<String, String> properties) {

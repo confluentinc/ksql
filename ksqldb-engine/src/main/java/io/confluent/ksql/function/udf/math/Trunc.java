@@ -43,13 +43,13 @@ public class Trunc {
                   + "right of the decimal point.";
 
   @Udf
-  public Long trunc(@UdfParameter final long val) {
+  public Long trunc(@UdfParameter final Long val) {
     return val;
   }
 
   @Udf
-  public Long trunc(@UdfParameter final int val) {
-    return (long)val;
+  public Long trunc(@UdfParameter final Integer val) {
+    return val == null ? null : val.longValue();
   }
 
   @Udf

@@ -214,9 +214,12 @@ public class TruncTest {
 
   @Test
   public void shoulldHandleNullValues() {
-    assertThat(udf.trunc((Double)null), is((Long)null));
+    assertThat(udf.trunc((Integer) null), is((Integer) null));
+    assertThat(udf.trunc((Long) null), is((Long) null));
+    assertThat(udf.trunc((Double) null), is((Long) null));
+    assertThat(udf.trunc((Double) null), is((Long) null));
     assertThat(udf.trunc((BigDecimal) null), is((BigDecimal) null));
-    assertThat(udf.trunc((Double)null, 2), is((Long)null));
+    assertThat(udf.trunc((Double) null, 2), is((Long) null));
     assertThat(udf.trunc((BigDecimal) null, 2), is((BigDecimal) null));
   }
 

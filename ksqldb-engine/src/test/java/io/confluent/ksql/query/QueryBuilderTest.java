@@ -373,6 +373,42 @@ public class QueryBuilderTest {
   }
 
   @Test
+  public void shouldBuildTransientQueryWithSharedRutimesCorrectly() {
+    // Given:
+    givenTransientQuery();
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    final TransientQueryMetadata queryMetadata = queryBuilder.buildTransientQuery(
+        STATEMENT_TEXT,
+        QUERY_ID,
+        SOURCES.stream().map(DataSource::getName).collect(Collectors.toSet()),
+        physicalPlan,
+        SUMMARY,
+        TRANSIENT_SINK_SCHEMA,
+        LIMIT,
+        Optional.empty(),
+        false,
+        queryListener,
+        streamsBuilder,
+        Optional.empty(),
+        new MetricCollectors()
+    );
+    queryMetadata.initialize();
+
+    // Then:
+    assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
+    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES.stream()
+        .map(DataSource::getName).collect(Collectors.toSet())));
+    assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
+    assertThat(queryMetadata.getTopology(), is(topology));
+    assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
+    verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
+    assertThat(queryMetadata.getStreamsProperties(), equalTo(propertyCaptor.getValue()));
+    assertThat(queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE), nullValue());
+  }
+
+  @Test
   public void shouldBuildDedicatedCreateAsPersistentQueryWithSharedRuntimeCorrectly() {
     // Given:
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);

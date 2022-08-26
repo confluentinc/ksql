@@ -1070,15 +1070,15 @@ public class CliTest {
     final String expectedSummary =
             "Name        : TOPK\n"
             + "Author      : Confluent\n"
-            + "Overview    : Computes the top k values for a column, per key.\n"
+            + "Overview    : Returns the top k values for a column and other values in those records.\n"
             + "Type        : AGGREGATE\n"
             + "Jar         : internal\n"
             + "Variations  : \n";
 
     final String expectedVariant =
-        "\tVariation   : TOPK(val1 INT, k INT)\n"
-        + "\tReturns     : ARRAY<INT>\n"
-        + "\tDescription : Calculates the top k values for an integer column, per key.";
+        "\tVariation   : TOPK(val1 INT, val2 ANY[], k INT)\n"
+        + "\tReturns     : ARRAY<S>\n"
+        + "\tDescription : Returns the top k values for an integer column and other values in those records.";
 
     localCli.handleLine("describe function topk;");
 

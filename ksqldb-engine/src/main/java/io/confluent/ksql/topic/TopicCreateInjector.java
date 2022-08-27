@@ -195,7 +195,8 @@ public class TopicCreateInjector implements Injector {
         info.getPartitions(),
         info.getReplicas(),
         (Long) additionalTopicConfigs
-            .getOrDefault(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis())
+            .getOrDefault(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis()),
+        topicCleanUpPolicy
     ));
 
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";

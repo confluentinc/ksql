@@ -112,6 +112,10 @@ public class TruncTest {
     assertThat(udf.trunc(100.1111d, 3), is(100.111d));
     assertThat(udf.trunc(100.1115d, 3), is(100.111d));
     assertThat(udf.trunc(100.1117d, 3), is(100.111d));
+    assertThat(udf.trunc(1.0d, 3), is(1.0d));
+    assertThat(udf.trunc(1.1d, 3), is(1.1d));
+    assertThat(udf.trunc(1.5d, 3), is(1.5d));
+    assertThat(udf.trunc(1.7d, 3), is(1.7d));
     assertThat(udf.trunc(12345.67d, -1), is(12340d));
     assertThat(udf.trunc(12345.67d, -2), is(12300d));
     assertThat(udf.trunc(12345.67d, -3), is(12000d));
@@ -140,6 +144,10 @@ public class TruncTest {
     assertThat(udf.trunc(-100.1111d, 3), is(-100.111d));
     assertThat(udf.trunc(-100.1115d, 3), is(-100.111d));
     assertThat(udf.trunc(-100.1117d, 3), is(-100.111d));
+    assertThat(udf.trunc(-1.0d, 3), is(-1.0d));
+    assertThat(udf.trunc(-1.1d, 3), is(-1.1d));
+    assertThat(udf.trunc(-1.5d, 3), is(-1.5d));
+    assertThat(udf.trunc(-1.7d, 3), is(-1.7d));
     assertThat(udf.trunc(-12345.67d, -1), is(-12340d));
     assertThat(udf.trunc(-12345.67d, -2), is(-12300d));
     assertThat(udf.trunc(-12345.67d, -3), is(-12000d));
@@ -169,6 +177,10 @@ public class TruncTest {
     assertThat(udf.trunc(new BigDecimal("100.1111"), 3), is(new BigDecimal("100.1110")));
     assertThat(udf.trunc(new BigDecimal("100.1115"), 3), is(new BigDecimal("100.1110")));
     assertThat(udf.trunc(new BigDecimal("100.1117"), 3), is(new BigDecimal("100.1110")));
+    assertThat(udf.trunc(new BigDecimal("1.0"), 3), is(new BigDecimal("1.0")));
+    assertThat(udf.trunc(new BigDecimal("1.1"), 3), is(new BigDecimal("1.1")));
+    assertThat(udf.trunc(new BigDecimal("1.5"), 3), is(new BigDecimal("1.5")));
+    assertThat(udf.trunc(new BigDecimal("1.7"), 3), is(new BigDecimal("1.7")));
     assertThat(udf.trunc(new BigDecimal("12345.67"), -1), is(new BigDecimal("12340.00")));
     assertThat(udf.trunc(new BigDecimal("12345.67"), -2), is(new BigDecimal("12300.00")));
     assertThat(udf.trunc(new BigDecimal("12345.67"), -3), is(new BigDecimal("12000.00")));
@@ -197,6 +209,10 @@ public class TruncTest {
     assertThat(udf.trunc(new BigDecimal("-100.1111"), 3), is(new BigDecimal("-100.1110")));
     assertThat(udf.trunc(new BigDecimal("-100.1115"), 3), is(new BigDecimal("-100.1110")));
     assertThat(udf.trunc(new BigDecimal("-100.1117"), 3), is(new BigDecimal("-100.1110")));
+    assertThat(udf.trunc(new BigDecimal("-1.0"), 3), is(new BigDecimal("-1.0")));
+    assertThat(udf.trunc(new BigDecimal("-1.1"), 3), is(new BigDecimal("-1.1")));
+    assertThat(udf.trunc(new BigDecimal("-1.5"), 3), is(new BigDecimal("-1.5")));
+    assertThat(udf.trunc(new BigDecimal("-1.7"), 3), is(new BigDecimal("-1.7")));
     assertThat(udf.trunc(new BigDecimal("-12345.67"), -2), is(new BigDecimal("-12300.00")));
     assertThat(udf.trunc(new BigDecimal("-12345.67"), -3), is(new BigDecimal("-12000.00")));
     assertThat(udf.trunc(new BigDecimal("-12345.67"), -4), is(new BigDecimal("-10000.00")));
@@ -213,7 +229,7 @@ public class TruncTest {
   }
 
   @Test
-  public void shoulldHandleNullValues() {
+  public void shouldHandleNullValues() {
     assertThat(udf.trunc((Integer) null), is((Long) null));
     assertThat(udf.trunc((Long) null), is((Long) null));
     assertThat(udf.trunc((Double) null), is((Long) null));
@@ -224,7 +240,7 @@ public class TruncTest {
   }
 
   @Test
-  public void shoulldHandleNullDecimalPlaces() {
+  public void shouldHandleNullDecimalPlaces() {
     assertThat(udf.trunc(1.75d, null), is(nullValue()));
     assertThat(udf.trunc(new BigDecimal("1.75"), null), is(nullValue()));
   }

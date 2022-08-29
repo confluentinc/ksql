@@ -1092,6 +1092,7 @@ public class KsqlEngineTest {
     );
 
     // Then:
+    awaitCleanupComplete();
     assertThat(serviceContext.getTopicClient().isTopicExists("BAR"), equalTo(true));
     assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
   }

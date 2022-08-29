@@ -31,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -137,6 +138,33 @@ public class RestTestExecutor implements Closeable {
     this.topicInfoCache = new TopicInfoCache(engine, serviceContext.getSchemaRegistryClient());
   }
 
+  private void maybeRegisterTopicSchemas(final Collection<Topic> topics) {
+    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
+    final int firstVersion = 1;
+
+    for (final Topic topic : topics) {
+      try {
+        if (topic.getKeySchemaId().isPresent() && topic.getKeySchema().isPresent()) {
+          schemaRegistryClient.register(
+              KsqlConstants.getSRSubject(topic.getName(), true),
+              topic.getKeySchema().get(),
+              firstVersion /* QTT does not support subjects versions yet */,
+              topic.getKeySchemaId().get());
+        }
+
+        if (topic.getValueSchemaId().isPresent() && topic.getValueSchema().isPresent()) {
+          schemaRegistryClient.register(
+              KsqlConstants.getSRSubject(topic.getName(), false),
+              topic.getValueSchema().get(),
+              firstVersion /* QTT does not support subjects versions yet */,
+              topic.getValueSchemaId().get());
+        }
+      } catch (final Exception e) {
+        throw new KsqlException(e);
+      }
+    }
+  }
+
   void buildAndExecuteQuery(final RestTestCase testCase) {
     topicInfoCache.clear();
 
@@ -154,6 +182,7 @@ public class RestTestExecutor implements Closeable {
           + "responsesCount: " + expectedResponseSize);
     }
 
+    maybeRegisterTopicSchemas(testCase.getTopics());
     initializeTopics(testCase);
     testCase.getProperties().forEach(restClient::setProperty);
 

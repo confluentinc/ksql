@@ -52,19 +52,19 @@ public class MetricAppender extends AppenderSkeleton {
 
     errors = metrics.sensor(KSQL_LOGGING_METRIC_GROUP + "-error-rate");
     errors.add(
-        metrics.metricName("errors", KSQL_LOGGING_METRIC_GROUP, "number of error logs"),
+        metrics.metricName("errors", KSQL_LOGGING_METRIC_GROUP, "number of error logs per second"),
         new Rate()
     );
 
     warns = metrics.sensor(KSQL_LOGGING_METRIC_GROUP + "-warn-rate");
     warns.add(
-        metrics.metricName("warns", KSQL_LOGGING_METRIC_GROUP, "number of warn logs"),
+        metrics.metricName("warns", KSQL_LOGGING_METRIC_GROUP, "number of warn logs per second"),
         new Rate()
     );
 
     infos = metrics.sensor(KSQL_LOGGING_METRIC_GROUP + "-info-rate");
     infos.add(
-        metrics.metricName("infos", KSQL_LOGGING_METRIC_GROUP, "number of info logs"),
+        metrics.metricName("infos", KSQL_LOGGING_METRIC_GROUP, "number of info logs per second"),
         new Rate()
     );
   }

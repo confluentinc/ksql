@@ -27,7 +27,7 @@ import java.util.Optional;
 
 public class Topic {
 
-  public static final int DEFAULT_PARTITIONS = 4;
+  public static final int DEFAULT_PARTITIONS = 1;
   public static final short DEFAULT_RF = 1;
 
   private final String name;

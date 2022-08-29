@@ -227,38 +227,36 @@ public class ConnectIntegrationTest {
   }
 
   @Test
-  public void shouldCreateSourceConnectorSuccessfully() {
-    // Given:
-    String connectorName = "source-mock-connector";
-    connectNames.add(connectorName);
-
+  public void shouldCreateSourceConnector() {
     // When:
-    final RestResponse<KsqlEntityList> response = ksqlRestClient
-        .makeKsqlRequest("CREATE SOURCE CONNECTOR `" + connectorName + "` "
-            + "WITH(\"connector.class\"='org.apache.kafka.connect.tools.MockSourceConnector');");
+    String connectorName = "mock-source";
+    RestResponse<KsqlEntityList> response = create(connectorName,
+        ImmutableMap.<String, String> builder()
+        .put("connector.class", "org.apache.kafka.connect.tools.MockSourceConnector")
+        .build(), ConnectorType.SOURCE);
 
     //Then
     assertThat(response.isSuccessful(), is(true));
-    assertNotEquals(response.getResponse().get(0), instanceOf(WarningEntity.class));
+    assertThat(response.getResponse().size(), is (1));
     assertThat(response.getResponse().get(0), instanceOf(CreateConnectorEntity.class));
+    assertThat(((CreateConnectorEntity) response.getResponse().get(0)).getInfo().name(), is(connectorName));
   }
 
   @Test
-  public void shouldCreateSinkConnectorSuccessfully() {
-    // Given:
-    String connectorName = "sink-mock-connector";
-    connectNames.add(connectorName);
-
+  public void shouldCreateSinkConnector() {
     // When:
-    final RestResponse<KsqlEntityList> response = ksqlRestClient
-        .makeKsqlRequest("CREATE SINK CONNECTOR `" + connectorName + "` "
-            + "WITH(\"connector.class\"='org.apache.kafka.connect.tools.MockSinkConnector',"
-            + "\"topics\"='BAR');");
+    String connectorName = "mock-sink";
+    RestResponse<KsqlEntityList> response =
+        create(connectorName, ImmutableMap.<String, String> builder()
+            .put("connector.class", "org.apache.kafka.connect.tools.MockSinkConnector")
+            .put("topics", "BAR")
+            .build(), ConnectorType.SINK);
 
     //Then
     assertThat(response.isSuccessful(), is(true));
-    assertNotEquals(response.getResponse().get(0), instanceOf(WarningEntity.class));
+    assertThat(response.getResponse().size(), is (1));
     assertThat(response.getResponse().get(0), instanceOf(CreateConnectorEntity.class));
+    assertThat(((CreateConnectorEntity) response.getResponse().get(0)).getInfo().name(), is(connectorName));
   }
   @Test
   public void shouldReturnWarning() {
@@ -375,6 +373,7 @@ public class ConnectIntegrationTest {
     // Then:
     assertThat(response.isSuccessful(), is(true));
     assertThat(response.getResponse().get(0), instanceOf(ConnectorPluginsList.class));
+    // Since no plugin is added to the connector, the size of plugins list is 0.
     assertThat(((ConnectorPluginsList)response.getResponse().get(0)).getConnectorsPlugins().size(), is(0));
   }
 
@@ -382,7 +381,7 @@ public class ConnectIntegrationTest {
     create(name, properties, ConnectorType.SOURCE);
   }
 
-  private void create(final String name, final Map<String, String> properties, ConnectorType type) {
+  private RestResponse<KsqlEntityList> create(final String name, final Map<String, String> properties, ConnectorType type) {
     connectNames.add(name);
     final String withClause = Joiner.on(",")
         .withKeyValueSeparator("=")
@@ -393,6 +392,7 @@ public class ConnectIntegrationTest {
     final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest(
         "CREATE " + type + " CONNECTOR `" + name + "` WITH(" + withClause + ");");
     LOG.info("Got response from Connect: {}", response);
+    return response;
   }
 
   private void makeKsqlRequest(final String request) {

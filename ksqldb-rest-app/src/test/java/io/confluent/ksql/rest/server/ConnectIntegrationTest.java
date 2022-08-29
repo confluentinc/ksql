@@ -363,17 +363,13 @@ public class ConnectIntegrationTest {
 
   @Test
   public void shouldListConnectorPlugins() {
-    // Given:
-    create("mock-connector", ImmutableMap.of(
-        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"));
-
     // When:
     final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest("LIST CONNECTOR PLUGINS;");
 
     // Then:
     assertThat(response.isSuccessful(), is(true));
     assertThat(response.getResponse().get(0), instanceOf(ConnectorPluginsList.class));
-    // Since no plugin is added to the connector, the size of plugins list is 0.
+    // Since no plugins have been added, the size of plugins list is 0.
     assertThat(((ConnectorPluginsList)response.getResponse().get(0)).getConnectorsPlugins().size(), is(0));
   }
 

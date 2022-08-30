@@ -652,6 +652,7 @@ public class TestExecutor implements Closeable {
     return ImmutableMap.<String, Object>builder()
         .putAll(BASE_CONFIG)
         .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().toAbsolutePath().toString())
+        .put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false)
         .build();
   }
 

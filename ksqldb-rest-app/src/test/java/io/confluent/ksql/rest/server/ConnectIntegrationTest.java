@@ -189,7 +189,7 @@ public class ConnectIntegrationTest {
               .set(ksqlRestClient.makeKsqlRequest("DESCRIBE CONNECTOR `mock-connector`;"));
           return responseHolder.get().getResponse().get(0);
         },
-        // there is a race condition were create from line 150 may not have gone through
+        // there is a race condition where create from line 150 may not have gone through
         instanceOf(ConnectorDescription.class)
     );
     final RestResponse<KsqlEntityList> response = responseHolder.get();
@@ -388,6 +388,7 @@ public class ConnectIntegrationTest {
     final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest(
         "CREATE " + type + " CONNECTOR `" + name + "` WITH(" + withClause + ");");
     LOG.info("Got response from Connect: {}", response);
+    assertThat(response.getStatusCode(), is(200));
     return response;
   }
 

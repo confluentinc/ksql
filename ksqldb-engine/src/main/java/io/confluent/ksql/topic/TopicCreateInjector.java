@@ -52,8 +52,10 @@ import org.apache.kafka.common.config.TopicConfig;
  */
 public class TopicCreateInjector implements Injector {
 
-  private static final String CLEANUP_POLICY_PRESENT_EXCEPTION = String.format(
-      "Invalid config variable in the WITH clause: %s", CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY);
+  private static final String CLEANUP_POLICY_PRESENT_EXCEPTION =
+      String.format(
+          "Invalid config variable in the WITH clause: %s",
+          CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY);
 
   private final KafkaTopicClient topicClient;
   private final MetaStore metaStore;
@@ -107,7 +109,9 @@ public class TopicCreateInjector implements Injector {
     final CreateSource createSource = statement.getStatement();
     final CreateSourceProperties properties = createSource.getProperties();
 
-    if (properties.getCleanupPolicy().isPresent()) throw new KsqlException(CLEANUP_POLICY_PRESENT_EXCEPTION);
+    if (properties.getCleanupPolicy().isPresent()) {
+      throw new KsqlException(CLEANUP_POLICY_PRESENT_EXCEPTION);
+    }
 
     final String topicCleanUpPolicy = createSource instanceof CreateTable
         ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
@@ -157,7 +161,9 @@ public class TopicCreateInjector implements Injector {
     final T createAsSelect = statement.getStatement();
     final CreateSourceAsProperties properties = createAsSelect.getProperties();
 
-    if (properties.getCleanupPolicy().isPresent()) throw new KsqlException(CLEANUP_POLICY_PRESENT_EXCEPTION);
+    if (properties.getCleanupPolicy().isPresent()) {
+      throw new KsqlException(CLEANUP_POLICY_PRESENT_EXCEPTION);
+    }
 
     final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
     extractor.process(statement.getStatement().getQuery(), null);

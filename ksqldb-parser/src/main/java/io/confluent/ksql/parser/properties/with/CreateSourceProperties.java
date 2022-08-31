@@ -103,6 +103,10 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getLong(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS));
   }
 
+  public Optional<String> getCleanupPolicy() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY));
+  }
+
   public Optional<WindowType> getWindowType() {
     try {
       return Optional.ofNullable(props.getString(CreateConfigs.WINDOW_TYPE_PROPERTY))
@@ -279,6 +283,15 @@ public final class CreateSourceProperties {
         durationParser,
         unwrapProtobufPrimitives
     );
+  }
+
+  public CreateSourceProperties withCleanupPolicy(final String cleanupPolicy) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    originals.put(
+        CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY,
+        new StringLiteral(cleanupPolicy));
+
+    return new CreateSourceProperties(originals, durationParser, unwrapProtobufPrimitives);
   }
 
   public Map<String, Literal> copyOfOriginalLiterals() {

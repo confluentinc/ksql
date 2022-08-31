@@ -33,6 +33,7 @@ public final class CommonCreateConfigs {
   public static final String SOURCE_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SOURCE_NUMBER_OF_REPLICAS = "REPLICAS";
   public static final String SOURCE_TOPIC_RETENTION_IN_MS = "RETENTION_MS";
+  public static final String SOURCE_TOPIC_CLEANUP_POLICY = "CLEANUP_POLICY";
 
   // Timestamp Props:
   public static final String TIMESTAMP_NAME_PROPERTY = "TIMESTAMP";
@@ -197,6 +198,12 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.INT,
             null,
             Importance.LOW,
+            "Undocumented feature"
+        ).define(
+            SOURCE_TOPIC_CLEANUP_POLICY,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.HIGH,
             "Undocumented feature");
   }
 

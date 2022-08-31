@@ -17,6 +17,7 @@ package io.confluent.ksql.topic;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
@@ -50,6 +51,9 @@ import org.apache.kafka.common.config.TopicConfig;
  * @see TopicProperties.Builder
  */
 public class TopicCreateInjector implements Injector {
+
+  private static final String CLEANUP_POLICY_PRESENT_EXCEPTION = String.format(
+      "Invalid config variable in the WITH clause: %s", CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY);
 
   private final KafkaTopicClient topicClient;
   private final MetaStore metaStore;
@@ -103,6 +107,8 @@ public class TopicCreateInjector implements Injector {
     final CreateSource createSource = statement.getStatement();
     final CreateSourceProperties properties = createSource.getProperties();
 
+    if (properties.getCleanupPolicy().isPresent()) throw new KsqlException(CLEANUP_POLICY_PRESENT_EXCEPTION);
+
     final String topicCleanUpPolicy = createSource instanceof CreateTable
         ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
 
@@ -137,7 +143,7 @@ public class TopicCreateInjector implements Injector {
 
     createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
 
-    return statement;
+    return buildConfiguredStatement(statement, properties.withCleanupPolicy(topicCleanUpPolicy));
   }
 
   @SuppressWarnings("unchecked")
@@ -150,6 +156,8 @@ public class TopicCreateInjector implements Injector {
 
     final T createAsSelect = statement.getStatement();
     final CreateSourceAsProperties properties = createAsSelect.getProperties();
+
+    if (properties.getCleanupPolicy().isPresent()) throw new KsqlException(CLEANUP_POLICY_PRESENT_EXCEPTION);
 
     final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
     extractor.process(statement.getStatement().getQuery(), null);
@@ -190,17 +198,15 @@ public class TopicCreateInjector implements Injector {
     final TopicProperties info
         = createTopic(topicPropertiesBuilder, topicCleanUpPolicy, additionalTopicConfigs);
 
-    final T withTopic = (T) createAsSelect.copyWith(properties.withTopic(
+    final CreateSourceAsProperties injectedProperties = properties.withTopic(
         info.getTopicName(),
         info.getPartitions(),
         info.getReplicas(),
         (Long) additionalTopicConfigs
-            .getOrDefault(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis())
-    ));
+            .getOrDefault(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis()))
+        .withCleanupPolicy(topicCleanUpPolicy);
 
-    final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
-
-    return statement.withStatement(withTopicText, withTopic);
+    return buildConfiguredStatement(statement, injectedProperties);
   }
 
   private void throwIfRetentionPresentForTable(
@@ -256,5 +262,38 @@ public class TopicCreateInjector implements Injector {
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 
     return info;
+  }
+
+  private static ConfiguredStatement<CreateSource> buildConfiguredStatement(
+      final ConfiguredStatement<? extends CreateSource> original,
+      final CreateSourceProperties injectedProps
+  ) {
+    final CreateSource statement = original.getStatement();
+
+    final CreateSource withProps = statement.copyWith(
+        original.getStatement().getElements(),
+        injectedProps
+    );
+
+    final KsqlParser.PreparedStatement<CreateSource> prepared = buildPreparedStatement(withProps);
+    return ConfiguredStatement.of(prepared, original.getSessionConfig());
+  }
+
+  private static ConfiguredStatement<CreateAsSelect> buildConfiguredStatement(
+      final ConfiguredStatement<? extends CreateAsSelect> original,
+      final CreateSourceAsProperties injectedProps
+  ) {
+    final CreateAsSelect statement = original.getStatement();
+
+    final CreateAsSelect withProps = statement.copyWith(injectedProps);
+
+    final KsqlParser.PreparedStatement<CreateAsSelect> prepared = buildPreparedStatement(withProps);
+    return ConfiguredStatement.of(prepared, original.getSessionConfig());
+  }
+
+  private static <T extends Statement> KsqlParser.PreparedStatement<T> buildPreparedStatement(
+      final T stmt
+  ) {
+    return KsqlParser.PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);
   }
 }

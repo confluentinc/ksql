@@ -332,9 +332,9 @@ public class TopicCreateInjectorTest {
     // Then:
     assertThat(result.getMaskedStatementText(),
         equalTo(
-            "CREATE STREAM X WITH (KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1, RETENTION_MS=100) AS SELECT *"
+            "CREATE STREAM X WITH (CLEANUP_POLICY='delete', KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1, RETENTION_MS=100) AS SELECT *"
                 + "\nFROM SOURCE SOURCE\n"
-                + "EMIT CHANGES;"));
+                + "EMIT CHANGES"));
   }
 
   @Test
@@ -477,6 +477,58 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
+  public void shouldHaveCleanupPolicyCompactCtas() {
+    // Given:
+    givenStatement("CREATE TABLE x AS SELECT * FROM SOURCE;");
+
+    // When:
+    final CreateAsSelect ctas = ((CreateAsSelect) injector.inject(statement, builder).getStatement());
+
+    // Then:
+    final CreateSourceAsProperties props = ctas.getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_COMPACT)));
+  }
+
+  @Test
+  public void shouldHaveCleanupPolicyDeleteCsas() {
+    // Given:
+    givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
+
+    // When:
+    final CreateAsSelect csas = ((CreateAsSelect) injector.inject(statement, builder).getStatement());
+
+    // Then:
+    final CreateSourceAsProperties props = csas.getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_DELETE)));
+  }
+
+  @Test
+  public void shouldHaveCleanupPolicyDeleteCreateStream() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (kafka_topic='foo', partitions=1);");
+
+    // When:
+    final CreateSource createSource = ((CreateSource) injector.inject(statement, builder).getStatement());
+
+    // Then:
+    final CreateSourceProperties props = createSource.getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_DELETE)));
+  }
+
+  @Test
+  public void shouldHaveCleanupPolicyCompactCreateTable() {
+    // Given:
+    givenStatement("CREATE TABLE foo (FOO VARCHAR) WITH (kafka_topic='topic', partitions=1);");
+
+    // When:
+    final CreateSource createSource = ((CreateSource) injector.inject(statement, builder).getStatement());
+
+    // Then:
+    final CreateSourceProperties props = createSource.getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_COMPACT)));
+  }
+
+  @Test
   public void shouldHaveSuperUsefulErrorMessageIfCreateWithNoPartitions() {
     // Given:
     givenStatement("CREATE STREAM foo (FOO STRING) WITH (value_format='avro', kafka_topic='doesntexist');");
@@ -530,6 +582,74 @@ public class TopicCreateInjectorTest {
         e.getMessage(),
         containsString("Invalid config variable in the WITH clause: RETENTION_MS."
             + " Non-windowed tables do not support retention."));
+  }
+
+  @Test
+  public void shouldThrowIfCleanupPolicyPresentInCreateTable() {
+    // Given:
+    givenStatement("CREATE TABLE foo_bar (FOO STRING PRIMARY KEY, BAR STRING) WITH (kafka_topic='foo', partitions=1, cleanup_policy='whatever');");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY"));
+  }
+
+  @Test
+  public void shouldThrowIfCleanupPolicyConfigPresentInCreateTableAs() {
+    // Given:
+    givenStatement("CREATE TABLE foo_bar WITH (kafka_topic='foo', partitions=1, cleanup_policy='whatever') AS SELECT * FROM SOURCE;");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY"));
+  }
+
+  @Test
+  public void shouldThrowIfCleanupPolicyConfigPresentInCreateStream() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (kafka_topic='foo', partitions=1, cleanup_policy='whatever');");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY"));
+  }
+
+  @Test
+  public void shouldThrowIfCleanupPolicyConfigPresentInCreateStreamAs() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic', partitions=1, cleanup_policy='whatever') AS SELECT * FROM SOURCE;");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY"));
   }
 
   private ConfiguredStatement<?> givenStatement(final String sql) {

@@ -703,6 +703,7 @@
                     You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
                     for more details -->
                     <useModulePath>false</useModulePath>
+                    <skipITs>true</skipITs>
                 </configuration>
             </plugin>
 

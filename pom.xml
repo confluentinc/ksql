@@ -136,6 +136,7 @@
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
+        <skipITs>true</skipITs>
         <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <!-- Only used to provide login module implementation for tests -->
@@ -703,7 +704,6 @@
                     You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
                     for more details -->
                     <useModulePath>false</useModulePath>
-                    <skipITs>true</skipITs>
                 </configuration>
             </plugin>
 

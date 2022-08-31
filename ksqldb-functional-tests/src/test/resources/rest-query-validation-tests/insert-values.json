@@ -554,6 +554,33 @@
       ]
     },
     {
+      "name": "PROTOBUF with schema references with schema id",
+      "statements": [
+        "CREATE STREAM TEST(K1 STRING KEY) WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=5);",
+        "INSERT INTO TEST (K1, EVENT) VALUES ('key', STRUCT(TIMESTAMP := 1234));"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 5,
+          "valueSchema":"syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event EVENT = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 TIMESTAMP = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        { "topic": "input", "key": "key", "value": { "EVENT": { "TIMESTAMP": 1234 } } }
+      ]
+    },
+    {
       "name": "verify INSERT VALUES fails for ROWPARTITION",
       "statements": [
         "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",

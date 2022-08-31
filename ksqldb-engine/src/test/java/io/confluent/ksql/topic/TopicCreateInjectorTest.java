@@ -394,7 +394,7 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
-  public void shouldHaveCleanupPolicyConfig() {
+  public void shouldHaveCleanupPolicyConfigCtas() {
     // Given:
     givenStatement("CREATE TABLE x AS SELECT * FROM SOURCE;");
 
@@ -406,6 +406,22 @@ public class TopicCreateInjectorTest {
     final CreateSourceAsProperties props = result.getStatement().getProperties();
     assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_COMPACT)));
   }
+
+  @Test
+  public void shouldHaveCleanupPolicyConfigCs() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (value_format='avro', kafka_topic='foo', partitions=1);");
+
+    // When:
+    final ConfiguredStatement<CreateSource> result =
+        (ConfiguredStatement<CreateSource>) injector.inject(statement, builder);
+
+    // Then:
+    final CreateSourceProperties props = result.getStatement().getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_DELETE)));
+  }
+
+
 
   @Test
   public void shouldCreateMissingTopicWithCompactCleanupPolicyForCreateTable() {

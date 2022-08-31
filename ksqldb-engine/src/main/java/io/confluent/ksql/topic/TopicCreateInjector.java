@@ -135,9 +135,9 @@ public class TopicCreateInjector implements Injector {
             properties.getReplicas(),
             properties.getRetentionInMillis());
 
-    createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
+    final CreateSourceProperties propsWithCleanupPolicy = properties.withCleanupPolicy(topicCleanUpPolicy);
 
-    return statement;
+    return Injector;
   }
 
   @SuppressWarnings("unchecked")

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
@@ -101,6 +102,10 @@ public final class CreateSourceProperties {
 
   public Optional<Long> getRetentionInMillis() {
     return Optional.ofNullable(props.getLong(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS));
+  }
+
+  public Optional<String> getCleanupPolicy() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY));
   }
 
   public Optional<WindowType> getWindowType() {
@@ -330,4 +335,13 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.FORMAT_PROPERTY));
   }
 
+  public CreateSourceProperties withCleanupPolicy(
+      final String cleanupPolicy
+  ) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    originals.put(
+        CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY, new StringLiteral(cleanupPolicy));
+
+    return new CreateSourceProperties(originals, durationParser, unwrapProtobufPrimitives);
+  }
 }

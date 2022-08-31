@@ -23,6 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.util.FileWatcher.Callback;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.nio.file.Files;
@@ -36,12 +37,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.verification.Timeout;
 
+@Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class FileWatcherTest {
 

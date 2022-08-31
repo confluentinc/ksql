@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Streams;
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.util.Pair;
@@ -15,6 +16,7 @@ import org.apache.kafka.streams.state.HostInfo;
 import org.jeasy.random.EasyRandom;
 import org.jeasy.random.EasyRandomParameters;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -28,6 +30,7 @@ import static org.jeasy.random.FieldPredicates.named;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class RemoteSourceDescriptionExecutorTest  {
   final EasyRandomParameters parameters = new EasyRandomParameters()

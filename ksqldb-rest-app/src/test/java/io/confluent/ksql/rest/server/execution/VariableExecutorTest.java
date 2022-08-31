@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -37,9 +38,11 @@ import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class VariableExecutorTest {
   @Rule

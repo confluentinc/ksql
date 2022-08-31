@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.DescribeStreams;
 import io.confluent.ksql.rest.SessionProperties;
@@ -48,11 +49,13 @@ import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class RemoteHostExecutorTest {
   @Mock

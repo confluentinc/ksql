@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory.LocatorFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory.MaterializationFactory;
@@ -46,10 +47,12 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class KsMaterializationFactoryTest {
 

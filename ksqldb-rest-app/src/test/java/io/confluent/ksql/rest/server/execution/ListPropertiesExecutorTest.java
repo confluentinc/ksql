@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
@@ -44,10 +45,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class ListPropertiesExecutorTest {
 

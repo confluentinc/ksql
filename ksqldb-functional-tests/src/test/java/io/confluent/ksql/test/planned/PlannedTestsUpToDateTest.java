@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.test.QueryTranslationTest;
 import io.confluent.ksql.test.tools.TestCase;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -37,6 +39,7 @@ import org.junit.runners.Parameterized;
  * Test that ensures that each QTT test case that should be tested from a physical
  * plan has the latest physical plan written to the local filesystem.
  */
+@Category({IntegrationTest.class})
 @RunWith(Parameterized.class)
 public class PlannedTestsUpToDateTest {
 

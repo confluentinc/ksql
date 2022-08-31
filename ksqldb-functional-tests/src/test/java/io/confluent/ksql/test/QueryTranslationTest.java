@@ -15,12 +15,11 @@
 
 package io.confluent.ksql.test;
 
-import static java.util.Objects.requireNonNull;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
@@ -28,6 +27,10 @@ import io.confluent.ksql.test.model.TestFileContext;
 import io.confluent.ksql.test.planned.PlannedTestLoader;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestCaseBuilder;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -35,9 +38,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Runs the json functional tests defined under
@@ -45,6 +46,7 @@ import org.junit.runners.Parameterized;
  *
  * See `ksql-functional-tests/README.md` for more info.
  */
+@Category({IntegrationTest.class})
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
 

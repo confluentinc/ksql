@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.config.TopicConfig;
 
 /**
  * Helper for handling 'with clause' properties.
@@ -37,12 +36,8 @@ import org.apache.kafka.common.config.TopicConfig;
 @EffectivelyImmutable
 final class PropertiesConfig extends AbstractConfig {
 
-  private static final Set<String> auxiliaryTopicConfigs =
-      Sets.newHashSet(TopicConfig.CLEANUP_POLICY_CONFIG.toUpperCase());
-
   private final ConfigMetaData configDetails;
   private final ImmutableMap<String, Literal> originalLiterals;
-
 
   PropertiesConfig(final ConfigMetaData configDetails, final Map<String, Literal> originals) {
     super(
@@ -117,14 +112,9 @@ final class PropertiesConfig extends AbstractConfig {
         .collect(Collectors.toSet());
 
     final SetView<String> onlyInProvided = Sets.difference(providedNames, configNames);
-    if (!onlyInProvided.isEmpty() && !isAuxiliaryTopicConfig(onlyInProvided)) {
+    if (!onlyInProvided.isEmpty()) {
       throw new KsqlException("Invalid config variable(s) in the WITH clause: "
           + String.join(",", onlyInProvided));
     }
   }
-
-  private static boolean isAuxiliaryTopicConfig(final Set<String> onlyInProvided) {
-    return  auxiliaryTopicConfigs.containsAll(onlyInProvided);
-  }
-
 }

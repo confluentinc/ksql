@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.config.TopicConfig;
 
 /**
  * Performs validation of a CREATE AS statement's WITH clause.
@@ -92,6 +91,10 @@ public final class CreateSourceAsProperties {
 
   public Optional<Long> getRetentionInMillis() {
     return Optional.ofNullable(props.getLong(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS));
+  }
+
+  public Optional<String> getCleanupPolicy() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY));
   }
 
   public Optional<ColumnName> getTimestampColumnName() {
@@ -217,7 +220,8 @@ public final class CreateSourceAsProperties {
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
     originals.put(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS, new LongLiteral(retentionMs));
-    originals.put(TopicConfig.CLEANUP_POLICY_CONFIG, new StringLiteral(cleanupPolicy));
+    originals.put(
+        CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY, new StringLiteral(cleanupPolicy));
 
     return new CreateSourceAsProperties(originals, unwrapProtobufPrimitives);
   }

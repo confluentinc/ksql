@@ -598,7 +598,9 @@ public class TopicCreateInjectorTest {
     // Then:
     assertThat(
         e.getMessage(),
-        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY"));
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY.\n"
+            + "The CLEANUP_POLICY config is automatically inferred based on the type of source (STREAM or TABLE).\n"
+            + "Users can't set the CLEANUP_POLICY config manually."));
   }
 
   @Test
@@ -615,7 +617,9 @@ public class TopicCreateInjectorTest {
     // Then:
     assertThat(
         e.getMessage(),
-        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY"));
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY.\n"
+            + "The CLEANUP_POLICY config is automatically inferred based on the type of source (STREAM or TABLE).\n"
+            + "Users can't set the CLEANUP_POLICY config manually."));
   }
 
   @Test
@@ -632,7 +636,9 @@ public class TopicCreateInjectorTest {
     // Then:
     assertThat(
         e.getMessage(),
-        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY"));
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY.\n"
+            + "The CLEANUP_POLICY config is automatically inferred based on the type of source (STREAM or TABLE).\n"
+            + "Users can't set the CLEANUP_POLICY config manually."));
   }
 
   @Test
@@ -649,7 +655,9 @@ public class TopicCreateInjectorTest {
     // Then:
     assertThat(
         e.getMessage(),
-        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY"));
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY.\n"
+            + "The CLEANUP_POLICY config is automatically inferred based on the type of source (STREAM or TABLE).\n"
+            + "Users can't set the CLEANUP_POLICY config manually."));
   }
 
   private ConfiguredStatement<?> givenStatement(final String sql) {

@@ -54,7 +54,12 @@ public class TopicCreateInjector implements Injector {
 
   private static final String CLEANUP_POLICY_PRESENT_EXCEPTION =
       String.format(
-          "Invalid config variable in the WITH clause: %s",
+          "Invalid config variable in the WITH clause: %s.\n"
+              + "The %s config is automatically inferred based "
+              + "on the type of source (STREAM or TABLE).\n"
+              + "Users can't set the %s config manually.",
+          CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY,
+          CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY,
           CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY);
 
   private final KafkaTopicClient topicClient;

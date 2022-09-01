@@ -145,8 +145,6 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       LOG.warn(String.format("Can't backup a command topic record with a null key/value:"
               + " key=%s, value=%s, partition=%d, offset=%d",
           record.key(), record.value(), record.partition(), record.offset()));
-      corruptionDetected = true;
-      return;
     }
 
     if (Arrays.equals(record.key(), InternalTopicSerdes.serializer().serialize(

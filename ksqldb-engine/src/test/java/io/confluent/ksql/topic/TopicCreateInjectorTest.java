@@ -334,7 +334,7 @@ public class TopicCreateInjectorTest {
         equalTo(
             "CREATE STREAM X WITH (CLEANUP_POLICY='delete', KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1, RETENTION_MS=100) AS SELECT *"
                 + "\nFROM SOURCE SOURCE\n"
-                + "EMIT CHANGES"));
+                + "EMIT CHANGES;"));
   }
 
   @Test

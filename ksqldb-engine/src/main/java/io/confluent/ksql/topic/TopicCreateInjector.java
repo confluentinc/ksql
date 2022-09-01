@@ -300,6 +300,10 @@ public class TopicCreateInjector implements Injector {
   private static <T extends Statement> KsqlParser.PreparedStatement<T> buildPreparedStatement(
       final T stmt
   ) {
-    return KsqlParser.PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);
+    String formattedSql = SqlFormatter.formatSql(stmt);
+    if (!formattedSql.endsWith(";")) {
+      formattedSql = formattedSql + ";";
+    }
+    return KsqlParser.PreparedStatement.of(formattedSql, stmt);
   }
 }

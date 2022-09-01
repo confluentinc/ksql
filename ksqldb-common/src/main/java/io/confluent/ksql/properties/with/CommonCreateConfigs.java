@@ -204,7 +204,7 @@ public final class CommonCreateConfigs {
             SOURCE_TOPIC_CLEANUP_POLICY,
             ConfigDef.Type.STRING,
             null,
-            Importance.HIGH,
+            Importance.LOW,
             "This config designates the retention policy to use on log segments. "
                 + "The \"delete\" policy (which is the default) will discard old segments "
                 + "when their retention time or size limit has been reached. The \"compact\" "

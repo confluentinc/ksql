@@ -65,7 +65,6 @@ public class TerminateTransientQueryFunctionalTest {
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -73,7 +72,6 @@ public class TerminateTransientQueryFunctionalTest {
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
       .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
-      .withProperty(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)
       .build();
 
   @ClassRule

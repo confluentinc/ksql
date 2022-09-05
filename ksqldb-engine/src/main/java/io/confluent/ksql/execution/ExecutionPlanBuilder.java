@@ -95,36 +95,55 @@ public class ExecutionPlanBuilder {
     );
   }
 
+
   private void optimizeForSelfJoin(final PlanNode currentNode) {
 
     if (currentNode instanceof JoinNode) {
       final JoinNode joinNode = (JoinNode) currentNode;
-      if (joinNode.getLeft() instanceof PreJoinProjectNode
-          && joinNode.getRight() instanceof PreJoinProjectNode) {
+      if (! matchSubGraphPattern1(joinNode)) {
+        if (!matchSubGraphPattern2(joinNode)) {
+          matchSubGraphPattern3(joinNode);
+        }
+      }
+    }
 
-        final PreJoinProjectNode preJoinProjectNodeLeft =
-            (PreJoinProjectNode)joinNode.getLeft();
-        final PreJoinProjectNode preJoinProjectNodeRight =
-            (PreJoinProjectNode)joinNode.getRight();
+    for (final PlanNode child: currentNode.getSources()) {
+      optimizeForSelfJoin(child);
+    }
+  }
+
+  /**
+   * Join -> PreJoinProject -> PreJoinRepartition -> DataSource
+   */
+  private boolean matchSubGraphPattern1(final JoinNode joinNode) {
+
+    if (joinNode.getLeft() instanceof PreJoinProjectNode
+        && joinNode.getRight() instanceof PreJoinProjectNode) {
+      final PreJoinProjectNode preJoinProjectNodeLeft =
+          (PreJoinProjectNode) joinNode.getLeft();
+      final PreJoinProjectNode preJoinProjectNodeRight =
+          (PreJoinProjectNode) joinNode.getRight();
+      if (preJoinProjectNodeLeft.getSource() instanceof PreJoinRepartitionNode
+          && preJoinProjectNodeRight.getSource() instanceof PreJoinRepartitionNode) {
+
         final PreJoinRepartitionNode preJoinRepartitionNodeLeft =
             (PreJoinRepartitionNode) preJoinProjectNodeLeft.getSource();
         final PreJoinRepartitionNode preJoinRepartitionNodeRight =
             (PreJoinRepartitionNode) preJoinProjectNodeRight.getSource();
 
         // Check if Repartition is on the same key
-        if (! preJoinRepartitionNodeLeft.getPartitionBy()
+        if (!preJoinRepartitionNodeLeft.getPartitionBy()
             .equals(preJoinRepartitionNodeRight.getPartitionBy())) {
-          return;
+          return false;
         }
 
         // Check if sources are the same stream
-        if (! (preJoinRepartitionNodeLeft.getSource() instanceof DataSourceNode)
-            || ! (preJoinRepartitionNodeRight.getSource() instanceof DataSourceNode)) {
-          return;
+        if (!(preJoinRepartitionNodeLeft.getSource() instanceof DataSourceNode)
+            || !(preJoinRepartitionNodeRight.getSource() instanceof DataSourceNode)) {
+          return false;
         }
         final DataSourceNode leftSource = (DataSourceNode) preJoinRepartitionNodeLeft.getSource();
-        final DataSourceNode rightSource =
-            (DataSourceNode) preJoinRepartitionNodeRight.getSource();
+        final DataSourceNode rightSource = (DataSourceNode) preJoinRepartitionNodeRight.getSource();
 
         if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
             rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
@@ -132,17 +151,67 @@ public class ExecutionPlanBuilder {
 
           // Annotate join as self-join
           joinNode.setSelfJoin(true);
-          return;
+          return true;
         }
       } else {
-        // N-ary join not handled
-        return;
+        return false;
       }
-
     }
 
-    for (final PlanNode child: currentNode.getSources()) {
-      optimizeForSelfJoin(child);
+    return false;
+  }
+
+  /**
+   * Join -> PreJoinProject -> DataSource
+   */
+  private boolean matchSubGraphPattern2(final JoinNode joinNode) {
+    if (joinNode.getLeft() instanceof PreJoinProjectNode
+        && joinNode.getRight() instanceof PreJoinProjectNode) {
+      final PreJoinProjectNode preJoinProjectNodeLeft =
+          (PreJoinProjectNode) joinNode.getLeft();
+      final PreJoinProjectNode preJoinProjectNodeRight =
+          (PreJoinProjectNode) joinNode.getRight();
+      if (preJoinProjectNodeLeft.getSource() instanceof DataSourceNode
+          && preJoinProjectNodeRight.getSource() instanceof DataSourceNode) {
+
+        final DataSourceNode leftSource = (DataSourceNode) preJoinProjectNodeLeft.getSource();
+        final DataSourceNode rightSource = (DataSourceNode) preJoinProjectNodeRight.getSource();
+
+        if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
+            rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
+            leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
+
+          // Annotate join as self-join
+          joinNode.setSelfJoin(true);
+          return true;
+        }
+      } else {
+        return false;
+      }
     }
+
+    return false;
+  }
+
+  /**
+   * Join -> DataSource
+   */
+  private boolean matchSubGraphPattern3(final JoinNode joinNode) {
+    if (joinNode.getLeft() instanceof DataSourceNode
+        && joinNode.getRight() instanceof DataSourceNode) {
+
+        final DataSourceNode leftSource = (DataSourceNode) joinNode.getLeft();
+        final DataSourceNode rightSource = (DataSourceNode) joinNode.getRight();
+
+        if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
+            rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
+            leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
+
+          // Annotate join as self-join
+          joinNode.setSelfJoin(true);
+          return true;
+        }
+    }
+    return false;
   }
 }

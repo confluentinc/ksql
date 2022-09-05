@@ -32,6 +32,7 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -138,14 +139,23 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)
         .collect(Collectors.toList());
-
-    return stream.noOpSelect(
-        keyColumnNames,
-        getSelectExpressions(),
-        buildContext.buildNodeContext(getId().toString()),
-        buildContext,
-        getFormatInfo()
-    );
+    if (stream instanceof SchemaKTable) {
+      return stream.select(
+          keyColumnNames,
+          getSelectExpressions(),
+          buildContext.buildNodeContext(getId().toString()),
+          buildContext,
+          getFormatInfo()
+      );
+    } else {
+      return stream.noOpSelect(
+          keyColumnNames,
+          getSelectExpressions(),
+          buildContext.buildNodeContext(getId().toString()),
+          buildContext,
+          getFormatInfo()
+      );
+    }
 
   }
 

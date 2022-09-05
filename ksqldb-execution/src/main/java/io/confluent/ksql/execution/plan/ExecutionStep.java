@@ -35,6 +35,7 @@ import javax.annotation.Nonnull;
     @Type(value = StreamGroupBy.class, name = "streamGroupByV2"),
     @Type(value = StreamGroupByKey.class, name = "streamGroupByKeyV1"),
     @Type(value = StreamSelect.class, name = "streamSelectV1"),
+    @Type(value = StreamNoOpPreJoinSelect.class, name = "streamNoOpPreJoinSelectV1"),
     @Type(value = StreamSelectKeyV1.class, name = "streamSelectKeyV1"),
     @Type(value = StreamSelectKey.class, name = "streamSelectKeyV2"),
     @Type(value = StreamSink.class, name = "streamSinkV1"),

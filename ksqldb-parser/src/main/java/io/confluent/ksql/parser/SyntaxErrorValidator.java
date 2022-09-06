@@ -19,15 +19,22 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.SqlBaseParser.VariableNameContext;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
 import io.confluent.ksql.util.ParserUtil;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.InputMismatchException;
+import org.antlr.v4.runtime.NoViableAltException;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
+import org.apache.commons.text.similarity.LevenshteinDetailedDistance;
+import org.apache.kafka.common.protocol.types.Field.Str;
 
 /**
  * This class is a syntax error validator used in the {@link DefaultKsqlParser} class, which
@@ -43,6 +50,9 @@ public class SyntaxErrorValidator extends BaseErrorListener {
       "extraneous input.*expecting.*");
   private static final Pattern MISMATCHED_INPUT_PATTERN = Pattern.compile(
       "mismatched input.*expecting.*");
+  private final List<String> commands = Arrays.asList("SELECT", "CREATE", "INSERT", "DESCRIBE",
+      "PRINT", "EXPLAIN", "SHOW", "LIST", "TERMINATE", "PAUSE", "RESUME", "DROP", "SET", "DEFINE",
+      "UNDEFINE", "UNSET", "ASSERT", "ALTER");
 
   // List of validators per ANTLr context.
   private static final Map<Class<?>, BiFunction<String, RecognitionException, Boolean>>
@@ -127,16 +137,62 @@ public class SyntaxErrorValidator extends BaseErrorListener {
       return;
     }
 
-    if (offendingSymbol instanceof Token && isKeywordError(
-        message, ((Token) offendingSymbol).getText())) {
-      //Checks if the error is a reserved keyword error
-      final String tokenName = ((Token) offendingSymbol).getText();
-      final String newMessage =
-          "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier."
-              + " You can use it as an identifier by escaping it as \'" + tokenName + "\' ";
-      throw new ParsingException(newMessage, e, line, charPositionInLine);
+    if (offendingSymbol instanceof Token) {
+      StringBuilder sb = new StringBuilder();
+      sb.append(
+          String.format("Syntax Error\n"));
+      if (isKeywordError(message, ((Token) offendingSymbol).getText())) {
+        //Checks if the error is a reserved keyword error
+        final String tokenName = ((Token) offendingSymbol).getText();
+        sb.append(
+            String.format("\"%s\" is a reserved keyword and it can't be used as an identifier."
+                + " You can use it as an identifier by escaping it as '%s' ",
+                tokenName, tokenName));
+      } else if (e instanceof InputMismatchException) {
+        sb.append(
+            getExpectations(message,  e.getOffendingToken().getText(), line, charPositionInLine)
+        );
+      } else {
+        sb.append(message);
+      }
+      throw new ParsingException(sb.toString(), e, line, charPositionInLine);
     } else {
       throw new ParsingException(message, e, line, charPositionInLine);
     }
+  }
+
+  private String getExpectations(
+      final String message,
+      final String offendingToken,
+      final int line,
+      final int charPositionInLine) {
+    StringBuilder output = new StringBuilder();
+    final String expectingStr = message.split("expecting ")[1];
+    if (line == 1 && charPositionInLine == 0) { // this is a command typo
+      output.append(String.format("Unknown statement '%s'\n",
+              offendingToken));
+      output.append(
+              String.format("Did you mean '%s'?", getMostSimilar(offendingToken)));
+    } else if (message.contains("EOF")) {
+      output.append("Syntax error at or near \";\"\n");
+      output.append("'}', ']', or ')' is missing");
+    } else if (expectingStr.split(",").length <= 3) {
+      output.append(String.format("Expecting %s", expectingStr));
+    }
+    return output.toString();
+  }
+
+  private String getMostSimilar(String offendingToken) {
+    LevenshteinDetailedDistance computer = LevenshteinDetailedDistance.getDefaultInstance();
+    int min = Integer.MAX_VALUE;
+    String output = "";
+    for (String command:commands) {
+      int distance = computer.apply(command, offendingToken).getDistance();
+      if (distance < min) {
+        min = distance;
+        output = command;
+      }
+    }
+    return output;
   }
 }

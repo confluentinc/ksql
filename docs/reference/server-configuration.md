@@ -652,6 +652,21 @@ and
 
 The maximum number of records to buffer per partition. The default is `1000`.
 
+## `ksql.streams.cache.max.bytes.buffering`
+
+The maximum number of memory bytes to be used for buffering across all
+threads. The default value in ksqlDB is `10000000` (~ 10 MB). Here is an
+example to change the value to `20000000` by using the ksqlDB CLI:
+
+```sql
+SET 'cache.max.bytes.buffering'='20000000';
+```
+
+For more information, see the
+[Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
+and
+[CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
+
 ## `ksql.streams.commit.interval.ms`
 
 **Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
@@ -668,23 +683,6 @@ For more information, see the
 [Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and 
 [COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
-
-## `ksql.streams.statestore.cache.max.bytes`
-
-**Per query:** yes
-
-The maximum number of memory bytes to be used for buffering across all
-threads. The default value in ksqlDB is `10000000` (~ 10 MB). The following
-example shows how to change the value to `20000000` by using the ksqlDB CLI:
-
-```sql
-SET 'statestore.cache.max.bytes'='20000000';
-```
-
-For more information, see the
-[Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
-and
-[CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
 
 ## `ksql.streams.max.task.idle.ms`
 
@@ -951,12 +949,3 @@ default is one. This property has been deprecated. For
 more info see the WITH clause properties in
 [CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select) and
 [CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select).
-
-## `ksql.streams.cache.max.bytes.buffering` (Deprecated)
-
-Use `ksql.streams.statestore.cache.max.bytes` instead.
-
-**Per query:** yes
-
-The maximum number of memory bytes to be used for buffering across all
-threads. The default value in ksqlDB is `10000000` (~ 10 MB).

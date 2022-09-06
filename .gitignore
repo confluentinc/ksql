@@ -38,3 +38,6 @@ junit*/
 .tern-port
 ui/
 /ksqldb-functional-tests/src/test/resources/**/scratch.json
+
+# Bazel
+bazel-*

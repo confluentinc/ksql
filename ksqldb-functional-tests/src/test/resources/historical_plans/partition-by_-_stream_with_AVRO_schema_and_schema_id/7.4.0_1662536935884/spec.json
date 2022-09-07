@@ -1,6 +1,6 @@
 {
   "version" : "7.4.0",
-  "timestamp" : 1662012062807,
+  "timestamp" : 1662536935884,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {

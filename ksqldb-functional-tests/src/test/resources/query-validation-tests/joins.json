@@ -3994,6 +3994,72 @@
           }
         ]
       }
+    },
+    {
+      "name": "stream-stream key-to-key join with JSON_SR schema and schema id",
+      "statements": [
+        "CREATE STREAM S1 WITH (kafka_topic='s1', key_format='JSON_SR', key_schema_id=100, value_format='JSON_SR', value_schema_id=101);",
+        "CREATE STREAM S2 WITH (kafka_topic='s2', key_format='JSON_SR', key_schema_id=200, value_format='JSON_SR', value_schema_id=201);",
+        "CREATE STREAM OUTPUT AS SELECT ROWKEY_1, AS_VALUE(S1.ROWKEY) AS S1_KEY, AS_VALUE(S2.ROWKEY) AS S2_KEY, S2.VAL FROM S1 FULL OUTER JOIN S2 WITHIN 10 SECONDS ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "topics": [
+        {
+          "name": "s1",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"type":"integer","connect.type":"int32"},
+          "keySchemaId": 100,
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type": "object", "properties": {"foo": {"type": "integer"}}},
+          "valueSchemaId": 101
+        },
+        {
+          "name": "s2",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+          "keySchemaId": 200,
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type": "object", "properties": {"VAL": {"type": "string"}}},
+          "valueSchemaId": 201
+        }
+      ],
+      "inputs": [
+        {"topic": "s1", "key": 10, "value": {"foo": 22}},
+        {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"S1_KEY": 10, "S2_KEY": null, "VAL": null}},
+        {"topic": "OUTPUT", "key": 10, "value": {"S1_KEY": 10, "S2_KEY": 10, "VAL": "hello"}}
+      ]
+    },
+    {
+      "name": "stream-stream value-to-value with JSON_SR and schema id",
+      "statements": [
+        "CREATE STREAM S1 WITH (kafka_topic='s1', key_format='NONE', value_format='JSON_SR', value_schema_id=101);",
+        "CREATE STREAM S2 WITH (kafka_topic='s2', key_format='NONE', value_format='JSON_SR', value_schema_id=201);",
+        "CREATE STREAM OUTPUT AS SELECT S1.ID, S2.VAL FROM S1 LEFT OUTER JOIN S2 WITHIN 10 SECONDS ON S1.ID = S2.ID;"
+      ],
+      "topics": [
+        {
+          "name": "s1",
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type": "object", "properties": {"ID": {"type": "integer"}, "foo": {"type": "integer"}}},
+          "valueSchemaId": 101
+        },
+        {
+          "name": "s2",
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type": "object", "properties": {"ID": {"type": "integer"}, "VAL": {"type": "string"}}},
+          "valueSchemaId": 201
+        }
+      ],
+      "inputs": [
+        {"topic": "s1", "value": {"ID": 10, "foo": 22}},
+        {"topic": "s2", "value": {"ID": 10, "VAL": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
+      ]
     }
   ]
 }

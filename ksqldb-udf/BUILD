@@ -16,6 +16,7 @@ java_library(
         "@maven//:org_mockito_mockito_inline",
         "@maven//:org_slf4j_slf4j_reload4j",
     ],
+    visibility = ["//visibility:public"],
 )
 
 java_library(

@@ -5,6 +5,15 @@ import io.confluent.ksql.logging.processing.LoggingDeserializerTest;
 import io.confluent.ksql.logging.processing.LoggingSerializerTest;
 import io.confluent.ksql.logging.processing.SerializationErrorTest;
 import io.confluent.ksql.schema.ksql.PhysicalSchemaTest;
+import io.confluent.ksql.serde.FormatFactoryTest;
+import io.confluent.ksql.serde.GenericDeserializerTest;
+import io.confluent.ksql.serde.GenericKeySerDeTest;
+import io.confluent.ksql.serde.GenericRowSerDeTest;
+import io.confluent.ksql.serde.GenericSerdeFactoryTest;
+import io.confluent.ksql.serde.ImmutabilityTest;
+import io.confluent.ksql.serde.KeyFormatTest;
+import io.confluent.ksql.serde.StaticTopicSerdeTest;
+import io.confluent.ksql.serde.ValueFormatTest;
 import io.confluent.ksql.serde.avro.AvroDataTranslatorTest;
 import io.confluent.ksql.serde.avro.AvroFormatTest;
 import io.confluent.ksql.serde.avro.AvroPropertiesTest;
@@ -44,6 +53,12 @@ import io.confluent.ksql.serde.protobuf.ProtobufPropertiesTest;
 import io.confluent.ksql.serde.protobuf.ProtobufSchemaTranslatorTest;
 import io.confluent.ksql.serde.protobuf.ProtobufSchemasTest;
 import io.confluent.ksql.serde.protobuf.ProtobufSerdeFactoryTest;
+import io.confluent.ksql.serde.tls.ThreadLocalCloseableTest;
+import io.confluent.ksql.serde.tls.ThreadLocalDeserializerTest;
+import io.confluent.ksql.serde.tls.ThreadLocalSerializerTest;
+import io.confluent.ksql.serde.unwrapped.UnwrappedDeserializerTest;
+import io.confluent.ksql.serde.unwrapped.UnwrappedSerializerTest;
+import io.confluent.ksql.serde.voids.KsqlVoidSerdeTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -95,7 +110,21 @@ import org.junit.runners.Suite.SuiteClasses;
         ProtobufSchemasTest.class,
         ProtobufSchemaTranslatorTest.class,
         ProtobufSerdeFactoryTest.class,
-
+        ThreadLocalCloseableTest.class,
+        ThreadLocalDeserializerTest.class,
+        ThreadLocalSerializerTest.class,
+        UnwrappedDeserializerTest.class,
+        UnwrappedSerializerTest.class,
+        KsqlVoidSerdeTest.class,
+        FormatFactoryTest.class,
+        GenericDeserializerTest.class,
+        GenericKeySerDeTest.class,
+        GenericRowSerDeTest.class,
+        GenericSerdeFactoryTest.class,
+        ImmutabilityTest.class,
+        KeyFormatTest.class,
+        StaticTopicSerdeTest.class,
+        ValueFormatTest.class,
 })
 public class MyTestsSerde {
 }

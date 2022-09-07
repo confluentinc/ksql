@@ -1,28 +1,27 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM SOURCE (K STRING KEY, A BIGINT, B STRING) WITH (FORMAT='PROTOBUF', KAFKA_TOPIC='source', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+    "statementText" : "CREATE STREAM S1 (ROWKEY INTEGER KEY, `foo` BIGINT) WITH (KAFKA_TOPIC='s1', KEY_FORMAT='JSON_SR', KEY_SCHEMA_ID=100, VALUE_FORMAT='JSON_SR', VALUE_SCHEMA_ID=101);",
     "ddlCommand" : {
       "@type" : "createStreamV1",
-      "sourceName" : "SOURCE",
-      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "sourceName" : "S1",
+      "schema" : "`ROWKEY` INTEGER KEY, `foo` BIGINT",
       "timestampColumn" : null,
-      "topicName" : "source",
+      "topicName" : "s1",
       "formats" : {
         "keyFormat" : {
-          "format" : "PROTOBUF",
+          "format" : "JSON_SR",
           "properties" : {
-            "fullSchemaName" : "ProtobufKey2",
-            "unwrapPrimitives" : "true"
+            "schemaId" : "100"
           }
         },
         "valueFormat" : {
-          "format" : "PROTOBUF",
+          "format" : "JSON_SR",
           "properties" : {
-            "fullSchemaName" : "ProtobufValue2",
-            "unwrapPrimitives" : "true"
+            "schemaId" : "101"
           }
-        }
+        },
+        "keyFeatures" : [ "UNWRAP_SINGLES" ]
       },
       "windowInfo" : null,
       "orReplace" : false,
@@ -31,30 +30,27 @@
     "queryPlan" : null
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE SINK (K STRING PRIMARY KEY, A BIGINT, B STRING) WITH (FORMAT='PROTOBUF', KAFKA_TOPIC='source2', KEY_SCHEMA_FULL_NAME='ProtobufKey2', KEY_SCHEMA_ID=1, VALUE_SCHEMA_FULL_NAME='ProtobufValue2', VALUE_SCHEMA_ID=2);",
+    "statementText" : "CREATE STREAM S2 (ROWKEY INTEGER KEY, VAL STRING) WITH (KAFKA_TOPIC='s2', KEY_FORMAT='JSON_SR', KEY_SCHEMA_ID=200, VALUE_FORMAT='JSON_SR', VALUE_SCHEMA_ID=201);",
     "ddlCommand" : {
-      "@type" : "createTableV1",
-      "sourceName" : "SINK",
-      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "@type" : "createStreamV1",
+      "sourceName" : "S2",
+      "schema" : "`ROWKEY` INTEGER KEY, `VAL` STRING",
       "timestampColumn" : null,
-      "topicName" : "source2",
+      "topicName" : "s2",
       "formats" : {
         "keyFormat" : {
-          "format" : "PROTOBUF",
+          "format" : "JSON_SR",
           "properties" : {
-            "fullSchemaName" : "ProtobufKey2",
-            "unwrapPrimitives" : "true",
-            "schemaId" : "1"
+            "schemaId" : "200"
           }
         },
         "valueFormat" : {
-          "format" : "PROTOBUF",
+          "format" : "JSON_SR",
           "properties" : {
-            "fullSchemaName" : "ProtobufValue2",
-            "unwrapPrimitives" : "true",
-            "schemaId" : "2"
+            "schemaId" : "201"
           }
-        }
+        },
+        "keyFeatures" : [ "UNWRAP_SINGLES" ]
       },
       "windowInfo" : null,
       "orReplace" : false,
@@ -63,40 +59,35 @@
     "queryPlan" : null
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUT AS SELECT\n  S.*,\n  SS.*\nFROM SOURCE S\nINNER JOIN SINK SS ON ((S.K = SS.K))\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  ROWKEY_1 ROWKEY_1,\n  AS_VALUE(S1.ROWKEY) S1_KEY,\n  AS_VALUE(S2.ROWKEY) S2_KEY,\n  S2.VAL VAL\nFROM S1 S1\nFULL OUTER JOIN S2 S2 WITHIN 10 SECONDS ON ((S1.ROWKEY = S2.ROWKEY))\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
-      "sourceName" : "OUT",
-      "schema" : "`S_K` STRING KEY, `S_A` BIGINT, `S_B` STRING, `SS_K` STRING, `SS_A` BIGINT, `SS_B` STRING",
+      "sourceName" : "OUTPUT",
+      "schema" : "`ROWKEY_1` INTEGER KEY, `S1_KEY` INTEGER, `S2_KEY` INTEGER, `VAL` STRING",
       "timestampColumn" : null,
-      "topicName" : "OUT",
+      "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
-          "format" : "PROTOBUF",
-          "properties" : {
-            "fullSchemaName" : "ProtobufKey2",
-            "unwrapPrimitives" : "true"
-          }
+          "format" : "JSON_SR",
+          "properties" : { }
         },
         "valueFormat" : {
-          "format" : "PROTOBUF",
-          "properties" : {
-            "fullSchemaName" : "ProtobufValue2",
-            "unwrapPrimitives" : "true"
-          }
-        }
+          "format" : "JSON_SR",
+          "properties" : { }
+        },
+        "keyFeatures" : [ "UNWRAP_SINGLES" ]
       },
       "windowInfo" : null,
       "orReplace" : false,
       "isSource" : false
     },
     "queryPlan" : {
-      "sources" : [ "SINK", "SOURCE" ],
-      "sink" : "OUT",
+      "sources" : [ "S1", "S2" ],
+      "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "streamSinkV1",
         "properties" : {
-          "queryContext" : "OUT"
+          "queryContext" : "OUTPUT"
         },
         "source" : {
           "@type" : "streamSelectV1",
@@ -104,26 +95,32 @@
             "queryContext" : "Project"
           },
           "source" : {
-            "@type" : "streamTableJoinV1",
+            "@type" : "streamStreamJoinV1",
             "properties" : {
               "queryContext" : "Join"
             },
-            "joinType" : "INNER",
-            "internalFormats" : {
+            "joinType" : "OUTER",
+            "leftInternalFormats" : {
               "keyFormat" : {
-                "format" : "PROTOBUF",
-                "properties" : {
-                  "fullSchemaName" : "ProtobufKey2",
-                  "unwrapPrimitives" : "true"
-                }
+                "format" : "JSON_SR",
+                "properties" : { }
               },
               "valueFormat" : {
-                "format" : "PROTOBUF",
-                "properties" : {
-                  "fullSchemaName" : "ProtobufValue2",
-                  "unwrapPrimitives" : "true"
-                }
-              }
+                "format" : "JSON_SR",
+                "properties" : { }
+              },
+              "keyFeatures" : [ "UNWRAP_SINGLES" ]
+            },
+            "rightInternalFormats" : {
+              "keyFormat" : {
+                "format" : "JSON_SR",
+                "properties" : { }
+              },
+              "valueFormat" : {
+                "format" : "JSON_SR",
+                "properties" : { }
+              },
+              "keyFeatures" : [ "UNWRAP_SINGLES" ]
             },
             "leftSource" : {
               "@type" : "streamSelectV1",
@@ -140,153 +137,97 @@
                   "properties" : {
                     "queryContext" : "KafkaTopic_Left/Source"
                   },
-                  "topicName" : "source",
+                  "topicName" : "s1",
                   "formats" : {
                     "keyFormat" : {
-                      "format" : "PROTOBUF",
+                      "format" : "JSON_SR",
                       "properties" : {
-                        "fullSchemaName" : "ProtobufKey2",
-                        "unwrapPrimitives" : "true"
+                        "schemaId" : "100"
                       }
                     },
                     "valueFormat" : {
-                      "format" : "PROTOBUF",
+                      "format" : "JSON_SR",
                       "properties" : {
-                        "fullSchemaName" : "ProtobufValue2",
-                        "unwrapPrimitives" : "true"
+                        "schemaId" : "101"
                       }
-                    }
+                    },
+                    "keyFeatures" : [ "UNWRAP_SINGLES" ]
                   },
                   "timestampColumn" : null,
-                  "sourceSchema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+                  "sourceSchema" : "`ROWKEY` INTEGER KEY, `foo` BIGINT",
                   "pseudoColumnVersion" : 1
                 },
-                "keyExpression" : [ "K" ]
+                "keyExpression" : [ "ROWKEY" ]
               },
-              "keyColumnNames" : [ "S_K" ],
+              "keyColumnNames" : [ "S1_ROWKEY" ],
               "selectedKeys" : null,
-              "selectExpressions" : [ "A AS S_A", "B AS S_B", "ROWTIME AS S_ROWTIME", "ROWPARTITION AS S_ROWPARTITION", "ROWOFFSET AS S_ROWOFFSET", "K AS S_K" ]
+              "selectExpressions" : [ "`foo` AS `S1_foo`", "ROWTIME AS S1_ROWTIME", "ROWPARTITION AS S1_ROWPARTITION", "ROWOFFSET AS S1_ROWOFFSET", "ROWKEY AS S1_ROWKEY" ]
             },
             "rightSource" : {
-              "@type" : "tableSelectV1",
+              "@type" : "streamSelectV1",
               "properties" : {
                 "queryContext" : "PrependAliasRight"
               },
               "source" : {
-                "@type" : "tableSelectKeyV1",
+                "@type" : "streamSelectKeyV2",
                 "properties" : {
                   "queryContext" : "RightSourceKeyed"
                 },
                 "source" : {
-                  "@type" : "tableSourceV2",
+                  "@type" : "streamSourceV1",
                   "properties" : {
                     "queryContext" : "KafkaTopic_Right/Source"
                   },
-                  "topicName" : "source2",
+                  "topicName" : "s2",
                   "formats" : {
                     "keyFormat" : {
-                      "format" : "PROTOBUF",
+                      "format" : "JSON_SR",
                       "properties" : {
-                        "fullSchemaName" : "ProtobufKey2",
-                        "unwrapPrimitives" : "true",
-                        "schemaId" : "1"
+                        "schemaId" : "200"
                       }
                     },
                     "valueFormat" : {
-                      "format" : "PROTOBUF",
+                      "format" : "JSON_SR",
                       "properties" : {
-                        "fullSchemaName" : "ProtobufValue2",
-                        "unwrapPrimitives" : "true",
-                        "schemaId" : "2"
+                        "schemaId" : "201"
                       }
-                    }
+                    },
+                    "keyFeatures" : [ "UNWRAP_SINGLES" ]
                   },
                   "timestampColumn" : null,
-                  "sourceSchema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
-                  "pseudoColumnVersion" : 1,
-                  "stateStoreFormats" : {
-                    "keyFormat" : {
-                      "format" : "PROTOBUF",
-                      "properties" : {
-                        "fullSchemaName" : "ProtobufKey2",
-                        "unwrapPrimitives" : "true",
-                        "schemaId" : "1"
-                      }
-                    },
-                    "valueFormat" : {
-                      "format" : "PROTOBUF",
-                      "properties" : {
-                        "fullSchemaName" : "ProtobufValue2",
-                        "unwrapPrimitives" : "true",
-                        "schemaId" : "2"
-                      }
-                    }
-                  }
+                  "sourceSchema" : "`ROWKEY` INTEGER KEY, `VAL` STRING",
+                  "pseudoColumnVersion" : 1
                 },
-                "internalFormats" : {
-                  "keyFormat" : {
-                    "format" : "PROTOBUF",
-                    "properties" : {
-                      "fullSchemaName" : "ProtobufKey2",
-                      "unwrapPrimitives" : "true"
-                    }
-                  },
-                  "valueFormat" : {
-                    "format" : "PROTOBUF",
-                    "properties" : {
-                      "fullSchemaName" : "ProtobufValue2",
-                      "unwrapPrimitives" : "true"
-                    }
-                  }
-                },
-                "keyExpression" : [ "K" ]
+                "keyExpression" : [ "ROWKEY" ]
               },
-              "keyColumnNames" : [ "SS_K" ],
-              "selectExpressions" : [ "A AS SS_A", "B AS SS_B", "ROWTIME AS SS_ROWTIME", "ROWPARTITION AS SS_ROWPARTITION", "ROWOFFSET AS SS_ROWOFFSET", "K AS SS_K" ],
-              "internalFormats" : {
-                "keyFormat" : {
-                  "format" : "PROTOBUF",
-                  "properties" : {
-                    "fullSchemaName" : "ProtobufKey2",
-                    "unwrapPrimitives" : "true"
-                  }
-                },
-                "valueFormat" : {
-                  "format" : "PROTOBUF",
-                  "properties" : {
-                    "fullSchemaName" : "ProtobufValue2",
-                    "unwrapPrimitives" : "true",
-                    "schemaId" : "2"
-                  }
-                }
-              }
+              "keyColumnNames" : [ "S2_ROWKEY" ],
+              "selectedKeys" : null,
+              "selectExpressions" : [ "VAL AS S2_VAL", "ROWTIME AS S2_ROWTIME", "ROWPARTITION AS S2_ROWPARTITION", "ROWOFFSET AS S2_ROWOFFSET", "ROWKEY AS S2_ROWKEY" ]
             },
-            "keyColName" : "S_K"
+            "beforeMillis" : 10.000000000,
+            "afterMillis" : 10.000000000,
+            "graceMillis" : null,
+            "keyColName" : "ROWKEY_1"
           },
-          "keyColumnNames" : [ "S_K" ],
+          "keyColumnNames" : [ "ROWKEY_1" ],
           "selectedKeys" : null,
-          "selectExpressions" : [ "S_A AS S_A", "S_B AS S_B", "SS_K AS SS_K", "SS_A AS SS_A", "SS_B AS SS_B" ]
+          "selectExpressions" : [ "AS_VALUE(S1_ROWKEY) AS S1_KEY", "AS_VALUE(S2_ROWKEY) AS S2_KEY", "S2_VAL AS VAL" ]
         },
         "formats" : {
           "keyFormat" : {
-            "format" : "PROTOBUF",
-            "properties" : {
-              "fullSchemaName" : "ProtobufKey2",
-              "unwrapPrimitives" : "true"
-            }
+            "format" : "JSON_SR",
+            "properties" : { }
           },
           "valueFormat" : {
-            "format" : "PROTOBUF",
-            "properties" : {
-              "fullSchemaName" : "ProtobufValue2",
-              "unwrapPrimitives" : "true"
-            }
-          }
+            "format" : "JSON_SR",
+            "properties" : { }
+          },
+          "keyFeatures" : [ "UNWRAP_SINGLES" ]
         },
-        "topicName" : "OUT",
+        "topicName" : "OUTPUT",
         "timestampColumn" : null
       },
-      "queryId" : "CSAS_OUT_0",
+      "queryId" : "CSAS_OUTPUT_0",
       "runtimeId" : null
     }
   } ],

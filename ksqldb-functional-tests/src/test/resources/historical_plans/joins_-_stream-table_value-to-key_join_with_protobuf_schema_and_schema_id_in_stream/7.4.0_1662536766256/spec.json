@@ -1,6 +1,6 @@
 {
   "version" : "7.4.0",
-  "timestamp" : 1662011897888,
+  "timestamp" : 1662536766256,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUT_0.KafkaTopic_Left.Source" : {
@@ -9,14 +9,16 @@
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufKey2",
-          "unwrapPrimitives" : "true"
+          "unwrapPrimitives" : "true",
+          "schemaId" : "1"
         }
       },
       "valueFormat" : {
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufValue2",
-          "unwrapPrimitives" : "true"
+          "unwrapPrimitives" : "true",
+          "schemaId" : "2"
         }
       }
     },
@@ -36,16 +38,14 @@
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufKey2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "1"
+          "unwrapPrimitives" : "true"
         }
       },
       "valueFormat" : {
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufValue2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "2"
+          "unwrapPrimitives" : "true"
         }
       }
     },
@@ -55,16 +55,14 @@
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufKey2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "1"
+          "unwrapPrimitives" : "true"
         }
       },
       "valueFormat" : {
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufValue2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "2"
+          "unwrapPrimitives" : "true"
         }
       }
     },
@@ -131,7 +129,7 @@
     }
   },
   "testCase" : {
-    "name" : "stream-table value-to-key join with protobuf schema and schema_id in table",
+    "name" : "stream-table value-to-key join with protobuf schema and schema_id in stream",
     "inputs" : [ {
       "topic" : "source2",
       "key" : {
@@ -264,7 +262,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.B=SS.K;" ],
+    "statements" : [ "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.B=SS.K;" ],
     "post" : {
       "sources" : [ {
         "name" : "OUT",
@@ -325,16 +323,14 @@
             "format" : "PROTOBUF",
             "properties" : {
               "fullSchemaName" : "ProtobufKey2",
-              "unwrapPrimitives" : "true",
-              "schemaId" : "1"
+              "unwrapPrimitives" : "true"
             }
           },
           "valueFormat" : {
             "format" : "PROTOBUF",
             "properties" : {
               "fullSchemaName" : "ProtobufValue2",
-              "unwrapPrimitives" : "true",
-              "schemaId" : "2"
+              "unwrapPrimitives" : "true"
             }
           },
           "partitions" : 1,
@@ -382,14 +378,16 @@
             "format" : "PROTOBUF",
             "properties" : {
               "fullSchemaName" : "ProtobufKey2",
-              "unwrapPrimitives" : "true"
+              "unwrapPrimitives" : "true",
+              "schemaId" : "1"
             }
           },
           "valueFormat" : {
             "format" : "PROTOBUF",
             "properties" : {
               "fullSchemaName" : "ProtobufValue2",
-              "unwrapPrimitives" : "true"
+              "unwrapPrimitives" : "true",
+              "schemaId" : "2"
             }
           },
           "partitions" : 1,

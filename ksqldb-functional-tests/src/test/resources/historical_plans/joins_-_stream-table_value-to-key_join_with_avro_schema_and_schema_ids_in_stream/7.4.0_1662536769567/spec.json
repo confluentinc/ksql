@@ -1,6 +1,6 @@
 {
   "version" : "7.4.0",
-  "timestamp" : 1661727356774,
+  "timestamp" : 1662536769567,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUT_0.KafkaTopic_Left.Source" : {

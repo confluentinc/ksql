@@ -21,6 +21,7 @@ load("@rules_jvm_external//:setup.bzl", "rules_jvm_external_setup")
 rules_jvm_external_setup()
 
 load("@rules_jvm_external//:defs.bzl", "maven_install")
+load("@rules_jvm_external//:specs.bzl", "maven")
 
 maven_install(
     artifacts = [
@@ -30,7 +31,6 @@ maven_install(
         "junit:junit:4.13.1",
         "org.hamcrest:hamcrest-all:1.3",
         "com.google.errorprone:error_prone_annotations:2.2.0",
-        "org.apache.curator:curator-test:5.2.0",
         "org.apache.kafka:kafka_2.13:7.4.0-33-ccs",
         "org.apache.kafka:kafka_2.13:jar:test:7.4.0-33-ccs",
         "org.apache.kafka:kafka-clients:7.4.0-33-ccs",
@@ -57,6 +57,8 @@ maven_install(
         "com.fasterxml.jackson.core:jackson-databind:2.13.2",
         "com.fasterxml.jackson.core:jackson-annotations:2.13.2",
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.2",
+        "com.fasterxml.jackson.datatype:jackson-datatype-guava:2.13.2",
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.2",
         "org.apache.kafka:connect-api:7.4.0-33-ccs",
         "io.confluent:common-utils:7.4.0-128",
         "org.apache.kafka:connect-json:7.4.0-33-ccs",
@@ -76,6 +78,40 @@ maven_install(
         "com.squareup.wire:wire-schema-jvm:4.3.0",
         "io.confluent:kafka-protobuf-types:7.4.0-124",
         "com.google.api.grpc:proto-google-common-protos:2.5.1",
+        "javax.ws.rs:javax.ws.rs-api:2.1.1",
+        "io.netty:netty-codec-http:4.1.78.Final",
+        "org.codehaus.janino:janino:3.0.7",
+        "org.codehaus.janino:commons-compiler:3.0.7",
+        "com.ibm.icu:icu4j:67.1",
+        maven.artifact(
+            artifact = "connect-runtime",
+            exclusions = [
+                maven.exclusion(
+                    artifact = "log4j-core",
+                    group = "org.apache.logging.log4j",
+                ),
+                maven.exclusion(
+                    artifact = "log4j-api",
+                    group = "org.apache.logging.log4j",
+                ),
+            ],
+            group = "org.apache.kafka",
+            version = "7.4.0-33-ccs",
+        ),
+        maven.artifact(
+            artifact = "curator-test",
+            exclusions = [
+                maven.exclusion(
+                    artifact = "log4j",
+                    group = "log4j",
+                ),
+            ],
+            group = "org.apache.curator",
+            version = "5.1.0",
+        ),
+    ],
+    excluded_artifacts = [
+        "org.slf4j:slf4j-log4j12",
     ],
     repositories = [
         # Private repositories are supported through HTTP Basic auth

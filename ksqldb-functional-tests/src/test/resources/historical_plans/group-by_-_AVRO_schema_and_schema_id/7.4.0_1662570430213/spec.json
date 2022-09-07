@@ -1,6 +1,6 @@
 {
   "version" : "7.4.0",
-  "timestamp" : 1662536543863,
+  "timestamp" : 1662570430213,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.Project" : {
@@ -84,7 +84,7 @@
     }
   },
   "testCase" : {
-    "name" : "stream-table with AVRO schema and schema id",
+    "name" : "AVRO schema and schema id",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : 0,

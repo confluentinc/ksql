@@ -1,6 +1,6 @@
 {
   "version" : "7.4.0",
-  "timestamp" : 1662536543060,
+  "timestamp" : 1662570429450,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUT_0.OUT" : {
@@ -92,7 +92,7 @@
     }
   },
   "testCase" : {
-    "name" : "stream-table with PROTOBUF schema and schema_id",
+    "name" : "PROTOBUF schema and schema_id",
     "inputs" : [ {
       "topic" : "source",
       "key" : {

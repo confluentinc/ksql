@@ -6,7 +6,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//ksqldb-common:ksqldb_common",
-        "//ksqldb-test-util:ksqldb_test_util",  # only needed in test?
         "//ksqldb-udf:ksqldb_udf",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:com_fasterxml_jackson_core_jackson_core",

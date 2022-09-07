@@ -6,7 +6,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//ksqldb-common:ksqldb_common",
-        "//ksqldb-engine-common:ksqldb_engine_common",
         "//ksqldb-execution:ksqldb_execution",
         "//ksqldb-udf:ksqldb_udf",
         "@maven//:ch_qos_reload4j_reload4j",
@@ -39,7 +38,6 @@ java_library(
     deps = [
         ":ksqldb_metastore",
         "//ksqldb-common:ksqldb_common",
-        "//ksqldb-engine-common:ksqldb_engine_common",
         "//ksqldb-execution:ksqldb_execution",
         "//ksqldb-serde:ksqldb_serde",
         "//ksqldb-test-util:ksqldb_test_util",

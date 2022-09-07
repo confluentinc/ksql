@@ -38,7 +38,6 @@ java_library(
     deps = [
         ":ksqldb_rest_model",
         "//ksqldb-common:ksqldb_common",
-        "//ksqldb-engine-common:ksqldb_engine_common",
         "//ksqldb-test-util:ksqldb_test_util",
         "//ksqldb-udf:ksqldb_udf",
         "@maven//:ch_qos_reload4j_reload4j",

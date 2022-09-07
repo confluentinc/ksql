@@ -6,7 +6,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//ksqldb-common:ksqldb_common",
-        "//ksqldb-test-util:ksqldb_test_util",
         "//ksqldb-udf:ksqldb_udf",
         "@maven//:com_google_guava_guava",
         "@maven//:io_vertx_vertx_core",
@@ -22,7 +21,6 @@ java_library(
     deps = [
         ":ksqldb_engine_common",
         "//ksqldb-common:ksqldb_common",
-        "//ksqldb-test-util:ksqldb_test_util",
         "//ksqldb-udf:ksqldb_udf",
         "@maven//:com_google_guava_guava",
         "@maven//:io_vertx_vertx_core",

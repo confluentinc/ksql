@@ -42,7 +42,6 @@ java_library(
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-engine-common:ksqldb_engine_common",
         "//ksqldb-engine-common:tests",
-        "//ksqldb-rest-model:ksqldb_rest_model",
         "//ksqldb-serde:ksqldb_serde",
         "//ksqldb-test-util:ksqldb_test_util",
         #        "//ksqldb-test-util:tests",

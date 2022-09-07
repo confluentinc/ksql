@@ -1,6 +1,6 @@
 {
   "version" : "7.4.0",
-  "timestamp" : 1662012118112,
+  "timestamp" : 1662536990409,
   "path" : "query-validation-tests/table-table-join.json",
   "schemas" : {
     "CTAS_OUTPUT_0.PrependAliasLeft" : {

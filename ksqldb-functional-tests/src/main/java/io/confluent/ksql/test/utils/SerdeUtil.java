@@ -18,7 +18,6 @@ package io.confluent.ksql.test.utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -167,25 +166,34 @@ public final class SerdeUtil {
             ref -> ref.getSchema().canonicalString()
         ));
 
+    final List<io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference>
+        schemaReferences = references.stream()
+        .map(qttSchemaRef ->
+            new io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference(
+                qttSchemaRef.getName(),
+                qttSchemaRef.getName(),
+                firstVersion))
+        .collect(Collectors.toList());
+
     switch (schema.schemaType()) {
       case ProtobufFormat.NAME:
         return new ProtobufSchema(
             schema.canonicalString(),
-            ImmutableList.of(),
+            schemaReferences,
             resolvedReferences,
             firstVersion,
             schema.name());
       case AvroFormat.NAME:
         return new AvroSchema(
             schema.canonicalString(),
-            ImmutableList.of(),
+            schemaReferences,
             resolvedReferences,
             firstVersion
         );
       case JsonSchemaFormat.NAME:
         return new JsonSchema(
             schema.canonicalString(),
-            ImmutableList.of(),
+            schemaReferences,
             resolvedReferences,
             firstVersion
         );

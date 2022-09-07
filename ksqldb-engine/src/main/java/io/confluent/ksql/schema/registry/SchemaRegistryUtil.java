@@ -52,15 +52,12 @@ public final class SchemaRegistryUtil {
 
   public static void cleanupInternalTopicSchemas(
       final String applicationId,
-      final SchemaRegistryClient schemaRegistryClient,
-      final boolean isPermanent
-  ) {
+      final SchemaRegistryClient schemaRegistryClient) {
     getInternalSubjectNames(applicationId, schemaRegistryClient)
         .forEach(subject -> tryDeleteInternalSubject(
             applicationId,
             schemaRegistryClient,
-            subject,
-            isPermanent));
+            subject));
   }
 
   public static Stream<String> getSubjectNames(final SchemaRegistryClient schemaRegistryClient) {
@@ -250,14 +247,10 @@ public final class SchemaRegistryUtil {
   private static void tryDeleteInternalSubject(
       final String applicationId,
       final SchemaRegistryClient schemaRegistryClient,
-      final String subjectName,
-      final boolean isPermanent
-  ) {
+      final String subjectName) {
     try {
       deleteSubjectWithRetries(schemaRegistryClient, subjectName);
-      if (isPermanent) {
-        hardDeleteSubjectWithRetries(schemaRegistryClient, subjectName);
-      }
+      hardDeleteSubjectWithRetries(schemaRegistryClient, subjectName);
     } catch (final Exception e) {
       LOG.warn("Could not clean up the schema registry for"
           + " query: " + applicationId

@@ -93,6 +93,10 @@ public final class CreateSourceAsProperties {
     return Optional.ofNullable(props.getLong(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS));
   }
 
+  public Optional<String> getCleanupPolicy() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY));
+  }
+
   public Optional<ColumnName> getTimestampColumnName() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY))
         .map(ColumnReferenceParser::parse);
@@ -223,6 +227,15 @@ public final class CreateSourceAsProperties {
       final boolean unwrapProtobufPrimitives
   ) {
     return new CreateSourceAsProperties(props.copyOfOriginalLiterals(), unwrapProtobufPrimitives);
+  }
+
+  public CreateSourceAsProperties withCleanupPolicy(final String cleanupPolicy) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    originals.put(
+        CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY,
+        new StringLiteral(cleanupPolicy));
+
+    return new CreateSourceAsProperties(originals, unwrapProtobufPrimitives);
   }
 
   @Override

@@ -697,6 +697,89 @@
       }
     },
     {
+      "name": "deserialize and serialize schema using internal references",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM INTERMEDIATE as SELECT * from INPUT;",
+        "CREATE STREAM OUTPUT as SELECT * from INTERMEDIATE;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event event = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 timestamp = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        { "topic": "input", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "outputs": [
+        { "topic": "INTERMEDIATE", "value": { "event": { "timestamp": 1 } } },
+        { "topic": "OUTPUT", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "`EVENT` STRUCT<`TIMESTAMP` BIGINT>"},
+          {"name": "INTERMEDIATE", "type": "stream", "schema": "`EVENT` STRUCT<`TIMESTAMP` BIGINT>"},
+          {"name": "OUTPUT", "type": "stream", "schema": "`EVENT` STRUCT<`TIMESTAMP` BIGINT>"}
+        ]
+      }
+    },
+    {
+      "name": "deserialize and serialize schema using internal references using schema id",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=10);",
+        "CREATE STREAM OUTPUT WITH (value_schema_id=11) as SELECT * from INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 10,
+          "valueSchema": "syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event event = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 timestamp = 1;\n}"
+            }
+          ]
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 11,
+          "valueSchema": "syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event event = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 timestamp = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        { "topic": "input", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "`event` STRUCT<`timestamp` BIGINT>"},
+          {"name": "OUTPUT", "type": "stream", "schema": "`event` STRUCT<`timestamp` BIGINT>"}
+        ]
+      }
+    },
+    {
       "name": "fail if protobuf schema name is not found",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input_topic', value_format='PROTOBUF', VALUE_SCHEMA_FULL_NAME='ProtobufValue1000');"

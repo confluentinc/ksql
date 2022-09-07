@@ -1,6 +1,6 @@
 {
   "version" : "7.4.0",
-  "timestamp" : 1662011676921,
+  "timestamp" : 1662536543060,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUT_0.OUT" : {

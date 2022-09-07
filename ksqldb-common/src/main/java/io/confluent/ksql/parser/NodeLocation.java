@@ -38,7 +38,7 @@ public final class NodeLocation {
    * location information for the stop {@link org.antlr.v4.runtime.Token}
    * of the Node.
    */
-  private final TokenLocation stop;
+  private final Optional<TokenLocation> stop;
 
   /**
    * @param start {@link TokenLocation} of the start {@link org.antlr.v4.runtime.Token}
@@ -46,7 +46,7 @@ public final class NodeLocation {
    */
   public NodeLocation(final TokenLocation start, final TokenLocation stop) {
     this.start = start;
-    this.stop = stop;
+    this.stop = Optional.of(stop);
   }
 
   /**
@@ -56,7 +56,7 @@ public final class NodeLocation {
    */
   public NodeLocation(final int startLine, final int startCharPositionInLine) {
     this.start = TokenLocation.of(startLine, startCharPositionInLine);
-    this.stop = TokenLocation.empty();
+    this.stop = Optional.empty();
   }
 
   /**
@@ -64,7 +64,7 @@ public final class NodeLocation {
    *     Note: the line numbers start from 1 (and not 0).
    */
   public int getStartLineNumber() {
-    return start.getLine().getAsInt();
+    return start.getLine();
   }
 
   /**
@@ -72,33 +72,16 @@ public final class NodeLocation {
    *     Note: the column numbers start from 1 (and not 0)
    */
   public int getStartColumnNumber() {
-    return start.getCharPositionInLine().getAsInt() + 1;
-  }
-
-  /**
-   * @return the line number within the statement where the {@link Node} ends.
-   *     Note: the line numbers start from 1 (and not 0)
-   */
-  public OptionalInt getStopLine() {
-    return stop.getLine();
-  }
-
-  /**
-   * @return the column number within the statement where the {@link Node} end.
-   *     Note: the column numbers start from 1 (and not 0)
-   */
-  public OptionalInt getStopColumnNumber() {
-    return OptionalInt.of(stop.getCharPositionInLine().getAsInt()
-        + stop.getStopIndex().getAsInt()
-        - stop.getStartIndex().getAsInt()
-        + 1);
+    return start.getCharPositionInLine() + 1;
   }
 
   /**
    * @return the length of the statement represented by the {@link Node}
    */
   public OptionalInt getLength() {
-    return OptionalInt.of(stop.getStopIndex().getAsInt() - start.getStartIndex().getAsInt() + 1);
+    return stop.map(tokenLocation ->
+        OptionalInt.of(tokenLocation.getStopIndex() - start.getStartIndex() + 1))
+        .orElseGet(OptionalInt::empty);
   }
 
   /**
@@ -111,7 +94,7 @@ public final class NodeLocation {
   /**
    * @return the {@link TokenLocation} of the stop {@link org.antlr.v4.runtime.Token}
    */
-  public TokenLocation getStopTokenLocation() {
+  public Optional<TokenLocation> getStopTokenLocation() {
     return stop;
   }
 
@@ -128,8 +111,8 @@ public final class NodeLocation {
   @Override
   public String toString() {
     return String.format("Line: %d, Col: %d",
-        start.getLine().getAsInt(),
-        start.getCharPositionInLine().getAsInt() + 1);
+        start.getLine(),
+        start.getCharPositionInLine() + 1);
   }
 
   @Override

@@ -39,7 +39,6 @@ import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.CharStreams;
@@ -213,17 +212,17 @@ public final class ParserUtil {
     requireNonNull(stop, "Stop token is null");
 
     final TokenLocation startLocation = new TokenLocation(
-        OptionalInt.of(start.getLine()),
-        OptionalInt.of(start.getCharPositionInLine()),
-        OptionalInt.of(start.getStartIndex()),
-        OptionalInt.of(start.getStopIndex())
+        start.getLine(),
+        start.getCharPositionInLine(),
+        start.getStartIndex(),
+        start.getStopIndex()
     );
 
     final TokenLocation stopLocation = new TokenLocation(
-        OptionalInt.of(stop.getLine()),
-        OptionalInt.of(stop.getCharPositionInLine()),
-        OptionalInt.of(stop.getStartIndex()),
-        OptionalInt.of(stop.getStopIndex())
+        stop.getLine(),
+        stop.getCharPositionInLine(),
+        stop.getStartIndex(),
+        stop.getStopIndex()
     );
 
     return Optional.of(new NodeLocation(startLocation, stopLocation));

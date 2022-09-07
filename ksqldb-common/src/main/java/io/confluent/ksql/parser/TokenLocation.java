@@ -17,7 +17,6 @@ package io.confluent.ksql.parser;
 
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
-import java.util.OptionalInt;
 
 /**
  * Wrapper class for encapsulating the location information of the
@@ -29,37 +28,30 @@ public final class TokenLocation {
   /**
    * line number returned by {@link org.antlr.v4.runtime.Token#getLine()}
    */
-  private final OptionalInt line;
+  private final int line;
 
   /**
    * position of character in line returned
    * by {@link org.antlr.v4.runtime.Token#getCharPositionInLine()}
    */
-  private final OptionalInt charPositionInLine;
+  private final int charPositionInLine;
 
   /**
    * start index returned by {@link org.antlr.v4.runtime.Token#getStartIndex()}
    */
-  private final OptionalInt startIndex;
+  private final int startIndex;
 
   /**
    * stop index returned by {@link org.antlr.v4.runtime.Token#getStopIndex()}
    */
-  private final OptionalInt stopIndex;
-
-  public static TokenLocation empty() {
-    return new TokenLocation(OptionalInt.empty(),
-        OptionalInt.empty(),
-        OptionalInt.empty(),
-        OptionalInt.empty());
-  }
+  private final int stopIndex;
 
   public static TokenLocation of(final int line, final int charPositionInLine) {
     return new TokenLocation(
-        OptionalInt.of(line),
-        OptionalInt.of(charPositionInLine),
-        OptionalInt.empty(),
-        OptionalInt.empty()
+        line,
+        charPositionInLine,
+        Integer.MAX_VALUE,
+        Integer.MAX_VALUE
     );
   }
 
@@ -70,29 +62,29 @@ public final class TokenLocation {
    * @param startIndex start index returned by {@link org.antlr.v4.runtime.Token#getStartIndex()}
    * @param stopIndex stop index returned by {@link org.antlr.v4.runtime.Token#getStopIndex()}
    */
-  public TokenLocation(final OptionalInt line,
-                       final OptionalInt charPositionInLine,
-                       final OptionalInt startIndex,
-                       final OptionalInt stopIndex) {
+  public TokenLocation(final int line,
+                       final int charPositionInLine,
+                       final int startIndex,
+                       final int stopIndex) {
     this.line = line;
     this.charPositionInLine = charPositionInLine;
     this.startIndex = startIndex;
     this.stopIndex = stopIndex;
   }
 
-  public OptionalInt getLine() {
+  public int getLine() {
     return line;
   }
 
-  public OptionalInt getCharPositionInLine() {
+  public int getCharPositionInLine() {
     return charPositionInLine;
   }
 
-  public OptionalInt getStartIndex() {
+  public int getStartIndex() {
     return startIndex;
   }
 
-  public OptionalInt getStopIndex() {
+  public int getStopIndex() {
     return stopIndex;
   }
 
@@ -107,10 +99,10 @@ public final class TokenLocation {
     }
 
     final TokenLocation that = (TokenLocation) o;
-    return line.equals(that.line)
-        && charPositionInLine.equals(that.charPositionInLine)
-        && startIndex.equals(that.startIndex)
-        && stopIndex.equals(that.stopIndex);
+    return line == that.line
+        && charPositionInLine == that.charPositionInLine
+        && startIndex == that.startIndex
+        && stopIndex == that.stopIndex;
   }
 
   @Override

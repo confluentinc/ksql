@@ -15,52 +15,15 @@
 
 package io.confluent.ksql.parser;
 
-import java.util.OptionalInt;
+import com.google.common.testing.EqualsTester;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
 public class TokenLocationTest {
-
   @Test
-  public void shouldBeEqualEmptyToken() {
-    // When:
-    final TokenLocation first = TokenLocation.empty();
-    final TokenLocation second = TokenLocation.empty();
-
-    // Then:
-    assertThat(first, is(second));
+  public void shouldImplementEqualsProperly() {
+    new EqualsTester()
+        .addEqualityGroup(TokenLocation.of(1, 2))
+        .addEqualityGroup(new TokenLocation(1, 2, 3, 4), new TokenLocation(1, 2, 3, 4))
+        .testEquals();
   }
-
-  @Test
-  public void shouldBeEqualFirstTwoArgs() {
-    // When:
-    final TokenLocation first = TokenLocation.of(1, 2);
-    final TokenLocation second = TokenLocation.of(1, 2);
-
-    // Then:
-    assertThat(first, is(second));
-  }
-
-  @Test
-  public void shouldBeEqualTokens() {
-    // When:
-    final TokenLocation first = new TokenLocation(
-        OptionalInt.of(1),
-        OptionalInt.of(2),
-        OptionalInt.of(3),
-        OptionalInt.of(4)
-    );
-    final TokenLocation second = new TokenLocation(
-        OptionalInt.of(1),
-        OptionalInt.of(2),
-        OptionalInt.of(3),
-        OptionalInt.of(4)
-    );
-
-    // Then:
-    assertThat(first, is(second));
-  }
-
 }

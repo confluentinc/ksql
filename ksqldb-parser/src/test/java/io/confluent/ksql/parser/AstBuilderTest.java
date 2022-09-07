@@ -1152,98 +1152,6 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldGetCorrectLocationsSimpleCs() {
-    // Given:
-    final String query = "CREATE STREAM X WITH (kafka_topic='X');";
-    final SingleStatementContext stmt = givenQuery(query);
-
-    // When:
-    final CreateStream result = (CreateStream) builder.buildStatement(stmt);
-
-    // Then:
-    final NodeLocation loc = result.getLocation().get();
-    assertThat(loc.getStartLineNumber(), is(1));
-    assertThat(loc.getStartColumnNumber(), is(1));
-    assertThat(loc.getStopLine(), is(OptionalInt.of(1)));
-    assertThat(loc.getStopColumnNumber(), is(OptionalInt.of(query.length() - 1)));
-    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
-  }
-
-  @Test
-  public void shouldGetCorrectLocationsSimpleCsas() {
-    // Given:
-    final String query = "CREATE STREAM X AS SELECT * FROM TEST1;";
-    final SingleStatementContext stmt = givenQuery(query);
-
-    // When:
-    final CreateStreamAsSelect result = (CreateStreamAsSelect) builder.buildStatement(stmt);
-
-    // Then:
-    final NodeLocation loc = result.getLocation().get();
-    assertThat(loc.getStartLineNumber(), is(1));
-    assertThat(loc.getStartColumnNumber(), is(1));
-    assertThat(loc.getStopLine(), is(OptionalInt.of(1)));
-    assertThat(loc.getStopColumnNumber(), is(OptionalInt.of(query.length() - 1)));
-    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
-  }
-
-  @Test
-  public void shouldGetCorrectLocationsSimpleCsasMultiline() {
-    // Given:
-    final String query =
-        "CREATE STREAM X AS\n" +
-        "  SELECT * FROM TEST1;";
-    final SingleStatementContext stmt = givenQuery(query);
-
-    // When:
-    final CreateStreamAsSelect result = (CreateStreamAsSelect) builder.buildStatement(stmt);
-
-    // Then:
-    final NodeLocation loc = result.getLocation().get();
-    assertThat(loc.getStartLineNumber(), is(1));
-    assertThat(loc.getStartColumnNumber(), is(1));
-    assertThat(loc.getStopLine(), is(OptionalInt.of(2)));
-    assertThat(loc.getStopColumnNumber(), is(OptionalInt.of("  SELECT * FROM TEST1".length())));
-    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
-  }
-
-  @Test
-  public void shouldGetCorrectLocationsSimpleCt() {
-    // Given:
-    final String query = "CREATE TABLE X WITH (kafka_topic='X');";
-    final SingleStatementContext stmt = givenQuery(query);
-
-    // When:
-    final CreateTable result = (CreateTable) builder.buildStatement(stmt);
-
-    // Then:
-    final NodeLocation loc = result.getLocation().get();
-    assertThat(loc.getStartLineNumber(), is(1));
-    assertThat(loc.getStartColumnNumber(), is(1));
-    assertThat(loc.getStopLine(), is(OptionalInt.of(1)));
-    assertThat(loc.getStopColumnNumber(), is(OptionalInt.of(query.length() - 1)));
-    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
-  }
-
-  @Test
-  public void shouldGetCorrectLocationsSimpleCtas() {
-    // Given:
-    final String query = "CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY;";
-    final SingleStatementContext stmt = givenQuery(query);
-
-    // When:
-    final CreateTableAsSelect result = (CreateTableAsSelect) builder.buildStatement(stmt);
-
-    // Then:
-    final NodeLocation loc = result.getLocation().get();
-    assertThat(loc.getStartLineNumber(), is(1));
-    assertThat(loc.getStartColumnNumber(), is(1));
-    assertThat(loc.getStopLine(), is(OptionalInt.of(1)));
-    assertThat(loc.getStopColumnNumber(), is(OptionalInt.of(query.length() - 1)));
-    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
-  }
-
-  @Test
   public void shouldGetCorrectLocationsSimpleCtasMultiLine() {
     // Given:
     final String query =
@@ -1258,11 +1166,27 @@ public class AstBuilderTest {
 
     // Then:
     final NodeLocation loc = result.getLocation().get();
-    assertThat(loc.getStartLineNumber(), is(1));
-    assertThat(loc.getStartColumnNumber(), is(1));
-    assertThat(loc.getStopLine(), is(OptionalInt.of(4)));
-    assertThat(loc.getStopColumnNumber(), is(OptionalInt.of("  GROUP BY ROWKEY".length())));
-    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1)));
+    final TokenLocation start = loc.getStartTokenLocation();
+    final TokenLocation stop = loc.getStopTokenLocation().get();
+
+    assertThat(start.getLine(), is(1));
+    assertThat(start.getCharPositionInLine(), is(0));
+    assertThat(start.getStartIndex(), is(0));
+    assertThat(start.getStopIndex(),
+        is("CREATE TABLE X AS".indexOf("E TABLE"))); // ends at the E of CREATE
+
+
+    assertThat(stop.getLine(), is(4));
+
+    // last token is ROWKEY
+    assertThat(stop.getCharPositionInLine(),
+        is("  GROUP BY ROWKEY;".indexOf("ROWKEY")));
+    assertThat(stop.getStartIndex(),
+        is("CREATE TABLE X AS\n  SELECT COUNT(1)\n  FROM TEST1\n  GROUP BY ROWKEY;".indexOf("ROWKEY")));
+    assertThat(stop.getStopIndex(),
+        is("CREATE TABLE X AS\n  SELECT COUNT(1)\n  FROM TEST1\n  GROUP BY ROWKEY;".indexOf("Y;")));
+
+    assertThat(loc.getLength(), is(OptionalInt.of(query.length() - 1))); // subtracting 1 as the last ';' is not counted
   }
 
   @Test
@@ -1291,11 +1215,7 @@ public class AstBuilderTest {
     // Then:
     assertTrue(result.getLocation().isPresent());
     final NodeLocation createTableLocation = result.getLocation().get();
-
     assertThat(createTableLocation.getStartLineNumber(), is(1));
-    assertThat(createTableLocation.getStartColumnNumber(), is(1));
-    assertThat(createTableLocation.getStopLine(), is(OptionalInt.of(12)));
-    assertThat(createTableLocation.getStopColumnNumber(), is(OptionalInt.of(("  HAVING COUNT(*) > 0").length())));
     assertThat(createTableLocation.getLength(), is(OptionalInt.of(statementString.length() - 1)));
 
     final Query query = result.getQuery();
@@ -1303,8 +1223,6 @@ public class AstBuilderTest {
     final NodeLocation queryLocation = query.getLocation().get();
     assertThat(queryLocation.getStartLineNumber(), is(3));
     assertThat(queryLocation.getStartColumnNumber(), is(3));
-    assertThat(queryLocation.getStopLine(), is(OptionalInt.of(12)));
-    assertThat(queryLocation.getStopColumnNumber(), is(OptionalInt.of(("  HAVING COUNT(*) > 0").length())));
     assertThat(queryLocation.getLength(),
         is(OptionalInt.of((
             "SELECT C.EMAIL,\n" +
@@ -1323,9 +1241,6 @@ public class AstBuilderTest {
     final NodeLocation selectLocation = select.getLocation().get();
     assertThat(selectLocation.getStartLineNumber(), is(3));
     assertThat(selectLocation.getStartColumnNumber(), is(3));
-    assertThat(selectLocation.getStopLine(), is(OptionalInt.of(3)));
-    assertThat(selectLocation.getStopColumnNumber(),
-        is(OptionalInt.of("  SELECT".length())));
     assertThat(selectLocation.getLength(),
         is(OptionalInt.of("SELECT".length())));
 
@@ -1334,9 +1249,6 @@ public class AstBuilderTest {
     final NodeLocation joinLocation = join.getLocation().get();
     assertThat(joinLocation.getStartLineNumber(), is(7));
     assertThat(joinLocation.getStartColumnNumber(), is(8));
-    assertThat(joinLocation.getStopLine(), is(OptionalInt.of(8)));
-    assertThat(joinLocation.getStopColumnNumber(),
-        is(OptionalInt.of(("       INNER JOIN customers C ON B.customer_id = C.id").length())));
     assertThat(joinLocation.getLength(),
         is(OptionalInt.of((
                    "bookings B\n" +
@@ -1348,9 +1260,6 @@ public class AstBuilderTest {
     final NodeLocation windowLocation = window.getLocation().get();
     assertThat(windowLocation.getStartLineNumber(), is(9));
     assertThat(windowLocation.getStartColumnNumber(), is(10));
-    assertThat(windowLocation.getStopLine(), is(OptionalInt.of(9)));
-    assertThat(windowLocation.getStopColumnNumber(),
-        is(OptionalInt.of(("  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)").length())));
     assertThat(windowLocation.getLength(),
         is(OptionalInt.of(("TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)").length())));
 
@@ -1360,8 +1269,6 @@ public class AstBuilderTest {
     final NodeLocation whereLocation = where.getLocation().get();
     assertThat(whereLocation.getStartLineNumber(), is(10));
     assertThat(whereLocation.getStartColumnNumber(), is(27));
-    assertThat(whereLocation.getStopLine(), is(OptionalInt.of(10)));
-    assertThat(whereLocation.getStopColumnNumber(), is(OptionalInt.of(29)));
     assertThat(whereLocation.getLength(), is(OptionalInt.of(3)));
 
     assertTrue(query.getGroupBy().isPresent());
@@ -1370,9 +1277,6 @@ public class AstBuilderTest {
     final NodeLocation groupByLocation = groupBy.getLocation().get();
     assertThat(groupByLocation.getStartLineNumber(), is(11));
     assertThat(groupByLocation.getStartColumnNumber(), is(12));
-    assertThat(groupByLocation.getStopLine(), is(OptionalInt.of(11)));
-    assertThat(groupByLocation.getStopColumnNumber(),
-        is(OptionalInt.of("  GROUP BY C.EMAIL, B.ID, B.flight_id".length())));
     assertThat(groupByLocation.getLength(),
         is(OptionalInt.of("C.EMAIL, B.ID, B.flight_id".length())));
 
@@ -1382,8 +1286,6 @@ public class AstBuilderTest {
     final NodeLocation havingLocation = having.getLocation().get();
     assertThat(havingLocation.getStartLineNumber(), is(12));
     assertThat(havingLocation.getStartColumnNumber(), is(19));
-    assertThat(havingLocation.getStopLine(), is(OptionalInt.of(12)));
-    assertThat(havingLocation.getStopColumnNumber(), is(OptionalInt.of(19)));
     assertThat(havingLocation.getLength(), is(OptionalInt.of(1)));
   }
 }

@@ -40,6 +40,8 @@ import org.slf4j.LoggerFactory;
 public final class CommandTopicMigrationUtil {
 
   private static final Logger log = LoggerFactory.getLogger(CommandTopicMigrationUtil.class);
+  public static final CommandId MIGRATION_COMMAND_ID =
+      new CommandId(CommandId.Type.CLUSTER, "migration", CommandId.Action.ALTER);
 
   private CommandTopicMigrationUtil() {
 
@@ -59,12 +61,10 @@ public final class CommandTopicMigrationUtil {
         InternalTopicSerdes.serializer(),
         InternalTopicSerdes.serializer()
     );
-    final CommandId migrationCommandId =
-        new CommandId(CommandId.Type.CLUSTER, "migration", CommandId.Action.ALTER);
     final ProducerRecord<CommandId, Command> degradedCommand = new ProducerRecord<>(
         commandTopic,
         topicPartition.partition(),
-        migrationCommandId,
+        MIGRATION_COMMAND_ID,
         new Command(
             "",
             Collections.emptyMap(),
@@ -98,7 +98,7 @@ public final class CommandTopicMigrationUtil {
     final List<QueuedCommand> commandsToMigrate = new ArrayList<>();
     for (QueuedCommand command : commands) {
       final CommandId currentCommandId = command.getAndDeserializeCommandId();
-      if (currentCommandId.equals(migrationCommandId)) {
+      if (currentCommandId.equals(MIGRATION_COMMAND_ID)) {
         log.info("skipping migration command sent to old command "
             + "topic when migrating to new one");
       } else {

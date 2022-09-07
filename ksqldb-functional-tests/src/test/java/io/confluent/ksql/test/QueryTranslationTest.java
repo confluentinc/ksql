@@ -56,7 +56,7 @@ public class QueryTranslationTest {
   @SuppressWarnings("UnstableApiUsage")
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    final boolean latestOnly = System.getProperties().containsKey(LATEST_ONLY_SWITCH);
+    final boolean latestOnly = true;
 
     final Stream<TestCase> testCases = latestOnly
         ? testFileLoader().load()

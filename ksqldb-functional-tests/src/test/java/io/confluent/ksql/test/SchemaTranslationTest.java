@@ -200,7 +200,9 @@ public class SchemaTranslationTest {
             outputRecords,
             ImmutableList.of(DDL_STATEMENT, csasStatement),
             Optional.empty(),
-            PostConditions.NONE
+            PostConditions.NONE,
+            Optional.empty(),
+            Collections.EMPTY_LIST
         );
       } catch (final Exception e) {
         throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);

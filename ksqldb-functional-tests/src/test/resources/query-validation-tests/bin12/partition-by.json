@@ -1,0 +1,1464 @@
+{
+  "tests": [
+    {
+      "name": "only key column - select star",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ID;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"NAME": "bob"}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "only key column - select explicit",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, NAME from INPUT partition by ID;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"NAME": "bob"}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "no key column",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, NAME from INPUT partition by ID;"
+      ],
+      "inputs": [{"topic": "input", "value": {"NAME": "bob", "ID": 10}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"NAME": "bob"}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "single value column - select star",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by NAME;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "bob", "value": {"ID": 10, "AGE": 22}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NAME STRING KEY, AGE INT, ID INT"}
+        ]
+      }
+    },
+    {
+      "name": "single value column - select explicit",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, NAME, AGE from INPUT partition by NAME;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "bob", "value": {"ID": 10, "AGE": 22}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NAME STRING KEY, ID INT, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "struct field - select star",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ADDRESS->TOWN;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"ADDRESS": {"STREET": "1st Steet", "Town": "Oxford"}, "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "Oxford", "value": {"ID": 10, "ADDRESS": {"STREET": "1st Steet", "TOWN": "Oxford"}, "AGE": 22}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "TOWN STRING KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>, AGE INT, ID INT"}
+        ]
+      }
+    },
+    {
+      "name": "struct field - select explicit",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, ADDRESS->TOWN from INPUT partition by ADDRESS->TOWN;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"ADDRESS": {"STREET": "1st Steet", "Town": "Oxford"}, "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "Oxford", "value": {"ID": 10, "AGE": 22}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "TOWN STRING KEY, ID INT, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "struct field - with alias",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select ADDRESS->TOWN AS K, ID, AGE from INPUT partition by ADDRESS->TOWN;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"ADDRESS": {"STREET": "1st Steet", "Town": "Oxford"}, "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "Oxford", "value": {"ID": 10, "AGE": 22}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, ID INT, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "expression - select star",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ABS(ID);"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"NAME": "bob", "ID": 10}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 INT KEY, NAME STRING, ID INT"}
+        ]
+      }
+    },
+    {
+      "name": "expression - select explicit",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select NAME, ID, ABS(ID) from INPUT partition by ABS(ID);"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"NAME": "bob", "ID": 10}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 INT KEY, NAME STRING, ID INT"}
+        ]
+      }
+    },
+    {
+      "name": "constant",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select 1 AS K, ID, NAME from INPUT partition by 1;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"NAME": "bob", "ID": 10}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, ID INT, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "null",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, NAME from INPUT partition by null;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": null, "value": {"NAME": "bob", "ID": 10}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT, NAME STRING", "keyFormat": {"format": "NONE"}}
+        ]
+      }
+    },
+    {
+      "name": "null - explicit key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(key_format='DELIMITED') AS SELECT ID, NAME from INPUT partition by null;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Key format specified for stream without key columns."
+      }
+    },
+    {
+      "name": "key in projection more than once",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select NAME, NAME AS NAME2, ID from INPUT partition by NAME;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The projection contains a key column (`NAME`) more than once, aliased as: NAME and NAME2."
+      }
+    },
+    {
+      "name": "expression - missing key from projection",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select NAME, ID from INPUT partition by ABS(ID);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the partitioning expression ABS(INPUT.ID) in its projection (eg, SELECT ABS(INPUT.ID)...)."
+      }
+    },
+    {
+      "name": "expression - missing key from projection - with value column of same name",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select NAME AS ID, NAME from INPUT partition by ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the partitioning expression INPUT.ID in its projection (eg, SELECT INPUT.ID...)."
+      }
+    },
+    {
+      "name": "only key column - select star - with join on keys",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.A = R.X PARTITION BY L.B;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 11},
+        {"topic": "RIGHT", "key": 0, "value": {"Y": -1, "Z": -2}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L_B INT KEY, L_C INT, L_ROWTIME BIGINT, L_ROWPARTITION INT, L_ROWOFFSET BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
+        ]
+      }
+    },
+    {
+      "name": "only key column - select star - with join on value columns",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.Y PARTITION BY A;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 11},
+        {"topic": "RIGHT", "key": -1, "value": {"Y": 1, "Z": -2}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, L_ROWTIME BIGINT,L_ROWPARTITION INT, L_ROWOFFSET BIGINT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
+        ]
+      }
+    },
+    {
+      "name": "nulls",
+      "statements": [
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select name, id from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": "4,"},
+        {"topic": "test_topic", "key": 3, "value": "5,zero"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": null, "value": null},
+        {"topic": "REPARTITIONED", "key": null, "value": "4"},
+        {"topic": "REPARTITIONED", "key": "zero", "value": "5"}
+      ]
+    },
+    {
+      "name": "single column - with alias",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select NAME AS NEW_KEY, ID, AGE from INPUT partition by NAME;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "bob", "value": {"ID": 10, "AGE": 22}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NEW_KEY STRING KEY, ID INT, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "only key column - with alias that matches key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, OTHER INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID AS ID, NAME FROM INPUT PARTITION BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 11, "value": {"name": "a"}},
+        {"topic": "test_topic", "key": 10, "value": {"name": "b"}},
+        {"topic": "test_topic", "key": 11, "value": {"name": "c"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"NAME": "a"}},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "b"}},
+        {"topic": "OUTPUT", "key": 11, "value": {"NAME": "c"}}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ID INT KEY, NAME STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "single non-key column - with alias that matches old key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select NAME AS ID, AGE, ID AS OLD from INPUT partition by NAME;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "bob", "value": {"OLD": 10, "AGE": 22}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, AGE INT, OLD INT"}
+        ]
+      }
+    },
+    {
+      "name": "single expression - with alias",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select UCASE(NAME) AS NEW_KEY, NAME, AGE, ID from INPUT partition by UCASE(NAME);"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "BOB", "value": {"NAME": "bob", "ID": 10, "AGE": 22}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NEW_KEY STRING KEY, NAME STRING, AGE INT, ID INT"}
+        ]
+      }
+    },
+    {
+      "name": "with alias that matches source column",
+      "comment": [
+        "if the alias matches a source column name the new key _replaces_ that column.",
+        "this is preferable to failing, which would stop users performing otherwise value repartitioning"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select NAME AS AGE, ID from INPUT partition by NAME;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob", "AGE": 22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "bob", "value": {"ID": 10}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "AGE STRING KEY, ID INT"}
+        ]
+      }
+    },
+    {
+      "name": "complex expressions",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by NAME AND AGE;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "mismatched input 'AND' expecting {';'"
+      }
+    },
+    {
+      "name": "partition by with projection select some",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select name, id from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "zero", "value": "0"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "REPARTITIONED",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "NAME STRING KEY, ID BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "int column",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM OUTPUT AS SELECT * from TEST partition by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "a", "value": "10"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": "a"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ID BIGINT KEY, K STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bigint key field",
+      "statements": [
+        "CREATE STREAM TEST (K BIGINT KEY, ID BIGINT) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM OUTPUT AS select * from TEST partition by ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": "0"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ID BIGINT KEY, K BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "partition by - KAFKA",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID int) with (kafka_topic='input', value_format = 'KAFKA');",
+        "CREATE STREAM OUTPUT AS select ID, K from INPUT partition by ID;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "0", "value": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": "0"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ID INT KEY, K STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "with STRING -> BIGINT cast",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, V0 STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by CAST(V0 AS BIGINT);"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "a", "value": {"V0": "10"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"V0": "10", "K": "a"}}
+      ]
+    },
+    {
+      "name": "partition by with projection select all",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "0,zero,50"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "zero", "value": "0,50,1"}
+      ]
+    },
+    {
+      "name": "partition by with null value",
+      "statements": [
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": null},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": null, "value": null},
+        {"topic": "REPARTITIONED", "key": "zero", "value": "0,50,0"}
+      ]
+    },
+    {
+      "name": "only key column - with null value",
+      "statements": [
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select * from TEST partition by K;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": null},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": 0, "value": null},
+        {"topic": "REPARTITIONED", "key": 0, "value": "0,zero,50"}
+      ]
+    },
+    {
+      "name": "key expression - with null value",
+      "statements": [
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select K + 2, ID, NAME, VALUE from TEST partition by K + 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": null},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": 2, "value": null},
+        {"topic": "REPARTITIONED", "key": 2, "value": "0,zero,50"}
+      ]
+    },
+    {
+      "name": "udf key expression - with null value",
+      "statements": [
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select ABS(K), ID, NAME, VALUE from TEST partition by ABS(K);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": -1, "value": null},
+        {"topic": "test_topic", "key": -1, "value": "0,zero,50"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": 1, "value": null},
+        {"topic": "REPARTITIONED", "key": 1, "value": "0,zero,50"}
+      ]
+    },
+    {
+      "name": "partition by with null partition by value",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "0", "value": "0,,1"},
+        {"topic": "test_topic", "key": "0", "value": "0,zero,50"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": null, "value": "0,1,0"},
+        {"topic": "REPARTITIONED", "key": "zero", "value": "0,50,0"}
+      ]
+    },
+    {
+      "name": "aliased key field - different name",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID varchar, NAME varchar) with (kafka_topic='test_topic', value_format = 'delimited');",
+        "CREATE STREAM REPARTITIONED AS select ID + '_new' AS ID_new, NAME from TEST partition by ID_NEW;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "PARTITION BY column 'ID_NEW' cannot be resolved."
+      }
+    },
+    {
+      "name": "partition by project key",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID bigint) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AS_VALUE(K) AS OLDKEY from INPUT partition by ID;"
+      ],
+      "inputs": [{"topic": "input", "key": "foo", "value": {"ID":  10}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"OLDKEY": "foo"}}]
+    },
+    {
+      "name": "partition by key",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID bigint) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by K;"
+      ],
+      "inputs": [{"topic": "input", "key": "10", "value": {"ID":  22}}],
+      "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"ID":  22}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "partition by only key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ID;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"NAME": "bob"}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "partition by ROWTIME",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID bigint) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ROWTIME;"
+      ],
+      "inputs": [{"topic": "input", "value": {"ID":  22}, "timestamp": 10}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"ID":  22, "K": null}, "timestamp": 10}]
+    },
+    {
+      "name": "partition by key in join on key",
+      "statements": [
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT L.K AS LK, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.K = R.K PARTITION BY L.K;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": "join", "value": {"A": "join", "B": "b"}},
+        {"topic": "RIGHT", "key": "join", "value": {"C": "join", "D": "d"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "join", "value": {"R_K": "join"}}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "partition by key in join on non-key",
+      "statements": [
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT L.K AS LK, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.D PARTITION BY L.K;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": "a", "value": {"A": "a", "B": "join"}},
+        {"topic": "RIGHT", "key": "c", "value": {"C": "c", "D": "join"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": {"R_K": "c"}}
+      ]
+    },
+    {
+      "name": "partition by Key in join on Key ALIASED",
+      "statements": [
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT L.A, L.K, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.K = R.K PARTITION BY L.A;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": "join", "value": {"A": "join", "B": "b"}},
+        {"topic": "RIGHT", "key": "join", "value": {"C": "join", "D": "d"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "join", "value": {"L_K": "join", "R_K": "join"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "partition by non-Key in join on Key",
+      "statements": [
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT L.B, L.K, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.A = R.C PARTITION BY L.B;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": "join", "value": {"A": "join", "B": "b"}},
+        {"topic": "RIGHT", "key": "join", "value": {"C": "join", "D": "d"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "b", "value": {"L_K": "join", "R_K": "join"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream"}
+        ]
+      }
+    },
+    {
+      "name": "partition by non-Key in join on non-Key",
+      "statements": [
+        "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT L.B, L.K, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.D PARTITION BY L.B;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": "a", "value": {"A": "a", "B": "join"}},
+        {"topic": "RIGHT", "key": "c", "value": {"C": "c", "D": "join"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "join", "value": {"L_K": "a", "R_K": "c"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream"}
+        ]
+      }
+    },
+    {
+      "name": "only key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"name": "a"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {"name": "b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": 11, "value": {"name": "c"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"NAME": "a"}},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "b"}},
+        {"topic": "OUTPUT", "key": 11, "value": {"NAME": "c"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "ID INT KEY, NAME STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "should handle quoted key and value",
+      "statements": [
+        "CREATE STREAM INPUT (`Key` STRING KEY, `Name` STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT *, `Name` AS `Name2` FROM INPUT PARTITION BY `Key`;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "x", "value": {"Name": "a"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "y", "value": {"Name": "b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "x", "value": {"Name": "c"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "x", "value": {"Name": "a", "Name2": "a"}},
+        {"topic": "OUTPUT", "key": "y", "value": {"Name": "b", "Name2": "b"}},
+        {"topic": "OUTPUT", "key": "x", "value": {"Name": "c", "Name2": "c"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "`Key` STRING KEY, `Name` STRING, `Name2` STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "nulls using coalesce",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar) with (kafka_topic='test_topic', value_format = 'json');",
+        "CREATE STREAM REPARTITIONED AS select COALESCE(name, 'default'), id from TEST partition by COALESCE(name, 'default');"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"NAME": "fred"}},
+        {"topic": "test_topic", "key": 1, "value": {"NAME": null}},
+        {"topic": "test_topic", "key": 2, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "fred", "value": {"ID": 0}},
+        {"topic": "REPARTITIONED", "key": "default", "value": {"ID": 1}},
+        {"topic": "REPARTITIONED", "key": "default", "value": {"ID": 2}}
+      ]
+    },
+    {
+      "name": "should handle PARTITION BY that throws",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, shouldThrow BOOLEAN) with (kafka_topic='test_topic', value_format = 'json');",
+        "CREATE STREAM REPARTITIONED AS select bad_udf(shouldThrow), ID from TEST partition by bad_udf(shouldThrow);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "a", "value": {"ID": 1, "shouldThrow": false}},
+        {"topic": "test_topic", "key": "b", "value": {"ID": 2, "shouldThrow": true}},
+        {"topic": "test_topic", "key": "c", "value": {"ID": 3, "shouldThrow": false}}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": 0, "value": {"ID": 1}},
+        {"topic": "REPARTITIONED", "key": null, "value": {"ID": 2}},
+        {"topic": "REPARTITIONED", "key": 0, "value": {"ID": 3}}
+      ]
+    },
+    {
+      "name": "non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL DOUBLE) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": 10.02}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10.02, "value": {"ID": 10}}]
+    },
+    {
+      "name": "partition by array key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL ARRAY<INT>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": [12, 1]}}],
+      "outputs": [{"topic": "OUTPUT", "key": [12, 1], "value": {"ID": 10}}]
+    },
+    {
+      "name": "partition by struct key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}]
+    },
+    {
+      "name": "partition by struct key when original is unwrapped",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}]
+    },
+    {
+      "name": "partition by field within struct key",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ID->F1;"
+      ],
+      "inputs": [{"topic": "input", "key": {"F1": 1, "F2": 2}, "value": {"VAL": 10}}],
+      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"ID": {"F1": 1, "F2": 2}, "VAL": 10}}]
+    },
+    {
+      "name": "partition by field within struct key don't select struct key",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID->F1 AS F1, ID->F2 as F2, VAL from INPUT partition by ID->F1;"
+      ],
+      "inputs": [{"topic": "input", "key": {"F1": 1, "F2": 2}, "value": {"VAL": 10}}],
+      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"F2": 2, "VAL": 10}}]
+    },
+    {
+      "name": "partition by create struct",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by STRUCT(a:=id->f1, b:=val);"
+      ],
+      "inputs": [{"topic": "input", "key": {"F1": 1, "F2": 2}, "value": {"VAL": 10}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"A": 1, "B": 10}, "value": {"ID":{"F1": 1, "F2": 2}, "VAL": 10}}]
+    },
+    {
+      "name": "partition by struct with different key/value formats",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', key_format='AVRO', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"}},
+              "valueFormat": { "format": "JSON" },
+              "keySchema": {
+                "type": "record",
+                "name": "OutputKey",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  { "name": "F1", "type": [ "null", "int" ], "default": null },
+                  { "name": "F2", "type": [ "null", "int" ], "default": null }
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "partition by nested struct",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', key_format='AVRO', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select STRUCT(F1:=VAL), ID from INPUT partition by STRUCT(f1:=VAL);"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": {"F1": 1, "F2": 2}}, "value": {"ID": 10}}],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"}},
+              "valueFormat": { "format": "JSON" },
+              "keySchema": {
+                "type": "record",
+                "name": "OutputKey",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  {
+                    "name": "F1",
+                    "type": [
+                      "null",
+                      { "type": "record",
+                        "name": "OutputKey_F1",
+                        "fields": [
+                          { "name": "F1", "type": [ "null", "int" ], "default": null },
+                          { "name": "F2", "type": [ "null", "int" ], "default": null }
+                        ],
+                        "connect.name":"io.confluent.ksql.avro_schemas.OutputKey_F1"
+                      }
+                    ],
+                    "default": null
+                  }
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "partition by struct explicitly change key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT WITH (key_format='AVRO') AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"}},
+              "valueFormat": { "format": "JSON" },
+              "keySchema": {
+                "type": "record",
+                "name": "OutputKey",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  { "name": "F1", "type": [ "null", "int" ], "default": null },
+                  { "name": "F2", "type": [ "null", "int" ], "default": null }
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "partition by map key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL MAP<STRING, INT>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `VAL`. Column type: MAP<STRING, INTEGER>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
+      "name": "partition by nested map key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 MAP<STRING, INT>>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `VAL`. Column type: STRUCT<`F1` MAP<STRING, INTEGER>>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
+      "name": "multiple columns - select star",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ID, AGE;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"NAME": "bob", "ID": 10, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": null}},
+        {"topic": "input", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, AGE INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - select star - reorder columns",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by AGE, ID;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"NAME": "bob", "ID": 10, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": null}},
+        {"topic": "input", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "AGE INT KEY, ID INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - select explicit",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by ID, AGE;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"NAME": "bob", "ID": 10, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": null}},
+        {"topic": "input", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, AGE INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - select explicit - reorder ",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT age, id, name FROM input PARTITION BY age, id;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"NAME": "bob", "ID": 10, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": null}},
+        {"topic": "input", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "AGE INT KEY, ID INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - select explicit - reorder partition by but keep same order in project",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, age, name FROM input PARTITION BY age, id;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"NAME": "bob", "ID": 10, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": null}},
+        {"topic": "input", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "AGE INT KEY, ID INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - some key some value",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, age, name FROM input PARTITION BY id, name;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "bob", "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": {"ID": null, "AGE": 30}},
+        {"topic": "input", "key": null, "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": null},
+        {"topic": "input", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": null}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": null},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING KEY, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - select * - some key some value",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input PARTITION BY id, name;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "bob", "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": {"ID": null, "AGE": 30}},
+        {"topic": "input", "key": null, "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": null},
+        {"topic": "input", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": null}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": null},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING KEY, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - some key some value - key first",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by NAME, ID;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "bob", "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": {"ID": null, "AGE": 30}},
+        {"topic": "input", "key": null, "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": null},
+        {"topic": "input", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": null}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": null},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NAME STRING KEY, ID INT KEY, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - select * - some key some value - key first",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input PARTITION BY name, id;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "bob", "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": {"ID": null, "AGE": 30}},
+        {"topic": "input", "key": null, "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": null},
+        {"topic": "input", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": null}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": null},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NAME STRING KEY, ID INT KEY, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - some key some value - properly ordered in selection",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT name, age, id FROM input PARTITION BY name, id;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "bob", "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": {"ID": null, "AGE": 30}},
+        {"topic": "input", "key": null, "value": {"ID": 10, "AGE": 30}},
+        {"topic": "input", "key": "bob", "value": null},
+        {"topic": "input", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": null}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": "bob"}, "value": null},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NAME STRING KEY, ID INT KEY, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple key columns",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, ID INT KEY, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by ID, NAME;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": {"NAME": "bob", "ID": 10}, "value": {"AGE": 30}},
+        {"topic": "input", "key": {"NAME": null, "ID": 10}, "value": {"AGE": 30}},
+        {"topic": "input", "key": {"NAME": null, "ID": null}, "value": {"AGE": 30}},
+        {"topic": "input", "key": null, "value": {"AGE": 30}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": "bob"}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": 10, "NAME": null}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": null}, "value": {"AGE": 30}},
+        {"topic": "OUTPUT", "key": {"ID": null, "NAME": null}, "value": {"AGE": 30}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING KEY, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple key columns - reordered",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, ID INT KEY, AGE INT) with (kafka_topic='input', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by ID, NAME;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "bob,10", "value": "30"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "10,bob", "value": "30"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING KEY, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns with expressions",
+      "statements": [
+        "CREATE STREAM INPUT (AGE INT KEY, NAME STRING, ID INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ABS(ID), 1, AGE + 2 AS K3, AGE, NAME from INPUT partition by ABS(ID), 1, AGE + 2;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": null, "value": {"NAME": "bob", "ID": 10}},
+        {"topic": "input", "key": 30, "value": {"NAME": "bob", "ID": null}},
+        {"topic": "input", "key": 30, "value": null},
+        {"topic": "input", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"KSQL_COL_0": 10, "KSQL_COL_1": 1, "K3": null}, "value": {"AGE": null, "NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "K3": 32}, "value": {"AGE": 30, "NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "K3": 32}, "value": null},
+        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "K3": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 INT KEY, KSQL_COL_1 INT KEY, K3 INT KEY, AGE INT, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns including ROWTIME",
+      "comments": [
+        "Ideally the third row of output would contain ROWTIME populated as 12 in the output key.",
+        "This doesn't happen today because ROWTIME is evaluated from the value, which is null in this",
+        "example. To fix this, we'd have to add special handling to detect when a key expression",
+        "depends only on ROWTIME, similar to how today we have special handling to detect when a key",
+        "expression depends only on key columns."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID bigint) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ID, ROWTIME;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"ID": 22}, "timestamp": 10},
+        {"topic": "input", "value": {"ID": null}, "timestamp": 11},
+        {"topic": "input", "value": null, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 22, "ROWTIME": 10}, "value": {"K": null}, "timestamp": 10},
+        {"topic": "OUTPUT", "key": {"ID": null, "ROWTIME": 11}, "value": {"K": null}, "timestamp": 11},
+        {"topic": "OUTPUT", "key": {"ID": null, "ROWTIME": null}, "value": null, "timestamp": 12}
+      ]
+    },
+    {
+      "name": "multiple columns including null",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by NULL, ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Cannot PARTITION BY multiple columns including NULL"
+      }
+    },
+    {
+      "name": "multiple columns - missing key from projection",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, NAME from INPUT partition by ID, AGE;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the partitioning expressions INPUT.ID and INPUT.AGE in its projection (eg, SELECT INPUT.ID, INPUT.AGE...)."
+      }
+    },
+    {
+      "name": "multiple columns - KAFKA key format",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by ID, AGE;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`ID` INTEGER KEY, `AGE` INTEGER KEY], features=[]}\nreason: The 'KAFKA' format only supports a single field. Got: [`ID` INTEGER KEY, `AGE` INTEGER KEY]"
+      }
+    },
+    {
+      "name": "multiple columns - KAFKA to non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (KEY_FORMAT='JSON') AS select * from INPUT partition by ID, AGE;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"NAME": "bob", "ID": 10, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": 30}},
+        {"topic": "input", "value": {"NAME": "bob", "ID": null, "AGE": null}},
+        {"topic": "input", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"ID": 10, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": 30}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": {"NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"ID": null, "AGE": null}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, AGE INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "multiple columns - including map",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID MAP<STRING, INT>, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by ID, AGE;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `ID`. Column type: MAP<STRING, INTEGER>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
+      "name": "partition by nothing",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by ();"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "PARTITION BY requires at least one expression"
+      }
+    },
+    {
+      "name": "partition by output col should give good error message",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME AS something from INPUT partition by something;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "PARTITION BY column 'SOMETHING' cannot be resolved. 'SOMETHING' must be a column in the source schema since PARTITION BY is applied on the input."
+      }
+    }
+  ]
+}

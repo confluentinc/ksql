@@ -1,0 +1,56 @@
+--@test: json_concat - concat 2 JSON arguments
+CREATE STREAM test (K STRING KEY, val1 STRING, val2 STRING) WITH (kafka_topic='test_topic', VALUE_FORMAT='JSON');
+CREATE STREAM OUTPUT AS SELECT K, JSON_CONCAT(val1, val2) as JSON FROM test;
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '{"a": 1}', '{"b": 2}', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '{}', '{}', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '{"a": {"5": 6}}', '{"a": {"3": 4}}', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '[1, 2]', '[3, 4]', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', 'null', 'null', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '[1, 2]', '{"a": 1}', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '[]', '[]', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '[1, [2]]', '[[[3]], [[[4]]]]', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '1', '', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '', '1', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', '', '', 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', NULL, NULL, 0);
+INSERT INTO `TEST` (K, val1, val2, ROWTIME) VALUES ('1', NULL, '', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '{"a":1,"b":2}', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '{}', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '{"a":{"3":4}}', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[1,2,3,4]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[null,null]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[1,2,{"a":1}]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[1,[2],[[3]],[[[4]]]]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+
+--@test: json_concat - concat 3 JSON arguments
+CREATE STREAM test (K STRING KEY, val1 STRING, val2 STRING, val3 STRING) WITH (kafka_topic='test_topic', VALUE_FORMAT='JSON');
+CREATE STREAM OUTPUT AS SELECT K, JSON_CONCAT(val1, val2, val3) as JSON FROM test;
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '{"a": 1}', '{"b": 2}', '{"c": 3}', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '{}', '{}', '{}', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '{"a": {"5": 6}}', '{"a": {"3": 4}}', '{"a": {"7": 8}}', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '[1, 2]', '[3, 4]', '[5, 6]', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', 'null', 'null', 'null', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '[1, 2]', '{"a": 1}', '4', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '[]', '[]', '[]', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '1', '', '2', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '', '1', '1', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', '', '', '', 0);
+INSERT INTO `TEST` (K, val1, val2, val3, ROWTIME) VALUES ('1', NULL, NULL, NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '{"a":1,"b":2,"c":3}', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '{}', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '{"a":{"7":8}}', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[1,2,3,4,5,6]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[null,null,null]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[1,2,{"a":1},4]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', NULL, 0);
+

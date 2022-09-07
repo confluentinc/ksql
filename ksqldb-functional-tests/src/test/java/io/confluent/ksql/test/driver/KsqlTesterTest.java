@@ -104,7 +104,7 @@ import org.slf4j.LoggerFactory;
 public class KsqlTesterTest {
   private static final Logger LOG = LoggerFactory.getLogger(KsqlTesterTest.class);
 
-  private static final String TEST_DIR = "/sql-tests";
+  private static final String TEST_DIR = "/sql-tests/query-validation-tests/new";
 
   private static final ImmutableMap<String, Object> BASE_CONFIG = ImmutableMap
       .<String, Object>builder()

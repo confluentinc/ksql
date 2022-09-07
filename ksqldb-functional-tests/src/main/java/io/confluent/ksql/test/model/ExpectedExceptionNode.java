@@ -39,6 +39,14 @@ public final class ExpectedExceptionNode {
     }
   }
 
+  public String getType() {
+    return type.get();
+  }
+
+  public String getMessage() {
+    return message.orElseGet(() -> null);
+  }
+
   public Matcher<Throwable> build() {
     final KsqlExpectedException expectedException = KsqlExpectedException.none();
 

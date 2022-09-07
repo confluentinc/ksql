@@ -22,8 +22,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.test.model.ExpectedExceptionNode;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.TestLocation;
+import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
@@ -52,6 +54,8 @@ public class TestCase implements VersionedTest {
   private Map<String, QuerySchemas.SchemaInfo> generatedSchemas;
   private final Optional<TopologyAndConfigs> expectedTopology;
   private final PostConditions postConditions;
+  public final Optional<ExpectedExceptionNode> expectedExceptionNode;
+  private final List<TopicNode> declaredTopics;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TestCase(
@@ -65,7 +69,9 @@ public class TestCase implements VersionedTest {
       final List<Record> outputRecords,
       final List<String> statements,
       final Optional<Matcher<Throwable>> expectedException,
-      final PostConditions postConditions
+      final PostConditions postConditions,
+      final Optional<ExpectedExceptionNode> expectedExceptionNode,
+      final List<TopicNode> declaredTopics
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this(
@@ -80,7 +86,9 @@ public class TestCase implements VersionedTest {
         statements,
         expectedException,
         postConditions,
-        Optional.empty()
+        Optional.empty(),
+        expectedExceptionNode,
+        declaredTopics
     );
   }
 
@@ -97,7 +105,9 @@ public class TestCase implements VersionedTest {
       final List<String> statements,
       final Optional<Matcher<Throwable>> expectedException,
       final PostConditions postConditions,
-      final Optional<TopologyAndConfigs> expectedTopology
+      final Optional<TopologyAndConfigs> expectedTopology,
+      final Optional<ExpectedExceptionNode> expectedExceptionNode,
+      final List<TopicNode> declaredTopics
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.topics = immutableCopyOf(topics);
@@ -112,6 +122,12 @@ public class TestCase implements VersionedTest {
     this.expectedException = requireNonNull(expectedException, "expectedException");
     this.expectedTopology = requireNonNull(expectedTopology, "expectedTopology");
     this.postConditions = Objects.requireNonNull(postConditions, "postConditions");
+    this.expectedExceptionNode = expectedExceptionNode;
+    this.declaredTopics = ImmutableList.copyOf(declaredTopics);
+  }
+
+  public List<TopicNode> getDeclaredTopics() {
+    return declaredTopics;
   }
 
   @Override
@@ -141,7 +157,9 @@ public class TestCase implements VersionedTest {
         statements,
         expectedException,
         postConditions,
-        Optional.of(expectedTopology)
+        Optional.of(expectedTopology),
+        expectedExceptionNode,
+        declaredTopics
     );
 
     copy.generatedTopologies = generatedTopologies;

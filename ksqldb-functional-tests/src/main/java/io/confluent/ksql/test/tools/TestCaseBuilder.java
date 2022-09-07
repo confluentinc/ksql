@@ -186,7 +186,9 @@ public final class TestCaseBuilder {
           outputRecords,
           statements,
           ee,
-          post
+          post,
+          test.expectedException(),
+          test.topics()
       );
     } catch (final Exception e) {
       throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);

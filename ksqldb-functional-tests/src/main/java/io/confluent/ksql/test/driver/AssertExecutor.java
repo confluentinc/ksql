@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TabularRow;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -227,7 +228,7 @@ public final class AssertExecutor {
     }
 
     if (actual.value == null
-        || expected.key.size() != actual.key.size()
+        || (actual.key != null && expected.key.size() != actual.key.size())
         || expected.value.size() != actual.value.size()) {
       return false;
     }
@@ -258,7 +259,7 @@ public final class AssertExecutor {
       }
     } else if (schema.findValueColumn(col).isPresent()) {
       final int index = schema.findColumn(col).get().index();
-      if (!expected.value.get(index).equals(actual.value.get(index))) {
+      if (!Objects.equals(expected.value.get(index), actual.value.get(index))) {
         return false;
       }
     }
@@ -300,7 +301,9 @@ public final class AssertExecutor {
   ) {
     final GenericRow contents = new GenericRow();
     contents.append(expected ? "EXPECTED" : "ACTUAL");
-    contents.appendAll(row.key.values());
+    if (row.key != null) {
+      contents.appendAll(row.key.values());
+    }
     contents.append(row.ts);
     if (row.value == null) {
       for (final Column ignored : source.getSchema().value()) {

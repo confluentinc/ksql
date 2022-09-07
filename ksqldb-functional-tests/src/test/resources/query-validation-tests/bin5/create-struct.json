@@ -1,0 +1,141 @@
+{
+  "comments": [
+    "Tests covering the creation of structs."
+  ],
+  "tests": [
+    {
+      "name": "basic struct creation",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR, col2 ARRAY<VARCHAR>) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT(F1 := COL1, F2 := COL2, F3 := SUBSTRING(col1, 2)) AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"col1": "foo", "col2": ["bar"]}}
+      ],
+      "outputs": [
+        { "topic": "BIG_STRUCT", "value": {"S": {"F1": "foo", "F2": ["bar"], "F3": "oo"}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "BIG_STRUCT", "type": "stream", "schema": "ID STRING KEY, S STRUCT<F1 STRING, F2 ARRAY<STRING>, F3 STRING>"}
+        ]
+      }
+    },
+    {
+      "name": "nested struct creation",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT(f1 := STRUCT(c1 := col1)) AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"col1": "foo"}}
+      ],
+      "outputs": [
+        { "topic": "BIG_STRUCT", "value": {"S": {"F1": {"C1": "foo"}}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "BIG_STRUCT", "type": "stream","schema": "ID STRING KEY, S STRUCT<F1 STRUCT<C1 STRING>>"}
+        ]
+      }
+    },
+    {
+      "name": "quoted identifiers",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT(FOO := col1, `foo` := col1) AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"col1": "foo"}}
+      ],
+      "outputs": [
+        { "topic": "BIG_STRUCT", "value": {"S": {"FOO": "foo", "foo": "foo"}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "BIG_STRUCT", "type": "stream","schema": "ID STRING KEY, S STRUCT<FOO VARCHAR, `foo` VARCHAR>"}
+        ]
+      }
+    },
+    {
+      "name": "empty struct creation",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT() AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"col1": "foo"}}
+      ],
+      "outputs": [
+        { "topic": "BIG_STRUCT", "value": {"S": {}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "BIG_STRUCT", "type": "stream", "schema": "ID STRING KEY, S STRUCT< >"}
+        ]
+      }
+    },
+    {
+      "name": "duplicate fields",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT(foo := col1, foo := col1) AS s FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Duplicate field names found in STRUCT"
+      }
+    },
+    {
+      "name": "duplicate structs in array",
+      "statements": [
+        "CREATE STREAM INPUT (ignored VARCHAR) WITH (kafka_topic='test',value_format='json',partitions=1);",
+        "CREATE STREAM OUTPUT AS SELECT array[struct(a:=123),struct(a:=123)] from INPUT emit changes;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {"ignored": "hello world"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "value": {"KSQL_COL_0": [{"A":123}, {"A":123}]}}
+      ]
+    },
+    {
+      "name": "cast null values",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, ignored STRING) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, STRUCT(F1 := CAST(NULL AS INT)) AS s FROM INPUT;"
+      ],
+      "inputs": [
+        { "topic": "test", "value": {}}
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "value": {"S": {"F1": null}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, S STRUCT<F1 INT>"}
+        ]
+      }
+    },
+    {
+      "name": "in aggregate",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, STRUCT(Vals := COLLECT_LIST(VAL)) AS body FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        { "topic": "test", "key": 1, "value": {"VAL": 1}},
+        { "topic": "test", "key": 1, "value": {"VAL": 2}}
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "key": 1, "value": {"BODY": {"VALS": [1]}}},
+        { "topic": "OUTPUT", "key": 1, "value": {"BODY": {"VALS": [1, 2]}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ID INT KEY, BODY STRUCT<VALS ARRAY<INT>>"}
+        ]
+      }
+    }
+  ]
+}

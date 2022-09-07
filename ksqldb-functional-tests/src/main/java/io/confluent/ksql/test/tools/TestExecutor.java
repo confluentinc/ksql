@@ -589,7 +589,7 @@ public class TestExecutor implements Closeable {
         )));
   }
 
-  static ServiceContext getServiceContext() {
+  public static ServiceContext getServiceContext() {
     final StubKafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
     return getServiceContext(kafkaClientSupplier);
   }
@@ -616,7 +616,7 @@ public class TestExecutor implements Closeable {
     );
   }
 
-  static KsqlEngine getKsqlEngine(
+  public static KsqlEngine getKsqlEngine(
       final ServiceContext serviceContext,
       final Optional<String> extensionDir
   ) {

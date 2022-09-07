@@ -1,0 +1,13 @@
+--@test: is_json_string - filter rows that contain valid JSON
+CREATE STREAM test (K STRING KEY, maybeJSON STRING) WITH (kafka_topic='test_topic', VALUE_FORMAT='JSON');
+CREATE STREAM OUTPUT AS SELECT K, maybeJSON as JSON FROM test WHERE IS_JSON_STRING(maybeJSON);
+INSERT INTO `TEST` (K, maybeJSON, ROWTIME) VALUES ('1', '1', 0);
+INSERT INTO `TEST` (K, maybeJSON, ROWTIME) VALUES ('1', 'abc', 0);
+INSERT INTO `TEST` (K, maybeJSON, ROWTIME) VALUES ('1', '[1, 2, 3]', 0);
+INSERT INTO `TEST` (K, maybeJSON, ROWTIME) VALUES ('1', '"abc"', 0);
+INSERT INTO `TEST` (K, maybeJSON, ROWTIME) VALUES ('1', '', 0);
+INSERT INTO `TEST` (K, maybeJSON, ROWTIME) VALUES ('1', NULL, 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '1', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '[1, 2, 3]', 0);
+ASSERT VALUES `OUTPUT` (K, JSON, ROWTIME) VALUES ('1', '"abc"', 0);
+

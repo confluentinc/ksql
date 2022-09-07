@@ -68,6 +68,10 @@ public class PostConditions {
     this.sourceNode = requireNonNull(sourceNode, "sourceNode");
   }
 
+  public PostConditionsNode getSourceNode() {
+    return sourceNode;
+  }
+
   public void verify(
       final MetaStore metaStore,
       final List<PostTopicNode> knownTopics

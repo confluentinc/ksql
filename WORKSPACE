@@ -83,6 +83,11 @@ maven_install(
         "org.codehaus.janino:janino:3.0.7",
         "org.codehaus.janino:commons-compiler:3.0.7",
         "com.ibm.icu:icu4j:67.1",
+        "io.airlift:slice:0.29",
+        "org.antlr:antlr4-runtime:4.9.2",
+        "org.antlr:antlr4:4.9.2",
+        "org.apache.commons:commons-text:1.8",
+        "com.approvaltests:approvaltests:9.5.0",
         maven.artifact(
             artifact = "connect-runtime",
             exclusions = [
@@ -169,3 +174,17 @@ scala_register_toolchains()
 load("@io_bazel_rules_scala//testing:scalatest.bzl", "scalatest_repositories", "scalatest_toolchain")
 
 scalatest_repositories()
+
+# Antlr
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "rules_antlr",
+    sha256 = "26e6a83c665cf6c1093b628b3a749071322f0f70305d12ede30909695ed85591",
+    strip_prefix = "rules_antlr-0.5.0",
+    urls = ["https://github.com/marcohu/rules_antlr/archive/0.5.0.tar.gz"],
+)
+
+load("@rules_antlr//antlr:repositories.bzl", "rules_antlr_dependencies")
+
+rules_antlr_dependencies("4.7.2")

@@ -207,6 +207,10 @@ public final class CreateSourceProperties {
         .map(format -> FormatInfo.of(format, getValueFormatProperties(valueFormat)));
   }
 
+  public Optional<String> getSourceConnector() {
+    return Optional.ofNullable(props.getString(CreateConfigs.SOURCE_CONNECTOR_PROPERTY));
+  }
+
   public Map<String, String> getValueFormatProperties(final String valueFormat) {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 

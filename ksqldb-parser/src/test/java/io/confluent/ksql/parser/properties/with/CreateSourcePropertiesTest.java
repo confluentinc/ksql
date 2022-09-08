@@ -56,15 +56,18 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlException;
+import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.reflections.Reflections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CreateSourcePropertiesTest {
@@ -103,6 +106,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getValueSerdeFeatures(), is(SerdeFeatures.of()));
     assertThat(properties.getKeySchemaFullName(), is(Optional.empty()));
     assertThat(properties.getValueSchemaFullName(), is(Optional.empty()));
+    assertThat(properties.getSourceConnector(), is(Optional.empty()));
   }
 
   @Test
@@ -162,6 +166,41 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getTimestampFormat(), is(Optional.of("yyyy-MM-dd'T'HH:mm:ss.SSS")));
+  }
+
+  @Test
+  public void shouldSetValidSourceConnectorProperty() {
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(
+                CreateConfigs.SOURCE_CONNECTOR_PROPERTY,
+                new StringLiteral("source_connector")
+            )
+            .build());
+
+    // Then:
+    assertThat(properties.getSourceConnector(), is(Optional.of("source_connector")));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidSourceConnectorPropertyType() {
+    // Given:
+    final Map<String, Literal> props = ImmutableMap.<String, Literal>builder()
+        .putAll(MINIMUM_VALID_PROPS)
+        .put(CreateConfigs.SOURCE_CONNECTOR_PROPERTY, new IntegerLiteral(1))
+        .build();
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(props)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid value 1 for property SOURCED_BY_CONNECTOR: " +
+        "Expected value to be a string, but it was a java.lang.Integer"));
   }
 
   @Test

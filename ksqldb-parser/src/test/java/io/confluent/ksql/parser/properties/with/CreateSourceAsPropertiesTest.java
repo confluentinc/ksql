@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -460,5 +461,20 @@ public class CreateSourceAsPropertiesTest {
     // When / Then:
     assertThat(props.getValueFormatProperties("PROTOBUF"),
         not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
+  }
+
+  @Test
+  public void shouldThrowIfSourceConnectorPropertyProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceAsProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .put(CreateConfigs.SOURCE_CONNECTOR_PROPERTY, new StringLiteral("whatever"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid config variable(s) in the WITH clause: SOURCED_BY_CONNECTOR"));
   }
 }

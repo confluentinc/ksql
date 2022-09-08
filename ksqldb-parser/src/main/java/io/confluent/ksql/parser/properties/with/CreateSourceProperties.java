@@ -208,7 +208,7 @@ public final class CreateSourceProperties {
   }
 
   public Optional<String> getSourceConnector() {
-    return Optional.ofNullable(props.getString(CreateConfigs.SOURCE_CONNECTOR_PROPERTY));
+    return Optional.ofNullable(props.getString(CreateConfigs.SOURCED_BY_CONNECTOR_PROPERTY));
   }
 
   public Map<String, String> getValueFormatProperties(final String valueFormat) {

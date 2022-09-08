@@ -32,7 +32,7 @@ public final class CreateConfigs {
   public static final String WINDOW_TYPE_PROPERTY = "WINDOW_TYPE";
   public static final String WINDOW_SIZE_PROPERTY = "WINDOW_SIZE";
   public static final String SOURCE_CONNECTOR = "SOURCE_CONNECTOR";
-  public static final String SOURCE_CONNECTOR_PROPERTY = "SOURCED_BY_CONNECTOR";
+  public static final String SOURCED_BY_CONNECTOR_PROPERTY = "SOURCED_BY_CONNECTOR";
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
@@ -63,11 +63,11 @@ public final class CreateConfigs {
               + "is useful for understanding which sources map to which connectors and will "
               + "be automatically populated for connectors."
       ).define(
-          SOURCE_CONNECTOR_PROPERTY,
+          SOURCED_BY_CONNECTOR_PROPERTY,
           Type.STRING,
           null,
           Importance.LOW,
-          "write something useful"
+          "Expresses the dataflow between connectors and the topics they source."
       );
 
   static {

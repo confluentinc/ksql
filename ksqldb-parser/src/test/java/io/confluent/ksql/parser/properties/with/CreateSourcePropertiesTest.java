@@ -56,18 +56,15 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlException;
-import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.reflections.Reflections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CreateSourcePropertiesTest {
@@ -175,7 +172,7 @@ public class CreateSourcePropertiesTest {
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(
-                CreateConfigs.SOURCE_CONNECTOR_PROPERTY,
+                CreateConfigs.SOURCED_BY_CONNECTOR_PROPERTY,
                 new StringLiteral("source_connector")
             )
             .build());
@@ -189,7 +186,7 @@ public class CreateSourcePropertiesTest {
     // Given:
     final Map<String, Literal> props = ImmutableMap.<String, Literal>builder()
         .putAll(MINIMUM_VALID_PROPS)
-        .put(CreateConfigs.SOURCE_CONNECTOR_PROPERTY, new IntegerLiteral(1))
+        .put(CreateConfigs.SOURCED_BY_CONNECTOR_PROPERTY, new IntegerLiteral(1))
         .build();
 
     // When:

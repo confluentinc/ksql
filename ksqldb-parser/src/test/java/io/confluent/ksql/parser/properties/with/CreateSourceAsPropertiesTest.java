@@ -470,7 +470,7 @@ public class CreateSourceAsPropertiesTest {
         KsqlException.class,
         () -> CreateSourceAsProperties.from(
             ImmutableMap.<String, Literal>builder()
-                .put(CreateConfigs.SOURCE_CONNECTOR_PROPERTY, new StringLiteral("whatever"))
+                .put(CreateConfigs.SOURCED_BY_CONNECTOR_PROPERTY, new StringLiteral("whatever"))
                 .build())
     );
 

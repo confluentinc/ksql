@@ -31,6 +31,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
@@ -605,21 +607,25 @@ public class KsqlParserTest {
 
   @Test
   public void shouldFailIfSourcedByConnectorProvidedCXAS() {
-    // Given:
-    final String cxasQuery = "CREATE STREAM bigorders_json WITH (value_format = 'json', "
-        + "kafka_topic='bigorders_topic', sourced_by_connector='jdbc') AS SELECT * FROM orders;";
+    for (final String source: ImmutableSet.of("STREAM", "TABLE")) {
+      // Given:
+      final String cxasQuery =
+          "CREATE " + source
+          + " bigorders_json WITH (value_format = 'json', "
+          + "kafka_topic='bigorders_topic', sourced_by_connector='jdbc') AS SELECT * FROM orders;";
 
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> KsqlParserTestUtil.<CreateStreamAsSelect>buildSingleAst(
-            cxasQuery,
-            metaStore)
-    );
+      // When:
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> KsqlParserTestUtil.<CreateStreamAsSelect>buildSingleAst(
+              cxasQuery,
+              metaStore)
+      );
 
-    // Then:
-    assertThat(e.getMessage(), containsString("Failed to prepare statement: " +
-        "Invalid config variable(s) in the WITH clause: SOURCED_BY_CONNECTOR"));
+      // Then:
+      assertThat(e.getMessage(), containsString("Failed to prepare statement: " +
+          "Invalid config variable(s) in the WITH clause: SOURCED_BY_CONNECTOR"));
+    }
   }
 
   @Test

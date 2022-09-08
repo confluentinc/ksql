@@ -534,6 +534,66 @@ public class KsqlEngineTest {
         );
   }
 
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithoutQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bar does not exist.\n"
+            + "Hint: try BAR without double quotes: BAR")));
+    assertThat(e, statementText(is("select * from \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"bar\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: BAR does not exist.\n"
+            + "Hint: try wrapping BAR in double quotes: \"BAR\"")));
+    assertThat(e, statementText(is("select * from bar;")));
+  }
+
   @Test(expected = ParseFailedException.class)
   public void shouldFailWhenSyntaxIsInvalid() {
     KsqlEngineTestUtil.execute(
@@ -821,7 +881,7 @@ public class KsqlEngineTest {
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-                "drop stream foo;",
+        "drop stream foo;",
         ksqlConfig,
         Collections.emptyMap()
     );
@@ -887,12 +947,12 @@ public class KsqlEngineTest {
   public void shouldDropTableIfAllReferencedQueriesTerminated() {
     // Given:
     final QueryMetadata secondQuery = KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create table bar as select * from test2;"
-            + "create table foo as select * from test2;",
+            serviceContext,
+            ksqlEngine,
+            "create table bar as select * from test2;"
+                + "create table foo as select * from test2;",
             ksqlConfig,
-        Collections.emptyMap())
+            Collections.emptyMap())
         .get(1);
 
     secondQuery.close();

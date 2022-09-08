@@ -112,7 +112,8 @@ public class DataSourceExtractor {
       final SourceName fromName = ((Table) relation.getRelation()).getName();
       final DataSource source = metaStore.getSource(fromName);
       if (source == null) {
-        throw new KsqlException(fromName.text() + " does not exist.");
+        String hint = checkAlternatives(fromName.text());
+        throw new KsqlException(fromName.text() + " does not exist." + hint);
       }
 
       allSources.add(new AliasedDataSource(relation.getAlias(), source));
@@ -129,6 +130,22 @@ public class DataSourceExtractor {
       allColumns.addAll(columns);
 
       return null;
+    }
+
+    private String checkAlternatives(String sourceName) {
+      String hint = "";
+      if (metaStore.getSource(SourceName.of(sourceName.toLowerCase())) != null) {
+        hint = String.format(
+            "\nHint: try wrapping " + sourceName.toUpperCase() + " in double quotes: "
+                + "\"" + sourceName.toUpperCase() + "\""
+        );
+      } else if (metaStore.getSource(SourceName.of(sourceName.toUpperCase())) != null) {
+        hint = String.format(
+            "\nHint: try " + sourceName.toUpperCase() + " without double quotes: "
+                + sourceName.toUpperCase()
+        );
+      }
+      return hint;
     }
 
     @Override

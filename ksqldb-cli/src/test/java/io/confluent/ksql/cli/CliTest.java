@@ -1280,7 +1280,8 @@ public class CliTest {
     final String out = terminal.getOutputString();
     final String expected = "Statement: create stream if not exist s1(id int) "
         + "with (kafka_topic='s1', value_format='json', partitions=1);\n"
-        + "Caused by: line 2:22: no viable alternative at input 'create stream if not";
+        + "Caused by: line 2:22: Syntax Error\n"
+        + "no viable alternative at input 'create stream";
     assertThat(error_code, is(-1));
     assertThat(out, containsString(expected));
     assertThat(out, not(containsString("drop stream if exists")));

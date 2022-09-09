@@ -560,8 +560,38 @@ public class KsqlEngineTest {
     // Then:
     assertThat(e, rawMessage(is(
         "Exception while preparing statement: bar does not exist.\n"
-            + "Hint: try removing double quotes from the source name or query the source name with the correct order of small and capital letters: BAR")));
+            + "Hint: try removing double quotes from the source name.")));
     assertThat(e, statementText(is("select * from \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithMisspelling() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"Bar\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bAr\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bAr does not exist.\n"
+            + "Hint: please query the source name with the correct order of small and capital letters: \"Bar\"")));
+    assertThat(e, statementText(is("select * from \"bAr\";")));
   }
 
   @Test

@@ -1,37 +1,18 @@
 load("@rules_java//java:defs.bzl", "java_test")
-load("@rules_antlr//antlr:antlr4.bzl", "antlr")
-
-package(default_visibility = ["//visibility:public"])
-
-antlr(
-    name = "parser",
-    srcs = ["src/main/antlr4/io/confluent/ksql/parser/SqlBase.g4"],
-    package = "io.confluent.ksql.parser",
-    visitor = True,
-)
 
 java_library(
-    name = "generated",
-    srcs = [":parser"],
-    visibility = ["//visibility:public"],
-    deps = ["@maven//:org_antlr_antlr4_runtime"],
-)
-
-java_library(
-    name = "ksqldb_parser",
+    name = "ksqldb_streams",
     srcs = glob([
         "src/main/**/*.java",
-        ":generated",
     ]),
     visibility = ["//visibility:public"],
     deps = [
-        ":generated",
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-execution:ksqldb_execution",
         "//ksqldb-metastore:ksqldb_metastore",
         "//ksqldb-serde:ksqldb_serde",
         "//ksqldb-udf:ksqldb_udf",
-        "@maven//:com_approvaltests_approvaltests",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:com_fasterxml_jackson_core_jackson_core",
         "@maven//:com_fasterxml_jackson_core_jackson_databind",
         "@maven//:com_fasterxml_jackson_datatype_jackson_datatype_jdk8",
@@ -41,11 +22,16 @@ java_library(
         "@maven//:com_google_errorprone_error_prone_annotations",
         "@maven//:com_google_guava_guava",
         "@maven//:io_airlift_slice",
-        "@maven//:org_antlr_antlr4_runtime",
+        "@maven//:io_confluent_kafka_schema_registry_client",
+        "@maven//:org_apache_commons_commons_compress",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_apache_commons_commons_text",
+        "@maven//:org_apache_kafka_connect_api",
+        "@maven//:org_apache_kafka_connect_runtime",
         "@maven//:org_apache_kafka_kafka_clients",
         "@maven//:org_apache_kafka_kafka_streams",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:org_slf4j_slf4j_reload4j",
     ],
 )
 
@@ -54,8 +40,7 @@ java_library(
     testonly = 1,
     srcs = glob(["src/test/**/*.java"]),
     deps = [
-        ":generated",
-        ":ksqldb_parser",
+        ":ksqldb_streams",
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-execution:ksqldb_execution",
         "//ksqldb-metastore:ksqldb_metastore",
@@ -63,15 +48,16 @@ java_library(
         "//ksqldb-serde:ksqldb_serde",
         "//ksqldb-test-util:ksqldb_test_util",
         "//ksqldb-udf:ksqldb_udf",
-        "@maven//:com_approvaltests_approvaltests",
         "@maven//:com_fasterxml_jackson_core_jackson_core",
         "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_github_spotbugs_spotbugs_annotations",
+        "@maven//:com_google_code_findbugs_jsr305",
         "@maven//:com_google_errorprone_error_prone_annotations",
         "@maven//:com_google_guava_guava",
         "@maven//:com_google_guava_guava_testlib",
-        "@maven//:io_airlift_slice",
+        "@maven//:io_confluent_kafka_schema_registry_client",
         "@maven//:junit_junit",
-        "@maven//:org_antlr_antlr4_runtime",
+        "@maven//:org_apache_commons_commons_compress",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_apache_commons_commons_text",
         "@maven//:org_apache_kafka_connect_api",
@@ -86,6 +72,6 @@ java_library(
 
 java_test(
     name = "MyTests",
-    test_class = "io.confluent.ksql.MyTestsParser",
+    test_class = "io.confluent.ksql.MyTestsStreams",
     runtime_deps = [":tests"],
 )

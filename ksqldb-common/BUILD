@@ -51,6 +51,7 @@ java_library(
     name = "tests",
     testonly = 1,
     srcs = glob(["src/test/**/*.java"]),
+    visibility = ["//visibility:public"],
     deps = [
         ":ksqldb_common",
         "//ksqldb-test-util:ksqldb_test_util",

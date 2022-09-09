@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>ksqldb_confluent.streamed_query_result API documentation</title>
+<title>ksqldb.streamed_query_result API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,7 +19,7 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>ksqldb_confluent.streamed_query_result</code></h1>
+<h1 class="title">Module <code>ksqldb.streamed_query_result</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
@@ -45,8 +45,8 @@
 from asyncio import Queue, Future
 from dataclasses import dataclass
 
-from ksqldb_confluent.row import Row
-from ksqldb_confluent.types.schema import Schema
+from ksqldb.row import Row
+from ksqldb.types.schema import Schema
 
 
 @dataclass
@@ -104,9 +104,9 @@ class StreamedQueryResult:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="ksqldb_confluent.streamed_query_result.StreamedQueryResult"><code class="flex name class">
+<dt id="ksqldb.streamed_query_result.StreamedQueryResult"><code class="flex name class">
 <span>class <span class="ident">StreamedQueryResult</span></span>
-<span>(</span><span>query_id: str, schema: <a title="ksqldb_confluent.types.schema.Schema" href="types/schema.html#ksqldb_confluent.types.schema.Schema">Schema</a>, row_queue: asyncio.queues.Queue, status: _asyncio.Future = &lt;Future pending&gt;)</span>
+<span>(</span><span>query_id: str, schema: <a title="ksqldb.types.schema.Schema" href="types/schema.html#ksqldb.types.schema.Schema">Schema</a>, row_queue: asyncio.queues.Queue, status: _asyncio.Future = &lt;Future pending&gt;)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Represents a streamed result.
@@ -163,26 +163,26 @@ class StreamedQueryResult:
 </details>
 <h3>Class variables</h3>
 <dl>
-<dt id="ksqldb_confluent.streamed_query_result.StreamedQueryResult.query_id"><code class="name">var <span class="ident">query_id</span> : str</code></dt>
+<dt id="ksqldb.streamed_query_result.StreamedQueryResult.query_id"><code class="name">var <span class="ident">query_id</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="ksqldb_confluent.streamed_query_result.StreamedQueryResult.row_queue"><code class="name">var <span class="ident">row_queue</span> : asyncio.queues.Queue</code></dt>
+<dt id="ksqldb.streamed_query_result.StreamedQueryResult.row_queue"><code class="name">var <span class="ident">row_queue</span> : asyncio.queues.Queue</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="ksqldb_confluent.streamed_query_result.StreamedQueryResult.schema"><code class="name">var <span class="ident">schema</span> : <a title="ksqldb_confluent.types.schema.Schema" href="types/schema.html#ksqldb_confluent.types.schema.Schema">Schema</a></code></dt>
+<dt id="ksqldb.streamed_query_result.StreamedQueryResult.schema"><code class="name">var <span class="ident">schema</span> : <a title="ksqldb.types.schema.Schema" href="types/schema.html#ksqldb.types.schema.Schema">Schema</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="ksqldb_confluent.streamed_query_result.StreamedQueryResult.status"><code class="name">var <span class="ident">status</span> : _asyncio.Future</code></dt>
+<dt id="ksqldb.streamed_query_result.StreamedQueryResult.status"><code class="name">var <span class="ident">status</span> : _asyncio.Future</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="ksqldb_confluent.streamed_query_result.StreamedQueryResult.is_complete"><code class="name flex">
+<dt id="ksqldb.streamed_query_result.StreamedQueryResult.is_complete"><code class="name flex">
 <span>def <span class="ident">is_complete</span></span>(<span>self) ‑> bool</span>
 </code></dt>
 <dd>
@@ -206,7 +206,7 @@ class StreamedQueryResult:
     return self.status.done() and not bool(self.status.exception())</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.streamed_query_result.StreamedQueryResult.is_failed"><code class="name flex">
+<dt id="ksqldb.streamed_query_result.StreamedQueryResult.is_failed"><code class="name flex">
 <span>def <span class="ident">is_failed</span></span>(<span>self) ‑> bool</span>
 </code></dt>
 <dd>
@@ -232,8 +232,8 @@ class StreamedQueryResult:
     return self.row_queue.empty() and self.status.done() and self.status.exception() is not None</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.streamed_query_result.StreamedQueryResult.poll_async"><code class="name flex">
-<span>async def <span class="ident">poll_async</span></span>(<span>self) ‑> <a title="ksqldb_confluent.row.Row" href="row.html#ksqldb_confluent.row.Row">Row</a></span>
+<dt id="ksqldb.streamed_query_result.StreamedQueryResult.poll_async"><code class="name flex">
+<span>async def <span class="ident">poll_async</span></span>(<span>self) ‑> <a title="ksqldb.row.Row" href="row.html#ksqldb.row.Row">Row</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Polls for a row.</p>
@@ -274,21 +274,21 @@ class StreamedQueryResult:
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="ksqldb_confluent" href="index.html">ksqldb_confluent</a></code></li>
+<li><code><a title="ksqldb" href="index.html">ksqldb</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult" href="#ksqldb_confluent.streamed_query_result.StreamedQueryResult">StreamedQueryResult</a></code></h4>
+<h4><code><a title="ksqldb.streamed_query_result.StreamedQueryResult" href="#ksqldb.streamed_query_result.StreamedQueryResult">StreamedQueryResult</a></code></h4>
 <ul class="two-column">
-<li><code><a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult.is_complete" href="#ksqldb_confluent.streamed_query_result.StreamedQueryResult.is_complete">is_complete</a></code></li>
-<li><code><a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult.is_failed" href="#ksqldb_confluent.streamed_query_result.StreamedQueryResult.is_failed">is_failed</a></code></li>
-<li><code><a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult.poll_async" href="#ksqldb_confluent.streamed_query_result.StreamedQueryResult.poll_async">poll_async</a></code></li>
-<li><code><a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult.query_id" href="#ksqldb_confluent.streamed_query_result.StreamedQueryResult.query_id">query_id</a></code></li>
-<li><code><a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult.row_queue" href="#ksqldb_confluent.streamed_query_result.StreamedQueryResult.row_queue">row_queue</a></code></li>
-<li><code><a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult.schema" href="#ksqldb_confluent.streamed_query_result.StreamedQueryResult.schema">schema</a></code></li>
-<li><code><a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult.status" href="#ksqldb_confluent.streamed_query_result.StreamedQueryResult.status">status</a></code></li>
+<li><code><a title="ksqldb.streamed_query_result.StreamedQueryResult.is_complete" href="#ksqldb.streamed_query_result.StreamedQueryResult.is_complete">is_complete</a></code></li>
+<li><code><a title="ksqldb.streamed_query_result.StreamedQueryResult.is_failed" href="#ksqldb.streamed_query_result.StreamedQueryResult.is_failed">is_failed</a></code></li>
+<li><code><a title="ksqldb.streamed_query_result.StreamedQueryResult.poll_async" href="#ksqldb.streamed_query_result.StreamedQueryResult.poll_async">poll_async</a></code></li>
+<li><code><a title="ksqldb.streamed_query_result.StreamedQueryResult.query_id" href="#ksqldb.streamed_query_result.StreamedQueryResult.query_id">query_id</a></code></li>
+<li><code><a title="ksqldb.streamed_query_result.StreamedQueryResult.row_queue" href="#ksqldb.streamed_query_result.StreamedQueryResult.row_queue">row_queue</a></code></li>
+<li><code><a title="ksqldb.streamed_query_result.StreamedQueryResult.schema" href="#ksqldb.streamed_query_result.StreamedQueryResult.schema">schema</a></code></li>
+<li><code><a title="ksqldb.streamed_query_result.StreamedQueryResult.status" href="#ksqldb.streamed_query_result.StreamedQueryResult.status">status</a></code></li>
 </ul>
 </li>
 </ul>

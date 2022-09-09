@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.SqlBaseParser.VariableNameContext;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
 import io.confluent.ksql.util.ParserUtil;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -28,13 +27,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.InputMismatchException;
-import org.antlr.v4.runtime.NoViableAltException;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.apache.commons.text.similarity.LevenshteinDetailedDistance;
-import org.apache.kafka.common.protocol.types.Field.Str;
 
 /**
  * This class is a syntax error validator used in the {@link DefaultKsqlParser} class, which
@@ -138,7 +135,7 @@ public class SyntaxErrorValidator extends BaseErrorListener {
     }
 
     if (offendingSymbol instanceof Token) {
-      StringBuilder sb = new StringBuilder();
+      final StringBuilder sb = new StringBuilder();
       sb.append(
           String.format("Syntax Error\n"));
       if (isKeywordError(message, ((Token) offendingSymbol).getText())) {
@@ -166,7 +163,7 @@ public class SyntaxErrorValidator extends BaseErrorListener {
       final String offendingToken,
       final int line,
       final int charPositionInLine) {
-    StringBuilder output = new StringBuilder();
+    final StringBuilder output = new StringBuilder();
     final String expectingStr = message.split("expecting ")[1];
     if (line == 1 && charPositionInLine == 0) { // this is a command typo
       output.append(String.format("Unknown statement '%s'\n",
@@ -182,12 +179,12 @@ public class SyntaxErrorValidator extends BaseErrorListener {
     return output.toString();
   }
 
-  private String getMostSimilar(String offendingToken) {
-    LevenshteinDetailedDistance computer = LevenshteinDetailedDistance.getDefaultInstance();
+  private String getMostSimilar(final String offendingToken) {
+    final LevenshteinDetailedDistance computer = LevenshteinDetailedDistance.getDefaultInstance();
     int min = Integer.MAX_VALUE;
     String output = "";
     for (String command:commands) {
-      int distance = computer.apply(command, offendingToken).getDistance();
+      final int distance = computer.apply(command, offendingToken).getDistance();
       if (distance < min) {
         min = distance;
         output = command;

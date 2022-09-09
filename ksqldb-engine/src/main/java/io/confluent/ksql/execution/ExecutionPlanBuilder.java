@@ -75,7 +75,10 @@ public class ExecutionPlanBuilder {
         oldPlanInfo
     );
 
-    optimizeForSelfJoin(outputNode);
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SELF_JOIN_OPTIMIZATION_ENABLE)) {
+      optimizeForSelfJoin(outputNode);
+    }
+
     final SchemaKStream<?> resultStream = outputNode.buildStream(buildContext);
 
     final LogicalSchema logicalSchema = outputNode.getSchema();
@@ -115,8 +118,9 @@ public class ExecutionPlanBuilder {
   /**
    * Join -> PreJoinProject -> PreJoinRepartition -> DataSource
    */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private boolean matchSubGraphPattern1(final JoinNode joinNode) {
-
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (joinNode.getLeft() instanceof PreJoinProjectNode
         && joinNode.getRight() instanceof PreJoinProjectNode) {
       final PreJoinProjectNode preJoinProjectNodeLeft =
@@ -145,13 +149,28 @@ public class ExecutionPlanBuilder {
         final DataSourceNode leftSource = (DataSourceNode) preJoinRepartitionNodeLeft.getSource();
         final DataSourceNode rightSource = (DataSourceNode) preJoinRepartitionNodeRight.getSource();
 
-        if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
-            rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
-            leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
+        if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM)
+            && rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM)) {
 
-          // Annotate join as self-join
-          joinNode.setSelfJoin(true);
-          return true;
+          if (leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
+
+            // Annotate join as self-join
+            joinNode.setSelfJoin(true);
+            preJoinProjectNodeLeft.setSelfJoin(true);
+            preJoinProjectNodeRight.setSelfJoin(true);
+            return true;
+          } else if (leftSource.getDataSource().getKsqlTopic().getKafkaTopicName().equals(
+              rightSource.getDataSource().getKsqlTopic().getKafkaTopicName())
+              && leftSource.getDataSource().getSchema()
+              .equals(rightSource.getDataSource().getSchema())
+              && leftSource.getSchema().equals(rightSource.getSchema())
+          ) {
+            // Annotate join as self-join
+            joinNode.setSelfJoin(true);
+            preJoinProjectNodeLeft.setSelfJoin(true);
+            preJoinProjectNodeRight.setSelfJoin(true);
+            return true;
+          }
         }
       } else {
         return false;
@@ -177,12 +196,14 @@ public class ExecutionPlanBuilder {
         final DataSourceNode leftSource = (DataSourceNode) preJoinProjectNodeLeft.getSource();
         final DataSourceNode rightSource = (DataSourceNode) preJoinProjectNodeRight.getSource();
 
-        if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
-            rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
-            leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
+        if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM)
+            && rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM)
+            && leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
 
           // Annotate join as self-join
           joinNode.setSelfJoin(true);
+          preJoinProjectNodeLeft.setSelfJoin(true);
+          preJoinProjectNodeRight.setSelfJoin(true);
           return true;
         }
       } else {
@@ -200,17 +221,17 @@ public class ExecutionPlanBuilder {
     if (joinNode.getLeft() instanceof DataSourceNode
         && joinNode.getRight() instanceof DataSourceNode) {
 
-        final DataSourceNode leftSource = (DataSourceNode) joinNode.getLeft();
-        final DataSourceNode rightSource = (DataSourceNode) joinNode.getRight();
+      final DataSourceNode leftSource = (DataSourceNode) joinNode.getLeft();
+      final DataSourceNode rightSource = (DataSourceNode) joinNode.getRight();
 
-        if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
-            rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM) &&
-            leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
+      if (leftSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM)
+          && rightSource.getDataSource().getDataSourceType().equals(DataSourceType.KSTREAM)
+          && leftSource.getDataSource().getName().equals(rightSource.getDataSource().getName())) {
 
-          // Annotate join as self-join
-          joinNode.setSelfJoin(true);
-          return true;
-        }
+        // Annotate join as self-join
+        joinNode.setSelfJoin(true);
+        return true;
+      }
     }
     return false;
   }

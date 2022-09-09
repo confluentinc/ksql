@@ -170,7 +170,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KStreamHolder<K> visitNoOpPreJoinStreamSelect(
+  public <K> KStreamHolder<K> visitStreamNoOpPreJoinSelect(
       final StreamNoOpPreJoinSelect<K> streamSelect,
       final PlanInfo planInfo,
       final boolean addToTopology

@@ -22,7 +22,9 @@ import java.time.Duration;
 import java.util.Optional;
 
 @Immutable
-public class StreamStreamSelfJoin<K> extends StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
+public class StreamStreamSelfJoin<K>
+    extends StreamStreamJoin<K>
+    implements ExecutionStep<KStreamHolder<K>> {
 
   // keyName was not present before 0.10.0, defaults to legacy ROWKEY
   // This can be removed with the next breaking change.

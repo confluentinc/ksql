@@ -373,7 +373,8 @@ final class SourceBuilderUtils {
           final int numPseudoColumns = SystemColumns
               .pseudoColumnNames(pseudoColumnVersion).size();
 
-          rowCopy.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size() + headerColumns.size());
+          rowCopy.ensureAdditionalCapacity(
+              numPseudoColumns + keyColumns.size() + headerColumns.size());
 
           for (final Column col : headerColumns) {
             if (col.headerKey().isPresent()) {

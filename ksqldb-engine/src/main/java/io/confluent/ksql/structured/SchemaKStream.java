@@ -279,25 +279,6 @@ public class SchemaKStream<K> {
     );
   }
 
-  public SchemaKStream<K> selfJoin(
-      final SchemaKStream<K> otherSchemaKStream,
-      final ColumnName keyColName,
-      final WithinExpression withinExpression,
-      final FormatInfo leftFormat,
-      final FormatInfo rightFormat,
-      final Stacker contextStacker
-  ) {
-    return selfJoin(
-        otherSchemaKStream,
-        keyColName,
-        withinExpression,
-        leftFormat,
-        rightFormat,
-        contextStacker,
-        JoinType.INNER
-    );
-  }
-
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
@@ -373,6 +354,25 @@ public class SchemaKStream<K> {
         keyFormat,
         ksqlConfig,
         functionRegistry
+    );
+  }
+
+  public SchemaKStream<K> selfJoin(
+      final SchemaKStream<K> otherSchemaKStream,
+      final ColumnName keyColName,
+      final WithinExpression withinExpression,
+      final FormatInfo leftFormat,
+      final FormatInfo rightFormat,
+      final Stacker contextStacker
+  ) {
+    return selfJoin(
+        otherSchemaKStream,
+        keyColName,
+        withinExpression,
+        leftFormat,
+        rightFormat,
+        contextStacker,
+        JoinType.INNER
     );
   }
 

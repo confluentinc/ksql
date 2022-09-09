@@ -42,6 +42,7 @@ import javax.annotation.Nonnull;
     @Type(value = StreamSource.class, name = "streamSourceV1"),
     @Type(value = WindowedStreamSource.class, name = "windowedStreamSourceV1"),
     @Type(value = StreamStreamJoin.class, name = "streamStreamJoinV1"),
+    @Type(value = StreamStreamSelfJoin.class, name = "streamStreamSelfJoinV1"),
     @Type(value = StreamTableJoin.class, name = "streamTableJoinV1"),
     @Type(value = StreamWindowedAggregate.class, name = "streamWindowedAggregateV1"),
     @Type(value = TableSourceV1.class, name = "tableSourceV1"),

@@ -331,6 +331,7 @@ final class QueryBuilder {
     final Topology topology = streamsBuilder
             .build(PropertiesUtil.asProperties(streamsProperties));
 
+    System.out.println("---> " + topology.describe().toString());
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
         materializationProviderBuilder = getMaterializationInfo(result).map(info ->
             materializationProviderBuilderFactory.materializationProviderBuilder(

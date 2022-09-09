@@ -38,7 +38,7 @@ public interface PlanBuilder {
 
   <K> KStreamHolder<K> visitStreamSelect(StreamSelect<K> streamSelect, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitNoOpPreJoinStreamSelect(
+  <K> KStreamHolder<K> visitStreamNoOpPreJoinSelect(
       StreamNoOpPreJoinSelect<K> streamSelect, PlanInfo planInfo, boolean addToTopology);
 
   <K> KStreamHolder<K> visitFlatMap(StreamFlatMap<K> streamFlatMap, PlanInfo planInfo);

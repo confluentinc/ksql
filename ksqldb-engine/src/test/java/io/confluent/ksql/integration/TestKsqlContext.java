@@ -58,6 +58,7 @@ public final class TestKsqlContext extends ExternalResource implements AutoClose
   }
 
   public List<QueryMetadata> sql(final String sql) {
+    System.out.println("---> Executing sql " + sql);
     return delegate.sql(sql);
   }
 

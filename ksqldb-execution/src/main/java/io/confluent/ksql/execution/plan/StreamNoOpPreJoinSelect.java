@@ -14,28 +14,18 @@
 
 package io.confluent.ksql.execution.plan;
 
-import static java.util.Objects.requireNonNull;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class StreamNoOpPreJoinSelect<K> implements ExecutionStep<KStreamHolder<K>> {
-
-  private final ExecutionStepPropertiesV1 properties;
-  private final ExecutionStep<KStreamHolder<K>> source;
-  private final ImmutableList<ColumnName> keyColumnNames;
-  private final Optional<ImmutableList<ColumnName>> selectedKeys;
-  private final ImmutableList<SelectExpression> selectExpressions;
+public class StreamNoOpPreJoinSelect<K>
+    extends StreamSelect<K>
+    implements ExecutionStep<KStreamHolder<K>> {
 
   public StreamNoOpPreJoinSelect(
       final ExecutionStepPropertiesV1 props,
@@ -44,15 +34,7 @@ public class StreamNoOpPreJoinSelect<K> implements ExecutionStep<KStreamHolder<K
       final Optional<List<ColumnName>> selectedKeys,
       final List<SelectExpression> selectExpressions
   ) {
-    this.properties = requireNonNull(props, "props");
-    this.source = requireNonNull(source, "source");
-    this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
-    this.selectedKeys = selectedKeys.map(ImmutableList::copyOf);
-    this.selectExpressions = ImmutableList.copyOf(selectExpressions);
-
-    if (selectExpressions.isEmpty()) {
-      throw new IllegalArgumentException("Need at least one select expression");
-    }
+    super(props, source, keyColumnNames, selectedKeys, selectExpressions);
   }
 
   /**
@@ -85,75 +67,18 @@ public class StreamNoOpPreJoinSelect<K> implements ExecutionStep<KStreamHolder<K
   }
 
   @Override
-  public ExecutionStepPropertiesV1 getProperties() {
-    return properties;
-  }
-
-  @Override
-  @JsonIgnore
-  public List<ExecutionStep<?>> getSources() {
-    return Collections.singletonList(source);
-  }
-
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "keyColumnNames is ImmutableList")
-  public List<ColumnName> getKeyColumnNames() {
-    return keyColumnNames;
-  }
-
-  public Optional<ImmutableList<ColumnName>> getSelectedKeys() {
-    return selectedKeys;
-  }
-
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "selectExpressions is ImmutableList")
-  public List<SelectExpression> getSelectExpressions() {
-    return selectExpressions;
-  }
-
-  public ExecutionStep<KStreamHolder<K>> getSource() {
-    return source;
-  }
-
-  @Override
-  public KStreamHolder<K> build(final PlanBuilder builder, final PlanInfo info,
-                                final boolean isSelfJoin) {
-    return builder.visitNoOpPreJoinStreamSelect(this, info, isSelfJoin);
+  public KStreamHolder<K> build(
+      final PlanBuilder builder, final PlanInfo info, final boolean isSelfJoin) {
+    return builder.visitStreamNoOpPreJoinSelect(this, info, isSelfJoin);
   }
 
   @Override
   public KStreamHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
-    return builder.visitNoOpPreJoinStreamSelect(this, info, true);
+    return builder.visitStreamNoOpPreJoinSelect(this, info, true);
   }
 
   @Override
   public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
     return extractor.visitStreamNoOpSelect(this);
-  }
-
-  @Override
-  public StepType type() {
-    // the list of column names is verified in the schema compatibility
-    // check when inserting into the metastore (See DataSource#canUpgradeTo)
-    return StepType.PASSIVE;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final StreamNoOpPreJoinSelect<?> that = (StreamNoOpPreJoinSelect<?>) o;
-    return Objects.equals(properties, that.properties)
-        && Objects.equals(source, that.source)
-        && Objects.equals(keyColumnNames, that.keyColumnNames)
-        && Objects.equals(selectedKeys, that.selectedKeys)
-        && Objects.equals(selectExpressions, that.selectExpressions);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(properties, source, keyColumnNames, selectedKeys, selectExpressions);
   }
 }

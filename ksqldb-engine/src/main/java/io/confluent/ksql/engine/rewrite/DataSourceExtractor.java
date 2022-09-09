@@ -135,25 +135,21 @@ public class DataSourceExtractor {
     private String checkAlternatives(final SourceName sourceName) {
       String hint = "";
 
-      final Set<SourceName> existingSources = metaStore.getAllDataSources().keySet();
-      for (SourceName name:existingSources) {
+      for (SourceName name:metaStore.getAllDataSources().keySet()) {
         if (name.text().equalsIgnoreCase(sourceName.text())) {
           /* if source name in metastore contains small letters, the query source name must be
           / wrapped in double quotes with the correct order of small and capital letters */
           if (!name.text().toUpperCase().equals(name.text())
               && sourceName.text().toUpperCase().equals(sourceName.text())) {
-            hint = String.format(
-                "\nHint: try wrapping the source name in double quotes "
-                    + "with the correct order of small and capital letters: \"" + name.text() + "\""
-            );
+            hint = "\nHint: try wrapping the source name in double quotes "
+                    + "with the correct order of small and capital letters: \""
+                + name.text() + "\"";
           /* if the source name passed by the query is wrapped in double quotes,
           the double quotes must be removed, or it must have the same order of small and capital
           letters as the created source */
           } else if (!sourceName.text().toUpperCase().equals(sourceName.text())) {
-            hint = String.format(
-                "\nHint: try removing double quotes from the source name or query the source name "
-                    + "with the correct order of small and capital letters: " + name.text()
-            );
+            hint = "\nHint: try removing double quotes from the source name or query the source "
+                + "name with the correct order of small and capital letters: " + name.text();
           }
 
         }

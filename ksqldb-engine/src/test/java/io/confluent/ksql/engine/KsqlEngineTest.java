@@ -560,7 +560,7 @@ public class KsqlEngineTest {
     // Then:
     assertThat(e, rawMessage(is(
         "Exception while preparing statement: bar does not exist.\n"
-            + "Hint: try BAR without double quotes: BAR")));
+            + "Hint: try removing double quotes from the source name or query the source name with the correct order of small and capital letters: BAR")));
     assertThat(e, statementText(is("select * from \"bar\";")));
   }
 
@@ -590,7 +590,7 @@ public class KsqlEngineTest {
     // Then:
     assertThat(e, rawMessage(is(
         "Exception while preparing statement: BAR does not exist.\n"
-            + "Hint: try wrapping BAR in double quotes: \"BAR\"")));
+            + "Hint: try wrapping the source name in double quotes with the correct order of small and capital letters: \"bar\"")));
     assertThat(e, statementText(is("select * from bar;")));
   }
 

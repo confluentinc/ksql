@@ -112,7 +112,7 @@ public class DataSourceExtractor {
       final SourceName fromName = ((Table) relation.getRelation()).getName();
       final DataSource source = metaStore.getSource(fromName);
       if (source == null) {
-        final String hint = checkAlternatives(fromName.text());
+        final String hint = checkAlternatives(fromName);
         throw new KsqlException(fromName.text() + " does not exist." + hint);
       }
 
@@ -132,18 +132,31 @@ public class DataSourceExtractor {
       return null;
     }
 
-    private String checkAlternatives(final String sourceName) {
+    private String checkAlternatives(final SourceName sourceName) {
       String hint = "";
-      if (metaStore.getSource(SourceName.of(sourceName.toLowerCase())) != null) {
-        hint = String.format(
-            "\nHint: try wrapping " + sourceName.toUpperCase() + " in double quotes: "
-                + "\"" + sourceName.toUpperCase() + "\""
-        );
-      } else if (metaStore.getSource(SourceName.of(sourceName.toUpperCase())) != null) {
-        hint = String.format(
-            "\nHint: try " + sourceName.toUpperCase() + " without double quotes: "
-                + sourceName.toUpperCase()
-        );
+
+      final Set<SourceName> existingSources = metaStore.getAllDataSources().keySet();
+      for (SourceName name:existingSources) {
+        if (name.text().equalsIgnoreCase(sourceName.text())) {
+          /* if source name in metastore contains small letters, the query source name must be
+          / wrapped in double quotes with the correct order of small and capital letters */
+          if (!name.text().toUpperCase().equals(name.text())
+              && sourceName.text().toUpperCase().equals(sourceName.text())) {
+            hint = String.format(
+                "\nHint: try wrapping the source name in double quotes "
+                    + "with the correct order of small and capital letters: \"" + name.text() + "\""
+            );
+          /* if the source name passed by the query is wrapped in double quotes,
+          the double quotes must be removed, or it must have the same order of small and capital
+          letters as the created source */
+          } else if (!sourceName.text().toUpperCase().equals(sourceName.text())) {
+            hint = String.format(
+                "\nHint: try removing double quotes from the source name or query the source name "
+                    + "with the correct order of small and capital letters: " + name.text()
+            );
+          }
+
+        }
       }
       return hint;
     }

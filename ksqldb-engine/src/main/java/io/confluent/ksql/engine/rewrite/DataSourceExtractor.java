@@ -142,14 +142,19 @@ public class DataSourceExtractor {
           if (!name.text().toUpperCase().equals(name.text())
               && sourceName.text().toUpperCase().equals(sourceName.text())) {
             hint = "\nHint: try wrapping the source name in double quotes "
-                    + "with the correct order of small and capital letters: \""
+                + "with the correct order of small and capital letters: \""
                 + name.text() + "\"";
           /* if the source name passed by the query is wrapped in double quotes,
           the double quotes must be removed, or it must have the same order of small and capital
           letters as the created source */
           } else if (!sourceName.text().toUpperCase().equals(sourceName.text())) {
-            hint = "\nHint: try removing double quotes from the source name or query the source "
-                + "name with the correct order of small and capital letters: " + name.text();
+            // if the name in metastore does NOT contain small letters
+            if (name.text().toUpperCase().equals(name.text())) {
+              hint = "\nHint: try removing double quotes from the source name.";
+            } else {
+              hint = "\nHint: please query the source name with the correct order "
+                  + "of small and capital letters: \"" + name.text() + "\"";
+            }
           }
 
         }

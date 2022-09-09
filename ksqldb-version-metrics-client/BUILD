@@ -1,0 +1,90 @@
+load("@rules_java//java:defs.bzl", "java_test")
+load("@io_bazel_rules_avro//avro:avro.bzl", "avro_gen", "avro_java_library")
+
+avro_java_library(
+    name = "avro_gen",
+    srcs = ["src/main/avro/KsqlVersionMetrics.avsc"],
+)
+
+java_library(
+    name = "ksqldb_version_metrics_client",
+    srcs = glob([
+        "src/main/**/*.java",
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":avro_gen",
+        "//ksqldb-common:ksqldb_common",
+        "//ksqldb-metastore:ksqldb_metastore",
+        "//ksqldb-parser:ksqldb_parser",
+        "//ksqldb-rest-model:ksqldb_rest_model",
+        "//ksqldb-udf:ksqldb_udf",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_datatype_jackson_datatype_jdk8",
+        "@maven//:com_github_spotbugs_spotbugs_annotations",
+        "@maven//:com_google_errorprone_error_prone_annotations",
+        "@maven//:com_google_guava_guava",
+        "@maven//:io_netty_netty_codec_http",
+        "@maven//:io_vertx_vertx_codegen",
+        "@maven//:io_vertx_vertx_core",
+        "@maven//:io_vertx_vertx_web",
+        "@maven//:org_apache_avro_avro",
+        "@maven//:org_apache_httpcomponents_client5_httpclient5",
+        "@maven//:org_apache_httpcomponents_client5_httpclient5_fluent",
+        "@maven//:org_apache_httpcomponents_core5_httpcore5",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_reactivestreams_reactive_streams",
+        "@maven//:org_slf4j_slf4j_api",
+    ],
+)
+
+java_library(
+    name = "tests",
+    testonly = 1,
+    srcs = glob(["src/test/**/*.java"]),
+    deps = [
+        ":avro_gen",
+        ":ksqldb_version_metrics_client",
+        "//ksqldb-common:ksqldb_common",
+        "//ksqldb-execution:ksqldb_execution",
+        "//ksqldb-metastore:ksqldb_metastore",
+        "//ksqldb-parser:ksqldb_parser",
+        "//ksqldb-rest-model:ksqldb_rest_model",
+        "//ksqldb-test-util:ksqldb_test_util",
+        "//ksqldb-udf:ksqldb_udf",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_datatype_jackson_datatype_jdk8",
+        "@maven//:com_github_spotbugs_spotbugs_annotations",
+        "@maven//:com_github_tomakehurst_wiremock_jre8",
+        "@maven//:com_google_errorprone_error_prone_annotations",
+        "@maven//:com_google_guava_guava",
+        "@maven//:io_netty_netty_codec_http",
+        "@maven//:io_vertx_vertx_codegen",
+        "@maven//:io_vertx_vertx_core",
+        "@maven//:io_vertx_vertx_web",
+        "@maven//:junit_junit",
+        "@maven//:org_apache_avro_avro",
+        "@maven//:org_apache_httpcomponents_client5_httpclient5",
+        "@maven//:org_apache_httpcomponents_client5_httpclient5_fluent",
+        "@maven//:org_apache_httpcomponents_core5_httpcore5",
+        "@maven//:org_apache_kafka_connect_api",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_apache_kafka_kafka_streams",
+        "@maven//:org_easymock_easymock",
+        "@maven//:org_hamcrest_hamcrest_all",
+        "@maven//:org_mockito_mockito_core",
+        "@maven//:org_mockito_mockito_inline",
+        "@maven//:org_reactivestreams_reactive_streams",
+        "@maven//:org_slf4j_slf4j_api",
+    ],
+)
+
+java_test(
+    name = "MyTests",
+    test_class = "io.confluent.ksql.MyTestsVersionMetricsClient",
+    runtime_deps = [":tests"],
+)

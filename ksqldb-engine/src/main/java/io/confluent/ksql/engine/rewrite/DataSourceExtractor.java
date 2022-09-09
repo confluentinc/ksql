@@ -112,7 +112,7 @@ public class DataSourceExtractor {
       final SourceName fromName = ((Table) relation.getRelation()).getName();
       final DataSource source = metaStore.getSource(fromName);
       if (source == null) {
-        String hint = checkAlternatives(fromName.text());
+        final String hint = checkAlternatives(fromName.text());
         throw new KsqlException(fromName.text() + " does not exist." + hint);
       }
 
@@ -132,7 +132,7 @@ public class DataSourceExtractor {
       return null;
     }
 
-    private String checkAlternatives(String sourceName) {
+    private String checkAlternatives(final String sourceName) {
       String hint = "";
       if (metaStore.getSource(SourceName.of(sourceName.toLowerCase())) != null) {
         hint = String.format(

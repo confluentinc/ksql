@@ -1066,7 +1066,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'AND' expecting {';'"
+        "message": "Syntax Error"
       }
     },
     {
@@ -1266,7 +1266,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "line 2:74: missing ')' at ','"
+        "message": "line 2:74: Syntax Error\nmissing ')' at ','"
       }
     },
     {

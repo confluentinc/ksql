@@ -26,11 +26,11 @@ import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.InputMismatchException;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
+
 import org.apache.commons.text.similarity.LevenshteinDetailedDistance;
 
 /**
@@ -50,6 +50,7 @@ public class SyntaxErrorValidator extends BaseErrorListener {
   private final List<String> commands = Arrays.asList("SELECT", "CREATE", "INSERT", "DESCRIBE",
       "PRINT", "EXPLAIN", "SHOW", "LIST", "TERMINATE", "PAUSE", "RESUME", "DROP", "SET", "DEFINE",
       "UNDEFINE", "UNSET", "ASSERT", "ALTER");
+
 
   // List of validators per ANTLr context.
   private static final Map<Class<?>, BiFunction<String, RecognitionException, Boolean>>
@@ -81,7 +82,6 @@ public class SyntaxErrorValidator extends BaseErrorListener {
             .contains(exception.getOffendingToken().getText());
       }
     }
-
     return false;
   }
 
@@ -136,8 +136,7 @@ public class SyntaxErrorValidator extends BaseErrorListener {
 
     if (offendingSymbol instanceof Token) {
       final StringBuilder sb = new StringBuilder();
-      sb.append(
-          String.format("Syntax Error\n"));
+      sb.append("Syntax Error\n");
       if (isKeywordError(message, ((Token) offendingSymbol).getText())) {
         //Checks if the error is a reserved keyword error
         final String tokenName = ((Token) offendingSymbol).getText();
@@ -145,9 +144,9 @@ public class SyntaxErrorValidator extends BaseErrorListener {
             String.format("\"%s\" is a reserved keyword and it can't be used as an identifier."
                 + " You can use it as an identifier by escaping it as '%s' ",
                 tokenName, tokenName));
-      } else if (e instanceof InputMismatchException) {
+      } else if (message.contains("expecting")) {
         sb.append(
-            getExpectations(message,  e.getOffendingToken().getText(), line, charPositionInLine)
+            getExpectations(message, ((Token) offendingSymbol).getText())
         );
       } else {
         sb.append(message);
@@ -160,15 +159,12 @@ public class SyntaxErrorValidator extends BaseErrorListener {
 
   private String getExpectations(
       final String message,
-      final String offendingToken,
-      final int line,
-      final int charPositionInLine) {
+      final String offendingToken) {
     final StringBuilder output = new StringBuilder();
-    final String expectingStr = message.split("expecting ")[1];
-    // If the command is mistyped, fins the most similar command and show it
-    if (line == 1 && charPositionInLine == 0) { // this is a command typo
-      output.append(String.format("Unknown statement '%s'\n",
-              offendingToken));
+    String expectingStr = message.split("expecting ")[1];
+    // If the command is mistyped, find the most similar command and show it
+    if (isCommand(expectingStr)) { // this is a command typo
+      output.append(String.format("Unknown statement '%s'\n", offendingToken));
       output.append(
               String.format("Did you mean '%s'?", getMostSimilar(offendingToken)));
     // In case of missing closing brackets or parentheses
@@ -180,6 +176,15 @@ public class SyntaxErrorValidator extends BaseErrorListener {
       output.append(String.format("Expecting %s", expectingStr));
     }
     return output.toString();
+  }
+
+  private boolean isCommand(String expectingStr) {
+    List<String> expectedList = Arrays.asList(
+        expectingStr.replace("{","").replace("}","")
+            .replace("<EOF>,","").replace(" '","")
+            .replace("'","").split(",")
+    );
+    return expectedList.equals(commands);
   }
 
   private String getMostSimilar(final String offendingToken) {

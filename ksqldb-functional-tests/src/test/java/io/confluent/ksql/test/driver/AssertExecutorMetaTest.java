@@ -23,8 +23,10 @@ public class AssertExecutorMetaTest {
    * These are excluded from coverage
    */
   private final Set<String> excluded = ImmutableSet.of(
-      CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, // testing tool does not support partitions
-      CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS    // testing tool does not support replicas
+      CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS,  // testing tool does not support partitions
+      CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS,    // testing tool does not support replicas
+      CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS, // testing tool does not support retention_ms
+      CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY   // testing tool does not support cleanup_policy
   );
 
   @Test

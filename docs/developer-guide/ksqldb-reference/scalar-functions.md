@@ -418,6 +418,22 @@ Returns the hyperbolic tangent of `col1`. `col1` is in radians. Use the [RADIANS
 
 ---
 
+### **`TRUNC`**
+
+```sql title="Since: 0.29.0"
+TRUNC(col1)
+TRUNC(col1, scale)
+```
+
+Truncates (rounds toward zero) a value to the number of decimal places specified by `scale`.
+
+If `scale` is negative, the value is truncated to the left of the decimal point. For example, 
+`TRUNC(12345.67, -3)` returns `12000`.
+
+If the number of decimal places is not provided, it defaults to zero.
+
+---
+
 ## **Collections**
 
 ### **`ARRAY`**
@@ -1835,6 +1851,15 @@ for example:
 - "America/Los_Angeles"
 - "PDT"
 - "Europe/London"
+
+!!! note
+    To use the `FORMAT_TIMESTAMP` function with a BIGINT millisecond timestamp
+    parameter, convert the millisecond value to a `TIMESTAMP` by using the
+    `FROM_UNIXTIME` function, for example:
+
+    ```sql
+    FORMAT_TIMESTAMP(FROM_UNIXTIME(unix_timestamp))
+    ```
 
 For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).

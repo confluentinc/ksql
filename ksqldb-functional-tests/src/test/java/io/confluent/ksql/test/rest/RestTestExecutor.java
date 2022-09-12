@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,6 +32,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -68,6 +70,7 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -82,6 +85,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import joptsimple.internal.Strings;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -137,6 +141,33 @@ public class RestTestExecutor implements Closeable {
     this.topicInfoCache = new TopicInfoCache(engine, serviceContext.getSchemaRegistryClient());
   }
 
+  private void maybeRegisterTopicSchemas(final Collection<Topic> topics) {
+    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
+    final int firstVersion = 1;
+
+    for (final Topic topic : topics) {
+      try {
+        if (topic.getKeySchemaId().isPresent() && topic.getKeySchema().isPresent()) {
+          schemaRegistryClient.register(
+              KsqlConstants.getSRSubject(topic.getName(), true),
+              topic.getKeySchema().get(),
+              firstVersion /* QTT does not support subjects versions yet */,
+              topic.getKeySchemaId().get());
+        }
+
+        if (topic.getValueSchemaId().isPresent() && topic.getValueSchema().isPresent()) {
+          schemaRegistryClient.register(
+              KsqlConstants.getSRSubject(topic.getName(), false),
+              topic.getValueSchema().get(),
+              firstVersion /* QTT does not support subjects versions yet */,
+              topic.getValueSchemaId().get());
+        }
+      } catch (final Exception e) {
+        throw new KsqlException(e);
+      }
+    }
+  }
+
   void buildAndExecuteQuery(final RestTestCase testCase) {
     topicInfoCache.clear();
 
@@ -154,6 +185,7 @@ public class RestTestExecutor implements Closeable {
           + "responsesCount: " + expectedResponseSize);
     }
 
+    maybeRegisterTopicSchemas(testCase.getTopics());
     initializeTopics(testCase);
     testCase.getProperties().forEach(restClient::setProperty);
 
@@ -1055,7 +1087,16 @@ public class RestTestExecutor implements Closeable {
       assertThat("Expected query response", expectedType, is("queryProto"));
       assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
 
-      final List<?> expectedRows = (List<?>) expectedPayload;
+      final List<Map<String, Object>> expectedRows = ((List<?>) expectedPayload).stream()
+          .map(row -> {
+            assertThat(
+                "Each row should be JSON object",
+                row,
+                is(instanceOf(Map.class))
+            );
+            return (Map<String, Object>) row;
+          })
+          .collect(Collectors.toList());
 
       assertThat(
               "row count mismatch."
@@ -1073,50 +1114,85 @@ public class RestTestExecutor implements Closeable {
               rows,
               hasSize(expectedRows.size())
       );
-
-      ProtobufSchema schema = null;
       ProtobufNoSRConverter.Deserializer deserializer = new ProtobufNoSRConverter.Deserializer();
+
+      final List<Map<String, Object>> actualRows = rows.stream()
+          .map(row -> asJson(row, PAYLOAD_TYPE))
+          .collect(Collectors.toList());
+      final ProtobufSchema schema = verifyHeaderAndFinalMessageAndGetSchema(actualRows, expectedRows, verifyOrder);
+
       final JsonMapper mapper = new JsonMapper();
+
+      final List<String> actualRowsDeserialized = actualRows.stream()
+          .filter(actual -> !actual.containsKey(HEADER_PROTOBUF) && !actual.containsKey("finalMessage"))
+          .map(actual -> {
+            JSONObject row = new JSONObject(actual);
+            byte[] bytes;
+            try {
+              bytes = mapper.readTree(row.toString()).get("row").get("protobufBytes").binaryValue();
+            } catch (IOException e) {
+              throw new RuntimeException("Failed to deserialize the ProtoBuf bytes from the " +
+                  "RQTT JSON response row: " + row);
+            }
+            return deserializer.deserialize(bytes, schema).toString();
+          }).collect(Collectors.toList());
+      final List<String> expectedRowsDeserialized = expectedRows.stream()
+          .filter(expected -> !expected.containsKey(HEADER_PROTOBUF) && !expected.containsKey("finalMessage"))
+          .map(expected -> expected.get("row").toString())
+          .collect(Collectors.toList());
+
+      if (!verifyOrder) {
+        Collections.sort(actualRowsDeserialized);
+        Collections.sort(expectedRowsDeserialized);
+      }
+      assertEquals("Response mismatch. Got:\n"
+          + Strings.join(actualRowsDeserialized, "")
+          + "Expected: \n" + Strings.join(expectedRowsDeserialized, ""),
+          actualRowsDeserialized,
+          expectedRowsDeserialized
+      );
+    }
+
+    private ProtobufSchema verifyHeaderAndFinalMessageAndGetSchema(
+        List<Map<String, Object>> actualRows,
+        List<Map<String, Object>> expectedRows,
+        final boolean verifyOrder
+    ) {
+      ProtobufSchema schema = null;
       for (int i = 0; i != rows.size(); ++i) {
-        assertThat(
-                "Each row should be JSON object",
-                expectedRows.get(i),
-                is(instanceOf(Map.class))
-        );
-
-        final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
-        final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
-
+        final Map<String, Object> actual = actualRows.get(i);
         if (actual.containsKey(HEADER_PROTOBUF)
-                && ((HashMap<String, Object>) actual.get(HEADER_PROTOBUF)).containsKey(SCHEMA)) {
-
-          assertThat(i, is(0));
+            && ((HashMap<String, Object>) actual.get(HEADER_PROTOBUF)).containsKey(SCHEMA)) {
 
           schema = new ProtobufSchema((String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA));
           final String actualSchema = (String) ((Map<?, ?>)actual.get(HEADER_PROTOBUF)).get(SCHEMA);
-          final String expectedSchema = (String) ((Map<?, ?>)expected.get(HEADER_PROTOBUF)).get(SCHEMA);
+          final Map<String, Object> expected;
 
+          if (verifyOrder) {
+            expected = expectedRows.get(i);
+          } else {
+            assertThat(i, is(0));
+            expected = expectedRows.stream()
+                .filter(row -> row.containsKey(HEADER_PROTOBUF))
+                .findFirst()
+                .get();
+          }
+          final String expectedSchema = (String) ((Map<?, ?>)expected.get(HEADER_PROTOBUF)).get(SCHEMA);
           assertThat(actualSchema, is(expectedSchema));
         } else if (actual.containsKey("finalMessage")) {
-          assertThat(actual, is(expected));
-        } else {
-          JSONObject row = new JSONObject(actual);
+          if (verifyOrder) {
+            assertThat(actual, is(expectedRows.get(i)));
+          } else {
+            final Optional<Map<String, Object>> expected = expectedRows.stream()
+                .filter(row -> row.containsKey("finalMessage"))
+                .findFirst();
 
-          byte[] bytes;
-          try {
-            bytes = mapper.readTree(row.toString()).get("row").get("protobufBytes").binaryValue();
-          } catch (IOException e) {
-            throw new RuntimeException("Failed to deserialize the ProtoBuf bytes from the " +
-                    "RQTT JSON response row: " + row);
+            assertThat("No final message present", expected.isPresent());
+            assertThat(actual, is(expected.get()));
           }
-
-          final Object message = deserializer.deserialize(bytes, schema);
-          final String actualMessage = message.toString();
-          final String expectedMessage = expected.get("row").toString();
-
-          assertThat(actualMessage, is(expectedMessage));
         }
       }
+      return schema;
     }
   }
 

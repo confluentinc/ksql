@@ -11,6 +11,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
 public class ConnectSchemasTest {
@@ -32,6 +33,20 @@ public class ConnectSchemasTest {
         connectField("Vic", 0, Schema.OPTIONAL_FLOAT64_SCHEMA),
         connectField("Bob", 1, Schema.OPTIONAL_INT64_SCHEMA)
     ));
+  }
+  @Test
+  public void shouldMakeStructSchemaCompatible() {
+    // Given:
+    final Schema oldSchema = new ConnectSchema(
+        Type.STRUCT, false, null, "oldSchema", 1, "");
+    final Struct struct = new Struct(oldSchema);
+    // When:
+    final Schema newSchema = new ConnectSchema(
+        Type.STRUCT, false, null, "newSchema", 1, "");;
+    final Struct structWithNewSchema = (Struct) ConnectSchemas.withCompatibleSchema(newSchema, struct);
+
+    // Then:
+    assertThat(structWithNewSchema.schema(), is(newSchema));
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

@@ -119,6 +119,88 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got RT.F2 = LT.ID1."
       }
+    },
+    {
+      "name": "table-table key join with avro schema and schema id",
+      "statements": [
+        "CREATE TABLE left_table WITH (kafka_topic='left_topic', partitions=128, format='AVRO', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);",
+        "CREATE TABLE right_table WITH (kafka_topic='right_topic', partitions=128, format='AVRO', KEY_SCHEMA_ID=201, VALUE_SCHEMA_ID=202);",
+        "CREATE TABLE output AS SELECT L.ROWKEY, L.NAME, L.FOREIGN_KEY, R.F1 FROM left_table L JOIN right_table R ON L.ROWKEY = R.ROWKEY;"
+      ],
+      "topics": [
+        {
+          "name":  "left_topic",
+          "keyFormat": "AVRO",
+          "keySchemaId": 101,
+          "keySchema": {"name": "LeftKeySchema", "namespace": "com.left", "type": "long"},
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record", "namespace":"com.left", "name":"LeftValSchema", "fields": [{"name": "NAME", "type": "string"}, {"name": "FOREIGN_KEY", "type": "long"}]}
+        },
+        {
+          "name":  "right_topic",
+          "keyFormat": "AVRO",
+          "keySchemaId": 201,
+          "keySchema": {"type": "long", "namespace": "com.right", "name": "RightKeySchema"},
+          "valueFormat": "AVRO",
+          "valueSchemaId": 202,
+          "valueSchema": {"type":"record","namespace":"com.right","name":"RightValSchema","fields":[{"name":"F1","type":"int"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 1, "value": {"F1": 1}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 2, "value": {"F1": 2}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "bar", "FOREIGN_KEY": 1}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 2, "value": {"NAME": "foo", "FOREIGN_KEY": 2}, "timestamp": 11000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"FOREIGN_KEY": 0, "NAME": "zero", "F1": 0}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"FOREIGN_KEY": 1, "NAME": "bar", "F1": 1}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 2, "value": {"FOREIGN_KEY": 2, "NAME": "foo", "F1": 2}, "timestamp": 11000}
+      ]
+    },
+    {
+      "name": "table-table key join with protobuf schema and schema id",
+      "statements": [
+        "CREATE TABLE left_table WITH (kafka_topic='left_topic', partitions=128, format='PROTOBUF', KEY_SCHEMA_ID=101, KEY_SCHEMA_FULL_NAME='ProtobufLeftKey2', VALUE_SCHEMA_ID=102, VALUE_SCHEMA_FULL_NAME='ProtobufLeftValue2');",
+        "CREATE TABLE right_table WITH (kafka_topic='right_topic', partitions=128, format='PROTOBUF', KEY_SCHEMA_ID=201, KEY_SCHEMA_FULL_NAME='ProtobufRightKey2', VALUE_SCHEMA_ID=202, VALUE_SCHEMA_FULL_NAME='ProtobufRightValue2');",
+        "CREATE TABLE output AS SELECT L.K, L.NAME, L.FOREIGN_KEY, R.F1 FROM left_table L JOIN right_table R ON L.K = R.K;"
+      ],
+      "topics": [
+        {
+          "name": "left_topic",
+          "keyFormat": "PROTOBUF",
+          "keySchemaId": 101,
+          "keySchema": "syntax = \"proto3\"; message ProtobufLeftKey1 {uint32 k1 = 1;} message ProtobufLeftKey2 {int32 K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 102,
+          "valueSchema": "syntax = \"proto3\"; message ProtobufLeftValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufLeftValue2 {string NAME = 1; uint64 FOREIGN_KEY = 2;}"
+        },
+        {
+          "name": "right_topic",
+          "keyFormat": "PROTOBUF",
+          "keySchemaId": 201,
+          "keySchema": "syntax = \"proto3\"; message ProtobufRightKey1 {uint32 k1 = 1;} message ProtobufRightKey2 {int32 K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 202,
+          "valueSchema": "syntax = \"proto3\"; message ProtobufRightValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufRightValue2 {uint64 F1 = 1;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": {"K": 0}, "value": {"F1": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": {"K": 1}, "value": {"F1": 1}, "timestamp": 10000},
+        {"topic": "right_topic", "key": {"K": 2}, "value": {"F1": 2}, "timestamp": 10000},
+        {"topic": "left_topic", "key": {"K": 0}, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": {"K": 1}, "value": {"NAME": "bar", "FOREIGN_KEY": 1}, "timestamp": 11000},
+        {"topic": "left_topic", "key": {"K": 2}, "value": {"NAME": "foo", "FOREIGN_KEY": 2}, "timestamp": 11000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"L_K": 0}, "value": {"FOREIGN_KEY": 0, "NAME": "zero", "F1": 0}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": {"L_K": 1}, "value": {"FOREIGN_KEY": 1, "NAME": "bar", "F1": 1}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": {"L_K": 2}, "value": {"FOREIGN_KEY": 2, "NAME": "foo", "F1": 2}, "timestamp": 11000}
+      ]
     }
   ]
 }

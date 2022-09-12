@@ -37,6 +37,11 @@ The size of the result ARRAY can be limited to a maximum of
 `ksql.functions.collect_list.limit` entries, and any values beyond this
 limit are ignored silently.
 
+!!! note
+
+    In {{ site.ccloud }}, the `ksql.functions.collect_list.limit` config is set
+    to 1000 and can't be changed.
+
 When used with `SESSION` window, sometimes two session windows are merged
 together into one, when a out-of-order record with a timestamp between
 the two windows is processed. In this case, the record limit is calculated by
@@ -61,6 +66,11 @@ each input row (for the specified grouping and time window, if any).
 The size of the result ARRAY can be limited to a maximum of
 `ksql.functions.collect_set.limit` entries, and any values beyond this
 limit are ignored silently.
+
+!!! note
+
+    In {{ site.ccloud }}, the `ksql.functions.collect_set.limit` config is set
+    to 1000 and can't be changed.
 
 When used with a `SESSION` window, sometimes two session windows are merged
 together into one, when a out-of-order record with a timestamp between
@@ -271,10 +281,17 @@ Rows that have `col1` set to `NULL` are ignored.
 ## **`TOPK`**
 
 ```sql title="Applies to: stream<br>"
-TOPK(col1, k)
+TOPK(col1, otherCols..., k)
 ```
 
 Returns the Top *K* values for the given column and window.
+
+If only `col1` is provided, an array of values for that column is
+returned. If `otherCols` are provided, a list of `STRUCT`s is returned. Each
+`STRUCT` has a field named `sort_col` that contains value of `col1` in the 
+associated record. `otherCols` are in fields named `col0`, `col1`, `col2`, 
+etc., in the order they were provided. `otherCols` do not all have to
+be of the same type.
 
 Rows that have `col1` set to `NULL` are ignored.
 

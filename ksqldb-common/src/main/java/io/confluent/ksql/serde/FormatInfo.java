@@ -23,6 +23,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Immutable Pojo holding standard info about a format.
@@ -91,4 +92,22 @@ public final class FormatInfo {
         + ", properties=" + properties
         + '}';
   }
+
+  private ImmutableMap<String, String> getPropertiesWithoutProperty(final String propName) {
+    final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
+
+    return propertiesBuilder.putAll(
+        this
+            .getProperties()
+            .entrySet()
+            .stream()
+            .filter(x -> !x.getKey().equals(propName))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+    ).build();
+  }
+
+  public FormatInfo copyWithoutProperty(final String propName) {
+    return FormatInfo.of(this.getFormat(), getPropertiesWithoutProperty(propName));
+  }
+
 }

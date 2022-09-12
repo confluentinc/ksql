@@ -549,7 +549,7 @@ Starting with ksqlDB 0.11.0, the `executeStatement()` method enables client apps
 - Create new ksqlDB streams and tables
 - Drop existing ksqlDB streams and tables
 - Create new persistent queries, i.e., `CREATE ... AS SELECT` and `INSERT INTO ... AS SELECT` statements
-- Terminate persistent queries
+- Pause, Resume, and Terminate persistent queries
 
 ```java
 public interface Client {

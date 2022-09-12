@@ -116,9 +116,18 @@ Start by creating a `pom.xml` for your Java application:
 
 !!! note
       The `with-dependencies` artifact was introduced in ksqlDB version 0.29 and CP version 7.4.0.  This jar includes  
-      all the necessary dependencies and relocates most of them in an attempt to avoid classpath issues.
+      all the necessary dependencies and relocates most of them in an attempt to avoid classpath issues.  Using this jar
+      provides the easiest way to get started.
       If you want more control over the dependencies on the classpath, you can depend directly on the client 
-      by removing that classifier from the dependency block.
+      using this dependency block instead:
+      ```
+          <dependency>
+              <groupId>io.confluent.ksql</groupId>
+              <artifactId>ksqldb-api-client</artifactId>
+              <version>${ksqldb.version}</version>
+          </dependency>
+      ```
+      If you do this, you will need to add all the transitive dependencies for `ksqldb-api-client`.
 
 Create your example app at `src/main/java/my/ksqldb/app/ExampleApp.java`:
 

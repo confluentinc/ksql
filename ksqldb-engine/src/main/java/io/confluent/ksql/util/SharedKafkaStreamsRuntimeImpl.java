@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.KafkaStreams;
@@ -197,17 +199,22 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           topolgogiesToAdd.clear();
           kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
               .all()
-              .get();
+              .get(shutdownTimeout, TimeUnit.MILLISECONDS);
           if (resetOffsets) {
             kafkaStreams.cleanUpNamedTopology(queryId.toString());
           }
-        } catch (ExecutionException | InterruptedException e) {
-          final Throwable t = e.getCause() == null ? e : e.getCause();
-          throw new IllegalStateException(String.format(
+        } catch (final TimeoutException | ExecutionException | InterruptedException e) {
+          if (!(e instanceof TimeoutException)) {
+            final Throwable t = e.getCause() == null ? e : e.getCause();
+            throw new IllegalStateException(String.format(
                 "Encountered an error when trying to stop query %s in runtime: %s",
                 queryId,
                 getApplicationId()),
-              t);
+                t);
+          }
+          log.warn("Query {} has not terminated even after trying to remove the topology. "
+              + "This may happen when streams threads are hung. State: "
+              + kafkaStreams.state(), queryId);
         }
       } else {
         throw new IllegalStateException("Streams in not running but is in state "

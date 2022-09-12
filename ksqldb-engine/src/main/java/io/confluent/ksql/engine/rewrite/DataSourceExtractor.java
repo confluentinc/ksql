@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.protocol.types.Field.Str;
 
 public class DataSourceExtractor {
 
@@ -133,33 +134,36 @@ public class DataSourceExtractor {
     }
 
     private String checkAlternatives(final SourceName sourceName) {
-      String hint = "";
+      StringBuilder hint = new StringBuilder();
 
       for (SourceName name:metaStore.getAllDataSources().keySet()) {
         if (name.text().equalsIgnoreCase(sourceName.text())) {
           /* if source name in metastore contains small letters, the query source name must be
-          / wrapped in double quotes with the correct order of small and capital letters */
+          wrapped in double quotes with the correct order of small and capital letters */
           if (!name.text().toUpperCase().equals(name.text())
               && sourceName.text().toUpperCase().equals(sourceName.text())) {
-            hint = "\nHint: try wrapping the source name in double quotes "
-                + "with the correct order of small and capital letters: \""
-                + name.text() + "\"";
+            hint.append(String.format("\nHint: try wrapping the source name in double quotes "
+                + "with the correct order of small and capital letters: \"%s\"", name.text()));
           /* if the source name passed by the query is wrapped in double quotes,
           the double quotes must be removed, or it must have the same order of small and capital
           letters as the created source */
           } else if (!sourceName.text().toUpperCase().equals(sourceName.text())) {
+            if (hint.length() == 0) {
+              hint.append("\nHint: ");
+            } else {
+              hint.append(", either ");
+            }
             // if the name in metastore does NOT contain small letters
             if (name.text().toUpperCase().equals(name.text())) {
-              hint = "\nHint: try removing double quotes from the source name.";
+              hint.append("try removing double quotes from the source name");
             } else {
-              hint = "\nHint: please query the source name with the correct order "
-                  + "of small and capital letters: \"" + name.text() + "\"";
+              hint.append(String.format("query the source name with the correct order "
+                  + "of small and capital letters: \"%s\"", name.text()));
             }
           }
-
         }
       }
-      return hint;
+      return hint.toString();
     }
 
     @Override

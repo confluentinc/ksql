@@ -560,7 +560,7 @@ public class KsqlEngineTest {
     // Then:
     assertThat(e, rawMessage(is(
         "Exception while preparing statement: bar does not exist.\n"
-            + "Hint: try removing double quotes from the source name.")));
+            + "Hint: try removing double quotes from the source name")));
     assertThat(e, statementText(is("select * from \"bar\";")));
   }
 
@@ -590,8 +590,39 @@ public class KsqlEngineTest {
     // Then:
     assertThat(e, rawMessage(is(
         "Exception while preparing statement: bAr does not exist.\n"
-            + "Hint: please query the source name with the correct order of small and capital letters: \"Bar\"")));
+            + "Hint: query the source name with the correct order of small and capital letters: \"Bar\"")));
     assertThat(e, statementText(is("select * from \"bAr\";")));
+  }
+
+  @Test
+  public void shouldShowMultipleHintsWhenIncorrectSourceMatchesMultipleTimes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"Bar\" as select * from test1; "
+            + "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Exception while preparing statement: bar does not exist."));
+    assertThat(e.getMessage(), containsString("try removing double quotes from the source name"));
+    assertThat(e.getMessage(), containsString("query the source name with the correct order of small and capital letters: \"Bar\""));
+    assertThat(e, statementText(is("select * from \"bar\";")));
   }
 
   @Test

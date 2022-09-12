@@ -32,10 +32,12 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class DataSourceExtractor {
@@ -134,32 +136,35 @@ public class DataSourceExtractor {
 
     private String checkAlternatives(final SourceName sourceName) {
       final StringBuilder hint = new StringBuilder();
+      final List<String> matchedSources = new ArrayList<>();
 
       for (SourceName name:metaStore.getAllDataSources().keySet()) {
         if (name.text().equalsIgnoreCase(sourceName.text())) {
-          /* if source name in metastore contains small letters, the query source name must be
-          wrapped in double quotes with the correct order of small and capital letters */
-          if (!name.text().toUpperCase().equals(name.text())
-              && sourceName.text().toUpperCase().equals(sourceName.text())) {
-            hint.append(String.format("\nHint: try wrapping the source name in double quotes "
-                + "with the correct order of small and capital letters: \"%s\"", name.text()));
-          /* if the source name passed by the query is wrapped in double quotes,
-          the double quotes must be removed, or it must have the same order of small and capital
-          letters as the created source */
-          } else if (!sourceName.text().toUpperCase().equals(sourceName.text())) {
-            if (hint.length() == 0) {
-              hint.append("\nHint: ");
-            } else {
-              hint.append(", either ");
-            }
-            // if the name in metastore does NOT contain small letters
-            if (name.text().toUpperCase().equals(name.text())) {
-              hint.append("try removing double quotes from the source name");
-            } else {
-              hint.append(String.format("query the source name with the correct order "
-                  + "of small and capital letters: \"%s\"", name.text()));
-            }
-          }
+          matchedSources.add(name.text());
+        }
+      }
+      if (matchedSources.size() > 1) {
+        final int n = matchedSources.size();
+        for (int i = 0; i < n; i++) {
+          final String dataSourceType = metaStore.getSource(SourceName.of(matchedSources.get(i)))
+              .getDataSourceType().toString().replace("K","");
+          final String punctuation = i < n - 2 ? ", " : i == n - 2 ? ", or " : "? ";
+          hint.append(String.format("\"%s\" (%s)%s",
+              matchedSources.get(i), dataSourceType, punctuation));
+        }
+        hint.insert(0, "\nDid you mean ");
+        hint.append("Hint: wrap a name in double quotes to make it case-sensitive.");
+
+      } else if (matchedSources.size() > 0) {
+        final Pattern capitalPattern = Pattern.compile(".*[a-z]+.*");
+        // contains at least one small letter
+        if (capitalPattern.matcher(matchedSources.get(0)).matches()) {
+          hint.append(String.format(
+              "\nDid you mean \"%s\"? Hint: wrap a source name in double quotes "
+                  + "to make it case-sensitive.", matchedSources.get(0)
+          ));
+        } else { // contains only capital letters
+          hint.append("\nHint: try removing double quotes from the source name.");
         }
       }
       return hint.toString();

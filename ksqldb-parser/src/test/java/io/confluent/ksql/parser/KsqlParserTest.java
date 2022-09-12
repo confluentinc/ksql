@@ -1539,13 +1539,13 @@ public class KsqlParserTest {
   @Test
   public void shouldThrowSyntaxErrorOnMisMatchStatement() {
     // Given
-    final String invalidCreateStatement =
+    final String invalidStatement =
         "SELECT FROM FROM TEST_TOPIC";
 
     // When
     final Exception e = assertThrows(
         ParseFailedException.class,
-        () -> KsqlParserTestUtil.parse(invalidCreateStatement)
+        () -> KsqlParserTestUtil.parse(invalidStatement)
     );
 
     // Then
@@ -1556,13 +1556,13 @@ public class KsqlParserTest {
   @Test
   public void shouldThrowSyntaxErrorAndShowExpecting() {
     // Given
-    final String invalidCreateStatement =
+    final String invalidStatement =
         "SELECT * FORM TEST_TOPIC";
 
     // When
     final Exception e = assertThrows(
         ParseFailedException.class,
-        () -> KsqlParserTestUtil.parse(invalidCreateStatement)
+        () -> KsqlParserTestUtil.parse(invalidStatement)
     );
 
     // Then
@@ -1574,13 +1574,13 @@ public class KsqlParserTest {
   @Test
   public void shouldThrowSyntaxErrorOnWrongEOF() {
     // Given
-    final String invalidCreateStatement =
+    final String invalidStatement =
     "SELECT * FROM artist WHERE first_name = 'Vincent' and (last_name = 'Monet' or last_name = 'Da Vinci'";
 
     // When
     final Exception e = assertThrows(
         ParseFailedException.class,
-        () -> KsqlParserTestUtil.parse(invalidCreateStatement)
+        () -> KsqlParserTestUtil.parse(invalidStatement)
     );
 
     // Then

@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.protocol.types.Field.Str;
 
 public class DataSourceExtractor {
 
@@ -134,7 +133,7 @@ public class DataSourceExtractor {
     }
 
     private String checkAlternatives(final SourceName sourceName) {
-      StringBuilder hint = new StringBuilder();
+      final StringBuilder hint = new StringBuilder();
 
       for (SourceName name:metaStore.getAllDataSources().keySet()) {
         if (name.text().equalsIgnoreCase(sourceName.text())) {

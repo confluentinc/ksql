@@ -192,30 +192,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     }
     if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
-        try {
-          for (KafkaFuture<Void> toAdd : topolgogiesToAdd) {
-            toAdd.get();
-          }
-          topolgogiesToAdd.clear();
-          kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
-              .all()
-              .get(shutdownTimeout, TimeUnit.MILLISECONDS);
-          if (resetOffsets) {
-            kafkaStreams.cleanUpNamedTopology(queryId.toString());
-          }
-        } catch (final TimeoutException | ExecutionException | InterruptedException e) {
-          if (!(e instanceof TimeoutException)) {
-            final Throwable t = e.getCause() == null ? e : e.getCause();
-            throw new IllegalStateException(String.format(
-                "Encountered an error when trying to stop query %s in runtime: %s",
-                queryId,
-                getApplicationId()),
-                t);
-          }
-          log.warn("Query {} has not terminated even after trying to remove the topology. "
-              + "This may happen when streams threads are hung. State: "
-              + kafkaStreams.state(), queryId);
-        }
+        tryCleanupTopology(queryId, resetOffsets);
       } else {
         throw new IllegalStateException("Streams in not running but is in state "
             + kafkaStreams.state());
@@ -226,6 +203,35 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       collocatedQueries.remove(queryId);
     }
     log.info("Query {} was stopped successfully", queryId);
+  }
+
+  private void tryCleanupTopology(QueryId queryId, boolean resetOffsets) {
+    for (int retries = 0; retries < 3; retries++) {
+      try {
+        for (KafkaFuture<Void> toAdd : topolgogiesToAdd) {
+          toAdd.get();
+        }
+        topolgogiesToAdd.clear();
+        kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
+            .all()
+            .get(shutdownTimeout, TimeUnit.MILLISECONDS);
+        if (resetOffsets) {
+          kafkaStreams.cleanUpNamedTopology(queryId.toString());
+        }
+        break;
+      } catch (final TimeoutException | ExecutionException | InterruptedException e) {
+        if (!(e instanceof TimeoutException) || ++retries == 3) {
+          final Throwable t = e.getCause() == null ? e : e.getCause();
+          throw new IllegalStateException(String.format(
+              "Encountered an error when trying to stop query %s in runtime: %s",
+              queryId,
+              getApplicationId()),
+              t);
+        }
+        log.warn("Query {} has not terminated after trying to remove the topology. Retrying. ",
+            queryId);
+      }
+    }
   }
 
   @Override

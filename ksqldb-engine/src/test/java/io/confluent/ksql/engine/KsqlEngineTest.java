@@ -651,7 +651,7 @@ public class KsqlEngineTest {
     // Then:
     assertThat(e, rawMessage(is(
         "Exception while preparing statement: BAR does not exist.\n"
-            + "Hint: try wrapping the source name in double quotes with the correct order of small and capital letters: \"bar\"")));
+            + "Did you mean \"bar\"? Hint: wrap a source name in double quotes to make it case-sensitive.")));
     assertThat(e, statementText(is("select * from bar;")));
   }
 

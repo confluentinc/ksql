@@ -69,7 +69,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 public class JoinNode extends PlanNode implements JoiningNode {
 
   public enum JoinType {
-    INNER, LEFT, RIGHT, OUTER, SELF;
+    INNER, LEFT, RIGHT, OUTER;
 
     @Override
     public String toString() {
@@ -82,8 +82,6 @@ public class JoinNode extends PlanNode implements JoiningNode {
           return "RIGHT [OUTER] JOIN";
         case OUTER:
           return "[FULL] OUTER JOIN";
-        case SELF:
-          return "[INNER SELF] JOIN";
         default:
           throw new IllegalStateException();
       }

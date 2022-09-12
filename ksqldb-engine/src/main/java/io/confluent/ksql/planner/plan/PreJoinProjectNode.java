@@ -157,14 +157,14 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
           getFormatInfo()
       );
     } else {
-        return stream.noOpSelect(
-            keyColumnNames,
-            getSelectExpressions(),
-            buildContext.buildNodeContext(getId().toString()),
-            buildContext,
-            getFormatInfo()
-        );
-      }
+      return stream.noOpSelect(
+          keyColumnNames,
+          getSelectExpressions(),
+          buildContext.buildNodeContext(getId().toString()),
+          buildContext,
+          getFormatInfo()
+      );
+    }
   }
 
   private static ImmutableBiMap<ColumnName, ColumnName> buildAliasMapping(

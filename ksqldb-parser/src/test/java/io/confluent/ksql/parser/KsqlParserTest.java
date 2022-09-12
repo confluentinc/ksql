@@ -1216,7 +1216,7 @@ public class KsqlParserTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("line 1:21: Syntax Error"));
-    assertThat(e.getMessage(), containsString("extraneous input ';' expecting {',', 'FROM'}"));
+    assertThat(e.getMessage(), containsString("Expecting {',', 'FROM'}"));
     assertThat(e.getMessage(), containsString("Statement: SELECT ONLY, COLUMNS"));
   }
 

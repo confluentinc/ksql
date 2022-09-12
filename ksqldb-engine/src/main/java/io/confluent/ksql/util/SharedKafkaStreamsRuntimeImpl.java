@@ -205,7 +205,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     log.info("Query {} was stopped successfully", queryId);
   }
 
-  private void tryCleanupTopology(QueryId queryId, boolean resetOffsets) {
+  private void tryCleanupTopology(final QueryId queryId, final boolean resetOffsets) {
     for (int retries = 0; retries < 3; retries++) {
       try {
         for (KafkaFuture<Void> toAdd : topolgogiesToAdd) {

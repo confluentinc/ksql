@@ -220,7 +220,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         }
         break;
       } catch (final TimeoutException | ExecutionException | InterruptedException e) {
-        if (!(e instanceof TimeoutException) || ++retries == 3) {
+        if (!(e instanceof TimeoutException) || retries == 2) {
           final Throwable t = e.getCause() == null ? e : e.getCause();
           throw new IllegalStateException(String.format(
               "Encountered an error when trying to stop query %s in runtime: %s",

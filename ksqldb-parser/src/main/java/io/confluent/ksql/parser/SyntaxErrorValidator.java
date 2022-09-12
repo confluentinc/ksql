@@ -30,7 +30,6 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
-
 import org.apache.commons.text.similarity.LevenshteinDetailedDistance;
 
 /**
@@ -161,7 +160,7 @@ public class SyntaxErrorValidator extends BaseErrorListener {
       final String message,
       final String offendingToken) {
     final StringBuilder output = new StringBuilder();
-    String expectingStr = message.split("expecting ")[1];
+    final String expectingStr = message.split("expecting ")[1];
     // If the command is mistyped, find the most similar command and show it
     if (isCommand(expectingStr)) { // this is a command typo
       output.append(String.format("Unknown statement '%s'\n", offendingToken));
@@ -178,8 +177,8 @@ public class SyntaxErrorValidator extends BaseErrorListener {
     return output.toString();
   }
 
-  private boolean isCommand(String expectingStr) {
-    List<String> expectedList = Arrays.asList(
+  private boolean isCommand(final String expectingStr) {
+    final List<String> expectedList = Arrays.asList(
         expectingStr.replace("{","").replace("}","")
             .replace("<EOF>,","").replace(" '","")
             .replace("'","").split(",")

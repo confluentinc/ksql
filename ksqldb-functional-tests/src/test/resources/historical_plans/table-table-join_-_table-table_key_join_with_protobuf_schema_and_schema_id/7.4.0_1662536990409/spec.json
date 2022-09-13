@@ -26,16 +26,14 @@
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufLeftKey2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "101"
+          "unwrapPrimitives" : "true"
         }
       },
       "valueFormat" : {
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufLeftValue2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "102"
+          "unwrapPrimitives" : "true"
         }
       }
     },
@@ -151,16 +149,14 @@
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufRightKey2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "201"
+          "unwrapPrimitives" : "true"
         }
       },
       "valueFormat" : {
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufRightValue2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "202"
+          "unwrapPrimitives" : "true"
         }
       }
     },

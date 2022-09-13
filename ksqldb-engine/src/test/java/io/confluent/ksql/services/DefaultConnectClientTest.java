@@ -21,6 +21,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -40,18 +42,17 @@ import java.util.Optional;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.http.HttpStatus;
-import org.apache.kafka.connect.runtime.isolation.PluginType;
-import org.apache.kafka.connect.runtime.rest.entities.ActiveTopicsInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
+import io.confluent.ksql.rest.entity.PluginInfo.PluginType;
+import io.confluent.ksql.rest.entity.ConfigInfos.ConfigInfo;
+import io.confluent.ksql.rest.entity.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigKeyInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigValueInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
+import io.confluent.ksql.rest.entity.ConnectorType;
+import io.confluent.ksql.rest.entity.PluginInfo;
 import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
 import org.junit.Rule;
@@ -427,6 +428,26 @@ public class DefaultConnectClientTest {
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of("one", "two"))));
     assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  public static class ActiveTopicsInfo {
+    private final String connector;
+    private final Collection<String> topics;
+
+    @JsonCreator
+    public ActiveTopicsInfo(String connector, @JsonProperty("topics") Collection<String> topics) {
+      this.connector = connector;
+      this.topics = topics;
+    }
+
+    public String connector() {
+      return this.connector;
+    }
+
+    @JsonProperty
+    public Collection<String> topics() {
+      return this.topics;
+    }
   }
 
 }

@@ -31,8 +31,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
+import io.confluent.ksql.rest.entity.ConnectorType;
+import io.confluent.ksql.rest.entity.PluginInfo;
 
 public final class ListConnectorPluginsExecutor {
   private ListConnectorPluginsExecutor() {

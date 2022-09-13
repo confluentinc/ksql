@@ -128,7 +128,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;

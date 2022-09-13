@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 
 public enum Connectors implements SupportedConnector {
 

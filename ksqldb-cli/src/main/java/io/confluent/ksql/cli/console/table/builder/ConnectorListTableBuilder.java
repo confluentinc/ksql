@@ -20,7 +20,7 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import java.util.List;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConnectorType;
 
 public class ConnectorListTableBuilder implements TableBuilder<ConnectorList>  {
 

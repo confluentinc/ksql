@@ -19,10 +19,10 @@ import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
+import io.confluent.ksql.rest.entity.ConfigInfos;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.PluginInfo;
 
 /**
  * An interface defining the common operations to communicate with

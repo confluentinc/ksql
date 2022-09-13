@@ -27,7 +27,7 @@ import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.json.StructSerializationModule;
 import java.io.IOException;
 import java.util.Locale;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
+import io.confluent.ksql.rest.entity.PluginInfo;
 
 /**
  * Json Mapper used by Connect integration.

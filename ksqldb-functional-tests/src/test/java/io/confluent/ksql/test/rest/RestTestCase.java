@@ -32,7 +32,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
-class RestTestCase implements Test {
+public class RestTestCase implements Test {
 
   private final TestLocation location;
   private final String name;

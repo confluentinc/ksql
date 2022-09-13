@@ -48,7 +48,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 
@@ -184,8 +183,7 @@ public class RestQueryTranslationTest {
     }
   }
 
-  @Test
-  public void shouldBuildAndExecuteQueries() {
+  protected void shouldBuildAndExecuteQueries() {
     try (RestTestExecutor testExecutor = testExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
     } catch (final AssertionError | Exception e) {

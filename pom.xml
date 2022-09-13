@@ -691,33 +691,6 @@
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC</argLine>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>default-integration-test</id>
-                        <configuration>
-                            <includes>
-                                <include>**/RestQueryTranslationTest*.java</include>
-                            </includes>
-                            <skip>true</skip>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>multi-thread-test</id>
-                        <phase>integration-test</phase>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                        <configuration>
-                            <includes>
-                                <include>**/RestQueryTranslationTest*.java</include>
-                            </includes>
-                            <forkCount>16</forkCount>
-                            <reuseForks>false</reuseForks>
-                            <parallel>classes</parallel>
-                            <useUnlimitedThreads>true</useUnlimitedThreads>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -731,6 +704,33 @@
                     for more details -->
                     <useModulePath>false</useModulePath>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <configuration>
+                            <includes>
+                                <include>**/RestQueryTranslationTest*.java</include>
+                            </includes>
+                            <skip>true</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>multi-thread-test</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/RestQueryTranslationTest*.java</include>
+                            </includes>
+                            <forkCount>16</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <parallel>classes</parallel>
+                            <useUnlimitedThreads>true</useUnlimitedThreads>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

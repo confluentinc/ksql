@@ -8,14 +8,10 @@ import io.confluent.ksql.test.rest.RestTestCase;
 import io.confluent.ksql.test.util.ThreadTestUtil.ThreadSnapshot;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.After;
 import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -36,6 +32,11 @@ public class RestQueryTranslationTestBatch2 extends RestQueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return data(5, 1);
+    return data(5, 2);
+  }
+
+  @Test
+  public void shouldBuildAndExecuteQueries() {
+    super.shouldBuildAndExecuteQueries();
   }
 }

@@ -133,6 +133,7 @@ public final class CommandTopicMigrationUtil {
     } catch (final Exception e) {
       throw new KsqlException("error producing messages to command topic during migration", e);
     }
-    log.info("Finished migrating command topic");
+    log.info("Finished migrating command topic for ksql with id {}",
+        config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
   }
 }

@@ -1055,13 +1055,21 @@ public final class KsqlRestApplication implements Executable {
     // migration code
     if (checkMigrationConditions(commandTopic)) {
       log.warn("Migrating command topic from the service context Kafka to the command "
-          + "producer/consumer Kafka.");
+          + "producer/consumer Kafka for ksql with id {}.",
+          ksqlConfigNoPort.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
       KsqlInternalTopicUtils.ensureTopic(
           commandTopic,
           ksqlConfigNoPort,
           internalTopicClient
       );
-      CommandTopicMigrationUtil.commandTopicMigration(commandTopic, restConfig, ksqlConfigNoPort);
+      try {
+        CommandTopicMigrationUtil.commandTopicMigration(commandTopic, restConfig, ksqlConfigNoPort);
+      } catch (final Exception e) {
+        log.warn("Failed to migrate command topic from the service context Kafka to the command "
+                + "producer/consumer Kafka for ksql with id {}.",
+            ksqlConfigNoPort.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG), e);
+        throw e;
+      }
 
     } else if (restConfig.getString(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_CONFIG)
         .equals(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING)) {

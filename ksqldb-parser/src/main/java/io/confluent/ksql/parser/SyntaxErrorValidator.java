@@ -195,12 +195,12 @@ public class SyntaxErrorValidator extends BaseErrorListener {
     return expectedList.equals(commands);
   }
 
-  private String getMostSimilar(final String offendingToken) {
+  private String getMostSimilar(final String target) {
     final LevenshteinDetailedDistance computer = LevenshteinDetailedDistance.getDefaultInstance();
     int min = Integer.MAX_VALUE;
     String output = "";
     for (String command:commands) {
-      final int distance = computer.apply(command, offendingToken).getDistance();
+      final int distance = computer.apply(command, target.toUpperCase()).getDistance();
       if (distance < min) {
         min = distance;
         output = command;

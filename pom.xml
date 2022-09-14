@@ -724,7 +724,7 @@
                             <includes>
                                 <include>**/RestQueryTranslationTest*.java</include>
                             </includes>
-                            <forkCount>16</forkCount>
+                            <forkCount>4</forkCount>
                             <reuseForks>false</reuseForks>
                             <parallel>classes</parallel>
                             <useUnlimitedThreads>true</useUnlimitedThreads>

@@ -16,5 +16,6 @@ common {
     maxDaysToKeep = 90
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
     mavenBuildGoals = "clean install"
+    mavenCommands = ["clean", "compile -pl ksqldb-test-util -am"]
 }
 

@@ -117,7 +117,6 @@ public class RestQueryTranslationTest {
     List<Object[]> collection = JsonTestLoader.of(TEST_DIR, RqttTestFile.class)
         .load()
         .map(testCase -> new Object[]{testCase.getName(), testCase})
-        .limit(13)
         .collect(Collectors.toCollection(ArrayList::new));
     int testsPerSegment = collection.size() / totalSegments;
     return collection.subList(testsPerSegment * segment,

@@ -473,7 +473,7 @@ public class AstBuilderTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("no viable alternative at input 'TRANSFORM_ARRAY(X =>"));
+    assertThat(e.getMessage(), containsString("Syntax error at or near '=>' at line 1:26"));
   }
 
   @Test

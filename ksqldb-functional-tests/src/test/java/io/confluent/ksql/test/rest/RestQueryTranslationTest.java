@@ -114,18 +114,14 @@ public class RestQueryTranslationTest {
   }
 
   protected static Collection<Object[]> data(int totalSegments, int segment) {
-
-    Collection<Object[]> collection = JsonTestLoader.of(TEST_DIR, RqttTestFile.class)
+    List<Object[]> collection = JsonTestLoader.of(TEST_DIR, RqttTestFile.class)
         .load()
         .map(testCase -> new Object[]{testCase.getName(), testCase})
+        .limit(13)
         .collect(Collectors.toCollection(ArrayList::new));
     int testsPerSegment = collection.size() / totalSegments;
-    int skip = testsPerSegment * segment;
-    Stream<Object[]> stream = collection.stream().skip(skip);
-    if (segment < totalSegments - 1) {
-      stream = stream.limit(testsPerSegment);
-    }
-    return stream.collect(Collectors.toList());
+    return collection.subList(testsPerSegment * segment,
+        segment < totalSegments - 1 ? testsPerSegment * (segment + 1) : collection.size());
   }
 
   @Rule

@@ -17,6 +17,8 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -24,8 +26,8 @@ import org.apache.kafka.connect.util.ConnectorTaskId;
 
 public class ConnectorInfo {
   private final String name;
-  private final Map<String, String> config;
-  private final List<ConnectorTaskId> tasks;
+  private final ImmutableMap<String, String> config;
+  private final ImmutableList<ConnectorTaskId> tasks;
   private final ConnectorType type;
 
   @JsonCreator
@@ -36,8 +38,8 @@ public class ConnectorInfo {
       @JsonProperty("type") final ConnectorType type
   ) {
     this.name = name;
-    this.config = config;
-    this.tasks = tasks;
+    this.config = ImmutableMap.copyOf(config);
+    this.tasks = ImmutableList.copyOf(tasks);
     this.type = type;
   }
 

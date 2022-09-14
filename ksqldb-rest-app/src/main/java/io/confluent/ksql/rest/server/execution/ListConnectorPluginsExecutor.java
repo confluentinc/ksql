@@ -21,7 +21,9 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.PluginInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
@@ -31,8 +33,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import io.confluent.ksql.rest.entity.ConnectorType;
-import io.confluent.ksql.rest.entity.PluginInfo;
 
 public final class ListConnectorPluginsExecutor {
   private ListConnectorPluginsExecutor() {

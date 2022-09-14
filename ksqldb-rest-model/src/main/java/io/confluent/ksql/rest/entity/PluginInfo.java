@@ -92,10 +92,6 @@ public class PluginInfo {
     public NoVersionFilter() {
     }
 
-    public boolean equals(final Object obj) {
-      return "undefined".equals(obj);
-    }
-
     public int hashCode() {
       return super.hashCode();
     }

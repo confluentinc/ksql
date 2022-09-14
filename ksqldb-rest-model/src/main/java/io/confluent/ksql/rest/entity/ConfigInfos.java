@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigKeyInfo;
@@ -28,9 +29,9 @@ public class ConfigInfos {
   @JsonProperty("error_count")
   private final int errorCount;
   @JsonProperty("groups")
-  private final List<String> groups;
+  private final ImmutableList<String> groups;
   @JsonProperty("configs")
-  private final List<ConfigInfo> configs;
+  private final ImmutableList<ConfigInfo> configs;
 
   @JsonCreator
   public ConfigInfos(
@@ -40,9 +41,9 @@ public class ConfigInfos {
       @JsonProperty("configs") final List<ConfigInfo> configs
   ) {
     this.name = name;
-    this.groups = groups;
+    this.groups = ImmutableList.copyOf(groups);
     this.errorCount = errorCount;
-    this.configs = configs;
+    this.configs = ImmutableList.copyOf(configs);
   }
 
   @JsonProperty
@@ -90,7 +91,7 @@ public class ConfigInfos {
     return sb.toString();
   }
 
-  public class ConfigInfo {
+  public static class ConfigInfo {
     private final ConfigKeyInfo configKey;
     private final ConfigValueInfo configValue;
 

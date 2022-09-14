@@ -21,7 +21,11 @@ import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.AbstractState;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
@@ -35,10 +39,6 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.AbstractStatus.State;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
-import io.confluent.ksql.rest.entity.ConnectorInfo;
-import io.confluent.ksql.rest.entity.ConnectorStateInfo;
-import io.confluent.ksql.rest.entity.ConnectorStateInfo.AbstractState;
-import io.confluent.ksql.rest.entity.ConnectorType;
 
 public final class ListConnectorsExecutor {
 

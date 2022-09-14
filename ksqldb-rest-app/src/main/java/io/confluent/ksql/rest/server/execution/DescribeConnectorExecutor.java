@@ -25,6 +25,8 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SourceDescription;
@@ -40,8 +42,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
-import io.confluent.ksql.rest.entity.ConnectorInfo;
-import io.confluent.ksql.rest.entity.ConnectorStateInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

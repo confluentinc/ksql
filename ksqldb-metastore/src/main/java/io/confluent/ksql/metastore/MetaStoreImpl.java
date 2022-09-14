@@ -29,6 +29,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.vertx.core.impl.ConcurrentHashSet;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -199,6 +200,51 @@ public final class MetaStoreImpl implements MutableMetaStore {
       // add all references to the source
       dataSources.get(sourceName).references.addAll(sourceReferences);
     }
+  }
+
+  @Override
+  public String checkAlternatives(final SourceName sourceName) {
+    final StringBuilder hint = new StringBuilder();
+    final List<String> matchedSources = new ArrayList<>();
+
+    for (SourceName name:getAllDataSources().keySet()) {
+      if (name.text().equalsIgnoreCase(sourceName.text())) {
+        matchedSources.add(name.text());
+      }
+    }
+
+    if (matchedSources.size() > 0) {
+      hint.append("\nDid you mean ");
+      if (matchedSources.size() > 1) {
+        final int n = matchedSources.size();
+        for (int i = 0; i < n; i++) {
+          final String dataSourceType = Objects.requireNonNull(
+              getSource(SourceName.of(matchedSources.get(i)))
+          ).getDataSourceType().getKsqlType();
+          final String punctuation = i < n - 2 ? ", " :
+              i == n - 2 ? i == 0 ? " or " : ", or" : "? ";
+          hint.append(
+              String.format("\"%s\" (%s)%s", matchedSources.get(i), dataSourceType, punctuation)
+          );
+        }
+        hint.append("Hint: wrap the source name in double quotes to make it case-sensitive.");
+      } else {
+        // contains at least one small letter
+        if (matchedSources.get(0).chars().anyMatch(Character::isLowerCase)) {
+          hint.append(
+              String.format("\"%s\"? Hint: wrap the source name in double quotes "
+                  + "to make it case-sensitive.", matchedSources.get(0)
+              ));
+        } else { // contains only capital letters
+          hint.append(
+              String.format("%s? Hint: try removing double quotes from the source name.",
+                  matchedSources.get(0))
+          );
+        }
+      }
+    }
+
+    return hint.toString();
   }
 
   Set<SourceName> getSourceReferences(final SourceName sourceName) {

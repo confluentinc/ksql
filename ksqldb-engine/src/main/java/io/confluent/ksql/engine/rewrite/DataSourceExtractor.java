@@ -32,7 +32,6 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -113,7 +112,7 @@ public class DataSourceExtractor {
       final SourceName fromName = ((Table) relation.getRelation()).getName();
       final DataSource source = metaStore.getSource(fromName);
       if (source == null) {
-        final String hint = checkAlternatives(fromName);
+        final String hint = metaStore.checkAlternatives(fromName);
         throw new KsqlException(fromName.text() + " does not exist." + hint);
       }
 
@@ -131,48 +130,6 @@ public class DataSourceExtractor {
       allColumns.addAll(columns);
 
       return null;
-    }
-
-    private String checkAlternatives(final SourceName sourceName) {
-      final StringBuilder hint = new StringBuilder();
-      final List<String> matchedSources = new ArrayList<>();
-
-      for (SourceName name:metaStore.getAllDataSources().keySet()) {
-        if (name.text().equalsIgnoreCase(sourceName.text())) {
-          matchedSources.add(name.text());
-        }
-      }
-      if (matchedSources.size() > 0) {
-        hint.append("\nDid you mean ");
-        if (matchedSources.size() > 1) {
-          final int n = matchedSources.size();
-          for (int i = 0; i < n; i++) {
-            final String dataSourceType = metaStore.getSource(SourceName.of(matchedSources.get(i)))
-                .getDataSourceType().toString().replace("K", "");
-            final String punctuation = i < n - 2 ? ", " :
-                i == n - 2 ? i == 0 ? " or " : ", or" : "? ";
-            hint.append(
-                String.format("\"%s\" (%s)%s", matchedSources.get(i), dataSourceType, punctuation)
-            );
-          }
-          hint.append("Hint: wrap the source name in double quotes to make it case-sensitive.");
-
-        } else {
-          // contains at least one small letter
-          if (matchedSources.get(0).chars().anyMatch(Character::isLowerCase)) {
-            hint.append(
-                String.format("\"%s\"? Hint: wrap the source name in double quotes "
-                    + "to make it case-sensitive.", matchedSources.get(0)
-                ));
-          } else { // contains only capital letters
-            hint.append(
-                String.format("%s? Hint: try removing double quotes from the source name.",
-                    matchedSources.get(0))
-            );
-          }
-        }
-      }
-      return hint.toString();
     }
 
     @Override

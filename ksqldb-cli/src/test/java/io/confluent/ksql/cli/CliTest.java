@@ -1281,7 +1281,7 @@ public class CliTest {
     final String expected = "Statement: create stream if not exist s1(id int) "
         + "with (kafka_topic='s1', value_format='json', partitions=1);\n"
         + "Caused by: line 2:22: Syntax Error\n"
-        + "no viable alternative at input 'create stream";
+        + "Syntax error at or near 'exist' at line 2:22";
     assertThat(error_code, is(-1));
     assertThat(out, containsString(expected));
     assertThat(out, not(containsString("drop stream if exists")));

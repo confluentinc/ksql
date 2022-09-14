@@ -619,9 +619,10 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(e, rawMessage(is(
-        "Exception while preparing statement: bar does not exist.\n"
-            + "Did you mean \"BAR\" (STREAM) or \"Bar\" (STREAM)? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e.getMessage(), containsString("Exception while preparing statement: bar does not exist.\n"));
+    assertThat(e.getMessage(), containsString("\"BAR\" (STREAM)"));
+    assertThat(e.getMessage(), containsString("\"Bar\" (STREAM)"));
+    assertThat(e.getMessage(), containsString("Hint: wrap the source name in double quotes to make it case-sensitive."));
     assertThat(e, statementText(is("select * from \"bar\";")));
   }
 

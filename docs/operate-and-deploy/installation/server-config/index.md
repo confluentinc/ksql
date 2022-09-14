@@ -203,7 +203,7 @@ REST endpoint and interactive use.
 ### Schema resolution
 
 When you run a ksqlDB application that uses Avro or Protobuf, ksqlDB infers 
-chemas from {{ site.sr }} automatically, but the behavior after restarting
+schemas from {{ site.sr }} automatically, but the behavior after restarting
 ksqlDB Server differs between interactive and non-interactive mode.
 
 - **Interactive mode:** after ksqlDB Server restarts, it doesn't contact

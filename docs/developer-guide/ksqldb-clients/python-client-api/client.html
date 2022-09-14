@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>ksqldb_confluent.client API documentation</title>
+<title>ksqldb.client API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,7 +19,7 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>ksqldb_confluent.client</code></h1>
+<h1 class="title">Module <code>ksqldb.client</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
@@ -44,20 +44,20 @@
 
 import asyncio
 from asyncio import Future, Queue
-from typing import List
+from typing import List, Mapping, Any
 
 import httpx
 from httpx import URL, Headers, BasicAuth
 
-from ksqldb_confluent.exceptions import KsqlDbClientException
-from ksqldb_confluent.batched_query_result import BatchedQueryResult
-from ksqldb_confluent.row import Row
-from ksqldb_confluent.__schema_parser import SchemaParser
-from ksqldb_confluent.streamed_query_result import StreamedQueryResult
-from ksqldb_confluent.__streamed_row import StreamedRow
-from ksqldb_confluent.types.schema import Schema
-from ksqldb_confluent.__utils import _canonicalize_json_string
-from ksqldb_confluent.__utils import get_client_version
+from ksqldb.exceptions import KsqlDbClientException
+from ksqldb.batched_query_result import BatchedQueryResult
+from ksqldb.row import Row
+from ksqldb.__schema_parser import SchemaParser
+from ksqldb.streamed_query_result import StreamedQueryResult
+from ksqldb.__streamed_row import StreamedRow
+from ksqldb.types.schema import Schema
+from ksqldb.__utils import _canonicalize_json_string
+from ksqldb.__utils import get_client_version
 
 
 async def _handle_streamed_row(
@@ -93,8 +93,8 @@ class Client:
     def __init__(self,
                  host: str,
                  port: int,
-                 api_key: str = &#39;&#39;,
-                 secret: str = &#39;&#39;,
+                 username: str = &#39;&#39;,
+                 password: str = &#39;&#39;,
                  use_tls: bool = False,
                  timeout: float = None):
         &#34;&#34;&#34;
@@ -103,16 +103,16 @@ class Client:
         Args:
             host: The host of the ksqlDB server
             port: The port of the ksqlDB server. Usually 8088
-            api_key: The api_key to authenticate with the ksqlDB server
-            secret: The secret to authenticate with the ksqlDB server
+            username: The username to authenticate with the ksqlDB server
+            password: The password to authenticate with the ksqlDB server
             use_tls: use TLS or not
             timeout: timeout in seconds
         &#34;&#34;&#34;
         self.host = host
         self.port = port
         self.scheme = &#39;https&#39; if use_tls else &#39;http&#39;
-        self.api_key = api_key
-        self.secret = secret
+        self.username = username
+        self.password = password
         self.timeout = timeout
 
         self.client = httpx.AsyncClient(
@@ -120,7 +120,10 @@ class Client:
             http2=True,
             timeout=self.timeout)
 
-    async def execute_query_async(self, sql: str, timeout: float = None) -&gt; BatchedQueryResult:
+    async def execute_query_async(self,
+                                  sql: str,
+                                  properties: Mapping[str, Any] = None,
+                                  timeout: float = None) -&gt; BatchedQueryResult:
         &#34;&#34;&#34;
         Executes a query. Note that this is limited to pull and push queries and does not cover
         other statement type commands.
@@ -131,12 +134,14 @@ class Client:
 
         Args:
             sql: The sql query to run
+            properties: The properties to send along with the query
             timeout: timeout in seconds
 
         Returns:
             BatchedQueryResult: Contains the results from the query executed
         &#34;&#34;&#34;
-        streamed_query_result: StreamedQueryResult = await self.stream_query_async(sql, timeout)
+        streamed_query_result: StreamedQueryResult = await self.stream_query_async(
+            sql, properties, timeout)
         query_id: str = streamed_query_result.query_id
         schema: Schema = streamed_query_result.schema
         rows: List[Row] = []
@@ -146,7 +151,10 @@ class Client:
             row = await streamed_query_result.row_queue.get()
         return BatchedQueryResult(query_id=query_id, schema=schema, rows=rows)
 
-    async def stream_query_async(self, sql: str, timeout: float = None) -&gt; StreamedQueryResult:
+    async def stream_query_async(self,
+                                 sql: str,
+                                 properties: Mapping[str, Any] = None,
+                                 timeout: float = None) -&gt; StreamedQueryResult:
         &#34;&#34;&#34;
         Executes a query. Note that this is limited to pull and push queries and does not cover
         other statement type commands. This is appropriate for queries which may not run to
@@ -154,6 +162,7 @@ class Client:
 
         Args:
             sql: The sql query to run
+            properties: The properties to send along with the query
             timeout: timeout in seconds
 
         Returns:
@@ -162,13 +171,14 @@ class Client:
         # The Future that indicates if the query result is available or not.
         # The Future will be set once we receive the Header of the query response.
         completion_source: Future = asyncio.Future()
-        asyncio.create_task(self._execute_request(sql, completion_source, timeout))
+        asyncio.create_task(self._execute_request(sql, properties, completion_source, timeout))
         await completion_source
         return completion_source.result()
 
     # Executes the given sql
     async def _execute_request(self,
                                sql: str,
+                               properties: Mapping[str, Any],
                                completion_source: Future,
                                timeout: float = None):
         # Build the URL we&#39;ll use for the request.
@@ -176,14 +186,14 @@ class Client:
         url: URL = URL(f&#34;{self.scheme}://{self.host}:{self.port}/{path}&#34;)
 
         # Construct the request
-        data: dict = {&#39;sql&#39;: sql}
+        data: dict = {&#39;sql&#39;: sql, &#39;properties&#39;: {} if properties is None else properties}
         headers: dict = {
             self._header_accept: &#39;application/vnd.ksql.v1+json&#39;,
             self._header_user_agent: f&#39;{Client._user_agent_name} v{get_client_version()}&#39;
         }
 
         # Construct the auth
-        auth: BasicAuth = BasicAuth(self.api_key, self.secret)
+        auth: BasicAuth = BasicAuth(self.username, self.password)
 
         try:
             # Issue the request and handle the response
@@ -234,9 +244,9 @@ class Client:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="ksqldb_confluent.client.Client"><code class="flex name class">
+<dt id="ksqldb.client.Client"><code class="flex name class">
 <span>class <span class="ident">Client</span></span>
-<span>(</span><span>host: str, port: int, api_key: str = '', secret: str = '', use_tls: bool = False, timeout: float = None)</span>
+<span>(</span><span>host: str, port: int, username: str = '', password: str = '', use_tls: bool = False, timeout: float = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>A client object for issuing commands to ksqlDB.</p>
@@ -247,10 +257,10 @@ class Client:
 <dd>The host of the ksqlDB server</dd>
 <dt><strong><code>port</code></strong></dt>
 <dd>The port of the ksqlDB server. Usually 8088</dd>
-<dt><strong><code>api_key</code></strong></dt>
-<dd>The api_key to authenticate with the ksqlDB server</dd>
-<dt><strong><code>secret</code></strong></dt>
-<dd>The secret to authenticate with the ksqlDB server</dd>
+<dt><strong><code>username</code></strong></dt>
+<dd>The username to authenticate with the ksqlDB server</dd>
+<dt><strong><code>password</code></strong></dt>
+<dd>The password to authenticate with the ksqlDB server</dd>
 <dt><strong><code>use_tls</code></strong></dt>
 <dd>use TLS or not</dd>
 <dt><strong><code>timeout</code></strong></dt>
@@ -271,8 +281,8 @@ class Client:
     def __init__(self,
                  host: str,
                  port: int,
-                 api_key: str = &#39;&#39;,
-                 secret: str = &#39;&#39;,
+                 username: str = &#39;&#39;,
+                 password: str = &#39;&#39;,
                  use_tls: bool = False,
                  timeout: float = None):
         &#34;&#34;&#34;
@@ -281,16 +291,16 @@ class Client:
         Args:
             host: The host of the ksqlDB server
             port: The port of the ksqlDB server. Usually 8088
-            api_key: The api_key to authenticate with the ksqlDB server
-            secret: The secret to authenticate with the ksqlDB server
+            username: The username to authenticate with the ksqlDB server
+            password: The password to authenticate with the ksqlDB server
             use_tls: use TLS or not
             timeout: timeout in seconds
         &#34;&#34;&#34;
         self.host = host
         self.port = port
         self.scheme = &#39;https&#39; if use_tls else &#39;http&#39;
-        self.api_key = api_key
-        self.secret = secret
+        self.username = username
+        self.password = password
         self.timeout = timeout
 
         self.client = httpx.AsyncClient(
@@ -298,7 +308,10 @@ class Client:
             http2=True,
             timeout=self.timeout)
 
-    async def execute_query_async(self, sql: str, timeout: float = None) -&gt; BatchedQueryResult:
+    async def execute_query_async(self,
+                                  sql: str,
+                                  properties: Mapping[str, Any] = None,
+                                  timeout: float = None) -&gt; BatchedQueryResult:
         &#34;&#34;&#34;
         Executes a query. Note that this is limited to pull and push queries and does not cover
         other statement type commands.
@@ -309,12 +322,14 @@ class Client:
 
         Args:
             sql: The sql query to run
+            properties: The properties to send along with the query
             timeout: timeout in seconds
 
         Returns:
             BatchedQueryResult: Contains the results from the query executed
         &#34;&#34;&#34;
-        streamed_query_result: StreamedQueryResult = await self.stream_query_async(sql, timeout)
+        streamed_query_result: StreamedQueryResult = await self.stream_query_async(
+            sql, properties, timeout)
         query_id: str = streamed_query_result.query_id
         schema: Schema = streamed_query_result.schema
         rows: List[Row] = []
@@ -324,7 +339,10 @@ class Client:
             row = await streamed_query_result.row_queue.get()
         return BatchedQueryResult(query_id=query_id, schema=schema, rows=rows)
 
-    async def stream_query_async(self, sql: str, timeout: float = None) -&gt; StreamedQueryResult:
+    async def stream_query_async(self,
+                                 sql: str,
+                                 properties: Mapping[str, Any] = None,
+                                 timeout: float = None) -&gt; StreamedQueryResult:
         &#34;&#34;&#34;
         Executes a query. Note that this is limited to pull and push queries and does not cover
         other statement type commands. This is appropriate for queries which may not run to
@@ -332,6 +350,7 @@ class Client:
 
         Args:
             sql: The sql query to run
+            properties: The properties to send along with the query
             timeout: timeout in seconds
 
         Returns:
@@ -340,13 +359,14 @@ class Client:
         # The Future that indicates if the query result is available or not.
         # The Future will be set once we receive the Header of the query response.
         completion_source: Future = asyncio.Future()
-        asyncio.create_task(self._execute_request(sql, completion_source, timeout))
+        asyncio.create_task(self._execute_request(sql, properties, completion_source, timeout))
         await completion_source
         return completion_source.result()
 
     # Executes the given sql
     async def _execute_request(self,
                                sql: str,
+                               properties: Mapping[str, Any],
                                completion_source: Future,
                                timeout: float = None):
         # Build the URL we&#39;ll use for the request.
@@ -354,14 +374,14 @@ class Client:
         url: URL = URL(f&#34;{self.scheme}://{self.host}:{self.port}/{path}&#34;)
 
         # Construct the request
-        data: dict = {&#39;sql&#39;: sql}
+        data: dict = {&#39;sql&#39;: sql, &#39;properties&#39;: {} if properties is None else properties}
         headers: dict = {
             self._header_accept: &#39;application/vnd.ksql.v1+json&#39;,
             self._header_user_agent: f&#39;{Client._user_agent_name} v{get_client_version()}&#39;
         }
 
         # Construct the auth
-        auth: BasicAuth = BasicAuth(self.api_key, self.secret)
+        auth: BasicAuth = BasicAuth(self.username, self.password)
 
         try:
             # Issue the request and handle the response
@@ -404,7 +424,7 @@ class Client:
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="ksqldb_confluent.client.Client.close"><code class="name flex">
+<dt id="ksqldb.client.Client.close"><code class="name flex">
 <span>async def <span class="ident">close</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -422,8 +442,8 @@ including the underlying HttpClient and its resources.</p></div>
     await self.client.aclose()</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.client.Client.execute_query_async"><code class="name flex">
-<span>async def <span class="ident">execute_query_async</span></span>(<span>self, sql: str, timeout: float = None) ‑> <a title="ksqldb_confluent.batched_query_result.BatchedQueryResult" href="batched_query_result.html#ksqldb_confluent.batched_query_result.BatchedQueryResult">BatchedQueryResult</a></span>
+<dt id="ksqldb.client.Client.execute_query_async"><code class="name flex">
+<span>async def <span class="ident">execute_query_async</span></span>(<span>self, sql: str, properties: Mapping[str, Any] = None, timeout: float = None) ‑> <a title="ksqldb.batched_query_result.BatchedQueryResult" href="batched_query_result.html#ksqldb.batched_query_result.BatchedQueryResult">BatchedQueryResult</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Executes a query. Note that this is limited to pull and push queries and does not cover
@@ -435,6 +455,8 @@ never complete.</p>
 <dl>
 <dt><strong><code>sql</code></strong></dt>
 <dd>The sql query to run</dd>
+<dt><strong><code>properties</code></strong></dt>
+<dd>The properties to send along with the query</dd>
 <dt><strong><code>timeout</code></strong></dt>
 <dd>timeout in seconds</dd>
 </dl>
@@ -447,7 +469,10 @@ never complete.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">async def execute_query_async(self, sql: str, timeout: float = None) -&gt; BatchedQueryResult:
+<pre><code class="python">async def execute_query_async(self,
+                              sql: str,
+                              properties: Mapping[str, Any] = None,
+                              timeout: float = None) -&gt; BatchedQueryResult:
     &#34;&#34;&#34;
     Executes a query. Note that this is limited to pull and push queries and does not cover
     other statement type commands.
@@ -458,12 +483,14 @@ never complete.</p>
 
     Args:
         sql: The sql query to run
+        properties: The properties to send along with the query
         timeout: timeout in seconds
 
     Returns:
         BatchedQueryResult: Contains the results from the query executed
     &#34;&#34;&#34;
-    streamed_query_result: StreamedQueryResult = await self.stream_query_async(sql, timeout)
+    streamed_query_result: StreamedQueryResult = await self.stream_query_async(
+        sql, properties, timeout)
     query_id: str = streamed_query_result.query_id
     schema: Schema = streamed_query_result.schema
     rows: List[Row] = []
@@ -474,8 +501,8 @@ never complete.</p>
     return BatchedQueryResult(query_id=query_id, schema=schema, rows=rows)</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.client.Client.stream_query_async"><code class="name flex">
-<span>async def <span class="ident">stream_query_async</span></span>(<span>self, sql: str, timeout: float = None) ‑> <a title="ksqldb_confluent.streamed_query_result.StreamedQueryResult" href="streamed_query_result.html#ksqldb_confluent.streamed_query_result.StreamedQueryResult">StreamedQueryResult</a></span>
+<dt id="ksqldb.client.Client.stream_query_async"><code class="name flex">
+<span>async def <span class="ident">stream_query_async</span></span>(<span>self, sql: str, properties: Mapping[str, Any] = None, timeout: float = None) ‑> <a title="ksqldb.streamed_query_result.StreamedQueryResult" href="streamed_query_result.html#ksqldb.streamed_query_result.StreamedQueryResult">StreamedQueryResult</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Executes a query. Note that this is limited to pull and push queries and does not cover
@@ -485,6 +512,8 @@ immediate completion, so this works well for both pull and push queries.</p>
 <dl>
 <dt><strong><code>sql</code></strong></dt>
 <dd>The sql query to run</dd>
+<dt><strong><code>properties</code></strong></dt>
+<dd>The properties to send along with the query</dd>
 <dt><strong><code>timeout</code></strong></dt>
 <dd>timeout in seconds</dd>
 </dl>
@@ -497,7 +526,10 @@ immediate completion, so this works well for both pull and push queries.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">async def stream_query_async(self, sql: str, timeout: float = None) -&gt; StreamedQueryResult:
+<pre><code class="python">async def stream_query_async(self,
+                             sql: str,
+                             properties: Mapping[str, Any] = None,
+                             timeout: float = None) -&gt; StreamedQueryResult:
     &#34;&#34;&#34;
     Executes a query. Note that this is limited to pull and push queries and does not cover
     other statement type commands. This is appropriate for queries which may not run to
@@ -505,6 +537,7 @@ immediate completion, so this works well for both pull and push queries.</p>
 
     Args:
         sql: The sql query to run
+        properties: The properties to send along with the query
         timeout: timeout in seconds
 
     Returns:
@@ -513,7 +546,7 @@ immediate completion, so this works well for both pull and push queries.</p>
     # The Future that indicates if the query result is available or not.
     # The Future will be set once we receive the Header of the query response.
     completion_source: Future = asyncio.Future()
-    asyncio.create_task(self._execute_request(sql, completion_source, timeout))
+    asyncio.create_task(self._execute_request(sql, properties, completion_source, timeout))
     await completion_source
     return completion_source.result()</code></pre>
 </details>
@@ -531,17 +564,17 @@ immediate completion, so this works well for both pull and push queries.</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="ksqldb_confluent" href="index.html">ksqldb_confluent</a></code></li>
+<li><code><a title="ksqldb" href="index.html">ksqldb</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="ksqldb_confluent.client.Client" href="#ksqldb_confluent.client.Client">Client</a></code></h4>
+<h4><code><a title="ksqldb.client.Client" href="#ksqldb.client.Client">Client</a></code></h4>
 <ul class="">
-<li><code><a title="ksqldb_confluent.client.Client.close" href="#ksqldb_confluent.client.Client.close">close</a></code></li>
-<li><code><a title="ksqldb_confluent.client.Client.execute_query_async" href="#ksqldb_confluent.client.Client.execute_query_async">execute_query_async</a></code></li>
-<li><code><a title="ksqldb_confluent.client.Client.stream_query_async" href="#ksqldb_confluent.client.Client.stream_query_async">stream_query_async</a></code></li>
+<li><code><a title="ksqldb.client.Client.close" href="#ksqldb.client.Client.close">close</a></code></li>
+<li><code><a title="ksqldb.client.Client.execute_query_async" href="#ksqldb.client.Client.execute_query_async">execute_query_async</a></code></li>
+<li><code><a title="ksqldb.client.Client.stream_query_async" href="#ksqldb.client.Client.stream_query_async">stream_query_async</a></code></li>
 </ul>
 </li>
 </ul>

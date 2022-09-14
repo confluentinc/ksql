@@ -708,14 +708,13 @@
                     <execution>
                         <id>integration-test</id>
                         <configuration>
-                            <includes>
-                                <include>**/RestQueryTranslationTest*.java</include>
-                            </includes>
-                            <skip>true</skip>
+                            <excludes>
+                                <exclude>**/RestQueryTranslationTest*.java</exclude>
+                            </excludes>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>multi-thread-test</id>
+                        <id>multi-threaded-test</id>
                         <phase>integration-test</phase>
                         <goals>
                             <goal>integration-test</goal>

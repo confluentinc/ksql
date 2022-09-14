@@ -142,7 +142,7 @@ public class DataSourceExtractor {
           matchedSources.add(name.text());
         }
       }
-      hint.append("%nDid you mean ");
+      hint.append("\nDid you mean ");
       if (matchedSources.size() > 1) {
         final int n = matchedSources.size();
         for (int i = 0; i < n; i++) {

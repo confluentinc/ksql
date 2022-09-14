@@ -559,7 +559,7 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(e, rawMessage(is(
-        "Exception while preparing statement: bar does not exist.%n"
+        "Exception while preparing statement: bar does not exist.\n"
             + "Did you mean BAR? Hint: try removing double quotes from the source name.")));
     assertThat(e, statementText(is("select * from \"bar\";")));
   }
@@ -589,7 +589,7 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(e, rawMessage(is(
-        "Exception while preparing statement: bAr does not exist.%n"
+        "Exception while preparing statement: bAr does not exist.\n"
             + "Did you mean \"Bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
     assertThat(e, statementText(is("select * from \"bAr\";")));
   }
@@ -620,7 +620,7 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(e, rawMessage(is(
-        "Exception while preparing statement: bar does not exist.%n"
+        "Exception while preparing statement: bar does not exist.\n"
             + "Did you mean \"BAR\" (STREAM) or \"Bar\" (STREAM)? Hint: wrap the source name in double quotes to make it case-sensitive.")));
     assertThat(e, statementText(is("select * from \"bar\";")));
   }
@@ -650,7 +650,7 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(e, rawMessage(is(
-        "Exception while preparing statement: BAR does not exist.%n"
+        "Exception while preparing statement: BAR does not exist.\n"
             + "Did you mean \"bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
     assertThat(e, statementText(is("select * from bar;")));
   }

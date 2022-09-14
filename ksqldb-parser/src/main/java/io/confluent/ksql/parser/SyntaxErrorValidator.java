@@ -172,7 +172,7 @@ public class SyntaxErrorValidator extends BaseErrorListener {
     final String expectingStr = message.split("expecting ")[1];
     // If the command is mistyped, find the most similar command and show it
     if (isCommand(expectingStr)) { // this is a command typo
-      output.append(String.format("Unknown statement '%s'\n", offendingToken));
+      output.append(String.format("Unknown statement '%s'%n", offendingToken));
       output.append(
               String.format("Did you mean '%s'?", getMostSimilar(offendingToken)));
     // In case of missing closing brackets or parentheses

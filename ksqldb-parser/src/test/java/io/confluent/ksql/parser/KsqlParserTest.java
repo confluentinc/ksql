@@ -1603,7 +1603,27 @@ public class KsqlParserTest {
 
     // Then
     assertThat(e.getMessage(), containsString("line 1:14: Syntax Error"));
+    assertThat(e.getMessage(), containsString("Syntax error at or near 'AS' at line 1:14"));
     assertThat(e.getMessage(), containsString("Statement: CREATE TABLE AS SELECT x, count(*) FROM TEST_TOPIC GROUP BY x"));
+  }
+
+  @Test
+  public void shouldGuessWhatUserMeanCorrectly() {
+    // Given
+    final String invalidCreateStatement =
+        "sho streams;";
+
+    // When
+    final Exception e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.parse(invalidCreateStatement)
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("line 1:1: Syntax Error"));
+    assertThat(e.getMessage(), containsString("Unknown statement 'sho'"));
+    assertThat(e.getMessage(), containsString("Did you mean 'SHOW'?"));
+    assertThat(e.getMessage(), containsString("Statement: sho streams;"));
   }
 
   private Literal parseDouble(final String literalText) {

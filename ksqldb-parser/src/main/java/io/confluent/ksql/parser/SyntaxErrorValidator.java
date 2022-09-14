@@ -26,11 +26,13 @@ import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.NoViableAltException;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.apache.commons.text.similarity.LevenshteinDetailedDistance;
+
 
 /**
  * This class is a syntax error validator used in the {@link DefaultKsqlParser} class, which
@@ -146,6 +148,13 @@ public class SyntaxErrorValidator extends BaseErrorListener {
       } else if (message.contains("expecting")) {
         sb.append(
             getExpectations(message, ((Token) offendingSymbol).getText())
+        );
+      } else if (e instanceof NoViableAltException) {
+        sb.append(
+            String.format(
+                "Syntax error at or near '%s' at line %d:%d",
+                ((Token) offendingSymbol).getText(), line, charPositionInLine + 1
+            )
         );
       } else {
         sb.append(message);

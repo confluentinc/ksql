@@ -32,28 +32,25 @@ import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.rest.entity.ConfigInfos;
+import io.confluent.ksql.rest.entity.ConfigInfos.ConfigInfo;
+import io.confluent.ksql.rest.entity.ConfigInfos.ConfigValueInfo;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
+import io.confluent.ksql.rest.entity.ConnectorType;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.test.util.OptionalMatchers;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.http.HttpStatus;
-import io.confluent.ksql.rest.entity.PluginInfo.PluginType;
-import io.confluent.ksql.rest.entity.ConfigInfos.ConfigInfo;
-import io.confluent.ksql.rest.entity.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigKeyInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigValueInfo;
-import io.confluent.ksql.rest.entity.ConnectorInfo;
-import io.confluent.ksql.rest.entity.ConnectorStateInfo;
-import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
-import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
-import io.confluent.ksql.rest.entity.ConnectorType;
-import io.confluent.ksql.rest.entity.PluginInfo;
-import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,7 +68,6 @@ public class DefaultConnectClientTest {
   private static final ConnectorInfo SAMPLE_INFO = new ConnectorInfo(
       "foo",
       ImmutableMap.of("key", "value"),
-      ImmutableList.of(new ConnectorTaskId("foo", 1)),
       ConnectorType.SOURCE
   );
   private static final ConnectorStateInfo SAMPLE_STATUS = new ConnectorStateInfo(
@@ -82,7 +78,7 @@ public class DefaultConnectClientTest {
       ),
       ConnectorType.SOURCE
   );
-  private static final PluginInfo SAMPLE_PLUGIN = new PluginInfo(
+  private static final SimpleConnectorPluginInfo SAMPLE_PLUGIN = new SimpleConnectorPluginInfo(
       "io.confluent.connect.replicator.ReplicatorSourceConnector",
       PluginType.SOURCE,
       "1.0"
@@ -163,32 +159,14 @@ public class DefaultConnectClientTest {
   @Test
   public void testValidate() throws JsonProcessingException {
     // Given:
-    final String plugin = SAMPLE_PLUGIN.className();
+    final String plugin = SAMPLE_PLUGIN.getClassName();
     final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
     final ConfigInfos body = new ConfigInfos(
         plugin,
-        1,
-        ImmutableList.of("Common"),
-        ImmutableList.of(new ConfigInfo(new ConfigKeyInfo(
-            "file",
-            "STRING",
-            true,
-            "",
-            "HIGH",
-            "Destination filename.",
-            null,
-            -1,
-            "NONE",
-            "file",
-            Collections.emptyList()),
+        ImmutableList.of(new ConfigInfo(
             new ConfigValueInfo(
                 "file",
-                null,
-                Collections.emptyList(),
-                ImmutableList.of(
-                    "Missing required configuration \"file\" which has no default value."),
-                true)
-            )));
+                ImmutableList.of("Missing required configuration \"file\" which has no default value.")))));
 
     WireMock.stubFor(
         WireMock.put(WireMock.urlEqualTo(url))
@@ -214,7 +192,7 @@ public class DefaultConnectClientTest {
   @Test
   public void testValidateWithError() throws JsonProcessingException {
     // Given:
-    final String plugin = SAMPLE_PLUGIN.className();
+    final String plugin = SAMPLE_PLUGIN.getClassName();
     final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
     WireMock.stubFor(
         WireMock.put(WireMock.urlEqualTo(url))
@@ -289,7 +267,7 @@ public class DefaultConnectClientTest {
     );
 
     // When:
-    final ConnectResponse<List<PluginInfo>> response = client.connectorPlugins();
+    final ConnectResponse<List<SimpleConnectorPluginInfo>> response = client.connectorPlugins();
 
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of(SAMPLE_PLUGIN))));

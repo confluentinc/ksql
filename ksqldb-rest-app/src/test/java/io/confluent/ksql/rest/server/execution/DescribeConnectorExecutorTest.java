@@ -68,7 +68,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.kafka.connect.runtime.ConnectorConfig;
 import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
@@ -99,8 +98,7 @@ public class DescribeConnectorExecutorTest {
 
   private static final ConnectorInfo INFO = new ConnectorInfo(
       "connector",
-      ImmutableMap.of(ConnectorConfig.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
-      ImmutableList.of(),
+      ImmutableMap.of(DescribeConnectorExecutor.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
       ConnectorType.SOURCE);
 
   private static Map<String, Map<String, List<String>>> ACTIVE_TOPICS = Collections.singletonMap(

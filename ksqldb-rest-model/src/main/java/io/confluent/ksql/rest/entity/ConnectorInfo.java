@@ -17,29 +17,23 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.connect.util.ConnectorTaskId;
 
 public class ConnectorInfo {
   private final String name;
   private final ImmutableMap<String, String> config;
-  private final ImmutableList<ConnectorTaskId> tasks;
   private final ConnectorType type;
 
   @JsonCreator
   public ConnectorInfo(
       @JsonProperty("name") final String name,
       @JsonProperty("config") final Map<String, String> config,
-      @JsonProperty("tasks") final List<ConnectorTaskId> tasks,
       @JsonProperty("type") final ConnectorType type
   ) {
     this.name = name;
     this.config = ImmutableMap.copyOf(config);
-    this.tasks = ImmutableList.copyOf(tasks);
     this.type = type;
   }
 
@@ -58,11 +52,6 @@ public class ConnectorInfo {
     return this.config;
   }
 
-  @JsonProperty
-  public List<ConnectorTaskId> tasks() {
-    return this.tasks;
-  }
-
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -70,7 +59,6 @@ public class ConnectorInfo {
       final ConnectorInfo that = (ConnectorInfo)o;
       return Objects.equals(this.name, that.name)
           && Objects.equals(this.config, that.config)
-          && Objects.equals(this.tasks, that.tasks)
           && Objects.equals(this.type, that.type);
     } else {
       return false;
@@ -78,6 +66,6 @@ public class ConnectorInfo {
   }
 
   public int hashCode() {
-    return Objects.hash(new Object[]{this.name, this.config, this.tasks, this.type});
+    return Objects.hash(new Object[]{this.name, this.config, this.type});
   }
 }

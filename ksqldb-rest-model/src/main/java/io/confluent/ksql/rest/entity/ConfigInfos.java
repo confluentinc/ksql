@@ -20,45 +20,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigKeyInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigValueInfo;
 
 public class ConfigInfos {
   @JsonProperty("name")
   private final String name;
-  @JsonProperty("error_count")
-  private final int errorCount;
-  @JsonProperty("groups")
-  private final ImmutableList<String> groups;
   @JsonProperty("configs")
   private final ImmutableList<ConfigInfo> configs;
 
   @JsonCreator
   public ConfigInfos(
       @JsonProperty("name") final String name,
-      @JsonProperty("error_count") final int errorCount,
-      @JsonProperty("groups") final List<String> groups,
       @JsonProperty("configs") final List<ConfigInfo> configs
   ) {
     this.name = name;
-    this.groups = ImmutableList.copyOf(groups);
-    this.errorCount = errorCount;
     this.configs = ImmutableList.copyOf(configs);
   }
 
   @JsonProperty
   public String name() {
     return this.name;
-  }
-
-  @JsonProperty
-  public List<String> groups() {
-    return this.groups;
-  }
-
-  @JsonProperty("error_count")
-  public int errorCount() {
-    return this.errorCount;
   }
 
   @JsonProperty("configs")
@@ -72,8 +52,6 @@ public class ConfigInfos {
     } else if (o != null && this.getClass() == o.getClass()) {
       final ConfigInfos that = (ConfigInfos) o;
       return Objects.equals(this.name, that.name)
-          && Objects.equals(this.errorCount, that.errorCount)
-          && Objects.equals(this.groups, that.groups)
           && Objects.equals(this.configs, that.configs);
     } else {
       return false;
@@ -81,32 +59,23 @@ public class ConfigInfos {
   }
 
   public int hashCode() {
-    return Objects.hash(new Object[]{this.name, this.errorCount, this.groups, this.configs});
+    return Objects.hash(new Object[]{this.name, this.configs});
   }
 
   public String toString() {
     final StringBuilder sb = new StringBuilder();
-    sb.append("[").append(this.name).append(",").append(this.errorCount)
-        .append(",").append(this.groups).append(",").append(this.configs).append("]");
+    sb.append("[").append(this.name).append(",").append(this.configs).append("]");
     return sb.toString();
   }
 
   public static class ConfigInfo {
-    private final ConfigKeyInfo configKey;
     private final ConfigValueInfo configValue;
 
     @JsonCreator
     public ConfigInfo(
-        @JsonProperty("definition") final ConfigKeyInfo configKey,
         @JsonProperty("value") final ConfigValueInfo configValue
     ) {
-      this.configKey = configKey;
       this.configValue = configValue;
-    }
-
-    @JsonProperty("definition")
-    public ConfigKeyInfo configKey() {
-      return this.configKey;
     }
 
     @JsonProperty("value")
@@ -119,19 +88,63 @@ public class ConfigInfos {
         return true;
       } else if (o != null && this.getClass() == o.getClass()) {
         final ConfigInfo that = (ConfigInfo) o;
-        return Objects.equals(this.configKey, that.configKey)
-            && Objects.equals(this.configValue, that.configValue);
+        return Objects.equals(this.configValue, that.configValue);
       } else {
         return false;
       }
     }
 
     public int hashCode() {
-      return Objects.hash(new Object[]{this.configKey, this.configValue});
+      return Objects.hash(new Object[]{this.configValue});
     }
 
     public String toString() {
-      return "[" + this.configKey + "," + this.configValue + "]";
+      return "[" + this.configValue + "]";
+    }
+  }
+
+  public static class ConfigValueInfo {
+    private final String name;
+    private final ImmutableList<String> errors;
+
+    @JsonCreator
+    public ConfigValueInfo(
+        @JsonProperty("name") final String name,
+        @JsonProperty("errors") final List<String> errors
+    ) {
+      this.name = name;
+      this.errors = ImmutableList.copyOf(errors);
+    }
+
+    @JsonProperty
+    public String name() {
+      return this.name;
+    }
+
+    @JsonProperty
+    public List<String> errors() {
+      return this.errors;
+    }
+
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      } else if (o != null && this.getClass() == o.getClass()) {
+        final ConfigValueInfo that = (ConfigValueInfo) o;
+        return Objects.equals(this.name, that.name) && Objects.equals(this.errors, that.errors);
+      } else {
+        return false;
+      }
+    }
+
+    public int hashCode() {
+      return Objects.hash(new Object[]{this.name, this.errors});
+    }
+
+    public String toString() {
+      final StringBuilder sb = new StringBuilder();
+      sb.append("[").append(this.name).append(",").append(this.errors).append("]");
+      return sb.toString();
     }
   }
 }

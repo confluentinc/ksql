@@ -37,10 +37,10 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.AbstractStatus.State;
-import org.apache.kafka.connect.runtime.ConnectorConfig;
 
 public final class ListConnectorsExecutor {
+
+  private static final String RUNNING = "RUNNING";
 
   private ListConnectorsExecutor() {
   }
@@ -118,20 +118,20 @@ public final class ListConnectorsExecutor {
     return new SimpleConnectorInfo(
         name,
         info.type(),
-        info.config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG),
+        info.config().get(DescribeConnectorExecutor.CONNECTOR_CLASS_CONFIG),
         summarizeState(status.datum().get())
     );
   }
 
   private static String summarizeState(final ConnectorStateInfo connectorState) {
-    if (!connectorState.connector().state().equals(State.RUNNING.name())) {
+    if (!connectorState.connector().state().equals(RUNNING)) {
       return connectorState.connector().state();
     }
 
     final long numRunningTasks = connectorState.tasks()
         .stream()
         .map(AbstractState::state)
-        .filter(State.RUNNING.name()::equals)
+        .filter(RUNNING::equals)
         .count();
 
     final String status = connectorState.tasks().size() > 0 && numRunningTasks == 0

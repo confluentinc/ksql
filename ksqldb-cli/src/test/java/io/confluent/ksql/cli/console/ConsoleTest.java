@@ -74,6 +74,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -683,8 +684,8 @@ public class ConsoleTest {
             "statement",
             ImmutableList.of(),
             ImmutableList.of(
-                new SimpleConnectorPluginInfo("clazz1", ConnectorType.SOURCE, "v1"),
-                new SimpleConnectorPluginInfo("clazz2", ConnectorType.SINK, "v2")
+                new SimpleConnectorPluginInfo("clazz1", PluginType.SOURCE, "v1"),
+                new SimpleConnectorPluginInfo("clazz2", PluginType.SINK, "v2")
             ))
     ));
 

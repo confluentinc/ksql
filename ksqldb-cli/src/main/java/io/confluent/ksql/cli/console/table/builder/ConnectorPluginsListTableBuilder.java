@@ -18,7 +18,7 @@ package io.confluent.ksql.cli.console.table.builder;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
-import io.confluent.ksql.rest.entity.ConnectorType;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import java.util.List;
 import org.apache.commons.lang3.ObjectUtils;
 
@@ -35,7 +35,7 @@ public class ConnectorPluginsListTableBuilder implements TableBuilder<ConnectorP
             .stream()
             .map(info -> ImmutableList.of(
                 info.getClassName(),
-                ObjectUtils.defaultIfNull(info.getType(), ConnectorType.UNKNOWN).name(),
+                ObjectUtils.defaultIfNull(info.getType(), PluginType.UNKNOWN).name(),
                 ObjectUtils.defaultIfNull(info.getVersion(), ""))))
       .build();
   }

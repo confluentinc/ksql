@@ -1154,7 +1154,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldFailToCreateConnectorViaExecuteStatement() {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+        new ConnectorInfo("name", Collections.emptyMap(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When
@@ -1578,7 +1578,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldCreateConnector() throws Exception {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+        new ConnectorInfo("name", Collections.emptyMap(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
@@ -1592,7 +1592,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldCreateConnectorIfNotExist() throws Exception {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+        new ConnectorInfo("name", Collections.emptyMap(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
@@ -1732,7 +1732,7 @@ public class ClientTest extends BaseApiTest {
     // Given
     javaClient.define("a", "a");
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+        new ConnectorInfo("name", Collections.emptyMap(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:

@@ -41,12 +41,12 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class DescribeConnectorExecutor {
 
+  public static final String CONNECTOR_CLASS_CONFIG = "connector.class";
   private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
 
   @VisibleForTesting
@@ -160,7 +160,7 @@ public final class DescribeConnectorExecutor {
 
     final ConnectorDescription description = new ConnectorDescription(
         configuredStatement.getMaskedStatementText(),
-        info.config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG),
+        info.config().get(CONNECTOR_CLASS_CONFIG),
         status,
         sources,
         topics,

@@ -39,7 +39,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.kafka.connect.runtime.ConnectorConfig;
 import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
@@ -59,8 +58,7 @@ public class ListConnectorsExecutorTest {
 
   private static final ConnectorInfo INFO = new ConnectorInfo(
       "connector",
-      ImmutableMap.of(ConnectorConfig.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
-      ImmutableList.of(),
+      ImmutableMap.of(DescribeConnectorExecutor.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
       ConnectorType.SOURCE
   );
 

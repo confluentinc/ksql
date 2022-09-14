@@ -37,7 +37,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class DataSourceExtractor {
@@ -143,28 +142,32 @@ public class DataSourceExtractor {
           matchedSources.add(name.text());
         }
       }
+      hint.append("%nDid you mean ");
       if (matchedSources.size() > 1) {
         final int n = matchedSources.size();
         for (int i = 0; i < n; i++) {
           final String dataSourceType = metaStore.getSource(SourceName.of(matchedSources.get(i)))
               .getDataSourceType().toString().replace("K","");
-          final String punctuation = i < n - 2 ? ", " : i == n - 2 ? ", or " : "? ";
-          hint.append(String.format("\"%s\" (%s)%s",
-              matchedSources.get(i), dataSourceType, punctuation));
+          final String punctuation = i < n - 2 ? ", " :
+              i == n - 2 ? i == 0 ? " or " : ", or" : "? ";
+          hint.append(
+              String.format("\"%s\" (%s)%s", matchedSources.get(i), dataSourceType, punctuation)
+          );
         }
-        hint.insert(0, "\nDid you mean ");
-        hint.append("Hint: wrap a name in double quotes to make it case-sensitive.");
+        hint.append("Hint: wrap the source name in double quotes to make it case-sensitive.");
 
       } else if (matchedSources.size() > 0) {
-        final Pattern capitalPattern = Pattern.compile(".*[a-z]+.*");
         // contains at least one small letter
-        if (capitalPattern.matcher(matchedSources.get(0)).matches()) {
-          hint.append(String.format(
-              "\nDid you mean \"%s\"? Hint: wrap a source name in double quotes "
+        if (matchedSources.get(0).chars().anyMatch(Character::isLowerCase)) {
+          hint.append(
+              String.format("\"%s\"? Hint: wrap the source name in double quotes "
                   + "to make it case-sensitive.", matchedSources.get(0)
           ));
         } else { // contains only capital letters
-          hint.append("\nHint: try removing double quotes from the source name.");
+          hint.append(
+              String.format("%s? Hint: try removing double quotes from the source name.",
+                  matchedSources.get(0))
+          );
         }
       }
       return hint.toString();

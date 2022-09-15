@@ -192,7 +192,7 @@ public class SqlTypeParserTest {
         "Failed to parse: STRUCT<foo VARCHAR,>"
     ));
     assertThat(e.getCause().getMessage(), containsString(
-        "line 1:20: mismatched input '>'"
+        "line 1:20: Syntax Error"
     ));
   }
 }

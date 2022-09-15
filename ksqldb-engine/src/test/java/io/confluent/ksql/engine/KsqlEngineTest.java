@@ -593,9 +593,8 @@ public class KsqlEngineTest {
             + "Did you mean \"Bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
     assertThat(e, statementText(is("select * from \"bAr\";")));
   }
-
   @Test
-  public void shouldShowMultipleHintsWhenIncorrectSourceMatchesMultipleTimes() {
+  public void shouldShowCorrectHintsWhenIncorrectSourceMatchesWithTwo() {
     // Given:
     KsqlEngineTestUtil.execute(
         serviceContext,
@@ -619,11 +618,42 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Exception while preparing statement: bar does not exist.\n"));
-    assertThat(e.getMessage(), containsString("\"BAR\" (STREAM)"));
-    assertThat(e.getMessage(), containsString("\"Bar\" (STREAM)"));
-    assertThat(e.getMessage(), containsString("Hint: wrap the source name in double quotes to make it case-sensitive."));
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bar does not exist.\n"
+            + "Did you mean \"BAR\" (STREAM) or \"Bar\" (STREAM)? Hint: wrap the source name in double quotes to make it case-sensitive.")));
     assertThat(e, statementText(is("select * from \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowCorrectHintsWhenIncorrectSourceMatchesWithThree() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table \"Foo\" as select * from test2; "
+            + "create table foo as select * from test2; "
+            + "create stream \"foo\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"FoO\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: FoO does not exist.\n"
+            + "Did you mean \"FOO\" (TABLE), \"Foo\" (TABLE), or \"foo\" (STREAM)? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from \"FoO\";")));
   }
 
   @Test

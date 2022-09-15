@@ -31,6 +31,7 @@ import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -212,7 +213,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
         matchedSources.add(name.text());
       }
     }
-
+    matchedSources.sort(Comparator.naturalOrder());
     if (matchedSources.size() > 0) {
       hint.append("\nDid you mean ");
       if (matchedSources.size() > 1) {
@@ -221,8 +222,18 @@ public final class MetaStoreImpl implements MutableMetaStore {
           final String dataSourceType = Objects.requireNonNull(
               getSource(SourceName.of(matchedSources.get(i)))
           ).getDataSourceType().getKsqlType();
-          final String punctuation = i < n - 2 ? ", " :
-              i == n - 2 ? i == 0 ? " or " : ", or" : "? ";
+          final String punctuation;
+          if (i < n - 2) {
+            punctuation = ", ";
+          } else if (i == n - 2) { // the item before the last item of the list
+            if (i == 0) { // when the list contains only two matched sources
+              punctuation = " or ";
+            } else {
+              punctuation = ", or ";
+            }
+          } else { // the last item of the list
+            punctuation = "? ";
+          }
           hint.append(
               String.format("\"%s\" (%s)%s", matchedSources.get(i), dataSourceType, punctuation)
           );

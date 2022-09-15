@@ -29,14 +29,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.4.0-224</version>
+        <version>7.4.0-227</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.4.0-0</version>
+    <version>7.4.0-114</version>
 
     <licenses>
         <license>
@@ -143,7 +143,7 @@
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
-        <io.confluent.ksql.version>7.4.0-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>7.4.0-114</io.confluent.ksql.version>
         <netty-tcnative-version>2.0.53.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -291,25 +291,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
-                <version>7.4.0-224</version>
+                <version>7.4.0-228</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>7.4.0-224</version>
+                <version>7.4.0-228</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
-                <version>7.4.0-224</version>
+                <version>7.4.0-228</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
-                <version>7.4.0-224</version>
+                <version>7.4.0-228</version>
             </dependency>
 
             <dependency>
@@ -333,25 +333,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
-                <version>7.4.0-224</version>
+                <version>7.4.0-228</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
-                <version>7.4.0-224</version>
+                <version>7.4.0-228</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
-                <version>7.4.0-224</version>
+                <version>7.4.0-228</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
-                <version>7.4.0-224</version>
+                <version>7.4.0-228</version>
             </dependency>
 
             <!-- End Confluent dependencies -->

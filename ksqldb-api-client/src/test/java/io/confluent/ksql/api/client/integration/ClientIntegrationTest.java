@@ -816,7 +816,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("mismatched input"));
+    assertThat(e.getCause().getMessage(), containsString("Syntax Error"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
   }
 

@@ -85,12 +85,12 @@ final class SourceBuilderUtils {
 
   static Serde<GenericRow> getValueSerde(
       final RuntimeBuildContext buildContext,
-      final SourceStep<?> streamSource,
+      final FormatInfo formatInfo,
       final PhysicalSchema physicalSchema,
       final QueryContext queryContext
   ) {
     return buildContext.buildValueSerde(
-        streamSource.getFormats().getValueFormat(),
+        formatInfo,
         physicalSchema,
         queryContext
     );
@@ -103,20 +103,20 @@ final class SourceBuilderUtils {
   ) {
     return getValueSerde(
         buildContext,
-        streamSource,
+        streamSource.getFormats().getValueFormat(),
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );
   }
 
   static Serde<GenericKey> getKeySerde(
-      final SourceStep<?> step,
+      final FormatInfo formatInfo,
       final PhysicalSchema physicalSchema,
       final RuntimeBuildContext buildContext,
       final QueryContext queryContext
   ) {
     return buildContext.buildKeySerde(
-        step.getFormats().getKeyFormat(),
+        formatInfo,
         physicalSchema,
         queryContext
     );
@@ -128,7 +128,7 @@ final class SourceBuilderUtils {
       final RuntimeBuildContext buildContext
   ) {
     return getKeySerde(
-        step,
+        step.getFormats().getKeyFormat(),
         physicalSchema,
         buildContext,
         step.getProperties().getQueryContext()

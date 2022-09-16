@@ -19,6 +19,7 @@ import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.rest.model.Response;
@@ -32,11 +33,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
-class RestTestCase implements Test {
+public class RestTestCase implements Test {
 
   private final TestLocation location;
   private final String name;
-  private final Map<String, Object> properties;
+  private final ImmutableMap<String, Object> properties;
   private final ImmutableList<Topic> topics;
   private final ImmutableList<Record> inputRecords;
   private final ImmutableList<Record> outputRecords;

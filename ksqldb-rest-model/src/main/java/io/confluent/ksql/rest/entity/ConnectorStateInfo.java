@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ConnectorStateInfo {
   private final String name;
   private final ConnectorState connector;
@@ -62,6 +64,7 @@ public class ConnectorStateInfo {
     return this.type;
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class TaskState extends AbstractState implements Comparable<TaskState> {
     private final int id;
 
@@ -101,6 +104,7 @@ public class ConnectorStateInfo {
     }
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class ConnectorState extends AbstractState {
     @JsonCreator
     public ConnectorState(

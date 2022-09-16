@@ -16,11 +16,13 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ConfigInfos {
   @JsonProperty("name")
   private final String name;
@@ -68,6 +70,7 @@ public class ConfigInfos {
     return sb.toString();
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class ConfigInfo {
     private final ConfigValueInfo configValue;
 
@@ -103,6 +106,7 @@ public class ConfigInfos {
     }
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class ConfigValueInfo {
     private final String name;
     private final ImmutableList<String> errors;

@@ -14,7 +14,8 @@ The client only supports pull and push queries.
     [View the Python client API documentation](python-client-api/index.html)
 
 The client sends queries to the [`/query-stream` endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#executing-pull-or-push-queries).
-The client is compatible only with ksqlDB deployments that are on version 0.xx.0 or later.
+The client is compatible only with ksqlDB deployments that are on version 0.24.0 or later.
+The project code lives [here](https://github.com/confluentinc/confluent-ksqldb-python). The PyPi package is [here](https://pypi.org/project/confluent-ksqldb/)
 
 Use the Python client to:
 
@@ -23,10 +24,10 @@ Use the Python client to:
 
 Getting Started
 ---------------
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install `confluent-ksqldb-python`.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install `confluent-ksqldb`.
 
 ```bash
-pip install confluent-ksqldb-python
+pip install confluent-ksqldb
 ```
 
 Receive query results one row at a time (stream_query_async())<a name="stream-query-async"></a>

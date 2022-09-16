@@ -1278,10 +1278,10 @@ public class CliTest {
 
     // Then:
     final String out = terminal.getOutputString();
-    final String expected = "Statement: create stream if not exist s1(id int) "
+    final String expected = "Syntax error at or near 'exist' at line 2:22\n"
+        + "Statement: create stream if not exist s1(id int) "
         + "with (kafka_topic='s1', value_format='json', partitions=1);\n"
-        + "Caused by: line 2:22: Syntax Error\n"
-        + "Syntax error at or near 'exist' at line 2:22";
+        + "Caused by: org.antlr.v4.runtime.NoViableAltException";
     assertThat(error_code, is(-1));
     assertThat(out, containsString(expected));
     assertThat(out, not(containsString("drop stream if exists")));

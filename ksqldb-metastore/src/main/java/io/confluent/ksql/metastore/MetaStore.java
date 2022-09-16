@@ -29,5 +29,7 @@ public interface MetaStore extends FunctionRegistry, TypeRegistry {
 
   Set<SourceName> getSourceConstraints(SourceName sourceName);
 
+  String checkAlternatives(SourceName sourceName);
+
   MetaStore copy();
 }

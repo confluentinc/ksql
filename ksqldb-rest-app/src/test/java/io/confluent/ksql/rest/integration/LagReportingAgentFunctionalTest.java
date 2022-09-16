@@ -15,6 +15,7 @@ import io.confluent.ksql.rest.entity.QueryStateStoreId;
 import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -64,15 +65,17 @@ public class LagReportingAgentFunctionalTest {
       "CTAS_USER_LATEST_VIEWTIME_5",
       "Aggregate-Aggregate-Materialize");
 
-  private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", 8188);
-  private static final KsqlHostInfoEntity HOST1 = new KsqlHostInfoEntity("localhost", 8189);
+  private static final int INT_PORT0 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT1 = TestUtils.findFreeLocalPort();
+  private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", INT_PORT0);
+  private static final KsqlHostInfoEntity HOST1 = new KsqlHostInfoEntity("localhost", INT_PORT1);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8288")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT0)
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT0)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
@@ -89,9 +92,9 @@ public class LagReportingAgentFunctionalTest {
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8289")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT1)
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .withProperty(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
@@ -103,7 +106,6 @@ public class LagReportingAgentFunctionalTest {
       // Lag Reporting
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
       .withProperty(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
-      .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/Default")
       .withProperty("ksql.runtime.feature.shared.enabled", true)
       .build();
 

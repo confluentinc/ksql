@@ -711,6 +711,7 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/RestQueryTranslationTest*.java</exclude>
+                                <exclude>**/io/confluent/ksql/rest/integration/**/*.java</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -723,8 +724,9 @@
                         <configuration>
                             <includes>
                                 <include>**/RestQueryTranslationTest*.java</include>
+                                <include>**/io/confluent/ksql/rest/integration/**/*.java</include>
                             </includes>
-                            <forkCount>4</forkCount>
+                            <forkCount>3</forkCount>
                             <reuseForks>false</reuseForks>
                             <parallel>classes</parallel>
                             <useUnlimitedThreads>true</useUnlimitedThreads>

@@ -339,14 +339,17 @@ public class TestKsqlRestApp extends ExternalResource {
       after();
     }
 
-    // Make sure that we set a different state directory for every run.
-    try {
-      this.temporaryFolder.create();
-    } catch (IOException e) {
-      throw new RuntimeException("Cannot create temporary folder");
+    // Make sure that we set a different state directory for every run if none is set.
+    if (!baseConfig.containsKey(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG) &&
+        !baseConfig.containsKey(StreamsConfig.STATE_DIR_CONFIG)) {
+      try {
+        this.temporaryFolder.create();
+      } catch (IOException e) {
+        throw new RuntimeException("Cannot create temporary folder");
+      }
+      baseConfig.put(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
+          temporaryFolder.getRoot().getAbsolutePath());
     }
-    baseConfig.put(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
-        temporaryFolder.getRoot().getAbsolutePath());
 
     ksqlRestConfig = buildConfig(bootstrapServers, baseConfig);
 

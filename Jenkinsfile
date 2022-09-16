@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 common {
-    slackChannel = '#ksqldb-quality-oncall'
+    slackChannel = '#dev-null-john'
     timeoutHours = 4
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'

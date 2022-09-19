@@ -93,8 +93,8 @@ public class ShowQueriesMultiNodeFunctionalTest {
     final Supplier<String> app1Response = () -> getShowQueriesResult(REST_APP_1);
 
     // Then:
-    assertThatEventually("App0", app0Response, is("RUNNING:2"));
-    assertThatEventually("App1", app1Response, is("RUNNING:2"));
+    assertThatEventually("App0", app0Response, is("RUNNING:2"), 60, TimeUnit.SECONDS);
+    assertThatEventually("App1", app1Response, is("RUNNING:2"), 60, TimeUnit.SECONDS);
   }
 
   private static String getShowQueriesResult(final TestKsqlRestApp restApp) {

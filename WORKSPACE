@@ -105,6 +105,7 @@ maven_install(
         "org.jeasy:easy-random-core:4.2.0",
         "org.eclipse.jetty:jetty-http:9.4.48.v20220622",
         "org.rocksdb:rocksdbjni:6.29.4.1",
+        "org.jline:jline:3.13.1",
         maven.artifact(
             artifact = "connect-runtime",
             exclusions = [

@@ -131,7 +131,6 @@ public class PushV2ClientContinueIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)

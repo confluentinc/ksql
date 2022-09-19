@@ -94,7 +94,6 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
         .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
-        .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat/")
         .withProperty(KsqlRestConfig.COMMAND_CONSUMER_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, INTERNAL_TEST_HARNESS.kafkaBootstrapServers())
         .withProperty(KsqlRestConfig.COMMAND_PRODUCER_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, INTERNAL_TEST_HARNESS.kafkaBootstrapServers())
         .build();

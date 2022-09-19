@@ -35,6 +35,7 @@ java_library(
     name = "tests",
     testonly = 1,
     srcs = glob(["src/test/**/*.java"]),
+    visibility = ["//visibility:public"],
     deps = [
         ":ksqldb_rest_model",
         "//ksqldb-common:ksqldb_common",

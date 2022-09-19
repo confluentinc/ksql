@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
   private static final Logger LOG = LoggerFactory.getLogger(MetaStoreImpl.class);
-
   // these sources have a constraint that cannot be deleted until the references are dropped first
   private final Map<SourceName, Set<SourceName>> dropConstraints = new ConcurrentHashMap<>();
 

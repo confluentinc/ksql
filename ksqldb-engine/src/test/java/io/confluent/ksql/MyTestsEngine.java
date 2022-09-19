@@ -165,6 +165,33 @@ import io.confluent.ksql.function.udf.map.AsMapTest;
 import io.confluent.ksql.function.udf.map.MapKeysTest;
 import io.confluent.ksql.function.udf.map.MapUnionTest;
 import io.confluent.ksql.function.udf.map.MapValuesTest;
+import io.confluent.ksql.function.udf.math.AbsTest;
+import io.confluent.ksql.function.udf.math.AcosTest;
+import io.confluent.ksql.function.udf.math.AsinTest;
+import io.confluent.ksql.function.udf.math.Atan2Test;
+import io.confluent.ksql.function.udf.math.AtanTest;
+import io.confluent.ksql.function.udf.math.CbrtTest;
+import io.confluent.ksql.function.udf.math.CosTest;
+import io.confluent.ksql.function.udf.math.CoshTest;
+import io.confluent.ksql.function.udf.math.CotTest;
+import io.confluent.ksql.function.udf.math.DegreesTest;
+import io.confluent.ksql.function.udf.math.ExpTest;
+import io.confluent.ksql.function.udf.math.GreatestTest;
+import io.confluent.ksql.function.udf.math.LeastTest;
+import io.confluent.ksql.function.udf.math.LnTest;
+import io.confluent.ksql.function.udf.math.LogTest;
+import io.confluent.ksql.function.udf.math.PiTest;
+import io.confluent.ksql.function.udf.math.PowerTest;
+import io.confluent.ksql.function.udf.math.Radians;
+import io.confluent.ksql.function.udf.math.RadiansTest;
+import io.confluent.ksql.function.udf.math.RandomTest;
+import io.confluent.ksql.function.udf.math.RoundTest;
+import io.confluent.ksql.function.udf.math.SignTest;
+import io.confluent.ksql.function.udf.math.SinTest;
+import io.confluent.ksql.function.udf.math.SinhTest;
+import io.confluent.ksql.function.udf.math.SqrtTest;
+import io.confluent.ksql.function.udf.math.TanTest;
+import io.confluent.ksql.function.udf.math.TanhTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -333,8 +360,34 @@ import org.junit.runners.Suite;
         SliceTest.class,
         AsMapTest.class,
         MapKeysTest.class,
-        MapValuesTest.class,
         MapUnionTest.class,
+        MapValuesTest.class,
+        AbsTest.class,
+        AcosTest.class,
+        AsinTest.class,
+        Atan2Test.class,
+        AtanTest.class,
+        CbrtTest.class,
+        CoshTest.class,
+        CosTest.class,
+        CotTest.class,
+        DegreesTest.class,
+        ExpTest.class,
+        GreatestTest.class,
+        LeastTest.class,
+        LnTest.class,
+        LogTest.class,
+        PiTest.class,
+        PowerTest.class,
+        RadiansTest.class,
+        RandomTest.class,
+        RoundTest.class,
+        SignTest.class,
+        SinhTest.class,
+        SinTest.class,
+        SqrtTest.class,
+        TanhTest.class,
+        TanTest.class,
         // todo I didn't add all the tests here.
 })
 public class MyTestsEngine {

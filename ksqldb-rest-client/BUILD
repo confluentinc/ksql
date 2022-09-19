@@ -1,7 +1,7 @@
 load("@rules_java//java:defs.bzl", "java_test")
 
 java_library(
-    name = "ksqldb_rest_model",
+    name = "ksqldb_rest_client",
     srcs = glob([
         "src/main/**/*.java",
     ]),
@@ -33,7 +33,7 @@ java_library(
     testonly = 1,
     srcs = glob(["src/test/**/*.java"]),
     deps = [
-        ":ksqldb_rest_model",
+        ":ksqldb_rest_client",
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-execution:ksqldb_execution",
         "//ksqldb-parser:ksqldb_parser",

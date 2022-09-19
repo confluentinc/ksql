@@ -97,6 +97,14 @@ maven_install(
         "com.github.tomakehurst:wiremock-jre8:2.24.0",
         "io.confluent:confluent-log4j-extensions:7.4.0-128",
         "commons-codec:commons-codec:1.13",
+        "com.github.rvesse:airline:2.6.0",
+        "io.vertx:vertx-dropwizard-metrics:4.3.2",
+        "org.eclipse.jetty:jetty-jaas:9.4.44.v20210927",
+        "io.vertx:vertx-web-client:4.3.2",
+        "io.vertx:vertx-web-common:4.3.2",
+        "org.jeasy:easy-random-core:4.2.0",
+        "org.eclipse.jetty:jetty-http:9.4.48.v20220622",
+        "org.rocksdb:rocksdbjni:6.29.4.1",
         maven.artifact(
             artifact = "connect-runtime",
             exclusions = [

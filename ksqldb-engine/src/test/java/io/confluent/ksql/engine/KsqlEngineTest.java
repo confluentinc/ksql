@@ -686,6 +686,66 @@ public class KsqlEngineTest {
     assertThat(e, statementText(is("select * from bar;")));
   }
 
+  @Test
+  public void shouldShowHintWhenFailingToDropStreamWithSourceNameWithQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Stream bar does not exist.\n"
+            + "Did you mean BAR? Hint: try removing double quotes from the source name.")));
+    assertThat(e, statementText(is("drop stream \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToDropTableWithSourceNameWithoutQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table \"bar\" as select * from test2;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop table bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Table BAR does not exist.\n"
+            + "Did you mean \"bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("drop table bar;")));
+  }
+
   @Test(expected = ParseFailedException.class)
   public void shouldFailWhenSyntaxIsInvalid() {
     KsqlEngineTestUtil.execute(

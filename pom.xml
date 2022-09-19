@@ -155,6 +155,7 @@
         <netty.version>4.1.78.Final</netty.version>
         <netty-codec-http2-version>4.1.78.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
+        <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
     </properties>
 
     <dependencyManagement>
@@ -716,7 +717,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>multi-threaded-test</id>
+                        <id>multi-threaded-testing</id>
                         <phase>integration-test</phase>
                         <goals>
                             <goal>integration-test</goal>
@@ -726,7 +727,7 @@
                                 <include>**/RestQueryTranslationTest*.java</include>
                                 <include>**/io/confluent/ksql/rest/integration/**/*.java</include>
                             </includes>
-                            <forkCount>3</forkCount>
+                            <forkCount>${multi-threaded-testing.forkCount}</forkCount>
                             <reuseForks>false</reuseForks>
                             <parallel>classes</parallel>
                             <useUnlimitedThreads>true</useUnlimitedThreads>

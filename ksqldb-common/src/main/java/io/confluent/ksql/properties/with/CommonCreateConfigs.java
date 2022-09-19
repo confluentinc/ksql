@@ -33,6 +33,7 @@ public final class CommonCreateConfigs {
   public static final String SOURCE_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SOURCE_NUMBER_OF_REPLICAS = "REPLICAS";
   public static final String SOURCE_TOPIC_RETENTION_IN_MS = "RETENTION_MS";
+  public static final String SOURCE_TOPIC_CLEANUP_POLICY = "CLEANUP_POLICY";
 
   // Timestamp Props:
   public static final String TIMESTAMP_NAME_PROPERTY = "TIMESTAMP";
@@ -54,6 +55,7 @@ public final class CommonCreateConfigs {
   public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
   public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
 
+  @SuppressWarnings("checkstyle:MethodLength")
   public static void addToConfigDef(
       final ConfigDef configDef,
       final boolean topicNameRequired
@@ -197,7 +199,20 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.INT,
             null,
             Importance.LOW,
-            "Undocumented feature");
+            "Undocumented feature"
+        ).define(
+            SOURCE_TOPIC_CLEANUP_POLICY,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.LOW,
+            "This config designates the retention policy to use on log segments. "
+                + "The \"delete\" policy (which is the default) will discard old segments "
+                + "when their retention time or size limit has been reached. The \"compact\" "
+                + "policy will enable <a href=\"#compaction\">log compaction</a>, which retains "
+                + "the latest value for each key. It is also possible to specify both policies "
+                + "in a comma-separated list (e.g. \"delete,compact\"). In this case, old segments "
+                + "will be discarded per the retention time and size configuration, while retained "
+                + "segments will be compacted.");
   }
 
   public static void validateKeyValueFormats(final Map<String, Object> configs) {

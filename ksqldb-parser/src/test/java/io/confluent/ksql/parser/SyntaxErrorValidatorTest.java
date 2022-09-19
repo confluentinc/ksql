@@ -76,7 +76,7 @@ public class SyntaxErrorValidatorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("mismatched input 'topic' expecting IDENTIFIER"));
+        containsString("Syntax Error\nExpecting IDENTIFIER"));
   }
 
   @Test
@@ -94,7 +94,7 @@ public class SyntaxErrorValidatorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("mismatched input '1' expecting IDENTIFIER"));
+        containsString("Syntax Error\nExpecting IDENTIFIER"));
   }
 
   @Test

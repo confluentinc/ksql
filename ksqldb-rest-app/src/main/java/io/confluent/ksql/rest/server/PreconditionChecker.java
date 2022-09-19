@@ -224,12 +224,12 @@ public class PreconditionChecker implements Executable {
         new VertxOptions()
             .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
             .setMaxWorkerExecuteTime(Long.MAX_VALUE));
+    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     final KsqlClient sharedClient = InternalKsqlClientFactory.createInternalClient(
-        properties,
+        ksqlConfig.originalsStrings(),
         SocketAddress::inetSocketAddress,
         vertx
     );
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ConnectClientFactory connectClientFactory = new DefaultConnectClientFactory(ksqlConfig);

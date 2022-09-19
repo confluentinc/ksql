@@ -175,7 +175,8 @@ public class VariableExecutorTest {
 
       // Then:
       assertThat(e.getMessage(), containsString(
-          String.format("mismatched input '%s'", invalidValue)));
+         "Syntax Error\n"
+             + "Expecting STRING"));
     }
   }
 }

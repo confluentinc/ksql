@@ -30,8 +30,8 @@ public class ParsingException
     this(
         message,
         null,
-        nodeLocation.map(NodeLocation::getLineNumber).orElse(1),
-        nodeLocation.map(NodeLocation::getColumnNumber).orElse(0)
+        nodeLocation.map(NodeLocation::getStartLineNumber).orElse(1),
+        nodeLocation.map(NodeLocation::getStartColumnNumber).orElse(0)
     );
   }
 

@@ -318,22 +318,21 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
       final List<StreamedRow> data,
       final Handler<AsyncResult<Void>> handler
   ) {
-    if (isDone()) {
-      return;
-    }
-
     monitor.enter();
     try {
+      if (isDone()) {
+        return;
+      }
       for (final PullQueryRow row: translator.apply(data)) {
-        queue.offer(new HandledRow(row, handler));
-        totalRowsQueued++;
-        queueCallback.run();
-
-        if (hardLimitHit()) {
-          // check if the last row enqueued caused us to break the limit, in which case
-          // we should signal the end of the WriteStream
-          end(limitHandler);
-          break;
+        if (queue.offer(new HandledRow(row, handler))) {
+          totalRowsQueued++;
+          queueCallback.run();
+          if (hardLimitHit()) {
+            // check if the last row enqueued caused us to break the limit, in which case
+            // we should signal the end of the WriteStream
+            end(limitHandler);
+            break;
+          }
         }
       }
     } finally {

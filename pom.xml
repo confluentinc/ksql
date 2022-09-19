@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.4.0-128</version>
+        <version>7.4.0-254</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -144,6 +144,7 @@
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.4.0-0</io.confluent.ksql.version>
+        <io.confluent.schema-registry.version>7.4.0-256</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.53.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -291,25 +292,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
-                <version>7.4.0-124</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>7.4.0-124</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
-                <version>7.4.0-124</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
-                <version>7.4.0-124</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
@@ -333,25 +334,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
-                <version>7.4.0-124</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
-                <version>7.4.0-124</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
-                <version>7.4.0-124</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
-                <version>7.4.0-124</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -704,6 +705,34 @@
                     for more details -->
                     <useModulePath>false</useModulePath>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/RestQueryTranslationTest*.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>multi-threaded-test</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/RestQueryTranslationTest*.java</include>
+                            </includes>
+                            <forkCount>4</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <parallel>classes</parallel>
+                            <useUnlimitedThreads>true</useUnlimitedThreads>
+                            <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+                            <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

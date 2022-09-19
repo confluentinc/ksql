@@ -112,7 +112,8 @@ public class DataSourceExtractor {
       final SourceName fromName = ((Table) relation.getRelation()).getName();
       final DataSource source = metaStore.getSource(fromName);
       if (source == null) {
-        throw new KsqlException(fromName.text() + " does not exist.");
+        final String hint = metaStore.checkAlternatives(fromName);
+        throw new KsqlException(fromName.text() + " does not exist." + hint);
       }
 
       allSources.add(new AliasedDataSource(relation.getAlias(), source));

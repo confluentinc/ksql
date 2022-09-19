@@ -9,7 +9,6 @@ java_library(
     deps = [
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-execution:ksqldb_execution",
-        "//ksqldb-metastore:ksqldb_metastore",
         "//ksqldb-serde:ksqldb_serde",
         "//ksqldb-udf:ksqldb_udf",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
@@ -43,8 +42,6 @@ java_library(
         ":ksqldb_streams",
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-execution:ksqldb_execution",
-        "//ksqldb-metastore:ksqldb_metastore",
-        "//ksqldb-metastore:tests",
         "//ksqldb-serde:ksqldb_serde",
         "//ksqldb-test-util:ksqldb_test_util",
         "//ksqldb-udf:ksqldb_udf",

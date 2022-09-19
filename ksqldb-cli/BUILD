@@ -41,12 +41,9 @@ java_library(
     deps = [
         ":ksqldb_cli",
         "//ksqldb-common:ksqldb_common",
-        "//ksqldb-engine:ksqldb_engine",
         "//ksqldb-engine:tests",
-        "//ksqldb-engine-common:ksqldb_engine_common",
         "//ksqldb-execution:ksqldb_execution",
         "//ksqldb-metastore:ksqldb_metastore",
-        "//ksqldb-parser:ksqldb_parser",
         "//ksqldb-rest-app:ksqldb_rest_app",
         "//ksqldb-rest-app:tests",
         "//ksqldb-rest-client:ksqldb_rest_client",

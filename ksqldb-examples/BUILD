@@ -9,10 +9,6 @@ java_library(
     deps = [
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-engine:ksqldb_engine",
-        "//ksqldb-parser:generated",
-        "//ksqldb-parser:ksqldb_parser",
-        "//ksqldb-rest-client:ksqldb_rest_client",
-        "//ksqldb-rest-model:ksqldb_rest_model",
         "//ksqldb-serde:ksqldb_serde",
         "@maven//:com_google_guava_guava",
         "@maven//:io_confluent_avro_avro_random_generator",
@@ -39,19 +35,7 @@ java_library(
         ":ksqldb_examples",
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-common:tests",
-        "//ksqldb-engine:ksqldb_engine",
-        "//ksqldb-engine:tests",
-        "//ksqldb-engine-common:ksqldb_engine_common",
-        "//ksqldb-execution:ksqldb_execution",
-        "//ksqldb-metastore:ksqldb_metastore",
-        "//ksqldb-parser:ksqldb_parser",
-        "//ksqldb-rest-app:ksqldb_rest_app",
-        "//ksqldb-rest-app:tests",
-        "//ksqldb-rest-client:ksqldb_rest_client",
-        "//ksqldb-rest-model:ksqldb_rest_model",
-        "//ksqldb-serde:ksqldb_serde",
         "//ksqldb-test-util:ksqldb_test_util",
-        "//ksqldb-udf:ksqldb_udf",
         "@maven//:com_fasterxml_jackson_core_jackson_databind",
         "@maven//:com_google_guava_guava",
         "@maven//:io_confluent_avro_avro_random_generator",
@@ -72,7 +56,10 @@ java_library(
 
 java_test(
     name = "MyTests",
-    resources = glob(["src/main/resources/**", "src/test/resources/**"]),
+    resources = glob([
+        "src/main/resources/**",
+        "src/test/resources/**",
+    ]),
     test_class = "io.confluent.ksql.MyTestsExamples",
     runtime_deps = [":tests"],
 )

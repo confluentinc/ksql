@@ -54,6 +54,7 @@ maven_install(
         "io.vertx:vertx-codegen:4.3.2",
         "io.vertx:vertx-web:4.3.2",
         "org.reactivestreams:reactive-streams:1.0.3",
+        "org.reactivestreams:reactive-streams-tck:1.0.3",
         "com.fasterxml.jackson.core:jackson-core:2.13.2",
         "com.fasterxml.jackson.core:jackson-databind:2.13.2",
         "com.fasterxml.jackson.core:jackson-annotations:2.13.2",
@@ -111,6 +112,7 @@ maven_install(
         "net.sf.jopt-simple:jopt-simple:5.0.4",
         "org.openjdk.jmh:jmh-core:1.21",
         "org.openjdk.jmh:jmh-generator-annprocess:1.21",
+        "org.testng:testng:6.11",
         maven.artifact(
             artifact = "connect-runtime",
             exclusions = [

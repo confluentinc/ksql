@@ -1,10 +1,12 @@
 load("@rules_java//java:defs.bzl", "java_test")
 
-java_library(
+# Entry point for running the server
+java_binary(
     name = "ksqldb_rest_app",
     srcs = glob([
         "src/main/**/*.java",
     ]),
+    main_class = "io.confluent.ksql.rest.server.KsqlServerMain",
     visibility = ["//visibility:public"],
     deps = [
         "//ksqldb-common:ksqldb_common",

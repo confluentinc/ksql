@@ -47,6 +47,7 @@ maven_install(
         "io.confluent:kafka-connect-avro-converter:7.4.0-124",
         "io.confluent:common-logging:7.4.0-128",
         "org.apache.kafka:kafka-streams:7.4.0-33-ccs",
+        "org.apache.kafka:kafka-streams-test-utils:7.4.0-33-ccs",
         "org.apache.avro:avro:1.11.0",
         "org.apache.commons:commons-lang3:3.5",
         "io.vertx:vertx-core:4.3.2",
@@ -106,6 +107,8 @@ maven_install(
         "org.eclipse.jetty:jetty-http:9.4.48.v20220622",
         "org.rocksdb:rocksdbjni:6.29.4.1",
         "org.jline:jline:3.13.1",
+        "commons-io:commons-io:2.7",
+        "net.sf.jopt-simple:jopt-simple:5.0.4",
         maven.artifact(
             artifact = "connect-runtime",
             exclusions = [

@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
@@ -65,6 +66,7 @@ public class AuthorizationFunctionalTest {
   );
 
   private static final String TOPIC_1 = "topic_1";
+  private static final int INT_PORT = TestUtils.findFreeLocalPort();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -77,7 +79,7 @@ public class AuthorizationFunctionalTest {
           MockKsqlSecurityExtension.class.getName()
       )
       .withProperty(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 

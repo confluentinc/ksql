@@ -1,0 +1,496 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1662536990409,
+  "path" : "query-validation-tests/table-table-join.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`L_K` INTEGER KEY, `L_NAME` STRING, `L_FOREIGN_KEY` BIGINT, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_K` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source.Materialized" : {
+      "schema" : "`K` INTEGER KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K` INTEGER KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftKey2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "101"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftValue2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "102"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`L_K` INTEGER KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `F1` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`K` INTEGER KEY, `F1` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufRightKey2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "201"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufRightValue2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "202"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_K` INTEGER KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `F1` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`R_K` INTEGER KEY, `R_F1` BIGINT, `R_ROWTIME` BIGINT, `R_ROWPARTITION` INTEGER, `R_ROWOFFSET` BIGINT, `R_K` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufRightValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.RightSourceKeyed.Materialize" : {
+      "schema" : "`K` INTEGER KEY, `F1` BIGINT, `ROWTIME` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `K` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufRightValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`K` INTEGER KEY, `F1` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufRightKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufRightValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.LeftSourceKeyed.Materialize" : {
+      "schema" : "`K` INTEGER KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `ROWTIME` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `K` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufLeftValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "table-table key join with protobuf schema and schema id",
+    "inputs" : [ {
+      "topic" : "right_topic",
+      "key" : {
+        "K" : 0
+      },
+      "value" : {
+        "F1" : 0
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "right_topic",
+      "key" : {
+        "K" : 1
+      },
+      "value" : {
+        "F1" : 1
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "right_topic",
+      "key" : {
+        "K" : 2
+      },
+      "value" : {
+        "F1" : 2
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "left_topic",
+      "key" : {
+        "K" : 0
+      },
+      "value" : {
+        "NAME" : "zero",
+        "FOREIGN_KEY" : 0
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "left_topic",
+      "key" : {
+        "K" : 1
+      },
+      "value" : {
+        "NAME" : "bar",
+        "FOREIGN_KEY" : 1
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "left_topic",
+      "key" : {
+        "K" : 2
+      },
+      "value" : {
+        "NAME" : "foo",
+        "FOREIGN_KEY" : 2
+      },
+      "timestamp" : 11000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "L_K" : 0
+      },
+      "value" : {
+        "FOREIGN_KEY" : 0,
+        "NAME" : "zero",
+        "F1" : 0
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "L_K" : 1
+      },
+      "value" : {
+        "FOREIGN_KEY" : 1,
+        "NAME" : "bar",
+        "F1" : 1
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "L_K" : 2
+      },
+      "value" : {
+        "FOREIGN_KEY" : 2,
+        "NAME" : "foo",
+        "F1" : 2
+      },
+      "timestamp" : 11000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "keySchemaId" : 201,
+      "valueSchemaId" : 202,
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufRightKey1 {\n  uint32 k1 = 1;\n}\nmessage ProtobufRightKey2 {\n  int32 K = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufRightValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\nmessage ProtobufRightValue2 {\n  uint64 F1 = 1;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "keySchemaId" : 101,
+      "valueSchemaId" : 102,
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftKey1 {\n  uint32 k1 = 1;\n}\nmessage ProtobufLeftKey2 {\n  int32 K = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\nmessage ProtobufLeftValue2 {\n  string NAME = 1;\n  uint64 FOREIGN_KEY = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE TABLE left_table WITH (kafka_topic='left_topic', partitions=128, format='PROTOBUF', KEY_SCHEMA_ID=101, KEY_SCHEMA_FULL_NAME='ProtobufLeftKey2', VALUE_SCHEMA_ID=102, VALUE_SCHEMA_FULL_NAME='ProtobufLeftValue2');", "CREATE TABLE right_table WITH (kafka_topic='right_topic', partitions=128, format='PROTOBUF', KEY_SCHEMA_ID=201, KEY_SCHEMA_FULL_NAME='ProtobufRightKey2', VALUE_SCHEMA_ID=202, VALUE_SCHEMA_FULL_NAME='ProtobufRightValue2');", "CREATE TABLE output AS SELECT L.K, L.NAME, L.FOREIGN_KEY, R.F1 FROM left_table L JOIN right_table R ON L.K = R.K;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "LEFT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`K` INTEGER KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`L_K` INTEGER KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `F1` BIGINT",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RIGHT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`K` INTEGER KEY, `F1` BIGINT",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftKey2 {\n  int32 K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftValue2 {\n  string NAME = 1;\n  int64 FOREIGN_KEY = 2;\n  int64 ROWTIME = 3;\n  int32 ROWPARTITION = 4;\n  int64 ROWOFFSET = 5;\n  int32 K = 6;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Project-Last-changelog",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftKey2 {\n  int32 L_K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftValue2 {\n  string NAME = 1;\n  int64 FOREIGN_KEY = 2;\n  int64 F1 = 3;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufRightValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftKey2 {\n  int32 K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufRightValue2 {\n  int64 F1 = 1;\n  int64 ROWTIME = 2;\n  int32 ROWPARTITION = 3;\n  int64 ROWOFFSET = 4;\n  int32 K = 5;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-SelectKey-repartition",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftKey2 {\n  int32 K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftValue2 {\n  string NAME = 1;\n  int64 FOREIGN_KEY = 2;\n  int64 ROWTIME = 3;\n  int32 ROWPARTITION = 4;\n  int64 ROWOFFSET = 5;\n  int32 K = 6;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufRightValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftKey2 {\n  int32 K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufRightValue2 {\n  int64 F1 = 1;\n  int64 ROWTIME = 2;\n  int32 ROWPARTITION = 3;\n  int64 ROWOFFSET = 4;\n  int32 K = 5;\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftKey2 {\n  int32 L_K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftValue2 {\n  string NAME = 1;\n  int64 FOREIGN_KEY = 2;\n  int64 F1 = 3;\n}\n"
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftKey2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "101"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufLeftValue2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "102"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 101,
+          "valueSchemaId" : 102,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftKey2 {\n  int32 K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufLeftValue2 {\n  string NAME = 1;\n  uint64 FOREIGN_KEY = 2;\n}\n"
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufRightKey2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "201"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufRightValue2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "202"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 201,
+          "valueSchemaId" : 202,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufRightKey2 {\n  int32 K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufRightValue2 {\n  uint64 F1 = 1;\n}\n"
+        } ]
+      }
+    }
+  }
+}

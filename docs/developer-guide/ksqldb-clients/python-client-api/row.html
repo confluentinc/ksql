@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>ksqldb_confluent.row API documentation</title>
+<title>ksqldb.row API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,7 +19,7 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>ksqldb_confluent.row</code></h1>
+<h1 class="title">Module <code>ksqldb.row</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
@@ -157,7 +157,7 @@ class Row:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="ksqldb_confluent.row.Row"><code class="flex name class">
+<dt id="ksqldb.row.Row"><code class="flex name class">
 <span>class <span class="ident">Row</span></span>
 <span>(</span><span>values: list)</span>
 </code></dt>
@@ -271,14 +271,14 @@ class Row:
 </details>
 <h3>Class variables</h3>
 <dl>
-<dt id="ksqldb_confluent.row.Row.values"><code class="name">var <span class="ident">values</span> : list</code></dt>
+<dt id="ksqldb.row.Row.values"><code class="name">var <span class="ident">values</span> : list</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Instance variables</h3>
 <dl>
-<dt id="ksqldb_confluent.row.Row.is_tombstone"><code class="name">var <span class="ident">is_tombstone</span> : bool</code></dt>
+<dt id="ksqldb.row.Row.is_tombstone"><code class="name">var <span class="ident">is_tombstone</span> : bool</code></dt>
 <dd>
 <div class="desc"><p>Returns if the given row represents a tombstone.</p>
 <h2 id="returns">Returns</h2>
@@ -304,7 +304,7 @@ def is_tombstone(self) -&gt; bool:
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="ksqldb_confluent.row.Row.get_bool"><code class="name flex">
+<dt id="ksqldb.row.Row.get_bool"><code class="name flex">
 <span>def <span class="ident">get_bool</span></span>(<span>self, column_index: int) ‑> bool</span>
 </code></dt>
 <dd>
@@ -336,7 +336,7 @@ def is_tombstone(self) -&gt; bool:
     return bool(self.values[column_index])</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.row.Row.get_float"><code class="name flex">
+<dt id="ksqldb.row.Row.get_float"><code class="name flex">
 <span>def <span class="ident">get_float</span></span>(<span>self, column_index: int) ‑> float</span>
 </code></dt>
 <dd>
@@ -368,7 +368,7 @@ def is_tombstone(self) -&gt; bool:
     return float(self.values[column_index])</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.row.Row.get_integer"><code class="name flex">
+<dt id="ksqldb.row.Row.get_integer"><code class="name flex">
 <span>def <span class="ident">get_integer</span></span>(<span>self, column_index: int) ‑> int</span>
 </code></dt>
 <dd>
@@ -400,7 +400,7 @@ def is_tombstone(self) -&gt; bool:
     return int(self.values[column_index])</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.row.Row.get_ksql_object"><code class="name flex">
+<dt id="ksqldb.row.Row.get_ksql_object"><code class="name flex">
 <span>def <span class="ident">get_ksql_object</span></span>(<span>self, column_index: int) ‑> object</span>
 </code></dt>
 <dd>
@@ -434,7 +434,7 @@ This is appropriate for ksqlDB List, Map and Struct types.</p>
     return self.values[column_index]</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.row.Row.get_string"><code class="name flex">
+<dt id="ksqldb.row.Row.get_string"><code class="name flex">
 <span>def <span class="ident">get_string</span></span>(<span>self, column_index: int) ‑> str</span>
 </code></dt>
 <dd>
@@ -466,7 +466,7 @@ This is appropriate for ksqlDB List, Map and Struct types.</p>
     return str(self.values[column_index])</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.row.Row.get_value"><code class="name flex">
+<dt id="ksqldb.row.Row.get_value"><code class="name flex">
 <span>def <span class="ident">get_value</span></span>(<span>self, column_index: int) ‑> object</span>
 </code></dt>
 <dd>
@@ -498,7 +498,7 @@ This is appropriate for ksqlDB List, Map and Struct types.</p>
     return self.values[column_index]</code></pre>
 </details>
 </dd>
-<dt id="ksqldb_confluent.row.Row.is_none"><code class="name flex">
+<dt id="ksqldb.row.Row.is_none"><code class="name flex">
 <span>def <span class="ident">is_none</span></span>(<span>self, column_index: int) ‑> bool</span>
 </code></dt>
 <dd>
@@ -543,23 +543,23 @@ This is appropriate for ksqlDB List, Map and Struct types.</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="ksqldb_confluent" href="index.html">ksqldb_confluent</a></code></li>
+<li><code><a title="ksqldb" href="index.html">ksqldb</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="ksqldb_confluent.row.Row" href="#ksqldb_confluent.row.Row">Row</a></code></h4>
+<h4><code><a title="ksqldb.row.Row" href="#ksqldb.row.Row">Row</a></code></h4>
 <ul class="two-column">
-<li><code><a title="ksqldb_confluent.row.Row.get_bool" href="#ksqldb_confluent.row.Row.get_bool">get_bool</a></code></li>
-<li><code><a title="ksqldb_confluent.row.Row.get_float" href="#ksqldb_confluent.row.Row.get_float">get_float</a></code></li>
-<li><code><a title="ksqldb_confluent.row.Row.get_integer" href="#ksqldb_confluent.row.Row.get_integer">get_integer</a></code></li>
-<li><code><a title="ksqldb_confluent.row.Row.get_ksql_object" href="#ksqldb_confluent.row.Row.get_ksql_object">get_ksql_object</a></code></li>
-<li><code><a title="ksqldb_confluent.row.Row.get_string" href="#ksqldb_confluent.row.Row.get_string">get_string</a></code></li>
-<li><code><a title="ksqldb_confluent.row.Row.get_value" href="#ksqldb_confluent.row.Row.get_value">get_value</a></code></li>
-<li><code><a title="ksqldb_confluent.row.Row.is_none" href="#ksqldb_confluent.row.Row.is_none">is_none</a></code></li>
-<li><code><a title="ksqldb_confluent.row.Row.is_tombstone" href="#ksqldb_confluent.row.Row.is_tombstone">is_tombstone</a></code></li>
-<li><code><a title="ksqldb_confluent.row.Row.values" href="#ksqldb_confluent.row.Row.values">values</a></code></li>
+<li><code><a title="ksqldb.row.Row.get_bool" href="#ksqldb.row.Row.get_bool">get_bool</a></code></li>
+<li><code><a title="ksqldb.row.Row.get_float" href="#ksqldb.row.Row.get_float">get_float</a></code></li>
+<li><code><a title="ksqldb.row.Row.get_integer" href="#ksqldb.row.Row.get_integer">get_integer</a></code></li>
+<li><code><a title="ksqldb.row.Row.get_ksql_object" href="#ksqldb.row.Row.get_ksql_object">get_ksql_object</a></code></li>
+<li><code><a title="ksqldb.row.Row.get_string" href="#ksqldb.row.Row.get_string">get_string</a></code></li>
+<li><code><a title="ksqldb.row.Row.get_value" href="#ksqldb.row.Row.get_value">get_value</a></code></li>
+<li><code><a title="ksqldb.row.Row.is_none" href="#ksqldb.row.Row.is_none">is_none</a></code></li>
+<li><code><a title="ksqldb.row.Row.is_tombstone" href="#ksqldb.row.Row.is_tombstone">is_tombstone</a></code></li>
+<li><code><a title="ksqldb.row.Row.values" href="#ksqldb.row.Row.values">values</a></code></li>
 </ul>
 </li>
 </ul>

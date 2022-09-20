@@ -18,6 +18,7 @@ package io.confluent.ksql.test.parser;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.test.parser.TestDirective.Type;
+import io.confluent.ksql.util.ParserUtil;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.Token;
@@ -32,14 +33,14 @@ public final class DirectiveParser {
   }
 
   public static TestDirective parse(final Token comment) {
-    final NodeLocation loc = new NodeLocation(comment.getLine(), comment.getCharPositionInLine());
+    final NodeLocation loc = ParserUtil.getLocation(comment).get();
     final Matcher matcher = DIRECTIVE_REGEX.matcher(comment.getText().trim());
     if (!matcher.find()) {
       throw new ParsingException(
           "Expected directive matching pattern " + DIRECTIVE_REGEX + " but got " + comment,
           null,
-          loc.getLineNumber(),
-          loc.getColumnNumber()
+          loc.getStartLineNumber(),
+          loc.getStartColumnNumber()
       );
     }
 

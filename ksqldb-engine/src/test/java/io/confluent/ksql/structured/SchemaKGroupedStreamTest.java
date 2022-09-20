@@ -47,7 +47,9 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -55,6 +57,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
@@ -102,6 +105,10 @@ public class SchemaKGroupedStreamTest {
   private FormatInfo keyFormatInfo;
   @Mock
   private FormatInfo valueformatInfo;
+  @Mock
+  private FormatInfo keyFormatInfoWithoutProps;
+  @Mock
+  private FormatInfo valueFormatInfoWithoutProps;
 
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
@@ -118,8 +125,10 @@ public class SchemaKGroupedStreamTest {
     when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.KAFKA.name());
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(keyFormat.withSerdeFeatures(any())).thenReturn(keyFormat);
+    when(keyFormat.getFormatInfo().copyWithoutProperty(Mockito.anyString())).thenReturn(keyFormatInfo);
     when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of());
     when(valueFormat.getFormatInfo()).thenReturn(valueformatInfo);
+    when(valueFormat.getFormatInfo().copyWithoutProperty(Mockito.anyString())).thenReturn(valueformatInfo);
 
     schemaGroupedStream = new SchemaKGroupedStream(
         sourceStep,
@@ -177,6 +186,7 @@ public class SchemaKGroupedStreamTest {
     // Given:
     when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.JSON.name());
     when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+    when(keyFormatInfo.copyWithoutProperty(Mockito.anyString())).thenReturn(keyFormatInfo);
 
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
@@ -212,6 +222,7 @@ public class SchemaKGroupedStreamTest {
       features[0] = inv.getArgument(0);
       return keyFormat;
     });
+    when(keyFormatInfo.copyWithoutProperty(Mockito.anyString())).thenReturn(keyFormatInfo);
 
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
@@ -263,4 +274,37 @@ public class SchemaKGroupedStreamTest {
         )
     );
   }
+
+  @Test
+  public void shouldBuildStepForAggregateWithKeyValueFormatWithoutSchemaIdProperty() {
+    // Given:
+    when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.JSON.name());
+    when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+    when(keyFormatInfo.copyWithoutProperty("schemaId")).thenReturn(keyFormatInfoWithoutProps);
+    when(valueformatInfo.copyWithoutProperty("schemaId")).thenReturn(valueFormatInfoWithoutProps);
+
+    // When:
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        NON_AGGREGATE_COLUMNS,
+        ImmutableList.of(AGG),
+        Optional.empty(),
+        valueFormat.getFormatInfo(),
+        queryContext
+    );
+
+    // Then:
+    assertThat(
+        result.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.streamAggregate(
+                queryContext,
+                schemaGroupedStream.getSourceStep(),
+                Formats.of(keyFormatInfoWithoutProps, valueFormatInfoWithoutProps, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), SerdeFeatures.of()),
+                NON_AGGREGATE_COLUMNS,
+                ImmutableList.of(AGG)
+            )
+        )
+    );
+  }
+
 }

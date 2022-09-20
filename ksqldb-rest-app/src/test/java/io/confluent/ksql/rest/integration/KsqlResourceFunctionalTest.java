@@ -19,10 +19,12 @@ import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.eq;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
@@ -118,7 +120,7 @@ public class KsqlResourceFunctionalTest {
 
     assertSuccessful(results);
 
-    assertThat(REST_APP.getPersistentQueries(), hasItems(
+    assertThatEventually(REST_APP::getPersistentQueries, hasItems(
         startsWith("CSAS_S_"),
         startsWith("CSAS_S2_")
     ));
@@ -145,6 +147,8 @@ public class KsqlResourceFunctionalTest {
     final List<KsqlEntity> results = makeKsqlRequest(
         "CREATE STREAM SS AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
+
+    assertThatEventually(() -> REST_APP.getPersistentQueries().size(), is(1));
 
     final String query = REST_APP.getPersistentQueries().iterator().next();
     results.addAll(makeKsqlRequest("TERMINATE " + query + ";"

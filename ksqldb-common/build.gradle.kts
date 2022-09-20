@@ -20,6 +20,7 @@ dependencies {
     api("io.vertx:vertx-codegen:4.3.2")
     api("org.reactivestreams:reactive-streams:1.0.3")
     api(project(":ksqldb-udf"))
+    implementation("javax.xml.bind:jaxb-api:2.3.0")
     testImplementation(project(":ksqldb-test-util"))
     testImplementation("com.google.guava:guava-testlib:30.1.1-jre")
 }

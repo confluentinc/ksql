@@ -11,6 +11,7 @@ dependencies {
     implementation("org.openjdk.jmh:jmh-generator-annprocess:1.21")
     implementation(project(":ksqldb-serde"))
     implementation(project(":ksqldb-examples"))
+    implementation("com.github.spotbugs:spotbugs-annotations:4.7.1") // TODO: find transitive source
     testImplementation(project(":ksqldb-test-util"))
 }
 

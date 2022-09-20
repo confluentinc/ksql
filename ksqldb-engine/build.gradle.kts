@@ -11,7 +11,7 @@ dependencies {
     api(project(":ksqldb-execution"))
     api(project(":ksqldb-streams"))
     implementation(project(":ksqldb-serde"))
-    implementation(project(":ksqldb-parser"))
+    api(project(":ksqldb-parser"))
     api(project(":ksqldb-metastore"))
     implementation(project(":ksqldb-udf"))
     implementation("com.google.code.findbugs:jsr305:3.0.2")

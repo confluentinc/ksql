@@ -14,6 +14,7 @@ dependencies {
     implementation(project(":ksqldb-common"))
     implementation(project(":ksqldb-parser"))
     implementation(project(":ksqldb-api-client"))
+    implementation(project(":ksqldb-execution")) // TODO: find transitive source
     testImplementation(project(":ksqldb-test-util"))
     testImplementation(project(":ksqldb-rest-app"))
     testImplementation(project(":ksqldb-rest-app"))

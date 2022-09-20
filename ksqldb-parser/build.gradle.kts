@@ -10,7 +10,7 @@ plugins {
 dependencies {
     antlr("org.antlr:antlr4:4.9.2") // TODO: parameterize the version?
     implementation(project(":ksqldb-common"))
-    implementation(project(":ksqldb-metastore"))
+    api(project(":ksqldb-metastore"))
     implementation("io.airlift:slice:0.29")
     implementation("org.antlr:antlr4-runtime:4.9.2")
     implementation("org.apache.commons:commons-lang3:3.5")

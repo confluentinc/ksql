@@ -7,9 +7,9 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":ksqldb-engine"))
+    api(project(":ksqldb-engine"))
     implementation("io.confluent:kafka-connect-avro-converter:7.4.0-103")
-    implementation("io.confluent.avro:avro-random-generator:0.2.2")
+    api("io.confluent.avro:avro-random-generator:0.2.2")
     testImplementation(project(":ksqldb-common"))
     testImplementation(project(":ksqldb-test-util"))
 }

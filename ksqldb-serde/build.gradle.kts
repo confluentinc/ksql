@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":ksqldb-common"))
+    api(project(":ksqldb-common"))
     implementation("org.apache.commons:commons-csv:1.4")
     implementation("io.confluent:kafka-schema-registry-client:7.4.0-103")
     implementation("io.confluent:common-logging:7.4.0-106")

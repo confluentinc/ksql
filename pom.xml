@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.4.0-254</version>
+        <version>7.4.0-262</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -144,7 +144,7 @@
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.4.0-0</io.confluent.ksql.version>
-        <io.confluent.schema-registry.version>7.4.0-256</io.confluent.schema-registry.version>
+        <io.confluent.schema-registry.version>7.4.0-263</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.53.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -155,6 +155,7 @@
         <netty.version>4.1.78.Final</netty.version>
         <netty-codec-http2-version>4.1.78.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
+        <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
     </properties>
 
     <dependencyManagement>
@@ -711,11 +712,12 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/RestQueryTranslationTest*.java</exclude>
+                                <exclude>**/io/confluent/ksql/rest/integration/**/*.java</exclude>
                             </excludes>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>multi-threaded-test</id>
+                        <id>multi-threaded-testing</id>
                         <phase>integration-test</phase>
                         <goals>
                             <goal>integration-test</goal>
@@ -723,8 +725,9 @@
                         <configuration>
                             <includes>
                                 <include>**/RestQueryTranslationTest*.java</include>
+                                <include>**/io/confluent/ksql/rest/integration/**/*.java</include>
                             </includes>
-                            <forkCount>4</forkCount>
+                            <forkCount>${multi-threaded-testing.forkCount}</forkCount>
                             <reuseForks>false</reuseForks>
                             <parallel>classes</parallel>
                             <useUnlimitedThreads>true</useUnlimitedThreads>

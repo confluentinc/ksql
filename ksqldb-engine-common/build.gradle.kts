@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":ksqldb-common"))
+    api(project(":ksqldb-common"))
     testImplementation(project(":ksqldb-common"))
     testImplementation(project(":ksqldb-test-util"))
 }

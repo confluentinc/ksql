@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":ksqldb-common"))
     implementation(project(":ksqldb-rest-model"))
     implementation(project(":ksqldb-parser"))
+    implementation(project(":ksqldb-metastore"))
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.2")
     implementation("org.reactivestreams:reactive-streams:1.0.3")
     testImplementation(project(":ksqldb-test-util"))

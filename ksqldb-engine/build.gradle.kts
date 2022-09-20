@@ -8,11 +8,11 @@ plugins {
 
 dependencies {
     implementation(project(":ksqldb-common"))
-    implementation(project(":ksqldb-execution"))
-    implementation(project(":ksqldb-streams"))
+    api(project(":ksqldb-execution"))
+    api(project(":ksqldb-streams"))
     implementation(project(":ksqldb-serde"))
     implementation(project(":ksqldb-parser"))
-    implementation(project(":ksqldb-metastore"))
+    api(project(":ksqldb-metastore"))
     implementation(project(":ksqldb-udf"))
     implementation("com.google.code.findbugs:jsr305:3.0.2")
     implementation("com.google.guava:guava:30.1.1-jre")
@@ -20,16 +20,16 @@ dependencies {
     implementation("io.airlift:slice:0.29")
     implementation("org.apache.avro:avro:1.11.0")
     implementation("org.apache.commons:commons-csv:1.4")
-    implementation("org.apache.httpcomponents.client5:httpclient5-fluent:5.0.3")
+    api("org.apache.httpcomponents.client5:httpclient5-fluent:5.0.3")
     implementation("org.apache.kafka:connect-api:7.4.0-27-ccs")
     implementation("org.apache.kafka:connect-runtime:7.4.0-27-ccs")
     implementation("org.codehaus.janino:janino:3.0.7")
     implementation("io.github.classgraph:classgraph:4.8.59")
     implementation("com.squareup:javapoet:1.9.0")
-    implementation("com.clearspring.analytics:stream:2.9.5")
+    api("com.clearspring.analytics:stream:2.9.5")
     implementation("io.confluent:confluent-log4j-extensions:7.4.0-106")
-    testImplementation(project(":ksqldb-metastore"))
-    testImplementation(project(":ksqldb-common"))
+    testImplementation(project(mapOf("path" to ":ksqldb-metastore", "configuration" to "testOutput"))) // TODO: test-jar
+    testImplementation(project(mapOf("path" to ":ksqldb-common", "configuration" to "testOutput"))) // TODO: test-jar
     testImplementation(project(":ksqldb-test-util"))
     testImplementation("io.confluent.avro:avro-random-generator:0.2.2")
     testImplementation("com.github.tomakehurst:wiremock-jre8:2.24.0")
@@ -40,6 +40,20 @@ description = "ksqldb-engine"
 val testsJar by tasks.registering(Jar::class) {
     archiveClassifier.set("tests")
     from(sourceSets["test"].output)
+}
+
+//tasks.register<Jar>("testsJar") {
+//    archiveClassifier.set("tests")
+//    from(sourceSets["test"].output)
+//}
+
+val testOutput by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+}
+
+artifacts {
+    add("testOutput", tasks.named("testsJar").get())
 }
 
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)

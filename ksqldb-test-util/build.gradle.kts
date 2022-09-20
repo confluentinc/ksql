@@ -7,19 +7,19 @@ plugins {
 }
 
 dependencies {
-    implementation("org.apache.curator:curator-test:5.2.0")
-    implementation("org.apache.kafka:kafka_2.13:7.4.0-27-ccs")
-    implementation("org.apache.kafka:kafka_2.13:7.4.0-27-ccs")
-    implementation("org.apache.kafka:kafka-clients:7.4.0-27-ccs")
-    implementation("org.apache.kafka:kafka-clients:7.4.0-27-ccs")
-    implementation("com.google.guava:guava:30.1.1-jre")
-    implementation("com.github.spotbugs:spotbugs-annotations:4.7.1")
-    implementation("junit:junit:4.13.2")
-    implementation("org.hamcrest:hamcrest-all:1.3")
-    implementation("org.easymock:easymock:4.3")
-    implementation("org.mockito:mockito-inline:4.6.1")
-    implementation("org.mockito:mockito-core:4.6.1")
-    implementation("com.google.guava:guava-testlib:30.1.1-jre")
+    api("org.apache.curator:curator-test:5.2.0")
+    api("org.apache.kafka:kafka_2.13:7.4.0-27-ccs")
+    api("org.apache.kafka:kafka_2.13:7.4.0-27-ccs:test")
+    api("org.apache.kafka:kafka-clients:7.4.0-27-ccs")
+    api("org.apache.kafka:kafka-clients:7.4.0-27-ccs:test")
+    api("com.google.guava:guava:30.1.1-jre")
+    api("com.github.spotbugs:spotbugs-annotations:4.7.1")
+    api("junit:junit:4.13.2")
+    api("org.hamcrest:hamcrest-all:1.3")
+    api("org.easymock:easymock:4.3")
+    api("org.mockito:mockito-inline:4.6.1")
+    api("org.mockito:mockito-core:4.6.1")
+    api("com.google.guava:guava-testlib:30.1.1-jre")
 }
 
 description = "ksqldb-test-util"

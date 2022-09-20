@@ -8,7 +8,7 @@ plugins {
 
 dependencies {
     implementation(project(":ksqldb-engine"))
-    implementation("org.apache.kafka:kafka-clients:7.4.0-27-ccs")
+    api("org.apache.kafka:kafka-clients:7.4.0-27-ccs")
     implementation("junit:junit:4.13.2")
     implementation("com.github.rvesse:airline:2.6.0")
     implementation("org.hamcrest:hamcrest-all:1.3")

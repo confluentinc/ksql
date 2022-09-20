@@ -16,9 +16,13 @@ dependencies {
     implementation("com.google.guava:guava:30.1.1-jre")
     implementation("com.github.spotbugs:spotbugs-annotations:4.7.1")
     testImplementation(project(":ksqldb-rest-app"))
-    testImplementation(project(":ksqldb-rest-app"))
+    testImplementation(project(mapOf("path" to ":ksqldb-rest-app", "configuration" to "testOutput"))) // TODO: test-jar
     testImplementation(project(":ksqldb-test-util"))
-    testImplementation(project(":ksqldb-engine"))
+    testImplementation(project(mapOf("path" to ":ksqldb-engine", "configuration" to "testOutput"))) // TODO: test-jar
+    testImplementation(project(":ksqldb-execution")) // TODO: find transitive source
+    testImplementation(project(":ksqldb-parser")) // TODO: find transitive source
+    testImplementation(project(":ksqldb-rest-client")) // TODO: find transitive source
+    testImplementation(project(":ksqldb-engine")) // TODO: find transitive source
     testImplementation("org.apache.kafka:kafka-streams:7.4.0-27-ccs")
     testImplementation("org.eclipse.jetty:jetty-jaas:9.4.44.v20210927")
 }

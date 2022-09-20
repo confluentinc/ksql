@@ -9,7 +9,7 @@ plugins {
 dependencies {
     implementation(project(":ksqldb-common"))
     implementation(project(":ksqldb-engine-common"))
-    implementation("javax.ws.rs:javax.ws.rs-api:2.1.1")
+    api("javax.ws.rs:javax.ws.rs-api:2.1.1")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.2.2")
     implementation("org.apache.kafka:connect-runtime:7.4.0-27-ccs")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-guava:2.13.2")
@@ -21,6 +21,15 @@ description = "ksqldb-rest-model"
 val testsJar by tasks.registering(Jar::class) {
     archiveClassifier.set("tests")
     from(sourceSets["test"].output)
+}
+
+val testOutput by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+}
+
+artifacts {
+    add("testOutput", tasks.named("testsJar").get())
 }
 
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)

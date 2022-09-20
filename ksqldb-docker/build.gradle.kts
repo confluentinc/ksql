@@ -11,7 +11,7 @@ dependencies {
     implementation(project(":ksqldb-cli"))
     implementation(project(":ksqldb-functional-tests"))
     implementation(project(":ksqldb-tools"))
-    implementation("org.apache.kafka:kafka-clients:7.4.0-27-ccs")
+    api("org.apache.kafka:kafka-clients:7.4.0-27-ccs")
     implementation("org.apache.kafka:kafka_2.13:7.4.0-27-ccs")
     implementation("org.hamcrest:hamcrest-all:1.3")
     implementation("junit:junit:4.13.2")

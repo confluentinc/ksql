@@ -7,11 +7,11 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":ksqldb-engine-common"))
-    implementation(project(":ksqldb-rest-model"))
-    implementation(project(":ksqldb-serde"))
-    implementation("org.apache.kafka:connect-api:7.4.0-27-ccs")
-    implementation("org.apache.kafka:connect-runtime:7.4.0-27-ccs")
+    api(project(":ksqldb-engine-common"))
+    api(project(":ksqldb-rest-model"))
+    api(project(":ksqldb-serde"))
+    api("org.apache.kafka:connect-api:7.4.0-27-ccs")
+    api("org.apache.kafka:connect-runtime:7.4.0-27-ccs")
     implementation("org.codehaus.janino:janino:3.0.7")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.2")
     implementation("com.ibm.icu:icu4j:67.1")

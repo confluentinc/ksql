@@ -4,22 +4,35 @@
 
 plugins {
     id("io.confluent.ksql.java-conventions")
+    antlr
 }
 
 dependencies {
+    antlr("org.antlr:antlr4:4.9.2") // TODO: parameterize the version?
     implementation(project(":ksqldb-common"))
     implementation(project(":ksqldb-metastore"))
     implementation("io.airlift:slice:0.29")
     implementation("org.antlr:antlr4-runtime:4.9.2")
     implementation("org.apache.commons:commons-lang3:3.5")
     implementation("org.apache.commons:commons-text:1.8")
-    implementation("com.approvaltests:approvaltests:9.5.0")
+    api("com.approvaltests:approvaltests:9.5.0")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.2") // TODO: missing api from somewhere?
     testImplementation(project(":ksqldb-metastore"))
     testImplementation(project(":ksqldb-common"))
     testImplementation(project(":ksqldb-test-util"))
 }
 
 description = "ksqldb-parser"
+
+// sourceSets {
+//     main {
+//         antlr.srcDir("src/main/antlr4")
+//     }
+// }
+
+tasks.generateGrammarSource {
+    arguments = arguments + listOf("-visitor")
+}
 
 val testsJar by tasks.registering(Jar::class) {
     archiveClassifier.set("tests")

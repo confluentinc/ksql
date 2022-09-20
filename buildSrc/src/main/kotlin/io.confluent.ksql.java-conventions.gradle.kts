@@ -9,12 +9,16 @@ plugins {
 
 repositories {
     mavenLocal()
-    maven {
-        url = uri("https://confluent.jfrog.io/confluent/maven-releases-stabilization/")
-    }
+    // maven {
+    //     url = uri("https://confluent.jfrog.io/confluent/maven-releases-stabilization/")
+    // }
 
     maven {
         url = uri("https://confluent.jfrog.io//confluent/maven-public/")
+        credentials {
+            username = project.properties["mavenUsername"].toString()
+            password = project.properties["mavenPassword"].toString()
+        }
     }
 
     maven {

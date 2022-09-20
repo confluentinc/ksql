@@ -7,19 +7,19 @@ plugins {
 }
 
 dependencies {
-    implementation("com.google.code.findbugs:jsr305:3.0.2")
-    implementation("com.google.guava:guava:30.1.1-jre")
-    implementation("io.confluent:kafka-connect-avro-converter:7.4.0-103")
-    implementation("io.confluent:common-logging:7.4.0-106")
-    implementation("org.apache.kafka:connect-api:7.4.0-27-ccs")
-    implementation("org.apache.kafka:kafka-streams:7.4.0-27-ccs")
-    implementation("org.apache.avro:avro:1.11.0")
-    implementation("com.github.spotbugs:spotbugs-annotations:4.7.1")
-    implementation("org.apache.commons:commons-lang3:3.5")
-    implementation("io.vertx:vertx-core:4.3.2")
-    implementation("io.vertx:vertx-codegen:4.3.2")
-    implementation("org.reactivestreams:reactive-streams:1.0.3")
-    implementation(project(":ksqldb-udf"))
+    api("com.google.code.findbugs:jsr305:3.0.2")
+    api("com.google.guava:guava:30.1.1-jre")
+    api("io.confluent:kafka-connect-avro-converter:7.4.0-103") // TODO: nano-versioning
+    api("io.confluent:common-logging:7.4.0-106") // TODO: nano-versioning
+    api("org.apache.kafka:connect-api:7.4.0-27-ccs") // TODO: nano-versioning & kafka
+    api("org.apache.kafka:kafka-streams:7.4.0-27-ccs") // TODO: nano-versioning & kafka
+    api("org.apache.avro:avro:1.11.0")
+    api("com.github.spotbugs:spotbugs-annotations:4.7.1")
+    api("org.apache.commons:commons-lang3:3.5")
+    api("io.vertx:vertx-core:4.3.2")
+    api("io.vertx:vertx-codegen:4.3.2")
+    api("org.reactivestreams:reactive-streams:1.0.3")
+    api(project(":ksqldb-udf"))
     testImplementation(project(":ksqldb-test-util"))
     testImplementation("com.google.guava:guava-testlib:30.1.1-jre")
 }
@@ -29,6 +29,15 @@ description = "ksqldb-common"
 val testsJar by tasks.registering(Jar::class) {
     archiveClassifier.set("tests")
     from(sourceSets["test"].output)
+}
+
+val testOutput by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+}
+
+artifacts {
+    add("testOutput", tasks.named("testsJar").get())
 }
 
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)

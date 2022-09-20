@@ -4,10 +4,11 @@
 
 plugins {
     id("io.confluent.ksql.java-conventions")
+    id("com.github.davidmc24.gradle.plugin.avro") version "1.3.0"
 }
 
 dependencies {
-    implementation(project(":ksqldb-common"))
+    api(project(":ksqldb-common"))
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.2.2")
     implementation(project(":ksqldb-engine"))
     implementation("org.apache.httpcomponents.client5:httpclient5:5.0.3")

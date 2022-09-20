@@ -15,6 +15,10 @@
 
 grammar SqlBase;
 
+@header {
+    package io.confluent.ksql.parser;
+}
+
 tokens {
     DELIMITER
 }

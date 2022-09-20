@@ -109,6 +109,8 @@ maven_install(
         "org.jline:jline:3.13.1",
         "commons-io:commons-io:2.7",
         "net.sf.jopt-simple:jopt-simple:5.0.4",
+        "org.openjdk.jmh:jmh-core:1.21",
+        "org.openjdk.jmh:jmh-generator-annprocess:1.21",
         maven.artifact(
             artifact = "connect-runtime",
             exclusions = [

@@ -9,7 +9,6 @@ java_library(
     deps = [
         "//ksqldb-common:ksqldb_common",
         "//ksqldb-engine:ksqldb_engine",
-        "//ksqldb-engine-common:ksqldb_engine_common",
         "//ksqldb-execution:ksqldb_execution",
         "//ksqldb-metastore:ksqldb_metastore",
         "//ksqldb-parser:generated",
@@ -17,7 +16,6 @@ java_library(
         "//ksqldb-rest-app:ksqldb_rest_app",
         "//ksqldb-rest-model:ksqldb_rest_model",
         "//ksqldb-serde:ksqldb_serde",
-        "//ksqldb-streams:ksqldb_streams",
         "//ksqldb-udf:ksqldb_udf",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:com_fasterxml_jackson_core_jackson_core",
@@ -62,14 +60,10 @@ java_library(
     deps = [
         ":ksqldb_functional_test",
         "//ksqldb-common:ksqldb_common",
-        "//ksqldb-common:tests",
         "//ksqldb-engine:ksqldb_engine",
         "//ksqldb-engine:tests",
-        "//ksqldb-engine-common:ksqldb_engine_common",
         "//ksqldb-execution:ksqldb_execution",
         "//ksqldb-metastore:ksqldb_metastore",
-        "//ksqldb-metastore:tests",
-        "//ksqldb-parser:generated",
         "//ksqldb-parser:ksqldb_parser",
         "//ksqldb-rest-app:ksqldb_rest_app",
         "//ksqldb-rest-app:tests",
@@ -77,7 +71,6 @@ java_library(
         "//ksqldb-rest-model:ksqldb_rest_model",
         "//ksqldb-rest-model:tests",
         "//ksqldb-serde:ksqldb_serde",
-        "//ksqldb-streams:ksqldb_streams",
         "//ksqldb-test-util:ksqldb_test_util",
         "//ksqldb-udf:ksqldb_udf",
         "@maven//:com_approvaltests_approvaltests",
@@ -115,7 +108,7 @@ java_library(
 
 java_test(
     name = "MyTests",
+    resources = glob(["src/test/resources/**"]),
     test_class = "io.confluent.ksql.MyTestsFunctionalTests",
     runtime_deps = [":tests"],
-    resources = glob(["src/test/resources/**"]),
 )

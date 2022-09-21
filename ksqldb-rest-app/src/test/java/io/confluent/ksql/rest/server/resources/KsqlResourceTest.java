@@ -1933,6 +1933,21 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldNotFailIfNotQueryDespiteReachedActivePersistentQueriesLimit() {
+    // Given:
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+
+    givenMockEngine();
+
+    // mock 3 queries already running + 1 new query to execute
+    givenPersistentQueryCount(4);
+
+    // When/Then:
+    makeSingleRequest("SHOW STREAMS;", StreamsList.class);
+  }
+
+  @Test
   public void shouldListPropertiesWithOverrides() {
     // Given:
     final Map<String, Object> overrides = Collections.singletonMap("auto.offset.reset", "latest");

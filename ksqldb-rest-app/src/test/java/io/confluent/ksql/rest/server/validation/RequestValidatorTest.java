@@ -47,6 +47,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
+import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
@@ -255,6 +256,22 @@ public class RequestValidatorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "persistent queries to exceed the configured limit"));
+  }
+
+  @Test
+  public void ff() {
+    // Given:
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
+    givenPersistentQueryCount(2);
+    givenRequestValidator(ImmutableMap.of(ListStreams.class, StatementValidator.NO_VALIDATION));
+
+    final List<ParsedStatement> statements =
+        givenParsed(
+            "SHOW STREAMS;"
+        );
+
+    // When/Then:
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
   }
 
   @Test

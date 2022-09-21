@@ -410,12 +410,12 @@ public class DefaultConnectClientTest {
 
   public static class ActiveTopicsInfo {
     private final String connector;
-    private final Collection<String> topics;
+    private final ImmutableList<String> topics;
 
     @JsonCreator
     public ActiveTopicsInfo(String connector, @JsonProperty("topics") Collection<String> topics) {
       this.connector = connector;
-      this.topics = topics;
+      this.topics = ImmutableList.copyOf(topics);
     }
 
     public String connector() {

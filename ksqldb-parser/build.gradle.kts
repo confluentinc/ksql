@@ -17,8 +17,8 @@ dependencies {
     implementation("org.apache.commons:commons-text:1.8")
     api("com.approvaltests:approvaltests:9.5.0")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.2") // TODO: missing api from somewhere?
-    testImplementation(project(":ksqldb-metastore"))
-    testImplementation(project(":ksqldb-common"))
+    testImplementation(project(mapOf("path" to ":ksqldb-metastore", "configuration" to "testOutput")))
+    testImplementation(project(mapOf("path" to ":ksqldb-common", "configuration" to "testOutput")))
     testImplementation(project(":ksqldb-test-util"))
 }
 

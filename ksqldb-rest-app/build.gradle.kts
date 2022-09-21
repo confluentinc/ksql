@@ -7,9 +7,9 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":ksqldb-rest-model"))
-    implementation(project(":ksqldb-rest-client"))
-    implementation(project(":ksqldb-engine"))
+    api(project(":ksqldb-rest-model"))
+    api(project(":ksqldb-rest-client"))
+    api(project(":ksqldb-engine"))
     implementation(project(":ksqldb-version-metrics-client"))
     implementation(project(":ksqldb-parser"))
     implementation("io.confluent:kafka-json-serializer:7.4.0-103")

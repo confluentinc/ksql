@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":ksqldb-common"))
+    api(project(":ksqldb-common"))
     implementation(project(":ksqldb-engine-common"))
     api("javax.ws.rs:javax.ws.rs-api:2.1.1")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.2.2")

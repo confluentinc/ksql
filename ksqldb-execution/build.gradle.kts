@@ -15,8 +15,8 @@ dependencies {
     implementation("org.codehaus.janino:janino:3.0.7")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.2")
     implementation("com.ibm.icu:icu4j:67.1")
-    testImplementation(project(":ksqldb-common"))
-    testImplementation(project(":ksqldb-engine-common"))
+    testImplementation(project(mapOf("path" to ":ksqldb-common", "configuration" to "testOutput")))
+    testImplementation(project(mapOf("path" to ":ksqldb-engine-common", "configuration" to "testOutput")))
     testImplementation(project(":ksqldb-test-util"))
 }
 

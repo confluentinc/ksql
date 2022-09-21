@@ -19,4 +19,13 @@ val testsJar by tasks.registering(Jar::class) {
     from(sourceSets["test"].output)
 }
 
+val testOutput by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+}
+
+artifacts {
+    add("testOutput", tasks.named("testsJar").get())
+}
+
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)

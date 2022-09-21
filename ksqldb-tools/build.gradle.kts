@@ -17,8 +17,8 @@ dependencies {
     implementation(project(":ksqldb-execution")) // TODO: find transitive source
     testImplementation(project(":ksqldb-test-util"))
     testImplementation(project(":ksqldb-rest-app"))
-    testImplementation(project(":ksqldb-rest-app"))
-    testImplementation(project(":ksqldb-engine"))
+    testImplementation(project(mapOf("path" to ":ksqldb-rest-app", "configuration" to "testOutput")))
+    testImplementation(project(mapOf("path" to ":ksqldb-engine", "configuration" to "testOutput")))
 }
 
 description = "ksqldb-tools"

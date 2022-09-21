@@ -26,6 +26,7 @@ dependencies {
     testImplementation(project(mapOf("path" to ":ksqldb-rest-app", "configuration" to "testOutput")))
     testImplementation(project(":ksqldb-test-util"))
     testImplementation("io.confluent.avro:avro-random-generator:0.2.2")
+    testImplementation("net.sf.jopt-simple:jopt-simple:5.0.4") // TODO: determine transitive source
 }
 
 description = "ksqldb-functional-tests"

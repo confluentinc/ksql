@@ -10,7 +10,7 @@ dependencies {
     api(project(":ksqldb-engine"))
     implementation("io.confluent:kafka-connect-avro-converter:7.4.0-103")
     api("io.confluent.avro:avro-random-generator:0.2.2")
-    testImplementation(project(":ksqldb-common"))
+    testImplementation(project(mapOf("path" to ":ksqldb-common", "configuration" to "testOutput")))
     testImplementation(project(":ksqldb-test-util"))
 }
 

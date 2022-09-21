@@ -207,7 +207,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
   public String checkAlternatives(
-      final SourceName sourceName, Optional<DataSourceType> sourceType) {
+      final SourceName sourceName, final Optional<DataSourceType> sourceType) {
     final StringBuilder hint = new StringBuilder();
     final List<String> matchedSources = new ArrayList<>();
 

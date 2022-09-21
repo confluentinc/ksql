@@ -227,6 +227,8 @@ public class ClientIntegrationTest {
   private static final int EVENT_LOOP_POOL_SIZE = 1;
   private static final int NUM_CONCURRENT_REQUESTS_TO_TEST = 5;
   private static final int WORKER_POOL_SIZE = 10;
+  private static final int CONNECT_PORT
+      = io.confluent.ksql.rest.server.utils.TestUtils.findFreeLocalPort();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -235,6 +237,7 @@ public class ClientIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .withProperty(KsqlConfig.CONNECT_URL_PROPERTY, "http://localhost:" + CONNECT_PORT)
       .build();
 
   @ClassRule
@@ -283,6 +286,7 @@ public class ClientIntegrationTest {
         .put("status.storage.replication.factor", "1")
         .put("config.storage.replication.factor", "1")
         .put("value.converter.schemas.enable", "false")
+        .put("listeners", "http://localhost:" + CONNECT_PORT)
         .build()
     );
 

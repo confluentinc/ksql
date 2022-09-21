@@ -87,9 +87,11 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.Timeout;
 import org.reactivestreams.Publisher;
 
 @Category({IntegrationTest.class})
@@ -157,6 +159,9 @@ public class PushV2ClientContinueIntegrationTest {
   public static void classTearDown() {
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
+
+  @Rule
+  public final Timeout timeout = Timeout.seconds(120);
 
   private Vertx vertx;
   private Client client;

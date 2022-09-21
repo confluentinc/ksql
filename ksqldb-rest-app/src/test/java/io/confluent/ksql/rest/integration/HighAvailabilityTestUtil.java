@@ -303,7 +303,7 @@ class HighAvailabilityTestUtil {
   // Ensures that lags have been reported for the cluster.  Makes the simplified assumption that
   // there's just one state store.
   static BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean>
-  zeroLagsReported(
+  lagsReported(
       final int expectedClusterSize
   ) {
     return (remoteServer, clusterStatus) -> {
@@ -352,8 +352,8 @@ class HighAvailabilityTestUtil {
     };
   }
 
-  // Ensures that lags have been reported for the given host.  Makes the simplified assumption that
-  // there's just one state store.
+  // Ensures that lags have been reported for the given host, but that the value is zero.
+  // Makes the simplified assumption that there's just one state store.
   static BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean>
   zeroLagsReported(
       final KsqlHostInfoEntity server

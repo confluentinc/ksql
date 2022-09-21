@@ -250,7 +250,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
       } else {
         // contains at least one small letter
         final String sourceNameText = matchedSources.get(0).getName().text();
-        if (matchedSources.get(0).getName().text().chars().anyMatch(Character::isLowerCase)) {
+        if (sourceNameText.chars().anyMatch(Character::isLowerCase)) {
           hint.append(
               String.format("\"%s\"? Hint: wrap the source name in double quotes "
                   + "to make it case-sensitive.", sourceNameText));

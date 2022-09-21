@@ -477,7 +477,8 @@ public final class ListSourceExecutor {
   }
 
   public static String getFullname(final String name) {
-    if (name.contains("\"") || name.chars().noneMatch(Character::isLowerCase)) {
+    if (name.contains("\"")
+        || (!name.contains("-") && name.chars().noneMatch(Character::isLowerCase))) {
       return name;
     }
     return "\"" + name + "\"";

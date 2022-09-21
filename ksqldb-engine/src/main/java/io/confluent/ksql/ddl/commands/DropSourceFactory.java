@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
 public final class DropSourceFactory {
@@ -59,7 +60,7 @@ public final class DropSourceFactory {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       if (!ifExists) {
-        final String hint = metaStore.checkAlternatives(sourceName);
+        final String hint = metaStore.checkAlternatives(sourceName, Optional.of(dataSourceType));
         throw new KsqlException(StringUtils.capitalize(dataSourceType.getKsqlType().toLowerCase())
             + " " + sourceName.text() + " does not exist." + hint);
       }

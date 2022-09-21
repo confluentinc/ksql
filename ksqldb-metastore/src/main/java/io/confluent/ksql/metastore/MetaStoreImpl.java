@@ -22,6 +22,7 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -203,13 +204,17 @@ public final class MetaStoreImpl implements MutableMetaStore {
     }
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
-  public String checkAlternatives(final SourceName sourceName) {
+  public String checkAlternatives(
+      final SourceName sourceName, Optional<DataSourceType> sourceType) {
     final StringBuilder hint = new StringBuilder();
     final List<String> matchedSources = new ArrayList<>();
 
     for (SourceName name:getAllDataSources().keySet()) {
-      if (name.text().equalsIgnoreCase(sourceName.text())) {
+      if (name.text().equalsIgnoreCase(sourceName.text())
+          && (!sourceType.isPresent() || sourceType.get().equals(
+              Objects.requireNonNull(getSource(name)).getDataSourceType()))) {
         matchedSources.add(name.text());
       }
     }

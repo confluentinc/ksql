@@ -411,7 +411,7 @@ class HighAvailabilityTestUtil {
         .flatMap(stateStoreLags -> stateStoreLags.getLagByPartition().values().stream())
         .mapToLong(LagInfoEntity::getOffsetLag)
         .max()
-        .orElse(0);
+        .orElse(-1);
     return Pair.of(lag, end);
   }
 

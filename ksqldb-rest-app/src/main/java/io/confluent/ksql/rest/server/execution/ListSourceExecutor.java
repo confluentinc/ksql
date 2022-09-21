@@ -445,7 +445,7 @@ public final class ListSourceExecutor {
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {
     return new Stream(
-        dataSource.getName().text(),
+        getFullname(dataSource.getName().text()),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getKeyFormat().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormat(),
@@ -455,7 +455,7 @@ public final class ListSourceExecutor {
 
   private static Table sourceTable(final KsqlTable<?> dataSource) {
     return new Table(
-        dataSource.getName().text(),
+        getFullname(dataSource.getName().text()),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getKeyFormat().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormat(),
@@ -474,5 +474,12 @@ public final class ListSourceExecutor {
       this.warnings = warnings;
       this.description = description;
     }
+  }
+
+  public static String getFullname(final String name) {
+    if (name.contains("\"") || name.chars().noneMatch(Character::isLowerCase)) {
+      return name;
+    }
+    return "\"" + name + "\"";
   }
 }

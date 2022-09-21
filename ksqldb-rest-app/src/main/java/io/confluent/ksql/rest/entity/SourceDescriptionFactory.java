@@ -21,6 +21,7 @@ import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlHostInfo;
@@ -86,7 +87,7 @@ public final class SourceDescriptionFactory {
         .map((stat) -> QueryHostStat.fromStat(stat, hostEntity));
 
     return new SourceDescription(
-        dataSource.getName().toString(FormatOptions.noEscape()),
+        ListSourceExecutor.getFullname(dataSource.getName().toString(FormatOptions.noEscape())),
         dataSource.getKsqlTopic().getKeyFormat().getWindowType(),
         readQueries,
         writeQueries,

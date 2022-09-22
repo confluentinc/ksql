@@ -702,11 +702,11 @@ public class ConsoleTest {
           + "  \"warnings\" : [ ]," + NEWLINE
           + "  \"connectorsPlugins\" : [ {" + NEWLINE
           + "    \"className\" : \"clazz1\"," + NEWLINE
-          + "    \"type\" : \"source\"," + NEWLINE
+          + "    \"type\" : \"SOURCE\"," + NEWLINE
           + "    \"version\" : \"v1\"" + NEWLINE
           + "  }, {" + NEWLINE
           + "    \"className\" : \"clazz2\"," + NEWLINE
-          + "    \"type\" : \"sink\"," + NEWLINE
+          + "    \"type\" : \"SINK\"," + NEWLINE
           + "    \"version\" : \"v2\"" + NEWLINE
           + "  } ]" + NEWLINE
           + "} ]" + NEWLINE));

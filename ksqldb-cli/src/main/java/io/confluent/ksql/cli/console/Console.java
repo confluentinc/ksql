@@ -781,7 +781,7 @@ public class Console implements Closeable {
       for (final String sources : query.getSources()) {
         writer().println(sources);
       }
-      writer().println("\nFor source description please run: DESCRIBE [EXTENDED] <SourceId>");
+      writer().println("\nFor source description please run: DESCRIBE <SourceId> [EXTENDED]");
     }
   }
 
@@ -795,7 +795,7 @@ public class Console implements Closeable {
       for (final String sinks : query.getSinks()) {
         writer().println(sinks);
       }
-      writer().println("\nFor sink description please run: DESCRIBE [EXTENDED] <SinkId>");
+      writer().println("\nFor sink description please run: DESCRIBE <SinkId> [EXTENDED]");
     }
   }
 

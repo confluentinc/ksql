@@ -1940,8 +1940,8 @@ public class KsqlResourceTest {
 
     givenMockEngine();
 
-    // mock 3 queries already running + 1 new query to execute
-    givenPersistentQueryCount(4);
+    // mock 6 queries already running
+    givenPersistentQueryCount(6);
 
     // When/Then:
     makeSingleRequest("SHOW STREAMS;", StreamsList.class);

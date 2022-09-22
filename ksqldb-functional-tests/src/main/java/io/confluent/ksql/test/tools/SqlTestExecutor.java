@@ -166,7 +166,7 @@ public class SqlTestExecutor implements Closeable {
             Collections.singletonList(
                 new QueryEventListener() {
                   @Override
-                  public void onDeregister(QueryMetadata query) {
+                  public void onDeregister(final QueryMetadata query) {
                     final DriverAndProperties driverAndProperties = drivers.get(
                         query.getQueryId()
                     );
@@ -417,7 +417,7 @@ public class SqlTestExecutor implements Closeable {
     expectedMessage = directive.getContents();
   }
 
-  private static class DriverAndProperties {
+  private static final class DriverAndProperties {
     final TopologyTestDriver driver;
     final Properties properties;
 

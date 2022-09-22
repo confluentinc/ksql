@@ -57,6 +57,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -119,14 +120,14 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(descriptionList.getStreams(), containsInAnyOrder(
         new SourceInfo.Stream(
-            ListSourceExecutor.getFullname(stream1.getName().toString(FormatOptions.noEscape())),
+            stream1.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
             stream1.getKafkaTopicName(),
             stream1.getKsqlTopic().getKeyFormat().getFormat(),
             stream1.getKsqlTopic().getValueFormat().getFormat(),
             stream1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Stream(
-            ListSourceExecutor.getFullname(stream2.getName().toString(FormatOptions.noEscape())),
+            stream2.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
             stream2.getKafkaTopicName(),
             stream2.getKsqlTopic().getKeyFormat().getFormat(),
             stream2.getKsqlTopic().getValueFormat().getFormat(),
@@ -238,14 +239,14 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(descriptionList.getTables(), containsInAnyOrder(
         new SourceInfo.Table(
-            ListSourceExecutor.getFullname(table1.getName().toString(FormatOptions.noEscape())),
+            table1.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
             table1.getKsqlTopic().getKafkaTopicName(),
             table2.getKsqlTopic().getKeyFormat().getFormat(),
             table1.getKsqlTopic().getValueFormat().getFormat(),
             table1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Table(
-            ListSourceExecutor.getFullname(table2.getName().toString(FormatOptions.noEscape())),
+            table2.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
             table2.getKsqlTopic().getKafkaTopicName(),
             table2.getKsqlTopic().getKeyFormat().getFormat(),
             table2.getKsqlTopic().getValueFormat().getFormat(),

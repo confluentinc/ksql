@@ -50,8 +50,10 @@ import io.confluent.ksql.rest.entity.SourceInfo.Table;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -445,7 +447,7 @@ public final class ListSourceExecutor {
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {
     return new Stream(
-        getFullname(dataSource.getName().text()),
+        dataSource.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getKeyFormat().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormat(),
@@ -455,7 +457,7 @@ public final class ListSourceExecutor {
 
   private static Table sourceTable(final KsqlTable<?> dataSource) {
     return new Table(
-        getFullname(dataSource.getName().text()),
+        dataSource.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getKeyFormat().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormat(),
@@ -474,13 +476,5 @@ public final class ListSourceExecutor {
       this.warnings = warnings;
       this.description = description;
     }
-  }
-
-  public static String getFullname(final String name) {
-    if (name.contains("\"")
-        || (!name.contains("-") && name.chars().noneMatch(Character::isLowerCase))) {
-      return name;
-    }
-    return "\"" + name + "\"";
   }
 }

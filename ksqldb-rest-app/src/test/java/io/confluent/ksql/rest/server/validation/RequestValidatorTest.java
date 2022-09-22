@@ -259,9 +259,8 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void ff() {
+  public void shouldNotThrowIfNotQueryDespiteTooManyPersistentQueries() {
     // Given:
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
     givenPersistentQueryCount(2);
     givenRequestValidator(ImmutableMap.of(ListStreams.class, StatementValidator.NO_VALIDATION));
 
@@ -282,7 +281,6 @@ public class RequestValidatorTest {
             CreateStream.class, StatementValidator.NO_VALIDATION,
             Explain.class, StatementValidator.NO_VALIDATION)
     );
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
 
     final List<ParsedStatement> statements =
         givenParsed(

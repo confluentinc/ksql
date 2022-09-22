@@ -22,6 +22,7 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -29,7 +30,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.vertx.core.impl.ConcurrentHashSet;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -204,24 +204,32 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public String checkAlternatives(final SourceName sourceName) {
+  public String checkAlternatives(
+      final SourceName sourceName, final Optional<DataSourceType> sourceType) {
     final StringBuilder hint = new StringBuilder();
-    final List<String> matchedSources = new ArrayList<>();
+    final List<DataSource> matchedSources = getAllDataSources()
+        .values()
+        .stream()
+        .filter(dataSource -> {
+          final boolean nameMatches = dataSource
+              .getName()
+              .text()
+              .equalsIgnoreCase(sourceName.text());
+          final boolean sourceTypeMatches = sourceType
+              .map(st -> st.equals(dataSource.getDataSourceType()))
+              .orElse(true);
+          return nameMatches && sourceTypeMatches;
+        })
+        .sorted(Comparator.comparing(x -> x.getName().text()))
+        .collect(Collectors.toList());
 
-    for (SourceName name:getAllDataSources().keySet()) {
-      if (name.text().equalsIgnoreCase(sourceName.text())) {
-        matchedSources.add(name.text());
-      }
-    }
-    matchedSources.sort(Comparator.naturalOrder());
     if (matchedSources.size() > 0) {
       hint.append("\nDid you mean ");
       if (matchedSources.size() > 1) {
         final int n = matchedSources.size();
         for (int i = 0; i < n; i++) {
-          final String dataSourceType = Objects.requireNonNull(
-              getSource(SourceName.of(matchedSources.get(i)))
-          ).getDataSourceType().getKsqlType();
+          final String dataSourceType = matchedSources.get(i).getDataSourceType().getKsqlType();
+          final String sourceNameText = matchedSources.get(i).getName().text();
           final String punctuation;
           if (i < n - 2) {
             punctuation = ", ";
@@ -235,21 +243,21 @@ public final class MetaStoreImpl implements MutableMetaStore {
             punctuation = "? ";
           }
           hint.append(
-              String.format("\"%s\" (%s)%s", matchedSources.get(i), dataSourceType, punctuation)
+              String.format("\"%s\" (%s)%s", sourceNameText, dataSourceType, punctuation)
           );
         }
         hint.append("Hint: wrap the source name in double quotes to make it case-sensitive.");
       } else {
         // contains at least one small letter
-        if (matchedSources.get(0).chars().anyMatch(Character::isLowerCase)) {
+        final String sourceNameText = matchedSources.get(0).getName().text();
+        if (sourceNameText.chars().anyMatch(Character::isLowerCase)) {
           hint.append(
               String.format("\"%s\"? Hint: wrap the source name in double quotes "
-                  + "to make it case-sensitive.", matchedSources.get(0)
-              ));
+                  + "to make it case-sensitive.", sourceNameText));
         } else { // contains only capital letters
           hint.append(
               String.format("%s? Hint: try removing double quotes from the source name.",
-                  matchedSources.get(0))
+                  sourceNameText)
           );
         }
       }

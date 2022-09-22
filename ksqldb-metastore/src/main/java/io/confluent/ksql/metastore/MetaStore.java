@@ -17,8 +17,10 @@ package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface MetaStore extends FunctionRegistry, TypeRegistry {
@@ -29,7 +31,7 @@ public interface MetaStore extends FunctionRegistry, TypeRegistry {
 
   Set<SourceName> getSourceConstraints(SourceName sourceName);
 
-  String checkAlternatives(SourceName sourceName);
+  String checkAlternatives(SourceName sourceName, Optional<DataSourceType> sourceType);
 
   MetaStore copy();
 }

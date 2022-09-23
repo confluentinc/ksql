@@ -410,6 +410,48 @@ public class ListSourceExecutorTest {
   }
 
   @Test
+  public void shouldThrowOnDescribeSourceNameWithoutQuotes() {
+    // Given:
+    engine.givenSource(DataSourceType.KTABLE, "table1");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomExecutors.SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE table1;"),
+            SESSION_PROPERTIES,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not find STREAM/TABLE 'TABLE1' in the Metastore\nDid you mean \"table1\"? Hint: wrap the source name in double quotes to make it case-sensitive."));
+  }
+
+  @Test
+  public void shouldThrowOnDescribeSourceNameWithQuotes() {
+    // Given:
+    engine.givenSource(DataSourceType.KSTREAM, "STREAM1");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomExecutors.SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE \"stream1\";"),
+            SESSION_PROPERTIES,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not find STREAM/TABLE 'stream1' in the Metastore\nDid you mean STREAM1? Hint: try removing double quotes from the source name."));
+  }
+
+  @Test
   public void shouldNotCallTopicClientForExtendedDescription() {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "stream1");

@@ -61,6 +61,7 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
@@ -192,7 +193,7 @@ public class DescribeConnectorExecutorTest {
     assertThat(description.getConnectorClass(), is(CONNECTOR_CLASS));
     assertThat(description.getStatus(), is(STATUS));
     assertThat(description.getSources().size(), is(1));
-    assertThat(description.getSources().get(0).getName(), is("\"source\""));
+    assertThat(description.getSources().get(0).getName(), is("`source`"));
     assertThat(description.getSources().get(0).getTopic(), is(TOPIC));
     assertThat(description.getTopics().size(), is(1));
     assertThat(description.getTopics().get(0), is(TOPIC));

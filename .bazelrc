@@ -1,1 +1,2 @@
 build --java_language_version=11 --javacopt="-XepDisableAllChecks"
+build --@io_bazel_rules_docker//transitions:enable=false

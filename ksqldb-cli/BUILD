@@ -1,10 +1,11 @@
 load("@rules_java//java:defs.bzl", "java_test")
 
-java_library(
+java_binary(
     name = "ksqldb_cli",
     srcs = glob([
         "src/main/**/*.java",
     ]),
+    main_class = "io.confluent.ksql.Ksql",
     visibility = ["//visibility:public"],
     deps = [
         "//ksqldb-common:ksqldb_common",

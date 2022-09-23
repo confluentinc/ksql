@@ -234,7 +234,8 @@ public class InsertValuesExecutor {
     final DataSource dataSource = metaStore.getSource(insertValues.getTarget());
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
-          + insertValues.getTarget());
+          + insertValues.getTarget()
+          + metaStore.checkAlternatives(insertValues.getTarget(), Optional.empty()));
     }
 
     if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {

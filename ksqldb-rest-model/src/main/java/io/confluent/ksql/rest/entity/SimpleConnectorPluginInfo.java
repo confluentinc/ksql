@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -37,6 +38,7 @@ import org.apache.kafka.connect.transforms.predicates.Predicate;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Immutable
 public class SimpleConnectorPluginInfo {
+  @JsonAlias({"class"})
   private final String className;
   private final PluginType type;
   private final String version;

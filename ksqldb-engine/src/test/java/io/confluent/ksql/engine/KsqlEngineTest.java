@@ -534,6 +534,276 @@ public class KsqlEngineTest {
         );
   }
 
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithoutQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bar does not exist.\n"
+            + "Did you mean BAR? Hint: try removing double quotes from the source name.")));
+    assertThat(e, statementText(is("select * from \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithMisspelling() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"Bar\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bAr\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bAr does not exist.\n"
+            + "Did you mean \"Bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from \"bAr\";")));
+  }
+  @Test
+  public void shouldShowCorrectHintsWhenIncorrectSourceMatchesWithTwo() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"Bar\" as select * from test1; "
+            + "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bar does not exist.\n"
+            + "Did you mean \"BAR\" (STREAM) or \"Bar\" (STREAM)? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowCorrectHintsWhenIncorrectSourceMatchesWithThree() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table \"Foo\" as select * from test2; "
+            + "create table foo as select * from test2; "
+            + "create stream \"foo\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"FoO\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: FoO does not exist.\n"
+            + "Did you mean \"FOO\" (TABLE), \"Foo\" (TABLE), or \"foo\" (STREAM)? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from \"FoO\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"bar\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: BAR does not exist.\n"
+            + "Did you mean \"bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from bar;")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToDropStreamWithSourceNameWithQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Stream bar does not exist.\n"
+            + "Did you mean BAR? Hint: try removing double quotes from the source name.")));
+    assertThat(e, statementText(is("drop stream \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToDropTableWithSourceNameWithoutQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table \"bar\" as select * from test2;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop table bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Table BAR does not exist.\n"
+            + "Did you mean \"bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("drop table bar;")));
+  }
+
+  @Test
+  public void shouldNotShowHintWhenFailingToDropNonExistingTable() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"bar\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop table bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Table BAR does not exist.")));
+    assertThat(e, statementText(is("drop table bar;")));
+  }
+
+  @Test
+  public void shouldNotShowHintWhenFailingToDropNonExistingStream() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table \"bar\" as select * from test2;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Stream BAR does not exist.")));
+    assertThat(e, statementText(is("drop stream bar;")));
+  }
+
   @Test(expected = ParseFailedException.class)
   public void shouldFailWhenSyntaxIsInvalid() {
     KsqlEngineTestUtil.execute(
@@ -821,7 +1091,7 @@ public class KsqlEngineTest {
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-                "drop stream foo;",
+        "drop stream foo;",
         ksqlConfig,
         Collections.emptyMap()
     );
@@ -887,12 +1157,12 @@ public class KsqlEngineTest {
   public void shouldDropTableIfAllReferencedQueriesTerminated() {
     // Given:
     final QueryMetadata secondQuery = KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create table bar as select * from test2;"
-            + "create table foo as select * from test2;",
+            serviceContext,
+            ksqlEngine,
+            "create table bar as select * from test2;"
+                + "create table foo as select * from test2;",
             ksqlConfig,
-        Collections.emptyMap())
+            Collections.emptyMap())
         .get(1);
 
     secondQuery.close();

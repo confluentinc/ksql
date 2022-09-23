@@ -360,6 +360,28 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Result schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING, `DATA_3` STRING\nSink schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING"
       }
+    },
+    {
+      "name": "insert into source name without quotes",
+      "statements": [
+        "CREATE STREAM \"input\" (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (id, val) VALUES (1, 'hello');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert values into an unknown stream/table: `INPUT`\nDid you mean \"input\"? Hint: wrap the source name in double quotes to make it case-sensitive."
+      }
+    },
+    {
+      "name": "insert into source name with quotes",
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO \"input\" (id, val) VALUES (1, 'hello');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert values into an unknown stream/table: `input`\nDid you mean INPUT? Hint: try removing double quotes from the source name."
+      }
     }
   ]
 }

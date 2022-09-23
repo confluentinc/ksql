@@ -203,7 +203,9 @@ public class ApiIntegrationTest {
     String sql = "SLECTT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "line 1:1: mismatched input 'SLECTT' expecting");
+    shouldFailToExecuteQuery(sql, "line 1:1: Syntax Error\n"
+        + "Unknown statement 'SLECTT'\n"
+        + "Did you mean 'SELECT'?");
   }
 
   @Test
@@ -348,7 +350,9 @@ public class ApiIntegrationTest {
     String sql = "SLLLECET * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "line 1:1: mismatched input 'SLLLECET' expecting");
+    shouldFailToExecuteQuery(sql, "line 1:1: Syntax Error\n"
+        + "Unknown statement 'SLLLECET'\n"
+        + "Did you mean 'SELECT'?");
   }
 
   @Test
@@ -517,7 +521,8 @@ public class ApiIntegrationTest {
 
     // Then: request fails because stream name is invalid
     shouldRejectInsertRequest(target, row,
-        "Cannot insert values into an unknown stream/table: " + target);
+        "Cannot insert values into an unknown stream/table: " + target
+            + "\nDid you mean STRUCTURED_TYPES_KSTREAM? Hint: try removing double quotes from the source name.");
   }
 
   @Test
@@ -537,7 +542,8 @@ public class ApiIntegrationTest {
 
     // Then: request fails because stream name is invalid
     shouldRejectInsertRequest(target, row,
-        "Cannot insert values into an unknown stream/table: `" + TEST_STREAM.toLowerCase() + "`");
+        "Cannot insert values into an unknown stream/table: `" + TEST_STREAM.toLowerCase() + "`"
+            + "\nDid you mean STRUCTURED_TYPES_KSTREAM? Hint: try removing double quotes from the source name.");
   }
 
   @Test
@@ -700,7 +706,7 @@ public class ApiIntegrationTest {
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     assertThat(queryResponse.responseObject.getInteger("error_code"), is(ERROR_CODE_BAD_STATEMENT));
-    assertThat(queryResponse.responseObject.getString("message"), containsString(message));
+    assertThat(queryResponse.responseObject.getString("message"), is(message));
   }
 
   private HttpResponse<Buffer> makeInsertsRequest(final String target, final JsonObject row) {

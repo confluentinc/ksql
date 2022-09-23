@@ -24,16 +24,14 @@
       "keyFormat" : {
         "format" : "AVRO",
         "properties" : {
-          "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey",
-          "schemaId" : "101"
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey"
         },
         "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "AVRO",
         "properties" : {
-          "fullSchemaName" : "com.left.LeftValSchema",
-          "schemaId" : "102"
+          "fullSchemaName" : "com.left.LeftValSchema"
         }
       }
     },
@@ -139,16 +137,14 @@
       "keyFormat" : {
         "format" : "AVRO",
         "properties" : {
-          "fullSchemaName" : "io.confluent.ksql.avro_schemas.RightTableKey",
-          "schemaId" : "201"
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.RightTableKey"
         },
         "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "AVRO",
         "properties" : {
-          "fullSchemaName" : "com.right.RightValSchema",
-          "schemaId" : "202"
+          "fullSchemaName" : "com.right.RightValSchema"
         }
       }
     },

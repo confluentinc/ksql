@@ -36,16 +36,14 @@
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufKey2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "1"
+          "unwrapPrimitives" : "true"
         }
       },
       "valueFormat" : {
         "format" : "PROTOBUF",
         "properties" : {
           "fullSchemaName" : "ProtobufValue2",
-          "unwrapPrimitives" : "true",
-          "schemaId" : "2"
+          "unwrapPrimitives" : "true"
         }
       }
     },

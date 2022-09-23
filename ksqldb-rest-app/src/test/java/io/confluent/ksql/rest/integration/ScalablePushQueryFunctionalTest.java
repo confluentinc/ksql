@@ -38,6 +38,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.NetworkDisruptorClient.NetworkState;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -101,14 +102,16 @@ public class ScalablePushQueryFunctionalTest {
   private static final NetworkState NETWORK_STATE0 = new NetworkState();
   private static final NetworkState NETWORK_STATE1 = new NetworkState();
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final int INT_PORT0 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT1 = TestUtils.findFreeLocalPort();
 
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withNetworkDisruptorInternalKsqlClient(NETWORK_STATE0)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + INT_PORT0)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT0)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
@@ -122,8 +125,8 @@ public class ScalablePushQueryFunctionalTest {
       .withNetworkDisruptorInternalKsqlClient(NETWORK_STATE1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + INT_PORT1)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT1)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)

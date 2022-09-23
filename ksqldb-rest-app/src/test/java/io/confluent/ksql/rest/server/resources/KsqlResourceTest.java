@@ -1940,7 +1940,7 @@ public class KsqlResourceTest {
 
     givenMockEngine();
 
-    // mock 6 queries already running
+    // mock 6 queries already running to replicate the scenario where a cluster is restarted with a lower limit set.
     givenPersistentQueryCount(6);
 
     // When/Then:

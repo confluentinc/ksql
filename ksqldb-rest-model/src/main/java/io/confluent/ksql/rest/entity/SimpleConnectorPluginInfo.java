@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Locale;
 import java.util.Objects;
@@ -127,6 +128,7 @@ public class SimpleConnectorPluginInfo {
       return this.klass.getSimpleName();
     }
 
+    @JsonValue
     public String toString() {
       return super.toString().toLowerCase(Locale.ROOT);
     }

@@ -26,6 +26,8 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConnectorStateInfo {
+  public static final String RUNNING = "RUNNING";
+
   private final String name;
   private final ConnectorState connector;
   private final ImmutableList<TaskState> tasks;

@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConfigInfos;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -98,7 +99,8 @@ public class DescribeConnectorExecutorTest {
 
   private static final ConnectorInfo INFO = new ConnectorInfo(
       "connector",
-      ImmutableMap.of(DescribeConnectorExecutor.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
+      ImmutableMap.of(ConfigInfos.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
+      ImmutableList.of(),
       ConnectorType.SOURCE);
 
   private static Map<String, Map<String, List<String>>> ACTIVE_TOPICS = Collections.singletonMap(

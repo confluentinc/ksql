@@ -48,7 +48,7 @@ import org.apache.hc.core5.http.HttpStatus;
 public final class ConnectExecutor {
 
   private static final ConnectorInfo DUMMY_CREATE_RESPONSE =
-      new ConnectorInfo("dummy", ImmutableMap.of(), ConnectorType.UNKNOWN);
+      new ConnectorInfo("dummy", ImmutableMap.of(), ImmutableList.of(), ConnectorType.UNKNOWN);
 
   private ConnectExecutor() {
   }

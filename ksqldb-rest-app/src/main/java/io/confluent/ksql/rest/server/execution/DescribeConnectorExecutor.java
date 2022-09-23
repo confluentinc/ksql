@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.rest.entity.ConfigInfos.CONNECTOR_CLASS_CONFIG;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -46,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 public final class DescribeConnectorExecutor {
 
-  public static final String CONNECTOR_CLASS_CONFIG = "connector.class";
   private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
 
   @VisibleForTesting

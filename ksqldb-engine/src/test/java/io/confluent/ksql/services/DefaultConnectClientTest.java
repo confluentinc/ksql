@@ -34,8 +34,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.rest.entity.ConfigInfos;
 import io.confluent.ksql.rest.entity.ConfigInfos.ConfigInfo;
+import io.confluent.ksql.rest.entity.ConfigInfos.ConfigKeyInfo;
 import io.confluent.ksql.rest.entity.ConfigInfos.ConfigValueInfo;
 import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorInfo.ConnectorTaskId;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
@@ -45,6 +47,7 @@ import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.test.util.OptionalMatchers;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -68,6 +71,7 @@ public class DefaultConnectClientTest {
   private static final ConnectorInfo SAMPLE_INFO = new ConnectorInfo(
       "foo",
       ImmutableMap.of("key", "value"),
+      ImmutableList.of(new ConnectorTaskId("foo", 1)),
       ConnectorType.SOURCE
   );
   private static final ConnectorStateInfo SAMPLE_STATUS = new ConnectorStateInfo(
@@ -161,12 +165,30 @@ public class DefaultConnectClientTest {
     // Given:
     final String plugin = SAMPLE_PLUGIN.getClassName();
     final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
-    final ConfigInfos body = new ConfigInfos(
+    final ConfigInfos body =  new ConfigInfos(
         plugin,
-        ImmutableList.of(new ConfigInfo(
+        1,
+        ImmutableList.of("Common"),
+        ImmutableList.of(new ConfigInfo(new ConfigKeyInfo(
+            "file",
+            "STRING",
+            true,
+            "",
+            "HIGH",
+            "Destination filename.",
+            null,
+            -1,
+            "NONE",
+            "file",
+            Collections.emptyList()),
             new ConfigValueInfo(
                 "file",
-                ImmutableList.of("Missing required configuration \"file\" which has no default value.")))));
+                null,
+                Collections.emptyList(),
+                ImmutableList.of(
+                    "Missing required configuration \"file\" which has no default value."),
+                true)
+        )));
 
     WireMock.stubFor(
         WireMock.put(WireMock.urlEqualTo(url))

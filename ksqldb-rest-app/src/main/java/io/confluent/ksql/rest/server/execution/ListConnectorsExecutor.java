@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.rest.entity.ConnectorStateInfo.RUNNING;
+
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConfigInfos;
 import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo;
@@ -39,8 +42,6 @@ import java.util.List;
 import java.util.Optional;
 
 public final class ListConnectorsExecutor {
-
-  private static final String RUNNING = "RUNNING";
 
   private ListConnectorsExecutor() {
   }
@@ -118,7 +119,7 @@ public final class ListConnectorsExecutor {
     return new SimpleConnectorInfo(
         name,
         info.type(),
-        info.config().get(DescribeConnectorExecutor.CONNECTOR_CLASS_CONFIG),
+        info.config().get(ConfigInfos.CONNECTOR_CLASS_CONFIG),
         summarizeState(status.datum().get())
     );
   }

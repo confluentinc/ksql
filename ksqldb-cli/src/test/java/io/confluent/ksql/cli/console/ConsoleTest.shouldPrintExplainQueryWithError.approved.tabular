@@ -13,13 +13,13 @@ Sources that this query reads from:
 -----------------------------------
 source
 
-For source description please run: DESCRIBE [EXTENDED] <SourceId>
+For source description please run: DESCRIBE <SourceId> [EXTENDED]
 
 Sinks that this query writes to: 
 -----------------------------------
 sink
 
-For sink description please run: DESCRIBE [EXTENDED] <SinkId>
+For sink description please run: DESCRIBE <SinkId> [EXTENDED]
 
 Execution plan      
 --------------      

@@ -44,15 +44,13 @@ import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory.InternalSimpleKsqlClientFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
-import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlTestFolder;
-import io.confluent.ksql.util.IdentifierUtil;
+import io.confluent.ksql.util.Identifiers;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -498,17 +496,19 @@ public class TestKsqlRestApp extends ExternalResource {
       final KsqlRestClient client
   ) {
     final Set<String> sourcesDropped = new HashSet<>(streams.size() + tables.size());
-
-    Iterables.concat(streams, tables).forEach(source -> {
+    Set<String> streamsNames = streams.stream().map(Identifiers::getIdentifierText).collect(
+        Collectors.toSet());
+    Iterables.concat(streamsNames, tables).forEach(source -> {
       if (!sourcesDropped.contains(source)) {
         final Iterator<String> dropInOrder = getOrderedSourcesToDrop(source, client);
         dropInOrder.forEachRemaining(s -> {
-          if (streams.contains(FormatOptions.of(IdentifierUtil::needsQuotes).escape(s))) {
+          if (streamsNames.contains(s)) {
             dropStream(s, client);
           } else {
             dropTable(s, client);
           }
-          sourcesDropped.add(FormatOptions.of(IdentifierUtil::needsQuotes).escape(s));
+          sourcesDropped.add(s);
+
         });
       }
     });

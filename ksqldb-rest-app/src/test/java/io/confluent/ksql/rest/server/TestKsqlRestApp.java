@@ -50,6 +50,7 @@ import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlTestFolder;
+import io.confluent.ksql.util.Identifiers;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -495,17 +496,19 @@ public class TestKsqlRestApp extends ExternalResource {
       final KsqlRestClient client
   ) {
     final Set<String> sourcesDropped = new HashSet<>(streams.size() + tables.size());
-
-    Iterables.concat(streams, tables).forEach(source -> {
+    Set<String> streamsNames = streams.stream().map(Identifiers::getIdentifierText).collect(
+        Collectors.toSet());
+    Iterables.concat(streamsNames, tables).forEach(source -> {
       if (!sourcesDropped.contains(source)) {
         final Iterator<String> dropInOrder = getOrderedSourcesToDrop(source, client);
         dropInOrder.forEachRemaining(s -> {
-          if (streams.contains(s)) {
+          if (streamsNames.contains(s)) {
             dropStream(s, client);
           } else {
             dropTable(s, client);
           }
           sourcesDropped.add(s);
+
         });
       }
     });

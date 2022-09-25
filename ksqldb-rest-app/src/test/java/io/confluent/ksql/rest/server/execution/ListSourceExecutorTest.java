@@ -57,6 +57,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -103,7 +104,7 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowStreams() {
     // Given:
-    final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
+    final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "STREAM1");
     final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
     engine.givenSource(DataSourceType.KTABLE, "table");
 
@@ -119,14 +120,14 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(descriptionList.getStreams(), containsInAnyOrder(
         new SourceInfo.Stream(
-            stream1.getName().toString(FormatOptions.noEscape()),
+            stream1.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
             stream1.getKafkaTopicName(),
             stream1.getKsqlTopic().getKeyFormat().getFormat(),
             stream1.getKsqlTopic().getValueFormat().getFormat(),
             stream1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Stream(
-            stream2.getName().toString(FormatOptions.noEscape()),
+            stream2.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
             stream2.getKafkaTopicName(),
             stream2.getKsqlTopic().getKeyFormat().getFormat(),
             stream2.getKsqlTopic().getValueFormat().getFormat(),
@@ -139,7 +140,7 @@ public class ListSourceExecutorTest {
   public void shouldShowStreamsExtended() {
     // Given:
     final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2",
+    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "STREAM2",
         ImmutableSet.of(SourceName.of("stream1")));
     engine.givenSource(DataSourceType.KTABLE, "table");
 
@@ -161,7 +162,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of("stream2"),
+            ImmutableList.of("STREAM2"),
             new MetricCollectors()
         ),
         SourceDescriptionFactory.create(
@@ -222,7 +223,7 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowTables() {
     // Given:
-    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
+    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "TABLE1");
     final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
@@ -238,14 +239,14 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(descriptionList.getTables(), containsInAnyOrder(
         new SourceInfo.Table(
-            table1.getName().toString(FormatOptions.noEscape()),
+            table1.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
             table1.getKsqlTopic().getKafkaTopicName(),
             table2.getKsqlTopic().getKeyFormat().getFormat(),
             table1.getKsqlTopic().getValueFormat().getFormat(),
             table1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Table(
-            table2.getName().toString(FormatOptions.noEscape()),
+            table2.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
             table2.getKsqlTopic().getKafkaTopicName(),
             table2.getKsqlTopic().getKeyFormat().getFormat(),
             table2.getKsqlTopic().getValueFormat().getFormat(),
@@ -258,7 +259,7 @@ public class ListSourceExecutorTest {
   public void shouldShowTablesExtended() {
     // Given:
     final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2",
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "TABLE2",
         ImmutableSet.of(SourceName.of("table1")));
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
@@ -281,7 +282,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
             ImmutableList.of(),
-            ImmutableList.of("table2"),
+            ImmutableList.of("TABLE2"),
             new MetricCollectors()
         ),
         SourceDescriptionFactory.create(

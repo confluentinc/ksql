@@ -83,7 +83,7 @@ public class ConnectorInfo {
     return Objects.hash(new Object[]{this.name, this.config, this.type});
   }
 
-  @JsonIgnoreProperties
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static class ConnectorTaskId implements Serializable, Comparable<ConnectorTaskId> {
     private final String connector;
     private final int task;

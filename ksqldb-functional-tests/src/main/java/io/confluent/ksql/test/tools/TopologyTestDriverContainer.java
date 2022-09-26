@@ -58,6 +58,7 @@ public final class TopologyTestDriverContainer {
     requireNonNull(sourceTopics, "sourceTopics");
     this.sourceTopics = sourceTopics
         .stream()
+        .distinct()
         .map(topic -> Pair.of(
             topic.getName(),
             topologyTestDriver.createInputTopic(

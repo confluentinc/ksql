@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.rest.entity.ConfigInfos;
 import io.confluent.ksql.rest.entity.ConfigInfos.ConfigInfo;
-import io.confluent.ksql.rest.entity.ConfigInfos.ConfigKeyInfo;
 import io.confluent.ksql.rest.entity.ConfigInfos.ConfigValueInfo;
 import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.ConnectorInfo.ConnectorTaskId;
@@ -165,29 +164,15 @@ public class DefaultConnectClientTest {
     // Given:
     final String plugin = SAMPLE_PLUGIN.getClassName();
     final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
-    final ConfigInfos body =  new ConfigInfos(
+    final ConfigInfos body = new ConfigInfos(
         plugin,
         1,
         ImmutableList.of("Common"),
-        ImmutableList.of(new ConfigInfo(new ConfigKeyInfo(
-            "file",
-            "STRING",
-            true,
-            "",
-            "HIGH",
-            "Destination filename.",
-            null,
-            -1,
-            "NONE",
-            "file",
-            Collections.emptyList()),
+        ImmutableList.of(new ConfigInfo(
             new ConfigValueInfo(
                 "file",
-                null,
-                Collections.emptyList(),
                 ImmutableList.of(
-                    "Missing required configuration \"file\" which has no default value."),
-                true)
+                    "Missing required configuration \"file\" which has no default value."))
         )));
 
     WireMock.stubFor(

@@ -347,6 +347,7 @@ public class ClientTest extends BaseApiTest {
     // Given
     final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    waitForQueryPublisherSubscribed();
     sendQueryPublisherError();
     assertThatEventually(streamedQueryResult::isFailed, is(true));
 

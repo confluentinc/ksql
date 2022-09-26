@@ -5,7 +5,7 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -28,7 +28,7 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.*, R.* FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = ABS(R.A);"
+        "CREATE STREAM OUTPUT AS SELECT L.*, R.* FROM L INNER JOIN R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = ABS(R.A);"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -51,7 +51,7 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.*, R.* FROM L INNER JOIN R WITHIN 10 SECONDS ON ABS(L.A) = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.*, R.* FROM L INNER JOIN R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON ABS(L.A) = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -74,7 +74,7 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.B, L.C, R.* FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.B, L.C, R.* FROM L INNER JOIN R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -97,16 +97,14 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM L FULL OUTER JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT * FROM L FULL OUTER JOIN R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": -1, "C": -2}, "timestamp": 9},
         {"topic": "LEFT", "key": 1, "value": {"B": 1, "C": 2}, "timestamp": 10}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"L_A": 0, "L_B": -1, "L_C": -2, "R_A": null, "R_B": null, "R_C": null}, "timestamp": 9},
         {"topic": "OUTPUT", "key": 0, "value": {"L_A": 0, "L_B": -1, "L_C": -2, "R_A": 0, "R_B": -1, "R_C": -2}, "timestamp": 9},
-        {"topic": "OUTPUT", "key": 1, "value": {"L_A": 1, "L_B": 1, "L_C": 2, "R_A": null, "R_B": null, "R_C": null}, "timestamp": 10},
         {"topic": "OUTPUT", "key": 1, "value": {"L_A": 1, "L_B": 1, "L_C": 2, "R_A": 1, "R_B": 1, "R_C": 2}, "timestamp": 10}
       ],
       "post": {
@@ -120,16 +118,14 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM L LEFT JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT * FROM L LEFT JOIN R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": -1, "C": -2}, "timestamp": 10},
         {"topic": "LEFT", "key": 1, "value": {"B": 1, "C": 2}, "timestamp": 10}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"L_B": -1, "L_C": -2, "R_A": null, "R_B": null, "R_C": null}, "timestamp":  10},
         {"topic": "OUTPUT", "key": 0, "value": {"L_B": -1, "L_C": -2, "R_A": 0, "R_B": -1, "R_C": -2}, "timestamp":  10},
-        {"topic": "OUTPUT", "key": 1, "value": {"L_B": 1, "L_C": 2, "R_A": null, "R_B": null, "R_C": null}, "timestamp":  10},
         {"topic": "OUTPUT", "key": 1, "value": {"L_B": 1, "L_C": 2, "R_A": 1, "R_B": 1, "R_C": 2}, "timestamp":  10}
       ],
       "post": {
@@ -143,7 +139,7 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT l.B, l.C, R.B, R.C FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT l.B, l.C, R.B, R.C FROM L INNER JOIN R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -155,7 +151,7 @@
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT l.*, r.* FROM L INNER JOIN R WITHIN 10 SECONDS ON ABS(L.A) = ABS(R.A);"
+        "CREATE STREAM OUTPUT AS SELECT l.*, r.* FROM L INNER JOIN R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON ABS(L.A) = ABS(R.A);"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -167,7 +163,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -189,7 +185,7 @@
       "name": "self join - with left join column in projection",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.*, R.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON L.A = ABS(R.A);"
+        "CREATE STREAM OUTPUT AS SELECT L.*, R.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = ABS(R.A);"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -211,7 +207,7 @@
       "name": "self join - with right join column in projection",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.*, R.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON ABS(L.A) = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.*, R.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON ABS(L.A) = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -233,7 +229,7 @@
       "name": "self join - with only right join column in projection",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.B, L.C, R.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.B, L.C, R.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -255,7 +251,7 @@
       "name": "self join - missing join columns in projection",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT l.B, l.C, R.B, R.C FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT l.B, l.C, R.B, R.C FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -266,7 +262,7 @@
       "name": "self join - missing synthetic join column in projection",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT l.*, r.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON ABS(L.A) = ABS(R.A);"
+        "CREATE STREAM OUTPUT AS SELECT l.*, r.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON ABS(L.A) = ABS(R.A);"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -279,7 +275,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.B, L.C, R.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.B, L.C, R.* FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -305,7 +301,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.*, R.B FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.*, R.B FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -328,7 +324,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT R.*, L.B FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT R.*, L.B FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -351,7 +347,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.*, L.B AS LB_2, R.*, R.C AS RC_2 FROM L INNER JOIN L AS R WITHIN 10 SECONDS ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.*, L.B AS LB_2, R.*, R.C AS RC_2 FROM L INNER JOIN L AS R WITHIN 10 SECONDS GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
@@ -374,7 +370,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.A, L.B, L.C, R.B, R.C FROM L INNER JOIN L AS R WITHIN (11 seconds, 10 seconds) ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.A, L.B, L.C, R.B, R.C FROM L INNER JOIN L AS R WITHIN (11 seconds, 10 seconds) GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 0},
@@ -414,7 +410,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF", "PROTOBUF_NOSR"],
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT L.A, L.B, L.C, R.B, R.C FROM L INNER JOIN L AS R WITHIN 10 seconds ON L.A = R.A;"
+        "CREATE STREAM OUTPUT AS SELECT L.A, L.B, L.C, R.B, R.C FROM L INNER JOIN L AS R WITHIN 10 seconds GRACE PERIOD 1 minute ON L.A = R.A;"
       ],
       "inputs": [
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 0},
@@ -495,18 +491,6 @@
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT"}
         ]
-      }
-    },
-
-    {
-      "name": "self join",
-      "statements": [
-        "CREATE TABLE L (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT as SELECT * FROM L as t1 JOIN L as t2 ON t1.id = t2.id;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Can not join 'L' to 'L': table-table self joins are not yet supported."
       }
     }
   ]

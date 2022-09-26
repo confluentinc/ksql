@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
+import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -122,8 +123,8 @@ public class SqlTestExecutor implements Closeable {
   private Injector formatInjector;
   private KafkaTopicClient topicClient;
   private Path tmpFolder;
-  private final Map<String, Object> overrides;
-  private final Map<QueryId, DriverAndProperties> drivers;
+  private final ImmutableMap<String, Object> overrides;
+  private final ImmutableMap<QueryId, DriverAndProperties> drivers;
 
   // populated during execution to handle the expected exception
   // scenario - don't use Matchers because they do not create very
@@ -187,7 +188,7 @@ public class SqlTestExecutor implements Closeable {
     );
   }
 
-  public SqlTestExecutor(
+  SqlTestExecutor(
       final ServiceContext serviceContext,
       final KafkaTopicClient topicClient,
       final KsqlEngine ksqlEngine,
@@ -195,15 +196,15 @@ public class SqlTestExecutor implements Closeable {
       final Map<QueryId, DriverAndProperties> drivers,
       final Path tmpFolder
   ) {
-    this.serviceContext = serviceContext;
-    this.engine = ksqlEngine;
-    this.config = config;
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.engine = requireNonNull(ksqlEngine, "ksqlEngine");
+    this.config = config.cloneWithPropertyOverwrite(ImmutableMap.of());
     this.driverPipeline = new TestDriverPipeline();
     this.formatInjector = new DefaultFormatInjector();
-    this.topicClient = topicClient;
-    this.overrides = new HashMap<>();
-    this.drivers = drivers;
-    this.tmpFolder = tmpFolder;
+    this.topicClient = requireNonNull(topicClient, "topicClient");
+    this.overrides = ImmutableMap.of();
+    this.drivers = ImmutableMap.copyOf(drivers);
+    this.tmpFolder = requireNonNull(tmpFolder, "tmpFolder");
   }
 
   public void executeTest(final SqlTest test) {

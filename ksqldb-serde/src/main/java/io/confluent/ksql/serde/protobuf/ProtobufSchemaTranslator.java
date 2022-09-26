@@ -111,10 +111,11 @@ public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
   private ProtobufSchema withSchemaFullName(final ProtobufSchema origSchema) {
     if (fullNameSchema.isPresent()) {
-      Optional<List<String>> matchedList = Optional.of(origSchema.rawSchema().getTypes().stream()
-          .map(TypeElement::getName).filter(nn -> nn.equalsIgnoreCase(fullNameSchema.get()))
+      final Optional<List<String>> matchedList = Optional.of(origSchema.rawSchema().getTypes()
+          .stream().map(TypeElement::getName)
+          .filter(nn -> nn.equalsIgnoreCase(fullNameSchema.get()))
           .collect(Collectors.toList()));
-      String name = matchedList.filter(list -> list.size() == 1).map(list -> list.get(0))
+      final String name = matchedList.filter(list -> list.size() == 1).map(list -> list.get(0))
           .orElse(fullNameSchema.get());
       return origSchema.copy(name);
     }

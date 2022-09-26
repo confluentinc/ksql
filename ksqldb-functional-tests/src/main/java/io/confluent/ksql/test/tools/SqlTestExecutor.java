@@ -123,8 +123,8 @@ public class SqlTestExecutor implements Closeable {
   private Injector formatInjector;
   private KafkaTopicClient topicClient;
   private Path tmpFolder;
-  private final ImmutableMap<String, Object> overrides;
-  private final ImmutableMap<QueryId, DriverAndProperties> drivers;
+  private final Map<String, Object> overrides;
+  private final Map<QueryId, DriverAndProperties> drivers;
 
   // populated during execution to handle the expected exception
   // scenario - don't use Matchers because they do not create very
@@ -202,8 +202,8 @@ public class SqlTestExecutor implements Closeable {
     this.driverPipeline = new TestDriverPipeline();
     this.formatInjector = new DefaultFormatInjector();
     this.topicClient = requireNonNull(topicClient, "topicClient");
-    this.overrides = ImmutableMap.of();
-    this.drivers = ImmutableMap.copyOf(drivers);
+    this.overrides = new HashMap<>();
+    this.drivers = drivers;
     this.tmpFolder = requireNonNull(tmpFolder, "tmpFolder");
   }
 

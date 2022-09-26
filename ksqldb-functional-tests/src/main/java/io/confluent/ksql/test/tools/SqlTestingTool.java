@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.test.parser.SqlTestLoader;
 import io.confluent.ksql.test.parser.SqlTestLoader.SqlTest;
 import java.io.File;
@@ -22,20 +23,30 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SqlTestingTool {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(SqlTestingTool.class);
 
   private SqlTestingTool() {
   }
 
-  public static void main(final String[] args) throws IOException {
-    SqlTestOptions testOptions = null;
+  public static void main(final String[] args) {
     try {
-      testOptions = SqlTestOptions.parse(args);
+      final int code = run(args);
+      System.exit(code);
     } catch (final Exception e) {
-      System.err.println("Invalid arguments: " + e.getMessage());
       System.exit(1);
-      return;
+    }
+  }
+
+  @VisibleForTesting
+  static int run(final String[] args) throws IOException {
+    final SqlTestOptions testOptions = SqlTestOptions.parse(args);
+    if (testOptions == null) {
+      return 1;
     }
 
     final Path tempFolder = Paths.get(testOptions.getTempFolder());
@@ -43,8 +54,7 @@ public final class SqlTestingTool {
     loader.load().forEach(
         test -> executeTest(test, SqlTestExecutor.create(tempFolder), tempFolder.toFile()));
 
-    System.exit(0);
-    return;
+    return 0;
   }
 
   private static void executeTest(
@@ -54,9 +64,9 @@ public final class SqlTestingTool {
   ) {
     try {
       executor.executeTest(test);
-      System.out.println("\t >>> Test passed!");
+      LOGGER.info("\t >>> Test passed!");
     } catch (final Throwable e) {
-      System.err.println("\t>>>>> Test failed: " + e.getMessage());
+      LOGGER.error("\t>>>>> Test failed: " + e.getMessage());
     } finally {
       cleanUp(executor, tempFolder);
     }
@@ -67,7 +77,7 @@ public final class SqlTestingTool {
     try {
       FileUtils.cleanDirectory(tempFolder);
     } catch (final Exception e) {
-      System.err.println("Failed to clean up temp folder: " + e.getMessage());
+      LOGGER.warn("Failed to clean up temp folder: " + e.getMessage());
     }
   }
 }

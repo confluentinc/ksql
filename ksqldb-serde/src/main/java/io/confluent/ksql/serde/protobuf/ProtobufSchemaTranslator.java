@@ -19,15 +19,18 @@ import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_RAW_P
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.squareup.wire.schema.internal.parser.TypeElement;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 /**
@@ -107,7 +110,15 @@ public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
   }
 
   private ProtobufSchema withSchemaFullName(final ProtobufSchema origSchema) {
-    return fullNameSchema.map(origSchema::copy).orElse(origSchema);
+    if (fullNameSchema.isPresent()) {
+      Optional<List<String>> matchedList = Optional.of(origSchema.rawSchema().getTypes().stream()
+          .map(TypeElement::getName).filter(nn -> nn.equalsIgnoreCase(fullNameSchema.get()))
+          .collect(Collectors.toList()));
+      String name = matchedList.filter(list -> list.size() == 1).map(list -> list.get(0))
+          .orElse(fullNameSchema.get());
+      return origSchema.copy(name);
+    }
+    return origSchema;
   }
 
   private Schema injectSchemaFullName(final Schema origSchema) {

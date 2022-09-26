@@ -64,6 +64,26 @@ public class ProtobufSchemaTranslatorTest {
   }
 
   @Test
+  public void shouldAddCorrectNameToConnectSchema() {
+    // Given:
+    schemaTranslator = givenSchemaFullName("bar");
+    final ProtobufSchema protoSchema = new ProtobufSchema("syntax = \"proto3\";\n" +
+        "\n" +
+        "message FOO {\n" +
+        "  int32 K1 = 1;\n" +
+        "}\n" +
+        "message BAR {\n" +
+            "  int32 K2 = 1;\n" +
+        "}");
+
+    // When:
+    final Schema connectSchema = schemaTranslator.toConnectSchema(protoSchema);
+
+    // Then:
+    assertThat(connectSchema.name(), is("BAR"));
+  }
+
+  @Test
   public void shouldUnwrapPrimitives() {
     // Given:
     givenUnwrapPrimitives();
@@ -246,9 +266,10 @@ public class ProtobufSchemaTranslatorTest {
     schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of()));
   }
 
-  private void givenSchemaFullName(final String fullSchemaName) {
+  private ProtobufSchemaTranslator givenSchemaFullName(final String fullSchemaName) {
     schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of(
         ProtobufProperties.FULL_SCHEMA_NAME, fullSchemaName
     )));
+    return schemaTranslator;
   }
 }

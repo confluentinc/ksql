@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -81,6 +82,7 @@ public class KsqlResourceFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG, 30000)
       .build();
 
   @ClassRule

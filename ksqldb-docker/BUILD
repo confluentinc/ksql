@@ -1,5 +1,6 @@
 load("@io_bazel_rules_docker//container:container.bzl", "container_image")
 load("@io_bazel_rules_docker//container:container.bzl", "container_layer")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 container_layer(
     name = "usr_bin_layer",
@@ -56,6 +57,20 @@ container_layer(
     ]
 )
 
+pkg_tar(
+    name = "confluent_hub_tar",
+    srcs = ["@confluent_hub_client//file"],
+    package_dir = "/home/appuser",
+)
+
+# use the @confluent_hub_client//file target to ouput a tar file for the container
+#genrule(
+#    name = "confluent_hub_tar",
+#    srcs = ["@confluent_hub_client//file"],
+#    outs = ["confluent_hub.tar"],
+#    cmd = "cp $< $@",
+#)
+
 container_image(
     name = "ksqldb_image",
     base = "@base//image",
@@ -68,10 +83,15 @@ container_image(
     ],
     files = [
     ],
+    tars = [
+#        "confluent_hub_tar",
+        ":confluent_hub_tar",
+#        "@confluent_hub_client//file",
+    ],
     data_path = ".",
     # todo the original docker image would use user appuser
-    # So far I have not found a way to write the files as appuser,
-    # so we need to run as root in order to start up properly.
+    #  So far I have not found a way to write the files as appuser,
+    #  so we need to run as root in order to start up properly.
     user = "root"
 
 )

@@ -55,6 +55,7 @@ java_library(
         "@maven//:com_approvaltests_approvaltests",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_github_rvesse_airline",
         "@maven//:com_github_spotbugs_spotbugs_annotations",
         "@maven//:com_google_guava_guava",
         "@maven//:io_confluent_common_utils",

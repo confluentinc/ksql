@@ -1,3 +1,20 @@
+# pkg rules
+# https://github.com/bazelbuild/rules_pkg/issues/606 had to be at the top because of this
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "rules_pkg",
+    sha256 = "8a298e832762eda1830597d64fe7db58178aa84cd5926d76d5b744d6558941c2",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.7.0/rules_pkg-0.7.0.tar.gz",
+        "https://github.com/bazelbuild/rules_pkg/releases/download/0.7.0/rules_pkg-0.7.0.tar.gz",
+    ],
+)
+
+load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
+
+rules_pkg_dependencies()
+
 # JVM External
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -277,6 +294,7 @@ load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
 )
+
 container_repositories()
 
 load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
@@ -290,6 +308,20 @@ container_pull(
     registry = "docker.io",
     repository = "confluentinc/cp-base-new",
     # 'tag' is also supported, but digest is encouraged for reproducibility.
-#    digest = "sha256:deadbeef",
+    #    digest = "sha256:deadbeef",
     tag = "latest",
+)
+
+# confluent hub for docker container
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+CONFLUENT_HUB_CLIENT_VERSION = "latest"
+
+CONFLUENT_HUB_CLIENT_SHA256 = "92fa71f9901d7950cf770587f1c024f1f30fa68be6c3ae06f32af85912e97a2c"
+
+http_file(
+    name = "confluent_hub_client",
+    executable = True,
+    sha256 = CONFLUENT_HUB_CLIENT_SHA256,
+    urls = ["http://client.hub.confluent.io/confluent-hub-client-{}.tar.gz".format(CONFLUENT_HUB_CLIENT_VERSION)],
 )

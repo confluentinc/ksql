@@ -149,6 +149,7 @@ java_library(
 
 java_test(
     name = "MyTests",
+    size = "large",
     test_class = "io.confluent.ksql.MyTestsEngine",
     runtime_deps = [":tests"],
 )

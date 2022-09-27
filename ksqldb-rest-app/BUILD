@@ -111,6 +111,7 @@ java_library(
         "@maven//:io_vertx_vertx_auth_common",
         "@maven//:io_vertx_vertx_codegen",
         "@maven//:io_vertx_vertx_core",
+        "@maven//:io_vertx_vertx_dropwizard_metrics",
         "@maven//:io_vertx_vertx_web",
         "@maven//:io_vertx_vertx_web_client",
         "@maven//:io_vertx_vertx_web_common",

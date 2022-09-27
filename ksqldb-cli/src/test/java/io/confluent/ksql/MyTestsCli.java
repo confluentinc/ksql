@@ -19,12 +19,13 @@ import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommandTest;
 import io.confluent.ksql.cli.console.cmd.RunScriptTest;
 import io.confluent.ksql.cli.console.table.builder.PropertiesListTableBuilderTest;
 import io.confluent.ksql.cli.console.table.builder.QueriesTableBuilderTest;
+import io.confluent.ksql.util.CmdLineUtilTest;
+import io.confluent.ksql.util.TabularRowTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        // todo failure to run a bunch of these tests
         OptionsTest.class,
         RemoteServerSpecificCommandTest.class,
         RequestPipeliningCommandTest.class,
@@ -32,6 +33,7 @@ import org.junit.runners.Suite;
         PropertiesListTableBuilderTest.class,
         QueriesTableBuilderTest.class,
         CommentStripperTest.class,
+// approvaltests not running properly
 //        ConsoleTest.class,
         JLineReaderTest.class,
         JLineTerminalTest.class,
@@ -39,11 +41,14 @@ import org.junit.runners.Suite;
         OutputFormatTest.class,
         TrimmingParserTest.class,
         UnclosedQuoteCheckerTest.class,
+//        Bazel doesn't support custom security managers, so these need to be re-worked.
 //        BasicAuthFunctionalTest.class,
 //        CliTest.class,
         ImmutabilityTest.class,
 //        SslClientAuthFunctionalTest.class,
 //        SslFunctionalTest.class,
+        CmdLineUtilTest.class,
+        TabularRowTest.class,
         KsqlTest.class,
 })
 public class MyTestsCli {

@@ -28,8 +28,10 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -37,9 +39,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Arrays;
 import java.util.Optional;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.kafka.connect.runtime.isolation.PluginType;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,7 +48,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class ListConnectorPluginsTest {
-    private static final PluginInfo INFO = new PluginInfo(
+    private static final SimpleConnectorPluginInfo INFO = new SimpleConnectorPluginInfo(
         "org.apache.kafka.connect.file.FileStreamSinkConnector",
         PluginType.SOURCE,
         "2.1"
@@ -94,7 +93,7 @@ public class ListConnectorPluginsTest {
             ImmutableList.of(
                 new SimpleConnectorPluginInfo(
                     "org.apache.kafka.connect.file.FileStreamSinkConnector",
-                    ConnectorType.SOURCE,
+                    PluginType.SOURCE,
                     "2.1")
             )
         )));

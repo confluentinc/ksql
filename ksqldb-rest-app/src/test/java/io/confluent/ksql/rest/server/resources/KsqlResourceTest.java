@@ -1933,18 +1933,26 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldNotFailIfNotQueryDespiteReachedActivePersistentQueriesLimit() {
-    // Given:
-    givenKsqlConfigWith(
-        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
-
-    givenMockEngine();
-
-    // mock 6 queries already running
+  public void shouldRejectQueryButAcceptNonQueryWhenKsqlRestartsWithLowerQueryLimit() {
+    // Given 6 queries already running:
     givenPersistentQueryCount(6);
 
-    // When/Then:
+    // When we restart ksql with a lower persistent query count
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+    givenMockEngine();
+
+    // Non query requests should not be rejected
     makeSingleRequest("SHOW STREAMS;", StreamsList.class);
+
+    // No further queries can be made
+    final KsqlErrorMessage result = makeFailingRequest(
+        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;", BAD_REQUEST.code());
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+    verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 
   @Test

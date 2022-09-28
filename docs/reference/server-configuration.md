@@ -734,9 +734,9 @@ For more information, see [Processing Guarantees](/operate-and-deploy/exactly-on
 **Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
 
 The type of compression used by streams producers for topics created by INSERT INTO, 
-CREATE TABLE AS SELECT, and CREATE STREAM AS SELECT statements. The default is `snappy`.
+CREATE TABLE AS SELECT, and CREATE STREAM AS SELECT statements. The default is `none`.
 
-This setting is distinct from the `ksql.compression.type` config, which sets the
+This setting is distinct from the `compression.type` config, which sets the
 compression type used by {{ site.ak }} producers, like the INSERT VALUES statement.
 
 ## `ksql.streams.state.dir`

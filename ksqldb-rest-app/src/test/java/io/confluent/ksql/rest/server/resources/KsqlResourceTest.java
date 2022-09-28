@@ -1942,7 +1942,7 @@ public class KsqlResourceTest {
         ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
     givenMockEngine();
 
-    // Non query requests should not be rejected
+    // When/Then:
     makeSingleRequest("SHOW STREAMS;", StreamsList.class);
 
     // No further queries can be made

@@ -9,29 +9,6 @@ import io.confluent.ksql.api.ListenersTest;
 import io.confluent.ksql.api.MaxQueriesTest;
 import io.confluent.ksql.api.ServerCorsTest;
 import io.confluent.ksql.api.TlsTest;
-import io.confluent.ksql.api.auth.AuthenticationPluginHandlerTest;
-import io.confluent.ksql.api.auth.BasicCallbackHandlerTest;
-import io.confluent.ksql.api.auth.JaasAuthProviderTest;
-import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandlerTest;
-import io.confluent.ksql.api.auth.SystemAuthenticationHandlerTest;
-import io.confluent.ksql.api.impl.DefaultKsqlSecurityContextProviderTest;
-import io.confluent.ksql.api.integration.ApiIntegrationTest;
-import io.confluent.ksql.api.integration.CommandTopicMigrationIntegrationTest;
-import io.confluent.ksql.api.integration.PullBandwidthThrottleIntegrationTest;
-import io.confluent.ksql.api.integration.QuickDegradeAndRestoreCommandTopicIntegrationTest;
-import io.confluent.ksql.api.integration.RestoreCommandTopicIntegrationTest;
-import io.confluent.ksql.api.integration.RestoreCommandTopicMultipleKafkasIntegrationTest;
-import io.confluent.ksql.api.integration.ScalablePushBandwidthThrottleIntegrationTest;
-import io.confluent.ksql.api.server.JsonStreamedRowResponseWriterTest;
-import io.confluent.ksql.api.server.LoggingHandlerTest;
-import io.confluent.ksql.api.server.LoggingRateLimiterTest;
-import io.confluent.ksql.api.server.OldApiUtilsTest;
-import io.confluent.ksql.api.server.QueryStreamHandlerTest;
-import io.confluent.ksql.api.server.ServerUtilsTest;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiterTest;
-import io.confluent.ksql.api.server.SniHandlerTest;
-import io.confluent.ksql.api.util.ApiServerUtilsTest;
-import io.confluent.ksql.api.util.ApiSqlValueCoercerTest;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtilsTest;
 import io.confluent.ksql.rest.app.ImmutabilityTest;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactoryTest;
@@ -173,29 +150,6 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        AuthenticationPluginHandlerTest.class,
-        BasicCallbackHandlerTest.class,
-        JaasAuthProviderTest.class,
-        KsqlAuthorizationProviderHandlerTest.class,
-        SystemAuthenticationHandlerTest.class,
-        DefaultKsqlSecurityContextProviderTest.class,
-        ApiIntegrationTest.class,
-        CommandTopicMigrationIntegrationTest.class,
-        PullBandwidthThrottleIntegrationTest.class,
-        QuickDegradeAndRestoreCommandTopicIntegrationTest.class,
-        RestoreCommandTopicIntegrationTest.class,
-        RestoreCommandTopicMultipleKafkasIntegrationTest.class,
-        ScalablePushBandwidthThrottleIntegrationTest.class,
-        JsonStreamedRowResponseWriterTest.class,
-        LoggingHandlerTest.class,
-        LoggingRateLimiterTest.class,
-        OldApiUtilsTest.class,
-        QueryStreamHandlerTest.class,
-        ServerUtilsTest.class,
-        SlidingWindowRateLimiterTest.class,
-        SniHandlerTest.class,
-        ApiServerUtilsTest.class,
-        ApiSqlValueCoercerTest.class,
         ApiTest.class,
         AuthTest.class,
         BaseApiTest.class,

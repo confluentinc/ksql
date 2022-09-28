@@ -149,3 +149,9 @@ java_test(
     test_class = "io.confluent.ksql.MyTestsRestApp",
     runtime_deps = [":tests"],
 )
+
+java_test(
+    name = "MyTestsApi",
+    test_class = "io.confluent.ksql.api.MyTestsRestAppApi",
+    runtime_deps = [":tests"],
+)

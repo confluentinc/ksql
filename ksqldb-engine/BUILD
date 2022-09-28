@@ -153,3 +153,141 @@ java_test(
     test_class = "io.confluent.ksql.MyTestsEngine",
     runtime_deps = [":tests"],
 )
+
+java_test(
+    name = "MyTestsFunction",
+    test_class = "io.confluent.ksql.function.MyTestsEngineFunction",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsPlanner",
+    test_class = "io.confluent.ksql.planner.MyTestsEnginePlanner",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsExecution",
+    test_class = "io.confluent.ksql.execution.MyTestsEngineExecution",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsServices",
+    test_class = "io.confluent.ksql.services.MyTestsEngineServices",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsAnalyzer",
+    test_class = "io.confluent.ksql.analyzer.MyTestsEngineAnalyzer",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "DependentStatementsIntegrationTest",
+    test_class = "io.confluent.ksql.integration.DependentStatementsIntegrationTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "EndToEndIntegrationTest",
+    test_class = "io.confluent.ksql.integration.EndToEndIntegrationTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "JoinIntTest",
+    test_class = "io.confluent.ksql.integration.JoinIntTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "KafkaConsumerGroupClientTest",
+    test_class = "io.confluent.ksql.integration.KafkaConsumerGroupClientTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "ReplaceIntTest",
+    test_class = "io.confluent.ksql.integration.ReplaceIntTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "ReplaceWithSharedRuntimesIntTest",
+    test_class = "io.confluent.ksql.integration.ReplaceWithSharedRuntimesIntTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "RetryTest",
+    test_class = "io.confluent.ksql.integration.RetryTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "SecureIntegrationTest",
+    test_class = "io.confluent.ksql.integration.SecureIntegrationTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "SelectValueMapperIntegrationTest",
+    test_class = "io.confluent.ksql.integration.SelectValueMapperIntegrationTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "StreamsSelectAndProjectIntTest",
+    test_class = "io.confluent.ksql.integration.StreamsSelectAndProjectIntTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "UdfIntTest",
+    test_class = "io.confluent.ksql.integration.UdfIntTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "WindowingIntTest",
+    test_class = "io.confluent.ksql.integration.WindowingIntTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "WindowingSharedRuntimeIntTest",
+    test_class = "io.confluent.ksql.integration.WindowingSharedRuntimeIntTest",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsUtil",
+    test_class = "io.confluent.ksql.util.MyTestsEngineUtil",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsQuery",
+    test_class = "io.confluent.ksql.query.MyTestsEngineQuery",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsStructured",
+    test_class = "io.confluent.ksql.structured.MyTestsEngineStructured",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsEngine",
+    test_class = "io.confluent.ksql.engine.MyTestsEngineEngine",
+    runtime_deps = [":tests"],
+)
+
+java_test(
+    name = "MyTestsSecurity",
+    test_class = "io.confluent.ksql.security.MyTestsEngineSecurity",
+    runtime_deps = [":tests"],
+)

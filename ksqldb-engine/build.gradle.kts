@@ -28,8 +28,8 @@ dependencies {
     implementation("com.squareup:javapoet:1.9.0")
     api("com.clearspring.analytics:stream:2.9.5")
     implementation("io.confluent:confluent-log4j-extensions:7.4.0-106")
-    testImplementation(project(mapOf("path" to ":ksqldb-metastore", "configuration" to "testOutput"))) // TODO: test-jar
-    testImplementation(project(mapOf("path" to ":ksqldb-common", "configuration" to "testOutput"))) // TODO: test-jar
+    testImplementation(project(mapOf("path" to ":ksqldb-metastore", "configuration" to "testOutput")))
+    testImplementation(project(mapOf("path" to ":ksqldb-common", "configuration" to "testOutput")))
     testImplementation(project(":ksqldb-test-util"))
     testImplementation("io.confluent.avro:avro-random-generator:0.2.2")
     testImplementation("com.github.tomakehurst:wiremock-jre8:2.24.0")

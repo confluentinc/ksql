@@ -18,6 +18,12 @@ dependencies {
 
 description = "ksqldb-version-metrics-client"
 
+tasks.withType<JavaCompile> {
+    val compilerArgs = options.compilerArgs
+    compilerArgs.addAll(listOf("-Xlint:all,-options,-path,-unchecked,-serial,-rawtypes"))
+    // TODO: handle compile.warnings-flag
+}
+
 val testsJar by tasks.registering(Jar::class) {
     archiveClassifier.set("tests")
     from(sourceSets["test"].output)

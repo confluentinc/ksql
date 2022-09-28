@@ -35,3 +35,7 @@ val testsJar by tasks.registering(Jar::class) {
 }
 
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)
+
+// TODO: shaded jar
+// TODO: maven-javadoc-plugin?
+// TODO:

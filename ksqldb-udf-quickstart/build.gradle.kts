@@ -18,3 +18,5 @@ val testsJar by tasks.registering(Jar::class) {
 }
 
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)
+
+// TODO: generate the maven archetype jarfile

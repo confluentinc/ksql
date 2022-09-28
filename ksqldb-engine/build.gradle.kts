@@ -37,15 +37,16 @@ dependencies {
 
 description = "ksqldb-engine"
 
+tasks.withType<JavaCompile> {
+    val compilerArgs = options.compilerArgs
+    compilerArgs.addAll(listOf("-Xlint:all,-serial,-options,-path,-rawtypes", "-parameters"))
+    // TODO: handle compile.warnings-flag
+}
+
 val testsJar by tasks.registering(Jar::class) {
     archiveClassifier.set("tests")
     from(sourceSets["test"].output)
 }
-
-//tasks.register<Jar>("testsJar") {
-//    archiveClassifier.set("tests")
-//    from(sourceSets["test"].output)
-//}
 
 val testOutput by configurations.creating {
     isCanBeConsumed = true

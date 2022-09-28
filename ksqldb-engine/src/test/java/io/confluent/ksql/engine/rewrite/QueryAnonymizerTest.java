@@ -18,6 +18,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.approvaltests.Approvals;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class QueryAnonymizerTest {
@@ -245,6 +246,7 @@ public class QueryAnonymizerTest {
   }
 
   @Test
+  @Ignore
   public void shouldAnonymizeAlterOptionCorrectly() {
     final String output = anon.anonymize(
         "ALTER STREAM my_stream ADD COLUMN c3 INT, ADD COLUMN c4 INT;");

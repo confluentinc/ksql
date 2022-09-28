@@ -43,6 +43,7 @@ import io.confluent.ksql.test.util.ImmutableTester;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import org.apache.kafka.connect.data.Schema;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,6 +53,7 @@ import org.junit.runners.Parameterized;
  */
 @SuppressWarnings("UnstableApiUsage")
 @RunWith(Parameterized.class)
+@Ignore
 public class MetaStoreModelTest {
 
   private static final ImmutableMap<Class<?>, Object> DEFAULTS = ImmutableMap

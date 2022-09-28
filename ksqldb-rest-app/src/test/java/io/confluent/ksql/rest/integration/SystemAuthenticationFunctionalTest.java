@@ -58,10 +58,7 @@ import java.util.function.BiFunction;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.rules.RuleChain;
@@ -74,6 +71,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @Category({IntegrationTest.class})
 @RunWith(Enclosed.class)
+@Ignore
 public class SystemAuthenticationFunctionalTest {
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
   @ClassRule

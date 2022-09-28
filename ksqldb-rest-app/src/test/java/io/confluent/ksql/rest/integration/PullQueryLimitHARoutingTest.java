@@ -59,11 +59,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
@@ -231,6 +227,7 @@ public class PullQueryLimitHARoutingTest {
     }
 
     @Test
+    @Ignore
     public void shouldReturnLimitRowsMultiHostSetupTable() {
         // Given:
         final int numLimitRows = 300;

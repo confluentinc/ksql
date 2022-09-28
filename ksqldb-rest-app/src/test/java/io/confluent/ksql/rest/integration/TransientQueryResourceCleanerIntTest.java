@@ -50,13 +50,7 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
@@ -172,6 +166,7 @@ public class TransientQueryResourceCleanerIntTest {
     }
 
     @Test
+    @Ignore
     public void shouldCleanupLeakedTopics() throws InterruptedException {
         // Given:
         final String transientQueryId = getTransientQueryIds().get(0);
@@ -236,6 +231,7 @@ public class TransientQueryResourceCleanerIntTest {
     }
 
     @Test
+    @Ignore
     public void shouldCleanupLeakedStateDirs() throws InterruptedException, IOException {
         // Given:
         final String transientQueryId = getTransientQueryIds().get(0);
@@ -289,6 +285,7 @@ public class TransientQueryResourceCleanerIntTest {
     }
 
     @Test
+    @Ignore
     public void shouldNotCleanupTopicsOfRunningQueries() throws InterruptedException {
         // Given:
         final String transientQueryId = getTransientQueryIds().get(0);

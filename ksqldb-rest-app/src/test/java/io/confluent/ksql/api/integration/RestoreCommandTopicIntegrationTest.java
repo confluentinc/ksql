@@ -59,11 +59,7 @@ import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
@@ -180,6 +176,7 @@ public class RestoreCommandTopicIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldSkipIncompatibleCommands() throws Exception {
     // Given
     TEST_HARNESS.ensureTopics("topic3", "topic4");

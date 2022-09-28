@@ -23,9 +23,17 @@ dependencies {
 
 description = "ksqldb-tools"
 
+tasks.withType<JavaCompile> {
+    val compilerArgs = options.compilerArgs
+    compilerArgs.addAll(listOf("-Xlint:all,-serial"))
+    // TODO: handle compile.warnings-flag
+}
+
 val testsJar by tasks.registering(Jar::class) {
     archiveClassifier.set("tests")
     from(sourceSets["test"].output)
 }
 
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)
+
+// TODO: generate archives equiv to maven-assembly-plugin & 3 .xml files and single

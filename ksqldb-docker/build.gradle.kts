@@ -25,3 +25,6 @@ val testsJar by tasks.registering(Jar::class) {
 }
 
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)
+
+// TODO: generate directory structure equiv to maven-assembly-plugin & package.xml
+// TODO: generate Docker image equiv to Dockerfile & dockerfile-maven-plugin

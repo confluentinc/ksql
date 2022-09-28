@@ -42,3 +42,5 @@ artifacts {
 }
 
 (publishing.publications["maven"] as MavenPublication).artifact(testsJar)
+
+// TODO: handle version.properties update with resource values (version)

@@ -53,11 +53,7 @@ import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
@@ -165,6 +161,7 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
 
   @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE"})
   @Test
+  @Ignore
   public void scalablePushBandwidthThrottleTestHTTP2()
       throws ExecutionException, InterruptedException {
     assertAllPersistentQueriesRunning();

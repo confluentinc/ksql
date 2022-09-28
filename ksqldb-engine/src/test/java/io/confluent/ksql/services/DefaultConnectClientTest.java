@@ -54,6 +54,7 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -296,6 +297,7 @@ public class DefaultConnectClientTest {
   }
 
   @Test
+  @Ignore
   public void testDescribe() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(

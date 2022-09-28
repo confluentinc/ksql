@@ -22,6 +22,12 @@ dependencies {
 
 description = "ksqldb-execution"
 
+tasks.withType<JavaCompile> {
+    val compilerArgs = options.compilerArgs
+    compilerArgs.addAll(listOf("-Xlint:all,-serial"))
+    // TODO: handle compile.warnings-flag
+}
+
 val testsJar by tasks.registering(Jar::class) {
     archiveClassifier.set("tests")
     from(sourceSets["test"].output)

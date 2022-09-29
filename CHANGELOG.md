@@ -1,5 +1,5 @@
 # Change Log
-## [0.28.2](https://github.com/confluentinc/ksql/releases/tag/v0.28.2-ksqldb) (2022-08-02)
+## [0.28.2](https://github.com/confluentinc/ksql/releases/tag/v0.28.2) (2022-08-02)
 
 ### Features
 

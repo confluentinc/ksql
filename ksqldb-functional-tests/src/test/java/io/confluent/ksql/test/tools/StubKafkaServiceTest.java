@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.tools.stubs;
+package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.tools.test.model.Topic;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;

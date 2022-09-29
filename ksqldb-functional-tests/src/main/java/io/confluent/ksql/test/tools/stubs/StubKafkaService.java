@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.tools.test.stubs;
+package io.confluent.ksql.test.tools.stubs;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.tools.test.model.Topic;

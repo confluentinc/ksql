@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
-import io.confluent.ksql.test.tools.stubs.StubKafkaService;
+import io.confluent.ksql.tools.test.stubs.StubKafkaService;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 public final class StubInsertValuesExecutor {

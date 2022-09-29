@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.test.planned;
 
-import io.confluent.ksql.test.model.TestLocation;
+import io.confluent.ksql.tools.test.model.TestLocation;
 import java.util.Objects;
 
 public final class TestCasePlan {

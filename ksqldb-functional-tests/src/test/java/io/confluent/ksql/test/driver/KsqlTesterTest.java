@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.test.driver;
 
-import io.confluent.ksql.test.parser.SqlTestLoader;
-import io.confluent.ksql.test.parser.SqlTestLoader.SqlTest;
-import io.confluent.ksql.test.tools.SqlTestExecutor;
+import io.confluent.ksql.tools.test.parser.SqlTestLoader;
+import io.confluent.ksql.tools.test.parser.SqlTestLoader.SqlTest;
+import io.confluent.ksql.tools.test.SqlTestExecutor;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.IOException;
 import java.nio.file.Path;

@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.Pair;
 import java.util.HashMap;
 import java.util.List;

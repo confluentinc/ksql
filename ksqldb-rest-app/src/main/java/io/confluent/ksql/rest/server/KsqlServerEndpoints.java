@@ -323,7 +323,7 @@ public class KsqlServerEndpoints implements Endpoints {
 
   @Override
   public CompletableFuture<EndpointResponse> executeTest(
-      final String test, ApiSecurityContext apiSecurityContext) {
+      final String test, final ApiSecurityContext apiSecurityContext) {
     return executeOldApiEndpoint(
         apiSecurityContext, ksqlSecurityContext -> ksqlResource.runTest(test));
   }

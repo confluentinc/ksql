@@ -59,7 +59,7 @@ public class KsqlTestException extends KsqlException {
       final String message,
       final Path file
   ) {
-    final Path srcFile = file == null ? null: toSourcePath(file);
+    final Path srcFile = file == null ? null : toSourcePath(file);
 
     return stmt.apply(
         parsed -> engineMessage(parsed, message, srcFile),

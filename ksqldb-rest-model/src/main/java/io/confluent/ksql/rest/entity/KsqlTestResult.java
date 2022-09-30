@@ -68,6 +68,6 @@ public class KsqlTestResult {
 
   @Override
   public String toString() {
-    return String.format("name: %s\nresult: %s\nmessage: %s", name, result, message);
+    return String.format("name: %s%nresult: %s%nmessage: %s", name, result, message);
   }
 }

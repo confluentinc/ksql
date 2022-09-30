@@ -108,7 +108,10 @@ java_library(
 
 java_test(
     name = "MyTests",
-    resources = glob(["src/test/resources/**"]),
+    resources = [
+        "//ksqldb-functional-tests/src/test/resources:test-resources",
+    ],
+    #    resources = glob(["src/test/resources/**"]),
     test_class = "io.confluent.ksql.MyTestsFunctionalTests",
     runtime_deps = [":tests"],
 )

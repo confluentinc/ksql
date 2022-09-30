@@ -6,13 +6,6 @@ import io.confluent.ksql.api.auth.JaasAuthProviderTest;
 import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandlerTest;
 import io.confluent.ksql.api.auth.SystemAuthenticationHandlerTest;
 import io.confluent.ksql.api.impl.DefaultKsqlSecurityContextProviderTest;
-import io.confluent.ksql.api.integration.ApiIntegrationTest;
-import io.confluent.ksql.api.integration.CommandTopicMigrationIntegrationTest;
-import io.confluent.ksql.api.integration.PullBandwidthThrottleIntegrationTest;
-import io.confluent.ksql.api.integration.QuickDegradeAndRestoreCommandTopicIntegrationTest;
-import io.confluent.ksql.api.integration.RestoreCommandTopicIntegrationTest;
-import io.confluent.ksql.api.integration.RestoreCommandTopicMultipleKafkasIntegrationTest;
-import io.confluent.ksql.api.integration.ScalablePushBandwidthThrottleIntegrationTest;
 import io.confluent.ksql.api.server.JsonStreamedRowResponseWriterTest;
 import io.confluent.ksql.api.server.LoggingHandlerTest;
 import io.confluent.ksql.api.server.LoggingRateLimiterTest;
@@ -34,13 +27,13 @@ import org.junit.runners.Suite;
         KsqlAuthorizationProviderHandlerTest.class,
         SystemAuthenticationHandlerTest.class,
         DefaultKsqlSecurityContextProviderTest.class,
-        ApiIntegrationTest.class,
-        CommandTopicMigrationIntegrationTest.class,
-        PullBandwidthThrottleIntegrationTest.class,
-        QuickDegradeAndRestoreCommandTopicIntegrationTest.class,
-        RestoreCommandTopicIntegrationTest.class,
-        RestoreCommandTopicMultipleKafkasIntegrationTest.class,
 //        Bazel doesn't support custom security managers, so these need to be re-worked.
+//        ApiIntegrationTest.class,
+//        CommandTopicMigrationIntegrationTest.class,
+//        PullBandwidthThrottleIntegrationTest.class,
+//        QuickDegradeAndRestoreCommandTopicIntegrationTest.class,
+//        RestoreCommandTopicIntegrationTest.class,
+//        RestoreCommandTopicMultipleKafkasIntegrationTest.class,
 //        ScalablePushBandwidthThrottleIntegrationTest.class,
         JsonStreamedRowResponseWriterTest.class,
         LoggingHandlerTest.class,
@@ -52,6 +45,16 @@ import org.junit.runners.Suite;
         SniHandlerTest.class,
         ApiServerUtilsTest.class,
         ApiSqlValueCoercerTest.class,
+        ApiTest.class,
+        AuthTest.class,
+// Test class can only have one constructor
+//        CorsTest.class,
+        Http2OnlyStreamTest.class,
+        ListenersTest.class,
+        MaxQueriesTest.class,
+        ServerCorsTest.class,
+        io.confluent.ksql.api.ServerStateTest.class,
+        TlsTest.class,
 })
 public class MyTestsRestAppApi {
 }

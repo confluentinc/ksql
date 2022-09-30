@@ -58,6 +58,7 @@ import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.List;

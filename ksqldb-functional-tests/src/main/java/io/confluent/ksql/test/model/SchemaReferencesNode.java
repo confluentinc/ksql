@@ -25,9 +25,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
-import io.confluent.ksql.test.tools.SchemaReference;
 import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.utils.SerdeUtil;
+import io.confluent.ksql.tools.test.model.SchemaReference;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public final class SchemaReferencesNode {

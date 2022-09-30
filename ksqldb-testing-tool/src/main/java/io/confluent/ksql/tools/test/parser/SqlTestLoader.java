@@ -110,7 +110,7 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
       if (nextName.isPresent()) {
         // flush the previous test
         if (statements != null) {
-          builder.add(new SqlTest(null, name, statements));
+          builder.add(new SqlTest(path, name, statements));
         }
 
         statements = new ArrayList<>();
@@ -122,7 +122,7 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
       statements.add(statement);
     }
 
-    builder.add(new SqlTest(null, name, statements));
+    builder.add(new SqlTest(path, name, statements));
     return builder.build().stream().filter(shouldRun).collect(ImmutableList.toImmutableList());
   }
 

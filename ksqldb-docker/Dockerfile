@@ -10,11 +10,11 @@ USER root
 
 # target directory must be one of the projects that ksql-run-class sets on the KSQL_CLASSPATH,
 # of which the artifact ID (ksqldb-docker) is not one. thus the workaround of using ksqldb-rest-app
-ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/java/${ARTIFACT_ID}/* /usr/share/java/ksqldb-rest-app/
-ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/bin/* /usr/bin/
-ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/bin/docker/* /usr/bin/docker/
-ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/etc/* /etc/ksqldb/
-ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/doc/* /usr/share/doc/${ARTIFACT_ID}/
+ADD --chown=appuser:appuser share/java/${ARTIFACT_ID}/* /usr/share/java/ksqldb-rest-app/
+ADD --chown=appuser:appuser bin/* /usr/bin/
+ADD --chown=appuser:appuser bin/docker/* /usr/bin/docker/
+ADD --chown=appuser:appuser etc/* /etc/ksqldb/
+#ADD --chown=appuser:appuser share/doc/* /usr/share/doc/${ARTIFACT_ID}/ # TODO: include docs
 
 RUN echo "===> Installing confluent-hub..." \
     && wget http://client.hub.confluent.io/confluent-hub-client-latest.tar.gz \

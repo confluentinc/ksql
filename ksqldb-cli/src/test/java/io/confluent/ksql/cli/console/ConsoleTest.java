@@ -118,7 +118,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 @RunWith(Parameterized.class)
-@Ignore // TODO: re-enable once ??
 public class ConsoleTest {
   @SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
   @ClassRule

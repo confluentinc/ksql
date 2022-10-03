@@ -907,7 +907,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: restore after fixing resource processing ksqldb-common
   public void shouldFailOnUnsupportedCpServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
@@ -921,7 +920,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: restore after fixing resource processing ksqldb-common
   public void shouldFailOnUnsupportedStandaloneServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
@@ -935,7 +933,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: restore after fixing resource processing ksqldb-common
   public void shouldPrintWarningOnDifferentCpServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
@@ -952,7 +949,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: restore after fixing resource processing ksqldb-common
   public void shouldPrintWarningOnDifferentStandaloneServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
@@ -969,7 +965,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: restore after fixing resource processing ksqldb-common
   public void shouldPrintWarningOnUnknownServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
@@ -994,7 +989,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: re-enable once??
   public void shouldDescribeScalarFunction() {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n"
@@ -1034,7 +1028,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: re-enable once??
   public void shouldDescribeOverloadedScalarFunction() {
     // Given:
     localCli.handleLine("describe function substring;");
@@ -1067,7 +1060,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: re-enable once??
   public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
             "Name        : TOPK\n"
@@ -1090,7 +1082,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: re-enable once??
   public void shouldDescribeVariadicAggregateFunction() {
     final String expectedSummary =
             "Name        : MID_VAR_ARG\n"
@@ -1135,7 +1126,6 @@ public class CliTest {
   }
 
   @Test
-  @Ignore // TODO: re-enable once??
   public void shouldDescribeTableFunction() {
     final String expectedOutput =
         "Name        : EXPLODE\n"

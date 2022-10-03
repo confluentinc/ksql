@@ -95,8 +95,8 @@ public class ClientImplTest {
     client.streamQuery("SELECT * from STREAM1 EMIT CHANGES;");
     assertThat(headers.size(), is(2));
     assertThat(headers.containsKey(USER_AGENT.toString()), is(true));
-//    assertThat(headers.get(USER_AGENT.toString()).matches("ksqlDB Java Client v(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+).*"),
-//        is(true)); // TODO: restore after fixing resource processing ksqldb-common
+    assertThat(headers.get(USER_AGENT.toString()).matches("ksqlDB Java Client v(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+).*"),
+        is(true));
 
     assertThat(headers.containsKey(ACCEPT.toString()), is(true));
     assertThat(headers.get(ACCEPT.toString()).equals(KsqlMediaType.LATEST_FORMAT.mediaType()),

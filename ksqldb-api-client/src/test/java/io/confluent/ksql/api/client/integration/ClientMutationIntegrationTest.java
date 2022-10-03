@@ -91,7 +91,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
-@Ignore // TODO: re-enable once??
 public class ClientMutationIntegrationTest {
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER =

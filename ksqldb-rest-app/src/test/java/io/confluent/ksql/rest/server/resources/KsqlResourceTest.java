@@ -1933,6 +1933,29 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldRejectQueryButAcceptNonQueryWhenKsqlRestartsWithLowerQueryLimit() {
+    // Given 6 queries already running:
+    givenPersistentQueryCount(6);
+
+    // When we restart ksql with a lower persistent query count
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+    givenMockEngine();
+
+    // When/Then:
+    makeSingleRequest("SHOW STREAMS;", StreamsList.class);
+
+    // No further queries can be made
+    final KsqlErrorMessage result = makeFailingRequest(
+        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;", BAD_REQUEST.code());
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+    verify(commandStore, never()).enqueueCommand(any(), any(), any());
+  }
+
+  @Test
   public void shouldListPropertiesWithOverrides() {
     // Given:
     final Map<String, Object> overrides = Collections.singletonMap("auto.offset.reset", "latest");

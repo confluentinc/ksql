@@ -322,7 +322,7 @@ final class SourceBuilderUtils {
             .optional()
             .build())
             .put("KEY", header.key())
-            .put("VALUE", ByteBuffer.wrap(header.value())))
+            .put("VALUE", header.value() == null ? null : ByteBuffer.wrap(header.value())))
         .collect(Collectors.toList());
   }
 

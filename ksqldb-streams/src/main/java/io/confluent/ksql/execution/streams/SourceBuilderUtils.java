@@ -328,7 +328,7 @@ final class SourceBuilderUtils {
 
   static ByteBuffer extractHeader(final Headers headers, final String key) {
     final Header header = headers.lastHeader(key);
-    return header == null
+    return header == null || header.value() == null
         ? null
         : ByteBuffer.wrap(header.value());
   }

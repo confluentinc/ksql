@@ -49,7 +49,7 @@
             </includes>
         </fileSet>
         <fileSet>
-        <directory>${project.basedir}/src/include</directory>
+            <directory>${project.basedir}/src/include</directory>
             <outputDirectory>bin</outputDirectory>
             <includes>
                 <include>docker/*</include>

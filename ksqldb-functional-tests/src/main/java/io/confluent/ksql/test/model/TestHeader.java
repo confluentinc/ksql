@@ -37,7 +37,7 @@ public class TestHeader implements Header {
       @JsonProperty("VALUE") final byte[] value
   ) {
     this.key = requireNonNull(key, "key");
-    this.value = value;
+    this.value = Arrays.copyOf(value, value.length);
   }
 
   @Override

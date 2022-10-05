@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.codegen.helpers;
 
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BYTES;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
@@ -816,6 +817,8 @@ public class CastEvaluatorTest {
             return "07:59:58";
           } else if (to.baseType() == DATE) {
             return "2020-05-26";
+          } else if (to.baseType() == BYTES) {
+            return "IQ==";
           }
           // Intentional fall through
         default:
@@ -876,6 +879,7 @@ public class CastEvaluatorTest {
                 .add(SqlBaseType.TIME)
                 .add(SqlBaseType.DATE)
                 .add(SqlBaseType.TIMESTAMP)
+                .add(SqlBaseType.BYTES)
                 .build())
             .put(SqlBaseType.ARRAY, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.ARRAY)

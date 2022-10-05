@@ -6,6 +6,9 @@ java_binary(
     srcs = glob([
         "src/main/**/*.java",
     ]),
+    data = [
+        "config/ksql-server.properties",
+    ],
     main_class = "io.confluent.ksql.rest.server.KsqlServerMain",
     visibility = ["//visibility:public"],
     deps = [

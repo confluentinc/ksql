@@ -240,6 +240,7 @@ java_test(
 
 java_test(
     name = "StreamsSelectAndProjectIntTest",
+    size = "large",
     test_class = "io.confluent.ksql.integration.StreamsSelectAndProjectIntTest",
     runtime_deps = [":tests"],
 )

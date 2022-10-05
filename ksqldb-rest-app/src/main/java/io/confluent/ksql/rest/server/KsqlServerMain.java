@@ -54,6 +54,16 @@ public class KsqlServerMain {
 
   public static void main(final String[] args) {
     try {
+
+      // This is a little hacky. It gord around Bazel's sandboxing to allow you to use
+      // files in the project directory that are defined as inputs.
+      // Instead we should probably make sure config files are described as inputs to the
+      // bazel rule, which i did in `ksqldb-rest-app/BUILD`, providing the `data` attribute.
+      // But I am leaving this here for now just as an example.
+//      if (System.getenv("BUILD_WORKING_DIRECTORY") != null && args.length > 0) {
+//        args[0] = System.getenv("BUILD_WORKING_DIRECTORY") + "/" + args[0];
+//      }
+
       final ServerOptions serverOptions = ServerOptions.parse(args);
       if (serverOptions == null) {
         return;

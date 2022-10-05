@@ -18,8 +18,8 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.util.QueryApplicationId.buildInternalTopicPrefix;
 import static java.nio.file.Files.deleteIfExists;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AbstractScheduledService;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -44,14 +43,22 @@ import org.slf4j.LoggerFactory;
 
 public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
+  private final String internalTopicPrefix;
   private final Pattern internalTopicPrefixPattern;
   private final Pattern transientAppIdPattern;
+  private final Pattern leakedAppIdPattern;
   private final Set<String> queriesGuaranteedToBeRunningAtSomePoint;
   private final String stateDir;
   private final KafkaTopicClient topicClient;
   private final int initialDelay;
   private final int intervalPeriod;
-  private Optional<Set<String>> localCommandsQueryAppIds;
+  private ImmutableSet<String> localCommandsQueryAppIds;
+  // This is to fix a previous bug causing transient topic to be formatted incorrectly as
+  // _confluent-ksql-<serviceid>transient_<query_id>. Even the topic is formatted incorrectly,
+  // localCommands are formatted correctly with:
+  // _confluent-ksql-<serviceid>transient_transient_<query_id>_<timestamp>. So we construct an
+  // alternative set of local commands using to match incorrect transient topic pattern.
+  private ImmutableSet<String> altLocalCommandsQueryAppIds;
   private QueryRegistry queryRegistry;
   private int numLeakedTopics;
   private int numLeakedStateDirs;
@@ -60,9 +67,11 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   public TransientQueryCleanupService(final ServiceContext serviceContext,
                                       final KsqlConfig ksqlConfig) {
-    final String internalTopicPrefix = buildInternalTopicPrefix(ksqlConfig, false);
+    internalTopicPrefix = buildInternalTopicPrefix(ksqlConfig, false);
     this.internalTopicPrefixPattern = Pattern.compile(internalTopicPrefix);
     this.transientAppIdPattern = Pattern.compile(internalTopicPrefix + ".*_[0-9]\\d*_[0-9]\\d*");
+    this.leakedAppIdPattern = Pattern.compile(internalTopicPrefix
+        + "transient_(.*_[0-9]\\d*)_[0-9]\\d*");
 
     this.initialDelay = ksqlConfig.getInt(
             KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS);
@@ -79,7 +88,8 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
             .toString();
 
     this.topicClient = serviceContext.getTopicClient();
-    this.localCommandsQueryAppIds = Optional.empty();
+    this.localCommandsQueryAppIds = ImmutableSet.of();
+    this.altLocalCommandsQueryAppIds = ImmutableSet.of();
     this.queriesGuaranteedToBeRunningAtSomePoint = new HashSet<>();
     this.numLeakedTopics = 0;
     this.numLeakedStateDirs = 0;
@@ -100,9 +110,18 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     this.queryRegistry = queryRegistry;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public void setLocalCommandsQueryAppIds(final Set<String> ids) {
-    this.localCommandsQueryAppIds = Optional.of(ids);
+    localCommandsQueryAppIds = ImmutableSet.copyOf(ids);
+    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    for (String id : ids) {
+      Matcher matcher = leakedAppIdPattern.matcher(id);
+      if (matcher.find()) {
+        // Get the query id and prepend it with prefix to get the incorrect topic pattern to match
+        String queryId = matcher.group(1);
+        builder.add(internalTopicPrefix + queryId);
+      }
+    }
+    altLocalCommandsQueryAppIds = builder.build();
   }
 
   private void findAndDeleteLeakedTopics() {
@@ -207,9 +226,8 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   }
 
   boolean foundInLocalCommands(final String resourceName) {
-    return localCommandsQueryAppIds
-            .map(strings -> strings.stream().anyMatch(resourceName::contains))
-            .orElse(false);
+    return localCommandsQueryAppIds.stream().anyMatch(resourceName::contains) ||
+        altLocalCommandsQueryAppIds.stream().anyMatch(resourceName::contains);
   }
 
   KafkaTopicClient getTopicClient() {

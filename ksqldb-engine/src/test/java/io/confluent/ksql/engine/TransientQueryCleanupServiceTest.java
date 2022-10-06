@@ -52,7 +52,18 @@ public class TransientQueryCleanupServiceTest {
     private static final String APP_ID_3 = internalPrefix + "_transient_PV_33333_13579";
     private static final String APP_ID_4 = internalPrefix + "_transient_PV_44444_24680";
     private static final String APP_ID_5 = internalPrefix + "_transient_PV_55555_09876";
-    private static final List<String> ALL_APP_IDS = ImmutableList.of(APP_ID_1, APP_ID_2, APP_ID_3, APP_ID_4, APP_ID_5);
+    // ID has number in TOPIC itself
+    private static final String APP_ID_6 = internalPrefix + "_transient_PV_123_456_55555_09876";
+    // This topic pattern is leaked caused by a bug
+    private static final String LEAKED_TOPIC_1 = internalPrefix + "_PV_55555_09876-KafkaTopic_Right-Reduce-changelog";
+    private static final String LEAKED_TOPIC_2 = internalPrefix + "_PV_55555_09876-Join-repartition";
+    private static final String LEAKED_TOPIC_3 = internalPrefix + "_PV_123_456_55555_09876-Join-repartition";
+    private static final String LEAKED_TOPIC_4 = internalPrefix + "_PV_123_456_55555_09876-KafkaTopic_Right-Reduce-changelog";
+
+    private static final List<String> ALL_APP_IDS = ImmutableList.of(APP_ID_1, APP_ID_2, APP_ID_3,
+        APP_ID_4, APP_ID_5, APP_ID_6);
+    private static final List<String> LEAKED_TOPICS = ImmutableList.of(LEAKED_TOPIC_1, LEAKED_TOPIC_2,
+        LEAKED_TOPIC_3, LEAKED_TOPIC_4);
 
     @Spy
     static ServiceContext ctx = ServiceContextFactory.create(KSQL_CONFIG, DisabledKsqlClient::instance);
@@ -88,6 +99,7 @@ public class TransientQueryCleanupServiceTest {
             client.createTopic(id + "-KafkaTopic_Right-Reduce-changelog", 1, (short) 1);
             client.createTopic(id + "-Join-repartition", 1, (short) 1);
         });
+        LEAKED_TOPICS.forEach(topic -> {client.createTopic(topic, 1, (short) 1);});
         when(service.getTopicClient()).thenReturn(client);
     }
 
@@ -117,7 +129,7 @@ public class TransientQueryCleanupServiceTest {
 
         // Then:
         results.subList(0, 3).forEach(result -> assertEquals(result, true));
-        results.subList(3, 5).forEach(result -> assertEquals(result, false));
+        results.subList(3, 6).forEach(result -> assertEquals(result, false));
     }
 
     @Test
@@ -132,7 +144,7 @@ public class TransientQueryCleanupServiceTest {
 
         // Then:
         results.subList(0, 3).forEach(result -> assertEquals(result, false));
-        results.subList(3, 5).forEach(result -> assertEquals(result, true));
+        results.subList(3, 6).forEach(result -> assertEquals(result, true));
     }
 
     @Test
@@ -148,7 +160,22 @@ public class TransientQueryCleanupServiceTest {
 
         // Then:
         results.subList(0, 3).forEach(result -> assertEquals(result, true));
-        results.subList(3, 5).forEach(result -> assertEquals(result, false));
+        results.subList(3, 6).forEach(result -> assertEquals(result, false));
+    }
+
+    @Test
+    public void shouldReturnTrueForLeakedTopicInLocalCommands() {
+        // Given:
+        Set<String> localCommands = new HashSet<>(ALL_APP_IDS.subList(4, 6));
+        service.setLocalCommandsQueryAppIds(localCommands);
+
+        // When:
+        List<Boolean> results = LEAKED_TOPICS.stream()
+                .map(service::foundInLocalCommands)
+                .collect(Collectors.toList());
+
+        // Then:
+        results.subList(0, 2).forEach(result -> assertEquals(result, true));
     }
 
     @Test
@@ -166,6 +193,25 @@ public class TransientQueryCleanupServiceTest {
             expected.add(id + "-KafkaTopic_Right-Reduce-changelog");
             expected.add(id + "-Join-repartition");
         });
+        assertEquals(expected, results);
+    }
+
+    @Test
+    public void localCommandsShouldBeConsideredLeakedForLeakedTopics() {
+        // Given:
+        List<String> localCommandAppIds = ALL_APP_IDS.subList(4, 6);
+        service.setLocalCommandsQueryAppIds(new HashSet<>(localCommandAppIds));
+
+        // When:
+        Set<String> results = new HashSet<>(service.findLeakedTopics());
+
+        // Then:
+        Set<String> expected = new HashSet<>();
+        localCommandAppIds.forEach(id -> {
+            expected.add(id + "-KafkaTopic_Right-Reduce-changelog");
+            expected.add(id + "-Join-repartition");
+        });
+        expected.addAll(LEAKED_TOPICS);
         assertEquals(expected, results);
     }
 

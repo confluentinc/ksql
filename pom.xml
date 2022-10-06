@@ -47,33 +47,9 @@
     </licenses>
 
     <modules>
+        <module>ksqldb-test-util</module>
         <module>ksqldb-udf</module>
         <module>ksqldb-common</module>
-        <module>ksqldb-udf-quickstart</module>
-        <module>ksqldb-serde</module>
-        <module>ksqldb-metastore</module>
-        <module>ksqldb-execution</module>
-        <module>ksqldb-parser</module>
-        <module>ksqldb-streams</module>
-        <module>ksqldb-engine</module>
-        <module>ksqldb-tools</module>
-        <module>ksqldb-cli</module>
-        <module>ksqldb-examples</module>
-        <module>ksqldb-rest-model</module>
-        <module>ksqldb-rest-client</module>
-        <module>ksqldb-rest-app</module>
-        <module>ksqldb-version-metrics-client</module>
-        <module>ksqldb-console-scripts</module>
-        <module>ksqldb-etc</module>
-        <module>ksqldb-package</module>
-        <module>ksqldb-test-util</module>
-        <module>ksqldb-benchmark</module>
-        <module>ksqldb-functional-tests</module>
-        <module>ksqldb-rocksdb-config-setter</module>
-        <module>ksqldb-docker</module>
-        <module>ksqldb-api-reactive-streams-tck</module>
-        <module>ksqldb-api-client</module>
-        <module>ksqldb-engine-common</module>
     </modules>
 
     <repositories>
@@ -713,49 +689,6 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>${spotbugs.maven.plugin.version}</version>
-                <configuration>
-                    <xmlOutput>true</xmlOutput>
-                    <excludeFilterFile>${project.basedir}/../findbugs/findbugs-exclude.xml</excludeFilterFile>
-                    <effort>Max</effort>
-                    <threshold>Max</threshold>
-                    <failOnError>true</failOnError>
-                    <includeTests>true</includeTests>
-                </configuration>
-                <executions>
-                    <!--
-                    Ensures that FindBugs inspects source code when project is compiled.
-                -->
-                    <execution>
-                        <id>analyze-compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>${git-commit-id-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>revision</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
-                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
-                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>

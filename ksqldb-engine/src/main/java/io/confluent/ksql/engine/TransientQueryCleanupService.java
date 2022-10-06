@@ -112,12 +112,12 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   public void setLocalCommandsQueryAppIds(final Set<String> ids) {
     localCommandsQueryAppIds = ImmutableSet.copyOf(ids);
-    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
     for (String id : ids) {
-      Matcher matcher = leakedAppIdPattern.matcher(id);
+      final Matcher matcher = leakedAppIdPattern.matcher(id);
       if (matcher.find()) {
         // Get the query id and prepend it with prefix to get the incorrect topic pattern to match
-        String queryId = matcher.group(1);
+        final String queryId = matcher.group(1);
         builder.add(internalTopicPrefix + queryId);
       }
     }
@@ -226,8 +226,8 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   }
 
   boolean foundInLocalCommands(final String resourceName) {
-    return localCommandsQueryAppIds.stream().anyMatch(resourceName::contains) ||
-        altLocalCommandsQueryAppIds.stream().anyMatch(resourceName::contains);
+    return localCommandsQueryAppIds.stream().anyMatch(resourceName::contains)
+        || altLocalCommandsQueryAppIds.stream().anyMatch(resourceName::contains);
   }
 
   KafkaTopicClient getTopicClient() {

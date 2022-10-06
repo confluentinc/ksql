@@ -46,6 +46,8 @@ import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.DropStatement;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -264,6 +266,9 @@ public class SqlTestExecutor implements Closeable {
 
     // is DDL statement
     if (!result.getQuery().isPresent()) {
+      if (injected.getStatement() instanceof DropStatement) {
+        return;
+      }
       final SourceName name = injected.getStatement() instanceof CreateSource
           ? ((CreateSource) injected.getStatement()).getName()
           : ((AlterSource) injected.getStatement()).getName();

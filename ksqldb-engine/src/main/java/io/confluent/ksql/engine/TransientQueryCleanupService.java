@@ -114,11 +114,13 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     localCommandsQueryAppIds = ImmutableSet.copyOf(ids);
     final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
     for (String id : ids) {
+      LOG.debug("Found local command: {}", id);
       final Matcher matcher = leakedAppIdPattern.matcher(id);
       if (matcher.find()) {
         // Get the query id and prepend it with prefix to get the incorrect topic pattern to match
-        final String queryId = matcher.group(1);
-        builder.add(internalTopicPrefix + queryId);
+        final String queryId = internalTopicPrefix + matcher.group(1);
+        builder.add(queryId);
+        LOG.debug("Alternative query id: {}", queryId);
       }
     }
     altLocalCommandsQueryAppIds = builder.build();

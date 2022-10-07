@@ -27,7 +27,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -130,7 +129,7 @@ public class PullPhysicalPlanBuilderTest {
     PullPhysicalPlan pullPhysicalPlan = builder.buildPullPhysicalPlan(logicalPlanNode);
 
     // Then:
-    assertThat(pullPhysicalPlan.getKeys().size(), is(0));
+    assertThat(pullPhysicalPlan.getKeys().size(), is(2));
   }
 
   @Test
@@ -145,22 +144,5 @@ public class PullPhysicalPlanBuilderTest {
 
     // Then:
     assertThat(pullPhysicalPlan.getKeys().size(), is(1));
-  }
-
-  @Test
-  public void shouldBuildPlan_multipleKeys_scansDisabled() {
-    // Given:
-    when(queryFilterNode.getLookupConstraints()).thenReturn(ImmutableList.of(
-        new KeyConstraint(
-            ConstraintOperator.EQUAL, GenericKey.fromList(ImmutableList.of(1)), Optional.empty()),
-        new KeyConstraint(
-            ConstraintOperator.EQUAL, GenericKey.fromList(ImmutableList.of(2)), Optional.empty())));
-    when(queryPlannerOptions.getTableScansEnabled()).thenReturn(false);
-
-    // When:
-    PullPhysicalPlan pullPhysicalPlan = builder.buildPullPhysicalPlan(logicalPlanNode);
-
-    // Then:
-    assertThat(pullPhysicalPlan.getKeys().size(), is(2));
   }
 }

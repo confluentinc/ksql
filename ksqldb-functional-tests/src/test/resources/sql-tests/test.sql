@@ -286,3 +286,12 @@ INSERT INTO a (id, col1) VALUES (2, 2);
 
 ASSERT NULL VALUES b (id) KEY (1);
 ASSERT NULL VALUES b (id) KEY (2);
+
+----------------------------------------------------------------------------------------------------
+--@test: insert bytes
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 BYTES) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 'IQ==');
+ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 'IQ==');

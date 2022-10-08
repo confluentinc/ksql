@@ -47,7 +47,6 @@ import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.DropStatement;
-import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;

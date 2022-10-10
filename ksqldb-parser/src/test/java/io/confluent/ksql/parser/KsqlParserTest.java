@@ -235,7 +235,7 @@ public class KsqlParserTest {
   }
 
   private <T, L extends Literal> void shouldParseNumericLiteral(final T value,
-      final L expectedValue) {
+                                                                final L expectedValue) {
     final String queryStr = String.format("SELECT " + value.toString() + " FROM test1;", value);
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     assertThat(statement, instanceOf(Query.class));
@@ -484,8 +484,8 @@ public class KsqlParserTest {
   public void testSelectAllJoin() {
     // When:
     final Query query = KsqlParserTestUtil.<Query>buildSingleAst(
-            "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t2.col2 = 'test';",
-            metaStore)
+        "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t2.col2 = 'test';",
+        metaStore)
         .getStatement();
 
     // Then:
@@ -590,9 +590,9 @@ public class KsqlParserTest {
   public void testCreateStreamAsSelect() {
     // Given:
     final CreateStreamAsSelect csas = KsqlParserTestUtil.<CreateStreamAsSelect>buildSingleAst(
-            "CREATE STREAM bigorders_json WITH (value_format = 'json', "
-                + "kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;",
-            metaStore)
+        "CREATE STREAM bigorders_json WITH (value_format = 'json', "
+            + "kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;",
+        metaStore)
         .getStatement();
 
     // Then:
@@ -609,8 +609,8 @@ public class KsqlParserTest {
       // Given:
       final String cxasQuery =
           "CREATE " + source
-              + " bigorders_json WITH (value_format = 'json', "
-              + "kafka_topic='bigorders_topic', sourced_by_connector='jdbc') AS SELECT * FROM orders;";
+          + " bigorders_json WITH (value_format = 'json', "
+          + "kafka_topic='bigorders_topic', sourced_by_connector='jdbc') AS SELECT * FROM orders;";
 
       // When:
       final Exception e = assertThrows(
@@ -1267,12 +1267,12 @@ public class KsqlParserTest {
   public void testReservedKeywordSyntaxError() {
     // Given:
     final String simpleQuery = "CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)\n" +
-        "  WITH (kafka_topic='ords', value_format='json');";
+            "  WITH (kafka_topic='ords', value_format='json');";
 
     // When:
     final Exception e = assertThrows(
-        ParseFailedException.class,
-        () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+            ParseFailedException.class,
+            () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
@@ -1285,12 +1285,12 @@ public class KsqlParserTest {
   public void testReservedKeywordSyntaxErrorCaseInsensitive() {
     // Given:
     final String simpleQuery = "CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)\n" +
-        "  WITH (kafka_topic='ords', value_format='json');";
+            "  WITH (kafka_topic='ords', value_format='json');";
 
     // When:
     final Exception e = assertThrows(
-        ParseFailedException.class,
-        () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+            ParseFailedException.class,
+            () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
@@ -1301,8 +1301,8 @@ public class KsqlParserTest {
   public void testNonReservedKeywordShouldNotThrowException() {
     // 'sink' is a keyword but is non-reserved. should not throw an exception
     final CreateStream result = (CreateStream) KsqlParserTestUtil.buildSingleAst("CREATE STREAM ORDERS" +
-        " (place VARCHAR, Sink INTEGER)\n" +
-        " WITH (kafka_topic='orders_topic', value_format='json');", metaStore).getStatement();
+            " (place VARCHAR, Sink INTEGER)\n" +
+            " WITH (kafka_topic='orders_topic', value_format='json');", metaStore).getStatement();
 
     // Then:
     assertThat(result.getName(), equalTo(SourceName.of("ORDERS")));
@@ -1602,7 +1602,7 @@ public class KsqlParserTest {
   public void shouldThrowSyntaxErrorOnWrongEOF() {
     // Given
     final String invalidStatement =
-        "SELECT * FROM artist WHERE first_name = 'Vincent' and (last_name = 'Monet' or last_name = 'Da Vinci'";
+    "SELECT * FROM artist WHERE first_name = 'Vincent' and (last_name = 'Monet' or last_name = 'Da Vinci'";
 
     // When
     final Exception e = assertThrows(
@@ -1615,7 +1615,7 @@ public class KsqlParserTest {
     assertThat(e.getMessage(), containsString("Syntax error at or near \";\""));
     assertThat(e.getMessage(), containsString("'}', ']', or ')' is missing"));
     assertThat(e.getMessage(), containsString("Statement: SELECT * FROM artist WHERE first_name = 'Vincent' and (last_name = 'Monet' or last_name = 'Da Vinci'"));
-  }
+ }
   @Test
   public void shouldThrowSyntaxErrorOnNoViableAltException() {
     // Given

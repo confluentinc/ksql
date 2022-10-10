@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.4.0-102</version>
+        <version>7.4.0-388</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -74,6 +74,7 @@
         <module>ksqldb-api-reactive-streams-tck</module>
         <module>ksqldb-api-client</module>
         <module>ksqldb-engine-common</module>
+        <module>ksqldb-testing-tool</module>
     </modules>
 
     <repositories>
@@ -144,6 +145,7 @@
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.4.0-0</io.confluent.ksql.version>
+        <io.confluent.schema-registry.version>7.4.0-391</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.53.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -154,6 +156,7 @@
         <netty.version>4.1.78.Final</netty.version>
         <netty-codec-http2-version>4.1.78.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
+        <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
     </properties>
 
     <dependencyManagement>
@@ -291,25 +294,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
-                <version>7.4.0-100</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>7.4.0-100</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
-                <version>7.4.0-100</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
-                <version>7.4.0-100</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
@@ -333,25 +336,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
-                <version>7.4.0-100</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
-                <version>7.4.0-100</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
-                <version>7.4.0-100</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
-                <version>7.4.0-100</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -704,6 +707,36 @@
                     for more details -->
                     <useModulePath>false</useModulePath>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/RestQueryTranslationTest*.java</exclude>
+                                <exclude>**/io/confluent/ksql/rest/integration/**/*.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>multi-threaded-testing</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/RestQueryTranslationTest*.java</include>
+                                <include>**/io/confluent/ksql/rest/integration/**/*.java</include>
+                            </includes>
+                            <forkCount>${multi-threaded-testing.forkCount}</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <parallel>classes</parallel>
+                            <useUnlimitedThreads>true</useUnlimitedThreads>
+                            <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+                            <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

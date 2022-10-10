@@ -104,6 +104,7 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -168,7 +169,8 @@ public class SqlToJavaVisitor {
       InListEvaluator.class.getCanonicalName(),
       SqlDoubles.class.getCanonicalName(),
       SqlBooleans.class.getCanonicalName(),
-      SqlTimeTypes.class.getCanonicalName()
+      SqlTimeTypes.class.getCanonicalName(),
+      BytesUtils.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap

@@ -50,8 +50,10 @@ import io.confluent.ksql.rest.entity.SourceInfo.Table;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -275,7 +277,9 @@ public final class ListSourceExecutor {
     final DataSource dataSource = ksqlExecutionContext.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
-          "Could not find STREAM/TABLE '%s' in the Metastore",
+          "Could not find STREAM/TABLE '%s' in the Metastore"
+              + ksqlExecutionContext.getMetaStore().checkAlternatives(
+                  name, Optional.empty()),
           name.text()
       ), statement.getMaskedStatementText());
     }
@@ -445,7 +449,7 @@ public final class ListSourceExecutor {
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {
     return new Stream(
-        dataSource.getName().text(),
+        dataSource.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getKeyFormat().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormat(),
@@ -455,7 +459,7 @@ public final class ListSourceExecutor {
 
   private static Table sourceTable(final KsqlTable<?> dataSource) {
     return new Table(
-        dataSource.getName().text(),
+        dataSource.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
         dataSource.getKsqlTopic().getKafkaTopicName(),
         dataSource.getKsqlTopic().getKeyFormat().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormat(),

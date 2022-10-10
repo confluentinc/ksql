@@ -107,9 +107,9 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -141,8 +141,7 @@ public class ClientTest extends BaseApiTest {
   protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
-  protected static final org.apache.kafka.connect.runtime.rest.entities.ConnectorType SOURCE_TYPE =
-      org.apache.kafka.connect.runtime.rest.entities.ConnectorType.SOURCE;
+  protected static final io.confluent.ksql.rest.entity.ConnectorType SOURCE_TYPE = io.confluent.ksql.rest.entity.ConnectorType.SOURCE;
 
   protected static final Map<String, String> REQUEST_HEADERS = ImmutableMap.of("h1", "v1", "h2", "v2");
 

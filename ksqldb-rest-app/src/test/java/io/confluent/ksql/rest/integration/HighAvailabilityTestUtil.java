@@ -352,6 +352,31 @@ class HighAvailabilityTestUtil {
     };
   }
 
+  // Ensures that lags have been reported for the given host, but that the value is zero.
+  // Makes the simplified assumption that there's just one state store.
+  static BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean>
+  zeroLagsReported(
+      final KsqlHostInfoEntity server
+  ) {
+    return (remote, clusterStatus) -> {
+      HostStatusEntity hostStatusEntity = clusterStatus.get(server);
+      if (hostStatusEntity == null) {
+        LOG.info("Didn't find {}", server.toString());
+        return false;
+      }
+      Pair<Long, Long> pair = getLag(server,clusterStatus);
+      long lag = pair.left;
+      long end = pair.right;
+      if (end > 0 && lag == 0) {
+        LOG.info("Found zero lag for {}: {}", server, clusterStatus.toString());
+        return true;
+      }
+      LOG.info("Didn't yet find > 0 end offset: {} and zero lag: {} for {}: {}", end, lag, server,
+          clusterStatus.toString());
+      return false;
+    };
+  }
+
   // Gets (current, end) offsets for the given host.  Makes the simplified assumption that there's
   // just one state store.
   public static Pair<Long, Long> getOffsets(
@@ -369,6 +394,25 @@ class HighAvailabilityTestUtil {
         .max()
         .orElse(0);
     return Pair.of(current, end);
+  }
+
+  // Gets (lag, end) for the given host.  Makes the simplified assumption that there's
+  // just one state store.
+  public static Pair<Long, Long> getLag(
+      final KsqlHostInfoEntity server,
+      final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus) {
+    HostStatusEntity hostStatusEntity = clusterStatus.get(server);
+    long end = hostStatusEntity.getHostStoreLags().getStateStoreLags().values().stream()
+        .flatMap(stateStoreLags -> stateStoreLags.getLagByPartition().values().stream())
+        .mapToLong(LagInfoEntity::getEndOffsetPosition)
+        .max()
+        .orElse(0);
+    long lag = hostStatusEntity.getHostStoreLags().getStateStoreLags().values().stream()
+        .flatMap(stateStoreLags -> stateStoreLags.getLagByPartition().values().stream())
+        .mapToLong(LagInfoEntity::getOffsetLag)
+        .max()
+        .orElse(-1);
+    return Pair.of(lag, end);
   }
 
   // A class that holds shutoff switches for various network components in our system to simulate

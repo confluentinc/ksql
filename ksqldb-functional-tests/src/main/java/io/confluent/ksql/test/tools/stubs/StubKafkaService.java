@@ -16,7 +16,7 @@
 package io.confluent.ksql.test.tools.stubs;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;

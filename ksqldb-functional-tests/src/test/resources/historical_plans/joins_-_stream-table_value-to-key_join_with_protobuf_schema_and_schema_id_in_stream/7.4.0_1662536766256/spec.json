@@ -1,0 +1,419 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1662536766256,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_OUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "1"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "2"
+        }
+      }
+    },
+    "CSAS_OUT_0.Join.Left" : {
+      "schema" : "`S_B` STRING KEY, `S_A` BIGINT, `S_B` STRING, `S_ROWTIME` BIGINT, `S_ROWPARTITION` INTEGER, `S_ROWOFFSET` BIGINT, `S_K` STRING",
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUT_0.PrependAliasRight" : {
+      "schema" : "`SS_K` STRING KEY, `SS_A` BIGINT, `SS_B` STRING, `SS_ROWTIME` BIGINT, `SS_ROWPARTITION` INTEGER, `SS_ROWOFFSET` BIGINT, `SS_K` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUT_0.Join" : {
+      "schema" : "`S_B` STRING KEY, `S_A` BIGINT, `S_B` STRING, `S_ROWTIME` BIGINT, `S_ROWPARTITION` INTEGER, `S_ROWOFFSET` BIGINT, `S_K` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUT_0.RightSourceKeyed.Materialize" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING, `ROWTIME` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `K` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUT_0.OUT" : {
+      "schema" : "`S_B` STRING KEY, `S_K` STRING, `S_A` BIGINT, `SS_K` STRING, `SS_A` BIGINT, `SS_B` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "stream-table value-to-key join with protobuf schema and schema_id in stream",
+    "inputs" : [ {
+      "topic" : "source2",
+      "key" : {
+        "K" : "falcon"
+      },
+      "value" : {
+        "A" : 123,
+        "B" : "falcon"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source2",
+      "key" : {
+        "K" : "giraffe"
+      },
+      "value" : {
+        "A" : 456,
+        "B" : "giraffe"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source2",
+      "key" : {
+        "K" : "turtle"
+      },
+      "value" : {
+        "A" : 789,
+        "B" : "turtle"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 123,
+        "B" : "falcon"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 456,
+        "B" : "giraffe"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 789,
+        "B" : "turtle"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source2",
+      "key" : {
+        "K" : "turtle"
+      },
+      "value" : {
+        "A" : 800,
+        "B" : "turtle"
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : {
+        "S_B" : "falcon"
+      },
+      "value" : {
+        "S_A" : 123,
+        "S_K" : "0",
+        "SS_A" : 123,
+        "SS_B" : "falcon",
+        "SS_K" : "falcon"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUT",
+      "key" : {
+        "S_B" : "giraffe"
+      },
+      "value" : {
+        "S_A" : 456,
+        "S_K" : "0",
+        "SS_A" : 456,
+        "SS_B" : "giraffe",
+        "SS_K" : "giraffe"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUT",
+      "key" : {
+        "S_B" : "turtle"
+      },
+      "value" : {
+        "S_A" : 789,
+        "S_K" : "0",
+        "SS_A" : 789,
+        "SS_B" : "turtle",
+        "SS_K" : "turtle"
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "source2",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey1 {\n  uint32 k1 = 1;\n}\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "source",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey1 {\n  uint32 k1 = 1;\n}\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.B=SS.K;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUT",
+        "type" : "STREAM",
+        "schema" : "`S_B` STRING KEY, `S_K` STRING, `S_A` BIGINT, `SS_K` STRING, `SS_A` BIGINT, `SS_B` STRING",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SINK",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUT_0-RightSourceKeyed-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  int64 A = 1;\n  string B = 2;\n  int64 ROWTIME = 3;\n  int32 ROWPARTITION = 4;\n  int64 ROWOFFSET = 5;\n  string K = 6;\n}\n"
+        }, {
+          "name" : "source2",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 1,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUT_0-RightSourceKeyed-SelectKey-repartition",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  int64 A = 1;\n  string B = 2;\n  int64 ROWTIME = 3;\n  int32 ROWPARTITION = 4;\n  int64 ROWOFFSET = 5;\n  string K = 6;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUT_0-Join-repartition",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string S_B = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  int64 S_A = 1;\n  string S_B = 2;\n  int64 S_ROWTIME = 3;\n  int32 S_ROWPARTITION = 4;\n  int64 S_ROWOFFSET = 5;\n  string S_K = 6;\n}\n"
+        }, {
+          "name" : "source",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "1"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "2"
+            }
+          },
+          "partitions" : 1,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n"
+        }, {
+          "name" : "OUT",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string S_B = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  string S_K = 1;\n  int64 S_A = 2;\n  string SS_K = 3;\n  int64 SS_A = 4;\n  string SS_B = 5;\n}\n"
+        } ]
+      }
+    }
+  }
+}

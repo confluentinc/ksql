@@ -23,6 +23,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.List;
 import java.util.Optional;
@@ -86,7 +87,7 @@ public final class SourceDescriptionFactory {
         .map((stat) -> QueryHostStat.fromStat(stat, hostEntity));
 
     return new SourceDescription(
-        dataSource.getName().toString(FormatOptions.noEscape()),
+        dataSource.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
         dataSource.getKsqlTopic().getKeyFormat().getWindowType(),
         readQueries,
         writeQueries,

@@ -9,14 +9,13 @@ keywords: testing, qa, quality assurance, test runner
 # How to test an application
 
 !!! important
-      ksqlDB 0.30 ships with a new sql-based testing tool. For documentation on the old test runner,
-      switch to an older version of this page.
+    ksqlDB 0.30 ships with a new sql-based testing tool. For documentation on the old test runner,
+    switch to an older version of this page.
 
 ## Context
 
-You have an application of ksqlDB statements, and you want to automatically test whether they behave
-correctly when given a set of inputs. ksqlDB ships with a command line tool to do just
-that. It runs quickly and doesn't require a running {{ site.aktm }} or ksqlDB cluster.
+ksqlDB ships with a command line tool to to test KSQL statements automatically.
+It runs quickly and doesn't require a running {{ site.aktm }} or ksqlDB cluster.
 
 ## In action
 
@@ -26,7 +25,7 @@ run-ksql-test --test-directory path/to/tests --temp-folder path/to/temp/folder
 
 ## Usage
 
-To test a set of SQL statements, provide a folder containing the sql test files and a folder
+To test a set of KSQL statements, provide a folder containing the sql test files and a folder
 that the testing tool will use to store temporary files.
 
 ```
@@ -84,7 +83,7 @@ CREATE OR REPLACE STREAM b AS SELECT id, col1 FROM a;
 ```
 
 A test file contains one or more tests separated by the `--@test` directive.
-Each test consists of sql comments containing directives and sql stataments.
+Each test consists of KSQL comments containing directives and sql stataments.
 
 ### Directives
 
@@ -98,10 +97,10 @@ message containing the provided message.
 
 ### Statements
 
-The testing tool runs each statement in a test sequentially until an error is thrown or the end of
+`run-ksql-test` runs each statement in a test sequentially until an error is thrown or the end of
 the test is reached.
 
-The following are the supported ksqlDB statements in the testing tool:
+The following are the supported KSQL statements in `run-ksql-test`:
 
 - `CREATE STREAM`
 - `CREATE TABLE`
@@ -116,16 +115,21 @@ The following are the supported ksqlDB statements in the testing tool:
 - `INSERT INTO`
 - `INSERT VALUES`
 
-There are also 4 test only statements for verifying data.
+There are also four test only statements for verifying data.
+
 
 #### ASSERT STREAM
+
 ```
 ASSERT STREAM sourceName (tableElements)? (WITH tableProperties)?
 ```
 
 Asserts the existence of a stream with the given elements and properties.
 
+
+
 #### ASSERT TABLE
+
 ```
 ASSERT TABLE sourceName (tableElements)? (WITH tableProperties)?
 ```
@@ -134,24 +138,25 @@ Asserts the existence of a table with the given elements and properties.
 
 
 #### ASSERT VALUES
+
 ```
 ASSERT VALUES sourceName (columns)? VALUES values
 ```
 
 Asserts that a row with the given values is in a source.
 
-Asserts a 
 
 #### ASSERT TOMBSTONES
+
 ```
 ASSERT NULL VALUES sourceName (columns)? KEY values
 ```
 
 Asserts that a tombstone is in a source.
 
-### Running the testing tool
+### Running tests
 
-The testing tool indicates the success or failure of a test by
+`run-ksql-test` indicates the success or failure of a test by
 printing the corresponding record. The following is the result of a
 successful test:
 
@@ -187,7 +192,7 @@ file:///path/to/failing/test/file.sql:18
 
 ### Kafka cluster
 
-The ksqlDB testing tool doesn't use a real Kafka cluster. Instead, it simulates
+run-ksql-test doesn't use a real Kafka cluster. Instead, it simulates
 the behavior of a cluster with a single broker for the SQL queries. This
 means that the testing tool ignores configuration settings for the input
 and output topics, like the number of partitions or replicas.

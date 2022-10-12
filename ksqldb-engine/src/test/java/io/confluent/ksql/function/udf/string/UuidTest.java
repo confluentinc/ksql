@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -59,4 +60,33 @@ public class UuidTest {
     }
   }
 
+  @Test
+  public void nullValueShouldReturnNullValue() {
+    final String uuid = udf.toUuid(null);
+
+    assertThat(uuid, null)
+  }
+
+  @Test
+  public void invalidCapacityShouldReturnNullValue() {
+    final ByteBuffer bytes = ByteBuffer.wrap(new byte[17]);
+
+    final String uuid = udf.toUuid(bytes);
+
+    assertThat(uuid, null)
+  }
+
+  @Test
+  public void shouldReturnCorrectOutputFormat() {
+    // aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+    final String anUuid = udf.uuid();
+
+    final java.util.UUID uuid = java.util.UUID.fromString(anUuid);
+    final ByteBuffer bytes = ByteBuffer.wrap(new byte[16]);
+    bytes.putLong(getMostSignificantBits());
+    bytes.putLong(getLeastSignificantBits());
+
+    final String toUuid = udf.toUuid(bytes);
+    assertThat(toUuid, anUuid);
+  }
 }

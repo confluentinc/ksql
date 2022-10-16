@@ -14,11 +14,12 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import java.nio.ByteBuffer;
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 
 @UdfDescription(
     name = "UUID",
@@ -36,17 +37,17 @@ public class Uuid {
 
   @Udf
   public String toUuid(@UdfParameter final ByteBuffer bytes) {
-    if (bytes == null) {
+    if (bytes == null || bytes.capacity() != 16) {
       return null;
     }
 
-    if (bytes.getCapacity() != 16) {
+    try {
+      final long firstLong = bytes.getLong();
+      final long secondLong = bytes.getLong();
+
+      return new java.util.UUID(firstLong, secondLong).toString();
+    } catch (BufferUnderflowException ex) {
       return null;
     }
-
-    final ByteBuffer firstLong = bytes.getLong();
-    final ByteBuffer secondLong = bytes.getLong();
-
-    return new java.util.UUID(firstLong, secondLong).toString();
   }
 }

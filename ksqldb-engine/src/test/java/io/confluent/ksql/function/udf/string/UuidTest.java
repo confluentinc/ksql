@@ -61,7 +61,7 @@ public class UuidTest {
 
   @Test
   public void nullValueShouldReturnNullValue() {
-    final String uuid = udf.toUuid(null);
+    final String uuid = udf.uuid(null);
 
     assertThat(uuid, is(nullValue()));
   }
@@ -70,7 +70,7 @@ public class UuidTest {
   public void invalidCapacityShouldReturnNullValue() {
     final ByteBuffer bytes = ByteBuffer.wrap(new byte[17]);
 
-    final String uuid = udf.toUuid(bytes);
+    final String uuid = udf.uuid(bytes);
 
     assertThat(uuid, is(nullValue()));
   }
@@ -86,7 +86,7 @@ public class UuidTest {
     bytes.putLong(uuid.getLeastSignificantBits());
     byte[] byteArrays = bytes.array();
 
-    final String toUuid = udf.toUuid(ByteBuffer.wrap(byteArrays));
+    final String toUuid = udf.uuid(ByteBuffer.wrap(byteArrays));
     assertThat(toUuid, is(anUuid));
   }
 }

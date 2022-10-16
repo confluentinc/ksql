@@ -36,7 +36,7 @@ public class Uuid {
   }
 
   @Udf
-  public String toUuid(@UdfParameter final ByteBuffer bytes) {
+  public String uuid(@UdfParameter final ByteBuffer bytes) {
     if (bytes == null || bytes.capacity() != 16) {
       return null;
     }

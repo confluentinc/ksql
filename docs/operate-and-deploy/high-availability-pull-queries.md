@@ -32,7 +32,7 @@ ksql.advertised.listener=http://host1.example.com:8088
 
 The `ksql.advertised.listener` configuration specifies the URL that is propagated to other nodes for inter-node requests, so
 it must be reachable from other hosts/pods in the cluster. Inter-node requests are critical in a
-multi-node cluster. For more information, see [configuring listeners of a ksqlDB cluster](installation/server-config/#configuring-listeners-of-a-ksqldb-cluster).
+multi-node cluster. For more information, see [configuring listeners of a ksqlDB cluster](../installation/server-config/#configuring-listeners-of-a-ksqldb-cluster).
 
 While waiting for a failed node to restart is one possibility, this approach may incur more downtime than you
 want, and it may not be possible if there is a more serious failure. The other possibility is to have

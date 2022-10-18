@@ -110,7 +110,7 @@ public class StreamQueryResponseHandler
             (String) ((Map<?, ?>) jsonObject.getMap()
                 .get("continuationToken"))
                 .get("continuationToken"));
-      } else if (jsonObject.getMap().containsKey("errorMessage")) {
+      } else if (jsonObject.containsKey("errorMessage")) {
         queryResult.handleError(new KsqlException(
             (String) ((Map<?, ?>) jsonObject.getMap().get("errorMessage")).get("message")));
       } else {

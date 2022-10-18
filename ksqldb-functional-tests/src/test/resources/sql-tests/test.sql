@@ -288,6 +288,23 @@ ASSERT NULL VALUES b (id) KEY (1);
 ASSERT NULL VALUES b (id) KEY (2);
 
 ----------------------------------------------------------------------------------------------------
+--@test: drop statement throws error
+--@expected.error: io.confluent.ksql.util.KsqlStatementException
+--@expected.message: The following streams and/or tables read from this source
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM foo2 AS SELECT * FROM foo;
+DROP STREAM foo;
+
+----------------------------------------------------------------------------------------------------
+--@test: drop statement does not throw error
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM foo2 AS SELECT * FROM foo;
+DROP STREAM foo2;
+DROP STREAM foo;
+
+----------------------------------------------------------------------------------------------------
 --@test: insert bytes
 ----------------------------------------------------------------------------------------------------
 CREATE STREAM foo (id INT KEY, col1 BYTES) WITH (kafka_topic='foo', value_format='JSON');

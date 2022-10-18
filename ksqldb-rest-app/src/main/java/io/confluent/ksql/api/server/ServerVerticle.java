@@ -235,7 +235,7 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(this::handleIsValidPropertyRequest);
     router.route(HttpMethod.POST, "/test")
         .handler(BodyHandler.create(false))
-        .produces(JSON_CONTENT_TYPE)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .handler(this::handleTest);
     return router;
   }

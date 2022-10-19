@@ -59,7 +59,7 @@ public class KsqlTestException extends KsqlException {
       final String message,
       final Path file
   ) {
-    final Path srcFile = toSourcePath(file);
+    final Path srcFile = file == null ? null : toSourcePath(file);
 
     return stmt.apply(
         parsed -> engineMessage(parsed, message, srcFile),
@@ -81,7 +81,7 @@ public class KsqlTestException extends KsqlException {
         parsedStatement.getMaskedStatementText(),
         loc.map(NodeLocation::toString).orElse("unknown"),
         message,
-        new LocationWithinFile(
+        getFileLocation(
             file,
             loc.map(NodeLocation::getStartLineNumber).orElse(1))
     );
@@ -97,7 +97,7 @@ public class KsqlTestException extends KsqlException {
         SqlFormatter.formatSql(assertStatement),
         assertStatement.getLocation().map(Objects::toString).orElse("unknown"),
         message,
-        new LocationWithinFile(
+        getFileLocation(
             file,
             assertStatement.getLocation().map(NodeLocation::getStartLineNumber).orElse(1))
     );
@@ -109,14 +109,18 @@ public class KsqlTestException extends KsqlException {
       final Path file
   ) {
     return String.format(
-        "Test failure during directive evaluation `%s` (%s):%n\t%s%n\t%s",
+        "Test failure during directive evaluation `%s` (%s):%n\t%s%s",
         directive,
         directive.getLocation(),
         message,
-        new LocationWithinFile(
-            file,
-            directive.getLocation().getStartLineNumber())
+        getFileLocation(file, directive.getLocation().getStartLineNumber())
     );
+  }
+
+  private static String getFileLocation(final Path file, final int startLineNumber) {
+    return file == null
+        ? ""
+        : "%n\t" + new LocationWithinFile(file, startLineNumber).toString();
   }
 
   /**

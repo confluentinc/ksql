@@ -321,6 +321,13 @@ public class KsqlServerEndpoints implements Endpoints {
     }, workerExecutor);
   }
 
+  @Override
+  public CompletableFuture<EndpointResponse> executeTest(
+      final String test, final ApiSecurityContext apiSecurityContext) {
+    return executeOldApiEndpoint(
+        apiSecurityContext, ksqlSecurityContext -> ksqlResource.runTest(test));
+  }
+
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,
       final WorkerExecutor workerExecutor) {
     final VertxCompletableFuture<R> vcf = new VertxCompletableFuture<>();

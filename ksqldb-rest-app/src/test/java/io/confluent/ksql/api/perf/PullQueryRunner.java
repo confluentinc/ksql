@@ -233,6 +233,12 @@ public class PullQueryRunner extends BasePerfRunner {
 
     }
 
+    @Override
+    public CompletableFuture<EndpointResponse> executeTest(String test,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
     synchronized void closePublishers() {
       for (PullQueryPublisher publisher : publishers) {
         publisher.close();

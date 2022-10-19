@@ -83,16 +83,6 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
                           + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
                           + "Current limit: " + maxRows);
         }
-      } else if (json.getMap() != null) {
-        // This is the serialized consistency vector
-        // Don't add it to the result list since the user should not see it
-        if (json.getMap().containsKey("consistencyToken")) {
-          log.info("Response contains consistency vector " + json);
-          serializedConsistencyVector.set((String) json.getMap().get(
-              "consistencyToken"));
-        } else {
-          throw new RuntimeException("Could not decode JSON, expected consistency token: " + json);
-        }
       } else {
         throw new RuntimeException("Could not decode JSON: " + json);
       }

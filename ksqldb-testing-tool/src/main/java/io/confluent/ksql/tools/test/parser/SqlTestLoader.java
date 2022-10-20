@@ -79,12 +79,28 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
    * @return the list of tests to run
    */
   public List<SqlTest> loadTest(final Path path) throws IOException {
+    return loadTest(SqlTestReader.of(path), path, shouldRun);
+  }
+
+  /**
+   * @param test a single sql test, containing possibly many tests
+   *
+   * @return the list of tests to run
+   */
+  public static List<SqlTest> loadTest(final String test)  {
+    return loadTest(SqlTestReader.of(test), null, t -> true);
+  }
+
+  private static List<SqlTest> loadTest(
+      final SqlTestReader reader,
+      final Path path,
+      final Predicate<SqlTest> shouldRun
+  ) {
     final ImmutableList.Builder<SqlTest> builder = ImmutableList.builder();
 
     List<TestStatement> statements = null;
     String name = null;
 
-    final SqlTestReader reader = SqlTestReader.of(path);
     while (reader.hasNext()) {
       final TestStatement statement = reader.next();
       final Optional<String> nextName = statement.consumeDirective(

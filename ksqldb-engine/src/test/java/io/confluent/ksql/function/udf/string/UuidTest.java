@@ -14,16 +14,16 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isIn;
+import org.junit.Before;
+import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 public class UuidTest {
 
@@ -59,4 +59,34 @@ public class UuidTest {
     }
   }
 
+  @Test
+  public void nullValueShouldReturnNullValue() {
+    final String uuid = udf.uuid(null);
+
+    assertThat(uuid, is(nullValue()));
+  }
+
+  @Test
+  public void invalidCapacityShouldReturnNullValue() {
+    final ByteBuffer bytes = ByteBuffer.wrap(new byte[17]);
+
+    final String uuid = udf.uuid(bytes);
+
+    assertThat(uuid, is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnCorrectOutputFormat() {
+    // aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+    final String anUuid = udf.uuid();
+
+    final java.util.UUID uuid = java.util.UUID.fromString(anUuid);
+    final ByteBuffer bytes = ByteBuffer.wrap(new byte[16]);
+    bytes.putLong(uuid.getMostSignificantBits());
+    bytes.putLong(uuid.getLeastSignificantBits());
+    byte[] byteArrays = bytes.array();
+
+    final String toUuid = udf.uuid(ByteBuffer.wrap(byteArrays));
+    assertThat(toUuid, is(anUuid));
+  }
 }

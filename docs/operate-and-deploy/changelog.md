@@ -5,7 +5,6 @@ tagline: Detailed changelog for ksqlDB
 description: Lists changes to the ksqlDB codebase
 keywords: ksqldb, changelog
 ---
-
 Version 0.28.2
 --------------
 

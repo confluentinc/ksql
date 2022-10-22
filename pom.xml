@@ -112,7 +112,7 @@
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
         <antlr.version>4.9.2</antlr.version>
-        <commons-text.version>1.8</commons-text.version>
+        <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
         <lang3.version>3.5</lang3.version>

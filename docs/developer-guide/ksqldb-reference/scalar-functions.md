@@ -1607,11 +1607,14 @@ Converts a string to uppercase.
 
 ```sql title="Since: 0.10.0"
 UUID()
+UUID(bytes)
 ```
 Creates a Universally Unique Identifier (UUID) generated according to RFC 4122.
 
 A call to UUID() returns a value conforming to UUID version 4, sometimes called
 "random UUID", as described in RFC 4122.
+
+A call to UUID(bytes) returns a value conforming to UUID.
 
 The value is a 128-bit number represented as a string of five hexadecimal numbers,
 _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_, for example, `237e9877-e79b-12d4-a765-321741963000`.

@@ -222,7 +222,7 @@ final class EngineExecutor {
         && !isSourceTableMaterializationEnabled()) {
       LOG.info(String.format(
           "Source table query '%s' won't be materialized because '%s' is disabled.",
-          plan.getStatementText(),
+          plan.getQueryPlan().map(QueryPlan::getQueryId),
           KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED));
       return ExecuteResult.of(ddlResult.get());
     }

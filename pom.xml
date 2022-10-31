@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.4.0-498</version>
+        <version>7.4.0-499</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>

@@ -129,7 +129,8 @@ public class ConnectDataTranslator implements DataTranslator {
       Schema.Type.FLOAT32,
       Schema.Type.FLOAT64,
       Schema.Type.BOOLEAN,
-      Schema.Type.STRING
+      Schema.Type.STRING,
+      Schema.Type.STRUCT
   };
 
   private static void validateSchema(
@@ -170,7 +171,7 @@ public class ConnectDataTranslator implements DataTranslator {
     if (connectSchema.name() == null) {
       return connectValue;
     }
-    switch  (connectSchema.name()) {
+    switch (connectSchema.name()) {
       case Date.LOGICAL_NAME:
         return Date.fromLogical(connectSchema, (java.util.Date) connectValue);
       case Time.LOGICAL_NAME:
@@ -231,7 +232,7 @@ public class ConnectDataTranslator implements DataTranslator {
       case STRUCT:
         return toKsqlStruct(schema, connectSchema, (Struct) convertedValue, pathStr);
       case STRING:
-        // use String.valueOf to convert various int types and Boolean to string
+        // use String.valueOf to convert various int types, Struct and Boolean to string
         return String.valueOf(convertedValue);
       case BYTES:
         if (convertedValue instanceof byte[]) {

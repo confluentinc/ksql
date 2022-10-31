@@ -424,7 +424,7 @@ public class KsqlRestoreCommandTopic {
         final JSONObject queryPlan = plan.getJSONObject("queryPlan");
         queryId = queryPlan.getString("queryId");
         if (hasKey(queryPlan, "runtimeId")
-            && queryPlan.get("runtimeId") != null
+            && !queryPlan.isNull("runtimeId")
             && ((Optional<String>) queryPlan.get("runtimeId")).isPresent()) {
           streamsProperties.put(
               StreamsConfig.APPLICATION_ID_CONFIG,

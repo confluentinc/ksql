@@ -815,21 +815,10 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
 
-//    // When:
-//    final Exception e = assertThrows(
-//        SerializationException.class,
-//        () -> deserializer.deserialize(SOME_TOPIC, bytes)
-//    );
-//
-//    // Then:
-//    assertThat(e.getCause(), (hasMessage(containsString(
-//        "Cannot deserialize type struct as type string"))));
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
     // Then:
-//    assertThat(result, is("Struct" + AN_ORDER.toString().replaceAll(", [a-z]",",")));
     assertThat(result, is(toStructString(AN_ORDER)));
-
   }
 
   @Test

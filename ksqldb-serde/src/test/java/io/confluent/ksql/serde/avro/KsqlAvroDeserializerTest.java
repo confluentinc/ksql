@@ -1791,13 +1791,13 @@ public class KsqlAvroDeserializerTest {
     StringBuilder sb = new StringBuilder("Struct{");
     boolean first = true;
 
-    for(String key : map.keySet()) {
-        if (first) {
-          first = false;
-        } else {
-          sb.append(",");
-        }
-        sb.append(key).append("=").append(map.get(key));
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
+      if (first) {
+        first = false;
+      } else {
+        sb.append(",");
+      }
+      sb.append(entry.getKey()).append("=").append(entry.getValue());
     }
 
     return sb.append("}").toString();

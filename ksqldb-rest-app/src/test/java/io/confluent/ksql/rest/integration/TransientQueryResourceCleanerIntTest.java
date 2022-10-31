@@ -326,8 +326,11 @@ public class TransientQueryResourceCleanerIntTest {
                 .collect(Collectors.toSet());
 
         assertFalse(
-                logMessages.contains(
-                        String.format("Cleaning up %d leaked topics: %s", transientTopics.size(), transientTopics)));
+            logMessages.toString(),
+            logMessages.contains(
+                String.format("Cleaning up %d leaked topics: %s", transientTopics.size(), transientTopics)
+            )
+        );
     }
 
     @Test

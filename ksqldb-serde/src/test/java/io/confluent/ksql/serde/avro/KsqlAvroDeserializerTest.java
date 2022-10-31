@@ -66,6 +66,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -814,15 +815,21 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
 
+//    // When:
+//    final Exception e = assertThrows(
+//        SerializationException.class,
+//        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+//    );
+//
+//    // Then:
+//    assertThat(e.getCause(), (hasMessage(containsString(
+//        "Cannot deserialize type struct as type string"))));
     // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> deserializer.deserialize(SOME_TOPIC, bytes)
-    );
-
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
     // Then:
-    assertThat(e.getCause(), (hasMessage(containsString(
-        "Cannot deserialize type struct as type string"))));
+//    assertThat(result, is("Struct" + AN_ORDER.toString().replaceAll(", [a-z]",",")));
+    assertThat(result, is(toStructString(AN_ORDER)));
+
   }
 
   @Test
@@ -1789,5 +1796,21 @@ public class KsqlAvroDeserializerTest {
     e2.put("value", v2);
 
     return ImmutableList.of(e1, e2);
+  }
+
+  private static String toStructString (Map<String, Object> map) {
+    StringBuilder sb = new StringBuilder("Struct{");
+    boolean first = true;
+
+    for(String key : map.keySet()) {
+        if (first) {
+          first = false;
+        } else {
+          sb.append(",");
+        }
+        sb.append(key).append("=").append(map.get(key));
+    }
+
+    return sb.append("}").toString();
   }
 }

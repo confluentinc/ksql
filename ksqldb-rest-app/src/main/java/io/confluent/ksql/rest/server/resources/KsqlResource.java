@@ -338,7 +338,7 @@ public class KsqlResource implements KsqlConfigurable {
           )
       );
 
-      LOG.info("Processed successfully: " + request);
+      QueryLogger.info("Processed successfully:", request.getMaskedKsql());
       addCommandRunnerWarning(
           entities,
           commandRunnerWarning);

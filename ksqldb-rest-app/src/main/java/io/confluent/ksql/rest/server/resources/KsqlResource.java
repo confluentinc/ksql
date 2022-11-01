@@ -285,7 +285,7 @@ public class KsqlResource implements KsqlConfigurable {
     // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
     ApiServerUtils.setMaskedSqlIfNeeded(request);
 
-    LOG.info("Received: " + request);
+    QueryLogger.info("Received: " + request.toStringWithoutQuery(), request.getMaskedKsql());
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();

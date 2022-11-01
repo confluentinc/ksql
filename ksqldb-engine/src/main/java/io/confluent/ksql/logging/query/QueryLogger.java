@@ -61,14 +61,28 @@ public final class QueryLogger {
   }
 
   private static void log(final Level level, final Object message, final String query) {
+    log(level, message, query, null);
+  }
+
+  private static void log(final Level level, final Object message, final String query, final Throwable t) {
     try {
       final String anonQuery = anonymizeQueries
           ? anonymizer.anonymize(query) : query;
       final QueryGuid queryGuids = buildGuids(query, anonQuery);
-      logger.log(level, buildPayload(message, anonQuery, queryGuids));
+      final QueryLoggerMessage payload = buildPayload(message, anonQuery, queryGuids);
+      innerLog(level, payload, t);
     } catch (ParsingException e) {
       final String unparsable = "<unparsable query>";
-      logger.log(level, buildPayload(message, unparsable, buildGuids(query, unparsable)));
+      final QueryLoggerMessage payload = buildPayload(message, unparsable, buildGuids(query, unparsable));
+      innerLog(level, payload, t);
+    }
+  }
+
+  private static void innerLog(final Level level, final QueryLoggerMessage payload, final Throwable t) {
+    if (t == null) {
+      logger.log(level, payload);
+    } else {
+      logger.log(level, payload, t);
     }
   }
 
@@ -106,6 +120,10 @@ public final class QueryLogger {
     log(Level.WARN, message, query);
   }
 
+  public static void warn(final Object message, final String query, final Throwable t) {
+    log(Level.WARN, message, query, t);
+  }
+
   public static void warn(final Object message, final Statement query) {
     log(Level.WARN, message, query);
   }
@@ -116,5 +134,9 @@ public final class QueryLogger {
 
   public static void error(final Object message, final Statement query) {
     log(Level.ERROR, message, query);
+  }
+
+  public static void error(final String message, final String query, final Throwable t) {
+    log(Level.ERROR, message, query, t);
   }
 }

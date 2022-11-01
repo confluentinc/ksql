@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilc
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
@@ -138,20 +139,20 @@ public final class AuthHandlers {
    * In order of preference, we see if the user is the system user, then we check for
    * JAAS configurations, and finally we check to see if there's a plugin we can use
    */
-  // default visibility for testing
+  @VisibleForTesting
   static void selectHandler(
       final RoutingContext context,
       final Pattern skipPathsPattern,
       final boolean jaasAvailable,
       final boolean pluginAvailable
   ) {
-    if (SystemAuthenticationHandler.isAuthenticatedAsSystemUser(context)) {
-      context.data().put(PROVIDER_KEY, Provider.SYSTEM);
+    if (skipPathsPattern.matcher(context.normalizedPath()).matches()) {
+      context.data().put(PROVIDER_KEY, Provider.SKIP);
       context.next();
       return;
     }
-    if (skipPathsPattern.matcher(context.normalizedPath()).matches()) {
-      context.data().put(PROVIDER_KEY, Provider.SKIP);
+    if (SystemAuthenticationHandler.isAuthenticatedAsSystemUser(context)) {
+      context.data().put(PROVIDER_KEY, Provider.SYSTEM);
       context.next();
       return;
     }

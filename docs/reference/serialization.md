@@ -696,6 +696,39 @@ CREATE STREAM EXPLICIT_SINK WITH(WRAP_SINGLE_VALUE=false) AS SELECT ID FROM S EM
 CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EMIT CHANGES;
 ```
 
+## Defining schemas for {{ site.sr }} 
+
+{{ site.sr }} enables both schema inference and defining schemas explicitly.
+You can use the identifiers for specific schemas in your `CREATE STREAM` and
+`CREATE TABLE` statements with `KEY_SCHEMA_ID` and `VALUE_SCHEMA_ID` properties.
+For more information, see [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id).
+
+Some serialization formats require special syntax. For example, in JSON, the
+following message maps to a `STRUCT<>` with any field that contains an `INT`
+type.
+
+```json
+"metadata": {
+  "type": "object",
+  "additionalProperties": {
+     "type": "int"
+  }
+}
+```
+
+But JSON_SR doesn't support this case. In JSON_SR, the schema must be adapted
+to make it a `MAP<STRING, INT>` by using the `connect.type` config:
+
+```json
+"metadata": {
+  "connect.type": "map",
+  "type": "object",
+  "additionalProperties": {
+     "type": "int"
+  }
+}
+```
+
 [0]: ../operate-and-deploy/installation/server-config/avro-schema.md
 [1]: ../concepts/schemas.md#schema-inference 
 [2]: #single-field-unwrapping

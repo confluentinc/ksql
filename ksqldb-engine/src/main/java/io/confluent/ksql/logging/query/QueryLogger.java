@@ -67,12 +67,8 @@ public final class QueryLogger {
       final QueryGuid queryGuids = buildGuids(query, anonQuery);
       logger.log(level, buildPayload(message, anonQuery, queryGuids));
     } catch (ParsingException e) {
-      if (logger.isDebugEnabled()) {
-        Logger.getRootLogger()
-            .log(
-                Level.DEBUG,
-                String.format("Failed to parse a query in query logger, message: %s", message));
-      }
+      final String unparsable = "<unparsable query>";
+      logger.log(level, buildPayload(message, unparsable, buildGuids(query, unparsable)));
     }
   }
 
@@ -86,7 +82,7 @@ public final class QueryLogger {
   }
 
   private static QueryLoggerMessage buildPayload(final Object message, final String query,
-      final QueryGuid guid) {
+                                                 final QueryGuid guid) {
     return new QueryLoggerMessage(message, query, guid);
   }
 

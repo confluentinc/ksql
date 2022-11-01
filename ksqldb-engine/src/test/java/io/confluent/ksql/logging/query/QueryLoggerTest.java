@@ -17,6 +17,8 @@ import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;
 import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,7 +77,7 @@ public class QueryLoggerTest {
   }
 
   @Test
-  public void shouldNotLogIfQueryCannotBeParsed() {
+  public void shouldNotLogQueryIfQueryCannotBeParsed() {
     String message = " I love cats";
     String query = "CREATE CAT;";
 
@@ -83,13 +85,36 @@ public class QueryLoggerTest {
     QueryLogger.error(message, query);
     QueryLogger.info(message, query);
     QueryLogger.warn(message, query);
-    testAppender
-        .getLog()
+    final List<LoggingEvent> events = testAppender.getLog();
+    events
         .forEach(
             (e) -> {
               final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
-              assertNotEquals(msg.getMessage(), message);
+              assertEquals(msg.getMessage(), message);
               assertNotEquals(msg.getQuery(), query);
+              assertEquals(msg.getQuery(), "<unparsable query>");
+            });
+  }
+
+  @Test
+  public void shouldLogQueryIfQueryCannotBeParsedIfAnonymizerIsDisabled() {
+    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(false);
+    QueryLogger.configure(config);
+
+    String message = " I love cats";
+    String query = "CREATE CAT;";
+
+    QueryLogger.debug(message, query);
+    QueryLogger.error(message, query);
+    QueryLogger.info(message, query);
+    QueryLogger.warn(message, query);
+    final List<LoggingEvent> events = testAppender.getLog();
+    events
+        .forEach(
+            (e) -> {
+              final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
+              assertEquals(msg.getMessage(), message);
+              assertEquals(msg.getQuery(), query);
             });
   }
 

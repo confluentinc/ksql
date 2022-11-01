@@ -364,7 +364,7 @@ public class RestoreCommandTopicIntegrationTest {
             0,
             0L,
             InternalTopicSerdes.serializer().serialize("", commandId),
-            command.getBytes())
+            command.getBytes(StandardCharsets.UTF_8))
         );
   }
 }

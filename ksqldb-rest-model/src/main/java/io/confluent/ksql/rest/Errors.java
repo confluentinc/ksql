@@ -30,6 +30,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import java.util.Objects;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -124,6 +125,21 @@ public final class Errors {
     return EndpointResponse.create()
         .status(BAD_REQUEST.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_BAD_REQUEST, t))
+        .build();
+  }
+
+  public static EndpointResponse badRequestWithStatement(final Throwable t,
+                                                         final String maskedKsql) {
+    return EndpointResponse.create()
+        .status(BAD_REQUEST.code())
+        .entity(
+            new KsqlStatementErrorMessage(
+                ERROR_CODE_BAD_REQUEST,
+                t,
+                maskedKsql,
+                new KsqlEntityList()
+            )
+        )
         .build();
   }
 

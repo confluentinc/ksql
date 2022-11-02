@@ -369,7 +369,10 @@ public class KsqlResource implements KsqlConfigurable {
           request.getMaskedKsql(),
           e
       );
-      return errorHandler.generateResponse(e, Errors.badRequest(e));
+      return errorHandler.generateResponse(
+          e,
+          Errors.badRequestWithStatement(e, request.getMaskedKsql())
+      );
     } catch (final Exception e) {
       QueryLogger.warn(
           "Processed unsuccessfully: " + request.toStringWithoutQuery(),
@@ -377,7 +380,9 @@ public class KsqlResource implements KsqlConfigurable {
           e
       );
       return errorHandler.generateResponse(
-          e, Errors.serverErrorForStatement(e, request.getMaskedKsql()));
+          e,
+          Errors.serverErrorForStatement(e, request.getMaskedKsql())
+      );
     }
   }
 

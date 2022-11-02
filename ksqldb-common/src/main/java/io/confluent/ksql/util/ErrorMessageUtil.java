@@ -117,7 +117,7 @@ public final class ErrorMessageUtil {
     if (e instanceof ConnectException) {
       return "Could not connect to the server. "
           + "Please check the server details are correct and that the server is running.";
-    } else if (e instanceof KsqlStatementException){
+    } else if (e instanceof KsqlStatementException) {
       final String message = e.getMessage() == null ? e.toString() : e.getMessage();
       final String statement = ((KsqlStatementException) e).getSqlStatement();
       final String result;

@@ -637,7 +637,7 @@ public class KsqlParserTest {
       Assert.assertTrue(errorMessage.contains(("line 1:1: Syntax Error")));
       Assert.assertTrue(errorMessage.contains(("Unknown statement 'SELLECT'")));
       Assert.assertTrue(errorMessage.contains(("Did you mean 'SELECT'?")));
-      Assert.assertTrue(errorMessage.contains(("Statement: SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100")));
+      Assert.assertTrue(e.getSqlStatement().contains(("SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100")));
     }
   }
 
@@ -1236,7 +1236,7 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT ONLY, COLUMNS;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
@@ -1244,7 +1244,7 @@ public class KsqlParserTest {
     // Then:
     assertThat(e.getMessage(), containsString("line 1:21: Syntax Error"));
     assertThat(e.getMessage(), containsString("Expecting {',', 'FROM'}"));
-    assertThat(e.getMessage(), containsString("Statement: SELECT ONLY, COLUMNS"));
+    assertThat(e.getSqlStatement(), containsString("SELECT ONLY, COLUMNS"));
   }
 
   @Test
@@ -1253,14 +1253,14 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT A B C FROM address;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("line 1:12: Syntax Error"));
-    assertThat(e.getMessage(), containsString("Statement: SELECT A B C FROM address"));
+    assertThat(e.getSqlStatement(), containsString("SELECT A B C FROM address"));
   }
 
   @Test
@@ -1270,7 +1270,7 @@ public class KsqlParserTest {
             "  WITH (kafka_topic='ords', value_format='json');";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
             ParseFailedException.class,
             () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
@@ -1278,7 +1278,7 @@ public class KsqlParserTest {
     // Then:
     assertThat(e.getMessage(), containsString("line 1:35: Syntax Error"));
     assertThat(e.getMessage(), containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
-    assertThat(e.getMessage(), containsString("Statement: CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)"));
+    assertThat(e.getSqlStatement(), containsString("CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)"));
   }
 
   @Test
@@ -1315,14 +1315,14 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT * FROM address, itemid;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("line 1:22: Syntax Error"));
-    assertThat(e.getMessage(), containsString("Statement: SELECT * FROM address, itemid;"));
+    assertThat(e.getSqlStatement(), containsString("SELECT * FROM address, itemid;"));
   }
 
   @Test
@@ -1551,7 +1551,7 @@ public class KsqlParserTest {
         "CRETE STREAM s1(id INT) WITH (kafka_topic='s1', value_format='JSON')";
 
     // When
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.parse(invalidCreateStatement)
     );
@@ -1560,7 +1560,7 @@ public class KsqlParserTest {
     assertThat(e.getMessage(), containsString("line 1:1: Syntax Error"));
     assertThat(e.getMessage(), containsString("Unknown statement 'CRETE'"));
     assertThat(e.getMessage(), containsString("Did you mean 'CREATE'"));
-    assertThat(e.getMessage(), containsString("Statement: CRETE STREAM s1(id INT) WITH (kafka_topic='s1', value_format='JSON')"));
+    assertThat(e.getSqlStatement(), containsString("CRETE STREAM s1(id INT) WITH (kafka_topic='s1', value_format='JSON')"));
   }
 
   @Test
@@ -1570,14 +1570,14 @@ public class KsqlParserTest {
         "SELECT FROM FROM TEST_TOPIC";
 
     // When
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.parse(invalidStatement)
     );
 
     // Then
     assertThat(e.getMessage(), containsString("line 1:8: Syntax Error"));
-    assertThat(e.getMessage(), containsString("Statement: SELECT FROM FROM TEST_TOPIC"));
+    assertThat(e.getSqlStatement(), containsString("SELECT FROM FROM TEST_TOPIC"));
   }
 
   @Test
@@ -1587,7 +1587,7 @@ public class KsqlParserTest {
         "SELECT * FORM TEST_TOPIC";
 
     // When
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.parse(invalidStatement)
     );
@@ -1595,7 +1595,7 @@ public class KsqlParserTest {
     // Then
     assertThat(e.getMessage(), containsString("line 1:10: Syntax Error"));
     assertThat(e.getMessage(), containsString("Expecting {',', 'FROM'}"));
-    assertThat(e.getMessage(), containsString("Statement: SELECT * FORM TEST_TOPIC"));
+    assertThat(e.getSqlStatement(), containsString("SELECT * FORM TEST_TOPIC"));
   }
 
   @Test
@@ -1605,7 +1605,7 @@ public class KsqlParserTest {
     "SELECT * FROM artist WHERE first_name = 'Vincent' and (last_name = 'Monet' or last_name = 'Da Vinci'";
 
     // When
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.parse(invalidStatement)
     );
@@ -1614,7 +1614,7 @@ public class KsqlParserTest {
     assertThat(e.getMessage(), containsString("line 1:101: Syntax Error"));
     assertThat(e.getMessage(), containsString("Syntax error at or near \";\""));
     assertThat(e.getMessage(), containsString("'}', ']', or ')' is missing"));
-    assertThat(e.getMessage(), containsString("Statement: SELECT * FROM artist WHERE first_name = 'Vincent' and (last_name = 'Monet' or last_name = 'Da Vinci'"));
+    assertThat(e.getSqlStatement(), containsString("SELECT * FROM artist WHERE first_name = 'Vincent' and (last_name = 'Monet' or last_name = 'Da Vinci'"));
  }
   @Test
   public void shouldThrowSyntaxErrorOnNoViableAltException() {
@@ -1623,7 +1623,7 @@ public class KsqlParserTest {
         "CREATE TABLE AS SELECT x, count(*) FROM TEST_TOPIC GROUP BY x";
 
     // When
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.parse(invalidCreateStatement)
     );
@@ -1631,7 +1631,7 @@ public class KsqlParserTest {
     // Then
     assertThat(e.getMessage(), containsString("line 1:14: Syntax Error"));
     assertThat(e.getMessage(), containsString("Syntax error at or near 'AS' at line 1:14"));
-    assertThat(e.getMessage(), containsString("Statement: CREATE TABLE AS SELECT x, count(*) FROM TEST_TOPIC GROUP BY x"));
+    assertThat(e.getSqlStatement(), containsString("CREATE TABLE AS SELECT x, count(*) FROM TEST_TOPIC GROUP BY x"));
   }
 
   @Test
@@ -1641,7 +1641,7 @@ public class KsqlParserTest {
         "sho streams;";
 
     // When
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.parse(invalidCreateStatement)
     );
@@ -1650,7 +1650,7 @@ public class KsqlParserTest {
     assertThat(e.getMessage(), containsString("line 1:1: Syntax Error"));
     assertThat(e.getMessage(), containsString("Unknown statement 'sho'"));
     assertThat(e.getMessage(), containsString("Did you mean 'SHOW'?"));
-    assertThat(e.getMessage(), containsString("Statement: sho streams;"));
+    assertThat(e.getSqlStatement(), containsString("sho streams;"));
   }
 
   private Literal parseDouble(final String literalText) {

@@ -37,7 +37,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "line 1:24: Syntax Error\n\nStatement: SELECT * FROM S1 ORDER BY MYKEY DESC;",
+        "message": "line 1:24: Syntax Error",
         "status": 400
       }
     },

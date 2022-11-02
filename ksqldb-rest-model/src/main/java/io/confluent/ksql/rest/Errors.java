@@ -30,7 +30,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import java.util.Objects;
 import org.apache.commons.lang3.exception.ExceptionUtils;

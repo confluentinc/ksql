@@ -79,7 +79,7 @@ public final class QueryLogger {
       final QueryGuid queryGuids = buildGuids(query, anonQuery);
       final QueryLoggerMessage payload = buildPayload(message, anonQuery, queryGuids);
       innerLog(level, payload, t);
-    } catch (ParsingException e) {
+    } catch (final Exception e) {
       final String unparsable = "<unparsable query>";
       final QueryLoggerMessage payload = buildPayload(
           message,

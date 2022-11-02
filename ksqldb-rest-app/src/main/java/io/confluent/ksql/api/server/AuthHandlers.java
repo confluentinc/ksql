@@ -136,8 +136,9 @@ public final class AuthHandlers {
   }
 
   /**
-   * In order of preference, we see if the user is the system user, then we check for
-   * JAAS configurations, and finally we check to see if there's a plugin we can use
+   * In order of preference, we see if the path is supposed to be skipped, then, if the user is the
+   * system user, then we check for JAAS configurations, and finally we check to see if there's a
+   * plugin we can use.
    */
   @VisibleForTesting
   static void selectHandler(

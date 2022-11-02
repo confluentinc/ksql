@@ -19,6 +19,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 
 public final class QueryCapacityUtil {
   private QueryCapacityUtil() {
@@ -36,7 +37,7 @@ public final class QueryCapacityUtil {
       final KsqlConfig ksqlConfig,
       final String statementStr
   ) {
-    throw new KsqlException(
+    throw new KsqlStatementException(
         String.format(
             "Not executing statement(s) as it would cause the number "
                 + "of active, persistent queries to exceed the configured limit. "
@@ -46,7 +47,8 @@ public final class QueryCapacityUtil {
             KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
             executionContext.getPersistentQueries().size(),
             getQueryLimit(ksqlConfig)
-        )
+        ),
+        statementStr
     );
   }
 
@@ -66,18 +68,18 @@ public final class QueryCapacityUtil {
           final KsqlRestConfig ksqlRestConfig,
           final String statementStr
   ) {
-    throw new KsqlException(
-            String.format(
-                    "Not executing statement(s) '%s' as it would cause the number "
-                            + "of active, push queries to exceed the configured limit. "
-                            + "Terminate existing PUSH queries, "
-                            + "or increase the '%s' setting via the 'ksql-server.properties' file. "
-                            + "Current push query count: %d. Configured limit: %d.",
-                    statementStr,
-                    KsqlRestConfig.MAX_PUSH_QUERIES,
-                    getNumLivePushQueries(executionContext),
-                    getPushQueryLimit(ksqlRestConfig)
-            )
+    throw new KsqlStatementException(
+        String.format(
+            "Not executing statement(s) as it would cause the number "
+                + "of active, push queries to exceed the configured limit. "
+                + "Terminate existing PUSH queries, "
+                + "or increase the '%s' setting via the 'ksql-server.properties' file. "
+                + "Current push query count: %d. Configured limit: %d.",
+            KsqlRestConfig.MAX_PUSH_QUERIES,
+            getNumLivePushQueries(executionContext),
+            getPushQueryLimit(ksqlRestConfig)
+        ),
+        statementStr
     );
   }
 

@@ -21,7 +21,7 @@ public class KsqlStatementException extends KsqlException {
   private final String rawMessage;
 
   public KsqlStatementException(final String message, final String sqlStatement) {
-    super(buildMessage(message, sqlStatement));
+    super(message);
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
   }
@@ -30,7 +30,7 @@ public class KsqlStatementException extends KsqlException {
       final String message,
       final String sqlStatement,
       final Throwable cause) {
-    super(buildMessage(message, sqlStatement), cause);
+    super(message, cause);
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
   }
@@ -41,9 +41,5 @@ public class KsqlStatementException extends KsqlException {
 
   public String getRawMessage() {
     return rawMessage;
-  }
-
-  private static String buildMessage(final String message, final String sqlStatement) {
-    return message + System.lineSeparator() + "Statement: " + sqlStatement;
   }
 }

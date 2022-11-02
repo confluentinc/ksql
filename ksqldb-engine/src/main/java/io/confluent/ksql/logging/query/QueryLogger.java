@@ -60,11 +60,19 @@ public final class QueryLogger {
     anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);
   }
 
+  private static void log(final Level level, final Object message, final Statement query) {
+    final String queryString = SqlFormatter.formatSql(query);
+    log(level, message, queryString);
+  }
+
   private static void log(final Level level, final Object message, final String query) {
     log(level, message, query, null);
   }
 
-  private static void log(final Level level, final Object message, final String query, final Throwable t) {
+  private static void log(final Level level,
+                          final Object message,
+                          final String query,
+                          final Throwable t) {
     try {
       final String anonQuery = anonymizeQueries
           ? anonymizer.anonymize(query) : query;
@@ -73,22 +81,23 @@ public final class QueryLogger {
       innerLog(level, payload, t);
     } catch (ParsingException e) {
       final String unparsable = "<unparsable query>";
-      final QueryLoggerMessage payload = buildPayload(message, unparsable, buildGuids(query, unparsable));
+      final QueryLoggerMessage payload = buildPayload(
+          message,
+          unparsable,
+          buildGuids(query, unparsable)
+      );
       innerLog(level, payload, t);
     }
   }
 
-  private static void innerLog(final Level level, final QueryLoggerMessage payload, final Throwable t) {
+  private static void innerLog(final Level level,
+                               final QueryLoggerMessage payload,
+                               final Throwable t) {
     if (t == null) {
       logger.log(level, payload);
     } else {
       logger.log(level, payload, t);
     }
-  }
-
-  private static void log(final Level level, final Object message, final Statement query) {
-    final String queryString = SqlFormatter.formatSql(query);
-    log(level, message, queryString);
   }
 
   private static QueryGuid buildGuids(final String query, final String anonymizedQuery) {

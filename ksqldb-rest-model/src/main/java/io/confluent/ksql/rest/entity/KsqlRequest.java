@@ -156,6 +156,7 @@ public class KsqlRequest {
         + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';
   }
+
   /**
    * Converts all Class references values to their canonical String value.
    * </p>

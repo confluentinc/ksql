@@ -344,6 +344,17 @@ public class QueryMetadataTest {
   }
 
   @Test
+  public void shouldEvictBasedOnSize() {
+    // Given:
+    final QueryMetadataImpl.TimeBoundedQueue queue = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), 1);
+    queue.add(new QueryError(System.currentTimeMillis(), "test", Type.SYSTEM));
+    queue.add(new QueryError(System.currentTimeMillis(), "test2", Type.SYSTEM));
+
+    //Then:
+    assertThat(queue.toImmutableList().size(), is(1));
+  }
+
+  @Test
   public void shouldCloseProcessingLoggers() {
     // Given:
     final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);

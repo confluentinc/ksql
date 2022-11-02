@@ -383,10 +383,12 @@ public class QueryMetadataImpl implements QueryMetadata {
   public static class TimeBoundedQueue {
     private final Duration duration;
     private final Queue<QueryError> queue;
+    private final int capacity;
 
     TimeBoundedQueue(final Duration duration, final int capacity) {
       queue = new ConcurrentLinkedQueue<>(EvictingQueue.create(capacity));
       this.duration = duration;
+      this.capacity = capacity;
     }
 
     public void add(final QueryError e) {
@@ -401,7 +403,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     
     private void evict() {
       while (queue.peek() != null) {
-        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
+        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis() && queue.size()< capacity) {
           break;
         }
         queue.poll();

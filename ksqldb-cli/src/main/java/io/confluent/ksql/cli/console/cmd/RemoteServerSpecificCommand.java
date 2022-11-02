@@ -126,7 +126,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
 
       writer.println("");
       writer.println("The server responded with the following error: ");
-      writer.println(ErrorMessageUtil.buildErrorMessage(exception));
+      writer.println(ErrorMessageUtil.buildErrorMessageWithStatements(exception));
       writer.println(StringUtils.repeat('*', CONSOLE_WIDTH));
       writer.println();
     } finally {

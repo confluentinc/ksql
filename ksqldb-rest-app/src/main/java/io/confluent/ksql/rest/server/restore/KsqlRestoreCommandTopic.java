@@ -250,7 +250,7 @@ public class KsqlRestoreCommandTopic {
     } catch (final Exception e) {
       System.err.printf("Failed loading backup file.%nError = %s%n", e.getMessage());
       for (final StackTraceElement s: e.getStackTrace()) {
-        System.err.printf("%s\n", s.toString());
+        System.err.printf("%s%n", s.toString());
       }
       systemExit.exit(1);
     }

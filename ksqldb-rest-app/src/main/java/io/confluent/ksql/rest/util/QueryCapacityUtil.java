@@ -47,7 +47,8 @@ public final class QueryCapacityUtil {
             executionContext.getPersistentQueries().size(),
             getQueryLimit(ksqlConfig)
         ),
-        statementStr
+        statementStr,
+        false
     );
   }
 

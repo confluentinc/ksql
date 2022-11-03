@@ -359,10 +359,13 @@ public class KsqlResource implements KsqlConfigurable {
           request.getMaskedKsql(),
           e
       );
-      return errorHandler.generateResponse(
-          e,
-          Errors.badStatement(e.getRawMessage(), e.getSqlStatement())
-      );
+      final EndpointResponse response;
+      if (e.isProblemWithStatement()) {
+        response = Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
+      } else {
+        response = Errors.badRequestWithStatement(e, e.getSqlStatement());
+      }
+      return errorHandler.generateResponse(e, response);
     } catch (final KsqlException e) {
       QueryLogger.warn(
           "Processed unsuccessfully: " + request.toStringWithoutQuery(),

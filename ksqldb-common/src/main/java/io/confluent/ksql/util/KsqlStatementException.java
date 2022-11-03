@@ -18,12 +18,23 @@ package io.confluent.ksql.util;
 public class KsqlStatementException extends KsqlException {
 
   private final String sqlStatement;
+  private final boolean isProblemWithStatement;
   private final String rawMessage;
 
   public KsqlStatementException(final String message, final String sqlStatement) {
     super(message);
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.isProblemWithStatement = true;
+  }
+
+  public KsqlStatementException(final String message,
+                                final String sqlStatement,
+                                final boolean isProblemWithStatement) {
+    super(message);
+    this.rawMessage = message == null ? "" : message;
+    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.isProblemWithStatement = isProblemWithStatement;
   }
 
   public KsqlStatementException(
@@ -33,6 +44,7 @@ public class KsqlStatementException extends KsqlException {
     super(message, cause);
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.isProblemWithStatement = true;
   }
 
   public String getSqlStatement() {
@@ -41,5 +53,9 @@ public class KsqlStatementException extends KsqlException {
 
   public String getRawMessage() {
     return rawMessage;
+  }
+
+  public boolean isProblemWithStatement() {
+    return isProblemWithStatement;
   }
 }

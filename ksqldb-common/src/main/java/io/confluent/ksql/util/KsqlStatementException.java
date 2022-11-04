@@ -58,9 +58,4 @@ public class KsqlStatementException extends KsqlException {
   public boolean isProblemWithStatement() {
     return isProblemWithStatement;
   }
-
-  @Override
-  public String toString() {
-    return buildMessage(rawMessage, "<retracted>");
-  }
 }

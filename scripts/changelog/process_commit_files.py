@@ -74,12 +74,20 @@ def _parse_changelog_with_duplicates(filename, release=None):
 
 			## verify header
 			if _is_header(line):
+				print('line {0} is header'.format(line))
 				if fork_name is None:
 					fork_name = _get_fork_name(line)
-
+				
+				print("release before version {0}".format(release))
 				if found_header:
+					print("found header")
 					continue
-				if _get_version(line).startswith(release):
+				print("release {0}".format(release))
+				print(" if statetment {0}".format(_get_version(line).find(release)))
+				print("getVersion = {0}, release = {1}".format(_get_version(line), release))
+				version = _get_version(line)
+				if version.startswith(release):
+					print("found match")
 					found_header = True
 				continue
 			assert found_header, 'could not find header for expected release'
@@ -127,7 +135,9 @@ def _get_version(header):
 	'''
 	left_bracket = header.index('[')
 	right_bracket = header.index(']')
+	print('line {0} left {1}, right {2} '.format(header, left_bracket, right_bracket))
 	assert left_bracket < right_bracket, 'malformed header'
+	print('line {0} get_Version {1} '.format(header, header[left_bracket + 1:right_bracket]))
 	return header[left_bracket + 1:right_bracket]
 
 def _get_fork_name(header):

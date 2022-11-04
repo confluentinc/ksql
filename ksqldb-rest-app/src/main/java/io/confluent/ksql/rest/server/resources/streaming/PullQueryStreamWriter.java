@@ -95,7 +95,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
     } catch (Exception e) {
       throw new KsqlStatementException(
           e.getMessage() == null
-              ? "Server Error" + Arrays.toString(e.getStackTrace())
+              ? "Server Error"
               : e.getMessage(),
           statement.getMaskedStatementText(),
           e

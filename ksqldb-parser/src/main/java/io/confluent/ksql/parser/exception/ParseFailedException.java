@@ -19,12 +19,14 @@ import io.confluent.ksql.util.KsqlStatementException;
 
 public class ParseFailedException extends KsqlStatementException {
 
-  public ParseFailedException(final String message) {
-    super(message, "");
-  }
-
   public ParseFailedException(final String message, final String sqlStatement) {
     super(message, sqlStatement);
+  }
+
+  public ParseFailedException(final String message,
+                              final String unloggedDetails,
+                              final String sqlStatement) {
+    super(message, unloggedDetails, sqlStatement);
   }
 
   public ParseFailedException(
@@ -32,5 +34,13 @@ public class ParseFailedException extends KsqlStatementException {
       final String sqlStatement,
       final Throwable cause) {
     super(message, sqlStatement, cause);
+  }
+
+  public ParseFailedException(
+      final String message,
+      final String unloggedDetails,
+      final String sqlStatement,
+      final Throwable cause) {
+    super(message, unloggedDetails, sqlStatement, cause);
   }
 }

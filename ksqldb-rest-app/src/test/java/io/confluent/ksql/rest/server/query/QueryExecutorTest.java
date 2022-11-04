@@ -211,7 +211,7 @@ public class QueryExecutorTest {
     when(mockDataSource.getDataSourceType()).thenReturn(dataSourceType);
 
     // When:
-    final Exception e = assertThrows(
+    final KsqlStatementException e = assertThrows(
         KsqlStatementException.class,
         () -> queryExecutor.handleStatement(serviceContext, ImmutableMap.of(), ImmutableMap.of(),
             pullQuery, Optional.empty(), metricsCallbackHolder, context, false)
@@ -221,10 +221,9 @@ public class QueryExecutorTest {
     final String errorMsg =
         "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
         + "Add EMIT CHANGES if you intended to issue a push query.\n"
-        + "Please set ksql.pull.queries.enable=true to enable this feature.\n"
-        + "\n"
-        + "Statement: SELECT * FROM test_stream WHERE ROWKEY='null';";
+        + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
     assertThat(e.getMessage(), is(errorMsg));
+    assertThat(e.getSqlStatement(), is("SELECT * FROM test_stream WHERE ROWKEY='null';"));
   }
 
   @Test

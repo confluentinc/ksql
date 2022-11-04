@@ -688,7 +688,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
       = "ksql.websocket.connection.max.timeout.ms";
-  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 3600000;
+  public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 0;
   public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
       = "If this config is set to a positive number, then ksqlDB will terminate websocket"
       + " connections after a timeout. The timeout will be the lower of the auth token's "

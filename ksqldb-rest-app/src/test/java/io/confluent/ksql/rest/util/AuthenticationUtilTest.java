@@ -58,7 +58,7 @@ public class AuthenticationUtilTest {
   }
 
   @Test
-  public void shouldReturnDefaultWhenNoTokenPresent() {
+  public void shouldReturnDefaultWhenNoPrincipalPresent() {
     assertThat(authenticationUtil.getTokenTimeout(Optional.empty(), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
   }
 
@@ -68,12 +68,12 @@ public class AuthenticationUtilTest {
   }
 
   @Test
-  public void shouldReturnDefaultWhenProviderThrows() {
+  public void shouldReturnZeroWhenPrincipalHasTooLowExpiryTime() {
     // Given:
-    when(authTokenProvider.getLifetimeMs(TOKEN)).then(invokation -> { throw new Exception();});
+    when(authTokenProvider.getLifetimeMs(TOKEN)).thenReturn(-10L);
 
     // Then:
-    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(0L)));
   }
 
   @Test

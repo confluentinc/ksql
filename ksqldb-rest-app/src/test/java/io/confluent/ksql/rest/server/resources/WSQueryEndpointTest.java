@@ -123,7 +123,7 @@ public class WSQueryEndpointTest {
     executeStreamQuery(buildRequestParams("show streams;", ImmutableMap.of()), Optional.empty());
 
     // Then
-    verify(exec, never()).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
+    verify(exec, never()).schedule(any(Runnable.class), anyLong(), any());
   }
 
   private MultiMap buildRequestParams(final String command, final Map<String, Object> streamProps)

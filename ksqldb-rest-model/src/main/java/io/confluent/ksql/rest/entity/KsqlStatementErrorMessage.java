@@ -74,4 +74,9 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
   public int hashCode() {
     return Objects.hash(super.hashCode(), statementText, entities);
   }
+
+  @Override
+  public String toString() {
+    return super.toString() + "\nStatement: " + statementText;
+  }
 }

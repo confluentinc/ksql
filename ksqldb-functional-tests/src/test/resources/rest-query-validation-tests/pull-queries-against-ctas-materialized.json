@@ -240,7 +240,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Error in WHERE expression: Cannot compare ID (STRING) to 11 (INTEGER) with EQUAL.\nStatement: (ID = 11)",
+        "message": "Error in WHERE expression: Cannot compare ID (STRING) to 11 (INTEGER) with EQUAL.",
         "status": 400
       }
     },

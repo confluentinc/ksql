@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -236,6 +237,7 @@ public class PauseResumeIntegrationTest {
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(SINK_TOPIC + suffix);
   }
 
+  @SuppressFBWarnings("NP_NONNULL_RETURN_VIOLATION")
   @NotNull
   private Supplier<Integer> getSupplier(int streamNumber) {
     return () -> RestIntegrationTestUtil.makeQueryRequest(REST_APP,

@@ -61,7 +61,11 @@ public final class ColumnReferenceParser {
       return resolve((QualifiedColumnReferenceContext) primaryExpression).getColumnName();
     }
 
-    throw new ParseFailedException("Cannot parse text that is not column reference: " + text);
+    throw new ParseFailedException(
+        "Cannot parse text that is not column reference.",
+        "Cannot parse text that is not column reference: " + text,
+        text
+    );
   }
 
   static UnqualifiedColumnReferenceExp resolve(final ColumnReferenceContext context) {

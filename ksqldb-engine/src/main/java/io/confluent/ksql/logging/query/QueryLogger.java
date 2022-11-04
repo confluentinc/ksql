@@ -15,7 +15,6 @@ package io.confluent.ksql.logging.query;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
-import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -60,25 +59,44 @@ public final class QueryLogger {
     anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);
   }
 
+  private static void log(final Level level, final Object message, final Statement query) {
+    final String queryString = SqlFormatter.formatSql(query);
+    log(level, message, queryString);
+  }
+
   private static void log(final Level level, final Object message, final String query) {
+    log(level, message, query, null);
+  }
+
+  private static void log(final Level level,
+                          final Object message,
+                          final String query,
+                          final Throwable t) {
     try {
       final String anonQuery = anonymizeQueries
           ? anonymizer.anonymize(query) : query;
       final QueryGuid queryGuids = buildGuids(query, anonQuery);
-      logger.log(level, buildPayload(message, anonQuery, queryGuids));
-    } catch (ParsingException e) {
-      if (logger.isDebugEnabled()) {
-        Logger.getRootLogger()
-            .log(
-                Level.DEBUG,
-                String.format("Failed to parse a query in query logger, message: %s", message));
-      }
+      final QueryLoggerMessage payload = buildPayload(message, anonQuery, queryGuids);
+      innerLog(level, payload, t);
+    } catch (final Exception e) {
+      final String unparsable = "<unparsable query>";
+      final QueryLoggerMessage payload = buildPayload(
+          message,
+          unparsable,
+          buildGuids(query, unparsable)
+      );
+      innerLog(level, payload, t);
     }
   }
 
-  private static void log(final Level level, final Object message, final Statement query) {
-    final String queryString = SqlFormatter.formatSql(query);
-    log(level, message, queryString);
+  private static void innerLog(final Level level,
+                               final QueryLoggerMessage payload,
+                               final Throwable t) {
+    if (t == null) {
+      logger.log(level, payload);
+    } else {
+      logger.log(level, payload, t);
+    }
   }
 
   private static QueryGuid buildGuids(final String query, final String anonymizedQuery) {
@@ -86,7 +104,7 @@ public final class QueryLogger {
   }
 
   private static QueryLoggerMessage buildPayload(final Object message, final String query,
-      final QueryGuid guid) {
+                                                 final QueryGuid guid) {
     return new QueryLoggerMessage(message, query, guid);
   }
 
@@ -102,12 +120,20 @@ public final class QueryLogger {
     log(Level.INFO, message, query);
   }
 
+  public static void info(final Object message, final String query, final Throwable t) {
+    log(Level.INFO, message, query, t);
+  }
+
   public static void info(final Object message, final Statement query) {
     log(Level.INFO, message, query);
   }
 
   public static void warn(final Object message, final String query) {
     log(Level.WARN, message, query);
+  }
+
+  public static void warn(final Object message, final String query, final Throwable t) {
+    log(Level.WARN, message, query, t);
   }
 
   public static void warn(final Object message, final Statement query) {
@@ -120,5 +146,9 @@ public final class QueryLogger {
 
   public static void error(final Object message, final Statement query) {
     log(Level.ERROR, message, query);
+  }
+
+  public static void error(final String message, final String query, final Throwable t) {
+    log(Level.ERROR, message, query, t);
   }
 }

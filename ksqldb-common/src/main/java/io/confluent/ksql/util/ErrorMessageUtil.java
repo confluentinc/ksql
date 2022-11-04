@@ -71,7 +71,13 @@ public final class ErrorMessageUtil {
       return "Could not connect to the server. "
           + "Please check the server details are correct and that the server is running.";
     } else {
-      return e.getMessage() == null ? e.toString() : e.getMessage();
+      final String message;
+      if (e instanceof KsqlStatementException) {
+        message = ((KsqlStatementException) e).getUnloggedMessage();
+      } else {
+        message = e.getMessage();
+      }
+      return message == null ? e.toString() : message;
     }
   }
 

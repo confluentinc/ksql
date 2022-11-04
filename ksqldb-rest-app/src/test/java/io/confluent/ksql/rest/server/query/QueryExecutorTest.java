@@ -220,9 +220,7 @@ public class QueryExecutorTest {
     final String errorMsg =
         "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
         + "Add EMIT CHANGES if you intended to issue a push query.\n"
-        + "Please set ksql.pull.queries.enable=true to enable this feature.\n"
-        + "\n"
-        + "Statement: SELECT * FROM test_stream WHERE ROWKEY='null';";
+        + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
     assertThat(e.getMessage(), is(errorMsg));
   }
 

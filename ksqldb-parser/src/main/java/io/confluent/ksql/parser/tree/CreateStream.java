@@ -22,6 +22,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
@@ -107,13 +108,22 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
 
     wrongKey.ifPresent(col -> {
       final String loc = NodeLocation.asPrefix(col.getLocation());
+      final String fullMessage = loc + "Column " + col.getName() + " is a 'PRIMARY KEY' column: "
+          + "please use 'KEY' for streams."
+          + System.lineSeparator()
+          + "Tables have PRIMARY KEYs, which are unique and NON NULL."
+          + System.lineSeparator()
+          + "Streams have KEYs, which have no uniqueness or NON NULL constraints.";
+      final String sanitizedMessage = loc + "Column is a 'PRIMARY KEY' column: "
+          + "please use 'KEY' for streams."
+          + System.lineSeparator()
+          + "Tables have PRIMARY KEYs, which are unique and NON NULL."
+          + System.lineSeparator()
+          + "Streams have KEYs, which have no uniqueness or NON NULL constraints.";
       throw new ParseFailedException(
-          loc + "Column " + col.getName() + " is a 'PRIMARY KEY' column: "
-              + "please use 'KEY' for streams."
-              + System.lineSeparator()
-              + "Tables have PRIMARY KEYs, which are unique and NON NULL."
-              + System.lineSeparator()
-              + "Streams have KEYs, which have no uniqueness or NON NULL constraints."
+          sanitizedMessage,
+          fullMessage,
+          Objects.toString(col.getName())
       );
     });
   }

@@ -2100,6 +2100,7 @@ public class KsqlResourceTest {
     assertThat(result.getMessage(),
         containsString("Statement is too large to parse. "
             + "This may be caused by having too many nested expressions in the statement."));
+    assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(secondStatement));
   }
 
   @Test

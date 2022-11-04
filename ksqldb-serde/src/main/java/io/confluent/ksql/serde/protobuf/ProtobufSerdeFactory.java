@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.commons.collections.map.UnmodifiableMap;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -247,10 +248,11 @@ final class ProtobufSerdeFactory implements SerdeFactory {
       protobufConfig.put(AbstractKafkaSchemaSerDeConfig.ID_COMPATIBILITY_STRICT, false);
     }
 
-    protobufConfig.put(
-        ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG,
-        properties.getUnwrapPrimitives()
-    );
+    protobufConfig.putAll(ImmutableMap.of(
+        ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives(),
+        ProtobufDataConfig.OPTIONAL_FOR_NULLABLES_CONFIG, properties.isNullableAsOptional(),
+        ProtobufDataConfig.WRAPPER_FOR_NULLABLES_CONFIG, properties.isNullableAsWrapper()
+    ));
 
     final ProtobufConverter converter = new ProtobufConverter(schemaRegistryClient);
     converter.configure(protobufConfig, isKey);

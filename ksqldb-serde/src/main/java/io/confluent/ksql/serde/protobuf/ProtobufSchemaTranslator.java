@@ -110,10 +110,6 @@ public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
         .fromConnectSchema(injectSchemaFullName(schema));
   }
 
-  public Map<String, Object> getConfigs() {
-    return this.updatedConfigs;
-  }
-
   private ProtobufSchema withSchemaFullName(final ProtobufSchema origSchema) {
     return fullNameSchema.map(origSchema::copy).orElse(origSchema);
   }

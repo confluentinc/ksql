@@ -15,8 +15,13 @@
 
 package io.confluent.ksql.test.serde.protobuf;
 
+import static io.confluent.connect.protobuf.ProtobufDataConfig.OPTIONAL_FOR_NULLABLES_CONFIG;
+import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_NULLABLES_CONFIG;
+import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufConverter;
+import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -30,9 +35,15 @@ public class ValueSpecProtobufSerdeSupplier extends ConnectSerdeSupplier<Protobu
 
   private final ProtobufSchemaTranslator schemaTranslator;
 
+  private final ImmutableMap<String, Boolean> converterConfig;
+
   public ValueSpecProtobufSerdeSupplier(final ProtobufProperties protobufProperties) {
     super(ProtobufConverter::new);
     this.schemaTranslator = new ProtobufSchemaTranslator(protobufProperties);
+    this.converterConfig = ImmutableMap.of(
+        OPTIONAL_FOR_NULLABLES_CONFIG, protobufProperties.isNullableAsOptional(),
+        WRAPPER_FOR_NULLABLES_CONFIG, protobufProperties.isNullableAsWrapper()
+    );
   }
 
   @Override
@@ -43,7 +54,7 @@ public class ValueSpecProtobufSerdeSupplier extends ConnectSerdeSupplier<Protobu
   protected void configureConverter(final Converter c, final boolean isKey) {
     c.configure(
         ImmutableMap.<String, Object>builder()
-            .putAll(schemaTranslator.getConfigs())
+            .putAll(converterConfig)
             .put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo")
             .build(),
         isKey

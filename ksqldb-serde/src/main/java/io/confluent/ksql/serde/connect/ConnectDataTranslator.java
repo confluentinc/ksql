@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.common.protocol.types.Field.Str;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -233,6 +234,9 @@ public class ConnectDataTranslator implements DataTranslator {
         return toKsqlStruct(schema, connectSchema, (Struct) convertedValue, pathStr);
       case STRING:
         // use String.valueOf to convert various int types, Struct and Boolean to string
+        if (convertedValue instanceof Struct) {
+          return structToString((Struct) convertedValue);
+        }
         return String.valueOf(convertedValue);
       case BYTES:
         if (convertedValue instanceof byte[]) {
@@ -243,6 +247,27 @@ public class ConnectDataTranslator implements DataTranslator {
       default:
         return convertedValue;
     }
+  }
+
+  private String structToString(Struct input) {
+    StringBuilder sb = new StringBuilder("{");
+    boolean first = true;
+    List<Field> fields = input.schema().fields();
+
+    for (Field field : fields) {
+      Object value = input.get(field);
+      if (value != null) {
+        if (first) {
+          first = false;
+        } else {
+          sb.append(",");
+        }
+
+        sb.append(field.name()).append("=").append(value);
+      }
+    }
+
+    return sb.append("}").toString();
   }
 
   private List<?> toKsqlArray(

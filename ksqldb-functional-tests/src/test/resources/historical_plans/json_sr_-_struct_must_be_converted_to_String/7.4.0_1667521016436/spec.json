@@ -1,0 +1,190 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1667521016436,
+  "path" : "query-validation-tests/json_sr.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`FOO` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`FOO` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "struct must be converted to String",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : {
+          "F0" : 1,
+          "F1" : "bar"
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : "{F0=1,F1=bar}"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "object",
+        "properties" : {
+          "FOO" : {
+            "connect.index" : 0,
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "object",
+              "properties" : {
+                "F0" : {
+                  "connect.index" : 0,
+                  "oneOf" : [ {
+                    "type" : "null"
+                  }, {
+                    "type" : "integer",
+                    "connect.type" : "int32"
+                  } ]
+                },
+                "F1" : {
+                  "connect.index" : 1,
+                  "oneOf" : [ {
+                    "type" : "null"
+                  }, {
+                    "type" : "string"
+                  } ]
+                }
+              }
+            } ]
+          }
+        }
+      },
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM TEST (FOO STRUCT <F0 INT, F1 STRING>) WITH (kafka_topic='test_topic', value_format='JSON_SR', partitions=1);", "CREATE STREAM INPUT (FOO STRING) WITH (kafka_topic='test_topic', value_format='JSON_SR');", "CREATE STREAM OUTPUT as select * from INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`FOO` STRUCT<`F0` INTEGER, `F1` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "object",
+                  "properties" : {
+                    "F0" : {
+                      "connect.index" : 0,
+                      "oneOf" : [ {
+                        "type" : "null"
+                      }, {
+                        "type" : "integer",
+                        "connect.type" : "int32"
+                      } ]
+                    },
+                    "F1" : {
+                      "connect.index" : 1,
+                      "oneOf" : [ {
+                        "type" : "null"
+                      }, {
+                        "type" : "string"
+                      } ]
+                    }
+                  }
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "string"
+                } ]
+              }
+            }
+          }
+        } ]
+      }
+    }
+  }
+}

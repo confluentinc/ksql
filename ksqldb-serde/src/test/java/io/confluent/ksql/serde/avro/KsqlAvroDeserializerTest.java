@@ -1788,7 +1788,7 @@ public class KsqlAvroDeserializerTest {
   }
 
   private static String toStructString (Map<String, Object> map) {
-    StringBuilder sb = new StringBuilder("Struct{");
+    StringBuilder sb = new StringBuilder("{");
     boolean first = true;
 
     for (Map.Entry<String, Object> entry : map.entrySet()) {

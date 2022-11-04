@@ -54,13 +54,13 @@ public class ParserUtilTest {
     when(decimalLiteralContext.getText()).thenReturn("NaN");
 
     // When:
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> ParserUtil.parseDecimalLiteral(decimalLiteralContext)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("line 1:4: Invalid numeric literal: NaN"));
+    assertThat(e.getUnloggedDetails(), containsString("line 1:4: Invalid numeric literal: NaN"));
   }
 
   @Test
@@ -69,13 +69,13 @@ public class ParserUtilTest {
     when(floatLiteralContext.getText()).thenReturn("NaN");
 
     // When:
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> ParserUtil.parseFloatLiteral(floatLiteralContext)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("line 1:4: Not a number: NaN"));
+    assertThat(e.getUnloggedDetails(), containsString("line 1:4: Not a number: NaN"));
   }
 
   @Test
@@ -84,13 +84,13 @@ public class ParserUtilTest {
     when(decimalLiteralContext.getText()).thenReturn("What?");
 
     // When:
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> ParserUtil.parseDecimalLiteral(decimalLiteralContext)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("line 1:4: Invalid numeric literal: What?"));
+    assertThat(e.getUnloggedDetails(), containsString("line 1:4: Invalid numeric literal: What?"));
   }
 
   @Test
@@ -99,13 +99,13 @@ public class ParserUtilTest {
     when(floatLiteralContext.getText()).thenReturn("1.7976931348623159E308");
 
     // When:
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> ParserUtil.parseFloatLiteral(floatLiteralContext)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("line 1:4: Number overflows DOUBLE: 1.7976931348623159E308"));
+    assertThat(e.getUnloggedDetails(), containsString("line 1:4: Number overflows DOUBLE: 1.7976931348623159E308"));
   }
 
   private static void mockLocation(final ParserRuleContext ctx, final int line, final int col) {

@@ -116,7 +116,7 @@ public class CreateTableTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Line: 2, Col: 4: Column `K` is a 'KEY' column: "
+    assertThat(e.getUnloggedMessage(), containsString("Line: 2, Col: 4: Column `K` is a 'KEY' column: "
         + "please use 'PRIMARY KEY' for tables.\n"
         + "Tables have PRIMARY KEYs, which are unique and NON NULL.\n"
         + "Streams have KEYs, which have no uniqueness or NON NULL constraints."));

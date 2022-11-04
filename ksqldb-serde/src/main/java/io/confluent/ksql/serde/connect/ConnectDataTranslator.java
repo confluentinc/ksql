@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.common.protocol.types.Field.Str;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -249,13 +248,13 @@ public class ConnectDataTranslator implements DataTranslator {
     }
   }
 
-  private String structToString(Struct input) {
-    StringBuilder sb = new StringBuilder("{");
+  private String structToString(final Struct input) {
+    final StringBuilder sb = new StringBuilder("{");
     boolean first = true;
-    List<Field> fields = input.schema().fields();
+    final List<Field> fields = input.schema().fields();
 
     for (Field field : fields) {
-      Object value = input.get(field);
+      final Object value = input.get(field);
       if (value != null) {
         if (first) {
           first = false;

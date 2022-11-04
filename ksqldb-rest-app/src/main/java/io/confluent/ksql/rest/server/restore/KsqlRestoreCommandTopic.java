@@ -249,6 +249,9 @@ public class KsqlRestoreCommandTopic {
       backupCommands = loadBackup(backupFile, restoreOptions, serverConfig);
     } catch (final Exception e) {
       System.err.printf("Failed loading backup file.%nError = %s%n", e.getMessage());
+      for (final StackTraceElement s: e.getStackTrace()) {
+        System.err.printf("%s%n", s.toString());
+      }
       systemExit.exit(1);
     }
 
@@ -424,6 +427,7 @@ public class KsqlRestoreCommandTopic {
         final JSONObject queryPlan = plan.getJSONObject("queryPlan");
         queryId = queryPlan.getString("queryId");
         if (hasKey(queryPlan, "runtimeId")
+            && !queryPlan.isNull("runtimeId")
             && ((Optional<String>) queryPlan.get("runtimeId")).isPresent()) {
           streamsProperties.put(
               StreamsConfig.APPLICATION_ID_CONFIG,

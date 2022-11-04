@@ -28,15 +28,13 @@ def parse_changelog(filename, release=None):
 	Parses a list of commits and into a dict mapping commit type to commits of that type.
 	Also performs basic processing on the returned commits (e.g., replacing fork name with Confluent user).
 	Note that blank lines in multiline commit messages are removed as a byproduct of processing.
-
 			Parameters:
 					filename (str): file containing list of commits
 					release (str): if provided, method will validate that the first header corresponds to the expected release
-
 			Returns:
-					commits (dict): maps commit type (str) to dict of commits of that type, where keys are shortened commits 
+					commits (dict): maps commit type (str) to dict of commits of that type, where keys are shortened commits
 									(strings, truncated at the first open parenthesis) and values are the full commits (strings).
-									Note that the commit type is the final line that will be written, e.g., "### Features" rather 
+									Note that the commit type is the final line that will be written, e.g., "### Features" rather
 									than simply "Features"
 	'''
 	log_info('parsing changelog file %s' % filename)
@@ -47,14 +45,12 @@ def _parse_changelog_with_duplicates(filename, release=None):
 	Parses a list of commits and into a dict mapping commit type to commits of that type.
 	Also performs basic processing on the returned commits (e.g., replacing fork name with Confluent user).
 	Note that blank lines in multiline commit messages are removed as a byproduct of processing.
-
 			Parameters:
 					filename (str): file containing list of commits
 					release (str): if provided, method will validate that the first header corresponds to the expected release
-
 			Returns:
 					commits (dict): maps commit type (str) to list of commits (strings) of that type.
-									Note that the commit type is the final line that will be written, e.g., "### Features" rather 
+									Note that the commit type is the final line that will be written, e.g., "### Features" rather
 									than simply "Features"
 	'''
 	with open(filename, 'r') as f:
@@ -74,20 +70,12 @@ def _parse_changelog_with_duplicates(filename, release=None):
 
 			## verify header
 			if _is_header(line):
-				print('line {0} is header'.format(line))
 				if fork_name is None:
 					fork_name = _get_fork_name(line)
-				
-				print("release before version {0}".format(release))
+
 				if found_header:
-					print("found header")
 					continue
-				print("release {0}".format(release))
-				print(" if statetment {0}".format(_get_version(line).find(release)))
-				print("getVersion = {0}, release = {1}".format(_get_version(line), release))
-				version = _get_version(line)
-				if version.startswith(release):
-					print("found match")
+				if _get_version(line).startswith(release):
 					found_header = True
 				continue
 			assert found_header, 'could not find header for expected release'
@@ -126,27 +114,21 @@ def _is_breaking_change(type):
 def _get_version(header):
 	'''
 	Returns release version from the header.
-
 			Parameters:
 					header (str): A header line from the raw commits file, e.g., "## [5.3.1-rc190904141854](https://github.com/vcrfxia/ksql/compare/v5.3.1...v5.3.1-rc190904141854) (2019-09-04)"
-
 			Returns:
 					release_version (str): Release version extracted from the header, e.g., "5.3.1-rc190904141854" in the example above.
 	'''
 	left_bracket = header.index('[')
 	right_bracket = header.index(']')
-	print('line {0} left {1}, right {2} '.format(header, left_bracket, right_bracket))
 	assert left_bracket < right_bracket, 'malformed header'
-	print('line {0} get_Version {1} '.format(header, header[left_bracket + 1:right_bracket]))
 	return header[left_bracket + 1:right_bracket]
 
 def _get_fork_name(header):
 	'''
 	Returns fork name from the header.
-
 			Parameters:
 					header (str): A header line from the raw commits file, e.g., "# [](https://github.com/vcrfxia/ksql/compare/v5.5.0-rc200418032830...v) (2020-05-04)"
-
 			Returns:
 					fork_name (str): Repo fork name extracted from the header, e.g., "vcrfxia" in the example above.
 	'''
@@ -162,13 +144,11 @@ def _reformat_and_remove_duplicates(commits_by_type):
 	'''
 	Removes duplicate commits from the supplied dictionary of commits. Duplicates are determined based on prefix until the first
 	open parenthesis in the commit message, if present, else the entire commit message is used for comparison.
-
 			Parameters:
 					commits_by_type (dict): dictionary of commits where keys are commit type (str) and
 											values are lists of commits (strings) of that type.
-
 			Returns:
-					unique_commits_by_type (dict): maps commit type (str) to dict of commits of that type, where keys are shortened commits 
+					unique_commits_by_type (dict): maps commit type (str) to dict of commits of that type, where keys are shortened commits
 												   (strings, truncated at the first open parenthesis) and values are the full commits (strings).
 	'''
 	unique_commits_by_type = {}
@@ -188,13 +168,11 @@ def _process_commit_line(fork_name, line, is_first, is_breaking_change):
 	'''
 	Performs basic processing on a commit line, including updating the repo fork name to be that of the main Confluent repo,
 	and correcting pull request links to point to pull requests rather than issues.
-
 			Parameters:
 					fork_name (str): repo fork name to be replaced.
 					line (str): the commit line to process.
 					is_first (bool): whether the line is the first line of a commit. Pull request links will only be updated if so.
 					is_breaking_change (bool): whether the line is part of a breaking change message. Pull request links will only be updated if not the case.
-
 			Returns:
 					processed_line (str): commit line after processing.
 	'''
@@ -220,13 +198,11 @@ def _process_commit_line(fork_name, line, is_first, is_breaking_change):
 def get_diff(all_commits_by_type, old_commits_by_type):
 	'''
 	Returns new commits, i.e., those in <all_commits_by_type> but not <old_commits_by_type>.
-
 			Parameters:
 					all_commits_by_type (dict): dictionary of commits where keys are commit type (str) and
-												values are an (ordered) dict of commits of that type, where keys are shortened commits 
+												values are an (ordered) dict of commits of that type, where keys are shortened commits
 												(strings, for purposes of deduplication) and values are the full commits (strings).
 					old_commits_by_type (dict): same format as above.
-
 			Returns:
 					new_commits_by_type (dict): commits present in <all_commits_by_type> but not <old_commits_by_type>.
 												Format is a dictionary of commits where keys are commit type (str) and
@@ -244,13 +220,11 @@ def _get_diff_commits(all_commits, old_commits):
 	Returns new commits, i.e., those in <all_commits> but not <old_commits>.
 	This method de-dups based on the shortened commits (dict keys) in order to avoid duplicates caused
 	by commits being cherry-picked to different branches, which causes the full commit message to differ
-	as the commit SHAs differ in this case. 
-
+	as the commit SHAs differ in this case.
 			Parameters:
-					all_commits (dict): dictionary of commits where keys are shortened commits (strings, for 
+					all_commits (dict): dictionary of commits where keys are shortened commits (strings, for
 										purposes of deduplication) and values are the full commits (strings).
 					old_commits (dict): same format as above.
-
 			Returns:
 					new_commits (list): commits present in <all_commits> but not <old_commits>.
 										Format is a list of commits (strings).
@@ -277,7 +251,6 @@ def write_output(filename, release_version, commits_by_type):
 	'''
 	Formats and writes commits to the specific output file. Sections for the different commit types
 	will appear first in the order specified by <COMMIT_TYPE_ORDER>, followed by any other remaining sections.
-
 			Parameters:
 					filename (str): output file name.
 					release_version (str): release version which will appear in output header
@@ -311,12 +284,10 @@ def _find_commit_type(commit_type, commits_by_type):
 	'''
 	Finds a key in <commits_by_type> dict corresponding to the specified <commit_type>, if present.
 	A key is considered a match if the specified <commit_type> is a substring of the key.
-
 			Parameters:
 					commit_type (str): commit type to search for.
 					commits_by_type (dict): dictionary of commits where keys are commit type (str) and
 											values are lists of commits (strings) of that type.
-
 			Returns:
 					full_commit_type (str): key in <commits_by_type> corresponding to commit_type, if found; else, None.
 	'''
@@ -328,10 +299,8 @@ def _find_commit_type(commit_type, commits_by_type):
 def _generate_header(release):
 	'''
 	Generate header for output changelog section.
-
 			Parameters:
 					release (str): new releae version, to be included in header. ex: "0.8.1"
-
 			Returns:
 					header (str): header for output changelog. ex: "## [0.8.1](https://github.com/confluentinc/ksql/releases/tag/v0.8.1-ksqldb) (2020-03-30)"
 	'''
@@ -367,4 +336,3 @@ if __name__ == '__main__':
 	new_commits = get_diff(all_commits, old_commits)
 
 	write_output(args.output_file, args.release_version, new_commits)
-

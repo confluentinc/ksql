@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CommonCreateConfigs.ProtobufNullableConfigValues;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -154,6 +155,22 @@ public final class CreateSourceAsProperties {
       builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
+    final String nullableRep = props.getString(
+        CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION);
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && nullableRep != null) {
+      switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
+        case WRAPPER:
+          builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+              ProtobufProperties.NULLABLE_AS_WRAPPER);
+          break;
+        case OPTIONAL:
+          builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+              ProtobufProperties.NULLABLE_AS_OPTIONAL);
+          break;
+        default:
+      }
+    }
+
     final Optional<Integer> keySchemaId = getKeySchemaId();
     keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
@@ -178,6 +195,22 @@ public final class CreateSourceAsProperties {
 
     if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && unwrapProtobufPrimitives) {
       builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
+    }
+
+    final String nullableRep = props.getString(
+        CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION);
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && nullableRep != null) {
+      switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
+        case WRAPPER:
+          builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+              ProtobufProperties.NULLABLE_AS_WRAPPER);
+          break;
+        case OPTIONAL:
+          builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+              ProtobufProperties.NULLABLE_AS_OPTIONAL);
+          break;
+        default:
+      }
     }
 
     final Optional<Integer> valueSchemaId = getValueSchemaId();

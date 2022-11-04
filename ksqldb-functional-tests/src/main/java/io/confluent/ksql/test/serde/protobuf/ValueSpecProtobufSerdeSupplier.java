@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.test.serde.protobuf;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufConverter;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.serde.protobuf.ProtobufSchemaTranslator;
 import io.confluent.ksql.test.serde.ConnectSerdeSupplier;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.storage.Converter;
 
 public class ValueSpecProtobufSerdeSupplier extends ConnectSerdeSupplier<ProtobufSchema> {
 
@@ -35,4 +39,15 @@ public class ValueSpecProtobufSerdeSupplier extends ConnectSerdeSupplier<Protobu
   protected Schema fromParsedSchema(final ProtobufSchema schema) {
     return schemaTranslator.toConnectSchema(schema);
   }
+
+  protected void configureConverter(final Converter c, final boolean isKey) {
+    c.configure(
+        ImmutableMap.<String, Object>builder()
+            .putAll(schemaTranslator.getConfigs())
+            .put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo")
+            .build(),
+        isKey
+    );
+  }
+
 }

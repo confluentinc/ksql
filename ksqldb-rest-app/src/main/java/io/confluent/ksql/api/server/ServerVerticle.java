@@ -20,6 +20,8 @@ import static io.confluent.ksql.api.server.OldApiUtils.handleOldApiRequest;
 import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.KsqlLang;
+import io.confluent.ksql.KsqlSimpleExecutor;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -133,6 +135,23 @@ public class ServerVerticle extends AbstractVerticle {
     AuthHandlers.setupAuthHandlers(server, router, isInternalListener.orElse(false));
 
     router.route().handler(new ServerStateHandler(server.getServerState()));
+
+    final KsqlLang ksqlLang = new KsqlLang();
+    final KsqlSimpleExecutor ksqlSimpleExecutor = new KsqlSimpleExecutor();
+    router.route(HttpMethod.POST, "/v2/ksql")
+        .produces(MediaType.APPLICATION_JSON)
+//        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .handler(BodyHandler.create(false))
+        .handler(new V2Handler(
+                endpoints,
+                connectionQueryManager,
+                context,
+                server,
+                false,
+                ksqlLang,
+                ksqlSimpleExecutor
+            )
+        );
 
     // The new query and insert streaming API
     // --------------------------------------

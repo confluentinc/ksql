@@ -80,6 +80,7 @@ public class FailureHandler implements Handler<RoutingContext> {
   private static void handleError(final HttpServerResponse response, final int statusCode,
       final int errorCode, final String errMsg, final Optional<String> statement) {
     if (statement.isPresent()) {
+      response.putHeader("content-type", "application/json");
       final KsqlStatementErrorMessage errorResponse = new KsqlStatementErrorMessage(
           errorCode, errMsg, statement.get(), new KsqlEntityList());
       final Buffer buffer = ServerUtils.serializeObject(errorResponse);

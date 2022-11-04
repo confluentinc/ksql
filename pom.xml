@@ -52,6 +52,7 @@
         <module>ksqldb-udf-quickstart</module>
         <module>ksqldb-serde</module>
         <module>ksqldb-metastore</module>
+        <module>ksqldb-lang-front-end</module>
         <module>ksqldb-execution</module>
         <module>ksqldb-parser</module>
         <module>ksqldb-streams</module>
@@ -358,6 +359,31 @@
             </dependency>
 
             <!-- End Confluent dependencies -->
+
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-core</artifactId>
+                <version>1.30.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-server</artifactId>
+                <version>1.30.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-plus</artifactId>
+                <version>1.30.0</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-kafka</artifactId>
+                <version>1.30.0</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.github.rvesse</groupId>

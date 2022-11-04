@@ -153,7 +153,8 @@ public final class RestoreCommandsCompactor {
               // hitting a known bug that wrote IF NOT EXISTS statements to the command topic.
               // See https://github.com/confluentinc/ksql/issues/8173
               if (createAsIfNotExistsBugDetection.contains(sourceName)) {
-                QueryLogger.warn("A known bug is found while restoring the command topic. The restoring "
+                QueryLogger.warn(
+                    "A known bug is found while restoring the command topic. The restoring "
                     + "process will continue, but the query of the affected stream or table won't "
                     + "be executed until https://github.com/confluentinc/ksql/issues/8173 "
                     + "is fixed.", command.getStatement());

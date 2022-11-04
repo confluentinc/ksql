@@ -152,7 +152,6 @@ public class KsqlRequest {
     return "KsqlRequest{"
         + "configOverrides=" + configOverrides
         + ", requestProperties=" + requestProperties
-        + ", sessionVariables=" + sessionVariables
         + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';
   }

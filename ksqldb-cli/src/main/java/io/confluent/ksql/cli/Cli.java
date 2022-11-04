@@ -271,7 +271,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       LOGGER.error("An error occurred while running a script file. Error = "
           + exception.getMessage(), exception);
 
-      terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
+      terminal.printError(ErrorMessageUtil.buildErrorMessageWithStatements(exception),
           exception.toString());
     }
 
@@ -296,7 +296,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       LOGGER.error("An error occurred while running a command. Error = "
           + exception.getMessage(), exception);
 
-      terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
+      terminal.printError(ErrorMessageUtil.buildErrorMessageWithStatements(exception),
           exception.toString());
     }
 
@@ -319,7 +319,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       } catch (final Exception exception) {
         LOGGER.error("An error occurred while running a command. Error = "
             + exception.getMessage(), exception);
-        terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
+        terminal.printError(ErrorMessageUtil.buildErrorMessageWithStatements(exception),
             exception.toString());
       }
       terminal.flush();

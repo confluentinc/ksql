@@ -608,6 +608,7 @@ public class KsqlParserTest {
     } catch (final ParseFailedException e) {
       final String errorMessage = e.getMessage();
       Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
+      Assert.assertTrue(e.getSqlStatement().contains(("SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100")));
     }
   }
 
@@ -1206,13 +1207,14 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT ONLY, COLUMNS;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("line 1:21: extraneous input ';' expecting {',', 'FROM'}"));
+    assertThat(e.getSqlStatement(), containsString("SELECT ONLY, COLUMNS"));
   }
 
   @Test
@@ -1221,13 +1223,14 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT A B C FROM address;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("line 1:12: extraneous input 'C' expecting"));
+    assertThat(e.getSqlStatement(), containsString("SELECT A B C FROM address"));
   }
 
   @Test
@@ -1237,13 +1240,14 @@ public class KsqlParserTest {
             "  WITH (kafka_topic='ords', value_format='json');";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
             ParseFailedException.class,
             () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
+    assertThat(e.getSqlStatement(), containsString("CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)"));
   }
 
   @Test
@@ -1280,13 +1284,14 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT * FROM address, itemid;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("line 1:22: mismatched input ',' expecting"));
+    assertThat(e.getSqlStatement(), containsString("SELECT * FROM address, itemid;"));
   }
 
   @Test

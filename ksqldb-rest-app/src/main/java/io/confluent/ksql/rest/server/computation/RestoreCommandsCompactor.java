@@ -19,6 +19,7 @@ import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
@@ -152,10 +153,11 @@ public final class RestoreCommandsCompactor {
               // hitting a known bug that wrote IF NOT EXISTS statements to the command topic.
               // See https://github.com/confluentinc/ksql/issues/8173
               if (createAsIfNotExistsBugDetection.contains(sourceName)) {
-                LOG.warn("A known bug is found while restoring the command topic. The restoring "
+                QueryLogger.warn(
+                    "A known bug is found while restoring the command topic. The restoring "
                     + "process will continue, but the query of the affected stream or table won't "
                     + "be executed until https://github.com/confluentinc/ksql/issues/8173 "
-                    + "is fixed. Invalid statement is: " + command.getStatement());
+                    + "is fixed.", command.getStatement());
               }
             }
 

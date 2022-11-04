@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.logicalplanner.LogicalPlan;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -220,10 +221,11 @@ final class EngineExecutor {
     // must be executed.
     if (persistentQueryType == KsqlConstants.PersistentQueryType.CREATE_SOURCE
         && !isSourceTableMaterializationEnabled()) {
-      LOG.info(String.format(
-          "Source table query '%s' won't be materialized because '%s' is disabled.",
-          plan.getStatementText(),
-          KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED));
+      final String message = String.format(
+          "Source table query won't be materialized because '%s' is disabled.",
+          KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED
+      );
+      QueryLogger.info(message, plan.getStatementText());
       return ExecuteResult.of(ddlResult.get());
     }
 

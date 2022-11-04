@@ -148,6 +148,15 @@ public class KsqlRequest {
         + '}';
   }
 
+  // Skip session variables as well since they can contain sensitive info
+  public String toStringWithoutQuery() {
+    return "KsqlRequest{"
+        + "configOverrides=" + configOverrides
+        + ", requestProperties=" + requestProperties
+        + ", commandSequenceNumber=" + commandSequenceNumber
+        + '}';
+  }
+
   /**
    * Converts all Class references values to their canonical String value.
    * </p>

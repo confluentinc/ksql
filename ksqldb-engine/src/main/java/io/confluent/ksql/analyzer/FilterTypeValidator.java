@@ -53,9 +53,15 @@ public final class FilterTypeValidator {
   public void validateFilterExpression(final Expression exp) {
     final SqlType type = getExpressionReturnType(exp);
     if (!SqlTypes.BOOLEAN.equals(type)) {
-      throw new KsqlException("Type error in " + filterType.name() + " expression: "
+      throw new KsqlStatementException(
+          "Type error in " + filterType.name() + " expression: "
+          + "Should evaluate to boolean but is"
+          + " (" + type.toString(FormatOptions.none()) + ") instead.",
+          "Type error in " + filterType.name() + " expression: "
           + "Should evaluate to boolean but is " + exp.toString()
-          + " (" + type.toString(FormatOptions.none()) + ") instead.");
+          + " (" + type.toString(FormatOptions.none()) + ") instead.",
+          exp.toString()
+      );
     }
   }
 
@@ -71,9 +77,18 @@ public final class FilterTypeValidator {
 
     try {
       return expressionTypeManager.getExpressionSqlType(magicTimestampRewrite);
+    } catch (KsqlStatementException e) {
+      throw new KsqlStatementException(
+          "Error in " + filterType.name() + " expression",
+          "Error in " + filterType.name() + " expression: " + e.getUnloggedMessage(),
+          exp.toString()
+      );
     } catch (KsqlException e) {
-      throw new KsqlStatementException("Error in " + filterType.name() + " expression: "
-          + e.getMessage(), exp.toString());
+      throw new KsqlStatementException(
+          "Error in " + filterType.name() + " expression",
+          "Error in " + filterType.name() + " expression: " + e.getMessage(),
+          exp.toString()
+      );
     }
   }
 

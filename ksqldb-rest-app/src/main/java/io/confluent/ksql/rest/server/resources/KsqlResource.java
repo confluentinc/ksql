@@ -269,14 +269,18 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  // CHECKSTYLE_RULES.OFF: JavaNCSS
   public EndpointResponse handleKsqlStatements(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
+    // CHECKSTYLE_RULES.ON: JavaNCSS
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
     ApiServerUtils.setMaskedSqlIfNeeded(request);
 
-    LOG.info("Received: " + request);
+    QueryLogger.info("Received: " + request.toStringWithoutQuery(), request.getMaskedKsql());
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -329,24 +333,53 @@ public class KsqlResource implements KsqlConfigurable {
           )
       );
 
-      LOG.info("Processed successfully: " + request);
+      QueryLogger.info(
+          "Processed successfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql()
+      );
       addCommandRunnerWarning(
           entities,
           commandRunnerWarning);
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      QueryLogger.info(
+          "Processed unsuccessfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql(),
+          e
+      );
       throw e;
     } catch (final KsqlStatementException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
-      return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
+      QueryLogger.info(
+          "Processed unsuccessfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql(),
+          e
+      );
+      final EndpointResponse response;
+      if (e.getProblem() == KsqlStatementException.Problem.STATEMENT) {
+        response = Errors.badStatement(e.getRawUnloggedDetails(), e.getSqlStatement());
+      } else if (e.getProblem() == KsqlStatementException.Problem.OTHER) {
+        response = Errors.serverErrorForStatement(e, e.getSqlStatement());
+      } else {
+        response = Errors.badRequest(e);
+      }
+      return errorHandler.generateResponse(e, response);
     } catch (final KsqlException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      QueryLogger.info(
+          "Processed unsuccessfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql(),
+          e
+      );
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      QueryLogger.info(
+          "Processed unsuccessfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql(),
+          e
+      );
       return errorHandler.generateResponse(
-          e, Errors.serverErrorForStatement(e, request.getMaskedKsql()));
+          e,
+          Errors.serverErrorForStatement(e, request.getMaskedKsql())
+      );
     }
   }
 

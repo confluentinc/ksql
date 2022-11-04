@@ -26,6 +26,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -164,7 +165,7 @@ public class KsqlContext implements AutoCloseable {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         queryMetadata.start();
       } else {
-        LOG.warn("Ignoring statemenst: {}", sql);
+        QueryLogger.warn("Ignoring statement", sql);
         LOG.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }

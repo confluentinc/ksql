@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -92,7 +91,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
     } catch (Exception e) {
       throw new KsqlStatementException(
           e.getMessage() == null
-              ? "Server Error" + Arrays.toString(e.getStackTrace())
+              ? "Server Error"
               : e.getMessage(),
           statement.getMaskedStatementText(),
           e

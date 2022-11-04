@@ -79,6 +79,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.Collections;
 import java.util.List;
@@ -233,10 +234,15 @@ public class ExpressionTypeManager {
       final SqlType rightSchema = context.getSqlType();
 
       if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
-        throw new KsqlException("Cannot compare "
-            + node.getLeft().toString() + " (" + leftSchema.toString() + ") to "
-            + node.getRight().toString() + " (" + rightSchema.toString() + ") "
-            + "with " + node.getType() + ".");
+        throw new KsqlStatementException(
+            "Cannot compare " + leftSchema + " to " + rightSchema + " "
+            + "with " + node.getType() + ".",
+            "Cannot compare "
+            + node.getLeft().toString() + " (" + leftSchema + ") to "
+            + node.getRight().toString() + " (" + rightSchema + ") "
+            + "with " + node.getType() + ".",
+            node.toString()
+        );
       }
       context.setSqlType(SqlTypes.BOOLEAN);
       return null;

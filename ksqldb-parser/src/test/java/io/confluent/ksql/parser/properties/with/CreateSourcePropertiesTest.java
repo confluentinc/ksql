@@ -20,17 +20,20 @@ import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_SIZE_PROPERTY;
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_TYPE_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
@@ -49,6 +52,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CommonCreateConfigs.ProtobufNullableConfigValues;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
@@ -779,5 +783,140 @@ public class CreateSourcePropertiesTest {
     assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
     assertThat(props.getValueFormat().get().getProperties(),
         not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithNullableAsWrapper() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(KEY_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.WRAPPER.name()))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(
+            SourceName.of("foo")).get().getProperties(),
+        hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
+            ProtobufProperties.NULLABLE_AS_WRAPPER));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithNullableAsOptional() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(KEY_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.OPTIONAL.name()))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(
+            SourceName.of("foo")).get().getProperties(),
+        hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
+            ProtobufProperties.NULLABLE_AS_OPTIONAL));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithoutNullableRepresentation() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(
+            SourceName.of("foo")).get().getProperties(),
+        not(hasKey(ProtobufProperties.NULLABLE_REPRESENTATION)));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithNullableAsWrapper() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(VALUE_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.WRAPPER.name()))
+            .build());
+
+    // When / Then:
+    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getProperties(),
+        hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
+            ProtobufProperties.NULLABLE_AS_WRAPPER));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithNullableAsOptional() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(VALUE_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.OPTIONAL.name()))
+            .build());
+
+    // When / Then:
+    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getProperties(),
+        hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
+            ProtobufProperties.NULLABLE_AS_OPTIONAL));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithoutNullableRepresentation() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .build());
+
+    // When / Then:
+    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getProperties(),
+        not(hasKey(ProtobufProperties.NULLABLE_REPRESENTATION)));
+  }
+
+  @Test
+  public void shouldFailWhenProtobufPropertiesAreUsedOnOtherKeyFormats() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties.from(
+        ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("JSON"),
+            KEY_PROTOBUF_NULLABLE_REPRESENTATION,
+            new StringLiteral(ProtobufNullableConfigValues.OPTIONAL.name())));
+
+    // When / Then:
+    final Exception e = assertThrows(KsqlException.class,
+        () -> props.getKeyFormatProperties("", "JSON"));
+    assertThat(e.getMessage(), is(equalTo(
+        "Property KEY_PROTOBUF_NULLABLE_REPRESENTATION can only be enabled with protobuf format")));
+  }
+
+  @Test
+  public void shouldFailWhenProtobufPropertiesAreUsedOnOtherValueFormats() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties.from(
+        ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("JSON"),
+            VALUE_PROTOBUF_NULLABLE_REPRESENTATION,
+            new StringLiteral(ProtobufNullableConfigValues.OPTIONAL.name())));
+
+    // When / Then:
+    final Exception e = assertThrows(KsqlException.class,
+        () -> props.getValueFormatProperties("JSON"));
+    assertThat(e.getMessage(), is(equalTo(
+        "Property VALUE_PROTOBUF_NULLABLE_REPRESENTATION can only be enabled with protobuf format")));
   }
 }

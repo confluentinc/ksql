@@ -19,15 +19,18 @@ import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
@@ -43,6 +46,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CommonCreateConfigs.ProtobufNullableConfigValues;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -476,5 +480,122 @@ public class CreateSourceAsPropertiesTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Invalid config variable(s) in the WITH clause: SOURCED_BY_CONNECTOR"));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithNullableAsWrapper() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            FORMAT_PROPERTY, new StringLiteral("PROTOBUF"),
+            KEY_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.WRAPPER.name())
+        ));
+
+    // When / Then:
+    assertThat(props.getKeyFormatProperties("foo", "PROTOBUF"),
+        hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
+            ProtobufProperties.NULLABLE_AS_WRAPPER));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithNullableAsOptional() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            FORMAT_PROPERTY, new StringLiteral("PROTOBUF"),
+            KEY_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.OPTIONAL.name())));
+
+    // When / Then:
+    assertThat(props.getKeyFormatProperties("foo", "PROTOBUF"),
+        hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
+            ProtobufProperties.NULLABLE_AS_OPTIONAL));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithoutNullableRepresentation() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")));
+
+    // When / Then:
+    assertThat(props.getKeyFormatProperties("foo", "PROTOBUF"),
+        not(hasKey(ProtobufProperties.NULLABLE_REPRESENTATION)));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithNullableAsWrapper() {
+    // Given:
+
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            FORMAT_PROPERTY, new StringLiteral("PROTOBUF"),
+            VALUE_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.WRAPPER.name())));
+
+    // When / Then:
+    assertThat(props.getValueFormatProperties("PROTOBUF"),
+        hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
+            ProtobufProperties.NULLABLE_AS_WRAPPER));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithNullableAsOptional() {
+    // Given:
+
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            FORMAT_PROPERTY, new StringLiteral("PROTOBUF"),
+            VALUE_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.OPTIONAL.name())));
+
+    // When / Then:
+    assertThat(props.getValueFormatProperties("PROTOBUF"),
+        hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
+            ProtobufProperties.NULLABLE_AS_OPTIONAL));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithoutNullableRepresentation() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")));
+
+    // When / Then:
+    assertThat(props.getValueFormatProperties("PROTOBUF"),
+        not(hasKey(ProtobufProperties.NULLABLE_REPRESENTATION)));
+  }
+
+  @Test
+  public void shouldFailWhenProtobufPropertiesAreUsedOnOtherKeyFormats() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            FORMAT_PROPERTY, new StringLiteral("JSON"),
+            KEY_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.OPTIONAL.name())));
+
+    // When / Then:
+    final Exception e = assertThrows(KsqlException.class,
+        () -> props.getKeyFormatProperties("", "JSON"));
+    assertThat(e.getMessage(), is(equalTo(
+        "Property KEY_PROTOBUF_NULLABLE_REPRESENTATION can only be enabled with protobuf format")));
+  }
+
+  @Test
+  public void shouldFailWhenProtobufPropertiesAreUsedOnOtherValueFormats() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            FORMAT_PROPERTY, new StringLiteral("JSON"),
+            VALUE_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.OPTIONAL.name())));
+
+    // When / Then:
+    final Exception e = assertThrows(KsqlException.class,
+        () -> props.getValueFormatProperties("JSON"));
+    assertThat(e.getMessage(), is(equalTo(
+        "Property VALUE_PROTOBUF_NULLABLE_REPRESENTATION can only be enabled with protobuf format")));
   }
 }

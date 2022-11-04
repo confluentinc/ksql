@@ -90,7 +90,8 @@ public final class AssertExecutor {
           ),
           "key format properties",
           CommonCreateConfigs.KEY_DELIMITER_PROPERTY,
-          CommonCreateConfigs.KEY_SCHEMA_FULL_NAME
+          CommonCreateConfigs.KEY_SCHEMA_FULL_NAME,
+          CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
           (cs, cfg) -> cs.getProperties().getValueFormat().map(FormatInfo::getFormat)
@@ -107,7 +108,8 @@ public final class AssertExecutor {
           "value format properties",
           CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME,
           CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME,
-          CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
+          CommonCreateConfigs.VALUE_DELIMITER_PROPERTY,
+          CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getProperties()
               .get(CommonCreateConfigs.VALUE_SCHEMA_ID),

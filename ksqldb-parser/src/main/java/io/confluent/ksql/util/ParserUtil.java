@@ -74,8 +74,9 @@ public final class ParserUtil {
     if (!VALID_SOURCE_NAMES.matcher(text).matches()) {
       throw new ParseFailedException(
           "Illegal argument at " + getLocation(sourceName).map(NodeLocation::toString).orElse("?")
-              + ". Source names may only contain alphanumeric values, '_' or '-'. Got: '"
-              + text + "'");
+              + ". Source names may only contain alphanumeric values, '_' or '-'.",
+          text
+      );
     }
     return SourceName.of(text);
   }

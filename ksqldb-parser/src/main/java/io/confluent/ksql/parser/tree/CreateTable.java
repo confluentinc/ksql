@@ -22,6 +22,8 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+
+import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
@@ -107,12 +109,13 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
     wrongKey.ifPresent(col -> {
       final String loc = NodeLocation.asPrefix(col.getLocation());
       throw new ParseFailedException(
-          loc + "Column " + col.getName() + " is a 'KEY' column: "
+          loc + "Column is a 'KEY' column: "
               + "please use 'PRIMARY KEY' for tables."
               + System.lineSeparator()
               + "Tables have PRIMARY KEYs, which are unique and NON NULL."
               + System.lineSeparator()
-              + "Streams have KEYs, which have no uniqueness or NON NULL constraints."
+              + "Streams have KEYs, which have no uniqueness or NON NULL constraints.",
+          Objects.toString(col.getName())
       );
     });
   }

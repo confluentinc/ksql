@@ -19,10 +19,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 
 public class ParseFailedException extends KsqlStatementException {
 
-  public ParseFailedException(final String message) {
-    super(message, "");
-  }
-
   public ParseFailedException(final String message, final String sqlStatement) {
     super(message, sqlStatement);
   }

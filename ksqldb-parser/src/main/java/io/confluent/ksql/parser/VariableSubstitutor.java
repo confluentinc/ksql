@@ -198,7 +198,7 @@ public final class VariableSubstitutor {
         throw new ParseFailedException(
             "Illegal argument at " + location.map(NodeLocation::toString).orElse("?")
                 + ". Identifier names cannot start with '@' and may only contain alphanumeric "
-                + "values and '_'. Got: '" + value + "'",
+                + "values and '_'.",
             statementText);
       }
     }
@@ -223,8 +223,7 @@ public final class VariableSubstitutor {
       }
 
       throw new ParseFailedException(
-          "Illegal argument at " + location.map(NodeLocation::toString).orElse("?")
-              + ". Got: '" + value + "'",
+          "Illegal argument at " + location.map(NodeLocation::toString).orElse("?") + ".",
           statementText);
     }
 

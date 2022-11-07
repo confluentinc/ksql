@@ -17,12 +17,9 @@ package io.confluent.ksql.test.serde.protobuf;
 
 import static io.confluent.connect.protobuf.ProtobufDataConfig.OPTIONAL_FOR_NULLABLES_CONFIG;
 import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_NULLABLES_CONFIG;
-import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufConverter;
-import io.confluent.connect.protobuf.ProtobufDataConfig;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;

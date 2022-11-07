@@ -30,6 +30,7 @@ import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
@@ -564,5 +565,37 @@ public class CreateSourceAsPropertiesTest {
     // When / Then:
     assertThat(props.getValueFormatProperties("PROTOBUF"),
         not(hasKey(ProtobufProperties.NULLABLE_REPRESENTATION)));
+  }
+
+  @Test
+  public void shouldFailWhenProtobufPropertiesAreUsedOnOtherKeyFormats() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            FORMAT_PROPERTY, new StringLiteral("JSON"),
+            KEY_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.OPTIONAL.name())));
+
+    // When / Then:
+    final Exception e = assertThrows(KsqlException.class,
+        () -> props.getKeyFormatProperties("", "JSON"));
+    assertThat(e.getMessage(), is(equalTo(
+        "Property KEY_PROTOBUF_NULLABLE_REPRESENTATION can only be enabled with protobuf format")));
+  }
+
+  @Test
+  public void shouldFailWhenProtobufPropertiesAreUsedOnOtherValueFormats() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            FORMAT_PROPERTY, new StringLiteral("JSON"),
+            VALUE_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
+                ProtobufNullableConfigValues.OPTIONAL.name())));
+
+    // When / Then:
+    final Exception e = assertThrows(KsqlException.class,
+        () -> props.getValueFormatProperties("JSON"));
+    assertThat(e.getMessage(), is(equalTo(
+        "Property VALUE_PROTOBUF_NULLABLE_REPRESENTATION can only be enabled with protobuf format")));
   }
 }

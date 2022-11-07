@@ -92,7 +92,27 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"i": 0, "l": 0, "d": 0.0, "b": false, "s": ""}},
         {"topic": "OUTPUT", "value": {"i": 0, "l": 0, "d": 0.0, "b": false, "s": ""}}
-      ]
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 I = 1;\n  int64 L = 2;\n  double D = 3;\n  bool B = 4;\n  string S = 5;\n}\n"
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 I = 1;\n  int64 L = 2;\n  double D = 3;\n  bool B = 4;\n  string S = 5;\n}\n"
+            }
+          ]
+        }
+      }
     },
     {
       "name": "protobuf primitives with null and nullable as optional",
@@ -107,7 +127,27 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
         {"topic": "OUTPUT", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
-      ]
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "optional"}},
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  optional int32 I = 1 [deprecated = false];\n  optional int64 L = 2 [deprecated = false];\n  optional double D = 3 [deprecated = false];\n  optional bool B = 4 [deprecated = false];\n  optional string S = 5 [deprecated = false];\n}\n"
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "optional"}},
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  optional int32 I = 1 [deprecated = false];\n  optional int64 L = 2 [deprecated = false];\n  optional double D = 3 [deprecated = false];\n  optional bool B = 4 [deprecated = false];\n  optional string S = 5 [deprecated = false];\n}\n"
+            }
+          ]
+        }
+      }
     },
     {
       "name": "protobuf primitives with null and nullable as wrapper",
@@ -122,7 +162,27 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
         {"topic": "OUTPUT", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
-      ]
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "wrapper"}},
+              "valueSchema": "syntax = \"proto3\";\n\nimport \"google/protobuf/wrappers.proto\";\n\nmessage ConnectDefault1 {\n  google.protobuf.Int32Value I = 1;\n  google.protobuf.Int64Value L = 2;\n  google.protobuf.DoubleValue D = 3;\n  google.protobuf.BoolValue B = 4;\n  google.protobuf.StringValue S = 5;\n}\n"
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "wrapper"}},
+              "valueSchema": "syntax = \"proto3\";\n\nimport \"google/protobuf/wrappers.proto\";\n\nmessage ConnectDefault1 {\n  google.protobuf.Int32Value I = 1;\n  google.protobuf.Int64Value L = 2;\n  google.protobuf.DoubleValue D = 3;\n  google.protobuf.BoolValue B = 4;\n  google.protobuf.StringValue S = 5;\n}\n"
+            }
+          ]
+        }
+      }
     },
     {
       "name": "protobuf containers",

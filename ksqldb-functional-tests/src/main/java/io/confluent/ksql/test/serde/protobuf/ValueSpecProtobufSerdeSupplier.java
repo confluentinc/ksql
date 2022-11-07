@@ -51,6 +51,7 @@ public class ValueSpecProtobufSerdeSupplier extends ConnectSerdeSupplier<Protobu
     return schemaTranslator.toConnectSchema(schema);
   }
 
+  @Override
   protected void configureConverter(final Converter c, final boolean isKey) {
     c.configure(
         ImmutableMap.<String, Object>builder()

@@ -151,25 +151,40 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
-    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && unwrapProtobufPrimitives) {
-      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
-    }
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat)) {
 
-    final String nullableRep = props.getString(
-        CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION);
-    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && nullableRep != null) {
-      switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
-        case WRAPPER:
-          builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
-              ProtobufProperties.NULLABLE_AS_WRAPPER);
-          break;
-        case OPTIONAL:
-          builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
-              ProtobufProperties.NULLABLE_AS_OPTIONAL);
-          break;
-        default:
+      if (unwrapProtobufPrimitives) {
+        builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
+      }
+
+      final String nullableRep = props.getString(
+          CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION);
+      if (nullableRep != null) {
+        switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
+          case WRAPPER:
+            builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+                ProtobufProperties.NULLABLE_AS_WRAPPER);
+            break;
+          case OPTIONAL:
+            builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+                ProtobufProperties.NULLABLE_AS_OPTIONAL);
+            break;
+          default:
+            throw new RuntimeException(String.format(
+                "Unexpected nullable representation %s. This indicates an implementation error.",
+                nullableRep));
+        }
+      }
+
+    } else {
+      // Reject protobuf options for non-protobuf formats
+      if (props.getString(CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION) != null) {
+        throw new KsqlException(
+            String.format("Property %s can only be enabled with protobuf format",
+                CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION));
       }
     }
+
 
     final Optional<Integer> keySchemaId = getKeySchemaId();
     keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
@@ -193,23 +208,37 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
-    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && unwrapProtobufPrimitives) {
-      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
-    }
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)) {
 
-    final String nullableRep = props.getString(
-        CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION);
-    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && nullableRep != null) {
-      switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
-        case WRAPPER:
-          builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
-              ProtobufProperties.NULLABLE_AS_WRAPPER);
-          break;
-        case OPTIONAL:
-          builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
-              ProtobufProperties.NULLABLE_AS_OPTIONAL);
-          break;
-        default:
+      if (unwrapProtobufPrimitives) {
+        builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
+      }
+
+      final String nullableRep = props.getString(
+          CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION);
+      if (nullableRep != null) {
+        switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
+          case WRAPPER:
+            builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+                ProtobufProperties.NULLABLE_AS_WRAPPER);
+            break;
+          case OPTIONAL:
+            builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+                ProtobufProperties.NULLABLE_AS_OPTIONAL);
+            break;
+          default:
+            throw new RuntimeException(String.format(
+                "Unexpected nullable representation %s. This indicates an implementation error.",
+                nullableRep));
+        }
+      }
+
+    } else {
+      // Reject protobuf options for non-protobuf formats
+      if (props.getString(CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION) != null) {
+        throw new KsqlException(
+            String.format("Property %s can only be enabled with protobuf format",
+                CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION));
       }
     }
 

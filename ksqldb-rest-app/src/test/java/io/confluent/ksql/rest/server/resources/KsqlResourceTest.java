@@ -1946,12 +1946,18 @@ public class KsqlResourceTest {
     makeSingleRequest("SHOW STREAMS;", StreamsList.class);
 
     // No further queries can be made
+    final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
     final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;", BAD_REQUEST.code());
+        statement,
+        BAD_REQUEST.code()
+    );
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(result.getMessage(),
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
+    // query text has been redacted from the exception
+    // message and added to the response body instead.
+    assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(statement));
     verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 
@@ -2170,6 +2176,7 @@ public class KsqlResourceTest {
     assertThat(result.getMessage(),
         containsString("Statement is too large to parse. "
             + "This may be caused by having too many nested expressions in the statement."));
+    assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(secondStatement));
   }
 
   @Test

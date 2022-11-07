@@ -50,9 +50,9 @@ public class DefaultKsqlParser implements KsqlParser {
     } catch (final ParsingException e) {
       // ParsingException counts lines starting from 1
       final String failedLine =  sql.split(System.lineSeparator())[e.getLineNumber() - 1];
-      throw new ParseFailedException(e.getMessage(), failedLine, e);
+      throw new ParseFailedException("Failed to parse line " + e.getLineNumber(), failedLine, e);
     } catch (final Exception e) {
-      throw new ParseFailedException(e.getMessage(), sql, e);
+      throw new ParseFailedException("Failed to parse statement.", sql, e);
     }
   }
 
@@ -81,7 +81,7 @@ public class DefaultKsqlParser implements KsqlParser {
           e.getRawMessage(), stmt.getMaskedStatementText(), e.getCause());
     } catch (final Exception e) {
       throw new ParseFailedException(
-          "Failed to prepare statement: " + e.getMessage(), stmt.getMaskedStatementText(), e);
+          "Failed to prepare statement.", stmt.getMaskedStatementText(), e);
     }
   }
 

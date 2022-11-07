@@ -138,7 +138,8 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
     if (corruptionDetected) {
       throw new CommandTopicCorruptionException(
-          "Failed to write record due to out of sync command topic and backup file: " + record);
+          "Failed to write record due to out of sync command topic and backup file. "
+              + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
     }
 
     if (record.key() == null || record.value() == null) {
@@ -164,7 +165,8 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       } else {
         corruptionDetected = true;
         throw new CommandTopicCorruptionException(
-            "Failed to write record due to out of sync command topic and backup file: " + record);
+            "Failed to write record due to out of sync command topic and backup file. "
+                + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
       }
     } else if (latestReplay.size() > 0) {
       // clear latest replay from memory

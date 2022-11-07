@@ -119,7 +119,6 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
@@ -349,7 +348,7 @@ final class EngineExecutor {
 
       throw new KsqlStatementException(
           e.getMessage() == null
-              ? "Server Error" + Arrays.toString(e.getStackTrace())
+              ? "Server Error"
               : e.getMessage(),
           statement.getMaskedStatementText(),
           e
@@ -462,7 +461,7 @@ final class EngineExecutor {
 
       throw new KsqlStatementException(
               e.getMessage() == null
-                      ? "Server Error" + Arrays.toString(e.getStackTrace())
+                      ? "Server Error"
                       : e.getMessage(),
               statement.getMaskedStatementText(),
               e

@@ -47,6 +47,17 @@ public class KsqlStatementException extends KsqlException {
     this.isProblemWithStatement = true;
   }
 
+  public KsqlStatementException(
+      final String message,
+      final String sqlStatement,
+      final boolean isProblemWithStatement,
+      final Throwable cause) {
+    super(message, cause);
+    this.rawMessage = message == null ? "" : message;
+    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.isProblemWithStatement = isProblemWithStatement;
+  }
+
   public String getSqlStatement() {
     return sqlStatement;
   }

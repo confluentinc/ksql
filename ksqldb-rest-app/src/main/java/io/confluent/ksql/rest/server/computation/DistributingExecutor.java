@@ -43,6 +43,7 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -201,9 +202,11 @@ public class DistributingExecutor {
     } catch (final TimeoutException e) {
       throw new KsqlServerException(errorHandler.transactionInitTimeoutErrorMessage(e), e);
     } catch (final Exception e) {
-      throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
-          statement.getMaskedStatementText()), e);
+      throw new KsqlStatementException(
+          "Could not write the statement into the command topic: " + e.getMessage(),
+          statement.getMaskedStatementText(),
+          false,
+          e);
     }
 
     if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
@@ -246,17 +249,23 @@ public class DistributingExecutor {
       if (commandId != null) {
         commandQueue.abortCommand(commandId);
       }
-      throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic.",
-          statement.getMaskedStatementText()), e);
+      throw new KsqlStatementException(
+          "Could not write the statement into the command topic.",
+          statement.getMaskedStatementText(),
+          false,
+          e
+      );
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
       if (commandId != null) {
         commandQueue.abortCommand(commandId);
       }
-      throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic.",
-          statement.getMaskedStatementText()), e);
+      throw new KsqlStatementException(
+          "Could not write the statement into the command topic.",
+          statement.getMaskedStatementText(),
+          false,
+          e
+      );
     } finally {
       transactionalProducer.close();
     }

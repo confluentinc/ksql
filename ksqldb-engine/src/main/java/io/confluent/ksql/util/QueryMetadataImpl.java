@@ -58,7 +58,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryMetadataImpl implements QueryMetadata {
-  private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
+
+  private static final Logger LOG = LoggerFactory.getLogger(
+    QueryMetadataImpl.class
+  );
   private final AtomicBoolean isPaused = new AtomicBoolean(false);
   private final String statementString;
   private final String executionPlan;
@@ -94,51 +97,58 @@ public class QueryMetadataImpl implements QueryMetadata {
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   QueryMetadataImpl(
-      final String statementString,
-      final LogicalSchema logicalSchema,
-      final Set<SourceName> sourceNames,
-      final String executionPlan,
-      final String queryApplicationId,
-      final Topology topology,
-      final KafkaStreamsBuilder kafkaStreamsBuilder,
-      final Map<String, Object> streamsProperties,
-      final Map<String, Object> overriddenProperties,
-      final long closeTimeout,
-      final QueryId queryId,
-      final QueryErrorClassifier errorClassifier,
-      final int maxQueryErrorsQueueSize,
-      final long baseWaitingTimeMs,
-      final long retryBackoffMaxMs,
-      final Listener listener,
-      final ProcessingLoggerFactory loggerFactory
+    final String statementString,
+    final LogicalSchema logicalSchema,
+    final Set<SourceName> sourceNames,
+    final String executionPlan,
+    final String queryApplicationId,
+    final Topology topology,
+    final KafkaStreamsBuilder kafkaStreamsBuilder,
+    final Map<String, Object> streamsProperties,
+    final Map<String, Object> overriddenProperties,
+    final long closeTimeout,
+    final QueryId queryId,
+    final QueryErrorClassifier errorClassifier,
+    final int maxQueryErrorsQueueSize,
+    final long baseWaitingTimeMs,
+    final long retryBackoffMaxMs,
+    final Listener listener,
+    final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    this.statementString = Objects.requireNonNull(statementString, "statementString");
+    this.statementString =
+      Objects.requireNonNull(statementString, "statementString");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
-    this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
+    this.queryApplicationId =
+      Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
-    this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
+    this.kafkaStreamsBuilder =
+      Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
     this.streamsProperties =
-        ImmutableMap.copyOf(
-            Objects.requireNonNull(streamsProperties, "streamsPropeties"));
+      ImmutableMap.copyOf(
+        Objects.requireNonNull(streamsProperties, "streamsPropeties")
+      );
     this.overriddenProperties =
-        ImmutableMap.copyOf(
-            Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
+      ImmutableMap.copyOf(
+        Objects.requireNonNull(overriddenProperties, "overriddenProperties")
+      );
     this.listener = Objects.requireNonNull(listener, "listener");
-    this.sourceNames = ImmutableSet.copyOf(
-        Objects.requireNonNull(sourceNames, "sourceNames")
-    );
+    this.sourceNames =
+      ImmutableSet.copyOf(Objects.requireNonNull(sourceNames, "sourceNames"));
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
     this.closeTimeout = Duration.ofMillis(closeTimeout);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
-    this.queryErrors = new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
-    this.retryEvent = new RetryEvent(
+    this.errorClassifier =
+      Objects.requireNonNull(errorClassifier, "errorClassifier");
+    this.queryErrors =
+      new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
+    this.retryEvent =
+      new RetryEvent(
         queryId,
         baseWaitingTimeMs,
         retryBackoffMaxMs,
         CURRENT_TIME_MILLIS_TICKER
-    );
+      );
     this.loggerFactory = Objects.requireNonNull(loggerFactory, "loggerFactory");
   }
 
@@ -160,7 +170,8 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.errorClassifier = other.errorClassifier;
     this.everStarted = other.everStarted;
     this.queryErrors = new TimeBoundedQueue(Duration.ZERO, 0);
-    this.retryEvent = new RetryEvent(
+    this.retryEvent =
+      new RetryEvent(
         other.getQueryId(),
         0,
         0,
@@ -170,9 +181,8 @@ public class QueryMetadataImpl implements QueryMetadata {
             return 0;
           }
         }
-    );
-    this.listener
-        = Objects.requireNonNull(listener, "stopListeners");
+      );
+    this.listener = Objects.requireNonNull(listener, "stopListeners");
     this.loggerFactory = other.loggerFactory;
   }
 
@@ -183,34 +193,38 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
-      final Throwable e
+    final Throwable e
   ) {
     QueryError.Type errorType = Type.UNKNOWN;
     try {
-      QueryLogger.error(String.format("Uncaught exception in query %s", e),
-          this.statementString);
+      QueryLogger.error(
+        String.format("Uncaught exception in query %s", e),
+        this.statementString
+      );
       errorType = errorClassifier.classify(e);
     } catch (final Exception classificationException) {
-      LOG.error("Error classifying unhandled exception", classificationException);
+      LOG.error(
+        "Error classifying unhandled exception",
+        classificationException
+      );
     } finally {
       // If error classification throws then we consider the error to be an UNKNOWN error.
       // We notify listeners and add the error to the errors queue in the finally block to ensure
       // all listeners and consumers of the error queue (e.g. the API) can see the error. Similarly,
       // log in finally block to make sure that if there's ever an error in the classification
       // we still get this in our logs.
-      final QueryError queryError =
-          new QueryError(
-              System.currentTimeMillis(),
-              Throwables.getStackTraceAsString(e),
-              errorType
-          );
+      final QueryError queryError = new QueryError(
+        System.currentTimeMillis(),
+        Throwables.getStackTraceAsString(e),
+        errorType
+      );
       listener.onError(this, queryError);
       queryErrors.add(queryError);
       LOG.error(
-          "Unhandled exception caught in streams thread {}. ({})",
-          Thread.currentThread().getName(),
-          errorType,
-          e
+        "Unhandled exception caught in streams thread {}. ({})",
+        Thread.currentThread().getName(),
+        errorType,
+        e
       );
     }
     retryEvent.backOff(Thread.currentThread().getName());
@@ -218,16 +232,17 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   public Set<StreamsTaskMetadata> getTaskMetadata() {
-    return kafkaStreams.metadataForLocalThreads()
-                       .stream()
-                       .flatMap(t -> t.activeTasks().stream())
-                       .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
-                       .collect(Collectors.toSet());
+    return kafkaStreams
+      .metadataForLocalThreads()
+      .stream()
+      .flatMap(t -> t.activeTasks().stream())
+      .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
+      .collect(Collectors.toSet());
   }
 
   @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP",
-      justification = "overriddenProperties is ImmutableMap"
+    value = "EI_EXPOSE_REP",
+    justification = "overriddenProperties is ImmutableMap"
   )
   public ImmutableMap<String, Object> getOverriddenProperties() {
     return overriddenProperties;
@@ -237,7 +252,9 @@ public class QueryMetadataImpl implements QueryMetadata {
     return statementString;
   }
 
-  public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
+  public void setUncaughtExceptionHandler(
+    final StreamsUncaughtExceptionHandler handler
+  ) {
     kafkaStreams.setUncaughtExceptionHandler(handler);
   }
 
@@ -278,7 +295,10 @@ public class QueryMetadataImpl implements QueryMetadata {
     return ImmutableList.of();
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streamsProperties is ImmutableMap")
+  @SuppressFBWarnings(
+    value = "EI_EXPOSE_REP",
+    justification = "streamsProperties is ImmutableMap"
+  )
   public ImmutableMap<String, Object> getStreamsProperties() {
     return streamsProperties;
   }
@@ -287,7 +307,10 @@ public class QueryMetadataImpl implements QueryMetadata {
     return logicalSchema;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sourceNames is ImmutableSet")
+  @SuppressFBWarnings(
+    value = "EI_EXPOSE_REP",
+    justification = "sourceNames is ImmutableSet"
+  )
   public ImmutableSet<SourceName> getSourceNames() {
     return sourceNames;
   }
@@ -314,9 +337,9 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   public void setCorruptionQueryError() {
     final QueryError corruptionQueryError = new QueryError(
-        System.currentTimeMillis(),
-        "Query not started due to corruption in the command topic.",
-        Type.USER
+      System.currentTimeMillis(),
+      "Query not started due to corruption in the command topic.",
+      Type.USER
     );
     listener.onError(this, corruptionQueryError);
     queryErrors.add(corruptionQueryError);
@@ -346,8 +369,9 @@ public class QueryMetadataImpl implements QueryMetadata {
       kafkaStreams.close(closeTimeout);
       if (!getState().equals(State.NOT_RUNNING)) {
         LOG.warn(
-            "query has not terminated even after close. "
-                + "This may happen when streams threads are hung. State: " + getState()
+          "query has not terminated even after close. " +
+          "This may happen when streams threads are hung. State: " +
+          getState()
         );
         return false;
       }
@@ -361,7 +385,9 @@ public class QueryMetadataImpl implements QueryMetadata {
    * schemas, etc...).
    */
   public void close() {
-    loggerFactory.getLoggersWithPrefix(queryId.toString()).forEach(ProcessingLogger::close);
+    loggerFactory
+      .getLoggersWithPrefix(queryId.toString())
+      .forEach(ProcessingLogger::close);
     doClose(true);
     listener.onClose(this);
   }
@@ -381,6 +407,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   public static class TimeBoundedQueue {
+
     private final Duration duration;
     private final Queue<QueryError> queue;
     private final int capacity;
@@ -400,25 +427,30 @@ public class QueryMetadataImpl implements QueryMetadata {
       evict();
       return ImmutableList.copyOf(queue);
     }
-    
+
     private void evict() {
       while (queue.peek() != null) {
-        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()
-         && queue.size() < capacity) {
+        if (
+          queue.peek().getTimestamp() >
+          System.currentTimeMillis() -
+          duration.toMillis() &&
+          queue.size() < capacity
+        ) {
           break;
         }
         queue.poll();
       }
     }
-
   }
 
   public void start() {
     if (!initialized) {
       throw new KsqlException(
-          String.format(
-              "Failed to initialize query %s before starting it",
-              queryApplicationId));
+        String.format(
+          "Failed to initialize query %s before starting it",
+          queryApplicationId
+        )
+      );
     }
     LOG.info("Starting query with application id: {}", queryApplicationId);
     everStarted = true;
@@ -450,6 +482,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   public static class RetryEvent implements QueryMetadata.RetryEvent {
+
     private final Ticker ticker;
     private final QueryId queryId;
 
@@ -459,10 +492,10 @@ public class QueryMetadataImpl implements QueryMetadata {
     private long retryBackoffMaxMs;
 
     RetryEvent(
-            final QueryId queryId,
-            final long baseWaitingTimeMs,
-            final long retryBackoffMaxMs,
-            final Ticker ticker
+      final QueryId queryId,
+      final long baseWaitingTimeMs,
+      final long retryBackoffMaxMs,
+      final Ticker ticker
     ) {
       this.ticker = ticker;
       this.queryId = queryId;
@@ -496,10 +529,11 @@ public class QueryMetadataImpl implements QueryMetadata {
       final int retries = numRetries.merge(threadName, 1, Integer::sum);
 
       LOG.info(
-          "Restarting query {} thread {} (attempt #{})",
-          queryId,
-          threadName,
-          retries);
+        "Restarting query {} thread {} (attempt #{})",
+        queryId,
+        threadName,
+        retries
+      );
 
       // Math.max() prevents overflow if now is Long.MAX_VALUE (found just in tests)
       this.expiryTimeMs = Math.max(now, now + waitingTimeMs);

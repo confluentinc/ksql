@@ -403,7 +403,8 @@ public class QueryMetadataImpl implements QueryMetadata {
     
     private void evict() {
       while (queue.peek() != null) {
-        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis() && queue.size()< capacity) {
+        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()
+         && queue.size() < capacity) {
           break;
         }
         queue.poll();

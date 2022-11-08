@@ -22,13 +22,7 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.utils.InsertsResponse;
@@ -62,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -203,9 +198,11 @@ public class ApiIntegrationTest {
     String sql = "SLECTT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "line 1:1: Syntax Error\n"
-        + "Unknown statement 'SLECTT'\n"
-        + "Did you mean 'SELECT'?");
+    shouldFailToExecuteQuery(
+        sql,
+        "Failed to parse statement at or near 1:1",
+        sql
+    );
   }
 
   @Test
@@ -350,9 +347,11 @@ public class ApiIntegrationTest {
     String sql = "SLLLECET * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "line 1:1: Syntax Error\n"
-        + "Unknown statement 'SLLLECET'\n"
-        + "Did you mean 'SELECT'?");
+    shouldFailToExecuteQuery(
+        sql,
+        "Failed to parse statement at or near 1:1",
+        "SLLLECET * from AGG_TABLE WHERE STR='STRUCT(F1 := ARRAY['a'])';"
+    );
   }
 
   @Test
@@ -657,6 +656,22 @@ public class ApiIntegrationTest {
         is(ERROR_CODE_BAD_STATEMENT));
     assertThat(response.responseObject.getString("message"),
         startsWith(message));
+  }
+
+  private void shouldFailToExecuteQuery(final String sql,
+                                        final String message,
+                                        final String statementText) {
+    // When:
+    QueryResponse response = executeQuery(sql);
+
+    // Then:
+    assertThat(response.rows, hasSize(0));
+    final JsonObject responseObject = response.responseObject;
+    assertThat(responseObject.getInteger("error_code"), is(ERROR_CODE_BAD_STATEMENT));
+    assertThat(responseObject.fieldNames(), hasItem("message"));
+    assertThat(responseObject.getString("message"), startsWith(message));
+    assertThat(responseObject.fieldNames(), hasItem("statementText"));
+    assertThat(responseObject.getString("statementText"), containsString(statementText));
   }
 
   private QueryResponse executeQuery(final String sql) {

@@ -50,7 +50,11 @@ public class DefaultKsqlParser implements KsqlParser {
     } catch (final ParsingException e) {
       // ParsingException counts lines starting from 1
       final String failedLine =  sql.split(System.lineSeparator())[e.getLineNumber() - 1];
-      throw new ParseFailedException("Failed to parse line " + e.getLineNumber(), failedLine, e);
+      throw new ParseFailedException(
+          "Failed to parse statement at or near " + e.getLineNumber() + ":" + e.getColumnNumber(),
+          failedLine,
+          e
+      );
     } catch (final Exception e) {
       throw new ParseFailedException("Failed to parse statement.", sql, e);
     }

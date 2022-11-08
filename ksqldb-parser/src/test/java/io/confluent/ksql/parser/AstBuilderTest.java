@@ -475,13 +475,17 @@ public class AstBuilderTest {
   @Test
   public void shouldNotBuildLambdaFunctionNotLastArguments() {
     // Given:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> givenQuery("SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;")
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Syntax error at or near '=>' at line 1:26"));
+    assertThat(
+        e.getMessage(),
+        containsString("Failed to parse statement at or near 1:26")
+    );
+    assertThat(e.getSqlStatement(), containsString("=>"));
   }
 
   @Test

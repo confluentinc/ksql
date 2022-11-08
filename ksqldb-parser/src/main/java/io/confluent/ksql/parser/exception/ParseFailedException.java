@@ -29,4 +29,12 @@ public class ParseFailedException extends KsqlStatementException {
       final Throwable cause) {
     super(message, sqlStatement, cause);
   }
+
+  public ParseFailedException(
+      final String message,
+      final String unloggedDetails,
+      final String sqlStatement,
+      final Throwable cause) {
+    super(message, unloggedDetails, sqlStatement, cause);
+  }
 }

@@ -25,6 +25,7 @@ public class ParsingException
 
   private final int line;
   private final int charPositionInLine;
+  private final String unloggedDetails;
 
   public ParsingException(final String message, final Optional<NodeLocation> nodeLocation) {
     this(
@@ -41,8 +42,8 @@ public class ParsingException
       final int line,
       final int charPositionInLine
   ) {
-    super(message, cause);
-
+    super("Syntax error at line " + line + ":" + charPositionInLine, cause);
+    this.unloggedDetails = message;
     this.line = line;
     this.charPositionInLine = charPositionInLine;
   }
@@ -62,5 +63,9 @@ public class ParsingException
   @Override
   public String getMessage() {
     return format("line %s:%s: %s", getLineNumber(), getColumnNumber(), getErrorMessage());
+  }
+
+  public String getUnloggedDetails() {
+    return format("line %s:%s: %s", getLineNumber(), getColumnNumber(), unloggedDetails);
   }
 }

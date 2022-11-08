@@ -25,12 +25,14 @@ public class KsqlStatementException extends KsqlException {
   private final String sqlStatement;
   private final Problem problem;
   private final String rawMessage;
+  private final String unloggedDetails;
 
   public KsqlStatementException(final String message, final String sqlStatement) {
     super(message);
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = Problem.STATEMENT;
+    this.unloggedDetails = null;
   }
 
   public KsqlStatementException(final String message,
@@ -40,6 +42,7 @@ public class KsqlStatementException extends KsqlException {
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = problem;
+    this.unloggedDetails = null;
   }
 
   public KsqlStatementException(
@@ -48,6 +51,19 @@ public class KsqlStatementException extends KsqlException {
       final Throwable cause) {
     super(message, cause);
     this.rawMessage = message == null ? "" : message;
+    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.problem = Problem.STATEMENT;
+    this.unloggedDetails = null;
+  }
+
+  public KsqlStatementException(
+      final String message,
+      final String unloggedDetails,
+      final String sqlStatement,
+      final Throwable cause) {
+    super(message, cause);
+    this.rawMessage = message == null ? "" : message;
+    this.unloggedDetails = unloggedDetails;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = Problem.STATEMENT;
   }
@@ -61,6 +77,7 @@ public class KsqlStatementException extends KsqlException {
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = problem;
+    this.unloggedDetails = null;
   }
 
   public String getSqlStatement() {

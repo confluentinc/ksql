@@ -36,7 +36,12 @@ final class GrammarParseUtil {
         final String message,
         final RecognitionException e
     ) {
-      throw new ParsingException(message, e, line, charPositionInLine);
+      throw new ParsingException(
+          message,
+          e,
+          line,
+          charPositionInLine
+      );
     }
   };
 

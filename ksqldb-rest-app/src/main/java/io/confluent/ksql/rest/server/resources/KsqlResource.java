@@ -281,10 +281,12 @@ public class KsqlResource implements KsqlConfigurable {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  // CHECKSTYLE_RULES.OFF: JavaNCSS
   public EndpointResponse handleKsqlStatements(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
+    // CHECKSTYLE_RULES.ON: JavaNCSS
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
     ApiServerUtils.setMaskedSqlIfNeeded(request);
@@ -367,8 +369,10 @@ public class KsqlResource implements KsqlConfigurable {
       if (e.getCause() != null && e.getCause() instanceof ParsingException) {
         // ParsingException messages are more informative, when they are present.
         response = Errors.badStatement(e.getCause().getMessage(), e.getSqlStatement());
-      } else if (e.isProblemWithStatement()) {
+      } else if (e.getProblem() == KsqlStatementException.Problem.STATEMENT) {
         response = Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
+      } else if (e.getProblem() == KsqlStatementException.Problem.OTHER) {
+        response = Errors.serverErrorForStatement(e, e.getSqlStatement());
       } else {
         response = Errors.badRequestWithStatement(e, e.getSqlStatement());
       }
@@ -380,8 +384,10 @@ public class KsqlResource implements KsqlConfigurable {
           e
       );
       final EndpointResponse response;
-      if (e.isProblemWithStatement()) {
+      if (e.getProblem() == KsqlStatementException.Problem.STATEMENT) {
         response = Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
+      } else if (e.getProblem() == KsqlStatementException.Problem.OTHER) {
+        response = Errors.serverErrorForStatement(e, e.getSqlStatement());
       } else {
         response = Errors.badRequestWithStatement(e, e.getSqlStatement());
       }

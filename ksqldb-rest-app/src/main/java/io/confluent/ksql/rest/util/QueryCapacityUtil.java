@@ -48,7 +48,7 @@ public final class QueryCapacityUtil {
             getQueryLimit(ksqlConfig)
         ),
         statementStr,
-        false
+        KsqlStatementException.Problem.REQUEST
     );
   }
 

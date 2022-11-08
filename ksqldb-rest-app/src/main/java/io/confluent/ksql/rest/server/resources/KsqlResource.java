@@ -26,6 +26,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.ParsingException;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
@@ -278,10 +280,12 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public EndpointResponse handleKsqlStatements(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
     ApiServerUtils.setMaskedSqlIfNeeded(request);
 
@@ -353,6 +357,22 @@ public class KsqlResource implements KsqlConfigurable {
           e
       );
       throw e;
+    } catch (final ParseFailedException e) {
+      // causes of ParseFailedException may contain unmaskable strings
+      QueryLogger.warn(
+          "Could not parse: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql()
+      );
+      final EndpointResponse response;
+      if (e.getCause() != null && e.getCause() instanceof ParsingException) {
+        // ParsingException messages are more informative, when they are present.
+        response = Errors.badStatement(e.getCause().getMessage(), e.getSqlStatement());
+      } else if (e.isProblemWithStatement()) {
+        response = Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
+      } else {
+        response = Errors.badRequestWithStatement(e, e.getSqlStatement());
+      }
+      return errorHandler.generateResponse(e, response);
     } catch (final KsqlStatementException e) {
       QueryLogger.warn(
           "Processed unsuccessfully: " + request.toStringWithoutQuery(),

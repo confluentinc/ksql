@@ -56,7 +56,7 @@ public class DefaultKsqlParser implements KsqlParser {
           e
       );
     } catch (final Exception e) {
-      throw new ParseFailedException("Failed to parse statement.", sql, e);
+      throw new ParseFailedException(e.getMessage(), sql, e);
     }
   }
 
@@ -85,7 +85,7 @@ public class DefaultKsqlParser implements KsqlParser {
           e.getRawMessage(), stmt.getMaskedStatementText(), e.getCause());
     } catch (final Exception e) {
       throw new ParseFailedException(
-          "Failed to prepare statement.", stmt.getMaskedStatementText(), e);
+          "Failed to prepare statement: " + e.getMessage(), stmt.getMaskedStatementText(), e);
     }
   }
 

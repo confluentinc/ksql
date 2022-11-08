@@ -262,7 +262,7 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 3.3
-        ksqldbversion: 0.28.2
+        ksqldbversion: 0.28.3
         cprelease: 7.3.0
         releasepostbranch: 7.3.0-post
         scalaversion: 2.13

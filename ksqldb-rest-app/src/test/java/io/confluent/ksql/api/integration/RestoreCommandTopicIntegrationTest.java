@@ -290,6 +290,55 @@ public class RestoreCommandTopicIntegrationTest {
     assertThat("Server should not be in degraded state", isDegradedState(), is(false));
   }
 
+  @Test
+  public void shouldHandleIncompatibleCommandsWithNoQueryPlan() throws Exception {
+    // Given
+    TEST_HARNESS.ensureTopics("topic3", "topic4");
+
+    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic3', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM TOPIC4 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic4', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM stream3 AS SELECT * FROM topic3;");
+
+    final CommandId commandId = new CommandId("TOPIC", "entity", "CREATE");
+    final String command = "{\"statement\":\"CREATE STREAM \","
+        + "\"streamsProperties\":{},"
+        + "\"originalProperties\":{},"
+        + "\"plan\":{"
+        + "\"@type\":\"ksqlPlanV1\","
+        + "\"statementText\":\"CREATE STREAM \","
+        + "\"ddlCommand\":{},"
+        + "\"queryPlan\": null},"
+        + "\"version\":"
+        + Command.VERSION + 1
+        + "}";
+
+    writeStringToBackupFile(commandId, command, backupFile);
+
+    // Delete the command topic again and restore with skip flag
+    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    REST_APP.stop();
+    KsqlRestoreCommandTopic.mainInternal(
+        new String[]{
+            "--yes",
+            "-s",
+            "--config-file", propertiesFile.toString(),
+            backupFile.toString()
+        },
+        mockSystem
+    );
+
+    // Re-load the command topic
+    REST_APP.start();
+    final List<String> streamsNames = showStreams();
+    assertThat("Should have 3 things", streamsNames.size(), is(3));
+    assertThat("Should have TOPIC3", streamsNames.contains("TOPIC3"), is(true));
+    assertThat("Should have TOPIC4", streamsNames.contains("TOPIC4"), is(true));
+    assertThat("Should have STREAM3", streamsNames.contains("STREAM3"), is(true));
+    assertThat("Server should not be in degraded state", isDegradedState(), is(false));
+  }
+
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
   public void shouldCleanUpLeftoverStateStores() throws InterruptedException {

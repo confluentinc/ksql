@@ -413,7 +413,7 @@ public class KsqlRestoreCommandTopic {
     }
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "checkstyle:CyclomaticComplexity"})
   private static void maybeCleanUpQuery(final byte[] command, final KsqlConfig ksqlConfig) {
     boolean queryIdFound = false;
     final Map<String, Object> streamsProperties =
@@ -423,7 +423,7 @@ public class KsqlRestoreCommandTopic {
     final JSONObject jsonObject = new JSONObject(new String(command, StandardCharsets.UTF_8));
     if (hasKey(jsonObject, "plan") && !jsonObject.isNull("plan")) {
       final JSONObject plan = jsonObject.getJSONObject("plan");
-      if (hasKey(plan, "queryPlan")) {
+      if (hasKey(plan, "queryPlan") && !plan.isNull("queryPlan")) {
         final JSONObject queryPlan = plan.getJSONObject("queryPlan");
         queryId = queryPlan.getString("queryId");
         if (hasKey(queryPlan, "runtimeId")

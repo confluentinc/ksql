@@ -39,6 +39,7 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
@@ -191,7 +192,8 @@ public final class CreateSourceProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
-    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat)) {
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) ||
+      ProtobufNoSRFormat.NAME.equalsIgnoreCase(keyFormat)) {
 
       if (unwrapProtobufPrimitives) {
         builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
@@ -258,7 +260,8 @@ public final class CreateSourceProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
-    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)) {
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) ||
+        ProtobufNoSRFormat.NAME.equalsIgnoreCase(valueFormat)) {
 
       if (unwrapProtobufPrimitives) {
         builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);

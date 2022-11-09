@@ -9,13 +9,13 @@ keywords: testing, qa, quality assurance, test runner
 # How to test an application
 
 !!! important
-    ksqlDB 0.30 ships with a new sql-based testing tool. For documentation on the old test runner,
+    ksqlDB 0.30 ships with a new sql-based testing tool (`run-ksql-test`). For documentation on the old test runner,
     switch to an older version of this page.
 
 ## Context
 
 ksqlDB ships with a command line tool to to test KSQL statements automatically.
-It runs quickly and doesn't require a running {{ site.aktm }} or ksqlDB cluster.
+It doesn't require an active {{ site.aktm }} or ksqlDB cluster.
 
 ## In action
 
@@ -25,7 +25,7 @@ run-ksql-test --test-directory path/to/tests --temp-folder path/to/temp/folder
 
 ## Usage
 
-To test a set of KSQL statements, provide a folder containing the sql test files and a folder
+To test a set of KSQL statements, provide a folder containing the sql test files and another folder
 that the testing tool will use to store temporary files.
 
 ```
@@ -83,16 +83,16 @@ CREATE OR REPLACE STREAM b AS SELECT id, col1 FROM a;
 ```
 
 A test file contains one or more tests separated by the `--@test` directive.
-Each test consists of KSQL comments containing directives and sql stataments.
+Each test consists of comments containing directives and sql stataments.
 
 ### Directives
 
 There are three directives available:
 
-* `--@test: name of test`. This is required in every test.
-* `--@expected.error: error class`. This directive checks that the test throws an error of the
+* `--@test: name of test`. Required in every test.
+* `--@expected.error: error class`. Checks that the test throws an error of the
 provided type. 
-* `--@expected.message: error message`. This directive checks that the test throws an error with a
+* `--@expected.message: error message`. Checks that the test throws an error with a
 message containing the provided message. 
 
 ### Statements
@@ -126,8 +126,6 @@ ASSERT STREAM sourceName (tableElements)? (WITH tableProperties)?
 
 Asserts the existence of a stream with the given elements and properties.
 
-
-
 #### ASSERT TABLE
 
 ```
@@ -136,7 +134,6 @@ ASSERT TABLE sourceName (tableElements)? (WITH tableProperties)?
 
 Asserts the existence of a table with the given elements and properties.
 
-
 #### ASSERT VALUES
 
 ```
@@ -144,7 +141,6 @@ ASSERT VALUES sourceName (columns)? VALUES values
 ```
 
 Asserts that a row with the given values is in a source.
-
 
 #### ASSERT TOMBSTONES
 
@@ -192,7 +188,7 @@ file:///path/to/failing/test/file.sql:18
 
 ### Kafka cluster
 
-run-ksql-test doesn't use a real Kafka cluster. Instead, it simulates
-the behavior of a cluster with a single broker for the SQL queries. This
+`run-ksql-test` doesn't use a real Kafka cluster. Instead, it simulates
+the behavior of a cluster with a single broker for the KSQL queries. This
 means that the testing tool ignores configuration settings for the input
 and output topics, like the number of partitions or replicas.

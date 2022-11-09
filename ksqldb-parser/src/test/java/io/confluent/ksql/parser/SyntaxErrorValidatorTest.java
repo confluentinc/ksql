@@ -53,14 +53,16 @@ public class SyntaxErrorValidatorTest {
     final RecognitionException exception = null;
 
     // When
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> callSyntaxError(errorMessage, exception)
     );
 
     // Then:
-    assertThat(e.getMessage(),
+    assertThat(e.getUnloggedDetails(),
         containsString("mismatched input 'topic' expecting IDENTIFIER"));
+    assertThat(e.getMessage(),
+        containsString("line 0:1: Syntax error at line 0:1"));
   }
 
   @Test
@@ -75,11 +77,9 @@ public class SyntaxErrorValidatorTest {
         () -> callSyntaxError(errorMessage, exception)
     );
 
-    e.printStackTrace();
-
     // Then:
-    assertThat(e.getUnloggedDetails(), containsString("asdf"));
-    assertThat(e.getMessage(), containsString("Syntax Error\nExpecting IDENTIFIER"));
+    assertThat(e.getUnloggedDetails(), containsString("Syntax Error\nExpecting IDENTIFIER"));
+    assertThat(e.getMessage(), containsString("line 0:1: Syntax error at line 0:1"));
   }
 
   @Test
@@ -90,14 +90,15 @@ public class SyntaxErrorValidatorTest {
         givenException(mock(VariableNameContext.class), getToken("1"));
 
     // When
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> callSyntaxError(errorMessage, exception)
     );
 
     // Then:
-    assertThat(e.getMessage(),
-        containsString("Syntax Error\nExpecting IDENTIFIER"));
+    assertThat(e.getUnloggedDetails(),
+        containsString("line 0:1: Syntax Error\nExpecting IDENTIFIER"));
+    assertThat(e.getMessage(), containsString("line 0:1: Syntax error at line 0:1"));
   }
 
   @Test
@@ -108,14 +109,16 @@ public class SyntaxErrorValidatorTest {
         givenException(mock(CreateStreamContext.class), getToken("size"));
 
     // When:
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> callSyntaxError(errorMessage, exception)
     );
 
     // Then:
-    assertThat(e.getMessage(),
+    assertThat(e.getUnloggedDetails(),
         containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
+    assertThat(e.getMessage(),
+        containsString("line 0:1: Syntax error at line 0:1"));
   }
 
   private void callSyntaxError(final String errorMessage, final RecognitionException exception) {
@@ -135,16 +138,12 @@ public class SyntaxErrorValidatorTest {
   ) {
     final RecognitionException exception =
         new RecognitionException("message", null, null, (ParserRuleContext) context) {
-      @Override
-      public Token getOffendingToken() {
-        return offendingToken;
-      }
-    };
+          @Override
+          public Token getOffendingToken() {
+            return offendingToken;
+          }
+        };
     return exception;
-//    final RecognitionException exception = mock(RecognitionException.class);
-//    when(exception.getCtx()).thenReturn(context);
-//    when(exception.getOffendingToken()).thenReturn(offendingToken);
-//    return exception;
   }
 
   private Token getToken(final String text) {

@@ -18,7 +18,6 @@ package io.confluent.ksql.parser;
 import static java.lang.String.format;
 
 import java.util.Optional;
-import org.antlr.v4.runtime.RecognitionException;
 
 public class ParsingException
     extends RuntimeException {
@@ -30,7 +29,6 @@ public class ParsingException
   public ParsingException(final String message, final Optional<NodeLocation> nodeLocation) {
     this(
         message,
-        null,
         nodeLocation.map(NodeLocation::getStartLineNumber).orElse(1),
         nodeLocation.map(NodeLocation::getStartColumnNumber).orElse(0)
     );
@@ -38,7 +36,6 @@ public class ParsingException
 
   public ParsingException(
       final String message,
-      final RecognitionException cause,
       final int line,
       final int charPositionInLine
   ) {

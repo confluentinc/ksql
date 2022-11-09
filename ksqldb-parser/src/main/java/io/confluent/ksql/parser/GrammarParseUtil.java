@@ -38,7 +38,6 @@ final class GrammarParseUtil {
     ) {
       throw new ParsingException(
           message,
-          e,
           line,
           charPositionInLine
       );

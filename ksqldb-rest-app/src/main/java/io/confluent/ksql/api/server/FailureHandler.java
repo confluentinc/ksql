@@ -38,12 +38,17 @@ public class FailureHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    log.error(String.format("Failed to handle request %d %s", routingContext.statusCode(),
-        routingContext.request().path()),
-        routingContext.failure());
-
     final int statusCode = routingContext.statusCode();
     final Throwable failure = routingContext.failure();
+    // Don't log the failure, since it may contain sensitive information for the user.
+    log.error(
+        String.format(
+            "Failed to handle request %d %s",
+            routingContext.statusCode(),
+            routingContext.request().path()
+        )
+    );
+
 
     if (failure != null) {
       if (failure instanceof KsqlApiException) {

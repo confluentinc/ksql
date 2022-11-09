@@ -91,4 +91,8 @@ public class KsqlStatementException extends KsqlException {
   public Problem getProblem() {
     return problem;
   }
+
+  public String getUnloggedMessage() {
+    return unloggedDetails == null ? getMessage() : unloggedDetails;
+  }
 }

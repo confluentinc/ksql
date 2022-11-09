@@ -20,11 +20,10 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.KsqlStatementException;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -60,7 +59,7 @@ public class DefaultKsqlParser implements KsqlParser {
       );
     } catch (final KsqlStatementException e) {
       throw new ParseFailedException("Failed to parse statement.", e.getUnloggedMessage(), sql, e);
-    }catch (final Exception e) {
+    } catch (final Exception e) {
       throw new ParseFailedException(e.getMessage(), sql, e);
     }
   }

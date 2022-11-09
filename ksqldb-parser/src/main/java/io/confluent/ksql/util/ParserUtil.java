@@ -72,7 +72,8 @@ public final class ParserUtil {
   public static SourceName getSourceName(final SourceNameContext sourceName) {
     final String text = getIdentifierText(sourceName.identifier());
     if (!VALID_SOURCE_NAMES.matcher(text).matches()) {
-      final String baseMessage = "Illegal argument at " + getLocation(sourceName).map(NodeLocation::toString).orElse("?")
+      final String baseMessage = "Illegal argument at "
+          + getLocation(sourceName).map(NodeLocation::toString).orElse("?")
           + ". Source names may only contain alphanumeric values, '_' or '-'.";
       throw new ParseFailedException(
           baseMessage,

@@ -368,7 +368,10 @@ public class KsqlResource implements KsqlConfigurable {
       final EndpointResponse response;
       if (e.getCause() != null && e.getCause() instanceof ParsingException) {
         // ParsingException messages are more informative, when they are present.
-        response = Errors.badStatement(((ParsingException) e.getCause()).getUnloggedDetails(), e.getSqlStatement());
+        response = Errors.badStatement(
+            ((ParsingException) e.getCause()).getUnloggedDetails(),
+            e.getSqlStatement()
+        );
       } else if (e.getProblem() == KsqlStatementException.Problem.STATEMENT) {
         response = Errors.badStatement(e.getUnloggedMessage(), e.getSqlStatement());
       } else if (e.getProblem() == KsqlStatementException.Problem.OTHER) {

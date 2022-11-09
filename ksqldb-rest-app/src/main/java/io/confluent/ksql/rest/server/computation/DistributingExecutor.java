@@ -204,6 +204,10 @@ public class DistributingExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Could not write the statement into the command topic: " + e.getMessage(),
+          String.format(
+              "Could not write the statement '%s' into the command topic: " + e.getMessage(),
+              statement.getMaskedStatementText()
+          ),
           statement.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e);
@@ -251,6 +255,10 @@ public class DistributingExecutor {
       }
       throw new KsqlStatementException(
           "Could not write the statement into the command topic.",
+          String.format(
+              "Could not write the statement '%s' into the command topic.",
+              statement.getMaskedStatementText()
+          ),
           statement.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e
@@ -262,6 +270,10 @@ public class DistributingExecutor {
       }
       throw new KsqlStatementException(
           "Could not write the statement into the command topic.",
+          String.format(
+              "Could not write the statement '%s' into the command topic.",
+              statement.getMaskedStatementText()
+          ),
           statement.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e

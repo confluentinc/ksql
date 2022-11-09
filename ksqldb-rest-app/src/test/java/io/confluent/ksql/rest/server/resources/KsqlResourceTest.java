@@ -1952,9 +1952,17 @@ public class KsqlResourceTest {
         BAD_REQUEST.code()
     );
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
-    assertThat(result.getMessage(),
-        containsString("would cause the number of active, persistent queries "
-            + "to exceed the configured limit"));
+    assertThat(
+        result.getMessage(),
+        containsString(
+            "Not executing statement(s) 'CREATE STREAM ID_0 AS SELECT * FROM test_stream;'" +
+                " as it would cause the number of active, persistent queries to exceed" +
+                " the configured limit. Use the TERMINATE command to terminate existing" +
+                " queries, or increase the 'ksql.query.persistent.active.limit'" +
+                " setting via the 'ksql-server.properties' file. Current persistent" +
+                " query count: 6. Configured limit: 3."
+        )
+    );
     // query text has been redacted from the exception
     // message and added to the response body instead.
     assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(statement));
@@ -2230,7 +2238,7 @@ public class KsqlResourceTest {
     assertThat(response.getStatus(), equalTo(500));
     assertThat(response.getEntity().toString(),
         CoreMatchers
-            .startsWith("Could not write the statement into the command "));
+            .startsWith("Could not write the statement 'TERMINATE CLUSTER;' into the command "));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
     final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) response.getEntity();
     assertThat(entity.getStatementText(), containsString("TERMINATE CLUSTER"));

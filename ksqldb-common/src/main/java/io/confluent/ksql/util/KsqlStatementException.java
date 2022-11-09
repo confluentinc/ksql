@@ -55,6 +55,17 @@ public class KsqlStatementException extends KsqlException {
     this.unloggedDetails = null;
   }
 
+  public KsqlStatementException(final String message,
+                                final String unloggedDetails,
+                                final String sqlStatement,
+                                final Problem problem) {
+    super(message);
+    this.rawMessage = message == null ? "" : message;
+    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.problem = problem;
+    this.unloggedDetails = unloggedDetails;
+  }
+
   public KsqlStatementException(
       final String message,
       final String sqlStatement,
@@ -88,6 +99,19 @@ public class KsqlStatementException extends KsqlException {
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = problem;
     this.unloggedDetails = null;
+  }
+
+  public KsqlStatementException(
+      final String message,
+      final String unloggedDetails,
+      final String sqlStatement,
+      final Problem problem,
+      final Throwable cause) {
+    super(message, cause);
+    this.rawMessage = message == null ? "" : message;
+    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.problem = problem;
+    this.unloggedDetails = unloggedDetails;
   }
 
   public String getSqlStatement() {

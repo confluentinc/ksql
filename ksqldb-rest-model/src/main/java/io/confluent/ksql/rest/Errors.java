@@ -194,7 +194,7 @@ public final class Errors {
   }
 
   public static EndpointResponse serverErrorForStatement(final Throwable t,
-      final String statementText) {
+                                                         final String statementText) {
     return serverErrorForStatement(t, statementText, new KsqlEntityList());
   }
 

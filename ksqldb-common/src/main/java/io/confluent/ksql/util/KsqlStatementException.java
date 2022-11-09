@@ -36,6 +36,16 @@ public class KsqlStatementException extends KsqlException {
   }
 
   public KsqlStatementException(final String message,
+                                final String unloggedDetails,
+                                final String sqlStatement) {
+    super(message);
+    this.rawMessage = message == null ? "" : message;
+    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.problem = Problem.STATEMENT;
+    this.unloggedDetails = unloggedDetails;
+  }
+
+  public KsqlStatementException(final String message,
                                 final String sqlStatement,
                                 final Problem problem) {
     super(message);

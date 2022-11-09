@@ -479,11 +479,15 @@ public class AstBuilderTest {
         ParseFailedException.class,
         () -> givenQuery("SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;")
     );
-
+e.printStackTrace();
     // Then:
     assertThat(
         e.getMessage(),
-        containsString("Failed to parse statement at or near 1:26")
+        containsString("line 1:26: Syntax error at line 1:26")
+    );
+    assertThat(
+        e.getUnloggedMessage(),
+        containsString("Syntax error at or near '=>' at line 1:26")
     );
     assertThat(e.getSqlStatement(), containsString("=>"));
   }

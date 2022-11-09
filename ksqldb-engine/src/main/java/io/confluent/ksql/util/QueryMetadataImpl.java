@@ -438,7 +438,7 @@ public class QueryMetadataImpl implements QueryMetadata {
                     -
                     duration.toMillis()
                 &&
-                queue.size() < capacity
+                queue.size() <= capacity
         ) {
           break;
         }

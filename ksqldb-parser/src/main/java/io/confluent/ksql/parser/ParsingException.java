@@ -42,7 +42,7 @@ public class ParsingException
       final int line,
       final int charPositionInLine
   ) {
-    super("Syntax error at line " + line + ":" + (charPositionInLine + 1), cause);
+    super("Syntax error at line " + line + ":" + (charPositionInLine + 1));
     this.unloggedDetails = message;
     this.line = line;
     this.charPositionInLine = charPositionInLine;

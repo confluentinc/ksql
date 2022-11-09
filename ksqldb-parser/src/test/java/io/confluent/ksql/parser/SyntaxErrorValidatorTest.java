@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import org.antlr.v4.runtime.ParserRuleContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -69,14 +70,16 @@ public class SyntaxErrorValidatorTest {
     final RecognitionException exception = givenException(null, getToken("topic"));
 
     // When
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> callSyntaxError(errorMessage, exception)
     );
 
+    e.printStackTrace();
+
     // Then:
-    assertThat(e.getMessage(),
-        containsString("Syntax Error\nExpecting IDENTIFIER"));
+    assertThat(e.getUnloggedDetails(), containsString("asdf"));
+    assertThat(e.getMessage(), containsString("Syntax Error\nExpecting IDENTIFIER"));
   }
 
   @Test
@@ -130,10 +133,18 @@ public class SyntaxErrorValidatorTest {
       final RuleContext context,
       final Token offendingToken
   ) {
-    final RecognitionException exception = mock(RecognitionException.class);
-    when(exception.getCtx()).thenReturn(context);
-    when(exception.getOffendingToken()).thenReturn(offendingToken);
+    final RecognitionException exception =
+        new RecognitionException("message", null, null, (ParserRuleContext) context) {
+      @Override
+      public Token getOffendingToken() {
+        return offendingToken;
+      }
+    };
     return exception;
+//    final RecognitionException exception = mock(RecognitionException.class);
+//    when(exception.getCtx()).thenReturn(context);
+//    when(exception.getOffendingToken()).thenReturn(offendingToken);
+//    return exception;
   }
 
   private Token getToken(final String text) {

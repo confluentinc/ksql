@@ -1963,8 +1963,6 @@ public class KsqlResourceTest {
                 " query count: 6. Configured limit: 3."
         )
     );
-    // query text has been redacted from the exception
-    // message and added to the response body instead.
     assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(statement));
     verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }

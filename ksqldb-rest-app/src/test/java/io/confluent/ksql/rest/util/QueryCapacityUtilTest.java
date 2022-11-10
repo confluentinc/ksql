@@ -17,8 +17,10 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.util.*;
-
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -78,6 +80,13 @@ public class QueryCapacityUtilTest {
     );
 
     // Then:
+    assertThat(e.getUnloggedMessage(), containsString(
+        "Not executing statement(s) 'my statement' as it would cause the number "
+            + "of active, persistent queries to exceed the configured limit. "
+            + "Use the TERMINATE command to terminate existing queries, "
+            + "or increase the 'ksql.query.persistent.active.limit' setting "
+            + "via the 'ksql-server.properties' file. "
+            + "Current persistent query count: 3. Configured limit: 2."));
     assertThat(e.getMessage(), containsString(
         "Not executing statement(s) as it would cause the number "
             + "of active, persistent queries to exceed the configured limit. "
@@ -127,6 +136,13 @@ public class QueryCapacityUtilTest {
     );
 
     // Then:
+    assertThat(e.getUnloggedMessage(), containsString(
+            "Not executing statement(s) 'my statement' as it would cause the number "
+                    + "of active, push queries to exceed the configured limit. "
+                    + "Terminate existing PUSH queries, "
+                    + "or increase the 'ksql.max.push.queries' setting "
+                    + "via the 'ksql-server.properties' file. "
+                    + "Current push query count: 6. Configured limit: 3."));
     assertThat(e.getMessage(), containsString(
             "Not executing statement(s) as it would cause the number "
                     + "of active, push queries to exceed the configured limit. "

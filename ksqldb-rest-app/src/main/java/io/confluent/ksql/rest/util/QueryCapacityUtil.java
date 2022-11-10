@@ -81,17 +81,30 @@ public final class QueryCapacityUtil {
           final KsqlRestConfig ksqlRestConfig,
           final String statementStr
   ) {
+    final String sanitizedMessage = String.format(
+        "Not executing statement(s) as it would cause the number "
+            + "of active, push queries to exceed the configured limit. "
+            + "Terminate existing PUSH queries, "
+            + "or increase the '%s' setting via the 'ksql-server.properties' file. "
+            + "Current push query count: %d. Configured limit: %d.",
+        KsqlRestConfig.MAX_PUSH_QUERIES,
+        getNumLivePushQueries(executionContext),
+        getPushQueryLimit(ksqlRestConfig)
+    );
+    final String unloggedMessage = String.format(
+        "Not executing statement(s) '%s' as it would cause the number "
+            + "of active, push queries to exceed the configured limit. "
+            + "Terminate existing PUSH queries, "
+            + "or increase the '%s' setting via the 'ksql-server.properties' file. "
+            + "Current push query count: %d. Configured limit: %d.",
+        statementStr,
+        KsqlRestConfig.MAX_PUSH_QUERIES,
+        getNumLivePushQueries(executionContext),
+        getPushQueryLimit(ksqlRestConfig)
+    );
     throw new KsqlStatementException(
-        String.format(
-            "Not executing statement(s) as it would cause the number "
-                + "of active, push queries to exceed the configured limit. "
-                + "Terminate existing PUSH queries, "
-                + "or increase the '%s' setting via the 'ksql-server.properties' file. "
-                + "Current push query count: %d. Configured limit: %d.",
-            KsqlRestConfig.MAX_PUSH_QUERIES,
-            getNumLivePushQueries(executionContext),
-            getPushQueryLimit(ksqlRestConfig)
-        ),
+        sanitizedMessage,
+        unloggedMessage,
         statementStr
     );
   }

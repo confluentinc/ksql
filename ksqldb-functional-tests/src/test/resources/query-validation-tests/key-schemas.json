@@ -466,7 +466,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "line 1:32: Syntax Error\nExpecting {'STRING', INTEGER_VALUE}"
+        "message": "line 1:32: Syntax Error\nExpecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K STRING (KEY)) WITH (kafka_topic='input',value_format='JSON');"
       }
     },
     {
@@ -476,7 +476,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "line 1:33: Syntax Error\nExpecting {'STRING', INTEGER_VALUE}"
+        "message": "line 1:33: Syntax Error\nExpecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K INTEGER (KEY)) WITH (kafka_topic='input',value_format='JSON');"
       }
     },
     {

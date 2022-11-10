@@ -320,39 +320,27 @@ final class EngineExecutor {
         ));
       }
 
-      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
-      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
-      final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
-
-      // do not include the statement text in the default logs as it may contain sensitive
-      // information - the exception which is returned to the user below will contain
-      // the contents of the query
-      if (messageLower.contains(stmtLower) || stackLower.contains(stmtLower)) {
-        final StackTraceElement loc = Iterables
-            .getLast(Throwables.getCausalChain(e))
-            .getStackTrace()[0];
-        LOG.error("Failure to execute pull query {} {}, not logging the error message since it "
-            + "contains the query string, which may contain sensitive information. If you "
-            + "see this LOG message, please submit a GitHub ticket and we will scrub "
-            + "the statement text from the error at {}",
-            routingOptions.debugString(),
-            queryPlannerOptions.debugString(),
-            loc);
-      } else {
-        LOG.error("Failure to execute pull query. {} {}",
-            routingOptions.debugString(),
-            queryPlannerOptions.debugString(),
-            e);
-      }
-      LOG.debug("Failed pull query text {}, {}", statement.getMaskedStatementText(), e);
-
-      throw new KsqlStatementException(
-          e.getMessage() == null
-              ? "Server Error"
-              : e.getMessage(),
+      QueryLogger.error(
+          "Failure to execute pull query",
           statement.getMaskedStatementText(),
           e
       );
+      if (e instanceof KsqlStatementException) {
+        throw new KsqlStatementException(
+            e.getMessage() == null ? "Server Error" : e.getMessage(),
+            ((KsqlStatementException) e).getUnloggedMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      } else {
+        throw new KsqlStatementException(
+            e.getMessage() == null
+                ? "Server Error"
+                : e.getMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      }
     }
   }
 

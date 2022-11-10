@@ -2372,8 +2372,8 @@ public class KsqlResourceTest {
     // Then:
     assertThat(e, exceptionStatusCode(is(INTERNAL_SERVER_ERROR.code())));
     assertThat(e, exceptionErrorMessage(errorMessage(is(
-        "Could not write the statement into the command topic."
-            + System.lineSeparator() + "Caused by: blah"))));
+        "Could not write the statement '" + statement
+            + "' into the command topic." + System.lineSeparator() + "Caused by: blah"))));
     assertThat(e.getResponse().getEntity(), instanceOf(KsqlStatementErrorMessage.class));
     final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) e.getResponse().getEntity();
     assertThat(entity.getStatementText(), containsString(statement));

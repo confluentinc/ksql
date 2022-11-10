@@ -353,35 +353,14 @@ public class KsqlResource implements KsqlConfigurable {
           commandRunnerWarning);
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
-      QueryLogger.warn(
+      QueryLogger.info(
           "Processed unsuccessfully: " + request.toStringWithoutQuery(),
           request.getMaskedKsql(),
           e
       );
       throw e;
-    } catch (final ParseFailedException e) {
-      // causes of ParseFailedException may contain unmaskable strings
-      QueryLogger.warn(
-          "Could not parse: " + request.toStringWithoutQuery(),
-          request.getMaskedKsql()
-      );
-      final EndpointResponse response;
-      if (e.getCause() != null && e.getCause() instanceof ParsingException) {
-        // ParsingException messages are more informative, when they are present.
-        response = Errors.badStatement(
-            ((ParsingException) e.getCause()).getUnloggedDetails(),
-            e.getSqlStatement()
-        );
-      } else if (e.getProblem() == KsqlStatementException.Problem.STATEMENT) {
-        response = Errors.badStatement(e.getUnloggedMessage(), e.getSqlStatement());
-      } else if (e.getProblem() == KsqlStatementException.Problem.OTHER) {
-        response = Errors.serverErrorForStatement(e, e.getSqlStatement());
-      } else {
-        response = Errors.badRequestWithStatement(e, e.getSqlStatement());
-      }
-      return errorHandler.generateResponse(e, response);
     } catch (final KsqlStatementException e) {
-      QueryLogger.warn(
+      QueryLogger.info(
           "Processed unsuccessfully: " + request.toStringWithoutQuery(),
           request.getMaskedKsql(),
           e
@@ -392,21 +371,18 @@ public class KsqlResource implements KsqlConfigurable {
       } else if (e.getProblem() == KsqlStatementException.Problem.OTHER) {
         response = Errors.serverErrorForStatement(e, e.getSqlStatement());
       } else {
-        response = Errors.badRequestWithStatement(e, e.getSqlStatement());
+        response = Errors.badRequest(e);
       }
       return errorHandler.generateResponse(e, response);
     } catch (final KsqlException e) {
-      QueryLogger.warn(
+      QueryLogger.info(
           "Processed unsuccessfully: " + request.toStringWithoutQuery(),
           request.getMaskedKsql(),
           e
       );
-      return errorHandler.generateResponse(
-          e,
-          Errors.badRequestWithStatement(e, request.getMaskedKsql())
-      );
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
-      QueryLogger.warn(
+      QueryLogger.info(
           "Processed unsuccessfully: " + request.toStringWithoutQuery(),
           request.getMaskedKsql(),
           e

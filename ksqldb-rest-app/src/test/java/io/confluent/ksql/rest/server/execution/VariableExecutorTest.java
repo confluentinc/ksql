@@ -175,6 +175,9 @@ public class VariableExecutorTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("Failed to parse statement at or near 1:13"));
+      assertThat(e.getUnloggedMessage(), containsString(
+          "Syntax Error\n"
+              + "Expecting STRING"));
       assertThat(e.getSqlStatement(), containsString("DEFINE var1=" + invalidValue + ";"));
     }
   }

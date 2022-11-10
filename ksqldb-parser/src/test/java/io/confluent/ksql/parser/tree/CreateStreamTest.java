@@ -121,6 +121,11 @@ public class CreateStreamTest {
             + "please use 'KEY' for streams.\n"
             + "Tables have PRIMARY KEYs, which are unique and NON NULL.\n"
             + "Streams have KEYs, which have no uniqueness or NON NULL constraints."));
+    assertThat(e.getUnloggedMessage(),
+        containsString("Line: 2, Col: 4: Column `PK` is a 'PRIMARY KEY' column: "
+            + "please use 'KEY' for streams.\n"
+            + "Tables have PRIMARY KEYs, which are unique and NON NULL.\n"
+            + "Streams have KEYs, which have no uniqueness or NON NULL constraints."));
     assertThat(e.getSqlStatement(), containsString("PK"));
   }
 }

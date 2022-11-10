@@ -40,7 +40,7 @@ public class FailureHandler implements Handler<RoutingContext> {
   public void handle(final RoutingContext routingContext) {
     final int statusCode = routingContext.statusCode();
     final Throwable failure = routingContext.failure();
-    // Don't log the failure, since it may contain sensitive information for the user.
+    // Don't log the failure, since it may contain sensitive information meant for the user.
     log.error(
         String.format(
             "Failed to handle request %d %s",

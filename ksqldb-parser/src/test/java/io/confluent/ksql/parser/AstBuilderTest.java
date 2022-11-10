@@ -479,7 +479,7 @@ public class AstBuilderTest {
         ParseFailedException.class,
         () -> givenQuery("SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;")
     );
-e.printStackTrace();
+
     // Then:
     assertThat(
         e.getMessage(),

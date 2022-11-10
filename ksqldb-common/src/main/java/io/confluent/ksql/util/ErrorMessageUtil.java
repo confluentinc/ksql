@@ -55,32 +55,6 @@ public final class ErrorMessageUtil {
   }
 
   /**
-   * Build an error message containing the message and potential query text
-   * of each throwable in the chain.
-   *
-   * <p>Throwable messages are separated by new lines.
-   *
-   * @param throwable the top level error.
-   * @return the error message.
-   */
-  public static String buildErrorMessageWithStatements(final Throwable throwable) {
-    if (throwable == null) {
-      return "";
-    }
-
-    final List<String> messages = dedup(getErrorMessagesWithStatements(throwable));
-
-    final String msg = messages.remove(0);
-
-    final String causeMsg = messages.stream()
-        .filter(s -> !s.isEmpty())
-        .map(cause -> WordUtils.wrap(PREFIX + cause, 80, "\n\t", true))
-        .collect(Collectors.joining(System.lineSeparator()));
-
-    return causeMsg.isEmpty() ? msg : msg + System.lineSeparator() + causeMsg;
-  }
-
-  /**
    * Build a list containing the error message for each throwable in the chain.
    *
    * @param e the top level error.
@@ -89,18 +63,6 @@ public final class ErrorMessageUtil {
   public static List<String> getErrorMessages(final Throwable e) {
     return getThrowables(e).stream()
         .map(ErrorMessageUtil::getErrorMessage)
-        .collect(Collectors.toList());
-  }
-
-  /**
-   * Build a list containing the error message for each throwable in the chain.
-   *
-   * @param e the top level error.
-   * @return the list of error messages.
-   */
-  public static List<String> getErrorMessagesWithStatements(final Throwable e) {
-    return getThrowables(e).stream()
-        .map(ErrorMessageUtil::getErrorMessageWithStatement)
         .collect(Collectors.toList());
   }
 
@@ -116,25 +78,6 @@ public final class ErrorMessageUtil {
         message = e.getMessage();
       }
       return message == null ? e.toString() : message;
-    }
-  }
-
-  private static String getErrorMessageWithStatement(final Throwable e) {
-    if (e instanceof ConnectException) {
-      return "Could not connect to the server. "
-          + "Please check the server details are correct and that the server is running.";
-    } else if (e instanceof KsqlStatementException) {
-      final String message = e.getMessage() == null ? e.toString() : e.getMessage();
-      final String statement = ((KsqlStatementException) e).getSqlStatement();
-      final String result;
-      if (statement == null || statement.isEmpty()) {
-        result = message;
-      } else {
-        result = message + "\nStatement: " + statement;
-      }
-      return result;
-    } else {
-      return e.getMessage() == null ? e.toString() : e.getMessage();
     }
   }
 

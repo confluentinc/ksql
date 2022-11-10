@@ -220,11 +220,13 @@ final class EngineExecutor {
     // must be executed.
     if (persistentQueryType == KsqlConstants.PersistentQueryType.CREATE_SOURCE
         && !isSourceTableMaterializationEnabled()) {
-      final String message = String.format(
-          "Source table query won't be materialized because '%s' is disabled.",
-          KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED
+      QueryLogger.info(
+          String.format(
+              "Source table query won't be materialized because '%s' is disabled.",
+              KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED
+          ),
+          plan.getStatementText()
       );
-      QueryLogger.info(message, plan.getStatementText());
       return ExecuteResult.of(ddlResult.get());
     }
 
@@ -421,31 +423,13 @@ final class EngineExecutor {
         ));
       }
 
-      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
-      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
-      final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
-
-      // do not include the statement text in the default logs as it may contain sensitive
-      // information - the exception which is returned to the user below will contain
-      // the contents of the query
-      if (messageLower.contains(stmtLower) || stackLower.contains(stmtLower)) {
-        final StackTraceElement loc = Iterables
-                .getLast(Throwables.getCausalChain(e))
-                .getStackTrace()[0];
-        LOG.error("Failure to execute push query V2 {} {}, not logging the error message since it "
-                        + "contains the query string, which may contain sensitive information."
-                        + " If you see this LOG message, please submit a GitHub ticket and"
-                        + " we will scrub the statement text from the error at {}",
-                pushRoutingOptions.debugString(),
-                queryPlannerOptions.debugString(),
-                loc);
-      } else {
-        LOG.error("Failure to execute push query V2. {} {}",
-                pushRoutingOptions.debugString(),
-                queryPlannerOptions.debugString(),
-                e);
-      }
-      LOG.debug("Failed push query V2 text {}, {}", statement.getMaskedStatementText(), e);
+      QueryLogger.error(
+          "Failure to execute push query V2. " +
+              pushRoutingOptions.debugString() + " " +
+              queryPlannerOptions.debugString(),
+          statement.getMaskedStatementText(),
+          e
+      );
 
       throw new KsqlStatementException(
               e.getMessage() == null

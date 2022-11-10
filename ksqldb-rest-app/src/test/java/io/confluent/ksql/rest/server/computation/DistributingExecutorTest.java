@@ -78,13 +78,12 @@ import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
-import io.confluent.ksql.util.KsqlStatementException;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.TimeoutException;
@@ -274,6 +273,8 @@ public class DistributingExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Could not write the statement into the command topic."));
+    assertThat(e.getUnloggedMessage(), containsString(
+        "Could not write the statement 'statement' into the command topic."));
     assertThat(e.getSqlStatement(), containsString("statement"));
     assertThat(e.getCause(), (is(cause)));
     verify(transactionalProducer, times(1)).abortTransaction();
@@ -453,6 +454,8 @@ public class DistributingExecutorTest {
     );
 
     assertThat(e.getMessage(), containsString("Could not write the statement into the command topic."));
+    assertThat(e.getUnloggedMessage(), containsString("Could not write the statement "
+        + "'statement' into the command topic."));
     assertThat(e.getSqlStatement(), containsString("statement"));
 
     // Then:
@@ -469,6 +472,8 @@ public class DistributingExecutorTest {
     );
 
     assertThat(e.getMessage(), containsString("Could not write the statement into the command topic."));
+    assertThat(e.getUnloggedMessage(), containsString("Could not write the statement "
+        + "'statement' into the command topic."));
     assertThat(e.getSqlStatement(), containsString("statement"));
 
     // Then:

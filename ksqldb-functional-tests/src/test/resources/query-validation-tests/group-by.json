@@ -606,7 +606,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`KEY` DECIMAL(2, 1) KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'DECIMAL'"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`KEY` DECIMAL(2, 1) KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'DECIMAL'\nStatement: CREATE TABLE OUTPUT AS SELECT\n  TEST.F2 KEY,\n  COUNT(*) TOTAL\nFROM TEST TEST\nGROUP BY TEST.F2\nEMIT CHANGES"
       }
     },
     {
@@ -688,7 +688,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`K1` INTEGER KEY, `K2` INTEGER KEY], features=[]}\nreason: The 'KAFKA' format only supports a single field. Got: [`K1` INTEGER KEY, `K2` INTEGER KEY]"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`K1` INTEGER KEY, `K2` INTEGER KEY], features=[]}\nreason: The 'KAFKA' format only supports a single field. Got: [`K1` INTEGER KEY, `K2` INTEGER KEY]\nStatement: CREATE TABLE OUTPUT WITH (KEY_FORMAT='KAFKA') AS SELECT\n  TEST.F1 K1,\n  TEST.F2 K2,\n  COUNT(*) TOTAL\nFROM TEST TEST\nGROUP BY TEST.F1, TEST.F2\nEMIT CHANGES"
       }
     },
     {

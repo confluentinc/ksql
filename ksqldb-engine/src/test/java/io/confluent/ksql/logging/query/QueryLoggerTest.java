@@ -16,9 +16,8 @@ import io.confluent.common.logging.log4j.StructuredJsonLayout;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;
+import java.util.List;
 import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,18 +25,18 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueryLoggerTest {
-  @Mock
-  public KsqlConfig config;
+  @Mock public KsqlConfig config;
   private final TestAppender testAppender = new TestAppender();
 
   private final QueryAnonymizer anonymizer = new QueryAnonymizer();

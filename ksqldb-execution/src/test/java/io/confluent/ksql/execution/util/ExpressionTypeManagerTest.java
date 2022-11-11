@@ -95,6 +95,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
@@ -205,13 +206,16 @@ public class ExpressionTypeManagerTest {
     );
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expr)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
+        "Cannot compare BIGINT to STRING with GREATER_THAN"
+    ));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Cannot compare COL0 (BIGINT) to COL1 (STRING) with GREATER_THAN"
     ));
   }
@@ -226,13 +230,17 @@ public class ExpressionTypeManagerTest {
     );
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expr)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
+        "Cannot compare BOOLEAN to BOOLEAN with "
+            + "GREATER_THAN"
+    ));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Cannot compare true (BOOLEAN) to false (BOOLEAN) with "
             + "GREATER_THAN"
     ));
@@ -244,13 +252,18 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new ComparisonExpression(Type.GREATER_THAN, MAPCOL, ADDRESS);
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expression)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
+        "Cannot compare MAP<BIGINT, DOUBLE>"
+            + " to STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING,"
+            + " `STATE` STRING, `ZIPCODE` BIGINT> with GREATER_THAN."
+    ));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Cannot compare COL5 (MAP<BIGINT, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
             + "`STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>) "
             + "with GREATER_THAN"
@@ -263,13 +276,18 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new ComparisonExpression(Type.EQUAL, MAPCOL, ADDRESS);
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expression)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
+        "Cannot compare MAP<BIGINT, DOUBLE> "
+            + "to STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING,"
+            + " `STATE` STRING, `ZIPCODE` BIGINT> with EQUAL."
+    ));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Cannot compare COL5 (MAP<BIGINT, DOUBLE>) to COL6 "
             + "(STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, "
             + "`ZIPCODE` BIGINT>) with EQUAL"

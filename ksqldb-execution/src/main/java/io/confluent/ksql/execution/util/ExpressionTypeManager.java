@@ -235,7 +235,7 @@ public class ExpressionTypeManager {
 
       if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
         throw new KsqlStatementException(
-            "Cannot compare (" + leftSchema + ") to (" + rightSchema + ") "
+            "Cannot compare " + leftSchema + " to " + rightSchema + " "
             + "with " + node.getType() + ".",
             "Cannot compare "
             + node.getLeft().toString() + " (" + leftSchema + ") to "

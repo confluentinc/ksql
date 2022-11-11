@@ -228,7 +228,7 @@ public final class VariableSubstitutor {
       throw new ParseFailedException(
           "Illegal argument at " + location.map(NodeLocation::toString).orElse("?") + ".",
           "Illegal argument at " + location.map(NodeLocation::toString).orElse("?")
-              + ". Got: '\" + value + \"'",
+              + ". Got: '" + value + "'",
           statementText);
     }
 

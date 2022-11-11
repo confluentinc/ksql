@@ -499,7 +499,6 @@ public class KsMaterializationFunctionalTest {
     assertThat(materialization.windowType(), is(Optional.of(WindowType.TUMBLING)));
     final MaterializedWindowedTable table = materialization.windowed();
     final Set<Optional<Window>> expectedWindows = Stream.of(
-        Window.of(WINDOW_START_INSTANTS.get(1), WINDOW_START_INSTANTS.get(1).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
         Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
         Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds()))
     ).map(Optional::of).collect(Collectors.toSet());
@@ -529,7 +528,6 @@ public class KsMaterializationFunctionalTest {
     assertThat(materialization.windowType(), is(Optional.of(WindowType.HOPPING)));
     final MaterializedWindowedTable table = materialization.windowed();
     final Set<Optional<Window>> expectedWindows = Stream.of(
-        Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
         Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds()))
     ).map(Optional::of).collect(Collectors.toSet());
     verifyRetainedWindows(rows, table, expectedWindows);
@@ -557,7 +555,6 @@ public class KsMaterializationFunctionalTest {
     assertThat(materialization.windowType(), is(Optional.of(WindowType.SESSION)));
     final MaterializedWindowedTable table = materialization.windowed();
     final Set<Optional<Window>> expectedWindows = Stream.of(
-        Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2)),
         Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3))
     ).map(Optional::of).collect(Collectors.toSet());
     verifyRetainedWindows(rows, table, expectedWindows);

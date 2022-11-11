@@ -190,7 +190,7 @@ public class SqlTypeParserTest {
     // Then:
     System.out.println(e.getMessage());
     assertThat(e.getUnloggedMessage(), is(
-        "Failed to parse: STRUCT<foo VARCHAR,>"
+        "Failed to parse: STRUCT<foo VARCHAR,>\nStatement: STRUCT<foo VARCHAR,>"
     ));
     assertThat(e.getMessage(), is(
         "Failed to parse schema"

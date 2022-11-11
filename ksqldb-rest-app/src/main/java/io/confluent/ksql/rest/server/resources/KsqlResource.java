@@ -365,7 +365,7 @@ public class KsqlResource implements KsqlConfigurable {
       );
       final EndpointResponse response;
       if (e.getProblem() == KsqlStatementException.Problem.STATEMENT) {
-        response = Errors.badStatement(e.getUnloggedMessage(), e.getSqlStatement());
+        response = Errors.badStatement(e.getRawUnloggedDetails(), e.getSqlStatement());
       } else if (e.getProblem() == KsqlStatementException.Problem.OTHER) {
         response = Errors.serverErrorForStatement(e, e.getSqlStatement());
       } else {

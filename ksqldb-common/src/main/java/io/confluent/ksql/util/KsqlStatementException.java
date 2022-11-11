@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 public class KsqlStatementException extends KsqlException {
+
   public enum Problem {
     STATEMENT,
     REQUEST,
@@ -26,13 +27,15 @@ public class KsqlStatementException extends KsqlException {
   private final Problem problem;
   private final String rawMessage;
   private final String unloggedDetails;
+  private final String rawUnloggedDetails;
 
   public KsqlStatementException(final String message, final String sqlStatement) {
     super(message);
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = Problem.STATEMENT;
-    this.unloggedDetails = null;
+    this.rawUnloggedDetails = this.rawMessage;
+    this.unloggedDetails = buildMessage(message, sqlStatement);
   }
 
   public KsqlStatementException(final String message,
@@ -42,6 +45,7 @@ public class KsqlStatementException extends KsqlException {
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = Problem.STATEMENT;
+    this.rawUnloggedDetails = unloggedDetails;
     this.unloggedDetails = buildMessage(unloggedDetails, sqlStatement);
   }
 
@@ -52,6 +56,7 @@ public class KsqlStatementException extends KsqlException {
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = problem;
+    this.rawUnloggedDetails = rawMessage;
     this.unloggedDetails = null;
   }
 
@@ -63,6 +68,7 @@ public class KsqlStatementException extends KsqlException {
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = problem;
+    this.rawUnloggedDetails = unloggedDetails;
     this.unloggedDetails = buildMessage(unloggedDetails, sqlStatement);
   }
 
@@ -74,6 +80,7 @@ public class KsqlStatementException extends KsqlException {
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = Problem.STATEMENT;
+    this.rawUnloggedDetails = this.rawMessage;
     this.unloggedDetails = null;
   }
 
@@ -85,6 +92,7 @@ public class KsqlStatementException extends KsqlException {
     super(message, cause);
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+    this.rawUnloggedDetails = unloggedDetails;
     this.unloggedDetails = buildMessage(unloggedDetails, sqlStatement);
     this.problem = Problem.STATEMENT;
   }
@@ -98,6 +106,7 @@ public class KsqlStatementException extends KsqlException {
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = problem;
+    this.rawUnloggedDetails = this.rawMessage;
     this.unloggedDetails = null;
   }
 
@@ -111,7 +120,9 @@ public class KsqlStatementException extends KsqlException {
     this.rawMessage = message == null ? "" : message;
     this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
     this.problem = problem;
-    this.unloggedDetails = buildMessage(unloggedDetails, sqlStatement);
+    this.rawUnloggedDetails = unloggedDetails;
+    this.unloggedDetails =
+        problem == Problem.OTHER ? unloggedDetails : buildMessage(unloggedDetails, sqlStatement);
   }
 
   public String getSqlStatement() {
@@ -128,6 +139,10 @@ public class KsqlStatementException extends KsqlException {
 
   public String getUnloggedMessage() {
     return unloggedDetails == null ? getMessage() : unloggedDetails;
+  }
+
+  public String getRawUnloggedDetails() {
+    return rawUnloggedDetails;
   }
 
   private static String buildMessage(final String message, final String sqlStatement) {

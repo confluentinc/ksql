@@ -1946,24 +1946,12 @@ public class KsqlResourceTest {
     makeSingleRequest("SHOW STREAMS;", StreamsList.class);
 
     // No further queries can be made
-    final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
     final KsqlErrorMessage result = makeFailingRequest(
-        statement,
-        BAD_REQUEST.code()
-    );
+        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;", BAD_REQUEST.code());
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
-    assertThat(
-        result.getMessage(),
-        containsString(
-            "Not executing statement(s) 'CREATE STREAM ID_0 AS SELECT * FROM test_stream;'" +
-                " as it would cause the number of active, persistent queries to exceed" +
-                " the configured limit. Use the TERMINATE command to terminate existing" +
-                " queries, or increase the 'ksql.query.persistent.active.limit'" +
-                " setting via the 'ksql-server.properties' file. Current persistent" +
-                " query count: 6. Configured limit: 3."
-        )
-    );
-    assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(statement));
+    assertThat(result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
     verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 

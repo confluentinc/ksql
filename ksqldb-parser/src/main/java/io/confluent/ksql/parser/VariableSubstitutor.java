@@ -201,7 +201,7 @@ public final class VariableSubstitutor {
                 + "values and '_'.",
             "Illegal argument at " + location.map(NodeLocation::toString).orElse("?")
                 + ". Identifier names cannot start with '@' and may only contain alphanumeric "
-                + "values and '_'. Got: '\" + value + \"'",
+                + "values and '_'. Got: '" + value + "'",
             statementText);
       }
     }

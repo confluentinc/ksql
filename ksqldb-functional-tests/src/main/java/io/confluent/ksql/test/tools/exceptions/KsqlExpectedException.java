@@ -20,10 +20,13 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.ArrayList;
 import java.util.List;
+import org.hamcrest.Description;
+import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
-import org.junit.internal.matchers.ThrowableMessageMatcher;
+import org.hamcrest.TypeSafeMatcher;
 
 @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
 public class KsqlExpectedException {
@@ -46,7 +49,45 @@ public class KsqlExpectedException {
   }
 
   public void expectMessage(final Matcher<String> matcher) {
-    matchers.add(ThrowableMessageMatcher.hasMessage(matcher));
+    matchers.add(UnloggedMessageMatcher.hasMessage(matcher));
+  }
+
+  public static class UnloggedMessageMatcher<T extends Throwable> extends TypeSafeMatcher<T> {
+    private final Matcher<String> matcher;
+
+    public UnloggedMessageMatcher(final Matcher<String> matcher) {
+      this.matcher = matcher;
+    }
+
+    public void describeTo(final Description description) {
+      description.appendText("exception with message or unloggedDetails ");
+      description.appendDescriptionOf(this.matcher);
+    }
+
+    protected boolean matchesSafely(final T item) {
+      final boolean matches = this.matcher.matches(item.getMessage());
+      return matches || (
+          item instanceof KsqlStatementException
+              && this.matcher.matches(((KsqlStatementException) item).getUnloggedMessage())
+        );
+    }
+
+    protected void describeMismatchSafely(final T item, final Description description) {
+      description.appendText("message ");
+      this.matcher.describeMismatch(item.getMessage(), description);
+      if (item instanceof KsqlStatementException) {
+        description.appendText("unloggedDetails ");
+        this.matcher.describeMismatch(
+            ((KsqlStatementException) item).getUnloggedMessage(),
+            description
+        );
+      }
+    }
+
+    @Factory
+    public static <T extends Throwable> Matcher<T> hasMessage(final Matcher<String> matcher) {
+      return new UnloggedMessageMatcher<>(matcher);
+    }
   }
 
   @SuppressWarnings("unchecked")

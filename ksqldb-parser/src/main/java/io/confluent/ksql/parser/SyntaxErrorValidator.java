@@ -159,9 +159,9 @@ public class SyntaxErrorValidator extends BaseErrorListener {
       } else {
         sb.append(message);
       }
-      throw new ParsingException(sb.toString(), e, line, charPositionInLine);
+      throw new ParsingException(sb.toString(), line, charPositionInLine);
     } else {
-      throw new ParsingException(message, e, line, charPositionInLine);
+      throw new ParsingException(message, line, charPositionInLine);
     }
   }
 

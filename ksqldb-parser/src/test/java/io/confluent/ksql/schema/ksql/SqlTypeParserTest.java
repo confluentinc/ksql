@@ -1,5 +1,6 @@
 package io.confluent.ksql.schema.ksql;
 
+import io.confluent.ksql.util.KsqlStatementException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -181,18 +182,21 @@ public class SqlTypeParserTest {
     final String schemaString = "STRUCT<foo VARCHAR,>";
 
     // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> parser.parse(schemaString)
     );
 
     // Then:
     System.out.println(e.getMessage());
-    assertThat(e.getMessage(), containsString(
-        "Failed to parse: STRUCT<foo VARCHAR,>"
+    assertThat(e.getUnloggedMessage(), is(
+        "Failed to parse: STRUCT<foo VARCHAR,>\nStatement: STRUCT<foo VARCHAR,>"
     ));
-    assertThat(e.getCause().getMessage(), containsString(
-        "line 1:20: Syntax Error"
+    assertThat(e.getMessage(), is(
+        "Failed to parse schema"
+    ));
+    assertThat(e.getCause().getMessage(), is(
+        "line 1:20: Syntax error at line 1:20"
     ));
   }
 }

@@ -17,10 +17,8 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
@@ -119,10 +117,8 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -221,11 +217,13 @@ final class EngineExecutor {
     // must be executed.
     if (persistentQueryType == KsqlConstants.PersistentQueryType.CREATE_SOURCE
         && !isSourceTableMaterializationEnabled()) {
-      final String message = String.format(
-          "Source table query won't be materialized because '%s' is disabled.",
-          KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED
+      QueryLogger.info(
+          String.format(
+              "Source table query won't be materialized because '%s' is disabled.",
+              KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED
+          ),
+          plan.getStatementText()
       );
-      QueryLogger.info(message, plan.getStatementText());
       return ExecuteResult.of(ddlResult.get());
     }
 
@@ -321,39 +319,27 @@ final class EngineExecutor {
         ));
       }
 
-      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
-      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
-      final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
-
-      // do not include the statement text in the default logs as it may contain sensitive
-      // information - the exception which is returned to the user below will contain
-      // the contents of the query
-      if (messageLower.contains(stmtLower) || stackLower.contains(stmtLower)) {
-        final StackTraceElement loc = Iterables
-            .getLast(Throwables.getCausalChain(e))
-            .getStackTrace()[0];
-        LOG.error("Failure to execute pull query {} {}, not logging the error message since it "
-            + "contains the query string, which may contain sensitive information. If you "
-            + "see this LOG message, please submit a GitHub ticket and we will scrub "
-            + "the statement text from the error at {}",
-            routingOptions.debugString(),
-            queryPlannerOptions.debugString(),
-            loc);
-      } else {
-        LOG.error("Failure to execute pull query. {} {}",
-            routingOptions.debugString(),
-            queryPlannerOptions.debugString(),
-            e);
-      }
-      LOG.debug("Failed pull query text {}, {}", statement.getMaskedStatementText(), e);
-
-      throw new KsqlStatementException(
-          e.getMessage() == null
-              ? "Server Error" + Arrays.toString(e.getStackTrace())
-              : e.getMessage(),
+      QueryLogger.error(
+          "Failure to execute pull query",
           statement.getMaskedStatementText(),
           e
       );
+      if (e instanceof KsqlStatementException) {
+        throw new KsqlStatementException(
+            e.getMessage() == null ? "Server Error" : e.getMessage(),
+            ((KsqlStatementException) e).getUnloggedMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      } else {
+        throw new KsqlStatementException(
+            e.getMessage() == null
+                ? "Server Error"
+                : e.getMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      }
     }
   }
 
@@ -434,35 +420,17 @@ final class EngineExecutor {
         ));
       }
 
-      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
-      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
-      final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
-
-      // do not include the statement text in the default logs as it may contain sensitive
-      // information - the exception which is returned to the user below will contain
-      // the contents of the query
-      if (messageLower.contains(stmtLower) || stackLower.contains(stmtLower)) {
-        final StackTraceElement loc = Iterables
-                .getLast(Throwables.getCausalChain(e))
-                .getStackTrace()[0];
-        LOG.error("Failure to execute push query V2 {} {}, not logging the error message since it "
-                        + "contains the query string, which may contain sensitive information."
-                        + " If you see this LOG message, please submit a GitHub ticket and"
-                        + " we will scrub the statement text from the error at {}",
-                pushRoutingOptions.debugString(),
-                queryPlannerOptions.debugString(),
-                loc);
-      } else {
-        LOG.error("Failure to execute push query V2. {} {}",
-                pushRoutingOptions.debugString(),
-                queryPlannerOptions.debugString(),
-                e);
-      }
-      LOG.debug("Failed push query V2 text {}, {}", statement.getMaskedStatementText(), e);
+      QueryLogger.error(
+          "Failure to execute push query V2. "
+              + pushRoutingOptions.debugString() + " "
+              + queryPlannerOptions.debugString(),
+          statement.getMaskedStatementText(),
+          e
+      );
 
       throw new KsqlStatementException(
               e.getMessage() == null
-                      ? "Server Error" + Arrays.toString(e.getStackTrace())
+                      ? "Server Error"
                       : e.getMessage(),
               statement.getMaskedStatementText(),
               e

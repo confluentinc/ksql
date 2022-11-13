@@ -69,7 +69,6 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -1215,33 +1214,6 @@ public class CliTest {
   }
 
   @Test
-  public void shouldPrintStatementInError() throws Exception {
-    // Given:
-    final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.erroneous(
-            NOT_ACCEPTABLE.code(),
-            new KsqlStatementErrorMessage(
-                Errors.toErrorCode(NOT_ACCEPTABLE.code()),
-                "error message",
-                "this is a statement",
-                new KsqlEntityList()
-            )
-        ));
-
-    final StringBuilder builder = new StringBuilder();
-    builder.append("CREATE STREAM shouldRunCommand AS SELECT * FROM Asdf;");
-
-    // When:
-    localCli.runCommand(builder.toString());
-
-    // Then:
-    final String outputString = terminal.getOutputString();
-    assertThat(outputString, containsString("error message"));
-    assertThat(outputString, containsString("this is a statement"));
-  }
-
-  @Test
   public void shouldThrowWhenTryingToSetDeniedProperty() throws Exception {
     // Given
     final KsqlRestClient mockRestClient = givenMockRestClient();
@@ -1306,12 +1278,13 @@ public class CliTest {
 
     // Then:
     final String out = terminal.getOutputString();
-    final String expected = "Syntax error at or near 'exist' at line 2:22\n"
-        + "Statement: create stream if not exist s1(id int) "
-        + "with (kafka_topic='s1', value_format='json', partitions=1);\n"
-        + "Caused by: org.antlr.v4.runtime.NoViableAltException";
+    final String expected = "line 2:22: Syntax Error\n" +
+        "Syntax error at or near 'exist' at line 2:22\n" +
+        "Statement: create stream if not exist s1(id int) with " +
+        "(kafka_topic='s1', value_format='json', partitions=1);\n" +
+        "Caused by: line 2:22: Syntax error at line 2:22\n";
     assertThat(error_code, is(-1));
-    assertThat(out, containsString(expected));
+    assertThat(out, is(expected));
     assertThat(out, not(containsString("drop stream if exists")));
   }
 

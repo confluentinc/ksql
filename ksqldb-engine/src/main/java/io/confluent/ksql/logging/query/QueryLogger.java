@@ -120,6 +120,10 @@ public final class QueryLogger {
     log(Level.INFO, message, query);
   }
 
+  public static void info(final Object message, final String query, final Throwable t) {
+    log(Level.INFO, message, query, t);
+  }
+
   public static void info(final Object message, final Statement query) {
     log(Level.INFO, message, query);
   }

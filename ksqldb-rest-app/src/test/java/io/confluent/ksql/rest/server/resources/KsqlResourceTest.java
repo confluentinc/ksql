@@ -1946,18 +1946,12 @@ public class KsqlResourceTest {
     makeSingleRequest("SHOW STREAMS;", StreamsList.class);
 
     // No further queries can be made
-    final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
     final KsqlErrorMessage result = makeFailingRequest(
-        statement,
-        BAD_REQUEST.code()
-    );
+        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;", BAD_REQUEST.code());
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(result.getMessage(),
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
-    // query text has been redacted from the exception
-    // message and added to the response body instead.
-    assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(statement));
     verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 
@@ -2231,6 +2225,9 @@ public class KsqlResourceTest {
     assertThat(response.getEntity().toString(),
         CoreMatchers
             .startsWith("Could not write the statement 'TERMINATE CLUSTER;' into the command "));
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) response.getEntity();
+    assertThat(entity.getStatementText(), containsString("TERMINATE CLUSTER"));
   }
 
   @Test
@@ -2363,6 +2360,9 @@ public class KsqlResourceTest {
     assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
             + "' into the command topic." + System.lineSeparator() + "Caused by: blah"))));
+    assertThat(e.getResponse().getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) e.getResponse().getEntity();
+    assertThat(entity.getStatementText(), containsString(statement));
   }
 
   private Answer<?> executeAgainstEngine(final String sql) {

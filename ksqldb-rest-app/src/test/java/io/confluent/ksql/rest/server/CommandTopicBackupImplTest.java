@@ -175,7 +175,6 @@ public class CommandTopicBackupImplTest {
     commandTopicBackup.initialize();
     final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
     when(record.key()).thenReturn(null);
-    when(record.value()).thenReturn(new byte[]{});
 
     // When
     commandTopicBackup.writeRecord(record);

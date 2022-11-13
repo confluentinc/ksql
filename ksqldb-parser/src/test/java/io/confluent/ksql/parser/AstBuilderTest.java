@@ -467,13 +467,19 @@ public class AstBuilderTest {
   @Test
   public void shouldNotBuildLambdaFunctionNotLastArguments() {
     // Given:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> givenQuery("SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;")
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("no viable alternative at input 'TRANSFORM_ARRAY(X =>"));
+    assertThat(
+        e.getUnloggedMessage(),
+        containsString("no viable alternative at input 'TRANSFORM_ARRAY(X =>"));
+    assertThat(
+        e.getMessage(),
+        containsString("line 1:26: Syntax error at line 1:26")
+    );
   }
 
   @Test

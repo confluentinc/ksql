@@ -455,7 +455,7 @@ public class KsqlParserTest {
   @Test
   public void shouldThrowOnNonAlphanumericSourceName() {
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> KsqlParserTestUtil.buildSingleAst(
             "CREATE STREAM `foo!bar` WITH (kafka_topic='foo', value_format='AVRO');",
@@ -463,8 +463,10 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
+    assertThat(e.getUnloggedMessage(), containsString(
         "Got: 'foo!bar'"));
+    assertThat(e.getMessage(), containsString("Illegal argument at Line: 1, Col: 15. Source names may only contain alphanumeric values, '_' or '-'."));
+    assertThat(e.getSqlStatement(), containsString("foo!bar"));
   }
 
   @Test
@@ -606,9 +608,22 @@ public class KsqlParserTest {
       KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
       fail(format("Expected query: %s to fail", simpleQuery));
     } catch (final ParseFailedException e) {
-      final String errorMessage = e.getMessage();
-      Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
-      Assert.assertTrue(e.getSqlStatement().contains(("SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100")));
+      assertThat(
+          e.getUnloggedMessage(),
+          containsString("line 1:1: mismatched input 'SELLECT' expecting " +
+              "{<EOF>, 'SELECT', 'CREATE', 'INSERT', 'DESCRIBE', 'PRINT', 'EXPLAIN', " +
+              "'SHOW', 'LIST', 'TERMINATE', 'PAUSE', 'RESUME', 'DROP', 'SET', 'DEFINE', " +
+              "'UNDEFINE', 'UNSET', 'ASSERT', 'ALTER'}\n" +
+              "Statement: SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100;")
+      );
+      assertThat(
+          e.getMessage(),
+          containsString("line 1:1: Syntax error at line 1:1")
+      );
+      assertThat(
+          e.getSqlStatement(),
+          containsString("SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100")
+      );
     }
   }
 
@@ -1213,7 +1228,8 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("line 1:21: extraneous input ';' expecting {',', 'FROM'}"));
+    assertThat(e.getUnloggedMessage(), containsString("line 1:21: extraneous input ';' expecting {',', 'FROM'}"));
+    assertThat(e.getMessage(), containsString("line 1:21: Syntax error at line 1:21"));
     assertThat(e.getSqlStatement(), containsString("SELECT ONLY, COLUMNS"));
   }
 
@@ -1229,7 +1245,9 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("line 1:12: extraneous input 'C' expecting"));
+    assertThat(e.getUnloggedMessage(), containsString(
+        "line 1:12: extraneous input 'C' expecting"));
+    assertThat(e.getMessage(), containsString("line 1:12: Syntax error at line 1:12"));
     assertThat(e.getSqlStatement(), containsString("SELECT A B C FROM address"));
   }
 
@@ -1246,8 +1264,15 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
-    assertThat(e.getSqlStatement(), containsString("CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)"));
+    assertThat(e.getUnloggedMessage(), containsString(
+        "line 1:35: \"size\" is a reserved keyword and it can't be used" +
+            " as an identifier. You can use it as an identifier by escaping it as 'size' \n" +
+            "Statement: CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)"
+    ));
+    assertThat(e.getMessage(), containsString("line 1:35: Syntax error at line 1:35"));
+    assertThat(e.getSqlStatement(), containsString(
+        "CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)"
+    ));
   }
 
   @Test
@@ -1257,13 +1282,16 @@ public class KsqlParserTest {
             "  WITH (kafka_topic='ords', value_format='json');";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
             ParseFailedException.class,
             () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("\"Load\" is a reserved keyword and it can't be used as an identifier"));
+    assertThat(e.getUnloggedMessage(), containsString("\"Load\" is a reserved" +
+        " keyword and it can't be used as an identifier"));
+    assertThat(e.getMessage(), containsString("line 1:23: Syntax error at line 1:23"));
+    assertThat(e.getSqlStatement(), containsString("CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)"));
   }
 
   @Test
@@ -1290,7 +1318,9 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("line 1:22: mismatched input ',' expecting"));
+    assertThat(e.getUnloggedMessage(),
+        containsString("line 1:22: mismatched input ',' expecting"));
+    assertThat(e.getMessage(), containsString("line 1:22: Syntax error at line 1:22"));
     assertThat(e.getSqlStatement(), containsString("SELECT * FROM address, itemid;"));
   }
 
@@ -1512,8 +1542,6 @@ public class KsqlParserTest {
     assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
     assertThat(preparedStatement.toString(), is(masked));
   }
-
-
 
   private Literal parseDouble(final String literalText) {
     final PreparedStatement<Query> query = KsqlParserTestUtil

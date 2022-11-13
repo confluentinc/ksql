@@ -79,9 +79,8 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
       history.save();
     } catch (final IOException e) {
       LOGGER.error("Error saving history file", e);
-      terminal.writer().println(
-          "Error saving history file:" + ErrorMessageUtil.buildErrorMessageWithStatements(e)
-      );
+      terminal.writer()
+          .println("Error saving history file:" + ErrorMessageUtil.buildErrorMessage(e));
     }
   }
 

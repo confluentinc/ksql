@@ -2155,6 +2155,9 @@ public class KsqlResourceTest {
     assertThat(response.getEntity().toString(),
         CoreMatchers
             .startsWith("Could not write the statement 'TERMINATE CLUSTER;' into the command "));
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) response.getEntity();
+    assertThat(entity.getStatementText(), containsString("TERMINATE CLUSTER"));
   }
 
   @Test
@@ -2287,6 +2290,9 @@ public class KsqlResourceTest {
     assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
             + "' into the command topic." + System.lineSeparator() + "Caused by: blah"))));
+    assertThat(e.getResponse().getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) e.getResponse().getEntity();
+    assertThat(entity.getStatementText(), containsString(statement));
   }
 
   private Answer<?> executeAgainstEngine(final String sql) {

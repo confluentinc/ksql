@@ -120,9 +120,14 @@ public final class ServerUtils {
       final Throwable actual = t.getCause();
       log.error(logMsg, actual);
       if (actual instanceof KsqlStatementException) {
-        routingContext.fail(BAD_REQUEST.code(),
-            new KsqlApiException(actual.getMessage(), ERROR_CODE_BAD_STATEMENT,
-                ((KsqlStatementException) actual).getSqlStatement()));
+        routingContext.fail(
+            BAD_REQUEST.code(),
+            new KsqlApiException(
+                ((KsqlStatementException) actual).getUnloggedMessage(),
+                ERROR_CODE_BAD_STATEMENT,
+                ((KsqlStatementException) actual).getSqlStatement()
+            )
+        );
         return null;
       } else if (actual instanceof KsqlRateLimitException) {
         routingContext.fail(TOO_MANY_REQUESTS.code(),

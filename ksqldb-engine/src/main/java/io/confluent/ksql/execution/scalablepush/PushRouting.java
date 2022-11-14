@@ -28,6 +28,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.common.QueryRow;
 import io.confluent.ksql.execution.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -333,8 +334,14 @@ public class PushRouting implements AutoCloseable {
             );
           });
     } else {
-      LOG.info("Query {} routed to host {} at timestamp {}.",
-          statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
+      QueryLogger.info(
+          String.format(
+              "Query routed to host %s at timestamp %d.",
+              node.location(),
+              System.currentTimeMillis()
+          ),
+          statement.getMaskedStatementText()
+      );
       scalablePushQueryMetrics
               .ifPresent(metrics -> metrics.recordRemoteRequests(1));
       final AtomicReference<BufferedPublisher<StreamedRow>> publisherRef

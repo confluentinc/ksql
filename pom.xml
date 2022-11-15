@@ -133,7 +133,6 @@
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.44.v20210927</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
-        <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>6.1.9-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>

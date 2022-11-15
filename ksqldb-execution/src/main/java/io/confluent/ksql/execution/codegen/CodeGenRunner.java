@@ -49,10 +49,12 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
@@ -167,11 +169,15 @@ public class CodeGenRunner {
 
       return new CompiledExpression(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
-      throw new KsqlException("Invalid " + type + ": " + e.getMessage()
-          + ". expression: " + expression + ", schema:" + schema, e);
+      throw new KsqlStatementException(
+          "Invalid " + type + ": " + e.getMessage() + ".",
+          "Invalid " + type + ": " + e.getMessage()
+              + ". expression: " + expression + ", schema:" + schema,
+          Objects.toString(expression),
+          e
+      );
     } catch (final Exception e) {
-      throw new RuntimeException("Unexpected error generating code for " + type
-          + ". expression: " + expression, e);
+      throw new RuntimeException("Unexpected error generating code for " + type, e);
     }
   }
 

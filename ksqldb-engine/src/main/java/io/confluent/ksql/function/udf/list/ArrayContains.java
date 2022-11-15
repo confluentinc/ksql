@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.list;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -23,6 +24,7 @@ import java.util.List;
 
 @UdfDescription(
     name = "ARRAY_CONTAINS",
+    category = FunctionCategory.ARRAY,
     description = ArrayContains.DESCRIPTION,
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

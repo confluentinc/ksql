@@ -15,7 +15,7 @@
         {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"ID": 10}}
       ],
       "responses": [
-        {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
+        {"admin": {"@type": "currentStatus"}}
       ]
     },
     {
@@ -222,7 +222,7 @@
         {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"id!": 10}}
       ],
       "responses": [
-        {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
+        {"admin": {"@type": "currentStatus"}}
       ]
     },
     {
@@ -355,6 +355,78 @@
       ],
       "outputs": [
         {"topic": "test_topic", "key": 1, "value": {"V0": 0.00}}
+      ]
+    },
+    {
+      "name": "should fail on column reference",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (K, ID) VALUES (FOO.bar, '10');"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Failed to prepare statement: 'FOO' is not a valid stream/table name or alias.",
+        "status": 400
+      }
+    },
+    {
+      "name": "should insert unwrapped value with SR integration",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='Avro', wrap_single_value=false);",
+        "INSERT INTO TEST (ROWTIME, K, ID) VALUES (1234, 'key', 10);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": 10}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}}
+      ]
+    },
+    {
+      "name": "non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, 'key');"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"ID": 10}}
+      ]
+    },
+    {
+      "name": "AVRO key format",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', format='AVRO');",
+        "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, 'key');"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"ID": 10}}
+      ]
+    },
+    {
+      "name": "AVRO struct key format",
+      "statements": [
+        "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, ID INT) WITH (kafka_topic='test_topic', format='AVRO');",
+        "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, STRUCT(f1:='key'));"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"F1": "key"}, "value": {"ID": 10}}
       ]
     }
   ]

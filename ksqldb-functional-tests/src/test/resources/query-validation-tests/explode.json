@@ -45,7 +45,7 @@
     {
       "name": "explode shouldn't accept map",
       "statements": [
-        "CREATE STREAM TEST (ID STRING KEY, MY_MAP MAP<INT, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (ID STRING KEY, MY_MAP MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_MAP) FROM TEST;"
       ],
       "expectedException": {
@@ -56,7 +56,7 @@
     {
       "name": "shouldn't be able to have table functions with aggregation",
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, VAL INT, MY_MAP MAP<INT, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, VAL INT, MY_MAP MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT K, VAL, EXPLODE(MY_MAP), COUNT(*) FROM TEST GROUP BY VAL;"
       ],
       "expectedException": {
@@ -76,8 +76,8 @@
         }
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 2, "KSQL_COL_2": 3.1, "KSQL_COL_3": true, "KSQL_COL_4": "foo", "KSQL_COL_5": 123.456}},
-        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 3, "KSQL_COL_2": 4.1, "KSQL_COL_3": false, "KSQL_COL_4": "bar", "KSQL_COL_5": 456.123}}
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 2, "KSQL_COL_2": 3.1, "KSQL_COL_3": true, "KSQL_COL_4": "foo", "KSQL_COL_5": 123.4560000000}},
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 3, "KSQL_COL_2": 4.1, "KSQL_COL_3": false, "KSQL_COL_4": "bar", "KSQL_COL_5": 456.1230000000}}
       ]
     },
     {

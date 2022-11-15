@@ -16,12 +16,16 @@
 package io.confluent.ksql.materialization.ks;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
+import static io.confluent.ksql.test.util.AssertEventually.RetryOnException;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
@@ -44,7 +48,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -58,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -92,9 +98,11 @@ public class KsMaterializationFunctionalTest {
   private static final String PAGE_VIEWS_TOPIC = "page_views_topic";
   private static final String PAGE_VIEWS_STREAM = "page_views_stream";
 
+  private static final Format KEY_FORMAT = KAFKA;
   private static final Format VALUE_FORMAT = JSON;
   private static final UserDataProvider USER_DATA_PROVIDER = new UserDataProvider();
   private static final PageViewDataProvider PAGE_VIEW_DATA_PROVIDER = new PageViewDataProvider();
+  private static final int PARTITION = 0;
 
   private static final Duration WINDOW_SIZE = Duration.ofSeconds(5);
   private static final Duration WINDOW_SEGMENT_DURATION = Duration.ofSeconds(60);
@@ -142,6 +150,7 @@ public class KsMaterializationFunctionalTest {
     TEST_HARNESS.produceRows(
         USERS_TOPIC,
         USER_DATA_PROVIDER,
+        KEY_FORMAT,
         VALUE_FORMAT
     );
 
@@ -149,6 +158,7 @@ public class KsMaterializationFunctionalTest {
       TEST_HARNESS.produceRows(
           PAGE_VIEWS_TOPIC,
           PAGE_VIEW_DATA_PROVIDER,
+          KEY_FORMAT,
           VALUE_FORMAT,
           windowTime::toEpochMilli
       );
@@ -244,14 +254,14 @@ public class KsMaterializationFunctionalTest {
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
 
-      final Optional<Row> row = table.get(key);
+      final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
       assertThat(row.map(Row::key), is(Optional.of(key)));
       assertThat(row.map(Row::value), is(Optional.of(value)));
     });
 
     final Struct key = asKeyStruct("Won't find me", query.getPhysicalSchema());
-    assertThat("unknown key", table.get(key), is(Optional.empty()));
+    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)), is(Optional.empty()));
   }
 
   @Test
@@ -278,14 +288,14 @@ public class KsMaterializationFunctionalTest {
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
 
-      final Optional<Row> row = table.get(key);
+      final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
       assertThat(row.map(Row::key), is(Optional.of(key)));
       assertThat(row.map(Row::value), is(Optional.of(value)));
     });
 
     final Struct key = asKeyStruct("Won't find me", query.getPhysicalSchema());
-    assertThat("unknown key", table.get(key), is(Optional.empty()));
+    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)), is(Optional.empty()));
   }
 
   @Test
@@ -315,19 +325,28 @@ public class KsMaterializationFunctionalTest {
       final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
-      final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
+      final List<WindowedRow> resultAtWindowStart =
+          withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
+
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
       assertThat(resultAtWindowStart.get(0).window(), is(Optional.of(w)));
       assertThat(resultAtWindowStart.get(0).key(), is(key));
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
-      final List<WindowedRow> resultFromRange = table
-          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)));
+      final List<WindowedRow> resultAtWindowEnd =
+          withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
+      assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
+
+      final List<WindowedRow> resultFromRange = withRetry(() -> withRetry(() -> table
+          .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
+              Range.all())));
+
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
-      final List<WindowedRow> resultPast = table
-          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)));
+      final List<WindowedRow> resultPast = withRetry(() -> table
+          .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
       assertThat("past start", resultPast, is(empty())
       );
     });
@@ -361,19 +380,29 @@ public class KsMaterializationFunctionalTest {
       final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
-      final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
+      final List<WindowedRow> resultAtWindowStart =
+          withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
+
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
       assertThat(resultAtWindowStart.get(0).window(), is(Optional.of(w)));
       assertThat(resultAtWindowStart.get(0).key(), is(key));
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
-      final List<WindowedRow> resultFromRange = table
-          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)));
+      final List<WindowedRow> resultAtWindowEnd =
+          withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
+      assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
+
+      final List<WindowedRow> resultFromRange = withRetry(() -> table
+          .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
+
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
-      final List<WindowedRow> resultPast = table
-          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)));
+      final List<WindowedRow> resultPast = withRetry(() -> table
+          .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
+
       assertThat("past start", resultPast, is(empty()));
     });
   }
@@ -405,19 +434,27 @@ public class KsMaterializationFunctionalTest {
       final Window w = Window.of(k.window().startTime(), k.window().endTime());
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
-      final List<WindowedRow> resultAtWindowStart = table.get(key, Range.singleton(w.start()));
+      final List<WindowedRow> resultAtWindowStart =
+          withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
+
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
       assertThat(resultAtWindowStart.get(0).window(), is(Optional.of(w)));
       assertThat(resultAtWindowStart.get(0).key(), is(key));
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
-      final List<WindowedRow> resultFromRange = table
-          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)));
+      final List<WindowedRow> resultAtWindowEnd =
+          withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
+      assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
+
+      final List<WindowedRow> resultFromRange = withRetry(() -> table
+          .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
-      final List<WindowedRow> resultPast = table
-          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)));
+      final List<WindowedRow> resultPast = withRetry(() -> table
+          .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
       assertThat("past start", resultPast, is(empty()));
     });
   }
@@ -547,7 +584,7 @@ public class KsMaterializationFunctionalTest {
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
 
-      final Optional<Row> row = table.get(key);
+      final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
       assertThat(row.map(Row::key), is(Optional.of(key)));
       assertThat(row.map(Row::value), is(Optional.of(value)));
@@ -581,7 +618,7 @@ public class KsMaterializationFunctionalTest {
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
 
-      final Optional<Row> row = table.get(key);
+      final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
       assertThat(row.map(Row::key), is(Optional.of(key)));
       assertThat(row.map(Row::value), is(Optional.of(value)));
@@ -589,8 +626,9 @@ public class KsMaterializationFunctionalTest {
   }
 
   @Test
-  public void shouldIgnoreHavingClause() {
-    // Note: HAVING clause are handled centrally by KsqlMaterialization
+  public void shouldHandleHavingClause() {
+    // Note: HAVING clause are handled centrally by KsqlMaterialization. This logic will have been
+    // installed as part of building the below statement:
 
     // Given:
     final PersistentQueryMetadata query = executeQuery(
@@ -602,7 +640,11 @@ public class KsMaterializationFunctionalTest {
 
     final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
 
-    final Map<String, GenericRow> rows = waitForUniqueUserRows(STRING_DESERIALIZER, schema);
+    final int matches = (int) USER_DATA_PROVIDER.data().values().stream()
+        .filter(row -> ((Long) row.get(0)) > 2)
+        .count();
+
+    final Map<String, GenericRow> rows = waitForUniqueUserRows(matches, STRING_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
@@ -611,19 +653,25 @@ public class KsMaterializationFunctionalTest {
     final MaterializedTable table = materialization.nonWindowed();
 
     rows.forEach((rowKey, value) -> {
+      // Rows passing the HAVING clause:
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
 
-      final Optional<Row> expected = Optional.ofNullable(value)
-          .map(v -> Row.of(schema, key, v, -1L));
-
-      final Optional<Row> row = table.get(key);
-      assertThat(row.map(Row::schema), is(expected.map(Row::schema)));
-      assertThat(row.map(Row::key), is(expected.map(Row::key)));
-      assertThat(row.map(Row::value), is(expected.map(Row::value)));
+      final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
+      assertThat(row.map(Row::schema), is(Optional.of(schema)));
+      assertThat(row.map(Row::key), is(Optional.of(key)));
+      assertThat(row.map(Row::value), is(Optional.of(value)));
     });
+
+    USER_DATA_PROVIDER.data().entries().stream()
+        .filter(e -> !rows.containsKey(e.getKey().getString("USERID")))
+        .forEach(e -> {
+          // Rows filtered by the HAVING clause:
+          final Optional<Row> row = withRetry(() -> table.get(e.getKey(), PARTITION));
+          assertThat(row, is(Optional.empty()));
+        });
   }
 
-  private void verifyRetainedWindows(
+  private static void verifyRetainedWindows(
       final List<ConsumerRecord<Windowed<String>, GenericRow>> rows,
       final MaterializedWindowedTable table,
       final PersistentQueryMetadata query,
@@ -631,7 +679,9 @@ public class KsMaterializationFunctionalTest {
   ) {
     rows.forEach(record -> {
       final Struct key = asKeyStruct(record.key().key(), query.getPhysicalSchema());
-      final List<WindowedRow> resultAtWindowStart = table.get(key, Range.all());
+      final List<WindowedRow> resultAtWindowStart =
+          withRetry(() -> table.get(key, PARTITION, Range.all(), Range.all()));
+
       assertThat("Should have fewer windows retained",
           resultAtWindowStart,
           hasSize(expectedWindows.size()));
@@ -646,11 +696,23 @@ public class KsMaterializationFunctionalTest {
       final Deserializer<T> keyDeserializer,
       final LogicalSchema aggregateSchema
   ) {
+    return waitForUniqueUserRows(
+        USER_DATA_PROVIDER.data().size(),
+        keyDeserializer,
+        aggregateSchema
+    );
+  }
+
+  private <T> Map<T, GenericRow> waitForUniqueUserRows(
+      final int count,
+      final Deserializer<T> keyDeserializer,
+      final LogicalSchema aggregateSchema
+  ) {
     return TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
-        USER_DATA_PROVIDER.data().size(),
+        count,
         VALUE_FORMAT,
-        PhysicalSchema.from(aggregateSchema, SerdeOption.none()),
+        PhysicalSchema.from(aggregateSchema, SerdeFeatures.of(), SerdeFeatures.of()),
         keyDeserializer
     );
   }
@@ -688,7 +750,9 @@ public class KsMaterializationFunctionalTest {
   }
 
   private static Struct asKeyStruct(final String keyValue, final PhysicalSchema physicalSchema) {
-    final ConnectSchema keySchema = physicalSchema.keySchema().ksqlSchema();
+    final ConnectSchema keySchema = ConnectSchemas
+        .columnsToConnectSchema(physicalSchema.keySchema().columns());
+
     final String keyName = Iterables.getOnlyElement(keySchema.fields()).name();
     final Struct key = new Struct(keySchema);
     key.put(keyName, keyValue);
@@ -744,6 +808,14 @@ public class KsMaterializationFunctionalTest {
         + "    value_format='" + VALUE_FORMAT.name() + "'"
         + ");"
     );
+  }
+
+  /*
+   * table.get() calls can sometimes fail when partitions are being rebalanced.
+   * When that happens: retry!
+   */
+  private static <T> T withRetry(final Supplier<T> supplier) {
+    return assertThatEventually(supplier, is(notNullValue()), RetryOnException);
   }
 }
 

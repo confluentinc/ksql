@@ -54,17 +54,16 @@ class KsStateStore {
     return schema;
   }
 
-  <T> T store(final QueryableStoreType<T> queryableStoreType) {
+  <T> T store(final QueryableStoreType<T> queryableStoreType, final int partition) {
     try {
+      final StoreQueryParameters<T> parameters = StoreQueryParameters.fromNameAndType(
+          stateStoreName, queryableStoreType).withPartition(partition);
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
         // True flag allows queries on standby and replica state stores
-        return kafkaStreams.store(
-            StoreQueryParameters.fromNameAndType(stateStoreName, queryableStoreType)
-                .enableStaleStores());
+        return kafkaStreams.store(parameters.enableStaleStores());
       } else {
         // False flag allows queries only on active state store
-        return kafkaStreams.store(
-            StoreQueryParameters.fromNameAndType(stateStoreName, queryableStoreType));
+        return kafkaStreams.store(parameters);
       }
     } catch (final Exception e) {
       final State state = kafkaStreams.state();

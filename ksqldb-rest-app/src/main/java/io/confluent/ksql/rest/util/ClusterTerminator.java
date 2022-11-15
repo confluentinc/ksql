@@ -21,12 +21,15 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -96,7 +99,7 @@ public class ClusterTerminator {
               filterNonExistingTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final TopicDeletionDisabledException e) {
-      LOGGER.info("Did not delete any topics: ", e.getMessage());
+      LOGGER.info("Did not delete any topics: {}", e.getMessage());
     } catch (final Exception e) {
       throw new KsqlException(
           "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
@@ -143,11 +146,18 @@ public class ClusterTerminator {
   }
 
   private static Set<String> subjectNames(final List<DataSource> sources) {
-    return sources.stream()
-        .filter(s -> s.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference())
-        .map(DataSource::getKsqlTopic)
-        .map(KsqlTopic::getKafkaTopicName)
-        .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
-        .collect(Collectors.toSet());
+    final Set<String> subjects = new HashSet<>();
+    for (DataSource s : sources) {
+      final String keyFormat = s.getKsqlTopic().getKeyFormat().getFormat();
+      if (FormatFactory.fromName(keyFormat).supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+        subjects.add(KsqlConstants.getSRSubject(s.getKafkaTopicName(), true));
+      }
+
+      final String valueFormat = s.getKsqlTopic().getValueFormat().getFormat();
+      if (FormatFactory.fromName(valueFormat).supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+        subjects.add(KsqlConstants.getSRSubject(s.getKafkaTopicName(), false));
+      }
+    }
+    return subjects;
   }
 }

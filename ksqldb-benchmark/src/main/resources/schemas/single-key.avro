@@ -1,0 +1,16 @@
+{
+  "namespace": "streams",
+  "name": "single",
+  "type": "record",
+  "fields": [
+    {
+      "name": "col0",
+      "type": {
+        "type": "long",
+        "arg.properties": {
+          "range": {"min": 0, "max": 100000}
+        }
+      }
+    }
+  ]
+}

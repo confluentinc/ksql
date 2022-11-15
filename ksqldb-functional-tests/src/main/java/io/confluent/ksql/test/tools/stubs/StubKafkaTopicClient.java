@@ -33,8 +33,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
@@ -48,23 +50,24 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
 
     private final String topicName;
     private final int numPartitions;
-    private final int replicatonFactor;
+    private final int replicationFactor;
     private final TopicCleanupPolicy cleanupPolicy;
 
-    public StubTopic(final String topicName,
+    public StubTopic(
+        final String topicName,
         final int numPartitions,
-        final int replicatonFactor,
+        final int replicationFactor,
         final TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
-      this.replicatonFactor = replicatonFactor;
+      this.replicationFactor = replicationFactor;
       this.cleanupPolicy = cleanupPolicy;
     }
 
     private TopicDescription getDescription() {
       final Node node = new Node(0, "localhost", 9091);
 
-      final List<Node> replicas = IntStream.range(0, replicatonFactor)
+      final List<Node> replicas = IntStream.range(0, replicationFactor)
           .mapToObj(idx -> (Node) null)
           .collect(Collectors.toList());
 
@@ -91,14 +94,14 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
       }
       final StubTopic stubTopic = (StubTopic) o;
       return numPartitions == stubTopic.numPartitions
-          && replicatonFactor == stubTopic.replicatonFactor
+          && replicationFactor == stubTopic.replicationFactor
           && Objects.equals(topicName, stubTopic.topicName)
           && cleanupPolicy == stubTopic.cleanupPolicy;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(topicName, numPartitions, replicatonFactor, cleanupPolicy);
+      return Objects.hash(topicName, numPartitions, replicationFactor, cleanupPolicy);
     }
   }
 
@@ -178,6 +181,13 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   public void deleteInternalTopics(final String applicationId) {
   }
 
+  @Override
+  public Map<TopicPartition, Long> listTopicsOffsets(
+      final Collection<String> topicNames,
+      final OffsetSpec offsetSpec) {
+    return Collections.emptyMap();
+  }
+
   private static StubTopic createStubTopic(
       final String topic,
       final int numPartitions,
@@ -199,7 +209,7 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   ) {
     if (existing.numPartitions != requiredNumPartition
         || (requiredNumReplicas != TopicProperties.DEFAULT_REPLICAS
-        && existing.replicatonFactor < requiredNumReplicas)) {
+        && existing.replicationFactor < requiredNumReplicas)) {
       throw new KafkaTopicExistsException(String.format(
           "A Kafka topic with the name '%s' already exists, with different partition/replica "
               + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
@@ -208,7 +218,7 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
           requiredNumPartition,
           existing.numPartitions,
           requiredNumReplicas,
-          existing.replicatonFactor
+          existing.replicationFactor
       ));
     }
   }

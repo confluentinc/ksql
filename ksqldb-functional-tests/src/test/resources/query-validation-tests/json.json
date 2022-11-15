@@ -1,0 +1,719 @@
+{
+  "tests": [
+    {
+      "name": "BOOLEAN - key",
+      "statements": [
+        "CREATE STREAM INPUT (K BOOLEAN KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": true, "value": {"V": 0}},
+        {"topic": "input_topic", "key": false, "value": {"V": 0}},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": false, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 0}}
+      ]
+    },
+    {
+      "name": "BOOLEAN - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V BOOLEAN) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": true},
+        {"topic": "input_topic", "value": false},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": true}},
+        {"topic": "OUTPUT", "value": {"V": false}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "BOOLEAN - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V BOOLEAN) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": true}},
+        {"topic": "input_topic", "value": {"V": false}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": true},
+        {"topic": "OUTPUT", "value": false},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "INT - key",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 33, "value": {"V": 0}},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 33, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 0}}
+      ]
+    },
+    {
+      "name": "INT - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": 10},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "INT - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": 123}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": 123},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "BIGINT - key",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 998877665544332211, "value": {"V": 0}},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 998877665544332211, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 0}}
+      ]
+    },
+    {
+      "name": "BIGINT - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V BIGINT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": 10827272222},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": 10827272222}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "BIGINT - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V BIGINT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": 1234567890}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": 1234567890},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "DOUBLE - key",
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 654.321, "value": {"V": 0}},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 654.321, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 0}}
+      ]
+    },
+    {
+      "name": "DOUBLE - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V DOUBLE) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": 1234.589},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": 1234.589}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "DOUBLE - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V DOUBLE) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": 9876.54321}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": 9876.54321},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "STRING - key",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "Hey", "value": {"V": 0}},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "Hey", "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 0}}
+      ]
+    },
+    {
+      "name": "STRING - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": "hello"},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": "hello"}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "STRING - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": "world"}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "world"},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "DECIMAL - key",
+      "statements": [
+        "CREATE STREAM INPUT (K DECIMAL(6,4) KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 12.3650, "value": {"V": 0}},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 12.3650, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 0}}
+      ]
+    },
+    {
+      "name": "DECIMAL - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V DECIMAL(4,2)) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": 10.10},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": 10.10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "DECIMAL - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V DECIMAL(4,2)) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": 99.99}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": 99.99},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "ARRAY - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K ARRAY<DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": [10.10], "value": {"V": 10}},
+        {"topic": "input_topic", "key": null, "value": {"V": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": [10.1], "value": {"V": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 10}}
+      ]
+    },
+    {
+      "name": "ARRAY - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V ARRAY<DOUBLE>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": [10.10]},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": [10.1]}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "ARRAY - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V ARRAY<DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": [99.99]}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": [99.99]},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "MAP - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K MAP<STRING, DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"a": 45.67}, "value": {"V": 10}},
+        {"topic": "input_topic", "key": null, "value": {"V": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"a": 45.67}, "value": {"V": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 10}}
+      ]
+    },
+    {
+      "name": "MAP - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V MAP<STRING, DOUBLE>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": 45.67}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": {"a": 45.67}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "MAP - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": {"b": 76.54}}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"b": 76.54}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "STRUCT - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K STRUCT<F DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"f": 45.67}, "value": {"V": 10}},
+        {"topic": "input_topic", "key": null, "value": {"V": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F": 45.67}, "value": {"V": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 10}}
+      ]
+    },
+    {
+      "name": "STRUCT - value - anonymous - deserialize",
+      "statements": [
+        "CREATE STREAM INPUT (V STRUCT<A DOUBLE>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": 45.67}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": {"A": 45.67}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "STRUCT - value - anonymous - serialize",
+      "statements": [
+        "CREATE STREAM INPUT (V STRUCT<A DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": {"a": 76.54}}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"A": 76.54}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+     "inputs": [
+        {"topic": "input_topic", "value": {"FOO": 10}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous array - value",
+      "comments": [
+        "see github issue https://github.com/confluentinc/ksql/issues/1351"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": ["a", "b", "c"]},
+        {"topic": "input_topic", "value": ["a", "b", null]},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous array - value - with coercion",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": [1, 2, 3]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["1", "2", "3"]}}
+      ]
+    },
+    {
+      "name": "deserialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "input_topic", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}},
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+        ]
+      }
+    },
+    {
+      "name": "deserialize nested map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+        ]
+      }
+    },
+    {
+      "name": "serialize anonymous primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+        "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": true},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": true}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize anonymous array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": [12, 34, null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": [12, 34, 999]},
+        {"topic": "OUTPUT", "value": [12, 34, null]},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": [12, 34, null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, null]}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize anonymous map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": 3.456}},
+        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": null}},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize anonymous struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"F0": 1}},
+        {"topic": "OUTPUT", "value": {"F0": null}},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "map with non-string keys - C*",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "JSON only supports MAP types with STRING keys"
+      }
+    },
+    {
+      "name": "map with non-string keys - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "JSON only supports MAP types with STRING keys"
+      }
+    },
+    {
+      "name": "keyless JSON",
+      "statements": [
+        "CREATE STREAM INPUT (V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": 0}}
+      ]
+    }
+  ]
+}

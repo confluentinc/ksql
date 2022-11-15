@@ -12,7 +12,7 @@ If you have any questions about how to contribute, either [create a GH issue](ht
 To build and run KSQL locally, run the following commands:
 
 ```shell
-$ mvn clean package -DskipTests
+$ ./mvnw clean package -DskipTests -DversionFilter
 $ ./bin/ksql-server-start -daemon config/ksql-server.properties
 $ ./bin/ksql
 ```
@@ -30,7 +30,7 @@ drop the `-daemon` switch, and start the CLI in a second console.
 To build and test changes locally, run the following commands:
 
 ```shell
-$ mvn verify
+$ ./mvnw verify
 ```
 
 ### Testing docker image
@@ -77,7 +77,7 @@ The project build runs checkstyle and findbugs as part of the build.
 
 You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin, then:
 
-    IntelliJ->Preferences→Other Settings→CheckStyle
+    IntelliJ → Preferences → Tools → CheckStyle
 
     - Add a new configurations file using the '+' button:
        Description: Confluent Checks

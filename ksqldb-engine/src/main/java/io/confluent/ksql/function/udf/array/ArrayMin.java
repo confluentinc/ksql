@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.array;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -24,6 +25,7 @@ import java.util.List;
  */
 @UdfDescription(
     name = "array_min",
+    category = FunctionCategory.ARRAY,
     description = "Return the minimum value from within an array of primitive values, according to"
         + " their natural sort order. If the array is NULL, or contains only NULLs, return NULL.")
 public class ArrayMin {

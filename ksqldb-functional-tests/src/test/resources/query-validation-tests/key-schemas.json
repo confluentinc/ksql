@@ -281,7 +281,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<K BOOLEAN> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'BOOLEAN'"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`K` BOOLEAN KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'BOOLEAN'"
       }
     },
     {
@@ -291,7 +291,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<K DECIMAL(21, 19)> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'DECIMAL'"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`K` DECIMAL(21, 19) KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'DECIMAL'"
       }
     },
     {
@@ -302,7 +302,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ID ARRAY<INT>> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'ARRAY'"
+        "message": "Unsupported key schema: [`ID` ARRAY<INTEGER> KEY]"
       }
     },
     {
@@ -313,7 +313,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ID MAP<VARCHAR, INT>> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'MAP'"
+        "message": "Unsupported key schema: [`ID` MAP<STRING, INTEGER> KEY]"
       }
     },
     {

@@ -17,16 +17,24 @@ package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class StreamSelectKeyV1 implements ExecutionStep<KStreamHolder<Struct>> {
+
+  private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
+      new Property("class", Object::getClass),
+      new Property("properties", ExecutionStep::getProperties),
+      new Property("keyExpression", s -> ((StreamSelectKeyV1) s).keyExpression)
+  );
 
   private final ExecutionStepPropertiesV1 properties;
   private final Expression keyExpression;
@@ -66,6 +74,12 @@ public class StreamSelectKeyV1 implements ExecutionStep<KStreamHolder<Struct>> {
   @Override
   public KStreamHolder<Struct> build(final PlanBuilder builder) {
     return builder.visitStreamSelectKey(this);
+  }
+
+  @Override
+  public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
+    mustMatch(to, MUST_MATCH);
+    getSource().validateUpgrade(((StreamSelectKeyV1) to).source);
   }
 
   @Override

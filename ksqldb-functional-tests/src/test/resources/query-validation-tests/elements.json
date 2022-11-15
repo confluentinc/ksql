@@ -9,8 +9,8 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO"
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO"
         }
       ],
       "expectedException": {
@@ -27,17 +27,30 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO"
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO"
         },
         {
           "name": "OUTPUT",
-          "format": "AVRO",
+          "valueFormat": "AVRO",
           "partitions": 4
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
       "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+    },
+    {
+      "name": "validate unwrapped value without elements OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "topics": [
+        {"name": "input", "valueFormat": "AVRO", "valueSchema": "int"},
+        {"name": "OUTPUT", "valueFormat": "AVRO", "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "ROWVAL", "type": "int"}]}}
+      ],
+      "inputs": [{"topic": "input", "value": 4}],
+      "outputs": [{"topic": "OUTPUT", "value": {"ROWVAL": 4}}]
     },
     {
       "name": "validate without elements OK - PROTOBUF",
@@ -48,12 +61,12 @@
       "topics": [
         {
           "name": "input",
-          "schema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
-          "format": "PROTOBUF"
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF"
         },
         {
           "name": "OUTPUT",
-          "format": "PROTOBUF",
+          "valueFormat": "PROTOBUF",
           "partitions": 4
         }
       ],
@@ -69,12 +82,12 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"type": "object","properties": {"c1": {"type": "integer"}}},
-          "format": "JSON"
+          "valueSchema": {"type": "object","properties": {"c1": {"type": "integer"}}},
+          "valueFormat": "JSON"
         },
         {
           "name": "OUTPUT",
-          "format": "JSON",
+          "valueFormat": "JSON",
           "partitions": 4
         }
       ],
@@ -90,11 +103,11 @@
       "topics": [
         {
           "name": "input",
-          "format": "JSON"
+          "valueFormat": "JSON"
         },
         {
           "name": "OUTPUT",
-          "format": "JSON"
+          "valueFormat": "JSON"
         }
       ],
       "inputs": [{"topic": "input", "value": {"@timestamp": 4, "from": 5}}],
@@ -114,12 +127,12 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO"
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO"
         },
         {
           "name": "OUTPUT",
-          "format": "AVRO"
+          "valueFormat": "AVRO"
         }
       ],
       "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
@@ -139,12 +152,12 @@
       "topics": [
         {
           "name": "input",
-          "schema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
-          "format": "PROTOBUF"
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF"
         },
         {
           "name": "OUTPUT",
-          "format": "PROTOBUF"
+          "valueFormat": "PROTOBUF"
         }
       ],
       "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
@@ -164,12 +177,12 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"type": "object","properties": {"c1": {"type": "integer"}}},
-          "format": "JSON"
+          "valueSchema": {"type": "object","properties": {"c1": {"type": "integer"}}},
+          "valueFormat": "JSON"
         },
         {
           "name": "OUTPUT",
-          "format": "JSON"
+          "valueFormat": "JSON"
         }
       ],
       "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
@@ -189,12 +202,12 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"type": "object", "properties": {"c1": {"type": "integer"}}},
-          "format": "JSON"
+          "valueSchema": {"type": "object", "properties": {"c1": {"type": "integer"}}},
+          "valueFormat": "JSON"
         },
         {
           "name": "OUTPUT",
-          "format": "JSON"
+          "valueFormat": "JSON"
         }
       ],
       "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
@@ -224,12 +237,12 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "v0", "type": "int"}]},
-          "format": "AVRO"
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "v0", "type": "int"}]},
+          "valueFormat": "AVRO"
         },
         {
           "name": "OUTPUT",
-          "format": "AVRO",
+          "valueFormat": "AVRO",
           "partitions": 4
         }
       ],
@@ -243,7 +256,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The 'KAFKA' format only supports a single field. Got: V0 INT, V1 VARCHAR"
+        "message": "The 'KAFKA' format only supports a single field. Got: [`V0` INTEGER, `V1` STRING]"
       }
     },
     {
@@ -254,7 +267,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The 'KAFKA' format only supports a single field. Got: V0 INT, V1 VARCHAR"
+        "message": "The 'KAFKA' format only supports a single field. Got: [`V0` INTEGER, `V1` STRING]"
       }
     },
     {
@@ -515,42 +528,17 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO"
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO"
         },
         {
           "name": "S",
-          "format": "AVRO",
+          "valueFormat": "AVRO",
           "partitions": 4
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
       "outputs": [{"topic": "S", "value": {"UNKNOWN": null, "C1": 4}}]
-    },
-    {
-      "name": "validate AVRO fails on incompatible schema evolution",
-      "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot register avro schema for OUTPUT as the schema is incompatible with the current schema version registered for the topic.\nKSQL schema: {\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\",\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":[{\"name\":\"C1\",\"type\":[\"null\",\"int\"],\"default\":null}],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}\nRegistered schema: {\"type\":\"record\",\"name\":\"blah\",\"fields\":[{\"name\":\"C1\",\"type\":\"double\"}]}"
-      },
-      "topics": [
-        {
-          "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "C1", "type": "int"}]},
-          "format": "AVRO",
-          "partitions": 4
-        },
-        {
-          "name": "OUTPUT",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "C1", "type": "double"}]},
-          "format": "AVRO",
-          "partitions": 4
-        }
-      ]
     },
     {
       "name": "non-join should reject ROWTIME in projection",
@@ -878,8 +866,8 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO"
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO"
         }
       ],
       "expectedException": {

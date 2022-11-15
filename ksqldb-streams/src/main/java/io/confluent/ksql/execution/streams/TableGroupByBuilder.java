@@ -86,8 +86,10 @@ public final class TableGroupByBuilder {
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         params.getSchema(),
-        formats.getOptions()
+        formats.getKeyFeatures(),
+        formats.getValueFeatures()
     );
+
     final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,

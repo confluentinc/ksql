@@ -33,25 +33,8 @@ public final class TestServiceContext {
 
   public static ServiceContext create() {
     return create(
-        new FakeKafkaTopicClient()
-    );
-  }
-
-  public static ServiceContext create(
-      final KafkaTopicClient topicClient
-  ) {
-    return create(
-        topicClient,
-        MockSchemaRegistryClient::new
-    );
-  }
-
-  public static ServiceContext create(
-      final Supplier<SchemaRegistryClient> srClientFactory
-  ) {
-    return create(
         new FakeKafkaTopicClient(),
-        srClientFactory
+        new FakeKafkaConsumerGroupClient()
     );
   }
 
@@ -60,11 +43,55 @@ public final class TestServiceContext {
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
     return create(
+        topicClient,
+        srClientFactory,
+        new FakeKafkaConsumerGroupClient()
+    );
+  }
+
+  public static ServiceContext create(
+      final KafkaTopicClient topicClient
+  ) {
+    return create(
+        topicClient,
+        MockSchemaRegistryClient::new,
+        new FakeKafkaConsumerGroupClient()
+    );
+  }
+
+  public static ServiceContext create(
+      final KafkaTopicClient topicClient,
+      final KafkaConsumerGroupClient consumerGroupClient
+  ) {
+    return create(
+        topicClient,
+        MockSchemaRegistryClient::new,
+        consumerGroupClient
+    );
+  }
+
+  public static ServiceContext create(
+      final Supplier<SchemaRegistryClient> srClientFactory
+  ) {
+    return create(
+        new FakeKafkaTopicClient(),
+        srClientFactory,
+        new FakeKafkaConsumerGroupClient()
+    );
+  }
+
+  public static ServiceContext create(
+      final KafkaTopicClient topicClient,
+      final Supplier<SchemaRegistryClient> srClientFactory,
+      final KafkaConsumerGroupClient consumerGroupClient
+  ) {
+    return create(
         new FakeKafkaClientSupplier(),
         new FakeKafkaClientSupplier().getAdmin(Collections.emptyMap()),
         topicClient,
         srClientFactory,
-        new DefaultConnectClient("http://localhost:8083", Optional.empty())
+        new DefaultConnectClient("http://localhost:8083", Optional.empty()),
+        consumerGroupClient
     );
   }
 
@@ -83,10 +110,10 @@ public final class TestServiceContext {
         srClientFactory,
         new DefaultConnectClient(
             ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-            Optional.empty())
+            Optional.empty()),
+        new KafkaConsumerGroupClientImpl(() -> adminClient)
     );
   }
-
   public static ServiceContext create(
       final KafkaClientSupplier kafkaClientSupplier,
       final Admin adminClient,
@@ -94,13 +121,31 @@ public final class TestServiceContext {
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClient connectClient
   ) {
+    return create(
+        kafkaClientSupplier,
+        adminClient,
+        topicClient,
+        srClientFactory,
+        connectClient,
+        new FakeKafkaConsumerGroupClient());
+  }
+
+  public static ServiceContext create(
+      final KafkaClientSupplier kafkaClientSupplier,
+      final Admin adminClient,
+      final KafkaTopicClient topicClient,
+      final Supplier<SchemaRegistryClient> srClientFactory,
+      final ConnectClient connectClient,
+      final KafkaConsumerGroupClient consumerGroupClient
+  ) {
     final DefaultServiceContext serviceContext = new DefaultServiceContext(
         kafkaClientSupplier,
         () -> adminClient,
         topicClient,
         srClientFactory,
         () -> connectClient,
-        DisabledKsqlClient::instance
+        DisabledKsqlClient::instance,
+        consumerGroupClient
     );
 
     // Ensure admin client is closed on serviceContext.close():

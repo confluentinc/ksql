@@ -18,7 +18,7 @@ package io.confluent.ksql.serde.voids;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serdes.WrapperSerde;
-import org.apache.kafka.common.serialization.VoidSerializer;
+import org.apache.kafka.common.serialization.Serializer;
 
 /**
  * Serde for handling voids.
@@ -27,16 +27,24 @@ import org.apache.kafka.common.serialization.VoidSerializer;
  * throw if it encounters non-null data to deserialize. This means the deserializer can be used
  * where the source record contains a key or value, but the user does not want to deserialize it.
  */
-public final class KsqlVoidSerde extends WrapperSerde<Void> {
+public final class KsqlVoidSerde<T> extends WrapperSerde<T> {
 
   public KsqlVoidSerde() {
-    super(new VoidSerializer(), new LaxVoidDeserializer());
+    super(new LaxVoidSerializer<>(), new LaxVoidDeserializer<>());
   }
 
-  public static final class LaxVoidDeserializer implements Deserializer<Void> {
+  public static final class LaxVoidSerializer<T> implements Serializer<T> {
 
     @Override
-    public Void deserialize(final String topic, final byte[] data) {
+    public byte[] serialize(final String s, final T t) {
+      return null;
+    }
+  }
+
+  public static final class LaxVoidDeserializer<T> implements Deserializer<T> {
+
+    @Override
+    public T deserialize(final String topic, final byte[] data) {
       return null;
     }
   }

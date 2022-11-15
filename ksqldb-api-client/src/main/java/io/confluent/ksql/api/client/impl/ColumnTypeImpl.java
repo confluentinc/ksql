@@ -51,4 +51,11 @@ public class ColumnTypeImpl implements ColumnType {
   public int hashCode() {
     return Objects.hash(type);
   }
+
+  @Override
+  public String toString() {
+    return "ColumnType{"
+        + "type=" + type
+        + '}';
+  }
 }

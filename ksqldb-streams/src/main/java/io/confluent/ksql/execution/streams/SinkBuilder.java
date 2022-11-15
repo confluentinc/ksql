@@ -56,7 +56,11 @@ public final class SinkBuilder {
       final QueryContext queryContext,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, formats.getOptions());
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        schema,
+        formats.getKeyFeatures(),
+        formats.getValueFeatures()
+    );
 
     final Serde<K> keySerde = keySerdeFactory.buildKeySerde(
         formats.getKeyFormat(),

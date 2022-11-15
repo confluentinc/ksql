@@ -90,7 +90,7 @@ public class MetaStoreImplTest {
   @Test
   public void shouldDeepCopySourcesOnCopy() {
     // Given:
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
 
     // When:
     final MetaStore copy = metaStore.copy();
@@ -118,7 +118,7 @@ public class MetaStoreImplTest {
   @Test
   public void shouldDeepCopySourceReferentialIntegrityDataOnCopy() {
     // Given:
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
 
     metaStore.updateForPersistentQuery(
         "source query",
@@ -145,7 +145,7 @@ public class MetaStoreImplTest {
   @Test
   public void shouldNotAllowModificationViaGetAllDataSources() {
     // Given:
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
 
     final Map<SourceName, DataSource> dataSources = metaStore
         .getAllDataSources();
@@ -160,12 +160,12 @@ public class MetaStoreImplTest {
   @Test
   public void shouldThrowOnDuplicateSource() {
     // Given:
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> metaStore.putSource(dataSource)
+        () -> metaStore.putSource(dataSource, false)
     );
 
     // Then:
@@ -188,7 +188,7 @@ public class MetaStoreImplTest {
   @Test
   public void shouldThrowOnDropSourceIfUsedAsSourceOfQueries() {
     // Given:
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
     metaStore.updateForPersistentQuery(
         "source query",
         ImmutableSet.of(dataSource.getName()),
@@ -237,7 +237,7 @@ public class MetaStoreImplTest {
   @Test
   public void shouldThrowOnDropSourceIfUsedAsSinkOfQueries() {
     // Given:
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
     metaStore.updateForPersistentQuery(
         "sink query",
         ImmutableSet.of(),
@@ -300,7 +300,7 @@ public class MetaStoreImplTest {
   @Test
   public void shouldRegisterQuerySources() {
     // Given:
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
 
     // When:
     metaStore.updateForPersistentQuery(
@@ -315,7 +315,7 @@ public class MetaStoreImplTest {
   @Test
   public void shouldRegisterQuerySinks() {
     // Given:
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
 
     // When:
     metaStore.updateForPersistentQuery(
@@ -357,7 +357,7 @@ public class MetaStoreImplTest {
         .forEach(idx -> {
           final DataSource source = mock(DataSource.class);
           when(source.getName()).thenReturn(SourceName.of("source" + idx));
-          metaStore.putSource(source);
+          metaStore.putSource(source, false);
           metaStore.getSource(source.getName());
 
           metaStore.getAllDataSources();
@@ -387,11 +387,11 @@ public class MetaStoreImplTest {
     final AtomicInteger remaining = new AtomicInteger(iterations);
     final ImmutableSet<SourceName> sources = ImmutableSet.of(dataSource1.getName(), dataSource.getName());
 
-    metaStore.putSource(dataSource1);
+    metaStore.putSource(dataSource1, false);
 
     final Future<?> mainThread = executor.submit(() -> {
       while (remaining.get() > 0) {
-        metaStore.putSource(dataSource);
+        metaStore.putSource(dataSource, false);
 
         while (true) {
           try {

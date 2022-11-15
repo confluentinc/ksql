@@ -35,14 +35,15 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.entity.ContentType;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.slf4j.Logger;
@@ -96,10 +97,10 @@ public class DefaultConnectClient implements ConnectClient {
           maskedConfig);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
-          .Post(connectUri.resolve(CONNECTORS))
+          .post(connectUri.resolve(CONNECTORS))
           .setHeaders(headers())
-          .socketTimeout(DEFAULT_TIMEOUT_MS)
-          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .bodyString(
               MAPPER.writeValueAsString(
                   ImmutableMap.of(
@@ -128,10 +129,10 @@ public class DefaultConnectClient implements ConnectClient {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connectors", connectUri);
 
       final ConnectResponse<List<String>> connectResponse = withRetries(() -> Request
-          .Get(connectUri.resolve(CONNECTORS))
+          .get(connectUri.resolve(CONNECTORS))
           .setHeaders(headers())
-          .socketTimeout(DEFAULT_TIMEOUT_MS)
-          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<List<String>>() {},
@@ -155,10 +156,10 @@ public class DefaultConnectClient implements ConnectClient {
           connector);
 
       final ConnectResponse<ConnectorStateInfo> connectResponse = withRetries(() -> Request
-          .Get(connectUri.resolve(CONNECTORS + "/" + connector + STATUS))
+          .get(connectUri.resolve(CONNECTORS + "/" + connector + STATUS))
           .setHeaders(headers())
-          .socketTimeout(DEFAULT_TIMEOUT_MS)
-          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorStateInfo>() {},
@@ -181,10 +182,10 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
-          .Get(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
+          .get(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
           .setHeaders(headers())
-          .socketTimeout(DEFAULT_TIMEOUT_MS)
-          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorInfo>() {},
@@ -207,10 +208,10 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<String> connectResponse = withRetries(() -> Request
-          .Delete(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
+          .delete(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
           .setHeaders(headers())
-          .socketTimeout(DEFAULT_TIMEOUT_MS)
-          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
           .handleResponse(
               createHandler(HttpStatus.SC_NO_CONTENT, new TypeReference<Object>() {},
@@ -233,10 +234,10 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<Map<String, Map<String, List<String>>>> connectResponse = withRetries(
-          () -> Request.Get(connectUri.resolve(CONNECTORS + "/" + connector + TOPICS))
+          () -> Request.get(connectUri.resolve(CONNECTORS + "/" + connector + TOPICS))
               .setHeaders(headers())
-              .socketTimeout(DEFAULT_TIMEOUT_MS)
-              .connectTimeout(DEFAULT_TIMEOUT_MS)
+              .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+              .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
               .execute()
               .handleResponse(
                   createHandler(HttpStatus.SC_OK,
@@ -287,14 +288,14 @@ public class DefaultConnectClient implements ConnectClient {
     }
   }
 
-  private static <T, C> ResponseHandler<ConnectResponse<T>> createHandler(
+  private static <T, C> HttpClientResponseHandler<ConnectResponse<T>> createHandler(
       final int expectedStatus,
       final TypeReference<C> entityTypeRef,
       final Function<C, T> cast
   ) {
     return httpResponse -> {
-      final int code = httpResponse.getStatusLine().getStatusCode();
-      if (httpResponse.getStatusLine().getStatusCode() != expectedStatus) {
+      final int code = httpResponse.getCode();
+      if (httpResponse.getCode() != expectedStatus) {
         final String entity = EntityUtils.toString(httpResponse.getEntity());
         return ConnectResponse.failure(entity, code);
       }

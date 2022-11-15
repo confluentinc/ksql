@@ -429,24 +429,6 @@ container.
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
-#### PostgreSQL stack
-
-The [ksqlDB with Embedded Connect](../../tutorials/embedded-connect.md) tutorial
-shows how to integrate ksqlDB with an external PostgreSQL database to power a
-simple ride sharing app. The `docker-compose.yml` file defines a stack with
-these features:
-
-- Start one ksqlDB Server instance.
-- Start PostgreSQL on port 5432.
-- Start the ksqlDB CLI container automatically.
-
-Use the following command to start the ksqlDB CLI in the running `ksqldb-cli`
-container.
-
-```bash
-docker exec ksqldb-cli ksql http://ksqldb-server:8088
-```
-
 #### Full ksqlDB event processing application
 
 [The Confluent Platform Demo](https://github.com/confluentinc/cp-demo/)

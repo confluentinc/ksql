@@ -220,7 +220,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
+        "Cannot compare COL5 (MAP<BIGINT, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
             + "`STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>) "
             + "with GREATER_THAN"
     ));
@@ -239,7 +239,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 "
+        "Cannot compare COL5 (MAP<BIGINT, DOUBLE>) to COL6 "
             + "(STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, "
             + "`ZIPCODE` BIGINT>) with EQUAL"
     ));
@@ -440,7 +440,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
-            COL1, new UnqualifiedColumnReferenceExp(COL0)
+            COL3, new UnqualifiedColumnReferenceExp(COL0)
         )
     );
 
@@ -448,28 +448,7 @@ public class ExpressionTypeManagerTest {
     final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
 
     // Then:
-    assertThat(type, is(SqlTypes.map(SqlTypes.BIGINT)));
-  }
-
-  @Test
-  public void shouldThrowOnMapOfNonStringKeys() {
-    // Given:
-    Expression expression = new CreateMapExpression(
-        ImmutableMap.of(
-            new IntegerLiteral(1),
-            new UnqualifiedColumnReferenceExp(COL0)
-        )
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> expressionTypeManager.getExpressionSqlType(expression)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Only STRING keys are supported in maps"));
+    assertThat(type, is(SqlTypes.map(SqlTypes.DOUBLE, SqlTypes.BIGINT)));
   }
 
   @Test

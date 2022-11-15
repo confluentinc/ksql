@@ -42,6 +42,19 @@
         {"topic": "OUTPUT", "value": {"EXTRACTED": null}},
         {"topic": "OUTPUT", "value": {"EXTRACTED": null}}
       ]
+    },
+    {
+      "name": "Extract escaped JSON",
+      "statements": [
+        "CREATE STREAM RAW (message VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
+        "CREATE STREAM JSONIFIED AS SELECT REPLACE(REPLACE(REPLACE(message, '\"text\": \"{', '\"text\": {'), '\\\"', '\"'), '\"}', '}') FROM RAW;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "{\"messageID\": \"ID:plato-46377-1596636746117-4:4:1:1:1\",\"text\": \"{\\\"widget\\\": 10}\"}"}
+      ],
+      "outputs": [
+        {"topic": "JSONIFIED", "value": "{\"messageID\": \"ID:plato-46377-1596636746117-4:4:1:1:1\",\"text\": {\"widget\": 10}}"}
+      ]
     }
   ]
 }

@@ -20,19 +20,23 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.Pair;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Struct;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -49,12 +53,31 @@ public class DataGenProducer {
     this.valueSerializerFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
+  // Protected for test purpose.
+  protected static void validateTimestampColumnType(
+      final Optional<String> timestampColumnName,
+      final Schema avroSchema
+  ) {
+    if (timestampColumnName.isPresent()) {
+      if (avroSchema.getField(timestampColumnName.get()) == null) {
+        throw new IllegalArgumentException("The indicated timestamp field does not exist: "
+            + timestampColumnName.get());
+      }
+      if (avroSchema.getField(timestampColumnName.get()).schema().getType() != Type.LONG) {
+        throw new IllegalArgumentException("The timestamp column type should be bigint/long. "
+            + timestampColumnName.get() + " type is "
+            + avroSchema.getField(timestampColumnName.get()).schema().getType());
+      }
+    }
+  }
+
   @SuppressWarnings("InfiniteLoopStatement")
   public void populateTopic(
       final Properties props,
       final Generator generator,
       final String kafkaTopicName,
       final String key,
+      final Optional<String> timestampColumnName,
       final int messageCount,
       final boolean printRows,
       final Optional<RateLimiter> rateLimiter
@@ -64,13 +87,16 @@ public class DataGenProducer {
       throw new IllegalArgumentException("Key field does not exist: " + key);
     }
 
-    final RowGenerator rowGenerator = new RowGenerator(generator, key);
+    validateTimestampColumnType(timestampColumnName, avroSchema);
+
+
+    final RowGenerator rowGenerator = new RowGenerator(generator, key, timestampColumnName);
 
     final Serializer<Struct> keySerializer =
-        getKeySerializer(rowGenerator.keySchema());
+        getKeySerializer(rowGenerator.schema());
 
     final Serializer<GenericRow> valueSerializer =
-        getValueSerializer(rowGenerator.valueSchema());
+        getValueSerializer(rowGenerator.schema());
 
     final KafkaProducer<Struct, GenericRow> producer = new KafkaProducer<>(
         props,
@@ -114,9 +140,14 @@ public class DataGenProducer {
     rateLimiter.ifPresent(RateLimiter::acquire);
 
     final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
+    final Long timestamp = rowGenerator.getTimestampFieldIndex().isPresent()
+        ? (Long) genericRowPair.getRight().get(rowGenerator.getTimestampFieldIndex().get())
+        : null;
 
     final ProducerRecord<Struct, GenericRow> producerRecord = new ProducerRecord<>(
         kafkaTopicName,
+        null,
+        timestamp,
         genericRowPair.getLeft(),
         genericRowPair.getRight()
     );
@@ -128,20 +159,20 @@ public class DataGenProducer {
             printRows));
   }
 
-  private Serializer<Struct> getKeySerializer(
-      final ConnectSchema keySchema
-  ) {
-    final PersistenceSchema schema = PersistenceSchema
-        .from(keySchema, keySerializerFactory.format().supportsWrapping());
+  private Serializer<Struct> getKeySerializer(final LogicalSchema schema) {
+    final Set<SerdeFeature> supported = keySerializerFactory.format().supportedFeatures();
+    final SerdeFeatures features = supported.contains(SerdeFeature.UNWRAP_SINGLES)
+        ? SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+        : SerdeFeatures.of();
 
-    return keySerializerFactory.create(schema);
+    final PersistenceSchema persistenceSchema = PersistenceSchema.from(schema.key(), features);
+    return keySerializerFactory.create(persistenceSchema);
   }
 
-  private Serializer<GenericRow> getValueSerializer(final ConnectSchema valueSchema) {
-    final PersistenceSchema schema = PersistenceSchema
-        .from(valueSchema, false);
-
-    return valueSerializerFactory.create(schema);
+  private Serializer<GenericRow> getValueSerializer(final LogicalSchema schema) {
+    final PersistenceSchema persistenceSchema = PersistenceSchema
+        .from(schema.value(), SerdeFeatures.of());
+    return valueSerializerFactory.create(persistenceSchema);
   }
 
   private static class LoggingCallback implements Callback {

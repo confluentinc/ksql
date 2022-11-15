@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
@@ -46,13 +47,15 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
   @Override
   public List<WindowedRow> get(
       final Struct key,
-      final Range<Instant> windowStart
+      final int partition,
+      final Range<Instant> windowStart,
+      final Range<Instant> windowEnd
   ) {
     try {
       final ReadOnlySessionStore<Struct, GenericRow> store = stateStore
-          .store(QueryableStoreTypes.sessionStore());
+          .store(QueryableStoreTypes.sessionStore(), partition);
 
-      return findSession(store, key, windowStart);
+      return findSession(store, key, windowStart, windowEnd);
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
@@ -61,7 +64,8 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
   private List<WindowedRow> findSession(
       final ReadOnlySessionStore<Struct, GenericRow> store,
       final Struct key,
-      final Range<Instant> windowStart
+      final Range<Instant> windowStart,
+      final Range<Instant> windowEnd
   ) {
     try (KeyValueIterator<Windowed<Struct>, GenericRow> it = store.fetch(key)) {
 
@@ -69,20 +73,26 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
       while (it.hasNext()) {
         final KeyValue<Windowed<Struct>, GenericRow> next = it.next();
+        final Window wnd = next.key.window();
 
-        if (windowStart.contains(next.key.window().startTime())) {
-
-          final long rowTime = next.key.window().end();
-
-          final WindowedRow row = WindowedRow.of(
-              stateStore.schema(),
-              next.key,
-              next.value,
-              rowTime
-          );
-
-          builder.add(row);
+        if (!windowStart.contains(wnd.startTime())) {
+          continue;
         }
+
+        if (!windowEnd.contains(wnd.endTime())) {
+          continue;
+        }
+
+        final long rowTime = wnd.end();
+
+        final WindowedRow row = WindowedRow.of(
+            stateStore.schema(),
+            next.key,
+            next.value,
+            rowTime
+        );
+
+        builder.add(row);
       }
 
       return builder.build();

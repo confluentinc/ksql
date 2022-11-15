@@ -20,6 +20,7 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +35,8 @@ public class TopicDescriptionTableBuilder implements TableBuilder<TopicDescripti
   @Override
   public Table buildTable(final TopicDescription topicDescription) {
     final String format = topicDescription.getFormat();
-    final boolean supportsSchema = FormatFactory.fromName(format).supportsSchemaInference();
+    final boolean supportsSchema = FormatFactory.fromName(format)
+        .supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
 
     final List<String> headings = supportsSchema ? SCHEMA_HEADERS : NON_SCHEMA_HEADERS;
 

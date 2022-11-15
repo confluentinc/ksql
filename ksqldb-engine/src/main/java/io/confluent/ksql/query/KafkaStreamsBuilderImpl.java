@@ -15,16 +15,14 @@
 
 package io.confluent.ksql.query;
 
+import io.confluent.ksql.properties.PropertiesUtil;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 
 public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
-
   private final KafkaClientSupplier clientSupplier;
 
   KafkaStreamsBuilderImpl(final KafkaClientSupplier clientSupplier) {
@@ -32,14 +30,7 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
   }
 
   @Override
-  public BuildResult buildKafkaStreams(
-      final StreamsBuilder builder,
-      final Map<String, Object> conf
-  ) {
-    final Properties props = new Properties();
-    props.putAll(conf);
-    final Topology topology = builder.build(props);
-    final KafkaStreams kafkaStreams = new KafkaStreams(topology, props, clientSupplier);
-    return new BuildResult(topology, kafkaStreams);
+  public KafkaStreams build(final Topology topology, final Map<String, Object> conf) {
+    return new KafkaStreams(topology, PropertiesUtil.asProperties(conf), clientSupplier);
   }
 }

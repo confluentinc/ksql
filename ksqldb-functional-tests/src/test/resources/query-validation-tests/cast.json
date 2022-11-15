@@ -146,6 +146,20 @@
       ]
     },
     {
+      "name": "cast to null",
+      "description": "when casting to a string, null values should remain null",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, f0 DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRING) as VAL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL": null}}
+      ]
+    },
+    {
       "name": "decimal to decimal",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, foo DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",

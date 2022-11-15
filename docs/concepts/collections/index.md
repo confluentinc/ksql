@@ -35,8 +35,7 @@ defined schema. Only data that conforms to the schema can be added to the
 collection.
 
 ksqlDB supports two abstractions for representing collections:
-[streams](streams.md) and [tables](tables.md). Both operate under a simple
-key/value model.
+streams and tables. Both operate under a simple key/value model.
 
 Streams
 -------
@@ -61,7 +60,7 @@ You can declare a collection over an existing topic, or you can create a new
 topic for the collection at declaration time.
 
 Use the [CREATE STREAM](../../developer-guide/ksqldb-reference/create-stream.md)
-and [CREATE TABLE](../../developer-guide/create-a-table.md) statements to 
+and [CREATE TABLE](../../developer-guide/ksqldb-reference/create-table.md) statements to 
 register streams and tables over {{ site.ak }} topics.
 
 Insert Events

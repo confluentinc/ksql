@@ -123,8 +123,10 @@ public final class StreamGroupByBuilder {
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         schema,
-        formats.getOptions()
+        formats.getKeyFeatures(),
+        formats.getValueFeatures()
     );
+
     final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,

@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-DROP TYPE <type_name> AS <type>;
+DROP TYPE [IF EXISTS] <type_name> AS <type>;
 ```
 
 Description
@@ -25,6 +25,9 @@ statement doesn't track whether queries are using the type. This means that you
 can drop a type any time, and old queries continue to work. Also, old queries
 running with a dropped type and don't change if you register a new type with
 the same name.
+
+If the IF EXISTS clause is present, the statement doesn't fail if the
+type doesn't exist.
 
 Example
 -------

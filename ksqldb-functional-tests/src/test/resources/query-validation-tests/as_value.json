@@ -114,6 +114,104 @@
           {"name": "OUTPUT", "type": "stream", "schema": "I2_ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT"}
         ]
       }
+    },
+    {
+      "name": "BOOLEAN",
+      "statements": [
+        "CREATE STREAM INPUT (ID BOOLEAN KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": true, "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"ID_COPY": true, "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID BOOLEAN KEY, ID_COPY BOOLEAN, V1 INT"}
+        ]
+      }
+    },{
+      "name": "DECIMAL",
+      "statements": [
+        "CREATE STREAM INPUT (ID DECIMAL(4,2) KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 12.30, "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 12.30, "value": {"ID_COPY": 12.30, "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID DECIMAL(4,2) KEY, ID_COPY DECIMAL(4,2), V1 INT"}
+        ]
+      }
+    },
+    {
+      "name": "MAP",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (ID MAP<VARCHAR, VARCHAR> KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": {"F1": "foo"}, "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": "foo"}, "value": {"ID_COPY": {"F1": "foo"}, "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID MAP<VARCHAR, VARCHAR> KEY, ID_COPY MAP<VARCHAR, VARCHAR>, V1 INT"}
+        ]
+      }
+    },
+    {
+      "name": "ARRAY",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (ID ARRAY<VARCHAR> KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": ["foo"], "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": ["foo"], "value": {"ID_COPY": ["foo"], "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID ARRAY<VARCHAR> KEY, ID_COPY ARRAY<VARCHAR>, V1 INT"}
+        ]
+      }
+    },
+    {
+      "name": "STRUCT",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<F1 VARCHAR> KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": {"F1": "foo"}, "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": "foo"}, "value": {"ID_COPY": {"F1": "foo"}, "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRUCT<F1 VARCHAR> KEY, ID_COPY STRUCT<F1 VARCHAR>, V1 INT"}
+        ]
+      }
     }
   ]
 }

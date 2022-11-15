@@ -139,7 +139,7 @@
       ],
       "inputs": [
         {
-          "topic": "test_topic", "key": "0", "value": {"F0": 1, "F1": 2, "F2": 3.1, "F3": true, "F4": "foo", "F5": 123.456, "F6": {"A": "bar"}}
+          "topic": "test_topic", "key": "0", "value": {"F0": 1, "F1": 2, "F2": 3.1, "F3": true, "F4": "foo", "F5": 123.4560000000, "F6": {"A": "bar"}}
         }
       ],
       "outputs": [
@@ -148,7 +148,7 @@
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "3.1"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "true"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "foo"}},
-        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "123.456"}},
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "123.4560000000"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "Struct{A=bar}"}}
       ]
     },
@@ -187,7 +187,7 @@
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "3.1"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "true"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "foo"}},
-        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "123.456"}},
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "123.4560000000"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "Struct{A=bar}"}}
       ]
     },
@@ -208,7 +208,7 @@
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "3.1"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "true"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "foo"}},
-        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "123.456"}},
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "123.4560000000"}},
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": "Struct{A=bar}"}}
       ]
     },
@@ -224,7 +224,7 @@
         }
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 2, "KSQL_COL_2": 3.1, "KSQL_COL_3": true, "KSQL_COL_4": "foo", "KSQL_COL_5": 123.456, "KSQL_COL_6": {"A": "bar"}}}
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 2, "KSQL_COL_2": 3.1, "KSQL_COL_3": true, "KSQL_COL_4": "foo", "KSQL_COL_5": 123.4560000000, "KSQL_COL_6": {"A": "bar"}}}
       ],
       "post": {
         "sources": [

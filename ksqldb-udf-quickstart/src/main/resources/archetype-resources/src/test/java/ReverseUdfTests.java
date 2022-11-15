@@ -15,24 +15,23 @@
 
 package ${package};
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Example class that demonstrates how to unit test UDFs.
  */
 public class ReverseUdfTests {
 
-  @ParameterizedTest(name = "reverse({0})= {1}")
-  @CsvSource({
-      "hello, olleh",
-      "world, dlrow",
-  })
-  void reverseString(final String source, final String expectedResult) {
+  @Test
+  public void shouldReverseString() {
+    // Given:
     final ReverseUdf reverse = new ReverseUdf();
-    final String actualResult = reverse.reverseString(source);
-    assertEquals(expectedResult, actualResult, source + " reversed should equal " + expectedResult);
+
+    // When:
+    final String actualResult = reverse.reverseString("foo");
+
+    // Then:
+    Assert.assertEquals("oof", actualResult);
   }
 }

@@ -6,21 +6,45 @@ description: Settings for security ksqlDB
 keywords: ksqldb, confguration, security, acl, ssl, sasl, keystore, truststore
 ---
 
-ksqlDB supports authentication on its HTTP endpoints and also supports
-many of the security features of the other services it communicates
-with, like {{ site.aktm }} and {{ site.sr }}.
+ksqlDB supports several combinations of encryption and authentication on its
+client-facing and internal endpoints. ksqlDB also supports many of the security
+features of the other services it communicates with, like {{ site.aktm }} and
+{{ site.sr }}.
 
-- ksqlDB supports Basic HTTP authentication on its RESTful and WebSocket
-  endpoints, which means that the endpoints can be protected by a
-  username and password.
-- ksqlDB supports {{ site.aktm }} security features such as
-  [SSL for encryption](https://docs.confluent.io/current/kafka/encryption.html),
-  [SASL for authentication](https://docs.confluent.io/current/kafka/authentication_sasl/index.html),
-  and [authorization with ACLs](https://docs.confluent.io/current/kafka/authorization.html).
-- ksqlDB supports
-  [Schema Registry security features](https://docs.confluent.io/current/schema-registry/security/index.html)
-  such SSL for encryption and mutual authentication for authorization.
-- ksqlDB supports SSL on all network traffic.
+- [Securing ksqlDB on Confluent Cloud](#securing-ksqldb-for-confluent-cloud)
+- [Securing ksqlDB on premise](#securing-ksqldb-on-premise)
+  * [Securing ksqlDB installation](#securing-ksqldb-installation)
+    - [Securing interactive deployments](#securing-interactive-deployments)
+      * [Securing single listener setup](#securing-single-listener-setup)
+        - [Configuring listener for SSL encryption](#configuring-listener-for-ssl-encryption)
+        - [Configuring listener for HTTP-BASIC authentication](#configuring-listener-for-http-basic-authentication)
+      * [Securing dual listener setup](#securing-dual-listener-setup)
+        - [Configuring internal for SSL-mutual authentication](#configuring-internal-for-ssl-mutual-authentication)
+        - [Configuring internal for SSL-mutual authentication and external for SSL encryption](#configuring-internal-for-ssl-mutual-authentication-and-external-for-ssl-encryption)
+        - [Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-and-external-for-http-basic-authentication)
+    - [Securing headless deployments](#securing-headless-deployments)
+  * [Securing communication with other services](#securing-communication-with-other-services)
+    - [Configure ksqlDB for Confluent Control Center](#configure-ksqldb-for-confluent-control-center)
+    - [Configure ksqlDB for Secured Confluent Schema Registry](#configure-ksqldb-for-secured-confluent-schema-registry)
+    - [Configure ksqlDB for Secured Apache Kafka clusters](#configure-ksqldb-for-secured-apache-kafka-clusters)
+        * [Configuring Kafka Encrypted Communication](#configuring-kafka-encrypted-communication)
+        * [Configuring Kafka Authentication](#configuring-kafka-authentication)
+        * [Configure Authorization of ksqlDB with Kafka ACLs](#configure-authorization-of-ksqldb-with-kafka-acls)
+            - [Confluent Platform v5.0 (Apache Kafka v2.0) and above](#confluent-platform-v50-apache-kafka-v20-and-above)
+            - [Confluent Platform versions below v5.0 (Apache Kafka < v2.0)](#confluent-platform-versions-below-v50-apache-kafka-v20)
+
+Securing ksqlDB for Confluent Cloud
+------------------------------------
+
+You can use ksqlDB with a {{ site.ak }} cluster in {{ site.ccloud }}. For more
+information, see
+[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
+
+Securing ksqlDB on premise
+--------------------------
+
+This section covers how to secure installations of ksqlDB outside of Confluent Cloud,
+like on-premises installations or manual installations on other cloud platforms.
 
 To configure security for ksqlDB, add your configuration settings to the
 `<path-to-confluent>/etc/ksqldb/ksql-server.properties` file and then
@@ -36,8 +60,65 @@ configuration file specified.
     or TAR archives. For more information, see
     [On-Premises Deployments](https://docs.confluent.io/current/installation/installing_cp/index.html).
 
-Configure ksqlDB for HTTPS
---------------------------
+
+The section is split into:
+
+[Securing ksqlDB installation](#securing-ksqldb-installation): Covers how to secure access to ksqlDB itself
+and its own internal communication.
+
+[Securing communication with other services](#securing-communication-with-other-services): Covers how to secure
+communication with other services and access to the resources they hold.
+
+Securing ksqlDB installation
+----------------------------
+
+ksqlDB supports two main deployment modes:
+
+[Securing interactive deployments](#securing-interactive-deployments): Interactive deployments are those where
+the ksqlDB servers accept client connections.
+
+[Securing headless deployments](#securing-headless-deployments): headless
+deployments are those where the ksqlDB servers do not accept client connections.
+They read the SQL statements they should run from a file on-disk.
+
+Securing interactive deployments
+--------------------------------
+
+Securing the interactive ksqlDB installation involves securing the HTTP endpoints that the ksqlDB server is listening on.
+
+As well as accepting connections and requests from clients, a multi-node ksqlDB
+cluster also requires inter-node communications. You can choose to configure
+the external client and internal inter-node communication separately or over
+a single listener:
+
+[Securing single listener setup](#securing-single-listener-setup): Ideal for
+single-node installations, or where the inter-node communication is over the
+same network interfaces as client communication.
+
+[Securing dual listener setup](#securing-dual-listener-setup): Useful where
+inter-node communication is over a different network interfaces or requires
+different authentication or encryption configuration.
+
+
+Securing single-listener setup
+------------------------------
+
+Securing a single listener for ksqlDB is appropriate when both client and
+inter-node communication utilize the same authentication and security
+configuration.
+
+The supported options include encrypting the connection and authenticating
+clients:
+
+[Configuring listener for SSL encryption](#configuring-listener-for-ssl-encryption):
+Creates an encrypted connection between the client and server, as well as for
+inter-node communication.
+
+[Configuring listener for HTTP-BASIC authentication](#configuring-listener-for-http-basic-authentication):
+Uses a username and password for authenticating to ksqlDB.
+
+Configuring Listener for SSL encryption
+---------------------------------------
 
 ksqlDB can be configured to use HTTPS rather than the default HTTP for all
 communication.
@@ -70,8 +151,8 @@ ssl.truststore.password=zzzz
 Additional settings are available for configuring ksqlDB for HTTPS.
 
 `ssl.enabled.protocols`: A comma-separated list of protocols enabled for SSL connections.
-Leave blank to use the Vert.x default (see `DEFAULT_ENABLED_SECURE_TRANSPORT_PROTOCOLS` in the
-[Vert.x TCL SSL options](https://github.com/eclipse-vertx/vert.x/blob/3.9/src/main/java/io/vertx/core/net/TCPSSLOptions.java)).
+Leave blank to use the default from the {{ site.aktm }} [`SslConfigs.java` file](https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/config/SslConfigs.java)
+(see `DEFAULT_SSL_ENABLED_PROTOCOLS`).
 
 `ssl.cipher.suites`: A comma-separated list of SSL cipher suites.
 Leave blank to use your JVM defaults.
@@ -111,39 +192,21 @@ CLI by using the `--config-file` command-line arguments, for example:
 <ksql-install>bin/ksql --config-file ./config/ksql-cli.properties https://localhost:8088
 ```
 
-Configure ksqlDB for Basic HTTP Authentication
-----------------------------------------------
+Configuring listener for HTTP-BASIC Authentication/Authorization
+----------------------------------------------------------------
 
 ksqlDB can be configured to require users to authenticate using a username
-and password via the Basic HTTP authentication mechanism.
+and password via the Basic HTTP authentication mechanism. You can
+also provide role-base authorization by specifying which roles can access the ksqlDB server.
 
 !!! note
 	If you're using Basic authentication, we recommended that you
-    [configure ksqlDB to use HTTPS for secure communication](#configure-ksqldb-for-https),
+    [configure ksqlDB to use HTTPS for secure communication](#configuring-listner-for-ssl-encryption),
     because the Basic protocol passes credentials in plain text.
 
-Use the following settings to configure the ksqlDB server to require
-authentication:
+### Create the `jaas_config.file`
 
-```properties
-authentication.method=BASIC
-authentication.roles=<user-role1>,<user-role2>,...
-authentication.realm=<KsqlServer-Props-in-jaas_config.file>
-```
-
-The `authentication.roles` config defines a comma-separated list of user
-roles. To be authorized to use the ksqlDB Server, an authenticated user
-must belong to at least one of these roles.
-
-For example, if you define `admin`, `developer`, `user`, and `ksq-user`
-roles, the following configuration assigns them for authentication.
-
-```properties
-authentication.roles=admin,developer,user,ksq-user
-```
-
-The `authentication.realm` config must match a section within
-`jaas_config.file`, which defines how the server authenticates users.
+The file `jaas_config.file` defines how the ksqlDB server authenticates users.
 
 An example `jaas_config.file` is:
 
@@ -155,12 +218,6 @@ KsqlServer-Props {
 };
 ```
 
-In this example, the `authentication.realm` config should be set to `KsqlServer-Props`:
-
-```properties
-authentication.realm=KsqlServer-Props
-```
-
 The example `jaas_config.file` above uses the Jetty
 `PropertyFileLoginModule`, which itself authenticates users by checking
 for their credentials in a password file.
@@ -169,15 +226,6 @@ You can also use other implementations of the standard Java
 `LoginModule` interface, such as `JDBCLoginModule` for reading
 credentials from a database or the `LdapLoginModule`.
 
-The JAAS config file should be passed as a JVM option during server start,
-and the LoginModule implementation should provided to the server as well:
-
-```bash
-export KSQL_OPTS=-Djava.security.auth.login.config=/path/to/the/jaas_config.file
-export KSQL_CLASSPATH=<path-to-login-module-jar>/jetty-jaas-9.4.24.v20191120.jar
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
-```
-
 In the `PropertyFileLoginModule` example above, the file parameter is the
 location of the password file. The format is:
 
@@ -185,14 +233,8 @@ location of the password file. The format is:
 <username>: <password-hash>[,<rolename> ...]
 ```
 
-Here's an example:
-
-```
-fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
-harry: changeme,user,developer
-tom: MD5:164c88b302622e17050af52c89945d44,user
-dick: CRYPT:adpexzg3FUZAk,admin,ksq-user
-```
+Specify one user and password per line. Roles are optional and are
+defined next to the password hash.
 
 The password hash for a user can be obtained by using the
 `org.eclipse.jetty.util.security.Password` utility, for example running:
@@ -211,7 +253,87 @@ CRYPT:frd5btY/mvXo6
 ```
 
 Where each line of the output is the password encrypted using different
-mechanisms, starting with plain text.
+mechanisms, starting with plain text. Copy any of the password encrypted
+lines onto the password file.
+
+The role names are defined next to the encrypted password. These
+are used by the `LoginModule` to map users to roles.
+
+Here's an example of the password file:
+
+```
+fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
+harry: changeme,user,developer
+tom: MD5:164c88b302622e17050af52c89945d44,user
+dick: CRYPT:adpexzg3FUZAk,admin,ksql-user
+```
+
+### Configure the ksqlDB server settings
+
+Use the following settings in the `ksql-server.properties` file:
+
+```properties
+authentication.method=BASIC
+authentication.realm=<KsqlServer-Props-in-jaas_config.file>
+authentication.roles=<user-role1>,<user-role2>,...
+```
+
+The `authentication.method` property indicates that ksqlDB authenticates users by using `BASIC`
+user and password credentials.
+
+The `authentication.realm` config must match a section within
+`jaas_config.file`, which provides the login module for authentication.
+
+In this example, the `authentication.realm` config is set to `KsqlServer-Props`, which
+was defined in the previous section:
+
+```properties
+authentication.realm=KsqlServer-Props
+```
+
+The `authentication.roles` config defines a comma-separated list of user
+roles with access to the ksqlDB server. To be authorized to use the ksqlDB Server,
+an authenticated user must belong to at least one of these roles.
+
+For example, if you define `admin` and `developer` roles, ksqlDB allows access only to users that contain these roles
+For more information, see the configuration for the password file in the `jaas_config.file` section.
+
+```properties
+authentication.roles=admin,developer
+```
+
+!!! note
+    You can authorize any role by setting the `authentication.roles` to `**`.
+
+###  Example
+
+Password file:
+```
+fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
+harry: changeme,user,developer
+tom: MD5:164c88b302622e17050af52c89945d44,user
+dick: CRYPT:adpexzg3FUZAk,admin,ksql-user
+```
+
+JAAS config file (`jaas_config.file`):
+```java
+KsqlServer-Props {
+  org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
+  file="/path/to/password-file"
+  debug="false";
+};
+```
+
+ksqlDB settings:
+```properties
+authentication.method=BASIC
+authentication.realm=KsqlServer-Props
+authentication.roles=admin
+```
+
+The ksqlDB server authenticates users `fred`, `harry`, `tom`, and `dick` based on the
+user and password credentials found in the password file. But only `fred` and `dick`
+authorized to access the server because they're under the `admin` role.
 
 ### Configure the CLI for Basic HTTP Authentication
 
@@ -224,12 +346,193 @@ credentials when starting the CLI by using the `--user` and
 <ksql-install>bin/ksql --user fred --password letmein http://localhost:8088
 ```
 
-Configure ksqlDB for Confluent Cloud
-------------------------------------
+Securing dual-listener setup
+----------------------------
 
-You can use ksqlDB with a {{ site.ak }} cluster in {{ site.ccloud }}. For more
-information, see
-[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
+Using dual listeners for ksqlDB is appropriate when the client and
+inter-node communication utilize different authentication and security
+configurations. This is most likely the case when ksqlDB is deployed as an
+IaaS service.
+
+The supported setups are SSL-mutual auth for the internal communication
+combined with SSL encryption and authentication for the external client:
+
+[Configuring internal for SSL-mutual authentication](#configuring-internal-for-ssl-mutual-authentication):
+Creates secure and authenticated connections for inter-node communication,
+but leaves the external
+client API unsecured. This is most appropriate when clients are trusted, but
+the internal APIs are protected from use.
+
+[Configuring internal for SSL-mutual authentication and external for SSL encryption](#configuring-internal-for-ssl-mutual-authentication-and-external-for-ssl-encryption):
+Creates secure and authenticated connections for inter-node
+communication and uses SSL for the external client API. This is most
+likely to be pair with authentication below.
+
+[Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-and-external-for-http-basic-authentication):
+Creates secure and authenticated connections for inter-node
+communication and uses basic authentication for the external client API.
+This is most likely to be paired with SSL above.
+
+Configuring internal for SSL-mutual authentication
+--------------------------------------------------
+
+ksqlDB supports securing inter-node communication using SSL mutual authentication.
+
+For more information about configuring `ksql.internal.listener`, see [Configuring Listeners of a ksqlDB Cluster](index.md#configuring-listeners-of-a-ksqldb-cluster).
+
+Your key store must contain the key pair for your internal listener set with
+`ksql.internal.listener`.  If your internal certificate is not signed by a recognized
+public Certificate Authority, a trust store is required to contain certificates for
+nodes in your cluster.  Below is an example configuration:
+
+```properties
+# Contains the internal key pair for this node.
+# (e.g. key pair for node-1.internal.example.com)
+ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
+ssl.keystore.password=xxxx
+ssl.key.password=yyyy
+
+# Contains the certificates for nodes in the cluster.
+# (e.g. certs for node-1.internal.example.com, node-2.internal.example.com)
+ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+ssl.truststore.password=zzzz
+
+listeners=http://0.0.0.0:8088
+ksql.internal.listener=https://node-1.internal.example.com:8099
+
+# This enables mutual auth checking for the internal listener
+ksql.internal.ssl.client.authentication=REQUIRED
+```
+
+Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication
+---------------------------------------------------------------------------------------------
+
+Client-facing basic HTTP authentication can be used alongside authentication for the
+internal listener. This ensures that neither the client or internal
+APIs can be accessed by unauthorized users.
+
+!!! note
+	If you're using Basic authentication, we recommended that you
+    [configure ksqlDB to use HTTPS for secure communication](#configuring-listner-for-ssl-encryption),
+    because the Basic protocol passes credentials in plain text.
+
+Below is an example configuration:
+
+```properties
+ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
+ssl.keystore.password=xxxx
+ssl.key.password=yyyy
+
+ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+ssl.truststore.password=zzzz
+
+listeners=http://0.0.0.0:8088
+ksql.internal.listener=https://node-1.internal.example.com:8099
+
+ksql.internal.ssl.client.authentication=REQUIRED
+
+authentication.method=BASIC
+authentication.roles=admin,developer,user,ksq-user
+authentication.realm=KsqlServer-Props
+
+```
+
+For more detail on basic authentication,
+[see above](#configure-ksqldb-for-basic-http-authentication).
+
+Configuring internal for SSL-mutual authentication and external for SSL encryption
+--------------------------------------------------------------------------------
+
+If you want to use HTTPS on `listeners` as well as use SSL mutual
+auth for internal communication on `ksql.internal.listener`, you will likely
+require two different key pairs, since your host's identity to clients may be
+different from its internal identity. To create such a key store,
+refer [below](#setting-up-a-key-store-and-trust-store).
+
+In such a configuration, you must specify which key pair is used for a given
+listener by providing a key store alias. For example,
+if set, `ksql.ssl.keystore.alias.internal` will be used to find the key store entry
+with the given alias when setting up the internal listener. Similarly,
+`ksql.ssl.keystore.alias.external` is used for the client listener `listeners`.
+Below is an example configuration:
+
+```properties
+# Contains the client certificate for this node under the alias 'client'.
+# (e.g. key pair for external.example.com)
+# Contains the internal certificate for this node under the alias 'internal_node1'.
+# (e.g. key pair for node-1.internal.example.com)
+ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
+ssl.keystore.password=xxxx
+ssl.key.password=yyyy
+
+# The aliases referenced above
+ksql.ssl.keystore.alias.external=client
+ksql.ssl.keystore.alias.internal=internal_node1
+
+# Contains the certificates for nodes in the cluster.
+# (e.g. certs for node-1.internal.example.com, node-2.internal.example.com)
+ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+ssl.truststore.password=zzzz
+
+listeners=https://external.example.com:8088
+ksql.internal.listener=https://node-1.internal.example.com:8099
+
+# Enable mutual auth checking for the internal listener
+ksql.internal.ssl.client.authentication=REQUIRED
+# Don't require external clients to authenticate via SSL
+ksql.ssl.client.authentication=NONE
+```
+
+### Setting up a Key Store and Trust Store
+
+In order to create a keystore with multiple key pairs with aliases, follow the
+below examples, depending on the source of the keys.
+
+```bash
+# Generated key pairs with aliases 'client' and 'internal_node1'
+keytool -genkey -alias client -keyalg RSA -keypass password -storepass password -keystore ksql.server.keystore.p12 -storetype PKCS12
+keytool -genkey -alias internal_node1 -keyalg RSA -keypass password -storepass password -keystore ksql.server.keystore.p12 -storetype PKCS12
+
+# Imported key pairs, with aliases 'client' and 'internal_node1'
+keytool -importkeystore -deststorepass password -destkeystore ksql.server.keystore.p12 -deststoretype PKCS12 -destalias client -srckeystore client_api.p12 -srcstoretype PKCS12 -srcalias client
+keytool -importkeystore -deststorepass password -destkeystore ksql.server.keystore.p12 -deststoretype PKCS12 -destalias internal_node1 -srckeystore internal_node1.p12 -srcstoretype PKCS12 -srcalias internal_node1
+```
+
+Also, extracting certificates to add to a trust store can be done with the following
+commands:
+
+```bash
+keytool -export -alias internal_node1 -storepass password -file node1.cer -keystore internal_node1.p12 -srcstoretype PKCS12
+keytool -export -alias internal_node2 -storepass password -file node2.cer -keystore internal_node2.p12 -srcstoretype PKCS12
+
+keytool -import -v -trustcacerts -alias internal_node1 -file node1.cer -keystore ksql.server.truststore.jks -keypass password -storepass password
+keytool -import -v -trustcacerts -alias internal_node1 -file node2.cer -keystore ksql.server.truststore.jks -keypass password -storepass password
+```
+
+Securing headless deployments
+-----------------------------
+
+Unlike interactive deployments, there are no exposed REST APIs, so security
+is greatly simplified.
+
+You may still have to [secure communication](#securing-communication-with-other-services) with other services.
+
+Securing communication with other services
+------------------------------------------
+
+This section covers how to secure communications of ksqlDB with other services.
+
+The section is split into:
+
+[Configure ksqlDB for Confluent Control Center](#configure-ksqldb-for-confluent-control-center):
+Covers how to secure communication with Confluent Control Center.
+
+[Configure ksqlDB for Secured Confluent Schema Registry](#configure-ksqldb-for-secured-confluent-schema-registry):
+Covers how to secure communication with schema registry.
+
+[Configure ksqlDB for Secured Apache Kafka clusters](#configure-ksqldb-for-secured-apache-kafka-clusters):
+Covers how to secure communication with Kafka.
+
 
 Configure ksqlDB for Confluent Control Center
 -------------------------------------------
@@ -466,7 +769,7 @@ Where `ksql.service.id` can be configured in the ksqlDB configuration and
 defaults to `default_`.
 
 If ksqlDB is configured to create a topic for the
-[record processing log](../../../developer-guide/test-and-debug/processing-log.md),
+[record processing log](../../../reference/processing-log.md),
 which is the default configuration, the following ACLs are also needed:
 
 -   The `ALL` operation on the `TOPIC` with `LITERAL` name

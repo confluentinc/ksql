@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.healthcheck;
 
 import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.KAFKA_CHECK_NAME;
 import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.METASTORE_CHECK_NAME;
+import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.COMMAND_RUNNER_CHECK_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
@@ -35,6 +36,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -47,6 +49,7 @@ import java.util.Map;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,6 +80,8 @@ public class HealthCheckAgentTest {
   @Mock
   private Admin adminClient;
   @Mock
+  private CommandRunner commandRunner;
+  @Mock
   private RestResponse<KsqlEntityList> successfulResponse;
   @Mock
   private RestResponse<KsqlEntityList> unSuccessfulResponse;
@@ -94,13 +99,14 @@ public class HealthCheckAgentTest {
     final DescribeTopicsResult topicsResult = mock(DescribeTopicsResult.class);
     when(adminClient.describeTopics(any(), any())).thenReturn(topicsResult);
     when(topicsResult.all()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG,
         "default_"
     ));
 
-    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, serviceContext, ksqlConfig);
+    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, serviceContext, ksqlConfig, commandRunner);
   }
 
   @Test
@@ -112,6 +118,7 @@ public class HealthCheckAgentTest {
     verify(ksqlClient, atLeastOnce()).makeKsqlRequest(eq(SERVER_URI), any(), eq(REQUEST_PROPERTIES));
     assertThat(response.getDetails().get(METASTORE_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getIsHealthy(), is(true));
   }
 
@@ -143,9 +150,48 @@ public class HealthCheckAgentTest {
   }
 
   @Test
+  public void shouldReturnUnhealthyIfCommandRunnerCheckFails() {
+    // Given:
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.DEGRADED);
+
+    // When:
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
+
+    // Then:
+    assertThat(response.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy(), is(false));
+    assertThat(response.getIsHealthy(), is(false));
+  }
+
+  @Test
   public void shouldReturnHealthyIfKafkaCheckFailsWithAuthorizationException() {
     // Given:
     doThrow(KsqlTopicAuthorizationException.class).when(adminClient).describeTopics(any(), any());
+
+    // When:
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
+
+    // Then:
+    assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getIsHealthy(), is(true));
+  }
+
+  @Test
+  public void shouldReturnHealthyIfKafkaCheckFailsWithUnknownTopicOrPartitionExceptionAsRootCause() {
+    // Given:
+    when(adminClient.describeTopics(any(), any())).thenThrow(new RuntimeException(new UnknownTopicOrPartitionException()));
+
+    // When:
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
+
+    // Then:
+    assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getIsHealthy(), is(true));
+  }
+
+  @Test
+  public void shouldReturnHealthyIfKafkaCheckFailsWithUnknownTopicOrPartitionException() {
+    // Given:
+    when(adminClient.describeTopics(any(), any())).thenThrow(new UnknownTopicOrPartitionException());
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();

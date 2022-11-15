@@ -59,7 +59,7 @@ public class OperatorTest {
       .put(SqlBaseType.DOUBLE, DOUBLE)
       .put(SqlBaseType.STRING, STRING)
       .put(SqlBaseType.ARRAY, SqlTypes.array(BIGINT))
-      .put(SqlBaseType.MAP, SqlTypes.map(INTEGER))
+      .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.STRING, INTEGER))
       .put(SqlBaseType.STRUCT, SqlTypes.struct().field("f", INTEGER).build())
       .build();
 

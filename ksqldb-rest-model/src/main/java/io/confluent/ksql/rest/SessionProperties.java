@@ -17,9 +17,11 @@ package io.confluent.ksql.rest;
 
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /**
  * Wraps the incoming {@link io.confluent.ksql.rest.entity.KsqlRequest} streamsProperties
@@ -32,6 +34,7 @@ public class SessionProperties {
   private final KsqlHostInfo ksqlHostInfo;
   private final URL localUrl;
   private final boolean internalRequest;
+  private final Map<String, String> sessionVariables;
 
   /**
    * @param mutableScopedProperties   The streamsProperties of the incoming request
@@ -50,6 +53,7 @@ public class SessionProperties {
     this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
     this.localUrl = Objects.requireNonNull(localUrl, "localUrl");
     this.internalRequest = internalRequest;
+    this.sessionVariables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
   }
 
   public Map<String, Object> getMutableScopedProperties() {
@@ -66,5 +70,17 @@ public class SessionProperties {
 
   public boolean getInternalRequest() {
     return internalRequest;
+  }
+
+  public Map<String, String> getSessionVariables() {
+    return Collections.unmodifiableMap(sessionVariables);
+  }
+
+  public void setVariable(final String name, final String value) {
+    sessionVariables.put(name, value);
+  }
+
+  public void unsetVariable(final String name) {
+    sessionVariables.remove(name);
   }
 }

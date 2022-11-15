@@ -31,6 +31,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -66,9 +67,14 @@ public class KsqlEngineMetricsTest {
   private static final String METRIC_GROUP = "testGroup";
   private KsqlEngineMetrics engineMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
-  private static final String metricNamePrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+  private static final String legacyMetricNamePrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
       + KSQL_SERVICE_ID;
+  private static final String metricNamePrefix = ReservedInternalTopics.CONFLUENT_PREFIX;
   private static final Map<String, String> CUSTOM_TAGS = ImmutableMap.of("tag1", "value1", "tag2", "value2");
+  private static final Map<String, String> CUSTOM_TAGS_WITH_SERVICE_ID = ImmutableMap.of(
+      "tag1", "value1",
+          "tag2", "value2",
+          KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID);
 
   @Mock
   private KsqlEngine ksqlEngine;
@@ -130,7 +136,7 @@ public class KsqlEngineMetricsTest {
         .then(returnQueriesInState(3, State.CREATED));
 
     final long value = getLongMetricValue("CREATED-queries");
-    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-CREATED-queries");
+    final long legacyValue = getLongMetricValueLegacy("CREATED-queries");
 
     assertThat(value, equalTo(3L));
     assertThat(legacyValue, equalTo(3L));
@@ -142,7 +148,7 @@ public class KsqlEngineMetricsTest {
         .then(returnQueriesInState(3, State.RUNNING));
 
     final long value = getLongMetricValue("RUNNING-queries");
-    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-RUNNING-queries");
+    final long legacyValue = getLongMetricValueLegacy("RUNNING-queries");
 
     assertThat(value, equalTo(3L));
     assertThat(legacyValue, equalTo(3L));
@@ -154,7 +160,7 @@ public class KsqlEngineMetricsTest {
         .then(returnQueriesInState(3, State.REBALANCING));
 
     final long value = getLongMetricValue("REBALANCING-queries");
-    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-REBALANCING-queries");
+    final long legacyValue = getLongMetricValueLegacy("REBALANCING-queries");
 
     assertThat(value, equalTo(3L));
     assertThat(legacyValue, equalTo(3L));
@@ -166,7 +172,7 @@ public class KsqlEngineMetricsTest {
         .then(returnQueriesInState(3, State.PENDING_SHUTDOWN));
 
     final long value = getLongMetricValue("PENDING_SHUTDOWN-queries");
-    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-PENDING_SHUTDOWN-queries");
+    final long legacyValue = getLongMetricValueLegacy("PENDING_SHUTDOWN-queries");
 
     assertThat(value, equalTo(3L));
     assertThat(legacyValue, equalTo(3L));
@@ -178,7 +184,7 @@ public class KsqlEngineMetricsTest {
         .then(returnQueriesInState(3, State.ERROR));
 
     final long value = getLongMetricValue("ERROR-queries");
-    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-ERROR-queries");
+    final long legacyValue = getLongMetricValueLegacy("ERROR-queries");
 
     assertThat(value, equalTo(3L));
     assertThat(legacyValue, equalTo(3L));
@@ -190,7 +196,7 @@ public class KsqlEngineMetricsTest {
         .then(returnQueriesInState(4, State.NOT_RUNNING));
 
     final long value = getLongMetricValue("NOT_RUNNING-queries");
-    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-NOT_RUNNING-queries");
+    final long legacyValue = getLongMetricValueLegacy("NOT_RUNNING-queries");
 
     assertThat(value, equalTo(4L));
     assertThat(legacyValue, equalTo(4L));
@@ -276,7 +282,7 @@ public class KsqlEngineMetricsTest {
     engineMetrics.registerQuery(query1);
 
     // Then:
-    verify(query1).registerQueryStateListener(any());
+    verify(query1).setQueryStateListener(any());
   }
 
   private double getMetricValue(final String metricName) {
@@ -284,7 +290,7 @@ public class KsqlEngineMetricsTest {
     return Double.parseDouble(
         metrics.metric(
             metrics.metricName(
-                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
+                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS_WITH_SERVICE_ID)
         ).metricValue().toString()
     );
   }
@@ -294,17 +300,17 @@ public class KsqlEngineMetricsTest {
     return Long.parseLong(
         metrics.metric(
             metrics.metricName(
-                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
+                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS_WITH_SERVICE_ID)
         ).metricValue().toString()
     );
   }
-
+  
   private double getMetricValueLegacy(final String metricName) {
     final Metrics metrics = engineMetrics.getMetrics();
     return Double.parseDouble(
         metrics.metric(
             metrics.metricName(
-                metricNamePrefix + metricName, METRIC_GROUP + "-query-stats")
+                metricName, legacyMetricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
         ).metricValue().toString()
     );
   }
@@ -314,7 +320,7 @@ public class KsqlEngineMetricsTest {
     return Long.parseLong(
         metrics.metric(
             metrics.metricName(
-                metricNamePrefix + metricName, METRIC_GROUP + "-query-stats")
+                metricName, legacyMetricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
         ).metricValue().toString()
     );
   }

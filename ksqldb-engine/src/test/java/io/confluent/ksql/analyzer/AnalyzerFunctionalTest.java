@@ -34,7 +34,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -42,7 +41,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
@@ -50,12 +49,10 @@ import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
@@ -69,16 +66,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AnalyzerFunctionalTest {
 
-  private static final Set<SerdeOption> DEFAULT_SERDE_OPTIONS = SerdeOption.none();
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName COL2 = ColumnName.of("COL2");
 
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
-
-  @Mock
-  private Sink sink;
 
   private Query query;
   private Analyzer analyzer;
@@ -88,14 +81,10 @@ public class AnalyzerFunctionalTest {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     avroMetaStore = MetaStoreFixture.getNewMetaStore(
         new InternalFunctionRegistry(),
-        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
+        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
     );
 
-    analyzer = new Analyzer(
-        jsonMetaStore,
-        "",
-        DEFAULT_SERDE_OPTIONS
-    );
+    analyzer = new Analyzer(jsonMetaStore, "");
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
@@ -110,13 +99,14 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "com.custom.schema")))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(), is(FormatInfo.of(
+        FormatFactory.AVRO.name(),
+        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "com.custom.schema"))
+    ));
   }
 
   @Test
@@ -126,12 +116,12 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
+        is(FormatInfo.of(FormatFactory.AVRO.name())));
   }
 
   @Test
@@ -142,13 +132,13 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
-            .of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
+        is(FormatInfo.of(FormatFactory.AVRO.name(),
+            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1"))));
   }
 
   @Test
@@ -159,9 +149,10 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
         ValueFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")),
+            SerdeFeatures.of())
     );
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -173,24 +164,23 @@ public class AnalyzerFunctionalTest {
         "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
         SourceName.of("S0"),
         schema,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopic
     );
 
-    newAvroMetaStore.putSource(ksqlStream);
+    newAvroMetaStore.putSource(ksqlStream, false);
 
     final List<Statement> statements = parse(simpleQuery, newAvroMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
+        is(FormatInfo.of(FormatFactory.AVRO.name())));
   }
 
   @Test
@@ -201,55 +191,12 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
-  }
-
-  @Test
-  public void shouldFailIfExplicitNamespaceIsProvidedForNonAvroTopic() {
-    final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='JSON', VALUE_AVRO_SCHEMA_FULL_NAME='com.custom.schema', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
-    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
-    final Query query = createStreamAsSelect.getQuery();
-
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "JSON does not support the following configs: [fullSchemaName]"));
-  }
-
-  @Test
-  public void shouldFailIfExplicitNamespaceIsProvidedButEmpty() {
-    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
-        "CREATE STREAM FOO "
-            + "WITH (VALUE_FORMAT='AVRO', VALUE_AVRO_SCHEMA_FULL_NAME='', KAFKA_TOPIC='TEST_TOPIC1') "
-            + "AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
-
-    final Query query = createStreamAsSelect.getQuery();
-
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "fullSchemaName cannot be empty. Format configuration: {fullSchemaName=}"
-    ));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
+        is(FormatInfo.of(FormatFactory.AVRO.name())));
   }
 
   @Test
@@ -278,7 +225,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -292,6 +239,29 @@ public class AnalyzerFunctionalTest {
   }
 
   @Test
+  public void shouldThrowOnNwayJoinWithDuplicateSource() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 JOIN test2 t3 ON t1.col0 = t3.col0;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "N-way joins do not support multiple occurrences of the same source. Source: 'TEST2'"));
+  }
+
+  @Test
   public void shouldFailOnJoinWithoutSource() {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
@@ -301,7 +271,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -326,7 +296,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -351,7 +321,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -378,21 +348,20 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic topic = new KsqlTopic(
         "ks",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of())
     );
 
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",
         SourceName.of("KAFKA_SOURCE"),
         schema,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         topic
     );
 
-    jsonMetaStore.putSource(stream);
+    jsonMetaStore.putSource(stream, false);
   }
 
   private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {

@@ -15,22 +15,30 @@
 
 package io.confluent.ksql.test.planned;
 
+import io.confluent.ksql.test.model.TestLocation;
 import java.util.Objects;
 
 public final class TestCasePlan {
 
+  private final TestLocation location;
   private final TestCaseSpecNode specNode;
   private final TestCasePlanNode planNode;
   private final String topology;
 
   TestCasePlan(
+      final TestLocation location,
       final TestCaseSpecNode specNode,
       final TestCasePlanNode planNode,
       final String topology
   ) {
+    this.location = Objects.requireNonNull(location, "location");
     this.specNode = Objects.requireNonNull(specNode, "spec");
     this.planNode = Objects.requireNonNull(planNode, "plan");
     this.topology = Objects.requireNonNull(topology, "topology");
+  }
+
+  public TestLocation getLocation() {
+    return location;
   }
 
   public String getTopology() {

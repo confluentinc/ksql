@@ -28,9 +28,9 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public final class UdafUtil {
 
@@ -76,24 +76,22 @@ public final class UdafUtil {
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
       final int udafIndex, final FunctionCall functionCall
   ) {
-    // args from index > 0 are all literals
-    final List<Object> args = functionCall.getArguments()
-        .stream()
-        .skip(1)
-        .map(expr -> {
-          if (expr instanceof Literal) {
-            return (Literal) expr;
-          } else {
-            throw new KsqlException(
-                "Aggregate function initialisation arguments must be literals"
-            );
-          }
-        })
-        .map(Literal::getValue)
-        .collect(Collectors.toList());
+    final List<Expression> args = functionCall.getArguments();
 
-    return new AggregateFunctionInitArguments(udafIndex, args);
+    final List<Object> initArgs = new ArrayList<>(Math.max(0, args.size() - 1));
+
+    // args for index > 0 must be literals:
+    for (int idx = 1; idx < args.size(); idx++) {
+      final Expression param = args.get(idx);
+      if (!(param instanceof Literal)) {
+        throw new KsqlException("Parameter " + (idx + 1) + " passed to function "
+            + functionCall.getName().text()
+            + " must be a literal constant, but was expression: '" + param + "'");
+      }
+
+      initArgs.add(((Literal) param).getValue());
+    }
+
+    return new AggregateFunctionInitArguments(udafIndex, initArgs);
   }
-
-
 }

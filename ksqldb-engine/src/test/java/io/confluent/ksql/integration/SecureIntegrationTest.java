@@ -16,6 +16,7 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
@@ -78,9 +79,11 @@ import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.Timeout;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -111,6 +114,10 @@ public class SecureIntegrationTest {
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
+
+
+  @Rule
+  public final Timeout timeout = Timeout.seconds(30);
 
   private QueryId queryId;
   private KsqlConfig ksqlConfig;
@@ -344,7 +351,7 @@ public class SecureIntegrationTest {
 
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
-    TEST_HARNESS.produceRows(INPUT_TOPIC, orderDataProvider, JSON);
+    TEST_HARNESS.produceRows(INPUT_TOPIC, orderDataProvider, KAFKA, JSON);
   }
 
   private void awaitAsyncInputTopicCreation() {

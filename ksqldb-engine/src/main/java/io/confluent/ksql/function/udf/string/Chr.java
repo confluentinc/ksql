@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -21,6 +22,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 
 @UdfDescription(
     name = "Chr",
+    category = FunctionCategory.STRING,
     description = "Returns a single-character string corresponding to the input character code.")
 public class Chr {
 

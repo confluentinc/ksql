@@ -31,7 +31,8 @@ public final class CreateConfigs {
 
   public static final String WINDOW_TYPE_PROPERTY = "WINDOW_TYPE";
   public static final String WINDOW_SIZE_PROPERTY = "WINDOW_SIZE";
-  public static final String SCHEMA_ID = "SCHEMA_ID";
+  public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
+  public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
   public static final String SOURCE_CONNECTOR = "SOURCE_CONNECTOR";
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
@@ -55,7 +56,13 @@ public final class CreateConfigs {
               + "then the property should be used to provide the window size, "
               + "for example: '20 SECONDS'."
       ).define(
-          SCHEMA_ID,
+          KEY_SCHEMA_ID,
+          ConfigDef.Type.INT,
+          null,
+          Importance.LOW,
+          "Undocumented feature"
+      ).define(
+          VALUE_SCHEMA_ID,
           ConfigDef.Type.INT,
           null,
           Importance.LOW,
@@ -71,7 +78,7 @@ public final class CreateConfigs {
       );
 
   static {
-    CommonCreateConfigs.addToConfigDef(CONFIG_DEF, true, true);
+    CommonCreateConfigs.addToConfigDef(CONFIG_DEF, true);
   }
 
   public static final ConfigMetaData CONFIG_METADATA = ConfigMetaData.of(CONFIG_DEF);

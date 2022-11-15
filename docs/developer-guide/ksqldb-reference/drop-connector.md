@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-DROP CONNECTOR connector_name;
+DROP CONNECTOR [IF EXISTS] connector_name;
 ```
 
 Description
@@ -21,3 +21,6 @@ Description
 
 Drop a connector and delete it from the {{ site.kconnect }} cluster. The
 topics associated with this cluster are not deleted by this command.
+
+If the IF EXISTS clause is present, the statement doesn't fail if the
+connector doesn't exist.

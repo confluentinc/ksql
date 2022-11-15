@@ -35,8 +35,8 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -50,7 +50,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -60,6 +59,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
+@SuppressWarnings("rawtypes")
 @RunWith(Parameterized.class)
 public class KsqlJsonDeserializerTest {
 
@@ -115,8 +115,7 @@ public class KsqlJsonDeserializerTest {
   public boolean useSchemas;
 
   private Struct expectedOrder;
-  private PersistenceSchema persistenceSchema;
-  private KsqlJsonDeserializer deserializer;
+  private KsqlJsonDeserializer<Struct> deserializer;
 
   @Before
   public void before() {
@@ -129,7 +128,7 @@ public class KsqlJsonDeserializerTest {
         .put(MAPCOL, ImmutableMap.of("key1", 10.0))
         .put(CASE_SENSITIVE_FIELD, 1L);
 
-    givenDeserializerForSchema(ORDER_SCHEMA);
+    deserializer = givenDeserializerForSchema(ORDER_SCHEMA, Struct.class);
   }
 
   @Test
@@ -138,7 +137,7 @@ public class KsqlJsonDeserializerTest {
     final byte[] bytes = serializeJson(AN_ORDER);
 
     // When:
-    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
+    final Struct result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
     assertThat(result, is(expectedOrder));
@@ -150,15 +149,15 @@ public class KsqlJsonDeserializerTest {
     final Map<String, Object> anOrder = ImmutableMap.<String, Object>builder()
         .put("CASEFIELD", 1L)
         .build();
+    
     final byte[] bytes = serializeJson(anOrder);
 
     // When:
-    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
+    final Struct result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
     assertThat(result, is(new Struct(ORDER_SCHEMA)));
   }
-
 
   @Test
   public void shouldCoerceFieldValues() {
@@ -219,7 +218,7 @@ public class KsqlJsonDeserializerTest {
     final byte[] bytes = serializeJson(orderRow);
 
     // When:
-    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
+    final Struct result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
     assertThat(result, is(expectedOrder));
@@ -234,7 +233,7 @@ public class KsqlJsonDeserializerTest {
     final byte[] bytes = serializeJson(orderRow);
 
     // When:
-    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
+    final Struct result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
     assertThat(result, is(expectedOrder
@@ -265,7 +264,7 @@ public class KsqlJsonDeserializerTest {
     final byte[] bytes = serializeJson(row);
 
     // When:
-    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
+    final Struct result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
     assertThat(result, is(expectedOrder
@@ -282,10 +281,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldCreateJsonStringForStructIfDefinedAsVarchar() {
     // Given:
-    givenDeserializerForSchema(
+    final KsqlJsonDeserializer<Struct> deserializer = givenDeserializerForSchema(
         SchemaBuilder.struct()
             .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-            .build()
+            .build(),
+        Struct.class
     );
 
     final byte[] bytes = ("{"
@@ -300,10 +300,9 @@ public class KsqlJsonDeserializerTest {
         + "}").getBytes(StandardCharsets.UTF_8);
 
     // When:
-    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, addMagic(bytes));
+    final Struct result = deserializer.deserialize(SOME_TOPIC, addMagic(bytes));
 
     // Then:
-    assertThat(result.schema(), is(persistenceSchema.ksqlSchema()));
     assertThat(result.get(ITEMID),
         is("{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
   }
@@ -311,7 +310,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonBoolean() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final KsqlJsonDeserializer<Boolean> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
@@ -325,7 +325,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToBoolean() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final KsqlJsonDeserializer<Boolean> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
 
     final byte[] bytes = serializeJson(IntNode.valueOf(23));
 
@@ -343,7 +344,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonNumberAsInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+    final KsqlJsonDeserializer<Integer> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA, Integer.class);
 
     final List<String> validCoercions = ImmutableList.of(
         "41",
@@ -366,7 +368,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+    final KsqlJsonDeserializer<Integer> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA, Integer.class);
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
@@ -384,7 +387,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonNumberAsBigInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    final KsqlJsonDeserializer<Long> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final List<String> validCoercions = ImmutableList.of(
         "42",
@@ -408,7 +412,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToBigInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    final KsqlJsonDeserializer<Long> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
@@ -426,7 +431,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonNumberAsDouble() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final KsqlJsonDeserializer<Double> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA, Double.class);
 
     final List<String> validCoercions = ImmutableList.of(
         "42",
@@ -450,7 +456,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToDouble() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final KsqlJsonDeserializer<Double> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA, Double.class);
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
@@ -468,7 +475,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonText() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+    final KsqlJsonDeserializer<String> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA, String.class);
 
     final Map<String, String> validCoercions = ImmutableMap.<String, String>builder()
         .put("true", "true")
@@ -495,7 +503,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonNumberAsBigDecimal() {
     // Given:
-    givenDeserializerForSchema(DecimalUtil.builder(20, 19).build());
+    final KsqlJsonDeserializer<BigDecimal> deserializer = 
+        givenDeserializerForSchema(DecimalUtil.builder(20, 19).build(), BigDecimal.class);
 
     final List<String> validCoercions = ImmutableList.of(
         "1.1234512345123451234",
@@ -517,7 +526,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializeDecimalsWithoutStrippingTrailingZeros() {
     // Given:
-    givenDeserializerForSchema(DecimalUtil.builder(3, 1).build());
+    final KsqlJsonDeserializer<BigDecimal> deserializer = 
+        givenDeserializerForSchema(DecimalUtil.builder(3, 1).build(), BigDecimal.class);
 
     final byte[] bytes = addMagic("10.0".getBytes(UTF_8));
 
@@ -529,9 +539,44 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
+  public void shouldFixScaleWhenDeserializingDecimalsWithTooSmallAScale() {
+    // Given:
+    final KsqlJsonDeserializer<BigDecimal> deserializer =
+        givenDeserializerForSchema(DecimalUtil.builder(4, 3).build(), BigDecimal.class);
+
+    final byte[] bytes = addMagic("1.1".getBytes(UTF_8));
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(new BigDecimal("1.100")));
+  }
+
+  @Test
+  public void shouldThrowIfDecimalHasLargerScale() {
+    // Given:
+    final KsqlJsonDeserializer<BigDecimal> deserializer =
+        givenDeserializerForSchema(DecimalUtil.builder(4, 1).build(), BigDecimal.class);
+
+    final byte[] bytes = addMagic("1.12".getBytes(UTF_8));
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot fit decimal '1.12' into DECIMAL(4, 1) without rounding."));
+  }
+
+  @Test
   public void shouldDeserializeScientificNotation() {
     // Given:
-    givenDeserializerForSchema(DecimalUtil.builder(3, 1).build());
+    final KsqlJsonDeserializer<BigDecimal> deserializer = 
+        givenDeserializerForSchema(DecimalUtil.builder(3, 1).build(), BigDecimal.class);
 
     final byte[] bytes = addMagic("1E+1".getBytes(UTF_8));
 
@@ -539,13 +584,14 @@ public class KsqlJsonDeserializerTest {
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
-    assertThat(result, is(new BigDecimal("1e+1")));
+    assertThat(result, is(new BigDecimal("10.0")));
   }
 
   @Test
   public void shouldThrowIfCanNotCoerceToBigDecimal() {
     // Given:
-    givenDeserializerForSchema(DecimalUtil.builder(20, 19).build());
+    final KsqlJsonDeserializer<BigDecimal> deserializer = 
+        givenDeserializerForSchema(DecimalUtil.builder(20, 19).build(), BigDecimal.class);
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
@@ -563,9 +609,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonArray() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
+    final KsqlJsonDeserializer<List> deserializer = givenDeserializerForSchema(
+        SchemaBuilder
+            .array(Schema.OPTIONAL_INT64_SCHEMA)
+            .build(),
+        List.class
     );
 
     final byte[] bytes = serializeJson(ImmutableList.of(42, 42.000, "42"));
@@ -580,9 +628,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfNotAnArray() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_STRING_SCHEMA)
-        .build()
+    final KsqlJsonDeserializer<List> deserializer = givenDeserializerForSchema(
+        SchemaBuilder
+            .array(Schema.OPTIONAL_STRING_SCHEMA)
+            .build(),
+        List.class
     );
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
@@ -601,9 +651,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceArrayElement() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_INT32_SCHEMA)
-        .build()
+    final KsqlJsonDeserializer<List> deserializer = givenDeserializerForSchema(
+        SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .build(),
+        List.class
     );
 
     final List<String> expected = ImmutableList.of("not", "numbers");
@@ -624,9 +676,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldDeserializedJsonObjectAsMap() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
+    final KsqlJsonDeserializer<Map> deserializer = givenDeserializerForSchema(
+        SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+            .build(),
+        Map.class
     );
 
     final byte[] bytes = serializeJson(ImmutableMap.of("a", 42, "b", 42L, "c", "42"));
@@ -641,9 +695,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfNotAnMap() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
-        .build()
+    final KsqlJsonDeserializer<Map> deserializer = givenDeserializerForSchema(
+        SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
+            .build(),
+        Map.class
     );
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
@@ -662,9 +718,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceMapValue() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
-        .build()
+    final KsqlJsonDeserializer<Map> deserializer = givenDeserializerForSchema(
+        SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
+            .build(),
+        Map.class
     );
 
     final byte[] bytes = serializeJson(ImmutableMap.of("a", 1, "b", true));
@@ -683,60 +741,55 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowOnMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema = PersistenceSchema.from(
-        (ConnectSchema) SchemaBuilder
-            .struct()
-            .field("f0", SchemaBuilder
-                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-                .optional()
-                .build())
-            .build(),
-        true
-    );
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder
+        .struct()
+        .field("f0", SchemaBuilder
+            .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+            .optional()
+            .build())
+        .build();
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> new KsqlJsonDeserializer(physicalSchema, false)
+        KsqlException.class,
+        () -> new KsqlJsonDeserializer<>(schema, false, Struct.class)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test
   public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema = PersistenceSchema.from(
-        (ConnectSchema) SchemaBuilder
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder
+        .struct()
+        .field("f0", SchemaBuilder
             .struct()
-            .field("f0", SchemaBuilder
-                .struct()
-                .field("f1", SchemaBuilder
-                    .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-                    .optional()
-                    .build())
+            .field("f1", SchemaBuilder
+                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+                .optional()
                 .build())
-            .build(),
-        true
-    );
+            .build())
+        .build();
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> new KsqlJsonDeserializer(physicalSchema, false)
+        KsqlException.class,
+        () -> new KsqlJsonDeserializer<>(schema, false, Struct.class)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    final KsqlJsonDeserializer<Long> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
 
@@ -754,7 +807,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldNotIncludeBadValueInExceptionAsThatWouldBeASecurityIssue() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    final KsqlJsonDeserializer<Long> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final byte[] bytes = "\"personal info: do not log me\"".getBytes(StandardCharsets.UTF_8);
 
@@ -773,7 +827,8 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldIncludePathForErrorsInRootNode() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final KsqlJsonDeserializer<Double> deserializer = 
+        givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA, Double.class);
 
     final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
 
@@ -808,9 +863,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldIncludePathForErrorsInArrayElements() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_INT32_SCHEMA)
-        .build()
+    final KsqlJsonDeserializer<List> deserializer = givenDeserializerForSchema(
+        SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .build(),
+        List.class
     );
 
     final List<?> expected = ImmutableList.of(0, "not", "numbers");
@@ -830,9 +887,11 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldIncludePathForErrorsInMapValues() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
-        .build()
+    final KsqlJsonDeserializer<Map> deserializer = givenDeserializerForSchema(
+        SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
+            .build(),
+        Map.class
     );
 
     final byte[] bytes = serializeJson(ImmutableMap.of("a", 1, "b", true));
@@ -846,17 +905,12 @@ public class KsqlJsonDeserializerTest {
     // Then:
     assertThat(e.getCause(), (hasMessage(endsWith("path: $.b.value"))));
   }
-
-  private void givenDeserializerForSchema(final Schema serializedSchema) {
-    final boolean unwrap = serializedSchema.type() != Type.STRUCT;
-    final Schema ksqlSchema = unwrap
-        ? SchemaBuilder.struct().field("f", serializedSchema).build()
-        : serializedSchema;
-
-    this.persistenceSchema = PersistenceSchema
-        .from((ConnectSchema) ksqlSchema, unwrap);
-
-    deserializer = new KsqlJsonDeserializer(persistenceSchema, useSchemas);
+  
+  private <T> KsqlJsonDeserializer<T> givenDeserializerForSchema(
+      final Schema schema, 
+      final Class<T> type
+  ) {
+    return new KsqlJsonDeserializer<>((ConnectSchema) schema, useSchemas, type);
   }
 
   private byte[] serializeJson(final Object expected) {

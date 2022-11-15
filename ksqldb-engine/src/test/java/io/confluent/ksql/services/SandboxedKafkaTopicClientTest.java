@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -78,6 +80,8 @@ public class SandboxedKafkaTopicClientTest {
           .ignore("describeTopic", String.class)
           .ignore("describeTopics", Collection.class)
           .ignore("deleteTopics", Collection.class)
+          .ignore("listTopicsStartOffsets", Collection.class)
+          .ignore("listTopicsEndOffsets", Collection.class)
           .build();
     }
 
@@ -306,6 +310,42 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       verifyZeroInteractions(delegate);
+    }
+
+    @Test
+    public void shouldSupportListTopicsStartOffsets() {
+      // Given:
+      final ImmutableList<String> topicNames = ImmutableList.of("some topic");
+      when(delegate.listTopicsStartOffsets(topicNames)).thenReturn(
+          ImmutableMap.of(
+              new TopicPartition("some topic", 0), 9L,
+              new TopicPartition("some topic", 1), 10L
+          ));
+      // When:
+      final Map<TopicPartition, Long> offsets = sandboxedClient.listTopicsStartOffsets(topicNames);
+
+      // Then:
+      assertEquals(2, offsets.keySet().size());
+      assertEquals(Long.valueOf(9L), offsets.get(new TopicPartition("some topic", 0)));
+      assertEquals(Long.valueOf(10L), offsets.get(new TopicPartition("some topic", 1)));
+    }
+
+    @Test
+    public void shouldSupportListTopicsEndOffsets() {
+      // Given:
+      final ImmutableList<String> topicNames = ImmutableList.of("some topic");
+      when(delegate.listTopicsEndOffsets(topicNames)).thenReturn(
+          ImmutableMap.of(
+              new TopicPartition("some topic", 0), 99L,
+              new TopicPartition("some topic", 1), 100L
+          ));
+      // When:
+      final Map<TopicPartition, Long> offsets = sandboxedClient.listTopicsEndOffsets(topicNames);
+
+      // Then:
+      assertEquals(2, offsets.keySet().size());
+      assertEquals(Long.valueOf(99L), offsets.get(new TopicPartition("some topic", 0)));
+      assertEquals(Long.valueOf(100L), offsets.get(new TopicPartition("some topic", 1)));
     }
 
     @SuppressWarnings("SameParameterValue")

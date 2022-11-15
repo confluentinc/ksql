@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 public class StreamsListTableBuilder implements TableBuilder<StreamsList> {
 
   private static final List<String> HEADERS =
-      ImmutableList.of("Stream Name", "Kafka Topic", "Format");
+      ImmutableList.of("Stream Name", "Kafka Topic", "Key Format", "Value Format", "Windowed");
 
   @Override
   public Table buildTable(final StreamsList entity) {
@@ -35,7 +35,13 @@ public class StreamsListTableBuilder implements TableBuilder<StreamsList> {
         .getStreams()
         .stream()
         .sorted(Comparator.comparing(SourceInfo::getName))
-        .map(s -> ImmutableList.of(s.getName(), s.getTopic(), s.getFormat()));
+        .map(s -> ImmutableList.of(
+            s.getName(),
+            s.getTopic(),
+            s.getKeyFormat(),
+            s.getValueFormat(),
+            Boolean.toString(s.isWindowed())
+        ));
 
     return new Builder()
         .withColumnHeaders(HEADERS)

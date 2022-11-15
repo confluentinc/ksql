@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udtf;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -53,6 +54,15 @@ public @interface UdtfDescription {
    * @return function description.
    */
   String description();
+
+  /**
+   * The category or type of the table function.
+   *
+   * <p>This text is used to group functions displayed when invoking {@code SHOW FUNCTIONS ...}.
+   *
+   * @return function category.
+   */
+  String category() default FunctionCategory.TABLE;
 
   /**
    * The author of the table function.

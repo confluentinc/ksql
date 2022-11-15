@@ -17,18 +17,22 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.util.KeystoreUtil;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
+import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -75,14 +79,17 @@ public class Server {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final List<URI> listeners = new ArrayList<>();
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private URI internalListener;
   private WorkerExecutor workerExecutor;
   private FileWatcher fileWatcher;
 
-  public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
+  public Server(
+      final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
       final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
-      final ServerState serverState) {
+      final ServerState serverState,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
@@ -90,6 +97,7 @@ public class Server {
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
     this.maxPushQueryCount = config.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
+    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     if (!OpenSsl.isAvailable()) {
       log.warn("OpenSSL does not appear to be installed. ksqlDB will fall back to using the JDK "
           + "TLS implementation. OpenSSL is recommended for better performance.");
@@ -122,8 +130,8 @@ public class Server {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https")),
-            this, isInternalListener);
+                listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false)),
+            this, isInternalListener, pullQueryMetrics);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
@@ -276,7 +284,8 @@ public class Server {
   }
 
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
-      final String host, final int port, final boolean tls) {
+      final String host, final int port, final boolean tls,
+      final boolean isInternalListener) {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(host)
@@ -288,36 +297,53 @@ public class Server {
         .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
-      options.setUseAlpn(true).setSsl(true);
+      final String ksConfigName = isInternalListener
+           ? KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG
+           : KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG;
+      final ClientAuth clientAuth = isInternalListener
+          ? ksqlRestConfig.getClientAuthInternal()
+          : ksqlRestConfig.getClientAuth();
 
-      configureTlsKeyStore(ksqlRestConfig, options);
-      configureTlsTrustStore(ksqlRestConfig, options);
+      final String alias = ksqlRestConfig.getString(ksConfigName);
+      setTlsOptions(ksqlRestConfig, options, alias, clientAuth);
+    }
+    return options;
+  }
 
-      final List<String> enabledProtocols =
-          ksqlRestConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG);
-      if (!enabledProtocols.isEmpty()) {
-        options.setEnabledSecureTransportProtocols(new HashSet<>(enabledProtocols));
-      }
+  private static void setTlsOptions(
+      final KsqlRestConfig ksqlRestConfig,
+      final HttpServerOptions options,
+      final String keyStoreAlias,
+      final ClientAuth clientAuth
+  ) {
+    options.setUseAlpn(true).setSsl(true);
 
-      final List<String> cipherSuites =
-          ksqlRestConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG);
-      if (!cipherSuites.isEmpty()) {
-        // Vert.x does not yet support a method for setting cipher suites, so we use the following
-        // workaround instead. See https://github.com/eclipse-vertx/vert.x/issues/1507.
-        final Set<String> enabledCipherSuites = options.getEnabledCipherSuites();
-        enabledCipherSuites.clear();
-        enabledCipherSuites.addAll(cipherSuites);
-      }
+    configureTlsKeyStore(ksqlRestConfig, options, keyStoreAlias);
+    configureTlsTrustStore(ksqlRestConfig, options);
 
-      options.setClientAuth(ksqlRestConfig.getClientAuth());
+    final List<String> enabledProtocols =
+        ksqlRestConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG);
+    if (!enabledProtocols.isEmpty()) {
+      options.setEnabledSecureTransportProtocols(new HashSet<>(enabledProtocols));
     }
 
-    return options;
+    final List<String> cipherSuites =
+        ksqlRestConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG);
+    if (!cipherSuites.isEmpty()) {
+      // Vert.x does not yet support a method for setting cipher suites, so we use the following
+      // workaround instead. See https://github.com/eclipse-vertx/vert.x/issues/1507.
+      final Set<String> enabledCipherSuites = options.getEnabledCipherSuites();
+      enabledCipherSuites.clear();
+      enabledCipherSuites.addAll(cipherSuites);
+    }
+
+    options.setClientAuth(clientAuth);
   }
 
   private static void configureTlsKeyStore(
       final KsqlRestConfig ksqlRestConfig,
-      final HttpServerOptions options
+      final HttpServerOptions options,
+      final String keyStoreAlias
   ) {
     final String keyStorePath = ksqlRestConfig
         .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
@@ -326,7 +352,15 @@ public class Server {
     if (keyStorePath != null && !keyStorePath.isEmpty()) {
       final String keyStoreType =
           ksqlRestConfig.getString(KsqlRestConfig.SSL_KEYSTORE_TYPE_CONFIG);
-      if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+      if (keyStoreAlias != null && !keyStoreAlias.isEmpty()) {
+        options.setKeyStoreOptions(new JksOptions().setValue(KeystoreUtil.getKeyStore(
+            keyStoreType,
+            keyStorePath,
+            Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
+            Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
+            keyStoreAlias))
+            .setPassword(keyStorePassword.value()));
+      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
         options.setKeyStoreOptions(
             new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
       } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {

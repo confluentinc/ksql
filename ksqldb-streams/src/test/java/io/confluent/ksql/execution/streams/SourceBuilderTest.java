@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -57,14 +56,12 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
@@ -136,8 +133,10 @@ public class SourceBuilderTest {
   private static final long A_WINDOW_END = 20L;
   private static final long A_ROWTIME = 456L;
 
-  private final Set<SerdeOption> SERDE_OPTIONS = new HashSet<>();
-  private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS);
+  private final SerdeFeatures KEY_FEATURES = SerdeFeatures.of();
+  private final SerdeFeatures VALUE_FEATURES = SerdeFeatures.of();
+  private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
+      .from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES);
   private static final String TOPIC_NAME = "topic";
 
   private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
@@ -459,7 +458,7 @@ public class SourceBuilderTest {
     verify(queryBuilder).buildKeySerde(
         keyFormatInfo,
         windowInfo,
-        PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS),
+        PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
         ctx
     );
   }
@@ -495,7 +494,7 @@ public class SourceBuilderTest {
     final StreamSource streamSource = new StreamSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         Optional.empty(),
         LogicalSchema.builder()
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
@@ -647,7 +646,7 @@ public class SourceBuilderTest {
     verify(queryBuilder).buildKeySerde(
         keyFormatInfo,
         windowInfo,
-        PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS),
+        PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
         ctx
     );
   }
@@ -663,7 +662,7 @@ public class SourceBuilderTest {
     // Then:
     verify(queryBuilder).buildKeySerde(
         keyFormatInfo,
-        PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS),
+        PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
         ctx
     );
   }
@@ -736,7 +735,7 @@ public class SourceBuilderTest {
     windowedStreamSource = new WindowedStreamSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA
@@ -749,7 +748,7 @@ public class SourceBuilderTest {
     streamSource = new StreamSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA
     );
@@ -762,7 +761,7 @@ public class SourceBuilderTest {
     windowedTableSource = new WindowedTableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA
@@ -775,7 +774,7 @@ public class SourceBuilderTest {
     tableSource = new TableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
+        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
         Optional.of(forceChangelog)

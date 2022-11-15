@@ -25,22 +25,20 @@ import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.ServerMetadata;
-import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.util.AppInfo;
-import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -51,6 +49,7 @@ public class TestEndpoints implements Endpoints {
 
   private Supplier<RowGenerator> rowGeneratorFactory;
   private TestInsertsSubscriber insertsSubscriber;
+  private List<KsqlEntity> ksqlEndpointResponse;
   private String lastSql;
   private JsonObject lastProperties;
   private String lastTarget;
@@ -59,6 +58,7 @@ public class TestEndpoints implements Endpoints {
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
   private RuntimeException createInsertsSubscriberException;
+  private RuntimeException executeKsqlRequestException;
   private ApiSecurityContext lastApiSecurityContext;
 
   @Override
@@ -118,15 +118,18 @@ public class TestEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
     this.lastSql = request.getUnmaskedKsql();
-    this.lastProperties = new JsonObject(request.getRequestProperties());
+    this.lastProperties = new JsonObject(request.getConfigOverrides());
     this.lastApiSecurityContext = apiSecurityContext;
-    if (request.getUnmaskedKsql().toLowerCase().equals("show streams;")) {
-      final StreamsList entity = new StreamsList(request.getUnmaskedKsql(),
-          Collections.emptyList());
-      return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
+    CompletableFuture<EndpointResponse> cf = new CompletableFuture<>();
+
+    if (executeKsqlRequestException != null) {
+      executeKsqlRequestException.fillInStackTrace();
+      cf.completeExceptionally(executeKsqlRequestException);
     } else {
-      return null;
+      cf.complete(EndpointResponse.ok(ksqlEndpointResponse));
     }
+
+    return cf;
   }
 
   @Override
@@ -146,7 +149,7 @@ public class TestEndpoints implements Endpoints {
   public synchronized CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
     this.lastApiSecurityContext = apiSecurityContext;
     final ServerInfo entity = new ServerInfo(
-        AppInfo.getVersion(), "kafka-cluster-id", "ksql-service-id");
+        AppInfo.getVersion(), "kafka-cluster-id", "ksql-service-id", "server-status");
     return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
   }
 
@@ -215,6 +218,10 @@ public class TestEndpoints implements Endpoints {
     return insertsSubscriber;
   }
 
+  public synchronized void setKsqlEndpointResponse(final List<KsqlEntity> entities) {
+    this.ksqlEndpointResponse = entities;
+  }
+
   public synchronized String getLastSql() {
     return lastSql;
   }
@@ -249,6 +256,10 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized void setCreateInsertsSubscriberException(final RuntimeException exception) {
     this.createInsertsSubscriberException = exception;
+  }
+
+  public synchronized void setExecuteKsqlRequestException(final RuntimeException exception) {
+    this.executeKsqlRequestException = exception;
   }
 
   private static int extractLimit(final String sql) {

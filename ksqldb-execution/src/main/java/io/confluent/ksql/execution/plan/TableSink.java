@@ -16,12 +16,14 @@ package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import javax.annotation.Nonnull;
 
 @Immutable
 public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
@@ -30,6 +32,14 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
   private final Formats formats;
   private final String topicName;
   private final Optional<TimestampColumn> timestampColumn;
+
+  private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
+      new Property("class", Object::getClass),
+      new Property("properties", ExecutionStep::getProperties),
+      new Property("formats", s -> ((TableSink<?>) s).formats),
+      new Property("topicName", s -> ((TableSink<?>) s).topicName),
+      new Property("timestampColumn", s -> ((TableSink<?>) s).timestampColumn)
+  );
 
   public TableSink(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
@@ -75,6 +85,12 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
   @Override
   public KTableHolder<K> build(final PlanBuilder builder) {
     return builder.visitTableSink(this);
+  }
+
+  @Override
+  public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
+    mustMatch(to, MUST_MATCH);
+    getSource().validateUpgrade(((TableSink<?>) to).source);
   }
 
   @Override

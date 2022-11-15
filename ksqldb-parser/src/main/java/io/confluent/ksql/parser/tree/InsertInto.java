@@ -61,7 +61,7 @@ public class InsertInto
 
   @Override
   public Sink getSink() {
-    return Sink.of(target, false, CreateSourceAsProperties.none());
+    return Sink.of(target, false, false, CreateSourceAsProperties.none());
   }
 
   @Override

@@ -15,17 +15,11 @@
 
 package ${package};
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import io.confluent.ksql.function.udaf.Udaf;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.Assert;
+import org.junit.Test;
 
 
 /**
@@ -34,53 +28,36 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class SummaryStatsUdafTests {
 
   @Test
-  void mergeAggregates() {
+  public void mergeAggregates() {
+    // Given:
     final Udaf<Double, Map<String, Double>, Map<String, Double>> udaf =
         SummaryStatsUdaf.createUdaf();
 
+    // When:
     final Map<String, Double> mergedAggregate = udaf.merge(
         // (sample_size, sum, mean)
         aggregate(3.0, 3300.0, 1100.0),
         aggregate(7.0, 6700.0, 957.143)
     );
 
+    // Then:
     final Map<String, Double> expectedResult = aggregate(10.0, 10000.0, 1000.0);
-    assertEquals(expectedResult, mergedAggregate);
+    Assert.assertEquals(expectedResult, mergedAggregate);
   }
 
-  @ParameterizedTest
-  @MethodSource("aggSources")
-  void calculateSummaryStats(
-      final Double newValue,
-      final Map<String, Double> currentAggregate,
-      final Map<String, Double> expectedResult
-  ) {
+  @Test
+  public void shouldComputeNewAggregate() {
+    // Given:
     final Udaf<Double, Map<String, Double>, Map<String, Double>> udaf =
         SummaryStatsUdaf.createUdaf();
 
-    assertEquals(expectedResult, udaf.aggregate(newValue, currentAggregate));
-  }
+    // When:
+    final Map<String, Double> newAggregate = udaf.aggregate(900.0, aggregate(1.0, 400.0, 400.0));
 
-  static Stream<Arguments> aggSources() {
-    return Stream.of(
-      // sample: 400
-      arguments(
-        // new value
-        400.0,
-        // current aggregate
-        aggregate(0.0, 0.0, 0.0),
-        // expected new aggregate
-        aggregate(1.0, 400.0, 400.0)
-      ),
-      // sample: 400, 900
-      arguments(
-        // new value
-        900.0,
-        // current aggregate
-        aggregate(1.0, 400.0, 400.0),
-        // expected new aggregate
-        aggregate(2.0, 1300.0, 650.0)
-      )
+    // Then:
+    Assert.assertEquals(
+        aggregate(2.0, 1300.0, 650.0),
+        newAggregate
     );
   }
 
@@ -88,7 +65,7 @@ public class SummaryStatsUdafTests {
    * Helper method for building an aggregate that mimics what KSQL would pass
    * to our UDAF instance.
    */
-  static Map<String, Double> aggregate(
+  private static Map<String, Double> aggregate(
       final Double sampleSize,
       final Double sum,
       final Double mean

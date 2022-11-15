@@ -51,17 +51,19 @@ public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, Gener
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Override
   public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
+    final GenericRow result = GenericRow.fromList(aggRowValue.values());
+
     for (int idx = 0; idx < nonAggColumnCount; idx++) {
-      aggRowValue.set(idx, rowValue.get(idx));
+      result.set(idx, rowValue.get(idx));
     }
 
     for (int idx = nonAggColumnCount; idx < columnCount; idx++) {
       final TableAggregationFunction function = aggregateFunctions.get(idx - nonAggColumnCount);
       final Object argument = rowValue.get(function.getArgIndexInValue());
-      final Object previous = aggRowValue.get(idx);
-      aggRowValue.set(idx, function.undo(argument, previous));
+      final Object previous = result.get(idx);
+      result.set(idx, function.undo(argument, previous));
     }
 
-    return aggRowValue;
+    return result;
   }
 }

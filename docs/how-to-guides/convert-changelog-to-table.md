@@ -4,7 +4,6 @@
 
 You have a stream of events that represent a series of changes, known as a changelog. You want a view of the data that reflects only the last change for each key. Because ksqlDB represents change over time using tables, you need a way to convert your changelog stream into a table. This is broadly called *materializing* a changelog stream into a table.
 
-
 ## In action
 
 ```sql

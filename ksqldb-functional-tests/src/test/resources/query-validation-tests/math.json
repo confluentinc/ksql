@@ -210,7 +210,7 @@
       ]
     },
     {
-      "name": "round with large DECIMAL values",
+      "name": "round with large DECIMAL values - DELIMITED",
       "statements": [
         "CREATE STREAM test (ID STRING KEY, v DECIMAL(33, 16)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT ID, ROUND(v) as R0, ROUND(v, 0) as R00, ROUND(v, 1) as R1, ROUND(v, 2) as R2, ROUND(v, 10) as R10, ROUND(v , -1) as 1R , ROUND(v , -2) as 2R  FROM test;"
@@ -221,7 +221,7 @@
       "outputs": [
         {
           "topic": "OUTPUT",
-          "value": "\"12,345,678,987,654,321\",\"12,345,678,987,654,321.0000000000000000\",\"12,345,678,987,654,321.2000000000000000\",\"12,345,678,987,654,321.2300000000000000\",\"12,345,678,987,654,321.2345678988000000\",\"12,345,678,987,654,320.0000000000000000\",\"12,345,678,987,654,300.0000000000000000\""
+          "value": "12345678987654321,12345678987654321.0000000000000000,12345678987654321.2000000000000000,12345678987654321.2300000000000000,12345678987654321.2345678988000000,12345678987654320.0000000000000000,12345678987654300.0000000000000000"
         }
       ],
       "post": {
@@ -230,6 +230,29 @@
             "name": "OUTPUT",
             "type": "stream",
             "schema": "ID STRING KEY, R0 DECIMAL(17,0), R00 DECIMAL(33,16), R1 DECIMAL(33,16), R2 DECIMAL(33,16), R10 DECIMAL(33,16), 1R DECIMAL(33,16), 2R DECIMAL(33,16)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "round with large DECIMAL values",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, v DECIMAL(33, 16)) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, ROUND(v) as R0, ROUND(v, 0) as R00 FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"v": 12345678987654321.2345678987654321}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"R0": 12345678987654321, "R00": 12345678987654321.0000000000000000}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "ID STRING KEY, R0 DECIMAL(17,0), R00 DECIMAL(33,16)"
           }
         ]
       }

@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -49,6 +50,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
@@ -60,7 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -128,8 +130,8 @@ public class DescribeConnectorExecutorTest {
     when(source.getKsqlTopic()).thenReturn(
         new KsqlTopic(
             TOPIC,
-            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.AVRO.name())),
-            ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
+            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of()),
+            ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
         )
     );
     when(source.getSchema()).thenReturn(
@@ -146,10 +148,10 @@ public class DescribeConnectorExecutorTest {
     executor = new DescribeConnectorExecutor(connectorFactory);
 
     final DescribeConnector describeConnector = new DescribeConnector(Optional.empty(), "connector");
-    describeStatement = ConfiguredStatement.of(
-        PreparedStatement.of("statementText", describeConnector),
-        ImmutableMap.of(),
-        new KsqlConfig(ImmutableMap.of()));
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
+    describeStatement = ConfiguredStatement
+        .of(PreparedStatement.of("statementText", describeConnector),
+            SessionConfig.of(ksqlConfig, ImmutableMap.of()));
   }
 
   @After

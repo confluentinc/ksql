@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser;
 
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
@@ -50,5 +51,25 @@ public final class NodeLocation {
   @Override
   public String toString() {
     return String.format("Line: %d, Col: %d", line, charPositionInLine + 1);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    final NodeLocation that = (NodeLocation) o;
+    return line == that.line
+        && charPositionInLine == that.charPositionInLine;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(line, charPositionInLine);
   }
 }

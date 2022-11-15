@@ -50,8 +50,8 @@ public class QueryAnalyzerTest {
   public void setUp() {
     queryAnalyzer = new QueryAnalyzer(
         analyzer,
-        continuousValidator,
-        staticValidator
+        staticValidator,
+        continuousValidator
     );
 
     when(analyzer.analyze(any(), any())).thenReturn(analysis);

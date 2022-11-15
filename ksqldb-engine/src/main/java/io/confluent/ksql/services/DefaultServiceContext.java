@@ -38,6 +38,7 @@ public class DefaultServiceContext implements ServiceContext {
   private final MemoizedSupplier<SchemaRegistryClient> srClient;
   private final MemoizedSupplier<ConnectClient> connectClientSupplier;
   private final MemoizedSupplier<SimpleKsqlClient> ksqlClientSupplier;
+  private final MemoizedSupplier<KafkaConsumerGroupClient> consumerGroupClientSupplier;
 
   public DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
@@ -52,7 +53,8 @@ public class DefaultServiceContext implements ServiceContext {
         KafkaTopicClientImpl::new,
         srClientSupplier,
         connectClientSupplier,
-        ksqlClientSupplier
+        ksqlClientSupplier,
+        KafkaConsumerGroupClientImpl::new
     );
   }
 
@@ -63,7 +65,8 @@ public class DefaultServiceContext implements ServiceContext {
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
-      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier,
+      final KafkaConsumerGroupClient consumerGroupClient
   ) {
     this(
         kafkaClientSupplier,
@@ -71,7 +74,8 @@ public class DefaultServiceContext implements ServiceContext {
         adminSupplier -> topicClient,
         srClientSupplier,
         connectClientSupplier,
-        ksqlClientSupplier
+        ksqlClientSupplier,
+        adminSupplier -> consumerGroupClient
     );
   }
 
@@ -81,7 +85,8 @@ public class DefaultServiceContext implements ServiceContext {
       final Function<Supplier<Admin>, KafkaTopicClient> topicClientProvider,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
-      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier,
+      final Function<Supplier<Admin>, KafkaConsumerGroupClient> consumerGroupClientProvider
   ) {
     requireNonNull(adminClientSupplier, "adminClientSupplier");
     this.adminClientSupplier = new MemoizedSupplier<>(adminClientSupplier);
@@ -101,6 +106,9 @@ public class DefaultServiceContext implements ServiceContext {
 
     this.topicClientSupplier = new MemoizedSupplier<>(
         () -> topicClientProvider.apply(this.adminClientSupplier));
+
+    this.consumerGroupClientSupplier = new MemoizedSupplier<>(
+        () -> consumerGroupClientProvider.apply(this.adminClientSupplier));
   }
 
   @Override
@@ -136,6 +144,11 @@ public class DefaultServiceContext implements ServiceContext {
   @Override
   public SimpleKsqlClient getKsqlClient() {
     return ksqlClientSupplier.get();
+  }
+
+  @Override
+  public KafkaConsumerGroupClient getConsumerGroupClient() {
+    return consumerGroupClientSupplier.get();
   }
 
   @Override

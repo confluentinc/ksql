@@ -85,8 +85,8 @@ public class HistoricalTestingFunctionalTest {
   }
 
   private static void execute(final TestCase testCase) {
-    try (final TestExecutor testExecutor = TestExecutor.create(Optional.empty())) {
-      testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
+    try (final TestExecutor exec = TestExecutor.create(true, Optional.empty())) {
+      exec.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
     }
   }
 }

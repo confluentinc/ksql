@@ -11,10 +11,8 @@ at runtime. ksqlDB offers several mechanisms for controlling serialization
 and deserialization.
 
 The primary mechanism is by choosing the serialization format when you
-create a stream or table and specify the `VALUE_FORMAT` in the `WITH`
+create a stream or table and specify `FORMAT`, `KEY_FORMAT` or `VALUE_FORMAT` in the `WITH`
 clause.
-
-While ksqlDB supports different value formats, it requires keys to be `KAFKA` format.
 
 ```sql
 -- create table with JSON value format:
@@ -22,6 +20,7 @@ CREATE TABLE ORDERS (
     F0 INT PRIMARY KEY, 
     F1 STRING
   ) WITH (
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='JSON', 
     ...
   );
@@ -32,20 +31,88 @@ Serialization Formats
 
 ksqlDB supports these serialization formats:
 
--   `DELIMITED` supports comma separated values. See [DELIMITED](#delimited) below.
--   `JSON` and `JSON_SR` support JSON values. See [JSON](#json) below.
--   `AVRO` supports AVRO serialized values. See [AVRO](#avro) below.
--   `KAFKA` supports primitives serialized using the standard Kafka
-    serializers. See [KAFKA](#kafka) below.
--   `PROTOBUF` supports Protocol Buffers. See [Protobuf](#protobuf) below.
+-   [`NONE`](#none) used to indicate the data should not be deserialized.
+-   [`DELIMITED`](#delimited) supports comma separated values.
+-   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and within schema registry integration 
+-   [`AVRO`](#avro) supports AVRO serialized values. 
+-   [`KAFKA`](#kafka) supports primitives serialized using the standard Kafka serializers. 
+-   [`PROTOBUF`](#protobuf) supports Protocol Buffers.
+
+
+Not all formats can be used as both key and value formats. See individual formats for details.
+
+### NONE
+
+| Feature                      | Supported |
+|------------------------------|-----------|
+| As value format              | No        |
+| As key format                | Yes       |
+| [Schema Registry required][0]| No        |
+| [Schema inference][1]        | No        |
+| [Single field wrapping][2]   | No        |
+| [Single field unwrapping][2] | No        | 
+
+The `NONE` format is a special marker format that is used to indicate ksqlDB should not attempt to 
+deserialize that part of the  {{ site.ak }} record.
+
+It's main use is as the `KEY_FORMAT` of key-less streams, especially where a default key format 
+has been set, via [`ksql.persistence.default.format.key`][1] that supports Schema inference. If the
+key format was not overridden, the server would attempt to load the key schema from the {{ site.sr }}.
+If the schema existed, the key columns would be inferred from the schema, which may not be the intent.
+If the schema did not exist, the statement would be rejected.  In such situations, the key format can
+be set to `NONE`: 
+
+```sql
+CREATE STREAM KEYLESS_STREAM (
+    VAL STRING
+  ) WITH (
+    KEY_FORMAT='NONE',
+    VALUE_FORMAT='JSON',
+    KAFKA_TOPIC='foo'
+  );
+```
+
+Any statement that sets the key format to `NONE` and has key columns defined, will result in an error.
+
+If a `CREATE TABLE AS` or `CREATE STREAM AS` statement has a source with a key format of `NONE`, but
+the newly created table or stream has key columns, then you may either explicitly define the key 
+format to use in the `WITH` clause, or the default key format, as set in [`ksql.persistence.default.format.key`][1]
+will be used.
+
+Conversely, a `CREATE STREAM AS` statement that removes the key columns, i.e. via `PARTITION BY null`
+will automatically set the key format to `NONE`.
+
+```sql
+-- keyless stream with NONE key format:
+CREATE STREAM KEYLESS_STREAM (
+    VAL STRING
+  ) WITH (
+    KEY_FORMAT='NONE',
+    VALUE_FORMAT='JSON',
+    KAFKA_TOPIC='foo'
+  );
+
+-- Table created from stream with explicit key format declared in WITH clause:
+CREATE TABLE T WITH (KEY_FORMAT='KAFKA') AS 
+  SELECT VAL, COUNT() FROM KEYLESS_STREAM
+  GROUP BY VAL;
+
+-- or, using the default key format set in the ksql.persistence.default.format.key config:
+CREATE TABLE T AS 
+  SELECT VAL, COUNT() FROM KEYLESS_STREAM
+  GROUP BY VAL;
+```
 
 ### DELIMITED
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | Yes       |
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
-| [Single field unwrapping][2] | No: single field is always unwrapped | 
+| [Single field wrapping][2]   | No        |
+| [Single field unwrapping][2] | Yes       | 
 
 The `DELIMITED` format supports comma-separated values. You can use other
 delimiter characters by specifying the VALUE_DELIMITER when you use
@@ -74,14 +141,17 @@ This data format supports all SQL
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | `JSON`: Yes, `JSON_SR`: No |
 | [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
 | [Schema inference][1]        | `JSON`: No, `JSON_SR`: Yes|
 | [Single field unwrapping][2] | Yes       |
 
 There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and
-deserializing JSON data. Both support reading the schema of a source from
-{{ site.sr }}. The difference between the two formats is that only the `JSON_SR`
-format registers the schema of a new source with {{ site.sr }}. 
+deserializing JSON data. The latter offers integration with the {{ site.sr }},
+registering and retrieving JSON schemas while the former does not. These two
+formats are _not_ byte compatible (you cannot read data produced by one by the
+other).
 
 The JSON formats supports all SQL [data types](syntax-reference.md#data-types).
 By itself, JSON doesn't support a map type, so ksqlDB serializes `MAP` types as
@@ -180,8 +250,11 @@ used.
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | No        |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
+| [Single field wrapping][2]   | Yes       |
 | [Single field unwrapping][2] | Yes       |
 
 The `AVRO` format supports Avro binary serialization of all SQL
@@ -199,7 +272,7 @@ Avro records can be deserialized into matching ksqlDB schemas.
 For example, given a SQL statement such as:
 
 ```sql
-CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='JSON', ...);
+CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='AVRO', ...);
 ```
 
 And an Avro record serialized with the schema:
@@ -271,9 +344,12 @@ Avro record's field name. The first case-insensitive match is used.
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | Yes       |
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
-| [Single field unwrapping][2] | No: single field is always unwrapped |
+| [Single field wrapping][2]   | No        |
+| [Single field unwrapping][2] | Yes       |
 
 The `KAFKA` format supports `INT`, `BIGINT`, `DOUBLE` and `STRING`
 primitives that have been serialized using Kafka's standard set of
@@ -328,8 +404,11 @@ format.
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | No        |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
+| [Single field wrapping][2]   | Yes       |
 | [Single field unwrapping][2] | No        |
 
 Protobuf handles `null` values differently than AVRO and JSON. Protobuf doesn't
@@ -348,12 +427,14 @@ have the concept of a `null` value, so the conversion between PROTOBUF and Java
 Single field (un)wrapping
 -------------------------
 
-!!! note
-      The `DELIMITED` and `KAFKA` formats don't support single-field
-      unwrapping.
+### (de)serialization of single keys
 
+At this time, ksqlDB supports only a single key column and that key columns
+must be unwrapped, i.e. not contained within a outer record or object. See
+the next two sections on single values for more information about wrapped
+and unwrapped data.
 
-### Controlling deserializing of single fields
+### Controlling deserializing of single values
 
 When ksqlDB deserializes a Kafka message into a row, the key is
 deserialized into the key field, and the message's value is
@@ -410,7 +491,7 @@ CREATE TABLE TRADES (
 
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
 system default, which is defined by `ksql.persistence.wrap.single.values`.
-You can change the system default. For more information, see
+You can change the system default, if the format supports it. For more information, see
 [ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
 
 !!! important
@@ -431,7 +512,7 @@ tombstone, and a `null` key is ignored when the table is part of a join.
 When you have an unwrapped single-field schema, ensure that any `null`
 key or value has the desired result.
 
-### Controlling serialization of single fields
+### Controlling serialization of single values
 
 When ksqlDB serializes a row into a Kafka message, the key field is
 serialized into the message's key, and any value fields are serialized
@@ -477,8 +558,8 @@ CREATE STREAM y WITH(WRAP_SINGLE_VALUE=false) AS SELECT f0 FROM x EMIT CHANGES;
 ```
 
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
-system default, defined by `ksql.persistence.wrap.single.values`. You
-can change the system default. For more information, see
+system default, defined by `ksql.persistence.wrap.single.values`, if the format supports it. 
+You can change the system default. For more information, see
 [ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
 
 !!! important
@@ -536,3 +617,5 @@ CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EM
 ## Suggested Reading
 
 - Blog post: [I’ve Got the Key, I’ve Got the Secret. Here’s How Keys Work in ksqlDB 0.10](https://www.confluent.io/blog/ksqldb-0-10-updates-key-columns/)
+
+[1]: ../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatkey

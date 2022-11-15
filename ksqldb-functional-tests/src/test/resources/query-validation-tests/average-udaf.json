@@ -86,7 +86,7 @@
         "CREATE TABLE OUTPUT AS SELECT ID, avg(value) AS avg FROM INPUT group by ID;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.SchemaNotSupportedException",
+        "type": "io.confluent.ksql.util.KsqlException",
         "message": "One of the functions used in the statement has an intermediate type that the value format can not handle. Please remove the function or change the format."
       }
     }

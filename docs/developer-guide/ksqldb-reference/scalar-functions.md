@@ -40,6 +40,26 @@ CREATE TABLE AGG AS
    GROUP BY ID;
 ```
 
+### `CAST`
+
+Since: -
+
+```sql
+CAST(COL0 AS BIGINT)
+```
+
+Converts one type to another. The following casts are supported:
+
+| from | to | notes |
+|------|----|-------|
+| any  | `STRING` | Converts the type to its string representation. |
+| `VARCHAR` | `BOOLEAN` | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
+| `VARCHAR` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
+| `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Convert between numeric types. Conversion can result in rounding |
+| `ARRAY` | `ARRAY` | (Since 0.14) Convert between arrays of different element types |   
+| `MAP` | `MAP` | (Since 0.14) Convert between maps of different key and value types |   
+| `STRUCT` | `STRUCT` | (Since 0.14) Convert between structs of different field types. Only fields that exist in the target STRUCT type are copied across. Any fields in the target type that don't exist in the source are set to `NULL`. Field name matching is case-sensitive. |
+
 ### `CEIL`
 
 Since: -
@@ -319,6 +339,24 @@ Array entries are compared according to their natural sort order, which sorts th
 - ```array_min['Foo', 'Bar', NULL, 'baz'] -> 'Bar'```
 
 If the array field is NULL, or contains only NULLs, then NULL is returned.
+
+### `ARRAY_REMOVE`
+
+Since: 0.11.0
+
+```sql
+ARRAY_REMOVE(array, element)
+```
+
+Removes all elements from the input array equal to `element`.
+
+Examples:
+```sql
+- array_remove([1, 2, 3, 2, 1], 2) -> [1, 3, 1]
+- array_remove([false, NULL, true, true], false) -> [NULL, true, true]
+- array_remove(['Foo', 'Bar', NULL, 'baz'], null) -> ['Foo', 'Bar', 'baz']
+```
+If the array field is NULL then NULL is returned.
 
 ### `ARRAY_SORT`
 

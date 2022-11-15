@@ -22,7 +22,7 @@ import static org.junit.Assert.fail;
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.utils.CustomerIdExamples;
 import io.confluent.support.metrics.utils.StringUtils;
-import org.apache.http.HttpResponse;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.junit.Test;
 
 public class ConfluentSubmitterTest {
@@ -121,7 +121,7 @@ public class ConfluentSubmitterTest {
     final String customerId = BaseSupportConfig.CONFLUENT_SUPPORT_TEST_ID_DEFAULT;
     final ResponseHandler responseHandler = new ResponseHandler() {
       @Override
-      public void handle(HttpResponse response) {
+      public void handle(ClassicHttpResponse response) {
         //
       }
     };

@@ -85,7 +85,7 @@ public final class SqlTypeParser {
     }
 
     if (type.MAP() != null) {
-      return SqlMap.of(getSqlType(type.type(1)));
+      return SqlMap.of(getSqlType(type.type(0)), getSqlType(type.type(1)));
     }
 
     if (type.STRUCT() != null) {

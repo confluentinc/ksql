@@ -15,8 +15,9 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.links.DocumentationLinks.PUSH_PULL_QUERY_DOC_LINK;
+
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -24,52 +25,12 @@ import java.util.function.Predicate;
 
 public class PullQueryValidator implements QueryValidator {
 
-  private static final String PUSH_PULL_QUERY_DOC_LINK = "https://cnfl.io/queries";
-
-  public static final String NEW_QUERY_SYNTAX_SHORT_HELP = ""
-      + "Refer to " + PUSH_PULL_QUERY_DOC_LINK + " for info on query types. "
-      + "If you intended to issue a push query, resubmit with the EMIT CHANGES clause";
-
-  public static final String NEW_QUERY_SYNTAX_ADDITIONAL_HELP = ""
-      + "Query syntax in KSQL has changed. There are now two broad categories of queries:"
+  public static final String PULL_QUERY_SYNTAX_HELP = " "
+      + "See " + PUSH_PULL_QUERY_DOC_LINK + " for more info."
       + System.lineSeparator()
-      + "- Pull queries: query the current state of the system, return a result, and terminate. "
-      + System.lineSeparator()
-      + "- Push queries: query the state of the system in motion and continue to output "
-      + "results until they meet a LIMIT condition or are terminated by the user."
-      + System.lineSeparator()
-      + System.lineSeparator()
-      + "'EMIT CHANGES' is used to to indicate a query is a push query. "
-      + "To convert a pull query into a push query, which was the default behavior in older "
-      + "versions of KSQL, add `EMIT CHANGES` to the end of the statement before any LIMIT clause."
-      + System.lineSeparator()
-      + System.lineSeparator()
-      + "For example, the following are pull queries:"
-      + System.lineSeparator()
-      + "\t'SELECT * FROM X WHERE ROWKEY=Y;' (non-windowed table)"
-      + System.lineSeparator()
-      + "\t'SELECT * FROM X WHERE ROWKEY=Y AND WINDOWSTART>=Z;' (windowed table)"
-      + System.lineSeparator()
-      + System.lineSeparator()
-      + "The following is a push query:"
-      + System.lineSeparator()
-      + "\t'SELECT * FROM X EMIT CHANGES;'"
-      + System.lineSeparator()
-      + System.lineSeparator()
-      + "Note: Persistent queries, e.g. `CREATE TABLE AS ...`, have an implicit "
-      + "`EMIT CHANGES`, but we recommend adding `EMIT CHANGES` to these statements for clarify.";
-
-  private static final String NEW_QUERY_SYNTAX_LONG_HELP = ""
-      + NEW_QUERY_SYNTAX_SHORT_HELP
-      + System.lineSeparator()
-      + System.lineSeparator()
-      + NEW_QUERY_SYNTAX_ADDITIONAL_HELP;
+      + "Add EMIT CHANGES if you intended to issue a push query.";
 
   private static final List<Rule> RULES = ImmutableList.of(
-      Rule.of(
-          analysis -> analysis.getResultMaterialization() == ResultMaterialization.FINAL,
-          "Pull queries don't support `EMIT CHANGES`."
-      ),
       Rule.of(
           analysis -> !analysis.getInto().isPresent(),
           "Pull queries don't support output to sinks."
@@ -97,6 +58,10 @@ public class PullQueryValidator implements QueryValidator {
       Rule.of(
           analysis -> !analysis.getLimitClause().isPresent(),
           "Pull queries don't support LIMIT clauses."
+      ),
+      Rule.of(
+          analysis -> !analysis.getRefinementInfo().isPresent(),
+          "Pull queries don't support EMIT clauses."
       )
   );
 
@@ -105,7 +70,7 @@ public class PullQueryValidator implements QueryValidator {
     try {
       RULES.forEach(rule -> rule.check(analysis));
     } catch (final KsqlException e) {
-      throw new KsqlException(e.getMessage() + " " + NEW_QUERY_SYNTAX_LONG_HELP, e);
+      throw new KsqlException(e.getMessage() + PULL_QUERY_SYNTAX_HELP, e);
     }
   }
 

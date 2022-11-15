@@ -4,6 +4,256 @@
   ],
   "tests": [
     {
+      "name": "BOOLEAN - key",
+      "statements": [
+        "CREATE STREAM INPUT (K BOOLEAN KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "true", "value": "0"},
+        {"topic": "input_topic", "key": "\"true\"", "value": "0"},
+        {"topic": "input_topic", "key": "false", "value": "0"},
+        {"topic": "input_topic", "key": null, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "true", "value": "0"},
+        {"topic": "OUTPUT", "key": "true", "value": "0"},
+        {"topic": "OUTPUT", "key": "false", "value": "0"},
+        {"topic": "OUTPUT", "key": null, "value": "0"}
+      ]
+    },
+    {
+      "name": "INT - key",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "33", "value": "0"},
+        {"topic": "input_topic", "key": "\"22\"", "value": "0"},
+        {"topic": "input_topic", "key": null, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "33", "value": "0"},
+        {"topic": "OUTPUT", "key": "22", "value": "0"},
+        {"topic": "OUTPUT", "key": null, "value": "0"}
+      ]
+    },
+    {
+      "name": "BIGINT - key",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "998877665544332211", "value": "0"},
+        {"topic": "input_topic", "key": "\"10\"", "value": "0"},
+        {"topic": "input_topic", "key": null, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "998877665544332211", "value": "0"},
+        {"topic": "OUTPUT", "key": "10", "value": "0"},
+        {"topic": "OUTPUT", "key": null, "value": "0"}
+      ]
+    },
+    {
+      "name": "DOUBLE - key",
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "654.321", "value": "0"},
+        {"topic": "input_topic", "key": "\"123.456\"", "value": "0"},
+        {"topic": "input_topic", "key": null, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "654.321", "value": "0"},
+        {"topic": "OUTPUT", "key": "123.456", "value": "0"},
+        {"topic": "OUTPUT", "key": null, "value": "0"}
+      ]
+    },
+    {
+      "name": "STRING - key",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "Hey", "value": "0"},
+        {"topic": "input_topic", "key": "\"You\"", "value": "0"},
+        {"topic": "input_topic", "key": null, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "Hey", "value": "0"},
+        {"topic": "OUTPUT", "key": "You", "value": "0"},
+        {"topic": "OUTPUT", "key": null, "value": "0"}
+      ]
+    },
+    {
+      "name": "DECIMAL - key",
+      "statements": [
+        "CREATE STREAM INPUT (K DECIMAL(6,4) KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "12.3650", "value": "0"},
+        {"topic": "input_topic", "key": "\"12.0\"", "value": "0"},
+        {"topic": "input_topic", "key": null, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "12.3650", "value": "0"},
+        {"topic": "OUTPUT", "key": "12.0000", "value": "0"},
+        {"topic": "OUTPUT", "key": null, "value": "0"}
+      ]
+    },
+    {
+      "name": "ARRAY - key",
+      "statements": [
+        "CREATE STREAM INPUT (K ARRAY<DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Unsupported key schema: [`K` ARRAY<DOUBLE> KEY]"
+      }
+    },
+    {
+      "name": "MAP - key",
+      "statements": [
+        "CREATE STREAM INPUT (K MAP<STRING, DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Unsupported key schema: [`K` MAP<STRING, DOUBLE> KEY]"
+      }
+    },
+    {
+      "name": "STRUCT - key",
+      "statements": [
+        "CREATE STREAM INPUT (K STRUCT<F DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Unsupported key schema: [`K` STRUCT<`F` DOUBLE> KEY]"
+      }
+    },
+    {
+      "name": "ARRAY - C* - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K ARRAY<INT> KEY, foo INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'ARRAY'"
+      }
+    },
+    {
+      "name": "ARRAY - C*AS - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (v INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY ARRAY[v];"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'ARRAY'"
+      }
+    },
+    {
+      "name": "MAP - C* - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "MAP - C*AS - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "STRUCT - C* - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K STRUCT<F1 DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'STRUCT'"
+      }
+    },
+    {
+      "name": "STRUCT - C*AS - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (v DOUBLE) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(k := v);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'STRUCT'"
+      }
+    },
+    {
+      "name": "deserialize anonymous primitive by default - value - DELIMITED",
+      "comments": "DELIMITED supports anonymous primitives by default",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": "10"},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "10"},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize DELIMITED with WRAP_SINGLE_VALUE true",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Format 'DELIMITED' does not support 'WRAP_SINGLE_VALUE' set to 'true'."
+      }
+    },
+    {
+      "name": "deserialize DELIMITED with WRAP_SINGLE_VALUE false",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input_topic", "key": "foo", "value": "1"}],
+      "outputs": [{"topic": "OUTPUT", "key": "foo", "value": "1"}]
+    },
+    {
       "name": "select delimited value_format",
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -183,6 +433,104 @@
       },
       "inputs": [],
       "outputs": []
+    },
+    {
+      "name": "ARRAY - C* - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<INT>) WITH (kafka_topic='input_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'ARRAY'"
+      }
+    },
+    {
+      "name": "ARRAY - C*AS - value",
+      "statements": [
+        "CREATE STREAM INPUT (v INT) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT ARRAY[v] FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'ARRAY'"
+      }
+    },
+    {
+      "name": "MAP - C* - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "MAP - C*AS - value",
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "STRUCT - C* - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F1 DOUBLE>) WITH (kafka_topic='input_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'STRUCT'"
+      }
+    },
+    {
+      "name": "STRUCT - C*AS - value",
+      "statements": [
+        "CREATE STREAM INPUT (v DOUBLE) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT STRUCT(k := v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'DELIMITED' format does not support type 'STRUCT'"
+      }
+    },
+    {
+      "name": "read written decimals",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, v DECIMAL(33, 16)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INTERMEDIATE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "12345678987654321.2345678987654321"},
+        {"topic": "test_topic", "value": ".12"},
+        {"topic": "test_topic", "value": "-12345.12"},
+        {"topic": "test_topic", "value": "\"-12345.12\""},
+        {"topic": "test_topic", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "12345678987654321.2345678987654321"},
+        {"topic": "OUTPUT", "value": "0.1200000000000000"},
+        {"topic": "OUTPUT", "value": "\"-12345.1200000000000000\""},
+        {"topic": "OUTPUT", "value": "\"-12345.1200000000000000\""},
+        {"topic": "OUTPUT", "value": "0.0000000000000000"}
+      ]
+    },
+    {
+      "name": "keyless",
+      "statements": [
+        "CREATE STREAM INPUT (V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "0"}
+      ]
     }
   ]
 }

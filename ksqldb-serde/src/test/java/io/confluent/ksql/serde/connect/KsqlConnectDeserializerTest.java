@@ -16,7 +16,7 @@
 package io.confluent.ksql.serde.connect;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.Converter;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,35 +47,34 @@ public class KsqlConnectDeserializerTest {
   private Schema schema;
   @Mock
   private Object value;
-  @Mock
-  private Struct ksqlStruct;
 
   private final ProcessingLogConfig processingLogConfig
       = new ProcessingLogConfig(Collections.emptyMap());
 
-  private KsqlConnectDeserializer connectDeserializer;
+  private KsqlConnectDeserializer<String> connectDeserializer;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void setup() {
-    connectDeserializer = new KsqlConnectDeserializer(
+    connectDeserializer = new KsqlConnectDeserializer<>(
         converter,
-        dataTranslator
+        dataTranslator,
+        String.class
     );
     when(converter.toConnectData(any(), any())).thenReturn(new SchemaAndValue(schema, value));
-    when(dataTranslator.toKsqlRow(any(), any())).thenReturn(ksqlStruct);
+    when(dataTranslator.toKsqlRow(any(), any())).thenReturn("some-data");
   }
 
   @Test
   public void shouldDeserializeRecordsCorrectly() {
     // When:
-    final Struct deserialized = (Struct) connectDeserializer.deserialize(TOPIC, BYTES);
+    final String deserialized = connectDeserializer.deserialize(TOPIC, BYTES);
 
     // Then:
     verify(converter, times(1)).toConnectData(TOPIC, BYTES);
     verify(dataTranslator, times(1)).toKsqlRow(schema, value);
-    assertThat(deserialized, sameInstance(ksqlStruct));
+    assertThat(deserialized, is("some-data"));
   }
 }

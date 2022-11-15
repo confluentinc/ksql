@@ -65,6 +65,16 @@ public class KsqlVersionTest {
   }
 
   @Test
+  public void shouldParseNanoVersions() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("5.4.1-0");
+
+    // Then:
+    assertThat(result.getName(), is("5.4.1-0"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(5, 4, 1)));
+  }
+
+  @Test
   public void shouldCompareUsingTimestamps() {
     // Given:
     final KsqlVersion v1 = KsqlVersion.parse("5.4.1").withTimestamp(123);

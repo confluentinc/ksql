@@ -37,23 +37,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Avg;
-import org.apache.kafka.common.metrics.stats.Max;
-import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.metrics.stats.WindowedCount;
 
 /**
  * Utility class for loading different types of user defined funcrions
  */
 public final class FunctionLoaderUtils {
-
-  private static final String UDF_METRIC_GROUP = "ksql-udf";
 
   private FunctionLoaderUtils() {
   }
@@ -117,41 +108,6 @@ public final class FunctionLoaderUtils {
           e
       );
     }
-  }
-
-  static void addSensor(
-      final String sensorName, final String udfName, final Optional<Metrics> theMetrics
-  ) {
-    theMetrics.ifPresent(metrics -> {
-      if (metrics.getSensor(sensorName) == null) {
-        final Sensor sensor = metrics.sensor(sensorName);
-        sensor.add(
-            metrics.metricName(sensorName + "-avg", UDF_METRIC_GROUP,
-                "Average time for an invocation of " + udfName + " udf"
-            ),
-            new Avg()
-        );
-        sensor.add(
-            metrics.metricName(sensorName + "-max", UDF_METRIC_GROUP,
-                "Max time for an invocation of " + udfName + " udf"
-            ),
-            new Max()
-        );
-        sensor.add(
-            metrics.metricName(sensorName + "-count", UDF_METRIC_GROUP,
-                "Total number of invocations of " + udfName + " udf"
-            ),
-            new WindowedCount()
-        );
-        sensor.add(
-            metrics.metricName(sensorName + "-rate", UDF_METRIC_GROUP,
-                "The average number of occurrence of " + udfName + " operation per second "
-                    + udfName + " udf"
-            ),
-            new Rate(TimeUnit.SECONDS, new WindowedCount())
-        );
-      }
-    });
   }
 
   static ParamType getReturnType(

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.connect;
 
+import io.confluent.ksql.serde.SerdeUtils;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.common.errors.SerializationException;
@@ -22,7 +23,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.storage.Converter;
 
-public class KsqlConnectSerializer implements Serializer<Object> {
+public class KsqlConnectSerializer<T> implements Serializer<T> {
 
   private final Schema schema;
   private final DataTranslator translator;
@@ -31,15 +32,18 @@ public class KsqlConnectSerializer implements Serializer<Object> {
   public KsqlConnectSerializer(
       final Schema schema,
       final DataTranslator translator,
-      final Converter converter
+      final Converter converter,
+      final Class<T> targetType
   ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.translator = Objects.requireNonNull(translator, "translator");
     this.converter = Objects.requireNonNull(converter, "converter");
+
+    SerdeUtils.throwOnSchemaJavaTypeMismatch(schema, targetType);
   }
 
   @Override
-  public byte[] serialize(final String topic, final Object data) {
+  public byte[] serialize(final String topic, final T data) {
     if (data == null) {
       return null;
     }
@@ -49,7 +53,7 @@ public class KsqlConnectSerializer implements Serializer<Object> {
       return converter.fromConnectData(topic, schema, connectRow);
     } catch (final Exception e) {
       throw new SerializationException(
-          "Error serializing message to topic: " + topic + ". " + e.getMessage() , e);
+          "Error serializing message to topic: " + topic + ". " + e.getMessage(), e);
     }
   }
 

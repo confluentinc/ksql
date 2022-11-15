@@ -41,23 +41,26 @@ public class CreateTableAsSelectTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new CreateTableAsSelect(SOME_NAME, SOME_QUERY, true, SOME_PROPS),
-            new CreateTableAsSelect(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY, true, SOME_PROPS)
+            new CreateTableAsSelect(SOME_NAME, SOME_QUERY, true, true, SOME_PROPS),
+            new CreateTableAsSelect(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY, true, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateTableAsSelect(SourceName.of("diff"), SOME_QUERY, true, SOME_PROPS)
+            new CreateTableAsSelect(SOME_NAME, SOME_QUERY, true, false, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateTableAsSelect(SOME_NAME, mock(Query.class), true, SOME_PROPS)
+            new CreateTableAsSelect(SourceName.of("diff"), SOME_QUERY, true, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateTableAsSelect(SOME_NAME, SOME_QUERY, false, SOME_PROPS)
+            new CreateTableAsSelect(SOME_NAME, mock(Query.class), true, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateTableAsSelect(SOME_NAME, SOME_QUERY, true, CreateSourceAsProperties.none())
+            new CreateTableAsSelect(SOME_NAME, SOME_QUERY, false, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, CreateSourceAsProperties.none())
+            new CreateTableAsSelect(SOME_NAME, SOME_QUERY, true, true, CreateSourceAsProperties.none())
+        )
+        .addEqualityGroup(
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, true, CreateSourceAsProperties.none())
         )
         .testEquals();
   }

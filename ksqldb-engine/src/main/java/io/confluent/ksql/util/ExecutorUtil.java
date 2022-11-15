@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.RetriableException;
 import org.slf4j.Logger;
@@ -32,9 +33,19 @@ public final class ExecutorUtil {
   private ExecutorUtil() {
   }
 
-  public enum RetryBehaviour {
-    ALWAYS,
-    ON_RETRYABLE
+  public enum RetryBehaviour implements Predicate<Throwable> {
+    ALWAYS {
+      @Override
+      public boolean test(final Throwable throwable) {
+        return throwable instanceof Exception;
+      }
+    },
+    ON_RETRYABLE {
+      @Override
+      public boolean test(final Throwable throwable) {
+        return throwable instanceof RetriableException;
+      }
+    }
   }
 
   @FunctionalInterface
@@ -59,9 +70,16 @@ public final class ExecutorUtil {
     return executeWithRetries(executable, retryBehaviour, () -> RETRY_BACKOFF_MS);
   }
 
-  static <T> T executeWithRetries(
+  public static <T> T executeWithRetries(
       final Callable<T> executable,
-      final RetryBehaviour retryBehaviour,
+      final Predicate<Throwable> shouldRetry
+  ) throws Exception {
+    return executeWithRetries(executable, shouldRetry, () -> RETRY_BACKOFF_MS);
+  }
+
+  public static <T> T executeWithRetries(
+      final Callable<T> executable,
+      final Predicate<Throwable> shouldRetry,
       final Supplier<Duration> retryBackOff
   ) throws Exception {
     Exception lastException = null;
@@ -73,9 +91,8 @@ public final class ExecutorUtil {
         return executable.call();
       } catch (final Exception e) {
         final Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
-        if (cause instanceof RetriableException
-            || (cause instanceof Exception && retryBehaviour == RetryBehaviour.ALWAYS)) {
-          log.info("Retrying request. Retry no: " + retries, e);
+        if (shouldRetry.test(cause)) {
+          log.info("Retrying request. Retry no: {} Cause: '{}'", retries, e.getMessage());
           lastException = e;
         } else if (cause instanceof Exception) {
           throw (Exception) cause;

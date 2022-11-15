@@ -17,7 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
-import static org.apache.http.HttpHeaders.TRANSFER_ENCODING;
+import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
@@ -41,6 +42,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
+import org.apache.kafka.common.utils.Time;
 
 public final class OldApiUtils {
 
@@ -51,10 +53,13 @@ public final class OldApiUtils {
   private static final String JSON_CONTENT_TYPE = "application/json";
   private static final String CHUNKED_ENCODING = "chunked";
 
-  static <T> void handleOldApiRequest(final Server server,
+  static <T> void handleOldApiRequest(
+      final Server server,
       final RoutingContext routingContext,
       final Class<T> requestClass,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
+    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     final T requestObject;
     if (requestClass != null) {
       final Optional<T> optRequestObject = ServerUtils
@@ -70,22 +75,30 @@ public final class OldApiUtils {
     } else {
       requestObject = null;
     }
-
+    pullQueryMetrics
+        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordRequestSize(
+            routingContext.request().bytesRead()));
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {
-      handleOldApiResponse(server, routingContext, endpointResponse);
+      handleOldApiResponse(
+          server, routingContext, endpointResponse, pullQueryMetrics, startTimeNanos);
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
-      handleOldApiResponse(server, routingContext, mapException(t));
+      handleOldApiResponse(
+          server, routingContext, mapException(t), pullQueryMetrics, startTimeNanos);
       return null;
     });
   }
 
-  static void handleOldApiResponse(final Server server, final RoutingContext routingContext,
-      final EndpointResponse endpointResponse) {
+  static void handleOldApiResponse(
+      final Server server, final RoutingContext routingContext,
+      final EndpointResponse endpointResponse,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final long startTimeNanos
+  ) {
     final HttpServerResponse response = routingContext.response();
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
@@ -118,6 +131,12 @@ public final class OldApiUtils {
         response.end(responseBody);
       }
     }
+    pullQueryMetrics
+        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordResponseSize(
+            routingContext.response().bytesWritten()));
+    pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
+        .recordLatency(startTimeNanos));
+
   }
 
   private static void streamEndpointResponse(final Server server,

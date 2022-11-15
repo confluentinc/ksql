@@ -17,12 +17,15 @@ package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -31,32 +34,27 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
-import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
-import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
+import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.KafkaStreamsBuilder.BuildResult;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.GenericKeySerDe;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -67,43 +65,35 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.TopologyDescription.Node;
-import org.apache.kafka.streams.TopologyDescription.Sink;
-import org.apache.kafka.streams.TopologyDescription.Source;
-import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class QueryExecutor {
+  private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
+      = "ksql.logger.thread.exception.uncaught";
+
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-  private final KsqlConfig ksqlConfig;
-  private final Map<String, Object> overrides;
+  private final SessionConfig config;
   private final ProcessingLogContext processingLogContext;
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Consumer<QueryMetadata> queryCloseCallback;
-  private final KsMaterializationFactory ksMaterializationFactory;
-  private final KsqlMaterializationFactory ksqlMaterializationFactory;
   private final StreamsBuilder streamsBuilder;
+  private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
 
   public QueryExecutor(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overrides,
+      final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
       final Consumer<QueryMetadata> queryCloseCallback) {
     this(
-        ksqlConfig,
-        overrides,
+        config,
         processingLogContext,
         serviceContext,
         functionRegistry,
@@ -111,24 +101,26 @@ public final class QueryExecutor {
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
         new StreamsBuilder(),
-        new KsqlMaterializationFactory(processingLogContext),
-        new KsMaterializationFactory()
-    );
+        new MaterializationProviderBuilderFactory(
+            config.getConfig(true),
+            serviceContext,
+            new KsMaterializationFactory(),
+            new KsqlMaterializationFactory(processingLogContext)
+        ));
   }
 
+  @VisibleForTesting
   QueryExecutor(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overrides,
+      final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
       final Consumer<QueryMetadata> queryCloseCallback,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
-      final KsqlMaterializationFactory ksqlMaterializationFactory,
-      final KsMaterializationFactory ksMaterializationFactory) {
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.overrides = Objects.requireNonNull(overrides, "overrides");
+      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
+  ) {
+    this.config = Objects.requireNonNull(config, "config");
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext,
         "processingLogContext"
@@ -139,16 +131,12 @@ public final class QueryExecutor {
         queryCloseCallback,
         "queryCloseCallback"
     );
-    this.ksMaterializationFactory = Objects.requireNonNull(
-        ksMaterializationFactory,
-        "ksMaterializationFactory"
+    this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
+    this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "streamsBuilder");
+    this.materializationProviderBuilderFactory = Objects.requireNonNull(
+        materializationProviderBuilderFactory,
+        "materializationProviderBuilderFactory"
     );
-    this.ksqlMaterializationFactory = Objects.requireNonNull(
-        ksqlMaterializationFactory,
-        "ksqlMaterializationFactory"
-    );
-    this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder);
-    this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "builder");
   }
 
   public TransientQueryMetadata buildTransientQuery(
@@ -162,30 +150,27 @@ public final class QueryExecutor {
   ) {
     final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
-    final String applicationId = addTimeSuffix(getQueryApplicationId(
-        getServiceId(),
-        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
-        queryId
-    ));
+    final KsqlConfig ksqlConfig = config.getConfig(true);
+
+    final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
-
-    final BuildResult built =
-        kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
+    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     return new TransientQueryMetadata(
         statementText,
-        built.kafkaStreams,
         schema,
         sources,
         planSummary,
         queue,
         applicationId,
-        built.topology,
+        topology,
+        kafkaStreamsBuilder,
         streamsProperties,
-        overrides,
+        config.getOverrides(),
         queryCloseCallback,
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG)
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );
   }
 
@@ -196,7 +181,7 @@ public final class QueryExecutor {
     return Optional.empty();
   }
 
-  public PersistentQueryMetadata buildQuery(
+  public PersistentQueryMetadata buildPersistentQuery(
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,
@@ -207,64 +192,70 @@ public final class QueryExecutor {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     final Object result = physicalPlan.build(planBuilder);
-    final String persistenceQueryPrefix =
-        ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String applicationId = getQueryApplicationId(
-        getServiceId(),
-        persistenceQueryPrefix,
-        queryId
-    );
+
+    final KsqlConfig ksqlConfig = config.getConfig(true);
+
+    final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
-    final BuildResult built =
-        kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
+    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final PhysicalSchema querySchema = PhysicalSchema.from(
         sinkDataSource.getSchema(),
-        sinkDataSource.getSerdeOptions()
+        sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
-    final Optional<MaterializationProvider> materializationBuilder = getMaterializationInfo(result)
-        .flatMap(info -> buildMaterializationProvider(
-            info,
-            built.kafkaStreams,
-            querySchema,
-            sinkDataSource.getKsqlTopic().getKeyFormat(),
-            streamsProperties,
-            applicationId
-        ));
 
-    final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(
-        applicationId,
-        extractTopics(built.topology),
-        serviceContext.getTopicClient());
+    final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
+        materializationProviderBuilder = getMaterializationInfo(result).map(info ->
+            materializationProviderBuilderFactory.materializationProviderBuilder(
+                info,
+                querySchema,
+                sinkDataSource.getKsqlTopic().getKeyFormat(),
+                streamsProperties,
+                applicationId
+            ));
+
+    final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(applicationId);
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(topicClassifier::and)
         .orElse(topicClassifier);
 
     return new PersistentQueryMetadata(
         statementText,
-        built.kafkaStreams,
         querySchema,
         sources,
-        sinkDataSource.getName(),
+        sinkDataSource,
         planSummary,
         queryId,
-        sinkDataSource.getDataSourceType(),
-        materializationBuilder,
+        materializationProviderBuilder,
         applicationId,
-        sinkDataSource.getKsqlTopic(),
-        built.topology,
+        topology,
+        kafkaStreamsBuilder,
         ksqlQueryBuilder.getSchemas(),
         streamsProperties,
-        overrides,
+        config.getOverrides(),
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-        classifier);
+        classifier,
+        physicalPlan,
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+        getUncaughtExceptionProcessingLogger(queryId)
+    );
+  }
+
+  private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
+    final QueryContext.Stacker stacker = new QueryContext.Stacker()
+        .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
+
+    return processingLogContext.getLoggerFactory().getLogger(
+            QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
   }
 
   private TransientQueryQueue buildTransientQueryQueue(
       final QueryId queryId,
       final ExecutionStep<?> physicalPlan,
-      final OptionalInt limit) {
+      final OptionalInt limit
+  ) {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     final Object buildResult = physicalPlan.build(planBuilder);
@@ -285,7 +276,7 @@ public final class QueryExecutor {
   private KsqlQueryBuilder queryBuilder(final QueryId queryId) {
     return KsqlQueryBuilder.of(
         streamsBuilder,
-        ksqlConfig,
+        config.getConfig(true),
         serviceContext,
         processingLogContext,
         functionRegistry,
@@ -293,17 +284,12 @@ public final class QueryExecutor {
     );
   }
 
-  private String getServiceId() {
-    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-  }
-
   private Map<String, Object> buildStreamsProperties(
       final String applicationId,
       final QueryId queryId
   ) {
     final Map<String, Object> newStreamsProperties
-        = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps(applicationId));
+        = new HashMap<>(config.getConfig(true).getKsqlStreamConfigProps(applicationId));
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     final ProcessingLogger logger
         = processingLogContext.getLoggerFactory().getLogger(queryId.toString());
@@ -320,6 +306,11 @@ public final class QueryExecutor {
         newStreamsProperties,
         StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
         ProducerCollector.class.getCanonicalName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        RocksDBMetricsCollector.class.getName()
     );
     return newStreamsProperties;
   }
@@ -350,27 +341,6 @@ public final class QueryExecutor {
     return Optional.ofNullable(combined);
   }
 
-  private static Set<String> extractTopics(final Topology topology) {
-    final Set<String> usedTopics = new HashSet<>();
-    for (final Subtopology subtopology : topology.describe().subtopologies()) {
-      for (final Node node : subtopology.nodes()) {
-        if (node instanceof Source) {
-          usedTopics.addAll(((Source) node).topicSet());
-        } else if (node instanceof Sink) {
-          usedTopics.add(((Sink) node).topic());
-        }
-      }
-    }
-    return ImmutableSet.copyOf(usedTopics);
-  }
-
-  private static String getQueryApplicationId(
-      final String serviceId,
-      final String queryPrefix,
-      final QueryId queryId) {
-    return serviceId + queryPrefix + queryId;
-  }
-
   private static void updateListProperty(
       final Map<String, Object> properties,
       final String key,
@@ -394,47 +364,5 @@ public final class QueryExecutor {
     }
     valueList.add(value);
     properties.put(key, valueList);
-  }
-
-  private static String addTimeSuffix(final String original) {
-    return String.format("%s_%d", original, System.currentTimeMillis());
-  }
-
-  private Optional<MaterializationProvider> buildMaterializationProvider(
-      final MaterializationInfo info,
-      final KafkaStreams kafkaStreams,
-      final PhysicalSchema schema,
-      final KeyFormat keyFormat,
-      final Map<String, Object> streamsProperties,
-      final String applicationId
-  ) {
-    final Serializer<Struct> keySerializer = new GenericKeySerDe().create(
-        keyFormat.getFormatInfo(),
-        schema.keySchema(),
-        ksqlConfig,
-        serviceContext.getSchemaRegistryClientFactory(),
-        "",
-        NoopProcessingLogContext.INSTANCE
-    ).serializer();
-
-    final Optional<KsMaterialization> ksMaterialization = ksMaterializationFactory
-        .create(
-            info.stateStoreName(),
-            kafkaStreams,
-            info.getStateStoreSchema(),
-            keySerializer,
-            keyFormat.getWindowInfo(),
-            streamsProperties,
-            ksqlConfig,
-            applicationId
-        );
-
-    return ksMaterialization.map(ksMat -> (queryId, contextStacker) -> ksqlMaterializationFactory
-        .create(
-            ksMat,
-            info,
-            queryId,
-            contextStacker
-        ));
   }
 }

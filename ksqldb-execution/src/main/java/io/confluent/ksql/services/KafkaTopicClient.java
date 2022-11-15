@@ -23,7 +23,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartition;
 
 /**
  * Note: all methods are synchronous, i.e. they wait for responses from Kafka before returning.
@@ -183,7 +185,7 @@ public interface KafkaTopicClient {
   boolean addTopicConfig(String topicName, Map<String, ?> overrides);
 
   /**
-   * Call to get a topic's cleanup policy
+   * Call to get a topic's cleanup policy.
    *
    * @param topicName topicNames to retrieve cleanup policy for.
    * @return the clean up policy of the topic.
@@ -199,4 +201,17 @@ public interface KafkaTopicClient {
    * Delete the internal topics of a given application.
    */
   void deleteInternalTopics(String applicationId);
+
+  Map<TopicPartition, Long> listTopicsOffsets(
+      Collection<String> topicNames,
+      OffsetSpec offsetSpec
+  );
+
+  default Map<TopicPartition, Long> listTopicsStartOffsets(Collection<String> topicNames) {
+    return listTopicsOffsets(topicNames, OffsetSpec.earliest());
+  }
+
+  default Map<TopicPartition, Long> listTopicsEndOffsets(Collection<String> topicName) {
+    return listTopicsOffsets(topicName, OffsetSpec.latest());
+  }
 }

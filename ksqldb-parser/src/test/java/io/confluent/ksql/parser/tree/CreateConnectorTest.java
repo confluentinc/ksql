@@ -39,18 +39,21 @@ public class CreateConnectorTest {
   public void testEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new CreateConnector(Optional.of(SOME_LOCATION), NAME, CONFIG, CreateConnector.Type.SOURCE),
-            new CreateConnector(Optional.of(OTHER_LOCATION), NAME, CONFIG, CreateConnector.Type.SOURCE),
-            new CreateConnector(NAME, CONFIG, CreateConnector.Type.SOURCE)
+            new CreateConnector(Optional.of(SOME_LOCATION), NAME, CONFIG, CreateConnector.Type.SOURCE, false),
+            new CreateConnector(Optional.of(OTHER_LOCATION), NAME, CONFIG, CreateConnector.Type.SOURCE, false),
+            new CreateConnector(NAME, CONFIG, CreateConnector.Type.SOURCE, false)
         )
         .addEqualityGroup(
-            new CreateConnector(OTHER_NAME, CONFIG, CreateConnector.Type.SOURCE)
+            new CreateConnector(OTHER_NAME, CONFIG, CreateConnector.Type.SOURCE, false)
         )
         .addEqualityGroup(
-            new CreateConnector(NAME, OTHER_CONFIG, CreateConnector.Type.SOURCE)
+            new CreateConnector(NAME, OTHER_CONFIG, CreateConnector.Type.SOURCE, false)
         )
         .addEqualityGroup(
-            new CreateConnector(NAME, CONFIG, CreateConnector.Type.SINK)
+            new CreateConnector(NAME, CONFIG, CreateConnector.Type.SINK, false)
+        )
+        .addEqualityGroup(
+            new CreateConnector(NAME, CONFIG, CreateConnector.Type.SOURCE, true)
         )
         .testEquals();
   }

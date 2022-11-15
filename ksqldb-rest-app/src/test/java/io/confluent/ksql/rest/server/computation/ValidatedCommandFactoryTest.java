@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
@@ -180,7 +181,7 @@ public class ValidatedCommandFactoryTest {
     verify(executionContext).plan(serviceContext, configuredStatement);
     verify(executionContext).execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(A_PLAN, overrides, config)
+        ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides))
     );
   }
 
@@ -193,7 +194,7 @@ public class ValidatedCommandFactoryTest {
     final Command command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
-    assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, overrides, config))));
+    assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides)))));
   }
 
   @Test
@@ -242,11 +243,8 @@ public class ValidatedCommandFactoryTest {
       final String text,
       final T statement
   ) {
-    return ConfiguredStatement.of(
-        PreparedStatement.of(text, statement),
-        overrides,
-        config
-    );
+    return ConfiguredStatement.of(PreparedStatement.of(text, statement),
+        SessionConfig.of(config, overrides));
   }
 
   // Not a known subtype so will fail to deserialize:

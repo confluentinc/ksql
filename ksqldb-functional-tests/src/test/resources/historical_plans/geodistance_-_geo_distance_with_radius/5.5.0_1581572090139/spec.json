@@ -3,8 +3,24 @@
   "timestamp" : 1581572090139,
   "path" : "query-validation-tests/geodistance.json",
   "schemas" : {
-    "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, LAT1 DOUBLE, LON1 DOUBLE, LAT2 DOUBLE, LON2 DOUBLE, RADIUS VARCHAR> NOT NULL",
-    "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : "STRUCT<ID BIGINT, CALCULATED_DISTANCE DOUBLE> NOT NULL"
+    "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE, `LAT2` DOUBLE, `LON2` DOUBLE, `RADIUS` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
   },
   "testCase" : {
     "name" : "geo distance with radius",
@@ -180,24 +196,41 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, LAT1 DOUBLE, LON1 DOUBLE, LAT2 DOUBLE, LON2 DOUBLE, RADIUS STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM DISTANCE_STREAM AS SELECT\n  TEST.ID ID,\n  GEO_DISTANCE(TEST.LAT1, TEST.LON1, TEST.LAT2, TEST.LON2, TEST.RADIUS) CALCULATED_DISTANCE\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "DISTANCE_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE, `LAT2` DOUBLE, `LON2` DOUBLE, `RADIUS` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "DISTANCE_STREAM",
+          "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "DISTANCE_STREAM",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

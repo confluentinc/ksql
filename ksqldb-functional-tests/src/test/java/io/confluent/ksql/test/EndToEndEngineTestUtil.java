@@ -38,14 +38,14 @@ final class EndToEndEngineTestUtil {
   private EndToEndEngineTestUtil(){}
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
-    try (final TestExecutor testExecutor = TestExecutor.create(Optional.empty())) {
+    try (final TestExecutor testExecutor = TestExecutor.create(true, Optional.empty())) {
       testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
     } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()
           + "failed test: " + testCase.getName()
           + System.lineSeparator()
-          + "in file: " + testCase.getTestFile(),
+          + "in " + testCase.getTestLocation(),
           e
       );
     }

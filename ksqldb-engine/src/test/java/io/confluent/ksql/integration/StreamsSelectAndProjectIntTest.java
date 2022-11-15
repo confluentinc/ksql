@@ -18,6 +18,7 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -30,6 +31,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -42,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -74,8 +77,8 @@ public class StreamsSelectAndProjectIntTest {
   private String avroTopicName;
   private String intermediateStream;
   private String resultStream;
-  private Multimap<String, RecordMetadata> producedAvroRecords;
-  private Multimap<String, RecordMetadata> producedJsonRecords;
+  private Multimap<Struct, RecordMetadata> producedAvroRecords;
+  private Multimap<Struct, RecordMetadata> producedJsonRecords;
 
   @Before
   public void before() {
@@ -85,8 +88,8 @@ public class StreamsSelectAndProjectIntTest {
     avroTopicName = TopicTestUtil.uniqueTopicName("avro");
 
     TEST_HARNESS.ensureTopics(jsonTopicName, avroTopicName);
-    producedJsonRecords = TEST_HARNESS.produceRows(jsonTopicName, DATA_PROVIDER, JSON);
-    producedAvroRecords = TEST_HARNESS.produceRows(avroTopicName, DATA_PROVIDER, AVRO);
+    producedJsonRecords = TEST_HARNESS.produceRows(jsonTopicName, DATA_PROVIDER, KAFKA, JSON);
+    producedAvroRecords = TEST_HARNESS.produceRows(avroTopicName, DATA_PROVIDER, KAFKA, AVRO);
 
     createOrdersStream();
   }
@@ -195,8 +198,8 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testTimestampColumnSelection(
       final String inputStreamName,
-      final Format dataSourceSerDe,
-      final Multimap<String, RecordMetadata> recordMetadataMap
+      final Format valueFormat,
+      final Multimap<Struct, RecordMetadata> recordMetadataMap
   ) {
     final String query1String =
         String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ORDERTIME, "
@@ -212,7 +215,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(query1String);
 
     final Map<Long, GenericRow> expectedResults = new HashMap<>();
-    final RecordMetadata order_6 = Iterables.getLast(recordMetadataMap.get("ORDER_6"));
+    final RecordMetadata order_6 = Iterables.getLast(recordMetadataMap.get(DATA_PROVIDER.keyFrom("ORDER_6")));
     expectedResults.put(8L,
         genericRow(
             null,
@@ -229,31 +232,33 @@ public class StreamsSelectAndProjectIntTest {
     TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         expectedResults.size(),
-        dataSourceSerDe,
+        KAFKA,
+        valueFormat,
         getResultSchema());
   }
 
   private void testSelectProjectKeyTimestamp(
       final String inputStreamName,
       final Format valueFormat,
-      final Multimap<String, RecordMetadata> recordMetadataMap
+      final Multimap<Struct, RecordMetadata> recordMetadataMap
   ) {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ORDERID, ORDERTIME, ROWTIME AS RTIME, ITEMID "
         + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = "
         + "'ITEM_8';", resultStream, inputStreamName));
 
-    final List<ConsumerRecord<Long, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         1,
+        KAFKA,
         valueFormat,
         getResultSchema()
     );
 
-    assertThat(results.get(0).key(), is("ORDER_6"));
+    assertThat(results.get(0).key(), is(DATA_PROVIDER.keyFrom("ORDER_6")));
     assertThat(results.get(0).value(),
         is(genericRow(
             8L,
-            Iterables.getLast(recordMetadataMap.get("ORDER_6")).timestamp(),
+            Iterables.getLast(recordMetadataMap.get(DATA_PROVIDER.keyFrom("ORDER_6"))).timestamp(),
             "ITEM_8")
         )
     );
@@ -261,15 +266,16 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testSelectProject(
       final String inputStreamName,
-      final Format dataSourceSerDe
+      final Format valueFormat
   ) {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ORDERID, ORDERTIME, ITEMID, ORDERUNITS, "
                                   + "PRICEARRAY FROM %s;", resultStream, inputStreamName));
 
-    final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
-        dataSourceSerDe,
+        KAFKA,
+        valueFormat,
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
@@ -287,9 +293,10 @@ public class StreamsSelectAndProjectIntTest {
                                   + "ORDERUNITS, "
         + "PRICEARRAY FROM %s;", resultStream, AVRO_STREAM_NAME));
 
-    final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
+        KAFKA,
         JSON,
         getResultSchema());
 
@@ -308,6 +315,7 @@ public class StreamsSelectAndProjectIntTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         resultStream.toUpperCase(),
         is(DATA_PROVIDER.finalData()),
+        KAFKA,
         valueFormat,
         DATA_PROVIDER.schema()
     );
@@ -315,7 +323,7 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testSelectWithFilter(
       final String inputStreamName,
-      final Format dataSourceSerDe
+      final Format valueFormat
   ) {
     ksqlContext.sql("CREATE STREAM " + resultStream + " AS "
         + "SELECT * FROM " + inputStreamName + " WHERE ORDERUNITS > 40;");
@@ -323,7 +331,8 @@ public class StreamsSelectAndProjectIntTest {
     TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         4,
-        dataSourceSerDe,
+        KAFKA,
+        valueFormat,
         DATA_PROVIDER.schema());
   }
 
@@ -334,9 +343,10 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql("INSERT INTO " + resultStream +
         " SELECT ORDERID, ORDERTIME, ITEMID, ORDERUNITS, PRICEARRAY FROM " + JSON_STREAM_NAME + ";");
 
-    final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
+        KAFKA,
         JSON,
         getResultSchema());
 
@@ -352,9 +362,10 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql("INSERT INTO " + resultStream + " "
         + "SELECT ORDERID, ORDERTIME, ITEMID, ORDERUNITS, PRICEARRAY FROM " + AVRO_STREAM_NAME + ";");
 
-    final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
+        KAFKA,
         AVRO,
         getResultSchema());
 
@@ -372,6 +383,7 @@ public class StreamsSelectAndProjectIntTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         resultStream.toUpperCase(),
         is(DATA_PROVIDER.finalData()),
+        KAFKA,
         JSON,
         DATA_PROVIDER.schema()
     );
@@ -387,6 +399,7 @@ public class StreamsSelectAndProjectIntTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         resultStream.toUpperCase(),
         is(DATA_PROVIDER.finalData()),
+        KAFKA,
         AVRO,
         DATA_PROVIDER.schema()
     );
@@ -402,6 +415,7 @@ public class StreamsSelectAndProjectIntTest {
     TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         4,
+        KAFKA,
         JSON,
         DATA_PROVIDER.schema());
   }
@@ -416,6 +430,7 @@ public class StreamsSelectAndProjectIntTest {
     TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         4,
+        KAFKA,
         AVRO,
         DATA_PROVIDER.schema());
   }
@@ -425,7 +440,7 @@ public class StreamsSelectAndProjectIntTest {
         .getMetaStore()
         .getSource(SourceName.of(resultStream.toUpperCase()));
 
-    return PhysicalSchema.from(source.getSchema(), source.getSerdeOptions());
+    return PhysicalSchema.from(source.getSchema(), SerdeFeatures.of(), SerdeFeatures.of());
   }
 
   private void createOrdersStream() {

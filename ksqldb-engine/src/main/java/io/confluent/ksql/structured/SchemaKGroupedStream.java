@@ -26,11 +26,10 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Objects;
@@ -67,7 +66,7 @@ public class SchemaKGroupedStream {
       final List<ColumnName> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
-      final ValueFormat valueFormat,
+      final FormatInfo valueFormat,
       final QueryContext.Stacker contextStacker
   ) {
     final ExecutionStep<? extends KTableHolder<?>> step;
@@ -78,7 +77,7 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamWindowedAggregate(
           contextStacker,
           sourceStep,
-          io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+          InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
           nonAggregateColumns,
           aggregations,
           windowExpression.get().getKsqlWindowExpression()
@@ -88,7 +87,7 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamAggregate(
           contextStacker,
           sourceStep,
-          io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+          InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
           nonAggregateColumns,
           aggregations
       );
@@ -103,9 +102,10 @@ public class SchemaKGroupedStream {
     );
   }
 
-  private static KeyFormat getKeyFormat(final WindowExpression windowExpression) {
+  private KeyFormat getKeyFormat(final WindowExpression windowExpression) {
     return KeyFormat.windowed(
-        FormatInfo.of(FormatFactory.KAFKA.name()),
+        keyFormat.getFormatInfo(),
+        SerdeFeatures.of(),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
   }

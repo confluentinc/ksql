@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -67,7 +68,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -113,12 +113,16 @@ public class ListSourceExecutorTest {
         new SourceInfo.Stream(
             stream1.getName().toString(FormatOptions.noEscape()),
             stream1.getKafkaTopicName(),
-            stream1.getKsqlTopic().getValueFormat().getFormat().name()
+            stream1.getKsqlTopic().getKeyFormat().getFormat(),
+            stream1.getKsqlTopic().getValueFormat().getFormat(),
+            stream1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Stream(
             stream2.getName().toString(FormatOptions.noEscape()),
             stream2.getKafkaTopicName(),
-            stream2.getKsqlTopic().getValueFormat().getFormat().name()
+            stream2.getKsqlTopic().getKeyFormat().getFormat(),
+            stream2.getKsqlTopic().getValueFormat().getFormat(),
+            stream1.getKsqlTopic().getKeyFormat().isWindowed()
         )
     ));
   }
@@ -146,13 +150,15 @@ public class ListSourceExecutorTest {
             true,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.of(topicWith1PartitionAndRfOf1)),
+            Optional.of(topicWith1PartitionAndRfOf1),
+            ImmutableList.of()),
         SourceDescriptionFactory.create(
             stream2,
             true,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.of(topicWith1PartitionAndRfOf1))
+            Optional.of(topicWith1PartitionAndRfOf1),
+            ImmutableList.of())
     ));
   }
 
@@ -177,13 +183,15 @@ public class ListSourceExecutorTest {
         new SourceInfo.Table(
             table1.getName().toString(FormatOptions.noEscape()),
             table1.getKsqlTopic().getKafkaTopicName(),
-            table1.getKsqlTopic().getValueFormat().getFormat().name(),
+            table2.getKsqlTopic().getKeyFormat().getFormat(),
+            table1.getKsqlTopic().getValueFormat().getFormat(),
             table1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Table(
             table2.getName().toString(FormatOptions.noEscape()),
             table2.getKsqlTopic().getKafkaTopicName(),
-            table2.getKsqlTopic().getValueFormat().getFormat().name(),
+            table2.getKsqlTopic().getKeyFormat().getFormat(),
+            table2.getKsqlTopic().getValueFormat().getFormat(),
             table2.getKsqlTopic().getKeyFormat().isWindowed()
         )
     ));
@@ -213,14 +221,16 @@ public class ListSourceExecutorTest {
             true,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.of(client.describeTopic(table1.getKafkaTopicName()))
+            Optional.of(client.describeTopic(table1.getKafkaTopicName())),
+            ImmutableList.of()
         ),
         SourceDescriptionFactory.create(
             table2,
             true,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.of(client.describeTopic(table1.getKafkaTopicName()))
+            Optional.of(client.describeTopic(table1.getKafkaTopicName())),
+            ImmutableList.of()
         )
     ));
   }
@@ -240,13 +250,10 @@ public class ListSourceExecutorTest {
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
         CustomExecutors.SHOW_COLUMNS.execute(
-            ConfiguredStatement.of(
-                PreparedStatement.of(
-                    "DESCRIBE SINK;",
-                    new ShowColumns(SourceName.of("SINK"), false)),
-                ImmutableMap.of(),
-                engine.getKsqlConfig()
-            ),
+            ConfiguredStatement.of(PreparedStatement.of(
+                "DESCRIBE SINK;",
+                new ShowColumns(SourceName.of("SINK"), false)),
+                SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -266,8 +273,10 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
-                queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)),
-            Optional.empty())));
+                queryStatusCount,
+                KsqlConstants.KsqlQueryType.PERSISTENT)),
+            Optional.empty(),
+            ImmutableList.of())));
   }
 
   @Test
@@ -329,7 +338,8 @@ public class ListSourceExecutorTest {
                             true,
                             ImmutableList.of(),
                             ImmutableList.of(),
-                            Optional.empty()
+                            Optional.empty(),
+                            ImmutableList.of()
                         )
                     )
                 )
@@ -415,7 +425,8 @@ public class ListSourceExecutorTest {
                 true,
                 ImmutableList.of(),
                 ImmutableList.of(),
-                Optional.empty()
+                Optional.empty(),
+                ImmutableList.of()
             )
         )
     );

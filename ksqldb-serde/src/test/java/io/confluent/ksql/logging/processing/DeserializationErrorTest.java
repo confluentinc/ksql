@@ -1,7 +1,23 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.logging.processing;
 
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TARGET;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TOPIC;
@@ -13,6 +29,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import java.util.Base64;
 import java.util.Collections;
@@ -40,7 +57,8 @@ public class DeserializationErrorTest {
     final DeserializationError deserError = new DeserializationError(
         error,
         Optional.empty(),
-        "topic"
+        "topic",
+        false
     );
 
     // When:
@@ -59,7 +77,8 @@ public class DeserializationErrorTest {
     final DeserializationError deserError = new DeserializationError(
         error,
         Optional.of(record),
-        "topic"
+        "topic",
+        false
     );
 
     // When:
@@ -73,6 +92,10 @@ public class DeserializationErrorTest {
         struct.get(ProcessingLogMessageSchema.TYPE),
         equalTo(MessageType.DESERIALIZATION_ERROR.getTypeId()));
     final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
+    assertThat(
+        deserializationError.get(DESERIALIZATION_ERROR_FIELD_TARGET),
+        equalTo("value")
+    );
     assertThat(
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_MESSAGE),
         equalTo(error.getMessage())
@@ -108,7 +131,8 @@ public class DeserializationErrorTest {
     final DeserializationError deserError = new DeserializationError(
         error,
         Optional.of(record),
-        "topic"
+        "topic",
+        false
     );
 
     // When:
@@ -121,5 +145,56 @@ public class DeserializationErrorTest {
         equalTo(MessageType.DESERIALIZATION_ERROR.getTypeId()));
     final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
     assertThat(deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64), nullValue());
+  }
+
+  @Test
+  public void shouldBuildErrorWithKeyComponent() {
+    // Given:
+    final DeserializationError deserError = new DeserializationError(
+        error,
+        Optional.of(record),
+        "topic",
+        true
+    );
+
+    // When:
+    final SchemaAndValue msg = deserError.get(config);
+
+    // Then:
+    final Struct struct = (Struct) msg.value();
+    final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
+    assertThat(
+        deserializationError.get(DESERIALIZATION_ERROR_FIELD_TARGET),
+        equalTo("key")
+    );
+  }
+
+  @Test
+  public void shouldImplementHashCodeAndEquals() {
+    final Exception error1 = new Exception("error");
+    final Exception error2 = new Exception("different error");
+    final byte[] record1 = new byte[256];
+    final byte[] record2 = new byte[512];
+    new EqualsTester()
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.of(record1), "topic", false),
+            new DeserializationError(error1, Optional.of(record1), "topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error2, Optional.of(record1), "topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.of(record2), "topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.empty(), "topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.of(record1), "other_topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.of(record1), "topic", true)
+        )
+        .testEquals();
   }
 }

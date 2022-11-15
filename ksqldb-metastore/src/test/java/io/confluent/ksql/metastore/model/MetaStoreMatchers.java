@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
 import java.util.Optional;
 import java.util.Set;
 import org.hamcrest.Description;
@@ -33,16 +33,16 @@ public final class MetaStoreMatchers {
   private MetaStoreMatchers() {
   }
 
-  public static Matcher<DataSource> hasSerdeOptions(
-      final Matcher<Iterable<? super SerdeOption>> expected
+  public static Matcher<DataSource> hasValueSerdeFeatures(
+      final Matcher<? super Iterable<? super SerdeFeature>> expected
   ) {
-    return new FeatureMatcher<DataSource, Set<SerdeOption>>(
+    return new FeatureMatcher<DataSource, Set<SerdeFeature>>(
         expected,
-        "source with serde options",
-        "serde options") {
+        "source with value serde features",
+        "value serde features") {
       @Override
-      protected Set<SerdeOption> featureValueOf(final DataSource actual) {
-        return actual.getSerdeOptions();
+      protected Set<SerdeFeature> featureValueOf(final DataSource actual) {
+        return actual.getKsqlTopic().getValueFormat().getFeatures().all();
       }
     };
   }

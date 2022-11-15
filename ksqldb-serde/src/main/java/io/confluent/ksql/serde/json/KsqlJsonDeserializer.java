@@ -27,8 +27,10 @@ import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.connect.SchemaWalker;
+import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -43,6 +45,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -51,9 +54,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class KsqlJsonDeserializer implements Deserializer<Object> {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+public class KsqlJsonDeserializer<T> implements Deserializer<T> {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
@@ -77,18 +78,21 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       .put(Type.BYTES, KsqlJsonDeserializer::enforceValidBytes)
       .build();
 
-  private final PersistenceSchema physicalSchema;
+  private final ConnectSchema schema;
   private final boolean isJsonSchema;
+  private final Class<T> targetType;
   private String target = "?";
 
-  public KsqlJsonDeserializer(
-      final PersistenceSchema physicalSchema,
-      final boolean isJsonSchema
+  KsqlJsonDeserializer(
+      final ConnectSchema schema,
+      final boolean isJsonSchema,
+      final Class<T> targetType
   ) {
-    this.physicalSchema = JsonSerdeUtils.validateSchema(
-        Objects.requireNonNull(physicalSchema, "physicalSchema")
-    );
+    this.schema = validateSchema(Objects.requireNonNull(schema, "schema"));
     this.isJsonSchema = isJsonSchema;
+    this.targetType = Objects.requireNonNull(targetType, "targetType");
+
+    SerdeUtils.throwOnSchemaJavaTypeMismatch(schema, targetType);
   }
 
   @Override
@@ -97,7 +101,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   }
 
   @Override
-  public Object deserialize(final String topic, final byte[] bytes) {
+  public T deserialize(final String topic, final byte[] bytes) {
     try {
       if (bytes == null) {
         return null;
@@ -112,17 +116,17 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
       final Object coerced = enforceFieldType(
           "$",
-          new JsonValueContext(value, physicalSchema.serializedSchema())
+          new JsonValueContext(value, schema)
       );
 
       if (LOG.isTraceEnabled()) {
         LOG.trace("Deserialized {}. topic:{}, row:{}", target, topic, coerced);
       }
 
-      return coerced;
+      return SerdeUtils.castToTargetType(coerced, targetType);
     } catch (final Exception e) {
       throw new SerializationException(
-          "mvn " + target + " from topic: " + topic, e);
+          "Failed to deserialize " + target + " from topic: " + topic + ". " + e.getMessage(), e);
     }
   }
 
@@ -169,17 +173,17 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   }
 
   private static Object enforceValidBytes(final JsonValueContext context) {
-    final BigDecimal decimal;
     final boolean isDecimal = DecimalUtil.isDecimal(context.schema);
-    if (isDecimal && context.val instanceof NumericNode) {
-      decimal = context.val.decimalValue();
-      DecimalUtil.ensureFit(decimal, context.schema);
-      return decimal;
-    } else if (isDecimal && context.val instanceof TextNode) {
-      decimal = new BigDecimal(context.val.textValue());
-      DecimalUtil.ensureFit(decimal, context.schema);
-      return decimal;
+    if (isDecimal) {
+      if (context.val instanceof NumericNode) {
+        return DecimalUtil.ensureFit(context.val.decimalValue(), context.schema);
+      }
+
+      if (context.val instanceof TextNode) {
+        return DecimalUtil.ensureFit(new BigDecimal(context.val.textValue()), context.schema);
+      }
     }
+
     throw invalidConversionException(context.val, context.schema);
   }
 
@@ -314,5 +318,26 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     public String getPath() {
       return path;
     }
+  }
+
+  private static ConnectSchema validateSchema(final ConnectSchema schema) {
+
+    class SchemaValidator implements Visitor<Void, Void> {
+
+      @Override
+      public Void visitMap(final Schema mapSchema, final Void key, final Void value) {
+        if (mapSchema.keySchema().type() != Type.STRING) {
+          throw new KsqlException("JSON only supports MAP types with STRING keys");
+        }
+        return null;
+      }
+
+      public Void visitSchema(final Schema schema11) {
+        return null;
+      }
+    }
+
+    SchemaWalker.visit(schema, new SchemaValidator());
+    return schema;
   }
 }

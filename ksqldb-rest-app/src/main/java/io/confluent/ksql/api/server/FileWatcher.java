@@ -25,6 +25,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,9 @@ public class FileWatcher extends Thread {
   private volatile boolean shutdown;
   private final WatchService watchService;
   private final Path file;
+  private final Path dir;
   private final Callback callback;
+  private final WatchKey key;
 
   @SuppressFBWarnings(
       value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
@@ -53,19 +56,21 @@ public class FileWatcher extends Thread {
   )
   public FileWatcher(final Path file, final Callback callback) throws IOException {
     this.file = Objects.requireNonNull(file);
-    Objects.requireNonNull(file.getParent(), "Watch location must have parent");
+    this.dir = Objects.requireNonNull(file.getParent(), "Watch location must have parent");
     this.watchService = FileSystems.getDefault().newWatchService();
+    this.callback = Objects.requireNonNull(callback);
+
     // Listen to both CREATE and MODIFY to reload, which handles delete then create.
-    file.getParent().register(watchService,
+    this.key = dir.register(watchService,
         StandardWatchEventKinds.ENTRY_CREATE,
         StandardWatchEventKinds.ENTRY_MODIFY);
-    this.callback = Objects.requireNonNull(callback);
   }
 
   /**
    * Closes the file watcher
    */
   public void shutdown() {
+    log.info("Stopping file watcher from watching for changes: " + file);
     shutdown = true;
   }
 
@@ -73,17 +78,13 @@ public class FileWatcher extends Thread {
   public void run() {
     log.info("Starting file watcher to watch for changes: " + file);
     try {
-      while (!shutdown) {
+      while (!shutdown && key.isValid()) {
         try {
           handleNextWatchNotification();
-        } catch (InterruptedException e) {
-          throw e;
         } catch (Exception e) {
-          log.info("Watch service caught exception, will continue:" + e);
+          log.error("Watch service caught exception, will continue:" + e);
         }
       }
-    } catch (InterruptedException e) {
-      log.info("Ending watch due to interrupt");
     } finally {
       log.info("Stopped watching for TLS cert changes");
       try {
@@ -95,23 +96,23 @@ public class FileWatcher extends Thread {
   }
 
   @SuppressWarnings("unchecked")
-  @SuppressFBWarnings(
-      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-      justification = "Null check on file.getParent() is present above"
-  )
   private void handleNextWatchNotification() throws InterruptedException {
-    // wait for key to be signalled
-    final WatchKey key = watchService.take();
-    log.info("Watch Key notified");
+    final WatchKey key = watchService.poll(1, TimeUnit.SECONDS);
+    if (key == null) {
+      return;
+    }
+
     for (WatchEvent<?> event : key.pollEvents()) {
       final WatchEvent.Kind<?> kind = event.kind();
       if (kind == StandardWatchEventKinds.OVERFLOW) {
-        log.debug("Watch event is OVERFLOW");
+        log.info("Watch event is OVERFLOW - may have missed cert change");
         continue;
       }
+
       final WatchEvent<Path> ev = (WatchEvent<Path>)event;
-      final Path changed = file.getParent().resolve(ev.context());
-      log.debug("Watch file change: " + ev.context() + "=>" + changed);
+      final Path changed = dir.resolve(ev.context());
+      log.debug("Watch file change: " + changed);
+
       // use Path.equals rather than Files.isSameFile to handle updated symlinks
       if (Files.exists(changed) && changed.equals(file)) {
         log.info("Change event for watched file: " + file);
@@ -123,7 +124,10 @@ public class FileWatcher extends Thread {
         break;
       }
     }
-    key.reset();
-  }
 
+    if (!key.reset()) {
+      log.error("Watch reset failed. No longer watching directory. "
+          + "This is likely because the directory was deleted or renamed. Path: " + dir);
+    }
+  }
 }

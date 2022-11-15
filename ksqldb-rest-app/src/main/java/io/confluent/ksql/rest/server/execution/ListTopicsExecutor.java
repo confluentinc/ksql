@@ -23,12 +23,12 @@ import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.services.KafkaConsumerGroupClient;
+import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerSummary;
+import io.confluent.ksql.services.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KafkaConsumerGroupClient;
-import io.confluent.ksql.util.KafkaConsumerGroupClient.ConsumerSummary;
-import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,7 +62,7 @@ public final class ListTopicsExecutor {
 
     if (statement.getStatement().getShowExtended()) {
       final KafkaConsumerGroupClient consumerGroupClient
-          = new KafkaConsumerGroupClientImpl(serviceContext.getAdminClient());
+          = new KafkaConsumerGroupClientImpl(serviceContext::getAdminClient);
       final Map<String, List<Integer>> topicConsumersAndGroupCount
           = getTopicConsumerAndGroupCounts(consumerGroupClient);
 
@@ -75,7 +75,7 @@ public final class ListTopicsExecutor {
           new KafkaTopicsListExtended(statement.getMaskedStatementText(), topicInfoExtendedList));
     } else {
       final List<KafkaTopicInfo> topicInfoList = topicDescriptions.values()
-          .stream().map(desc -> topicDescriptionToTopicInfo(desc))
+          .stream().map(ListTopicsExecutor::topicDescriptionToTopicInfo)
           .collect(Collectors.toList());
 
       return Optional.of(new KafkaTopicsList(statement.getMaskedStatementText(), topicInfoList));
@@ -86,7 +86,8 @@ public final class ListTopicsExecutor {
       final KafkaTopicClient topicClient,
       final ConfiguredStatement<ListTopics> statement
   ) {
-    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(statement.getConfig());
+    final ReservedInternalTopics internalTopics =
+        new ReservedInternalTopics(statement.getSessionConfig().getConfig(false));
 
     final Set<String> topics = statement.getStatement().getShowAll()
         ? topicClient.listTopicNames()

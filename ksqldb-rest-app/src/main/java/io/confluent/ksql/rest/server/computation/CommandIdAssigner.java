@@ -16,7 +16,9 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.DropType;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -64,6 +66,7 @@ public class CommandIdAssigner {
             command -> getDropTableCommandId((DropTable) command))
           .put(TerminateCluster.class,
             command -> new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE))
+          .put(AlterSource.class, command -> getAlterSourceCommandId((AlterSource) command))
           .build();
 
   public CommandId getCommandId(final Statement command) {
@@ -110,7 +113,7 @@ public class CommandIdAssigner {
   private static CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {
     return new CommandId(
         CommandId.Type.TERMINATE,
-        terminateQuery.getQueryId().map(QueryId::toString).orElse("ALL"),
+        terminateQuery.getQueryId().map(QueryId::toString).orElse(TerminateQuery.ALL_QUERIES),
         CommandId.Action.EXECUTE
     );
   }
@@ -128,6 +131,14 @@ public class CommandIdAssigner {
         CommandId.Type.TABLE,
         dropTableQuery.getName().text(),
         CommandId.Action.DROP
+    );
+  }
+
+  private static CommandId getAlterSourceCommandId(final AlterSource alterSource) {
+    return new CommandId(
+        alterSource.getDataSourceType() == DataSourceType.KSTREAM ? Type.STREAM : Type.TABLE,
+        alterSource.getName().text(),
+        Action.ALTER
     );
   }
 

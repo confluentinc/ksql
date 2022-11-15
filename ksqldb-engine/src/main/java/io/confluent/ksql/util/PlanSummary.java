@@ -39,6 +39,7 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
@@ -87,6 +88,7 @@ public class PlanSummary {
           .put(TableSink.class, "SINK")
           .put(TableTableJoin.class, "JOIN")
           .put(TableSource.class, "SOURCE")
+          .put(TableSuppress.class, "SUPPRESS")
           .put(WindowedTableSource.class, "SOURCE")
           .build();
 

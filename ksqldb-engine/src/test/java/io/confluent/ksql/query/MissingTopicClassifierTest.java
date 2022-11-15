@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.services.KafkaTopicClient;
 import java.util.Set;
+import org.apache.kafka.streams.errors.MissingSourceTopicException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -31,20 +32,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class MissingTopicClassifierTest {
 
-  @Mock
-  private KafkaTopicClient topicClient;
-  @Mock
-  private Throwable error;
-
   @Test
   public void shouldClassifyMissingTopicAsUserError() {
     // Given:
-    final Set<String> requiredTopics = ImmutableSet.of("A", "B");
-    when(topicClient.isTopicExists("A")).thenReturn(true);
-    when(topicClient.isTopicExists("B")).thenReturn(false);
+    final Exception e = new MissingSourceTopicException("foo");
 
     // When:
-    final Type type = new MissingTopicClassifier("", requiredTopics, topicClient).classify(error);
+    final Type type = new MissingTopicClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.USER));
@@ -53,15 +47,13 @@ public class MissingTopicClassifierTest {
   @Test
   public void shouldClassifyNoMissingTopicAsUnknownError() {
     // Given:
-    final Set<String> requiredTopics = ImmutableSet.of("A", "B");
-    when(topicClient.isTopicExists("A")).thenReturn(true);
-    when(topicClient.isTopicExists("B")).thenReturn(false);
+    final Exception e = new Exception("foo");
 
     // When:
-    final Type type = new MissingTopicClassifier("", requiredTopics, topicClient).classify(error);
+    final Type type = new MissingTopicClassifier("").classify(e);
 
     // Then:
-    assertThat(type, is(Type.USER));
+    assertThat(type, is(Type.UNKNOWN));
   }
 
 }

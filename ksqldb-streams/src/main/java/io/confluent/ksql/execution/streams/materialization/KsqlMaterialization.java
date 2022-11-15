@@ -134,8 +134,8 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public Optional<Row> get(final Struct key) {
-      return table.get(key)
+    public Optional<Row> get(final Struct key, final int partition) {
+      return table.get(key, partition)
           .flatMap(row -> filterAndTransform(key, row.value(), row.rowTime())
               .map(v -> row.withValue(v, schema()))
           );
@@ -151,8 +151,13 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public List<WindowedRow> get(final Struct key, final Range<Instant> windowStart) {
-      final List<WindowedRow> result = table.get(key, windowStart);
+    public List<WindowedRow> get(
+        final Struct key,
+        final int partition,
+        final Range<Instant> windowStart,
+        final Range<Instant> windowEnd
+    ) {
+      final List<WindowedRow> result = table.get(key, partition, windowStart, windowEnd);
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 

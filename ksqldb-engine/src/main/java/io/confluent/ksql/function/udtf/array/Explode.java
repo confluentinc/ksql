@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udtf.array;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
@@ -32,6 +33,7 @@ import java.util.List;
  */
 @UdtfDescription(
     name = "explode",
+    category = FunctionCategory.TABLE,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description =
         "Explodes an array. This function outputs one value for each element of the array."

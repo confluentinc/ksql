@@ -71,7 +71,6 @@ public class UserFunctionLoader {
         "parentClassLoader can't be null"
     );
     this.blacklist = Objects.requireNonNull(blacklist, "blacklist can't be null");
-    Objects.requireNonNull(metrics, "metrics can't be null");
     this.loadCustomerUdfs = loadCustomerUdfs;
     final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
     this.udfLoader = new UdfLoader(functionRegistry, metrics, typeParser, false);
@@ -143,8 +142,8 @@ public class UserFunctionLoader {
       final MutableFunctionRegistry metaStore,
       final String ksqlInstallDir
   ) {
-    final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
-    final Boolean collectMetrics = config.getBoolean(KsqlConfig.KSQL_COLLECT_UDF_METRICS);
+    final boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
+    final boolean collectMetrics = config.getBoolean(KsqlConfig.KSQL_COLLECT_UDF_METRICS);
     final String extDirName = config.getString(KsqlConfig.KSQL_EXT_DIR);
     final File pluginDir = KsqlConfig.DEFAULT_EXT_DIR.equals(extDirName)
         ? new File(ksqlInstallDir, extDirName)

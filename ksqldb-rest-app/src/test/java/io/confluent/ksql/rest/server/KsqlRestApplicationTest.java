@@ -34,12 +34,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryMonitor;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -132,6 +134,10 @@ public class KsqlRestApplicationTest {
   private LagReportingAgent lagReportingAgent;
   @Mock
   private EndpointResponse response;
+  @Mock
+  private QueryMonitor queryMonitor;
+  @Mock
+  private DenyListPropertyValidator denyListPropertyValidator;
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
@@ -218,6 +224,15 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
+  public void shouldCloseQueryMonitorOnClose() {
+    // When:
+    app.shutdown();
+
+    // then:
+    verify(queryMonitor).close();
+  }
+
+  @Test
   public void shouldAddConfigurableMetricsReportersIfPresentInKsqlConfig() {
     // When:
     final MetricsReporter mockReporter = mock(MetricsReporter.class);
@@ -267,7 +282,7 @@ public class KsqlRestApplicationTest {
     final StreamsList streamsList =
         new StreamsList(
             LIST_STREAMS_SQL,
-            Collections.singletonList(new SourceInfo.Stream(LOG_STREAM_NAME, "", "")));
+            Collections.singletonList(new SourceInfo.Stream(LOG_STREAM_NAME, "", "", "", false)));
     when(response.getEntity()).thenReturn(new KsqlEntityList(Collections.singletonList(streamsList)));
     
     when(ksqlResource.handleKsqlStatements(
@@ -301,6 +316,15 @@ public class KsqlRestApplicationTest {
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
+  }
+
+  @Test
+  public void shouldStartQueryMonitor() {
+    // When:
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    verify(queryMonitor).start();
   }
 
   @Test
@@ -473,7 +497,10 @@ public class KsqlRestApplicationTest {
         pullQueryExecutor,
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),
-        vertx
+        vertx,
+        queryMonitor,
+        denyListPropertyValidator,
+        Optional.empty()
     );
   }
 

@@ -20,7 +20,7 @@ SELECT select_expr [, ...]
   [ WHERE condition ]
   [ GROUP BY grouping_expression ]
   [ HAVING having_expression ]
-  EMIT CHANGES
+  EMIT [ output_refinement ]
   [ LIMIT count ];
 ```
 
@@ -198,3 +198,16 @@ SELECT orderzip_code, TOPK(order_total, 5) FROM orders
   GROUP BY order_zipcode
   EMIT CHANGES;
 ```
+
+#### EMIT
+
+The EMIT clause lets you control the output refinement of your push query. The output refinement is
+how you would like to *emit* your results. 
+
+ksqlDB supports the following output refinement types.
+
+#### CHANGES
+
+This is the standard output refinement for push queries, for when we would like to see all changes 
+happening.
+

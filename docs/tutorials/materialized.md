@@ -386,6 +386,7 @@ docker-compose down
 
 In practice, you won't want to query your materialized views from the ksqlDB prompt.
 It's much more useful to query them from within your applications. To do that, you can
+use the [Java client for ksqlDB](../../developer-guide/ksqldb-clients/java-client/) or
 submit queries to ksqlDB's servers through its [REST API](../../developer-guide/api/).
 
 Next steps

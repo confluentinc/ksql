@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,9 +52,22 @@ public class KsqlPlanSchemaTest {
     );
   }
 
-  @Ignore
+  @Ignore("Comment me out to regenerate the schema")
   @Test
   public void runMeToRegenerateSchemaFile() throws Exception {
     KsqlPlanSchemaGenerator.generateTo(BASE_PATH.resolve(SCHEMA_PATH));
+  }
+
+  @Test
+  public void shouldNotCheckInThisClassWithTheAboveTestEnabled() throws Exception {
+    final Ignore ignoreAnnotation = this.getClass()
+        .getMethod("runMeToRegenerateSchemaFile")
+        .getAnnotation(Ignore.class);
+
+    assertThat(
+        "Ensure you add back the @Ignore annotation above before committing your change.",
+        ignoreAnnotation,
+        is(notNullValue())
+    );
   }
 }

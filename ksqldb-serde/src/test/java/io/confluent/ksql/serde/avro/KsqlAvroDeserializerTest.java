@@ -33,11 +33,9 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -68,9 +66,9 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlAvroDeserializerTest {
 
@@ -196,12 +194,8 @@ public class KsqlAvroDeserializerTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.singletonMap(
       KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "fake-schema-registry-url"));
 
-  @Mock
-  private ProcessingLogger recordLogger;
-
   private SchemaRegistryClient schemaRegistryClient;
   private AvroConverter converter;
-  private Deserializer<Object> deserializer;
   private KafkaAvroSerializer serializer;
 
   @Before
@@ -224,7 +218,8 @@ public class KsqlAvroDeserializerTest {
     // Given:
     final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
 
-    givenDeserializerForSchema(ORDER_SCHEMA);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) ORDER_SCHEMA, Struct.class);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -257,7 +252,8 @@ public class KsqlAvroDeserializerTest {
             + " ]"
             + "}");
 
-    givenDeserializerForSchema(ORDER_SCHEMA);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) ORDER_SCHEMA, Struct.class);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -272,7 +268,8 @@ public class KsqlAvroDeserializerTest {
     // Given:
     final byte[] bytes = givenAvroSerialized(10L, LONG_AVRO_SCHEMA);
 
-    givenDeserializerForSchema(ORDER_SCHEMA);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) ORDER_SCHEMA, Struct.class);
 
     // When:
     final Exception e = assertThrows(
@@ -307,7 +304,8 @@ public class KsqlAvroDeserializerTest {
         + " ]"
         + "}");
 
-    givenDeserializerForSchema(ORDER_SCHEMA);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) ORDER_SCHEMA, Struct.class);
 
     // When:
     final Exception e = assertThrows(
@@ -334,7 +332,8 @@ public class KsqlAvroDeserializerTest {
         // <-- MAPCOL missing
         .build();
 
-    givenDeserializerForSchema(reducedSchema);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) reducedSchema, Struct.class);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -356,7 +355,8 @@ public class KsqlAvroDeserializerTest {
         .field("EXTRA", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    givenDeserializerForSchema(expandedSchema);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) expandedSchema, Struct.class);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -369,7 +369,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeNullAsNull() {
     // Given:
-    givenDeserializerForSchema(ORDER_SCHEMA);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) ORDER_SCHEMA, Struct.class);
 
     // When:
     final Object row = deserializer.deserialize("topic", null);
@@ -388,7 +389,8 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = givenAvroSerialized(withNulls, ORDER_AVRO_SCHEMA);
 
-    givenDeserializerForSchema(ORDER_SCHEMA);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) ORDER_SCHEMA, Struct.class);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -401,7 +403,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroBoolean() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final Deserializer<Boolean> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
@@ -415,7 +418,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroOptionalBoolean() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final Deserializer<Boolean> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
 
     final byte[] bytes = givenAvroSerialized(true, OPTIONAL_BOOLEAN_AVRO_SCHEMA);
 
@@ -429,7 +433,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToBoolean() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final Deserializer<Boolean> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
 
     final byte[] bytes = givenAvroSerialized(10, LONG_AVRO_SCHEMA);
 
@@ -447,7 +452,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+    final Deserializer<Integer> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA, Integer.class);
 
     final byte[] bytes = givenAvroSerialized(42, INT_AVRO_SCHEMA);
 
@@ -461,7 +467,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroOptionalInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+    final Deserializer<Integer> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA, Integer.class);
 
     final byte[] bytes = givenAvroSerialized(42, OPTIONAL_INT_AVRO_SCHEMA);
 
@@ -492,7 +499,8 @@ public class KsqlAvroDeserializerTest {
     validCoercions.forEach((bytes, expcted) -> {
 
       // Given:
-      givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+      final Deserializer<Integer> deserializer =
+          givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA, Integer.class);
 
       // When:
       final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -505,7 +513,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+    final Deserializer<Integer> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA, Integer.class);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
@@ -523,7 +532,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroBigInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    final Deserializer<Long> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap.of(
         INT_AVRO_SCHEMA, 42,
@@ -552,7 +562,8 @@ public class KsqlAvroDeserializerTest {
      */
 
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    final Deserializer<Long> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final Map<byte[], Long> validCoercions = ImmutableMap
         .<byte[], Long>builder()
@@ -579,7 +590,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToBigInt() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    final Deserializer<Long> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
@@ -597,7 +609,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroDouble() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final Deserializer<Double> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_FLOAT64_SCHEMA, Double.class);
 
     final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap
         .<org.apache.avro.Schema, Object>builder()
@@ -620,7 +633,9 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroDecimal() {
     // Given:
-    givenDeserializerForSchema(DecimalUtil.builder(4, 2).build());
+    final Deserializer<BigDecimal> deserializer =
+        givenDeserializerForSchema((ConnectSchema) DecimalUtil.builder(4, 2).build(),
+            BigDecimal.class);
     final BigDecimal value = new BigDecimal("12.34");
     final byte[] bytes = givenConnectSerialized(value, DecimalUtil.builder(4, 2).build());
 
@@ -639,7 +654,8 @@ public class KsqlAvroDeserializerTest {
      */
 
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final Deserializer<Double> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_FLOAT64_SCHEMA, Double.class);
 
     final Map<byte[], Double> validCoercions = ImmutableMap
         .<byte[], Double>builder()
@@ -662,7 +678,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToDouble() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final Deserializer<Double> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_FLOAT64_SCHEMA, Double.class);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
@@ -680,7 +697,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroString() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+    final Deserializer<String> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA, String.class);
 
     final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap
         .<org.apache.avro.Schema, Object>builder()
@@ -711,7 +729,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeConnectToString() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+    final Deserializer<String> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA, String.class);
 
     final Map<byte[], Object> validCoercions = ImmutableMap
         .<byte[], Object>builder()
@@ -744,7 +763,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceToString() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+    final Deserializer<String> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA, String.class);
 
     final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
 
@@ -762,10 +782,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroArray() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_STRING_SCHEMA)
-        .build()
-    );
+    final Deserializer<List> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .array(Schema.OPTIONAL_STRING_SCHEMA)
+            .build(), List.class);
 
     final List<?> value = ImmutableList.of("look", "ma,", "an", "array!");
 
@@ -781,10 +801,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroOptionalArray() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_STRING_SCHEMA)
-        .build()
-    );
+    final Deserializer<List> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .array(Schema.OPTIONAL_STRING_SCHEMA)
+            .build(), List.class);
 
     final List<?> value = ImmutableList.of("look", "ma,", "an", "array!");
 
@@ -800,10 +820,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldCoerceArrayElements() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_STRING_SCHEMA)
-        .build()
-    );
+    final Deserializer<List> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .array(Schema.OPTIONAL_STRING_SCHEMA)
+            .build(), List.class);
 
     final Map<String, List<?>> validCoercions = ImmutableMap.of(
         "{\"type\": \"array\", \"items\": \"boolean\"}", ImmutableList.of(true, false),
@@ -832,10 +852,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfNotAnArray() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_STRING_SCHEMA)
-        .build()
-    );
+    final Deserializer<List> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .array(Schema.OPTIONAL_STRING_SCHEMA)
+            .build(), List.class);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
@@ -853,10 +873,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceArrayElement() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(Schema.OPTIONAL_INT32_SCHEMA)
-        .build()
-    );
+    final Deserializer<List> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .build(), List.class);
 
     final List<?> value = ImmutableList.of("look", "ma,", "an", "array!");
 
@@ -876,13 +896,13 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroArrayOfMap() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .array(SchemaBuilder
-            .map(SchemaBuilder.STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build())
-        .build()
-    );
+    final Deserializer<List> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .array(SchemaBuilder
+                .map(SchemaBuilder.STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+                .optional()
+                .build())
+            .build(), List.class);
 
     final List<?> value = ImmutableList.of(ImmutableMap.of("a", 1L, "b", 2L));
 
@@ -898,10 +918,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeAvroMap() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
+    final Deserializer<Map> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+            .build(), Map.class);
 
     final Map<org.apache.avro.Schema, Map<String, Number>> validCoercions = ImmutableMap.of(
         INT_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1, "b", 2),
@@ -931,10 +951,10 @@ public class KsqlAvroDeserializerTest {
      */
 
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .map(Schema.STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
+    final Deserializer<Map> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .map(Schema.STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+            .build(), Map.class);
 
     final List<?> mapEntries = buildEntriesForMapWithOptionalKey(null, null, "a", 1);
 
@@ -953,10 +973,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfNotAMap() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
-        .build()
-    );
+    final Deserializer<Map> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .build(), Map.class);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
@@ -974,10 +994,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldThrowIfCanNotCoerceMapValue() {
     // Given:
-    givenDeserializerForSchema(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .build()
-    );
+    final Deserializer<Map> deserializer =
+        givenDeserializerForSchema((ConnectSchema) SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+            .build(), Map.class);
 
     final Map<?, ?> value = ImmutableMap.of("a", 1, "b", 2);
 
@@ -1003,8 +1023,8 @@ public class KsqlAvroDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> givenDeserializerForSchema(schema)
+        KsqlException.class,
+        () -> givenDeserializerForSchema((ConnectSchema) schema, Struct.class)
     );
 
     // Then:
@@ -1024,8 +1044,8 @@ public class KsqlAvroDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> givenDeserializerForSchema(schema)
+        KsqlException.class,
+        () -> givenDeserializerForSchema((ConnectSchema) schema, Struct.class)
     );
 
     // Then:
@@ -1035,7 +1055,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
-    givenDeserializerForSchema(OPTIONAL_INT64_SCHEMA);
+    final Deserializer<Long> deserializer =
+        givenDeserializerForSchema((ConnectSchema) OPTIONAL_INT64_SCHEMA, Long.class);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
@@ -1052,7 +1073,8 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldNotIncludeBadValueInExceptionAsThatWouldBeASecurityIssue() {
     // Given:
-    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+    final Deserializer<Long> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final byte[] bytes = givenAvroSerialized("personal info: do not log me", STRING_AVRO_SCHEMA);
 
@@ -1075,7 +1097,8 @@ public class KsqlAvroDeserializerTest {
         .field("source.field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build();
 
-    givenDeserializerForSchema(schema);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) schema, Struct.class);
 
     final byte[] bytes = givenAvroSerialized(ImmutableMap.of("source_field0", 123),
         "{"
@@ -1330,9 +1353,10 @@ public class KsqlAvroDeserializerTest {
         .optional()
         .build();
 
-    givenDeserializerForSchema(ksqlRecordSchema);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) ksqlRecordSchema, Struct.class);
 
-    final Struct row = (Struct) deserializer.deserialize("topic", bytes);
+    final Struct row = deserializer.deserialize("topic", bytes);
 
     assertThat(row.schema().field("field0").schema(), is(ksqlSchema));
     assertThat(row.get("field0"), is(ksqlValue));
@@ -1453,9 +1477,10 @@ public class KsqlAvroDeserializerTest {
   ) {
     final byte[] bytes = serializer.serialize(topicName, avroRecord);
 
-    givenDeserializerForSchema(schema);
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema((ConnectSchema) schema, Struct.class);
 
-    return (Struct) deserializer.deserialize(topicName, bytes);
+    return deserializer.deserialize(topicName, bytes);
   }
 
   private void shouldDeserializeFieldTypeCorrectly(
@@ -1490,22 +1515,23 @@ public class KsqlAvroDeserializerTest {
     assertThat(row.get("field0"), equalTo(ksqlValue));
   }
 
-  private void givenDeserializerForSchema(final Schema schema) {
+  private <T> Deserializer<T> givenDeserializerForSchema(
+      final ConnectSchema schema,
+      final Class<T> targetType
+  ) {
     final KsqlAvroSerdeFactory serdeFactory = new KsqlAvroSerdeFactory(
-        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+        AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
-    final boolean unwrap = schema.type() != Schema.Type.STRUCT;
-    final Schema ksqlSchema = unwrap
-        ? SchemaBuilder.struct().field("f0", schema).build()
-        : schema;
-
-    deserializer = serdeFactory.createSerde(
-        PersistenceSchema.from((ConnectSchema) ksqlSchema, unwrap),
+    final Deserializer<T> deserializer = serdeFactory.createSerde(
+        schema,
         KSQL_CONFIG,
-        () -> schemaRegistryClient
-    ).deserializer();
+        () -> schemaRegistryClient,
+        targetType,
+        false).deserializer();
 
     deserializer.configure(Collections.emptyMap(), false);
+
+    return deserializer;
   }
 
   private static Struct buildExpectedStruct(

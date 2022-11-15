@@ -33,6 +33,9 @@ final class ComparisonUtil {
       .add(handler(SqlBaseType::isNumber, ComparisonUtil::handleNumber))
       .add(handler(SqlBaseType.STRING, ComparisonUtil::handleString))
       .add(handler(SqlBaseType.BOOLEAN, ComparisonUtil::handleBoolean))
+      .add(handler(SqlBaseType.ARRAY, ComparisonUtil::handleArray))
+      .add(handler(SqlBaseType.MAP, ComparisonUtil::handleMap))
+      .add(handler(SqlBaseType.STRUCT, ComparisonUtil::handleStruct))
       .build();
 
   private ComparisonUtil() {
@@ -77,8 +80,26 @@ final class ComparisonUtil {
   }
 
   private static boolean handleBoolean(final Type operator, final SqlType right) {
-    return right.baseType() == SqlBaseType.BOOLEAN
-        && (operator == Type.EQUAL || operator == Type.NOT_EQUAL);
+    return right.baseType() == SqlBaseType.BOOLEAN && isEqualityOperator(operator);
+  }
+
+  private static boolean handleArray(final Type operator, final SqlType right) {
+    return right.baseType() == SqlBaseType.ARRAY && isEqualityOperator(operator);
+  }
+
+  private static boolean handleMap(final Type operator, final SqlType right) {
+    return right.baseType() == SqlBaseType.MAP && isEqualityOperator(operator);
+  }
+
+  private static boolean handleStruct(final Type operator, final SqlType right) {
+    return right.baseType() == SqlBaseType.STRUCT && isEqualityOperator(operator);
+  }
+
+  private static boolean isEqualityOperator(final Type operator) {
+    return operator == Type.EQUAL
+        || operator == Type.NOT_EQUAL
+        || operator == Type.IS_DISTINCT_FROM
+        || operator == Type.IS_NOT_DISTINCT_FROM;
   }
 
   private static Handler handler(

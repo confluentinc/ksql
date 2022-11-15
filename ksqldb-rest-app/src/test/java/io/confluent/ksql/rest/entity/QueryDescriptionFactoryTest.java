@@ -18,14 +18,18 @@ package io.confluent.ksql.rest.entity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
@@ -33,20 +37,19 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QuerySchemas;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -88,6 +91,8 @@ public class QueryDescriptionFactoryTest {
   @Mock
   private Consumer<QueryMetadata> queryCloseCallback;
   @Mock
+  private KafkaStreamsBuilder kafkaStreamsBuilder;
+  @Mock
   private KafkaStreams queryStreams;
   @Mock
   private Topology topology;
@@ -97,6 +102,13 @@ public class QueryDescriptionFactoryTest {
   private BlockingRowQueue queryQueue;
   @Mock
   private KsqlTopic sinkTopic;
+  @Mock
+  private ExecutionStep<?> physicalPlan;
+  @Mock
+  private DataSource sinkDataSource;
+  @Mock
+  private ProcessingLogger processingLogger;
+
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
   private QueryDescription transientQueryDescription;
@@ -105,44 +117,51 @@ public class QueryDescriptionFactoryTest {
   @Before
   public void setUp() {
     when(topology.describe()).thenReturn(topologyDescription);
+    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(queryStreams);
 
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+    when(sinkTopic.getKeyFormat()).thenReturn(
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
+    when(sinkDataSource.getKsqlTopic()).thenReturn(sinkTopic);
+    when(sinkDataSource.getName()).thenReturn(SourceName.of("sink name"));
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,
-        queryStreams,
         TRANSIENT_SCHEMA,
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
         APPLICATION_ID,
         topology,
+        kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
-        closeTimeout);
+        closeTimeout,
+        10);
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
     persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
-        queryStreams,
-        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeOption.none()),
+        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
-        SourceName.of("sink Name"),
+        sinkDataSource,
         "execution plan",
         QUERY_ID,
-        DataSourceType.KSTREAM,
         Optional.empty(),
         APPLICATION_ID,
-        sinkTopic,
         topology,
-        QuerySchemas.of(new LinkedHashMap<>()),
+        kafkaStreamsBuilder,
+        new QuerySchemas(),
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
         closeTimeout,
-        QueryErrorClassifier.DEFAULT_CLASSIFIER);
+        QueryErrorClassifier.DEFAULT_CLASSIFIER,
+        physicalPlan,
+        10,
+        processingLogger
+    );
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);
   }
@@ -239,17 +258,18 @@ public class QueryDescriptionFactoryTest {
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,
-        queryStreams,
         schema,
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
         "app id",
         topology,
+        kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
-        closeTimeout);
+        closeTimeout,
+        10);
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
@@ -272,17 +292,18 @@ public class QueryDescriptionFactoryTest {
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,
-        queryStreams,
         schema,
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
         "app id",
         topology,
+        kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
-        closeTimeout);
+        closeTimeout,
+        10);
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());

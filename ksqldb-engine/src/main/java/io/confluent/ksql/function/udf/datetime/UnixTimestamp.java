@@ -14,12 +14,14 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
     name = "unix_timestamp",
+    category = FunctionCategory.DATE_TIME,
     description = "Gets the Unix timestamp in milliseconds, represented as a BIGINT.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

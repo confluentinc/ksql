@@ -42,7 +42,9 @@ public final class AppInfo {
       final Properties props = new Properties();
       try (InputStream resourceAsStream = AppInfo.class.getResourceAsStream(
           "/git.properties")) {
-        props.load(resourceAsStream);
+        if (resourceAsStream != null) {
+          props.load(resourceAsStream);
+        }
       }
       commitId = props.getProperty("git.commit.id", commitId).trim();
     } catch (final Exception e) {

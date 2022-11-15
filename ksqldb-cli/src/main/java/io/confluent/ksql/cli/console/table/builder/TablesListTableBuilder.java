@@ -27,15 +27,20 @@ import java.util.stream.Stream;
 public class TablesListTableBuilder implements TableBuilder<TablesList> {
 
   private static final List<String> HEADERS =
-      ImmutableList.of("Table Name", "Kafka Topic", "Format", "Windowed");
+      ImmutableList.of("Table Name", "Kafka Topic", "Key Format", "Value Format", "Windowed");
 
   @Override
   public Table buildTable(final TablesList entity) {
     final Stream<List<String>> rows = entity.getTables()
         .stream()
         .sorted(Comparator.comparing(SourceInfo::getName))
-        .map(t -> ImmutableList.of(t.getName(), t.getTopic(), t.getFormat(),
-            Boolean.toString(t.getIsWindowed())));
+        .map(t -> ImmutableList.of(
+            t.getName(),
+            t.getTopic(),
+            t.getKeyFormat(),
+            t.getValueFormat(),
+            Boolean.toString(t.isWindowed())
+        ));
 
     return new Builder()
         .withColumnHeaders(HEADERS)

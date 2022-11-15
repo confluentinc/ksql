@@ -17,11 +17,14 @@ package io.confluent.ksql.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
+import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -29,11 +32,11 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
@@ -50,47 +53,52 @@ public abstract class QueryMetadata {
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadata.class);
 
   private final String statementString;
-  private final KafkaStreams kafkaStreams;
   private final String executionPlan;
   private final String queryApplicationId;
   private final Topology topology;
+  private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  private final Consumer<QueryMetadata> closeCallback;
+  protected final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
   private final QueryId queryId;
-  private final QueryError[] queryErrorRef = new QueryError[]{null};
   private final QueryErrorClassifier errorClassifier;
-  private final Set<QueryError> queryErrors = new HashSet<>();
+  private final Queue<QueryError> queryErrors;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
+  protected boolean closed = false;
+  private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
+  private KafkaStreams kafkaStreams;
+  private Consumer<Boolean> onStop = (ignored) -> { };
+  private boolean initialized = false;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   QueryMetadata(
       final String statementString,
-      final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
       final String executionPlan,
       final String queryApplicationId,
       final Topology topology,
+      final KafkaStreamsBuilder kafkaStreamsBuilder,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
       final QueryId queryId,
-      final QueryErrorClassifier errorClassifier
+      final QueryErrorClassifier errorClassifier,
+      final int maxQueryErrorsQueueSize
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
-    this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
+    this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
     this.streamsProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(streamsProperties, "streamsPropeties"));
@@ -103,8 +111,7 @@ public abstract class QueryMetadata {
     this.closeTimeout = closeTimeout;
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
-
-    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+    this.queryErrors = EvictingQueue.create(maxQueryErrorsQueueSize);
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -113,6 +120,7 @@ public abstract class QueryMetadata {
     this.executionPlan = other.executionPlan;
     this.queryApplicationId = other.queryApplicationId;
     this.topology = other.topology;
+    this.kafkaStreamsBuilder = other.kafkaStreamsBuilder;
     this.streamsProperties = other.streamsProperties;
     this.overriddenProperties = other.overriddenProperties;
     this.sourceNames = other.sourceNames;
@@ -121,21 +129,59 @@ public abstract class QueryMetadata {
     this.closeTimeout = other.closeTimeout;
     this.queryId = other.queryId;
     this.errorClassifier = other.errorClassifier;
+    this.uncaughtExceptionHandler = other.uncaughtExceptionHandler;
+    this.queryStateListener = other.queryStateListener;
+    this.everStarted = other.everStarted;
+    this.queryErrors = other.queryErrors;
   }
 
-  public void registerQueryStateListener(final QueryStateListener queryStateListener) {
-    this.queryStateListener = Optional.of(queryStateListener);
-    queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
-
+  public void initialize() {
+    // initialize the first KafkaStreams
+    this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
     kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+    this.initialized = true;
   }
 
-  private void uncaughtHandler(final Thread t, final Throwable e) {
-    LOG.error("Unhandled exception caught in streams thread {}.", t.getName(), e);
-    final QueryError queryError =
-        new QueryError(Throwables.getStackTraceAsString(e), errorClassifier.classify(e));
-    queryStateListener.ifPresent(lis -> lis.onError(queryError));
-    queryErrors.add(queryError);
+  public void setQueryStateListener(final QueryStateListener queryStateListener) {
+    this.queryStateListener = Optional.of(queryStateListener);
+    kafkaStreams.setStateListener(queryStateListener);
+    queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
+  }
+
+  /**
+   * Set a callback to execute when the query stops. This is run on {@link #stop()}
+   * as well as {@link #close()}, unlike the {@link #closeCallback}, which is only
+   * executed on {@code close}.
+   *
+   * <p>{@code onStop} accepts true iff the callback is being called from {@code close}.
+   */
+  public void onStop(final Consumer<Boolean> onStop) {
+    this.onStop = onStop;
+  }
+
+  protected void uncaughtHandler(final Thread t, final Throwable e) {
+    QueryError.Type errorType = Type.UNKNOWN;
+    try {
+      errorType = errorClassifier.classify(e);
+    } catch (final Exception classificationException) {
+      LOG.error("Error classifying unhandled exception", classificationException);
+      throw classificationException;
+    } finally {
+      // If error classification throws then we consider the error to be an UNKNOWN error.
+      // We notify listeners and add the error to the errors queue in the finally block to ensure
+      // all listeners and consumers of the error queue (e.g. the API) can see the error. Similarly,
+      // log in finally block to make sure that if there's ever an error in the classification
+      // we still get this in our logs.
+      final QueryError queryError =
+          new QueryError(
+              System.currentTimeMillis(),
+              Throwables.getStackTraceAsString(e),
+              errorType
+          );
+      queryStateListener.ifPresent(lis -> lis.onError(queryError));
+      queryErrors.add(queryError);
+      LOG.error("Unhandled exception caught in streams thread {}. ({})", t.getName(), errorType, e);
+    }
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -147,11 +193,17 @@ public abstract class QueryMetadata {
   }
 
   public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
+    
+    this.uncaughtExceptionHandler = handler;
     kafkaStreams.setUncaughtExceptionHandler(handler);
   }
 
   public State getState() {
     return kafkaStreams.state();
+  }
+
+  public boolean isError() {
+    return getState() == State.ERROR;
   }
 
   public String getExecutionPlan() {
@@ -208,6 +260,42 @@ public abstract class QueryMetadata {
     return KsqlQueryType.PERSISTENT;
   }
 
+  public String getTopologyDescription() {
+    return topology.describe().toString();
+  }
+
+  public List<QueryError> getQueryErrors() {
+    return ImmutableList.copyOf(queryErrors);
+  }
+
+  public long uptime() {
+    return queryStateListener.map(QueryStateListener::uptime).orElse(0L);
+  }
+
+  protected boolean isClosed() {
+    return closed;
+  }
+
+  public KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
+
+  protected void resetKafkaStreams(final KafkaStreams kafkaStreams) {
+    this.kafkaStreams = kafkaStreams;
+    setUncaughtExceptionHandler(uncaughtExceptionHandler);
+    queryStateListener.ifPresent(this::setQueryStateListener);
+  }
+
+  protected void closeKafkaStreams() {
+    if (initialized) {
+      kafkaStreams.close(Duration.ofMillis(closeTimeout));
+    }
+  }
+
+  protected KafkaStreams buildKafkaStreams() {
+    return kafkaStreamsBuilder.build(topology, streamsProperties);
+  }
+
   /**
    * Stops the query without cleaning up the external resources
    * so that it can be resumed when we call {@link #start()}.
@@ -218,7 +306,9 @@ public abstract class QueryMetadata {
    *
    * @see #close()
    */
-  public abstract void stop();
+  public synchronized void stop() {
+    doClose(false);
+  }
 
   /**
    * Closes the {@code QueryMetadata} and cleans up any of
@@ -229,35 +319,37 @@ public abstract class QueryMetadata {
    */
   public void close() {
     doClose(true);
-    closeCallback.accept(this);
   }
 
-  protected void doClose(final boolean cleanUp) {
-    kafkaStreams.close(Duration.ofMillis(closeTimeout));
+  private void doClose(final boolean cleanUp) {
+    closed = true;
+    closeKafkaStreams();
 
     if (cleanUp) {
       kafkaStreams.cleanUp();
     }
 
     queryStateListener.ifPresent(QueryStateListener::close);
+
+    if (cleanUp) {
+      closeCallback.accept(this);
+    }
+    onStop.accept(cleanUp);
   }
 
   public void start() {
+    if (!initialized) {
+      throw new KsqlException(
+          String.format(
+              "Failed to initialize query %s before starting it",
+              queryApplicationId));
+    }
     LOG.info("Starting query with application id: {}", queryApplicationId);
     everStarted = true;
-    queryStateListener.ifPresent(kafkaStreams::setStateListener);
     kafkaStreams.start();
   }
 
-  public String getTopologyDescription() {
-    return topology.describe().toString();
-  }
-
-  public List<QueryError> getQueryErrors() {
-    return ImmutableList.copyOf(queryErrors);
-  }
-
-  public KafkaStreams getKafkaStreams() {
-    return kafkaStreams;
+  public void clearErrors() {
+    queryErrors.clear();
   }
 }

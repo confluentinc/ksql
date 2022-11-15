@@ -210,4 +210,54 @@ public class ClientOptionsImpl implements ClientOptions {
         basicAuthUsername, basicAuthPassword,
         executeQueryMaxResultRows);
   }
+
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  @Override
+  public boolean equals(final Object o) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final ClientOptionsImpl that = (ClientOptionsImpl) o;
+    return port == that.port
+        && useTls == that.useTls
+        && verifyHost == that.verifyHost
+        && useAlpn == that.useAlpn
+        && executeQueryMaxResultRows == that.executeQueryMaxResultRows
+        && host.equals(that.host)
+        && Objects.equals(trustStorePath, that.trustStorePath)
+        && Objects.equals(trustStorePassword, that.trustStorePassword)
+        && Objects.equals(keyStorePath, that.keyStorePath)
+        && Objects.equals(keyStorePassword, that.keyStorePassword)
+        && Objects.equals(basicAuthUsername, that.basicAuthUsername)
+        && Objects.equals(basicAuthPassword, that.basicAuthPassword);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(host, port, useTls, verifyHost, useAlpn, trustStorePath,
+        trustStorePassword, keyStorePath, keyStorePassword, basicAuthUsername, basicAuthPassword,
+        executeQueryMaxResultRows);
+  }
+
+  @Override
+  public String toString() {
+    return "ClientOptions{"
+        + "host='" + host + '\''
+        + ", port=" + port
+        + ", useTls=" + useTls
+        + ", verifyHost=" + verifyHost
+        + ", useAlpn=" + useAlpn
+        + ", trustStorePath='" + trustStorePath + '\''
+        + ", trustStorePassword='" + trustStorePassword + '\''
+        + ", keyStorePath='" + keyStorePath + '\''
+        + ", keyStorePassword='" + keyStorePassword + '\''
+        + ", basicAuthUsername='" + basicAuthUsername + '\''
+        + ", basicAuthPassword='" + basicAuthPassword + '\''
+        + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows
+        + '}';
+  }
 }

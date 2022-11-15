@@ -27,16 +27,23 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class QueryError {
 
+  private final long timestamp;
   private final String errorMessage;
   private final Type type;
 
   @JsonCreator
   public QueryError(
+      @JsonProperty("timestamp") final long timestamp,
       @JsonProperty("errorMessage") final String errorMessage,
       @JsonProperty("type") final Type type
   ) {
     this.errorMessage = Objects.requireNonNull(errorMessage, "errorMessage");
     this.type = Objects.requireNonNull(type, "type");
+    this.timestamp = timestamp;
+  }
+
+  public long getTimestamp() {
+    return timestamp;
   }
 
   public String getErrorMessage() {
@@ -85,11 +92,12 @@ public final class QueryError {
 
     final QueryError that = (QueryError) o;
     return Objects.equals(errorMessage, that.errorMessage)
-        && type == that.type;
+        && type == that.type
+        && timestamp == that.timestamp;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(errorMessage, type);
+    return Objects.hash(errorMessage, type, timestamp);
   }
 }

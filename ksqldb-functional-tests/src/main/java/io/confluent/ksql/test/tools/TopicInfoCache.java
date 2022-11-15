@@ -26,22 +26,26 @@ import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.query.QuerySchemas.SchemaInfo;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -50,17 +54,38 @@ import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 
 /**
  * Cache of info known about topics in use in the test.
+ *
+ * <p>Info for source and sink topics is obtained by finding a {@link
+ * io.confluent.ksql.metastore.model.DataSource} with a matching source topic name in the {@link
+ * io.confluent.ksql.metastore.MetaStore}.
+ *
+ * <p>Info for internal topics is obtained from the {@link
+ * PersistentQueryMetadata#getQuerySchemas()}. This is a map of {@code loggerNamePrefix} to {@link
+ * SchemaInfo}. This map is populated as a query is built, so presents the <i>actual</i> schema and
+ * formats used. This class uses pattern matching against the topic name to determine the correct
+ * {@code loggerNamePrefix} to look up and any additional logic needded.
  */
 public class TopicInfoCache {
 
-  private static final Pattern INTERNAL_TOPIC_PATTERN = Pattern
-      .compile("_confluent.*query_(.*_\\d+)-.*-(changelog|repartition)");
+  private static final String TOPIC_PATTERN_PREFIX = "_confluent.*query_(?<queryId>.*_\\d+)-";
 
-  private static final Pattern WINDOWED_JOIN_PATTERN = Pattern
-      .compile(
-          ".*\\bSELECT\\b.*\\bJOIN\\b.*\\bWITHIN\\b\\s*(\\d+\\s+\\w+)\\s*\\bON\\b.*",
-          Pattern.CASE_INSENSITIVE | Pattern.DOTALL
-      );
+  private static final List<InternalTopicPattern> INTERNAL_TOPIC_PATTERNS = ImmutableList.of(
+      // GROUP BY change-logs and repartition topics:
+      new InternalTopicPattern(
+          Pattern.compile(TOPIC_PATTERN_PREFIX + "Aggregate-.*-changelog"),
+          GroupByChangeLogPattern::new
+      ),
+      // Stream-stream join state store change-logs:
+      new InternalTopicPattern(
+          Pattern.compile(TOPIC_PATTERN_PREFIX + "KSTREAM-\\w+-\\d+-store-changelog"),
+          StreamStreamJoinChangeLogPattern::new
+      ),
+      // Catch all
+      new InternalTopicPattern(
+          Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-(changelog|repartition)"),
+          InternalTopic::new
+      )
+  );
 
   private final KsqlExecutionContext ksqlEngine;
   private final SchemaRegistryClient srClient;
@@ -90,29 +115,31 @@ public class TopicInfoCache {
 
   private TopicInfo load(final String topicName) {
     try {
-      final java.util.regex.Matcher matcher = INTERNAL_TOPIC_PATTERN.matcher(topicName);
-      if (matcher.matches()) {
+      final Optional<InternalTopic> internalTopic = INTERNAL_TOPIC_PATTERNS.stream()
+          .map(e -> e.match(topicName))
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .findFirst();
+
+      if (internalTopic.isPresent()) {
         // Internal topic:
-        final QueryId queryId = new QueryId(matcher.group(1));
+        final QueryId queryId = internalTopic.get().queryId();
+
         final PersistentQueryMetadata query = ksqlEngine
             .getPersistentQuery(queryId)
-            .orElseThrow(() -> new TestFrameworkException("Unknown queryId for internal topic: "
-                + queryId));
+            .orElseThrow(() ->
+                new TestFrameworkException("Unknown queryId for internal topic: " + queryId));
 
-        final java.util.regex.Matcher windowedJoinMatcher = WINDOWED_JOIN_PATTERN
-            .matcher(query.getStatementString());
+        final SchemaInfo schemaInfo = query.getQuerySchemas().getTopicInfo(topicName);
 
-        final OptionalLong changeLogWindowSize = topicName.endsWith("-changelog")
-            && windowedJoinMatcher.matches()
-            ? OptionalLong.of(DurationParser.parse(windowedJoinMatcher.group(1)).toMillis())
-            : OptionalLong.empty();
+        final KeyFormat keyFormat = schemaInfo.keyFormat().orElseThrow(IllegalStateException::new);
 
         return new TopicInfo(
             topicName,
             query.getLogicalSchema(),
-            query.getResultTopic().getKeyFormat(),
-            query.getResultTopic().getValueFormat(),
-            changeLogWindowSize
+            internalTopic.get().keyFormat(keyFormat, query),
+            schemaInfo.valueFormat().orElseThrow(IllegalStateException::new),
+            internalTopic.get().changeLogWindowSize(query)
         );
       }
 
@@ -139,6 +166,151 @@ public class TopicInfoCache {
       throw new TestFrameworkException("Failed to determine key type for"
           + System.lineSeparator() + "topic: " + topicName
           + System.lineSeparator() + "reason: " + e.getMessage(), e);
+    }
+  }
+
+  private static class InternalTopic {
+
+    private final QueryId queryId;
+
+    InternalTopic(final Matcher matcher) {
+      this.queryId = new QueryId(matcher.group("queryId"));
+    }
+
+    QueryId queryId() {
+      return queryId;
+    }
+
+    /**
+     * Gives the pattern a chance to adjust the key format
+     */
+    KeyFormat keyFormat(final KeyFormat baseFormat, final PersistentQueryMetadata query) {
+      return baseFormat;
+    }
+
+    /**
+     * Used by stream-stream join changelogs of windowed stream, where the statestore key is
+     * double-wrapped in {@link org.apache.kafka.streams.kstream.Windowed}. This can't be
+     * represented using {@link KeyFormat} alone.
+     */
+    OptionalLong changeLogWindowSize(final PersistentQueryMetadata query) {
+      return OptionalLong.empty();
+    }
+  }
+
+  private static class InternalTopicPattern {
+
+    private final Pattern pattern;
+    private final Function<Matcher, InternalTopic> topicFactory;
+
+    InternalTopicPattern(
+        final Pattern pattern,
+        final Function<Matcher, InternalTopic> topicFactory
+    ) {
+      this.pattern = requireNonNull(pattern, "pattern");
+      this.topicFactory = requireNonNull(topicFactory, "topicFactory");
+    }
+
+    Optional<InternalTopic> match(final String topicName) {
+      final Matcher matcher = pattern.matcher(topicName);
+      if (!matcher.matches()) {
+        return Optional.empty();
+      }
+
+      return Optional.of(topicFactory.apply(matcher));
+    }
+  }
+
+  /**
+   * Pattern for aggregate change logs.
+   *
+   * <p>Windowed Aggregates, e.g
+   *
+   * <pre>
+   * {@code
+   *   CREATE TABLE FOO AS
+   *     SELECT ID, COUNT()
+   *     FROM BAR
+   *     WINDOW TUMBLING (SIZE 30 SECONDS)
+   *     GROUP BY ID;
+   * }
+   * </pre>
+   *
+   * <p>The test key serde created and passed to Kafka Streams for the change log is <i>not</i> a
+   * windowed serde. Kafka Streams handles that part. This class ensures the windowed part is
+   * added.
+   */
+  private static class GroupByChangeLogPattern extends InternalTopic {
+
+    private static final Pattern WINDOWED_GROUP_BY_PATTERN = Pattern
+        .compile(
+            ".*\\b+WINDOW\\s+(?<windowType>\\w+)\\s+"
+                + "\\(\\s+(:?SIZE\\s+)?(?<duration>\\d+\\s+\\w+)[^)]*\\).*\\bGROUP\\s+BY.*",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+        );
+
+    GroupByChangeLogPattern(final Matcher matcher) {
+      super(matcher);
+    }
+
+    @Override
+    public KeyFormat keyFormat(final KeyFormat keyFormat, final PersistentQueryMetadata query) {
+      final Matcher matcher = WINDOWED_GROUP_BY_PATTERN.matcher(query.getStatementString());
+      if (!matcher.matches()) {
+        return keyFormat;
+      }
+
+      final WindowType windowType = WindowType.of(matcher.group("windowType"));
+      final Optional<Duration> duration = windowType.requiresWindowSize()
+          ? Optional.of(DurationParser.parse(matcher.group("duration")))
+          : Optional.empty();
+
+      return KeyFormat.windowed(
+          keyFormat.getFormatInfo(),
+          keyFormat.getFeatures(),
+          WindowInfo.of(windowType, duration)
+      );
+    }
+  }
+
+  /**
+   * Pattern for change logs backing the state stores used in stream-stream joins.
+   *
+   * <p>Stream-stream joins between windowed sources have a windowed key format, and the state
+   * stores and changelogs used during the join wrap throws windowed keys in another layer of
+   * windowing. This can't be expressed in {@link KeyFormat}. Instead, this class extracts the
+   * changelog window size from the statement, and this is used later to double wrap the raw key
+   * serde.
+   */
+  private static class StreamStreamJoinChangeLogPattern extends InternalTopic {
+
+    private static final Pattern WINDOWED_JOIN_PATTERN = Pattern.compile(
+        ".*\\bSELECT\\b.*\\bJOIN\\b.*\\bWITHIN\\b\\s*(?<duration>\\d+\\s+\\w+)\\s*\\bON\\b.*",
+        Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
+    private final String topicName;
+
+    StreamStreamJoinChangeLogPattern(final Matcher matcher) {
+      super(matcher);
+      this.topicName = matcher.group(0);
+    }
+
+    @Override
+    OptionalLong changeLogWindowSize(final PersistentQueryMetadata query) {
+      if (!topicName.endsWith("-changelog")) {
+        return OptionalLong.empty();
+      }
+
+      final Matcher windowedJoinMatcher = WINDOWED_JOIN_PATTERN
+          .matcher(query.getStatementString());
+
+      if (!windowedJoinMatcher.matches()) {
+        return OptionalLong.empty();
+      }
+
+      return OptionalLong
+          .of(DurationParser.parse(windowedJoinMatcher.group("duration")).toMillis());
     }
   }
 
@@ -185,7 +357,7 @@ public class TopicInfoCache {
       final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
           .getKeySerdeSupplier(keyFormat, schema);
 
-      final Serializer<?> serializer = keySerdeSupplier.getSerializer(srClient);
+      final Serializer<?> serializer = keySerdeSupplier.getSerializer(srClient, true);
 
       serializer.configure(ImmutableMap.of(
           AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
@@ -197,9 +369,9 @@ public class TopicInfoCache {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Serializer<Object> getValueSerializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormat(), schema);
+          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
 
-      final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient);
+      final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient, false);
 
       serializer.configure(ImmutableMap.of(
           AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
@@ -212,7 +384,7 @@ public class TopicInfoCache {
       final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
           .getKeySerdeSupplier(keyFormat, schema);
 
-      final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(srClient);
+      final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(srClient, true);
 
       deserializer.configure(ImmutableMap.of(), true);
 
@@ -230,100 +402,13 @@ public class TopicInfoCache {
 
     public Deserializer<?> getValueDeserializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormat(), schema);
+          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
 
-      final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient);
+      final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient, false);
 
       deserializer.configure(ImmutableMap.of(), false);
 
       return deserializer;
-    }
-
-    /**
-     * Coerce the key & value to the correct type.
-     *
-     * <p>The type of the key loaded from the JSON test case file may not be the exact match on
-     * type, e.g. JSON will load a small number as an integer, but the key type of the source might
-     * be a long.
-     *
-     * @param record the record to coerce
-     * @param msgIndex the index of the message, displayed in the error message
-     * @return a new Record with the correct key type.
-     */
-    public Record coerceRecord(
-        final Record record,
-        final int msgIndex
-    ) {
-      try {
-        final Object coercedKey = coerceKey(record.rawKey());
-        final Object coercedValue = coerceValue(record.value());
-        return record.withKeyValue(coercedKey, coercedValue);
-      } catch (final Exception e) {
-        throw new AssertionError(
-            "Topic '" + record.getTopicName() + "', message " + msgIndex
-                + ": Invalid test-case: could not coerce key in test case to required type. "
-                + e.getMessage(),
-            e);
-      }
-    }
-
-    private Object coerceKey(final Object key) {
-      if (schema.key().isEmpty()) {
-        // No key column
-        // - pass the key in as a string to allow tests to pass in data that should be ignored:
-        return key == null ? null : String.valueOf(key);
-      }
-
-      final SqlType keyType = schema
-          .key()
-          .get(0)
-          .type();
-
-      return DefaultSqlValueCoercer.INSTANCE
-          .coerce(key, keyType)
-          .orElseThrow(() -> new AssertionError("Invalid key for topic " + topicName + "."
-              + System.lineSeparator()
-              + "Expected KeyType: " + keyType
-              + System.lineSeparator()
-              + "Actual KeyType: " + SchemaConverters.javaToSqlConverter()
-              .toSqlType(key.getClass())
-              + ", key: " + key + "."
-              + System.lineSeparator()
-              + "This is likely caused by the key type in the test-case not matching the schema."
-          ))
-          .orElse(null);
-    }
-
-    private Object coerceValue(final Object value) {
-      // Only KAFKA format needs any value coercion at the moment:
-      if (!(valueFormat.getFormat() instanceof KafkaFormat)) {
-        return value;
-      }
-
-      if (schema.value().size() != 1) {
-        // Wrong column count:
-        // - pass the value as-is for negative testing:
-        return value == null ? null : String.valueOf(value);
-      }
-
-      final SqlType valueType = schema
-          .value()
-          .get(0)
-          .type();
-
-      return DefaultSqlValueCoercer.INSTANCE
-          .coerce(value, valueType)
-          .orElseThrow(() -> new AssertionError("Invalid value for topic " + topicName + "."
-              + System.lineSeparator()
-              + "Expected ValueType: " + valueType
-              + System.lineSeparator()
-              + "Actual ValueType: " + SchemaConverters.javaToSqlConverter()
-              .toSqlType(value.getClass())
-              + ", value: " + value + "."
-              + System.lineSeparator()
-              + "This is likely caused by the value type in the test-case not matching the schema."
-          ))
-          .orElse(null);
     }
   }
 }

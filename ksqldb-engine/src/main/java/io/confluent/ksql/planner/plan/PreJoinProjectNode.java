@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -28,6 +27,7 @@ import io.confluent.ksql.planner.RequiredColumns.Builder;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatInfo;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -39,12 +39,12 @@ import java.util.stream.Stream;
  *
  * <p>This aliasing avoids column name clashes between the sources within a join.
  */
-@Immutable
-public class PreJoinProjectNode extends ProjectNode {
+public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
 
   private final ImmutableList<SelectExpression> selectExpressions;
   private final ImmutableBiMap<ColumnName, ColumnName> aliases;
   private final LogicalSchema schema;
+  private final JoiningNode joiningSource;
 
   public PreJoinProjectNode(
       final PlanNodeId id,
@@ -59,6 +59,7 @@ public class PreJoinProjectNode extends ProjectNode {
     ));
     this.aliases = buildAliasMapping(selectExpressions);
     this.schema = buildSchema(alias, source.getSchema());
+    this.joiningSource = (JoiningNode) source;
   }
 
   @Override
@@ -68,6 +69,21 @@ public class PreJoinProjectNode extends ProjectNode {
 
   public List<SelectExpression> getSelectExpressions() {
     return selectExpressions;
+  }
+
+  @Override
+  public Optional<RequiredFormat> getRequiredKeyFormat() {
+    return joiningSource.getRequiredKeyFormat();
+  }
+
+  @Override
+  public Optional<FormatInfo> getPreferredKeyFormat() {
+    return joiningSource.getPreferredKeyFormat();
+  }
+
+  @Override
+  public void setKeyFormat(final FormatInfo format) {
+    joiningSource.setKeyFormat(format);
   }
 
   @Override

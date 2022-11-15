@@ -27,8 +27,8 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.Identifiers;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
@@ -65,7 +65,7 @@ public class InsertsStreamEndpoint {
 
     final String target;
     try {
-      target = ParserUtil.getIdentifierText(caseInsensitiveTarget);
+      target = Identifiers.getIdentifierText(caseInsensitiveTarget);
     } catch (IllegalArgumentException e) {
       throw new KsqlApiException(
           "Invalid target name: " + e.getMessage(), ERROR_CODE_BAD_STATEMENT);

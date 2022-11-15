@@ -1,0 +1,173 @@
+{
+  "comments": [
+    "NONE format testing."
+  ],
+  "tests": [
+    {
+      "name": "as key format of keyless stream",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', key_format='NONE', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": null, "value": {"foo": 10}},
+        {"topic": "input_topic", "key": "data that should be ignored", "value": {"foo": 11}},
+        {"topic": "input_topic", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 11}},
+        {"topic": "OUTPUT", "key": null, "value": null}
+      ]
+    },
+    {
+      "name": "as key format of keyed stream",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='NONE', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'NONE' format can only be used when no columns are defined. Got: [`K` STRING KEY]"
+      }
+    },
+    {
+      "name": "as key format of table",
+      "statements": [
+        "CREATE TABLE INPUT (K STRING PRIMARY KEY, foo INT) WITH (kafka_topic='input_topic', key_format='NONE', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'NONE' format can only be used when no columns are defined. Got: [`K` STRING KEY]"
+      }
+    },
+    {
+      "name": "as value format with value columns",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='NONE');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'NONE' format can only be used when no columns are defined. Got: [`FOO` INTEGER]"
+      }
+    },
+    {
+      "name": "in CSAS from keyless stream",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(key_format='NONE') AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "ignored", "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": null}
+      ]
+    },
+    {
+      "name": "in CSAS partitioning by null",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(key_format='NONE') AS SELECT * FROM INPUT PARTITION BY null;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 9, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10, "ID": 9}},
+        {"topic": "OUTPUT", "key": null, "value": null}
+      ]
+    },
+    {
+      "name": "explicitly set in CSAS with key",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (key_format='NONE') AS SELECT * FROM INPUT PARTITION BY BAR;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'NONE' format can only be used when no columns are defined. Got: [`BAR` INTEGER KEY]"
+      }
+    },
+    {
+      "name": "explicitly set in CTAS",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='JSON');",
+        "CREATE TABLE OUTPUT WITH (key_format='NONE') AS SELECT BAR AS K, COUNT() FROM INPUT GROUP BY BAR;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'NONE' format can only be used when no columns are defined. Got: [`K` INTEGER KEY]"
+      }
+    },
+    {
+      "name": "inherited in CSAS - PARTITION BY",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key_format='NONE', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY BAR;"
+      ],
+      "properties": {
+        "ksql.persistence.default.format.key": "JSON"
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": null, "value": {"foo": 10}},
+        {"topic": "input_topic", "key": "data that should be ignored", "value": {"foo": 11}},
+        {"topic": "input_topic", "key": null, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 11}},
+        {"topic": "OUTPUT", "key": null, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "JSON"}}
+        ]
+      }
+    },
+    {
+      "name": "inherited in CSAS - JOIN with repartition",
+      "statements": [
+        "CREATE TABLE T (ID INT PRIMARY KEY, VAL STRING) WITH (kafka_topic='t', key_format='KAFKA', value_format='JSON');",
+        "CREATE STREAM S (ID INT) WITH (kafka_topic='s', key_format='NONE', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT S.ID, VAL FROM S JOIN T ON S.ID = T.ID;"
+      ],
+      "inputs": [
+        {"topic": "t", "key": 10, "value": {"VAL": "hello"}},
+        {"topic": "s", "key": null, "value": {"id": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "KAFKA"}}
+        ]
+      }
+    },
+    {
+      "name": "inherited in CTAS - GROUP BY",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', key_format='NONE', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT FOO, COUNT() AS COUNT FROM INPUT GROUP BY FOO;"
+      ],
+      "properties": {
+        "ksql.persistence.default.format.key": "JSON"
+      },
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 22}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 22, "value": {"COUNT": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyFormat": {"format": "JSON"}}
+        ]
+      }
+    }
+  ]
+}

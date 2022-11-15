@@ -44,21 +44,24 @@ public final class ListFunctionsExecutor {
     final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.SCALAR
+            FunctionType.SCALAR, 
+            factory.getMetadata().getCategory()
         ))
         .collect(Collectors.toList());
 
     functionRegistry.listTableFunctions().stream()
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.TABLE
+            FunctionType.TABLE, 
+            factory.getMetadata().getCategory()
         ))
         .forEach(all::add);
 
     functionRegistry.listAggregateFunctions().stream()
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.AGGREGATE
+            FunctionType.AGGREGATE, 
+            factory.getMetadata().getCategory()
         ))
         .forEach(all::add);
 

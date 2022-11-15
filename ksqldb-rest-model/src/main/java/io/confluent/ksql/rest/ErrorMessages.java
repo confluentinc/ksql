@@ -22,4 +22,8 @@ public interface ErrorMessages {
   String transactionInitTimeoutErrorMessage(Exception e);
   
   String schemaRegistryUnconfiguredErrorMessage(Exception e);
+
+  String commandRunnerDegradedIncompatibleCommandsErrorMessage();
+
+  String commandRunnerDegradedCorruptedErrorMessage();
 }

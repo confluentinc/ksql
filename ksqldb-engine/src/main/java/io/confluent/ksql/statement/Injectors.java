@@ -16,6 +16,7 @@
 package io.confluent.ksql.statement;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegisterInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
@@ -28,6 +29,7 @@ import java.util.function.BiFunction;
 public enum Injectors implements BiFunction<KsqlExecutionContext, ServiceContext, Injector> {
 
   NO_TOPIC_DELETE((ec, sc) -> InjectorChain.of(
+      new DefaultFormatInjector(),
       new DefaultSchemaInjector(
           new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
       new TopicCreateInjector(ec, sc),

@@ -28,7 +28,6 @@ import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
-import java.util.Optional;
 
 @JsonInclude(Include.NON_EMPTY)
 public final class TopicNode {
@@ -37,21 +36,28 @@ public final class TopicNode {
   private static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   private final String name;
-  private final JsonNode schema;
+  private final JsonNode keySchema;
+  private final JsonNode valueSchema;
   private final int numPartitions;
   private final int replicas;
-  private final String format;
+  private final String keyFormat;
+  private final String valueFormat;
 
   public TopicNode(
       @JsonProperty("name") final String name,
-      @JsonProperty("schema") final JsonNode schema,
-      @JsonProperty("format") final String format,
+      @JsonProperty("keySchema") final JsonNode keySchema,
+      @JsonProperty("valueSchema") final JsonNode valueSchema,
+      @JsonProperty("keyFormat") final String keyFormat,
+      @JsonProperty("valueFormat") final String valueFormat,
       @JsonProperty("partitions") final Integer numPartitions,
       @JsonProperty("replicas") final Integer replicas
   ) {
+
     this.name = name == null ? "" : name;
-    this.schema = schema == null ? NullNode.getInstance() : schema;
-    this.format = format;
+    this.keySchema = keySchema;
+    this.valueSchema = valueSchema;
+    this.keyFormat = keyFormat;
+    this.valueFormat = valueFormat;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;
 
@@ -60,19 +66,30 @@ public final class TopicNode {
     }
 
     // Fail early:
-    buildSchema();
+    SerdeUtil.buildSchema(keySchema, keyFormat);
+    SerdeUtil.buildSchema(valueSchema, valueFormat);
   }
 
   public String getName() {
     return name;
   }
 
-  public JsonNode getSchema() {
-    return schema instanceof NullNode ? null : schema;
+  @JsonInclude(Include.NON_NULL)
+  public JsonNode getKeySchema() {
+    return keySchema instanceof NullNode ? null : keySchema;
   }
 
-  public String getFormat() {
-    return format;
+  @JsonInclude(Include.NON_NULL)
+  public JsonNode getValueSchema() {
+    return valueSchema instanceof NullNode ? null : valueSchema;
+  }
+
+  public String getKeyFormat() {
+    return keyFormat;
+  }
+
+  public String getValueFormat() {
+    return valueFormat;
   }
 
   public int getNumPartitions() {
@@ -84,20 +101,33 @@ public final class TopicNode {
   }
 
   public Topic build() {
-    return new Topic(name, numPartitions, replicas, buildSchema());
+    return new Topic(
+        name,
+        numPartitions,
+        replicas,
+        SerdeUtil.buildSchema(keySchema, keyFormat),
+        SerdeUtil.buildSchema(valueSchema, valueFormat)
+    );
   }
 
   public static TopicNode from(final Topic topic) {
-    final String format = topic.getSchema()
+    final String keyFormat = topic.getKeySchema()
+        .map(ParsedSchema::schemaType)
+        .orElse(null);
+    final String valueFormat = topic.getValueSchema()
         .map(ParsedSchema::schemaType)
         .orElse(null);
 
     return new TopicNode(
         topic.getName(),
-        topic.getSchema()
-            .map(schema -> buildSchemaNode(schema, format))
+        topic.getKeySchema()
+            .map(schema -> buildSchemaNode(schema, keyFormat))
             .orElseGet(NullNode::getInstance),
-        format,
+        topic.getValueSchema()
+            .map(schema -> buildSchemaNode(schema, valueFormat))
+            .orElseGet(NullNode::getInstance),
+        keyFormat,
+        valueFormat,
         topic.getNumPartitions(),
         (int) topic.getReplicas()
     );
@@ -117,7 +147,4 @@ public final class TopicNode {
     }
   }
 
-  private Optional<ParsedSchema> buildSchema() {
-    return SerdeUtil.buildSchema(schema, format);
-  }
 }

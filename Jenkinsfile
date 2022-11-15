@@ -9,6 +9,7 @@ dockerfile {
     dockerPush = false
     dockerScan = false
     dockerImageClean = false
-    disableConcurrentBuilds = true
+    downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
+    nanoVersion = true
 }
 

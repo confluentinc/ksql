@@ -42,7 +42,8 @@ public class CommandId {
     CREATE,
     DROP,
     EXECUTE,
-    TERMINATE
+    TERMINATE,
+    ALTER
   }
 
   public CommandId(

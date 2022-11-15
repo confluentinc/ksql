@@ -1,0 +1,43 @@
+
+{
+  "comments": [
+    "Tests covering generic UDAFs"
+  ],
+  "tests": [
+    {
+      "name": "throw on signature mismatch",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, false, 2) FROM INPUT GROUP BY ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'EARLIEST_BY_OFFSET' does not accept parameters (INTEGER, BOOLEAN, INTEGER).\nValid alternatives are:"
+      }
+    },
+    {
+      "name": "throw on no literal expressions pass for literal params",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, F0) FROM INPUT GROUP BY ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Parameter 2 passed to function EARLIEST_BY_OFFSET must be a literal constant, but was expression: 'F0'"
+      }
+    },
+    {
+      "name": "support more than one literal param",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2, true) FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "value": {"KSQL_COL_0": [1]}}
+      ]
+    }
+  ]
+}

@@ -81,7 +81,7 @@ queries. If you projection is missing the synthetic key, then an error like the 
 returned, indicating the name of the missing key column:
 
 ```
-Key missing from projection. See https://cnfl.io/2LV7ouS.
+Key missing from projection.
 The query used to build `OUTPUT` must include the join expression ROWKEY in its projection.
 ROWKEY was added as a synthetic key column because the join criteria did not match any source column. This expression must be included in the projection and may be aliased. 
 ```  

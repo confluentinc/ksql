@@ -16,11 +16,13 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
@@ -28,6 +30,7 @@ import java.io.Closeable;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -36,8 +39,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,17 +73,64 @@ public class CommandRunner implements Closeable {
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
 
-  private final CommandRunnerStatusMetric commandRunnerStatusMetric;
+  private final CommandRunnerMetrics commandRunnerMetric;
   private final AtomicReference<Pair<QueuedCommand, Instant>> currentCommandRef;
   private final AtomicReference<Instant> lastPollTime;
   private final Duration commandRunnerHealthTimeout;
   private final Clock clock;
 
+  private final Deserializer<Command> commandDeserializer;
+  private final Consumer<QueuedCommand> incompatibleCommandChecker;
+  private final Errors errorHandler;
+  private boolean incompatibleCommandDetected;
+  private final Supplier<Boolean> commandTopicExists;
+  private boolean commandTopicDeleted;
+  private Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
+
   public enum CommandRunnerStatus {
     RUNNING,
-    ERROR
+    ERROR,
+    DEGRADED
   }
 
+  public enum CommandRunnerDegradedReason {
+    NONE(errors -> ""),
+    CORRUPTED(Errors::commandRunnerDegradedCorruptedErrorMessage),
+    INCOMPATIBLE_COMMAND(Errors::commandRunnerDegradedIncompatibleCommandsErrorMessage);
+
+    private final Function<Errors, String> msgFactory;
+
+    public String getMsg(final Errors errors) {
+      return msgFactory.apply(errors);
+    }
+
+    CommandRunnerDegradedReason(final Function<Errors, String> msgFactory) {
+      this.msgFactory = msgFactory;
+    }
+  }
+
+  public static class Status {
+    private final CommandRunnerStatus status;
+    private final CommandRunnerDegradedReason degradedReason;
+
+    public Status(
+        final CommandRunnerStatus status,
+        final CommandRunnerDegradedReason degradedReason
+    ) {
+      this.status = status;
+      this.degradedReason = degradedReason;
+    }
+
+    public CommandRunnerStatus getStatus() {
+      return status;
+    }
+
+    public CommandRunnerDegradedReason getDegradedReason() {
+      return degradedReason;
+    }
+  }
+
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,
@@ -84,7 +139,11 @@ public class CommandRunner implements Closeable {
       final ServerState serverState,
       final String ksqlServiceId,
       final Duration commandRunnerHealthTimeout,
-      final String metricsGroupPrefix
+      final String metricsGroupPrefix,
+      final Deserializer<Command> commandDeserializer,
+      final Errors errorHandler,
+      final KafkaTopicClient kafkaTopicClient,
+      final String commandTopicName
   ) {
     this(
         statementExecutor,
@@ -97,7 +156,14 @@ public class CommandRunner implements Closeable {
         commandRunnerHealthTimeout,
         metricsGroupPrefix,
         Clock.systemUTC(),
-        RestoreCommandsCompactor::compact
+        RestoreCommandsCompactor::compact,
+        queuedCommand -> {
+          queuedCommand.getAndDeserializeCommandId();
+          queuedCommand.getAndDeserializeCommand(commandDeserializer);
+        },
+        commandDeserializer,
+        errorHandler,
+        () -> kafkaTopicClient.isTopicExists(commandTopicName)
     );
   }
 
@@ -114,7 +180,11 @@ public class CommandRunner implements Closeable {
       final Duration commandRunnerHealthTimeout,
       final String metricsGroupPrefix,
       final Clock clock,
-      final Function<List<QueuedCommand>, List<QueuedCommand>> compactor
+      final Function<List<QueuedCommand>, List<QueuedCommand>> compactor,
+      final Consumer<QueuedCommand> incompatibleCommandChecker,
+      final Deserializer<Command> commandDeserializer,
+      final Errors errorHandler,
+      final Supplier<Boolean> commandTopicExists
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
@@ -127,10 +197,20 @@ public class CommandRunner implements Closeable {
         Objects.requireNonNull(commandRunnerHealthTimeout, "commandRunnerHealthTimeout");
     this.currentCommandRef = new AtomicReference<>(null);
     this.lastPollTime = new AtomicReference<>(null);
-    this.commandRunnerStatusMetric =
-        new CommandRunnerStatusMetric(ksqlServiceId, this, metricsGroupPrefix);
+    this.commandRunnerMetric =
+        new CommandRunnerMetrics(ksqlServiceId, this, metricsGroupPrefix);
     this.clock = Objects.requireNonNull(clock, "clock");
     this.compactor = Objects.requireNonNull(compactor, "compactor");
+    this.incompatibleCommandChecker =
+        Objects.requireNonNull(incompatibleCommandChecker, "incompatibleCommandChecker");
+    this.commandDeserializer =
+        Objects.requireNonNull(commandDeserializer, "commandDeserializer");
+    this.errorHandler =
+        Objects.requireNonNull(errorHandler, "errorHandler");
+    this.commandTopicExists =
+        Objects.requireNonNull(commandTopicExists, "commandTopicExists");
+    this.incompatibleCommandDetected = false;
+    this.commandTopicDeleted = false;
   }
 
   /**
@@ -147,6 +227,16 @@ public class CommandRunner implements Closeable {
    */
   @Override
   public void close() {
+    if (!closed) {
+      closeEarly();
+    }
+    commandRunnerMetric.close();
+  }
+
+  /**
+   * Closes the poll-execute loop before the server shuts down
+   */
+  private void closeEarly() {
     try {
       closed = true;
       commandStore.wakeup();
@@ -154,7 +244,6 @@ public class CommandRunner implements Closeable {
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
-    commandRunnerStatusMetric.close();
   }
 
   /**
@@ -163,17 +252,19 @@ public class CommandRunner implements Closeable {
   public void processPriorCommands() {
     try {
       final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
+      final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
 
-      LOG.info("Restoring previous state from {} commands.", restoreCommands.size());
+      LOG.info("Restoring previous state from {} commands.", compatibleCommands.size());
 
-      final Optional<QueuedCommand> terminateCmd = findTerminateCommand(restoreCommands);
+      final Optional<QueuedCommand> terminateCmd =
+          findTerminateCommand(compatibleCommands, commandDeserializer);
       if (terminateCmd.isPresent()) {
         LOG.info("Cluster previously terminated: terminating.");
-        terminateCluster(terminateCmd.get().getCommand());
+        terminateCluster(terminateCmd.get().getAndDeserializeCommand(commandDeserializer));
         return;
       }
 
-      final List<QueuedCommand> compacted = compactor.apply(restoreCommands);
+      final List<QueuedCommand> compacted = compactor.apply(compatibleCommands);
 
       compacted.forEach(
           command -> {
@@ -209,17 +300,22 @@ public class CommandRunner implements Closeable {
     lastPollTime.set(clock.instant());
     final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
     if (commands.isEmpty()) {
+      if (!commandTopicExists.get()) {
+        commandTopicDeleted = true;
+      }
       return;
     }
 
-    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
+    final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(commands);
+    final Optional<QueuedCommand> terminateCmd =
+        findTerminateCommand(compatibleCommands, commandDeserializer);
     if (terminateCmd.isPresent()) {
-      terminateCluster(terminateCmd.get().getCommand());
+      terminateCluster(terminateCmd.get().getAndDeserializeCommand(commandDeserializer));
       return;
     }
 
-    LOG.debug("Found {} new writes to command topic", commands.size());
-    for (final QueuedCommand command : commands) {
+    LOG.debug("Found {} new writes to command topic", compatibleCommands.size());
+    for (final QueuedCommand command : compatibleCommands) {
       if (closed) {
         return;
       }
@@ -228,9 +324,8 @@ public class CommandRunner implements Closeable {
     }
   }
 
-  @SuppressFBWarnings("DMI_INVOKING_TOSTRING_ON_ARRAY")
   private void executeStatement(final QueuedCommand queuedCommand) {
-    final String commandId = queuedCommand.getCommandId().toString();
+    final String commandId = queuedCommand.getAndDeserializeCommandId().toString();
     LOG.info("Executing statement: " + commandId);
 
     final Runnable task = () -> {
@@ -254,10 +349,11 @@ public class CommandRunner implements Closeable {
   }
 
   private static Optional<QueuedCommand> findTerminateCommand(
-      final List<QueuedCommand> restoreCommands
+      final List<QueuedCommand> restoreCommands,
+      final Deserializer<Command> commandDeserializer
   ) {
     return restoreCommands.stream()
-        .filter(command -> command.getCommand().getStatement()
+        .filter(command -> command.getAndDeserializeCommand(commandDeserializer).getStatement()
             .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))
         .findFirst();
   }
@@ -274,18 +370,53 @@ public class CommandRunner implements Closeable {
     LOG.info("The KSQL server was terminated.");
   }
 
-  CommandRunnerStatus checkCommandRunnerStatus() {
+  private List<QueuedCommand> checkForIncompatibleCommands(final List<QueuedCommand> commands) {
+    final List<QueuedCommand> compatibleCommands = new ArrayList<>();
+    try {
+      for (final QueuedCommand command : commands) {
+        incompatibleCommandChecker.accept(command);
+        compatibleCommands.add(command);
+      }
+    } catch (final SerializationException | IncomaptibleKsqlCommandVersionException e) {
+      LOG.info("Incompatible command record detected when processing command topic", e);
+      incompatibleCommandDetected = true;
+    }
+    return compatibleCommands;
+  }
+
+  public CommandQueue getCommandQueue() {
+    return commandStore;
+  }
+
+  public CommandRunnerStatus checkCommandRunnerStatus() {
+    if (state.getStatus() == CommandRunnerStatus.DEGRADED) {
+      return CommandRunnerStatus.DEGRADED;
+    }
+
     final Pair<QueuedCommand, Instant> currentCommand = currentCommandRef.get();
     if (currentCommand == null) {
-      return lastPollTime.get() == null
+      state = lastPollTime.get() == null
           || Duration.between(lastPollTime.get(), clock.instant()).toMillis()
               < NEW_CMDS_TIMEOUT.toMillis() * 3
-              ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
-    }
-    
-    return Duration.between(currentCommand.right, clock.instant()).toMillis()
+              ? new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE)
+                  : new Status(CommandRunnerStatus.ERROR, CommandRunnerDegradedReason.NONE);
+      
+    } else {
+      state = Duration.between(currentCommand.right, clock.instant()).toMillis()
         < commandRunnerHealthTimeout.toMillis()
-        ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
+        ? new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE)
+              : new Status(CommandRunnerStatus.ERROR, CommandRunnerDegradedReason.NONE);
+    }
+
+    return state.getStatus();
+  }
+
+  public CommandRunnerDegradedReason getCommandRunnerDegradedReason() {
+    return state.getDegradedReason();
+  }
+
+  public String getCommandRunnerDegradedWarning() {
+    return getCommandRunnerDegradedReason().getMsg(errorHandler);
   }
 
   private class Runner implements Runnable {
@@ -294,13 +425,45 @@ public class CommandRunner implements Closeable {
     public void run() {
       try {
         while (!closed) {
-          LOG.trace("Polling for new writes to command topic");
-          fetchAndRunCommands();
+          if (incompatibleCommandDetected) {
+            LOG.warn("CommandRunner entering degraded state due to "
+                + "encountering an incompatible command");
+            state = new Status(
+                CommandRunnerStatus.DEGRADED,
+                CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND
+            );
+            closeEarly();
+          } else if (commandStore.corruptionDetected()) {
+            LOG.warn("CommandRunner entering degraded state due to encountering corruption "
+                + "between topic and backup");
+            state = new Status(
+                CommandRunnerStatus.DEGRADED,
+                CommandRunnerDegradedReason.CORRUPTED
+            );
+            closeEarly();
+          } else if (commandTopicDeleted) {
+            LOG.warn("CommandRunner entering degraded state due to command topic deletion.");
+            state = new Status(
+                CommandRunnerStatus.DEGRADED,
+                CommandRunnerDegradedReason.CORRUPTED
+            );
+            closeEarly();
+          } else {
+            LOG.trace("Polling for new writes to command topic");
+            fetchAndRunCommands();
+          }
         }
       } catch (final WakeupException wue) {
         if (!closed) {
           throw wue;
         }
+      } catch (final OffsetOutOfRangeException e) {
+        LOG.warn("The command topic offset was reset. CommandRunner thread exiting.");
+        state = new Status(
+            CommandRunnerStatus.DEGRADED,
+            CommandRunnerDegradedReason.CORRUPTED
+        );
+        closeEarly();
       } finally {
         commandStore.close();
       }

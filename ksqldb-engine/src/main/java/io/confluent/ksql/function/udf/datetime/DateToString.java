@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udf.datetime;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -29,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 
 @UdfDescription(
     name = "datetostring",
+    category = FunctionCategory.DATE_TIME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts an integer representing days since epoch to a date string"
         + " using the given format pattern. Note this is the format Kafka Connect uses"

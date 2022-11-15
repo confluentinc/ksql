@@ -16,15 +16,17 @@
 package io.confluent.ksql.test.tools;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import io.confluent.ksql.test.model.ExpectedExceptionNode;
 import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TestCaseNode;
+import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.hamcrest.Matcher;
@@ -37,7 +39,11 @@ public final class TestCaseBuilder {
   private TestCaseBuilder() {
   }
 
-  public static List<TestCase> buildTests(final TestCaseNode test, final Path testPath) {
+  public static List<TestCase> buildTests(
+      final TestCaseNode test,
+      final Path originalFileName,
+      final Function<String, TestLocation> testLocator
+  ) {
     if (!test.isEnabled()) {
       return ImmutableList.of();
     }
@@ -47,8 +53,10 @@ public final class TestCaseBuilder {
           ? Stream.of(Optional.empty())
           : test.formats().stream().map(Optional::of);
 
+      final TestLocation location = testLocator.apply(test.name());
+
       return formats
-          .map(format -> createTest(test, format, testPath))
+          .map(format -> createTest(test, originalFileName, location, format))
           .collect(Collectors.toList());
     } catch (final Exception e) {
       throw new AssertionError("Invalid test '" + test.name() + "': " + e.getMessage(), e);
@@ -57,11 +65,12 @@ public final class TestCaseBuilder {
 
   private static TestCase createTest(
       final TestCaseNode test,
-      final Optional<String> explicitFormat,
-      final Path testPath
+      final Path originalFileName,
+      final TestLocation location,
+      final Optional<String> explicitFormat
   ) {
     final String testName = TestCaseBuilderUtil.buildTestName(
-        testPath,
+        originalFileName,
         test.name(),
         explicitFormat
     );
@@ -75,7 +84,7 @@ public final class TestCaseBuilder {
       );
 
       final Optional<Matcher<Throwable>> ee = test.expectedException()
-          .map(een -> een.build(Iterables.getLast(statements)));
+          .map(ExpectedExceptionNode::build);
 
       final List<Topic> topics = test.topics().stream()
           .map(TopicNode::build)
@@ -94,7 +103,8 @@ public final class TestCaseBuilder {
           .orElse(PostConditions.NONE);
 
       return new TestCase(
-          testPath,
+          location,
+          originalFileName,
           testName,
           versionBounds,
           test.properties(),

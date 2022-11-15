@@ -25,17 +25,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
@@ -47,6 +50,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,6 +67,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestHandlerTest {
 
+  private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
   
   @Mock private KsqlEngine ksqlEngine;
@@ -80,9 +85,9 @@ public class RequestHandlerTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.prepare(any()))
+    when(ksqlEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
-            new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
+            KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
     when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
     when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of());
     doNothing().when(sync).waitFor(any(), any());
@@ -100,7 +105,7 @@ public class RequestHandlerTest {
 
     // When
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+        KSQL_PARSER.parse(SOME_STREAM_SQL);
     final KsqlEntityList entities = handler.execute(securityContext, statements, sessionProperties);
 
     // Then
@@ -116,14 +121,51 @@ public class RequestHandlerTest {
         );
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @Test
+  public void shouldCallPrepareStatementWithSessionVariables() {
+    // Given
+    final StatementExecutor<CreateStream> customExecutor =
+        givenReturningExecutor(CreateStream.class, mock(KsqlEntity.class));
+    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
+    final Map<String, String> sessionVariables = ImmutableMap.of("a", "1");
+    when(sessionProperties.getSessionVariables()).thenReturn(sessionVariables);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE)).thenReturn(true);
+
+    // When
+    final List<ParsedStatement> statements = KSQL_PARSER.parse(SOME_STREAM_SQL);
+    handler.execute(securityContext, statements, sessionProperties);
+
+    // Then
+    verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
+    verify(sessionProperties).getSessionVariables();
+  }
+
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @Test
+  public void shouldCallPrepareStatementWithEmptySessionVariablesIfSubstitutionDisabled() {
+    // Given
+    final StatementExecutor<CreateStream> customExecutor =
+        givenReturningExecutor(CreateStream.class, mock(KsqlEntity.class));
+    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE)).thenReturn(false);
+
+    // When
+    final List<ParsedStatement> statements = KSQL_PARSER.parse(SOME_STREAM_SQL);
+    handler.execute(securityContext, statements, sessionProperties);
+
+    // Then
+    verify(ksqlEngine).prepare(statements.get(0), Collections.emptyMap());
+    verify(sessionProperties, never()).getSessionVariables();
+  }
+
   @Test
   public void shouldDefaultToDistributor() {
     // Given
     givenRequestHandler(ImmutableMap.of());
 
     // When
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+    final List<ParsedStatement> statements = KSQL_PARSER.parse(SOME_STREAM_SQL);
     final KsqlEntityList entities = handler.execute(securityContext, statements, sessionProperties);
 
     // Then
@@ -145,7 +187,7 @@ public class RequestHandlerTest {
     when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of("x", "y"));
     // When
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+        KSQL_PARSER.parse(SOME_STREAM_SQL);
     final KsqlEntityList entities = handler.execute(
         securityContext,
         statements,
@@ -179,7 +221,7 @@ public class RequestHandlerTest {
     );
 
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(
+        KSQL_PARSER.parse(
             "CREATE STREAM x WITH (value_format='json', kafka_topic='x');"
                 + "CREATE STREAM y WITH (value_format='json', kafka_topic='y');"
                 + "CREATE STREAM z WITH (value_format='json', kafka_topic='z');"

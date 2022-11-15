@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.map;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -25,6 +26,7 @@ import java.util.Map;
 
 @UdfDescription(
     name = "AS_MAP",
+    category = FunctionCategory.MAP,
     description = "Construct a list based on some inputs",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

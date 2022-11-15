@@ -238,7 +238,8 @@ public final class StreamAggregateBuilder {
       this.formats = aggregate.getInternalFormats();
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
           aggregateSchema,
-          formats.getOptions()
+          formats.getKeyFeatures(),
+          formats.getValueFeatures()
       );
 
       keySerde = queryBuilder.buildKeySerde(

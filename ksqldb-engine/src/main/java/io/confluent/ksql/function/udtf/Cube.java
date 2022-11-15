@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udtf;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @UdtfDescription(
     name = "cube_explode",
+    category = FunctionCategory.TABLE,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description =
         "Takes as argument a list of columns and outputs all possible combinations of them. "

@@ -15,29 +15,38 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
+
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 public class SchemaRegisterInjector implements Injector {
@@ -71,11 +80,31 @@ public class SchemaRegisterInjector implements Injector {
     // since this injector is chained after the TopicCreateInjector,
     // we can assume that the kafka topic is always present in the
     // statement properties
-    registerSchema(
-        cs.getStatement().getElements().toLogicalSchema(),
-        cs.getStatement().getProperties().getKafkaTopic(),
-        cs.getStatement().getProperties().getFormatInfo(),
-        cs.getConfig(),
+    final CreateSource statement = cs.getStatement();
+    final LogicalSchema schema = statement.getElements().toLogicalSchema();
+
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(statement.getProperties());
+    final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
+        schema,
+        FormatFactory.of(keyFormat)
+    );
+
+    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(statement.getProperties());
+    final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
+        schema,
+        FormatFactory.of(valueFormat),
+        statement.getProperties().getValueSerdeFeatures(),
+        cs.getSessionConfig().getConfig(false)
+    );
+
+    registerSchemas(
+        schema,
+        statement.getProperties().getKafkaTopic(),
+        keyFormat,
+        keyFeatures,
+        valueFormat,
+        valFeatures,
+        cs.getSessionConfig().getConfig(false),
         cs.getMaskedStatementText(),
         false
     );
@@ -95,49 +124,93 @@ public class SchemaRegisterInjector implements Injector {
             cas.getMaskedStatementText()
         ));
 
-    registerSchema(
+    registerSchemas(
         queryMetadata.getLogicalSchema(),
         queryMetadata.getResultTopic().getKafkaTopicName(),
+        queryMetadata.getResultTopic().getKeyFormat().getFormatInfo(),
+        queryMetadata.getPhysicalSchema().keySchema().features(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
-        cas.getConfig(),
+        queryMetadata.getPhysicalSchema().valueSchema().features(),
+        cas.getSessionConfig().getConfig(false),
         cas.getMaskedStatementText(),
         true
     );
   }
 
-  private void registerSchema(
+  private void registerSchemas(
       final LogicalSchema schema,
-      final String topic,
-      final FormatInfo formatInfo,
+      final String kafkaTopic,
+      final FormatInfo keyFormat,
+      final SerdeFeatures keySerdeFeatures,
+      final FormatInfo valueFormat,
+      final SerdeFeatures valueSerdeFeatures,
       final KsqlConfig config,
       final String statementText,
       final boolean registerIfSchemaExists
   ) {
+    registerSchema(
+        schema.key(),
+        kafkaTopic,
+        keyFormat,
+        keySerdeFeatures,
+        config,
+        statementText,
+        registerIfSchemaExists,
+        getSRSubject(kafkaTopic, true)
+    );
+
+    registerSchema(
+        schema.value(),
+        kafkaTopic,
+        valueFormat,
+        valueSerdeFeatures,
+        config,
+        statementText,
+        registerIfSchemaExists,
+        getSRSubject(kafkaTopic, false)
+    );
+  }
+
+  private void registerSchema(
+      final List<? extends SimpleColumn> schema,
+      final String topic,
+      final FormatInfo formatInfo,
+      final SerdeFeatures serdeFeatures,
+      final KsqlConfig config,
+      final String statementText,
+      final boolean registerIfSchemaExists,
+      final String subject
+  ) {
     final Format format = FormatFactory.of(formatInfo);
-    if (!format.supportsSchemaInference()) {
+    if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       return;
     }
 
-    if (config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) != null
-        && !config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).isEmpty()) {
-      try {
-        final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-        final String subject = topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-        final ParsedSchema parsedSchema =
-            format.toParsedSchema(schema.withoutPseudoAndKeyColsInValue().value(), formatInfo);
-
-        if (registerIfSchemaExists || !SchemaRegistryUtil.subjectExists(srClient, subject)) {
-          srClient.register(subject, parsedSchema);
-        }
-      } catch (IOException | RestClientException e) {
-        throw new KsqlStatementException("Could not register schema for topic.", statementText, e);
-      }
-    } else {
+    if (config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).isEmpty()) {
       throw new KsqlSchemaRegistryNotConfiguredException(
           String.format(
               "Cannot create topic '%s' with format %s without configuring '%s'",
               topic, format.name(), KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
       );
+    }
+
+    try {
+      final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
+
+      if (registerIfSchemaExists || !SchemaRegistryUtil.subjectExists(srClient, subject)) {
+        final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());
+
+        final ParsedSchema parsedSchema = translator.toParsedSchema(
+            PersistenceSchema.from(schema, serdeFeatures)
+        );
+
+        srClient.register(subject, parsedSchema);
+      }
+    } catch (IOException | RestClientException e) {
+      throw new KsqlStatementException(
+          "Could not register schema for topic: " + e.getMessage(),
+          statementText,
+          e);
     }
   }
 }

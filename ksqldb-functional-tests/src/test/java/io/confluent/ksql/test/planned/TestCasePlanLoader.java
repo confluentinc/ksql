@@ -26,8 +26,11 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.model.KsqlVersion;
+import io.confluent.ksql.test.model.PathLocation;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.SchemaNode;
+import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.TestCase;
@@ -48,6 +51,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -62,7 +66,7 @@ import org.w3c.dom.NodeList;
  */
 public final class TestCasePlanLoader {
 
-  private static final String CURRENT_VERSION = getFormattedVersionFromPomFile();
+  private static final KsqlVersion CURRENT_VERSION = getFormattedVersionFromPomFile();
   private static final KsqlConfig BASE_CONFIG = new KsqlConfig(TestExecutor.baseConfig());
   public static final Path PLANS_DIR = Paths.get("historical_plans");
 
@@ -87,7 +91,7 @@ public final class TestCasePlanLoader {
             "Historical test directory not found: " + plansDir))
         .stream()
         .map(plansDir::resolve)
-        .filter(predicate::test)
+        .filter(predicate)
         .flatMap(dir -> PlannedTestUtils.loadContents(dir.toString())
             .orElseGet(ImmutableList::of)
             .stream()
@@ -109,7 +113,11 @@ public final class TestCasePlanLoader {
         CURRENT_VERSION,
         System.currentTimeMillis(),
         BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated(),
-        TestCaseBuilderUtil.extractSimpleTestName(testCase.getTestFile(), testCase.getName())
+        TestCaseBuilderUtil.extractSimpleTestName(
+            testCase.getOriginalFileName().toString(),
+            testCase.getName()
+        ),
+        true
     );
   }
 
@@ -124,10 +132,11 @@ public final class TestCasePlanLoader {
   ) {
     return buildStatementsInTestCase(
         PlannedTestUtils.buildPlannedTestCase(original),
-        original.getSpecNode().getVersion(),
+        KsqlVersion.parse(original.getSpecNode().getVersion()),
         original.getSpecNode().getTimestamp(),
         original.getPlanNode().getConfigs(),
-        original.getSpecNode().getTestCase().name()
+        original.getSpecNode().getTestCase().name(),
+        false
     );
   }
 
@@ -171,18 +180,22 @@ public final class TestCasePlanLoader {
     final PlannedTestPath topologyPath = versionDir.resolve(PlannedTestPath.TOPOLOGY_FILE);
 
     return new TestCasePlan(
+        new PathLocation(versionDir.absolutePath()),
         parseJson(specPath, JsonTestLoader.OBJECT_MAPPER, TestCaseSpecNode.class),
         parseJson(planPath, PlannedTestUtils.PLAN_MAPPER, TestCasePlanNode.class),
         slurp(topologyPath)
     );
   }
 
-  private static <T> T parseJson(final PlannedTestPath path, final ObjectMapper mapper,
-      final Class<T> type) {
+  private static <T> T parseJson(
+      final PlannedTestPath path,
+      final ObjectMapper mapper,
+      final Class<T> type
+  ) {
     try {
       return mapper.readValue(slurp(path), type);
     } catch (final IOException e) {
-      throw new TestFrameworkException("Error parsing json in file: " + path, e);
+      throw new TestFrameworkException("Error parsing json in file://" + path.absolutePath(), e);
     }
   }
 
@@ -199,14 +212,15 @@ public final class TestCasePlanLoader {
 
   private static TestCasePlan buildStatementsInTestCase(
       final TestCase testCase,
-      final String version,
+      final KsqlVersion version,
       final long timestamp,
       final Map<String, String> configs,
-      final String simpleTestName
+      final String simpleTestName,
+      final boolean validateResults
   ) {
-    final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase);
+    final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase, validateResults);
 
-    final List<TopicNode> allTopicNodes = getTopicsFromTestCase(testCase);
+    final List<TopicNode> allTopicNodes = getTopicsFromTestCase(testCase, configs);
 
     final TestCaseNode testCodeNode = new TestCaseNode(
         simpleTestName,
@@ -218,34 +232,39 @@ public final class TestCasePlanLoader {
         testCase.statements(),
         testCase.properties(),
         null,
-        testCase.getPostConditions().asNode(testInfo.getTopics()).orElse(null),
+        testCase.getPostConditions().asNode(testInfo.getTopics(), testInfo.getSources()),
         true
     );
 
     final TestCaseSpecNode spec = new TestCaseSpecNode(
-        version,
+        version.getVersion().toString(),
         timestamp,
-        testCase.getTestFile(),
-        testInfo.getSchemasDescription(),
+        testCase.getOriginalFileName().toString(),
+        testInfo.getSchemas(),
         testCodeNode
     );
 
     final TestCasePlanNode plan = new TestCasePlanNode(testInfo.getPlans(), configs);
 
     return new TestCasePlan(
+        new PathLocation(Paths.get("").toAbsolutePath()), // not used
         spec,
         plan,
         testInfo.getTopologyDescription()
     );
   }
 
-  private static List<TopicNode> getTopicsFromTestCase(final TestCase testCase) {
+  private static List<TopicNode> getTopicsFromTestCase(
+      final TestCase testCase,
+      final Map<?, ?> configs
+  ) {
     final Collection<Topic> allTopics = TestCaseBuilderUtil.getAllTopics(
         testCase.statements(),
         testCase.getTopics(),
         testCase.getOutputRecords(),
         testCase.getInputRecords(),
-        TestFunctionRegistry.INSTANCE.get()
+        TestFunctionRegistry.INSTANCE.get(),
+        new KsqlConfig(configs)
     );
 
     return allTopics.stream()
@@ -253,8 +272,11 @@ public final class TestCasePlanLoader {
         .collect(Collectors.toList());
   }
 
-  private static TestInfoGatherer executeTestCaseAndGatherInfo(final TestCase testCase) {
-    try (final TestExecutor testExecutor = TestExecutor.create(Optional.empty())) {
+  private static TestInfoGatherer executeTestCaseAndGatherInfo(
+      final TestCase testCase,
+      final boolean validateResults
+  ) {
+    try (final TestExecutor testExecutor = TestExecutor.create(validateResults, Optional.empty())) {
       final TestInfoGatherer listener = new TestInfoGatherer();
       testExecutor.buildAndExecuteQuery(testCase, listener);
       return listener;
@@ -263,13 +285,14 @@ public final class TestCasePlanLoader {
           + System.lineSeparator()
           + "failed test: " + testCase.getName()
           + System.lineSeparator()
-          + "in file: " + testCase.getTestFile(),
+          + "in " + testCase.getTestLocation(),
           e
       );
     }
   }
 
-  private static String getFormattedVersionFromPomFile() {
+  @VisibleForTesting
+  static KsqlVersion getFormattedVersionFromPomFile() {
     try {
       final File pomFile = new File("pom.xml");
       final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -279,7 +302,7 @@ public final class TestCasePlanLoader {
       final NodeList versionNodeList = pomDoc.getElementsByTagName("version");
       final String versionName = versionNodeList.item(0).getTextContent();
 
-      return versionName.replaceAll("-SNAPSHOT?", "");
+      return KsqlVersion.parse(versionName.replaceAll("-SNAPSHOT?", ""));
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
@@ -290,6 +313,7 @@ public final class TestCasePlanLoader {
     private final Builder<KsqlPlan> plansBuilder = new Builder<>();
     private PersistentQueryMetadata queryMetadata = null;
     private List<PostTopicNode> topics = ImmutableList.of();
+    private List<SourceNode> sources = ImmutableList.of();
 
     @Override
     public void acceptPlan(final ConfiguredKsqlPlan plan) {
@@ -302,20 +326,31 @@ public final class TestCasePlanLoader {
     }
 
     @Override
-    public void runComplete(final List<PostTopicNode> knownTopics) {
+    public void runComplete(
+        final List<PostTopicNode> knownTopics,
+        final List<SourceNode> knownSources
+    ) {
       if (queryMetadata == null) {
         throw new AssertionError("test case does not build a query");
       }
 
       this.topics = ImmutableList.copyOf(knownTopics);
+      this.sources = ImmutableList.copyOf(knownSources);
     }
 
-    public Map<String, String> getSchemasDescription() {
-      return queryMetadata.getSchemasDescription();
+    public Map<String, SchemaNode> getSchemas() {
+      return queryMetadata.getQuerySchemas().getLoggerSchemaInfo().entrySet().stream()
+          .collect(Collectors.toMap(
+              Entry::getKey,
+              e -> SchemaNode.fromSchemaInfo(e.getValue())));
     }
 
     public List<PostTopicNode> getTopics() {
       return topics;
+    }
+
+    public List<SourceNode> getSources() {
+      return sources;
     }
 
     public List<KsqlPlan> getPlans() {

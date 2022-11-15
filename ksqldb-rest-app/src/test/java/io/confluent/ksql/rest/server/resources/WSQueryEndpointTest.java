@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -60,6 +61,8 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlSecurityContext ksqlSecurityContext;
   @Mock
+  private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
   private ListeningScheduledExecutorService exec;
 
   private WSQueryEndpoint wsQueryEndpoint;
@@ -76,8 +79,27 @@ public class WSQueryEndpointTest {
         mock(Duration.class),
         Optional.empty(),
         mock(Errors.class),
-        mock(PullQueryExecutor.class)
+        mock(PullQueryExecutor.class),
+        denyListPropertyValidator,
+        Optional.empty()
     );
+  }
+
+  @Test
+  public void shouldCallPropertyValidatorOnExecuteStream()
+      throws JsonProcessingException {
+    // Given
+    final Map<String, Object> overrides =
+        ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    final MultiMap params = buildRequestParams("show streams;", overrides);
+
+    // When
+    executeStreamQuery(params, Optional.empty());
+
+    // Then
+    // WS sockets do not throw any exception (closes silently). We can only verify the validator
+    // was called.
+    verify(denyListPropertyValidator).validateAll(overrides);
   }
 
   @Test

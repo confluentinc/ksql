@@ -120,7 +120,8 @@ public class KsqlInternalTopicUtilsTest {
     // Then:
     verify(topicClient).addTopicConfig(TOPIC_NAME, ImmutableMap.of(
         TopicConfig.RETENTION_MS_CONFIG, -1L,
-        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE
+        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
+        TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, false
     ));
   }
 

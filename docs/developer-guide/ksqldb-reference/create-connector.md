@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-CREATE SOURCE | SINK CONNECTOR connector_name WITH( property_name = expression [, ...]);
+CREATE SOURCE | SINK CONNECTOR [IF NOT EXISTS] connector_name WITH( property_name = expression [, ...]);
 ```
 
 Description
@@ -23,6 +23,9 @@ Create a new connector in the {{ site.kconnectlong }} cluster with the
 configuration passed in the WITH clause. Some connectors have ksqlDB templates
 that simplify configuring them. For more information, see
 [Natively Supported Connectors](../../concepts/connectors.md#natively-supported-connectors).
+
+If the IF NOT EXISTS clause is present, the statement does not fail if a connector with the supplied name
+already exists
 
 !!! note
     CREATE CONNECTOR works only in interactive mode. 

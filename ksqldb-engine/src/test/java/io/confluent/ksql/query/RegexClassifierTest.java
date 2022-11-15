@@ -19,7 +19,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.query.QueryError.Type;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -44,6 +46,31 @@ public class RegexClassifierTest {
 
     // Then:
     assertThat(type, is(Type.USER));
+  }
+
+  @Test
+  public void shouldClassifyNPEIfConfigured() {
+    // Given:
+    final QueryErrorClassifier classifier =
+        RegexClassifier.fromConfig("USER .*NullPointerException", "id");
+
+    // When:
+    final Type type = classifier.classify(npe());
+
+    // Then:
+    assertThat(type, is(Type.USER));
+  }
+
+  @Test
+  public void shouldClassifyNPEAsUnknwon() {
+    // Given:
+    final QueryErrorClassifier classifier = RegexClassifier.fromConfig("USER .*foo.*", "id");
+
+    // When:
+    final Type type = classifier.classify(npe());
+
+    // Then:
+    assertThat(type, is(Type.UNKNOWN));
   }
 
   @Test
@@ -92,5 +119,17 @@ public class RegexClassifierTest {
 
   private void givenMessage(final Throwable error, final String message) {
     when(error.getMessage()).thenReturn(message);
+  }
+
+  private Exception npe() {
+    try {
+      return throwNpe(null);
+    } catch (final Exception e) {
+      return e;
+    }
+  }
+
+  private Exception throwNpe(final String arg) {
+    return new Exception(arg.concat("foo"));
   }
 }

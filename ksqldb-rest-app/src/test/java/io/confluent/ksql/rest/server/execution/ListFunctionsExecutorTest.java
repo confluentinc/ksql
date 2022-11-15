@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
@@ -49,11 +50,16 @@ public class ListFunctionsExecutorTest {
     // Then:
     final Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
     assertThat(functions, hasItems(
-        new SimpleFunctionInfo("TRIM", FunctionType.SCALAR),
-        new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
-        new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE),
-        new SimpleFunctionInfo("TEST_UDTF1", FunctionType.TABLE),
-        new SimpleFunctionInfo("TEST_UDTF2", FunctionType.TABLE)
+        new SimpleFunctionInfo("TEST_UDF_1", FunctionType.SCALAR,
+            FunctionCategory.OTHER),
+        new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE,
+            FunctionCategory.AGGREGATE),
+        new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE,
+            FunctionCategory.AGGREGATE),
+        new SimpleFunctionInfo("TEST_UDTF1", FunctionType.TABLE, 
+            FunctionCategory.TABLE),
+        new SimpleFunctionInfo("TEST_UDTF2", FunctionType.TABLE,
+            FunctionCategory.TABLE)
     ));
   }
 }

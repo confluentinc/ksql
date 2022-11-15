@@ -27,7 +27,8 @@ public interface MaterializedTable {
    * Get the value, if one exists, of the supplied {@code key}.
    *
    * @param key the key to look up.
+   * @param partition partition to limit the get to
    * @return the value, if one is exists.
    */
-  Optional<Row> get(Struct key);
+  Optional<Row> get(Struct key, int partition);
 }

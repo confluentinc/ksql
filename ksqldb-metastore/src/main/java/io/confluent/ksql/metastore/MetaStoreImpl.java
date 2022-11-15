@@ -77,11 +77,9 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void putSource(final DataSource dataSource) {
-    final SourceInfo existing = dataSources
-        .putIfAbsent(dataSource.getName(), new SourceInfo(dataSource));
-
-    if (existing != null) {
+  public void putSource(final DataSource dataSource, final boolean allowReplace) {
+    final SourceInfo existing = dataSources.get(dataSource.getName());
+    if (existing != null && !allowReplace) {
       final SourceName name = dataSource.getName();
       final String newType = dataSource.getDataSourceType().getKsqlType().toLowerCase();
       final String existingType = existing.source.getDataSourceType().getKsqlType().toLowerCase();
@@ -89,7 +87,13 @@ public final class MetaStoreImpl implements MutableMetaStore {
       throw new KsqlException(String.format(
           "Cannot add %s '%s': A %s with the same name already exists",
           newType, name.text(), existingType));
+    } else if (existing != null) {
+      existing.source.canUpgradeTo(dataSource).ifPresent(msg -> {
+        throw new KsqlException("Cannot upgrade data source: " + msg);
+      });
     }
+
+    dataSources.put(dataSource.getName(), new SourceInfo(dataSource));
   }
 
   @Override
@@ -269,8 +273,8 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void registerType(final String name, final SqlType type) {
-    typeRegistry.registerType(name, type);
+  public boolean registerType(final String name, final SqlType type) {
+    return typeRegistry.registerType(name, type);
   }
 
   @Override

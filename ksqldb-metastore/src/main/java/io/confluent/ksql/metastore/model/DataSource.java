@@ -19,10 +19,8 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Optional;
-import java.util.Set;
 
 @EffectivelyImmutable
 public interface DataSource {
@@ -62,16 +60,6 @@ public interface DataSource {
   LogicalSchema getSchema();
 
   /**
-   * Get the physical serde options of the source.
-   *
-   * <p>These options can be combined with the logical schema to build the {@code PhysicalSchema} of
-   * the source.
-   *
-   * @return the source's serde options.
-   */
-  Set<SerdeOption> getSerdeOptions();
-
-  /**
    * @return the topic backing the source.
    */
   KsqlTopic getKsqlTopic();
@@ -102,4 +90,17 @@ public interface DataSource {
    * @return returns whether this stream/table was created by a C(T|S)AS
    */
   boolean isCasTarget();
+
+  /**
+   * @param other the other data source
+   * @return an optional, empty if compatible or an explanation if incompatible
+   */
+  Optional<String> canUpgradeTo(DataSource other);
+
+  /**
+   * @param sql a sql statement to append to the current sql
+   * @param schema a schema
+   * @return a new DataSource object with all attributes the same as this, but with a new schema
+   */
+  DataSource with(String sql, LogicalSchema schema);
 }

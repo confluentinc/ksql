@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.array;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 @UdfDescription(
     name = "array_except",
+    category = FunctionCategory.ARRAY,
     description = "Returns an array of all the elements in an array except for those also present"
         + " in a second array. The order of entries in the first array is preserved although any"
         + " duplicates are removed. Returns NULL if either input is NULL.")

@@ -404,9 +404,9 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatMap() {
-    final SqlMap map = SqlTypes.map(SqlTypes.BIGINT);
+    final SqlMap map = SqlTypes.map(SqlTypes.INTEGER, SqlTypes.BIGINT);
     assertThat(ExpressionFormatter.formatExpression(new Type(map)),
-        equalTo("MAP<STRING, BIGINT>"));
+        equalTo("MAP<INTEGER, BIGINT>"));
   }
 
   @Test

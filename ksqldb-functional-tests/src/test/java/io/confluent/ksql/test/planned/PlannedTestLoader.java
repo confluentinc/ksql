@@ -49,6 +49,7 @@ public final class PlannedTestLoader {
 
   public Stream<TestCase> loadTests() {
     return planLoader.load(predicate)
+        .filter(t -> t.getSpecNode().getTestCase().isEnabled())
         .map(PlannedTestUtils::buildPlannedTestCase);
   }
 
@@ -65,7 +66,7 @@ public final class PlannedTestLoader {
 
     return whiteList.stream()
             .map(com.google.common.io.Files::getNameWithoutExtension)
-            .map(item -> (Predicate<Path>) path -> path.startsWith(item + "_-_"))
+            .map(item -> (Predicate<Path>) path -> path.getFileName().toString().startsWith(item + "_-_"))
             .reduce(path -> false, Predicate::or);
   }
 }

@@ -29,7 +29,9 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -100,10 +102,18 @@ public interface KsqlExecutionContext {
    * <p>This provides some level of validation as well, e.g. ensuring sources and topics exist
    * in the metastore, etc.
    *
+   * <p>If variables are used in the statement, they will be replaced with the values found in
+   * {@code variablesMap}.
+   *
    * @param stmt the parsed statement.
+   * @param variablesMap a list of values for SQL variable substitution
    * @return the prepared statement.
    */
-  PreparedStatement<?> prepare(ParsedStatement stmt);
+  PreparedStatement<?> prepare(ParsedStatement stmt, Map<String, String> variablesMap);
+
+  default PreparedStatement<?> prepare(ParsedStatement stmt) {
+    return prepare(stmt, Collections.emptyMap());
+  }
 
   /**
    * Executes a query using the supplied service context.

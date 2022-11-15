@@ -22,7 +22,9 @@ import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import java.util.Optional;
 import org.junit.Test;
 
 @SuppressFBWarnings("NP_NULL_PARAM_DEREF_NONVIRTUAL")
@@ -35,12 +37,25 @@ public class CommandStatusEntityTest {
       + "\"commandId\":\"topic/1/create\","
       + "\"commandStatus\":{"
       + "\"status\":\"SUCCESS\","
-      + "\"message\":\"some success message\""
+      + "\"message\":\"some success message\","
+      + "\"queryId\":\"CSAS_0\""
       + "},"
       + "\"commandSequenceNumber\":2,"
       + "\"warnings\":[]"
       + "}";
-  private static final String JSON_ENTITY_NO_WARNINGS = "{"
+  private static final String JSON_ENTITY_EMPTY_QUERY_ID = "{"
+      + "\"@type\":\"currentStatus\","
+      + "\"statementText\":\"sql\","
+      + "\"commandId\":\"topic/1/create\","
+      + "\"commandStatus\":{"
+      + "\"status\":\"SUCCESS\","
+      + "\"message\":\"some success message\","
+      + "\"queryId\":null"
+      + "},"
+      + "\"commandSequenceNumber\":2,"
+      + "\"warnings\":[]"
+      + "}";
+  private static final String JSON_ENTITY_NO_QUERY_ID = "{"
       + "\"@type\":\"currentStatus\","
       + "\"statementText\":\"sql\","
       + "\"commandId\":\"topic/1/create\","
@@ -48,7 +63,8 @@ public class CommandStatusEntityTest {
       + "\"status\":\"SUCCESS\","
       + "\"message\":\"some success message\""
       + "},"
-      + "\"commandSequenceNumber\":2"
+      + "\"commandSequenceNumber\":2,"
+      + "\"warnings\":[]"
       + "}";
   private static final String JSON_ENTITY_NO_CSN = "{"
       + "\"@type\":\"currentStatus\","
@@ -62,12 +78,20 @@ public class CommandStatusEntityTest {
   private static final String STATEMENT_TEXT = "sql";
   private static final CommandId COMMAND_ID = CommandId.fromString("topic/1/create");
   private static final CommandStatus COMMAND_STATUS =
+      new CommandStatus(
+          CommandStatus.Status.SUCCESS,
+          "some success message",
+          Optional.of(new QueryId("CSAS_0"))
+      );
+  private static final CommandStatus COMMAND_STATUS_WITHOUT_QUERY_ID =
       new CommandStatus(CommandStatus.Status.SUCCESS, "some success message");
   private static final long COMMAND_SEQUENCE_NUMBER = 2L;
   private static final CommandStatusEntity ENTITY =
       new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS, COMMAND_SEQUENCE_NUMBER);
+  private static final CommandStatusEntity ENTITY_WITHOUT_QUERY_ID =
+      new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS_WITHOUT_QUERY_ID, COMMAND_SEQUENCE_NUMBER);
   private static final CommandStatusEntity ENTITY_WITHOUT_SEQUENCE_NUMBER =
-      new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS, null);
+      new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS_WITHOUT_QUERY_ID, null);
 
   @Test
   public void shouldSerializeToJson() throws Exception {
@@ -76,6 +100,15 @@ public class CommandStatusEntityTest {
 
     // Then:
     assertThat(json, is(JSON_ENTITY));
+  }
+
+  @Test
+  public void shouldSerializeToJsonWithEmptyQueryId() throws Exception {
+    // When:
+    final String json = OBJECT_MAPPER.writeValueAsString(ENTITY_WITHOUT_QUERY_ID);
+
+    // Then:
+    assertThat(json, is(JSON_ENTITY_EMPTY_QUERY_ID));
   }
 
   @Test
@@ -89,7 +122,27 @@ public class CommandStatusEntityTest {
   }
 
   @Test
-  public void shouldBeAbleToDeserializeOlderServerMessage() throws Exception {
+  public void shouldDeserializeFromJsonWithEmptyQueryId() throws Exception {
+    // When:
+    final CommandStatusEntity entity =
+        OBJECT_MAPPER.readValue(JSON_ENTITY_EMPTY_QUERY_ID, CommandStatusEntity.class);
+
+    // Then:
+    assertThat(entity, is(ENTITY_WITHOUT_QUERY_ID));
+  }
+
+  @Test
+  public void shouldBeAbleToDeserializeOlderServerMessageWithNoQueryId() throws Exception {
+    // When:
+    final CommandStatusEntity entity =
+        OBJECT_MAPPER.readValue(JSON_ENTITY_NO_QUERY_ID, CommandStatusEntity.class);
+
+    // Then:
+    assertThat(entity, is(ENTITY_WITHOUT_QUERY_ID));
+  }
+
+  @Test
+  public void shouldBeAbleToDeserializeOlderServerMessageWithNoCSN() throws Exception {
     // When:
     final CommandStatusEntity entity =
         OBJECT_MAPPER.readValue(JSON_ENTITY_NO_CSN, CommandStatusEntity.class);

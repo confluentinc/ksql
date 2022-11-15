@@ -1,0 +1,169 @@
+{
+  "plan" : [ {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME STRING, VALUE MAP<STRING, BOOLEAN>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
+    "ddlCommand" : {
+      "@type" : "createTableV1",
+      "sourceName" : "TEST",
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+      "topicName" : "test_topic",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      },
+      "orReplace" : false
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  COLLECT_LIST(TEST.VALUE['key1']) COLLECTED\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES",
+    "ddlCommand" : {
+      "@type" : "createTableV1",
+      "sourceName" : "S2",
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>",
+      "topicName" : "S2",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      },
+      "orReplace" : false
+    },
+    "queryPlan" : {
+      "sources" : [ "TEST" ],
+      "sink" : "S2",
+      "physicalPlan" : {
+        "@type" : "tableSinkV1",
+        "properties" : {
+          "queryContext" : "S2"
+        },
+        "source" : {
+          "@type" : "tableSelectV1",
+          "properties" : {
+            "queryContext" : "Aggregate/Project"
+          },
+          "source" : {
+            "@type" : "tableAggregateV1",
+            "properties" : {
+              "queryContext" : "Aggregate/Aggregate"
+            },
+            "source" : {
+              "@type" : "tableGroupByV1",
+              "properties" : {
+                "queryContext" : "Aggregate/GroupBy"
+              },
+              "source" : {
+                "@type" : "tableSelectV1",
+                "properties" : {
+                  "queryContext" : "Aggregate/Prepare"
+                },
+                "source" : {
+                  "@type" : "tableSourceV1",
+                  "properties" : {
+                    "queryContext" : "KsqlTopic/Source"
+                  },
+                  "topicName" : "test_topic",
+                  "formats" : {
+                    "keyFormat" : {
+                      "format" : "KAFKA"
+                    },
+                    "valueFormat" : {
+                      "format" : "JSON"
+                    }
+                  },
+                  "sourceSchema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+                  "forceChangelog" : true
+                },
+                "keyColumnNames" : [ "ID" ],
+                "selectExpressions" : [ "ID AS ID", "VALUE AS VALUE", "VALUE['key1'] AS KSQL_INTERNAL_COL_2" ]
+              },
+              "internalFormats" : {
+                "keyFormat" : {
+                  "format" : "KAFKA"
+                },
+                "valueFormat" : {
+                  "format" : "JSON"
+                }
+              },
+              "groupByExpressions" : [ "ID" ]
+            },
+            "internalFormats" : {
+              "keyFormat" : {
+                "format" : "KAFKA"
+              },
+              "valueFormat" : {
+                "format" : "JSON"
+              }
+            },
+            "nonAggregateColumns" : [ "ID", "VALUE" ],
+            "aggregationFunctions" : [ "COLLECT_LIST(KSQL_INTERNAL_COL_2)" ]
+          },
+          "keyColumnNames" : [ "ID" ],
+          "selectExpressions" : [ "KSQL_AGG_VARIABLE_0 AS COLLECTED" ]
+        },
+        "formats" : {
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        },
+        "topicName" : "S2"
+      },
+      "queryId" : "CTAS_S2_0"
+    }
+  } ],
+  "configs" : {
+    "ksql.extension.dir" : "ext",
+    "ksql.streams.cache.max.bytes.buffering" : "0",
+    "ksql.security.extension.class" : null,
+    "ksql.transient.prefix" : "transient_",
+    "ksql.persistence.wrap.single.values" : "true",
+    "ksql.authorization.cache.expiry.time.secs" : "30",
+    "ksql.schema.registry.url" : "",
+    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+    "ksql.output.topic.name.prefix" : "",
+    "ksql.streams.auto.offset.reset" : "earliest",
+    "ksql.query.pull.enable.standby.reads" : "false",
+    "ksql.connect.url" : "http://localhost:8083",
+    "ksql.service.id" : "some.ksql.service.id",
+    "ksql.internal.topic.min.insync.replicas" : "1",
+    "ksql.streams.shutdown.timeout.ms" : "300000",
+    "ksql.internal.topic.replicas" : "1",
+    "ksql.insert.into.values.enabled" : "true",
+    "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
+    "ksql.query.pull.max.qps" : "2147483647",
+    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+    "ksql.access.validator.enable" : "auto",
+    "ksql.streams.bootstrap.servers" : "localhost:0",
+    "ksql.streams.commit.interval.ms" : "2000",
+    "ksql.metric.reporters" : "",
+    "ksql.query.pull.metrics.enabled" : "false",
+    "ksql.create.or.replace.enabled" : "false",
+    "ksql.streams.auto.commit.interval.ms" : "0",
+    "ksql.metrics.extension" : null,
+    "ksql.streams.topology.optimization" : "all",
+    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.streams.num.stream.threads" : "4",
+    "ksql.timestamp.throw.on.invalid" : "false",
+    "ksql.authorization.cache.max.entries" : "10000",
+    "ksql.metrics.tags.custom" : "",
+    "ksql.pull.queries.enable" : "true",
+    "ksql.udfs.enabled" : "true",
+    "ksql.udf.enable.security.manager" : "true",
+    "ksql.connect.worker.config" : "",
+    "ksql.sink.window.change.log.additional.retention" : "1000000",
+    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.udf.collect.metrics" : "false",
+    "ksql.persistent.prefix" : "query_",
+    "ksql.query.persistent.active.limit" : "2147483647",
+    "ksql.error.classifier.regex" : ""
+  }
+}

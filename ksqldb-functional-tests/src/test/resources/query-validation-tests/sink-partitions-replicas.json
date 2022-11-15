@@ -10,14 +10,14 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO",
           "partitions": 5,
           "replicas" : 3
         },
         {
           "name": "S",
-          "format": "AVRO",
+          "valueFormat": "AVRO",
           "partitions": 5,
           "replicas" : 3
         }
@@ -34,14 +34,14 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO",
           "partitions": 5,
           "replicas" : 3
         },
         {
           "name": "S",
-          "format": "AVRO",
+          "valueFormat": "AVRO",
           "partitions": 4,
           "replicas" : 1
         }

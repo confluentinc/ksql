@@ -18,9 +18,7 @@ package io.confluent.ksql.logging.processing;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
-import io.confluent.ksql.util.ErrorMessageUtil;
 import java.util.Base64;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -31,15 +29,18 @@ public class DeserializationError implements ProcessingLogger.ErrorMessage {
   private final Throwable exception;
   private final Optional<byte[]> record;
   private final String topic;
+  private final boolean isKey;
 
   public DeserializationError(
       final Throwable exception,
       final Optional<byte[]> record,
-      final String topic
+      final String topic,
+      final boolean isKey
   ) {
     this.exception = requireNonNull(exception, "exception");
     this.record = requireNonNull(record, "record");
     this.topic = requireNonNull(topic, "topic");
+    this.isKey = isKey;
   }
 
   @Override
@@ -62,27 +63,29 @@ public class DeserializationError implements ProcessingLogger.ErrorMessage {
     final DeserializationError that = (DeserializationError) o;
     return Objects.equals(exception, that.exception)
         && Objects.equals(record, that.record)
-        && Objects.equals(topic, that.topic);
+        && Objects.equals(topic, that.topic)
+        && isKey == that.isKey;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(exception, record, topic);
+    return Objects.hash(exception, record, topic, isKey);
   }
 
   private Struct deserializationError(final ProcessingLogConfig config) {
     final Struct deserializationError = new Struct(MessageType.DESERIALIZATION_ERROR.getSchema())
         .put(
+            ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TARGET,
+            LoggingSerdeUtil.getRecordComponent(isKey))
+        .put(
             ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE,
             exception.getMessage())
         .put(
             ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE,
-            getCause()
-        )
+            LoggingSerdeUtil.getCause(exception))
         .put(
             ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TOPIC,
-            topic
-        );
+            topic);
 
     if (config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
       deserializationError.put(
@@ -92,11 +95,5 @@ public class DeserializationError implements ProcessingLogger.ErrorMessage {
     }
 
     return deserializationError;
-  }
-
-  private List<String> getCause() {
-    final List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
-    cause.remove(0);
-    return cause;
   }
 }

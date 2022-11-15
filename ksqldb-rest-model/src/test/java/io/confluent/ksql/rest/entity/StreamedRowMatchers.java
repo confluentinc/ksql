@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.GenericRow;
@@ -152,6 +153,16 @@ public final class StreamedRowMatchers {
         .collect(Collectors.toList());
 
     return contains(rowMatchers);
+  }
+
+  public static Matcher<? super List<? extends StreamedRow>> matchersRowsAnyOrder(
+      final List<? extends StreamedRow> expected
+  ) {
+    final List<Matcher<? super StreamedRow>> rowMatchers = expected.stream()
+        .map(StreamedRowMatchers::matchesRow)
+        .collect(Collectors.toList());
+
+    return containsInAnyOrder(rowMatchers);
   }
 
   private static Matcher<? super StreamedRow> streamedRow(

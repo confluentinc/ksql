@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -64,17 +63,4 @@ public class AggregateFunctionInitArguments {
   public List<Object> args() {
     return initArgs;
   }
-
-  public void ensureArgCount(final int expectedCount, final String functionName) {
-    if (initArgs.size() != expectedCount) {
-      throw new KsqlException(
-          String.format("Invalid parameter count for %s. Need %d args, got %d arg(s)",
-              functionName, expectedCount, initArgs.size()));
-    }
-  }
-
-  public int argsSize() {
-    return initArgs.size();
-  }
-
 }

@@ -59,7 +59,7 @@ public class PreJoinProjectNodeTest {
   private static final SourceName ALIAS = SourceName.of("a");
 
   @Mock
-  private PlanNode source;
+  private PreJoinRepartitionNode source;
 
   private PreJoinProjectNode projectNode;
 

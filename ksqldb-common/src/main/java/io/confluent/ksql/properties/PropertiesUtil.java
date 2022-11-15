@@ -59,7 +59,7 @@ public final class PropertiesUtil {
    * @param mapProps the map props to convert
    * @return {@code Properties} instance.
    */
-  public static Properties asProperties(final Map<String, String> mapProps) {
+  public static Properties asProperties(final Map<String, ?> mapProps) {
     final Properties properties = new Properties();
     properties.putAll(mapProps);
     return properties;

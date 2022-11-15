@@ -15,26 +15,20 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -42,7 +36,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final boolean doCreateInto;
-  private final ImmutableSet<SerdeOption> serdeOptions;
   private final SourceName intoSourceName;
 
   public KsqlStructuredDataOutputNode(
@@ -53,12 +46,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlTopic ksqlTopic,
       final OptionalInt limit,
       final boolean doCreateInto,
-      final Set<SerdeOption> serdeOptions,
       final SourceName intoSourceName
   ) {
     super(id, source, schema, limit, timestampColumn);
 
-    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
@@ -66,7 +57,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     validate(source, intoSourceName);
   }
 
-  public boolean isDoCreateInto() {
+  public boolean createInto() {
     return doCreateInto;
   }
 
@@ -74,24 +65,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return ksqlTopic;
   }
 
-  public Set<SerdeOption> getSerdeOptions() {
-    return serdeOptions;
-  }
-
   public SourceName getIntoSourceName() {
     return intoSourceName;
   }
 
   @Override
-  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
-    final String base = queryIdGenerator.getNext().toUpperCase();
-    if (!doCreateInto) {
-      return new QueryId("INSERTQUERY_" + base);
-    }
-    if (getNodeOutputType().equals(DataSourceType.KTABLE)) {
-      return new QueryId("CTAS_" + getId().toString().toUpperCase() + "_" + base);
-    }
-    return new QueryId("CSAS_" + getId().toString().toUpperCase() + "_" + base);
+  public Optional<SourceName> getSinkName() {
+    return Optional.of(intoSourceName);
   }
 
   @Override
@@ -102,9 +82,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
 
     return schemaKStream.into(
-        getKsqlTopic().getKafkaTopicName(),
-        getKsqlTopic().getValueFormat(),
-        serdeOptions,
+        ksqlTopic,
         contextStacker,
         getTimestampColumn()
     );

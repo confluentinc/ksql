@@ -15,18 +15,22 @@
 
 package io.confluent.ksql.test.tools;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.test.model.InputRecordsNode;
 import io.confluent.ksql.test.model.OutputRecordsNode;
+import io.confluent.ksql.test.model.PathLocation;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.command.TestOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
@@ -60,10 +64,9 @@ public final class KsqlTestingTool {
     }
   }
 
-  private static List<String> getSqlStatements(final String queryFilePath) {
+  private static List<String> getSqlStatements(final Path queryFilePath) {
     try {
-      final String sqlStatements = new String(java.nio.file.Files.readAllBytes(
-          Paths.get(queryFilePath)), StandardCharsets.UTF_8);
+      final String sqlStatements = new String(Files.readAllBytes(queryFilePath), UTF_8);
 
       final KsqlParser ksqlParser = new DefaultKsqlParser();
       final List<ParsedStatement> parsedStatements = ksqlParser.parse(sqlStatements);
@@ -101,7 +104,9 @@ public final class KsqlTestingTool {
           + " Message: " + outputException.getMessage());
     }
 
-    final List<String> statements = getSqlStatements(statementFile);
+    final Path stmtsPath = Paths.get(statementFile);
+
+    final List<String> statements = getSqlStatements(stmtsPath);
 
     final TestCaseNode testCaseNode = new TestCaseNode(
         "KSQL_Test",
@@ -117,13 +122,15 @@ public final class KsqlTestingTool {
         true
     );
 
+    final PathLocation location = new PathLocation(stmtsPath.toAbsolutePath());
+
     final TestCase testCase = TestCaseBuilder
-        .buildTests(testCaseNode, new File(statementFile).toPath())
+        .buildTests(testCaseNode, location.getTestPath(), name -> location)
         .get(0);
 
     executeTestCase(
         testCase,
-        TestExecutor.create(extensionDir));
+        TestExecutor.create(true, extensionDir));
   }
 
   static void executeTestCase(

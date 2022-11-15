@@ -18,8 +18,15 @@ package io.confluent.ksql.schema.ksql;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import java.util.List;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -27,10 +34,14 @@ import org.junit.Test;
 
 public class PersistenceSchemaTest {
 
-  private static final ConnectSchema WRAPPED_SCHEMA = (ConnectSchema) SchemaBuilder
+  private static final ConnectSchema SINGLE_FIELD_SCHEMA = (ConnectSchema) SchemaBuilder
       .struct()
       .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
+
+  private static final List<? extends Column> SINGLE_COLUMN = ImmutableList.of(
+      Column.of(ColumnName.of("Bob"), SqlTypes.INTEGER, Namespace.VALUE, 0)
+  );
 
   private static final ConnectSchema MULTI_FIELD_SCHEMA = (ConnectSchema) SchemaBuilder
       .struct()
@@ -38,79 +49,67 @@ public class PersistenceSchemaTest {
       .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
       .build();
 
+  private static final List<? extends Column> MULTI_COLUMN = ImmutableList.of(
+      Column.of(ColumnName.of("f0"), SqlTypes.BIGINT, Namespace.VALUE, 0),
+      Column.of(ColumnName.of("f1"), SqlTypes.BIGINT, Namespace.VALUE, 1)
+  );
+
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldNPE() {
     new NullPointerTester()
-        .setDefault(ConnectSchema.class, WRAPPED_SCHEMA)
+        .setDefault(SerdeFeatures.class, SerdeFeatures.of())
+        .setDefault(ConnectSchema.class, SINGLE_FIELD_SCHEMA)
         .testAllPublicStaticMethods(PersistenceSchema.class);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            PersistenceSchema.from(WRAPPED_SCHEMA, true),
-            PersistenceSchema.from(WRAPPED_SCHEMA, true)
+            PersistenceSchema.from(SINGLE_COLUMN, SerdeFeatures.of()),
+            PersistenceSchema.from(SINGLE_COLUMN, SerdeFeatures.of())
         )
         .addEqualityGroup(
-            PersistenceSchema.from(WRAPPED_SCHEMA, false)
+            PersistenceSchema.from(MULTI_COLUMN, SerdeFeatures.of())
         )
         .addEqualityGroup(
-            PersistenceSchema.from(MULTI_FIELD_SCHEMA, false)
+            PersistenceSchema
+                .from(SINGLE_COLUMN, SerdeFeatures.of(SerdeFeature.WRAP_SINGLES))
         )
         .testEquals();
   }
 
   @Test
-  public void shouldReturnWrappedSchemaUnchanged() {
+  public void shouldReturnColumns() {
     // Given:
     final PersistenceSchema schema = PersistenceSchema
-        .from(WRAPPED_SCHEMA, false);
+        .from(SINGLE_COLUMN, SerdeFeatures.of());
 
     // Then:
-    assertThat(schema.serializedSchema(), is(WRAPPED_SCHEMA));
-  }
-
-  @Test
-  public void shouldReturnUnwrappedSchema() {
-    // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .from(WRAPPED_SCHEMA, true);
-
-    // Then:
-    assertThat(schema.serializedSchema(), is(WRAPPED_SCHEMA.fields().get(0).schema()));
+    assertThat(schema.columns(), is(SINGLE_COLUMN));
   }
 
   @Test
   public void shouldHaveSensibleToString() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema.from(WRAPPED_SCHEMA, true);
+    final PersistenceSchema schema = PersistenceSchema
+        .from(SINGLE_COLUMN, SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
 
     // Then:
-    assertThat(schema.toString(), is("Persistence{schema=VARCHAR, unwrapped=true}"));
-  }
-
-  @Test
-  public void shouldIncludeNotNullInToString() {
-    // Given:
-    final ConnectSchema connectSchema = (ConnectSchema) SchemaBuilder
-        .struct()
-        .field("f0", Schema.FLOAT64_SCHEMA)
-        .build();
-
-    final PersistenceSchema schema = PersistenceSchema.from(connectSchema, true);
-
-    // Then:
-    assertThat(schema.toString(), is("Persistence{schema=DOUBLE NOT NULL, unwrapped=true}"));
+    assertThat(schema.toString(),
+        is("Persistence{columns=[`Bob` INTEGER], features=[WRAP_SINGLES]}"));
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnNoneStructSchema() {
-    PersistenceSchema.from((ConnectSchema) Schema.FLOAT64_SCHEMA, false);
+  public void shouldThrowOnWrapIfMultipleFields() {
+    PersistenceSchema.from(MULTI_COLUMN, SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnUnwrapIfMultipleFields() {
-    PersistenceSchema.from(MULTI_FIELD_SCHEMA, true);
+    PersistenceSchema
+        .from(MULTI_COLUMN, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
   }
 }

@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -51,7 +50,7 @@ public class QueryAnalyzerFunctionalTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final QueryAnalyzer queryAnalyzer =
-      new QueryAnalyzer(metaStore, "prefix-~", SerdeOption.none());
+      new QueryAnalyzer(metaStore, "prefix-~");
 
   @Test
   public void shouldAnalyseTableFunctions() {
@@ -104,8 +103,8 @@ public class QueryAnalyzerFunctionalTest {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat().getFormat(),
-        is(FormatFactory.DELIMITED));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat().getFormat(),
+        is(FormatFactory.DELIMITED.name()));
   }
 
   private Query givenQuery(final String sql) {

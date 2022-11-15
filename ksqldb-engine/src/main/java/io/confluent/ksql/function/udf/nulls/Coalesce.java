@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.nulls;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.name.FunctionName;
@@ -28,6 +29,7 @@ import java.util.Objects;
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
 @UdfDescription(
     name = Coalesce.NAME_TEXT,
+    category = FunctionCategory.CONDITIONAL,
     description = "Returns first non-null element",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

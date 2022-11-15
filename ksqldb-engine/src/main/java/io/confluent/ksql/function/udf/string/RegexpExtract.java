@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
 
 @UdfDescription(
     name = "regexp_extract",
+    category = FunctionCategory.REGULAR_EXPRESSION,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "extract the first subtring matched by a regex pattern"
 )

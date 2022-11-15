@@ -54,7 +54,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -113,7 +113,6 @@ public class DataSourceNodeTest {
       "sqlExpression",
       SOURCE_NAME,
       REAL_SCHEMA,
-      SerdeOption.none(),
       Optional.of(
           new TimestampColumn(
               ColumnName.of("timestamp"),
@@ -123,8 +122,8 @@ public class DataSourceNodeTest {
         false,
       new KsqlTopic(
           "topic",
-          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-          ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+          ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
       )
   );
 
@@ -232,13 +231,12 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression",
         SourceName.of("datasource"),
         REAL_SCHEMA,
-        SerdeOption.none(),
         Optional.of(TIMESTAMP_COLUMN),
         false,
         new KsqlTopic(
             "topic2",
-            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-            ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+            ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
         )
     );
 
@@ -449,8 +447,9 @@ public class DataSourceNodeTest {
     final FormatInfo format = FormatInfo.of(FormatFactory.KAFKA.name());
 
     final KeyFormat keyFormat = windowed
-        ? KeyFormat.windowed(format, WindowInfo.of(WindowType.SESSION, Optional.empty()))
-        : KeyFormat.nonWindowed(format);
+        ? KeyFormat
+        .windowed(format, SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty()))
+        : KeyFormat.nonWindowed(format, SerdeFeatures.of());
 
     when(topic.getKeyFormat()).thenReturn(keyFormat);
   }

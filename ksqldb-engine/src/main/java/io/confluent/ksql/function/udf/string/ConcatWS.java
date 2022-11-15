@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @UdfDescription(
     name = "concat_ws",
+    category = FunctionCategory.STRING,
     description = "Concatenate several strings, inserting a separator string passed as the "
         + "first argument between each one.")
 public class ConcatWS {

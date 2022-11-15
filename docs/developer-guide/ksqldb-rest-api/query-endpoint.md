@@ -41,7 +41,7 @@ Response JSON Object:
 ```bash
 curl -X "POST" "http://<ksqldb-host-name>:8088/query" \
      -d $'{
-  "ksql": "SELECT * FROM USERS;",
+  "ksql": "SELECT * FROM USERS EMIT CHANGES;",
   "streamsProperties": {}
 }'
 
@@ -55,7 +55,7 @@ Accept: application/vnd.ksql.v1+json
 Content-Type: application/vnd.ksql.v1+json
 
 {
-  "sql": "SELECT * FROM pageviews;",
+  "ksql": "SELECT * FROM pageviews EMIT CHANGES;",
   "streamsProperties": {
     "ksql.streams.auto.offset.reset": "earliest"
   }

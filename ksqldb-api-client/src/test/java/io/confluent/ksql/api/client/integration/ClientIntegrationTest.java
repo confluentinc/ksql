@@ -18,9 +18,12 @@ package io.confluent.ksql.api.client.integration;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_KEY_FORMAT_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -35,15 +38,25 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.ExecuteStatementResult;
+import io.confluent.ksql.api.client.InsertAck;
+import io.confluent.ksql.api.client.InsertsPublisher;
 import io.confluent.ksql.api.client.KsqlArray;
-import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
+import io.confluent.ksql.api.client.QueryInfo;
+import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.SourceDescription;
+import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.TableInfo;
+import io.confluent.ksql.api.client.TopicInfo;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -55,8 +68,10 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -69,12 +84,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -90,14 +110,17 @@ public class ClientIntegrationTest {
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
-  private static final String TEST_STREAM = TEST_DATA_PROVIDER.kstreamName();
+  private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
   private static final List<String> TEST_COLUMN_NAMES =
       ImmutableList.of("STR", "LONG", "DEC", "ARRAY", "MAP", "STRUCT", "COMPLEX");
   private static final List<ColumnType> TEST_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP", "STRUCT", "STRUCT"));
   private static final List<KsqlArray> TEST_EXPECTED_ROWS = convertToClientRows(
-      TEST_DATA_PROVIDER.data());
+      TEST_DATA_PROVIDER.data(), TEST_DATA_PROVIDER.key());
+
+  private static final Format KEY_FORMAT = FormatFactory.JSON;
+  private static final Format VALUE_FORMAT = FormatFactory.JSON;
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final String AN_AGG_KEY = "FOO";
@@ -106,13 +129,19 @@ public class ClientIntegrationTest {
           .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
           .build(),
-      SerdeOption.none()
+      SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+      SerdeFeatures.of()
   );
 
-  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER = new TestDataProvider<>(
+  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
-  private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.kstreamName();
+  private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.sourceName();
+
+  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider(
+      "EMPTY_STRUCTURED_TYPES_2", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
+  private static final String EMPTY_TEST_TOPIC_2 = EMPTY_TEST_DATA_PROVIDER_2.topicName();
+  private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.sourceName();
 
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
@@ -137,11 +166,20 @@ public class ClientIntegrationTest {
   private static final KsqlObject EXPECTED_COMPLEX_FIELD_VALUE = COMPLEX_FIELD_VALUE.copy()
       .put("DECIMAL", 1.1d); // Expect raw decimal value, whereas put(BigDecimal) serializes as string to avoid loss of precision
 
+  protected static final String EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC =
+      "The ksqlDB server accepted the statement issued via executeStatement(), but the response "
+          + "received is of an unexpected format. ";
+  protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
+      + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
+      + "SELECT' statements. ";
+
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_KEY_FORMAT_ENABLED, true)
+      .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .build();
 
   @ClassRule
@@ -152,21 +190,21 @@ public class ClientIntegrationTest {
 
   @BeforeClass
   public static void setUpClass() {
-    TEST_HARNESS.ensureTopics(TEST_TOPIC);
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC, EMPTY_TEST_TOPIC_2);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
+    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
+    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER_2);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT STR, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY STR;"
     );
 
-    TEST_HARNESS.ensureTopics(EMPTY_TEST_TOPIC);
-    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
-
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
         4, // Only unique keys are counted
-        FormatFactory.JSON,
+        KEY_FORMAT,
+        VALUE_FORMAT,
         AGG_SCHEMA
     );
   }
@@ -586,11 +624,361 @@ public class ClientIntegrationTest {
     assertThat(row.getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
   }
 
+  @Test
+  public void shouldStreamInserts() throws Exception {
+    // Given
+    final InsertsPublisher insertsPublisher = new InsertsPublisher();
+    final int numRows = 5;
+
+    // When
+    final AcksPublisher acksPublisher = client.streamInserts(EMPTY_TEST_STREAM_2, insertsPublisher).get();
+
+    TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
+    assertThat(acksSubscriber.getValues(), hasSize(0));
+    acksSubscriber.getSub().request(numRows);
+
+    for (int i = 0; i < numRows; i++) {
+      insertsPublisher.accept(new KsqlObject()
+          .put("STR", "TEST_" + i)
+          .put("LONG", i)
+          .put("DEC", new BigDecimal("13.31"))
+          .put("ARRAY", new KsqlArray().add("v_" + i))
+          .put("MAP", new KsqlObject().put("k_" + i, "v_" + i))
+          .put("COMPLEX", COMPLEX_FIELD_VALUE));
+    }
+
+    // Then
+    assertThatEventually(acksSubscriber::getValues, hasSize(numRows));
+    for (int i = 0; i < numRows; i++) {
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+    }
+    assertThat(acksSubscriber.getError(), is(nullValue()));
+    assertThat(acksSubscriber.isCompleted(), is(false));
+
+    assertThat(acksPublisher.isComplete(), is(false));
+    assertThat(acksPublisher.isFailed(), is(false));
+
+    // Then: should receive new rows
+    final String query = "SELECT * FROM " + EMPTY_TEST_STREAM_2 + " EMIT CHANGES LIMIT " + numRows + ";";
+    final List<Row> rows = client.executeQuery(query).get();
+
+    // Verify inserted rows are as expected
+    assertThat(rows, hasSize(numRows));
+    for (int i = 0; i < numRows; i++) {
+      assertThat(rows.get(i).getString("STR"), is("TEST_" + i));
+      assertThat(rows.get(i).getLong("LONG"), is(Long.valueOf(i)));
+      assertThat(rows.get(i).getDecimal("DEC"), is(new BigDecimal("13.31")));
+      assertThat(rows.get(i).getKsqlArray("ARRAY"), is(new KsqlArray().add("v_" + i)));
+      assertThat(rows.get(i).getKsqlObject("MAP"), is(new KsqlObject().put("k_" + i, "v_" + i)));
+      assertThat(rows.get(i).getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
+    }
+
+    // When: end connection
+    insertsPublisher.complete();
+
+    // Then
+    assertThatEventually(acksSubscriber::isCompleted, is(true));
+    assertThat(acksSubscriber.getError(), is(nullValue()));
+
+    assertThat(acksPublisher.isComplete(), is(true));
+    assertThat(acksPublisher.isFailed(), is(false));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromStreamInserts() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.streamInserts(AGG_TABLE, new InsertsPublisher()).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+  }
+
+  @Test
+  public void shouldExecuteDdlDmlStatements() throws Exception {
+    // Given
+    final String streamName = TEST_STREAM + "_COPY";
+    final String csas = "create stream " + streamName + " as select * from " + TEST_STREAM + " emit changes;";
+
+    final int numInitialStreams = 3;
+    final int numInitialQueries = 1;
+    verifyNumStreams(numInitialStreams);
+    verifyNumQueries(numInitialQueries);
+
+    // When: create stream, start persistent query
+    final ExecuteStatementResult csasResult = client.executeStatement(csas).get();
+
+    // Then
+    verifyNumStreams(numInitialStreams + 1);
+    verifyNumQueries(numInitialQueries + 1);
+    assertThat(csasResult.queryId(), is(Optional.of(findQueryIdForSink(streamName))));
+
+    // When: terminate persistent query
+    final String queryId = csasResult.queryId().get();
+    final ExecuteStatementResult terminateResult =
+        client.executeStatement("terminate " + queryId + ";").get();
+
+    // Then
+    verifyNumQueries(numInitialQueries);
+    assertThat(terminateResult.queryId(), is(Optional.empty()));
+
+    // When: drop stream
+    final ExecuteStatementResult dropStreamResult =
+        client.executeStatement("drop stream " + streamName + ";").get();
+
+    // Then
+    verifyNumStreams(numInitialStreams);
+    assertThat(dropStreamResult.queryId(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldHandleInvalidSqlInExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("bad sql;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("mismatched input"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("drop stream NONEXISTENT;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Source NONEXISTENT does not exist"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
+  @Test
+  public void shouldRejectMultipleRequestsFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("drop stream S1; drop stream S2;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(
+        "executeStatement() may only be used to execute one statement at a time"));
+  }
+
+  @Test
+  public void shouldRejectRequestWithMissingSemicolonFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("sql missing semicolon").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(
+        "Missing semicolon in SQL for executeStatement() request"));
+  }
+
+  @Test
+  public void shouldFailOnNoEntitiesFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("set 'auto.offset.reset' = 'earliest';").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+  }
+
+  @Test
+  public void shouldFailToListStreamsViaExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("list streams;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(), containsString("Use the listStreams() method instead"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldListStreams() throws Exception {
+    // When
+    final List<StreamInfo> streams = client.listStreams().get();
+
+    // Then
+    assertThat("" + streams, streams, containsInAnyOrder(
+        streamForProvider(TEST_DATA_PROVIDER),
+        streamForProvider(EMPTY_TEST_DATA_PROVIDER),
+        streamForProvider(EMPTY_TEST_DATA_PROVIDER_2)
+    ));
+  }
+
+  @Test
+  public void shouldListTables() throws Exception {
+    // When
+    final List<TableInfo> tables = client.listTables().get();
+
+    // Then
+    assertThat("" + tables, tables, contains(
+        tableInfo(AGG_TABLE, AGG_TABLE, KEY_FORMAT.name(), VALUE_FORMAT.name(), false)
+    ));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldListTopics() throws Exception {
+    // When
+    final List<TopicInfo> topics = client.listTopics().get();
+
+    // Then
+    assertThat("" + topics, topics, containsInAnyOrder(
+        topicInfo(TEST_TOPIC),
+        topicInfo(EMPTY_TEST_TOPIC),
+        topicInfo(EMPTY_TEST_TOPIC_2),
+        topicInfo(AGG_TABLE)
+    ));
+  }
+
+  @Test
+  public void shouldListQueries() {
+    // When
+    // Try multiple times to allow time for queries started by the other tests to finish terminating
+    final List<QueryInfo> queries = assertThatEventually(() -> {
+      try {
+        return client.listQueries().get();
+      } catch (Exception e) {
+        return Collections.emptyList();
+      }
+    }, hasSize(1));
+
+    // Then
+    assertThat(queries.get(0).getQueryType(), is(QueryType.PERSISTENT));
+    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
+    assertThat(queries.get(0).getSql(), is(
+        "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+            + "  " + TEST_STREAM + ".STR STR,\n"
+            + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
+            + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
+            + "GROUP BY " + TEST_STREAM + ".STR\n"
+            + "EMIT CHANGES;"));
+    assertThat(queries.get(0).getSink(), is(Optional.of(AGG_TABLE)));
+    assertThat(queries.get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
+  }
+
+  @Test
+  public void shouldDescribeSource() throws Exception {
+    // When
+    final SourceDescription description = client.describeSource(TEST_STREAM).get();
+
+    // Then
+    assertThat(description.name(), is(TEST_STREAM));
+    assertThat(description.type(), is("STREAM"));
+    assertThat(description.fields(), hasSize(TEST_COLUMN_NAMES.size()));
+    for (int i = 0; i < TEST_COLUMN_NAMES.size(); i++) {
+      assertThat(description.fields().get(i).name(), is(TEST_COLUMN_NAMES.get(i)));
+      assertThat(description.fields().get(i).type().getType(), is(TEST_COLUMN_TYPES.get(i).getType()));
+      final boolean isKey = TEST_COLUMN_NAMES.get(i).equals(TEST_DATA_PROVIDER.key());
+      assertThat(description.fields().get(i).isKey(), is(isKey));
+    }
+    assertThat(description.topic(), is(TEST_TOPIC));
+    assertThat(description.keyFormat(), is("JSON"));
+    assertThat(description.valueFormat(), is("JSON"));
+    assertThat(description.readQueries(), hasSize(1));
+    assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
+    assertThat(description.readQueries().get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
+    assertThat(description.readQueries().get(0).getSql(), is(
+        "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+            + "  " + TEST_STREAM + ".STR STR,\n"
+            + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
+            + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
+            + "GROUP BY " + TEST_STREAM + ".STR\n"
+            + "EMIT CHANGES;"));
+    assertThat(description.readQueries().get(0).getSink(), is(Optional.of(AGG_TABLE)));
+    assertThat(description.readQueries().get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
+    assertThat(description.writeQueries(), hasSize(0));
+    assertThat(description.timestampColumn(), is(Optional.empty()));
+    assertThat(description.windowType(), is(Optional.empty()));
+    assertThat(description.sqlStatement(), is(
+        "CREATE STREAM " + TEST_STREAM + " (STR STRING KEY, LONG BIGINT, DEC DECIMAL(4, 2), "
+            + "ARRAY ARRAY<STRING>, MAP MAP<STRING, STRING>, STRUCT STRUCT<F1 INTEGER>, "
+            + "COMPLEX STRUCT<`DECIMAL` DECIMAL(2, 1), STRUCT STRUCT<F1 STRING, F2 INTEGER>, "
+            + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
+            + "ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, "
+            + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>) "
+            + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='JSON', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromDescribeSource() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.describeSource("NONEXISTENT").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Could not find STREAM/TABLE 'NONEXISTENT' in the Metastore"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")
         .setPort(REST_APP.getListeners().get(0).getPort());
     return Client.create(clientOptions, vertx);
+  }
+
+  private void verifyNumStreams(final int numStreams) {
+    assertThatEventually(() -> {
+      try {
+        return client.listStreams().get().size();
+      } catch (Exception e) {
+        return -1;
+      }
+    }, is(numStreams));
+  }
+
+  private void verifyNumQueries(final int numQueries) {
+    assertThatEventually(() -> {
+      try {
+        return client.listQueries().get().size();
+      } catch (Exception e) {
+        return -1;
+      }
+    }, is(numQueries));
+  }
+
+  private String findQueryIdForSink(final String sinkName) throws Exception {
+    final List<String> queryIds = client.listQueries().get().stream()
+        .filter(q -> q.getSink().equals(Optional.of(sinkName)))
+        .map(QueryInfo::getId)
+        .collect(Collectors.toList());
+    assertThat(queryIds, hasSize(1));
+    return queryIds.get(0);
   }
 
   private static void makeKsqlRequest(final String sql) {
@@ -750,11 +1138,14 @@ public class ClientIntegrationTest {
     assertThat(obj.toString(), is(obj.toJsonString()));
   }
 
-  private static List<KsqlArray> convertToClientRows(final Multimap<String, GenericRow> data) {
+  private static List<KsqlArray> convertToClientRows(
+      final Multimap<Struct, GenericRow> data,
+      final String keyField
+  ) {
     final List<KsqlArray> expectedRows = new ArrayList<>();
-    for (final Map.Entry<String, GenericRow> entry : data.entries()) {
+    for (final Map.Entry<Struct, GenericRow> entry : data.entries()) {
       final KsqlArray expectedRow = new KsqlArray()
-          .add(entry.getKey());
+          .add(entry.getKey().getString(keyField));
       for (final Object value : entry.getValue().values()) {
         if (value instanceof Struct) {
           expectedRow.add(StructuredTypesDataProvider.structToMap((Struct) value));
@@ -770,4 +1161,122 @@ public class ClientIntegrationTest {
     }
     return expectedRows;
   }
+
+  private static Matcher<? super StreamInfo> streamForProvider(
+      final TestDataProvider testDataProvider
+  ) {
+    return streamInfo(
+        testDataProvider.sourceName(),
+        testDataProvider.topicName(),
+        KEY_FORMAT.name(),
+        VALUE_FORMAT.name(),
+        false
+    );
+  }
+
+  private static Matcher<? super StreamInfo> streamInfo(
+      final String streamName,
+      final String topicName,
+      final String keyFormat,
+      final String valueFormat,
+      final boolean isWindowed
+  ) {
+    return new TypeSafeDiagnosingMatcher<StreamInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final StreamInfo actual,
+          final Description mismatchDescription) {
+        if (!streamName.equals(actual.getName())) {
+          return false;
+        }
+        if (!topicName.equals(actual.getTopic())) {
+          return false;
+        }
+        if (!keyFormat.equals(actual.getValueFormat())) {
+          return false;
+        }
+        if (!valueFormat.equals(actual.getValueFormat())) {
+          return false;
+        }
+        if (isWindowed != actual.isWindowed()) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            streamName, topicName, keyFormat, valueFormat, isWindowed));
+      }
+    };
+  }
+
+  private static Matcher<? super TableInfo> tableInfo(
+      final String tableName,
+      final String topicName,
+      final String keyFormat,
+      final String valueFormat,
+      final boolean isWindowed
+  ) {
+    return new TypeSafeDiagnosingMatcher<TableInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final TableInfo actual,
+          final Description mismatchDescription) {
+        if (!tableName.equals(actual.getName())) {
+          return false;
+        }
+        if (!topicName.equals(actual.getTopic())) {
+          return false;
+        }
+        if (!keyFormat.equals(actual.getKeyFormat())) {
+          return false;
+        }
+        if (!valueFormat.equals(actual.getValueFormat())) {
+          return false;
+        }
+        if (isWindowed != actual.isWindowed()) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            tableName, topicName, keyFormat, valueFormat, isWindowed));
+      }
+    };
+  }
+
+  // validates topics have 1 partition and 1 replica
+  private static Matcher<? super TopicInfo> topicInfo(final String name) {
+    return new TypeSafeDiagnosingMatcher<TopicInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final TopicInfo actual,
+          final Description mismatchDescription) {
+        if (!name.equals(actual.getName())) {
+          return false;
+        }
+        if (actual.getPartitions() != 1) {
+          return false;
+        }
+        final List<Integer> replicasPerPartition = actual.getReplicasPerPartition();
+        if (replicasPerPartition.size() != 1 || replicasPerPartition.get(0) != 1) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("name: " + name);
+      }
+    };
+  }
+
 }

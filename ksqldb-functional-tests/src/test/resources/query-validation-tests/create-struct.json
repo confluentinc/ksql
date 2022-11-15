@@ -116,6 +116,26 @@
           {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, S STRUCT<F1 INT>"}
         ]
       }
+    },
+    {
+      "name": "in aggregate",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, STRUCT(Vals := COLLECT_LIST(VAL)) AS body FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        { "topic": "test", "key": 1, "value": {"VAL": 1}},
+        { "topic": "test", "key": 1, "value": {"VAL": 2}}
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "key": 1, "value": {"BODY": {"VALS": [1]}}},
+        { "topic": "OUTPUT", "key": 1, "value": {"BODY": {"VALS": [1, 2]}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ID INT KEY, BODY STRUCT<VALS ARRAY<INT>>"}
+        ]
+      }
     }
   ]
 }

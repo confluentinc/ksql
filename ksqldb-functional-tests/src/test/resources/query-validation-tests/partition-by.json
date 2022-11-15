@@ -159,6 +159,51 @@
       }
     },
     {
+      "name": "constant",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select 1 AS K, ID, NAME from INPUT partition by 1;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"NAME": "bob", "ID": 10}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, ID INT, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "null",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, NAME from INPUT partition by null;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": null, "value": {"NAME": "bob", "ID": 10}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT, NAME STRING", "keyFormat": {"format": "NONE"}}
+        ]
+      }
+    },
+    {
+      "name": "null - explicit key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(key_format='DELIMITED') AS SELECT ID, NAME from INPUT partition by null;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Key format specified for stream without key columns."
+      }
+    },
+    {
       "name": "key in projection more than once",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
@@ -751,6 +796,139 @@
         {"topic": "REPARTITIONED", "key": null, "value": {"ID": 2}},
         {"topic": "REPARTITIONED", "key": 0, "value": {"ID": 3}}
       ]
+    },
+    {
+      "name": "non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL DOUBLE) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": 10.02}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10.02, "value": {"ID": 10}}]
+    },
+    {
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "name": "struct key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}]
+    },
+    {
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "name": "struct key format when original is unwrapped",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"F1": 1, "F2": 2}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}]
+    },
+    {
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "name": "partition by field within struct key",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by ID->F1;"
+      ],
+      "inputs": [{"topic": "input", "key": {"F1": 1, "F2": 2}, "value": {"VAL": 10}}],
+      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"ID": {"F1": 1, "F2": 2}, "VAL": 10}}]
+    },
+    {
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "name": "partition by field within struct key don't select struct key",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID->F1 AS F1, ID->F2 as F2, VAL from INPUT partition by ID->F1;"
+      ],
+      "inputs": [{"topic": "input", "key": {"F1": 1, "F2": 2}, "value": {"VAL": 10}}],
+      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"F2": 2, "VAL": 10}}]
+    },
+    {
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "name": "partition by create struct",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by STRUCT(a:=id->f1, b:=val);"
+      ],
+      "inputs": [{"topic": "input", "key": {"F1": 1, "F2": 2}, "value": {"VAL": 10}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"A": 1, "B": 10}, "value": {"ID":{"F1": 1, "F2": 2}, "VAL": 10}}]
+    },
+    {
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "name": "partition by struct with different key/value formats",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', key_format='AVRO', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ] },
+              "valueFormat": { "format": "JSON" },
+              "keySchema": {
+                "type": "record",
+                "name": "KsqlDataSourceSchema",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  { "name": "F1", "type": [ "null", "int" ], "default": null },
+                  { "name": "F2", "type": [ "null", "int" ], "default": null }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "name": "partition by struct explicitly change key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT WITH (key_format='AVRO') AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ] },
+              "valueFormat": { "format": "JSON" },
+              "keySchema": {
+                "type": "record",
+                "name": "KsqlDataSourceSchema",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  { "name": "F1", "type": [ "null", "int" ], "default": null },
+                  { "name": "F2", "type": [ "null", "int" ], "default": null }
+                ]
+              }
+            }
+          ]
+        }
+      }
     }
   ]
 }

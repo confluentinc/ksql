@@ -35,6 +35,8 @@ public final class DocumentationLinks {
 
   public static final String SYNTHETIC_JOIN_KEY_DOC_URL = "https://cnfl.io/2LV7ouS";
 
+  public static final String PUSH_PULL_QUERY_DOC_LINK = "https://cnfl.io/queries";
+
   /*
   Schema Registry
    */

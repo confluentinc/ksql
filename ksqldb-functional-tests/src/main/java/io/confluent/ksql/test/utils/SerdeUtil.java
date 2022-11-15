@@ -28,17 +28,20 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.json.JsonSchemaFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
+import io.confluent.ksql.test.serde.none.NoneSerdeSupplier;
 import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -71,13 +74,14 @@ public final class SerdeUtil {
       case JsonSchemaFormat.NAME: return new ValueSpecJsonSerdeSupplier(true);
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();
       case KafkaFormat.NAME:      return new KafkaSerdeSupplier(schema);
+      case NoneFormat.NAME:       return new NoneSerdeSupplier();
       default:
         throw new InvalidFieldException("format", "unsupported value: " + format);
     }
   }
 
   public static Optional<ParsedSchema> buildSchema(final JsonNode schema, final String format) {
-    if (schema instanceof NullNode) {
+    if (schema == null || schema instanceof NullNode) {
       return Optional.empty();
     }
 
@@ -111,7 +115,7 @@ public final class SerdeUtil {
       final LogicalSchema schema
   ) {
     final SerdeSupplier<T> inner = (SerdeSupplier<T>) getSerdeSupplier(
-        keyFormat.getFormat(),
+        FormatFactory.of(keyFormat.getFormatInfo()),
         schema
     );
 
@@ -123,8 +127,10 @@ public final class SerdeUtil {
     if (windowType == WindowType.SESSION) {
       return new SerdeSupplier<Windowed<T>>() {
         @Override
-        public Serializer<Windowed<T>> getSerializer(final SchemaRegistryClient srClient) {
-          final Serializer<T> serializer = inner.getSerializer(srClient);
+        public Serializer<Windowed<T>> getSerializer(
+            final SchemaRegistryClient srClient, final boolean isKey
+        ) {
+          final Serializer<T> serializer = inner.getSerializer(srClient, isKey);
           serializer.configure(ImmutableMap.of(
               AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
           ), true);
@@ -132,8 +138,11 @@ public final class SerdeUtil {
         }
 
         @Override
-        public Deserializer<Windowed<T>> getDeserializer(final SchemaRegistryClient srClient) {
-          final Deserializer<T> deserializer = inner.getDeserializer(srClient);
+        public Deserializer<Windowed<T>> getDeserializer(
+            final SchemaRegistryClient srClient,
+            final boolean isKey
+        ) {
+          final Deserializer<T> deserializer = inner.getDeserializer(srClient, isKey);
           deserializer.configure(ImmutableMap.of(), true);
           return new SessionWindowedDeserializer<>(deserializer);
         }
@@ -142,8 +151,11 @@ public final class SerdeUtil {
 
     return new SerdeSupplier<Windowed<T>>() {
       @Override
-      public Serializer<Windowed<T>> getSerializer(final SchemaRegistryClient srClient) {
-        final Serializer<T> serializer = inner.getSerializer(srClient);
+      public Serializer<Windowed<T>> getSerializer(
+          final SchemaRegistryClient srClient,
+          final boolean isKey
+      ) {
+        final Serializer<T> serializer = inner.getSerializer(srClient, isKey);
         serializer.configure(ImmutableMap.of(
             AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
         ), true);
@@ -152,8 +164,11 @@ public final class SerdeUtil {
 
       @SuppressWarnings("OptionalGetWithoutIsPresent")
       @Override
-      public Deserializer<Windowed<T>> getDeserializer(final SchemaRegistryClient srClient) {
-        final Deserializer<T> deserializer = inner.getDeserializer(srClient);
+      public Deserializer<Windowed<T>> getDeserializer(
+          final SchemaRegistryClient srClient,
+          final boolean isKey
+      ) {
+        final Deserializer<T> deserializer = inner.getDeserializer(srClient, isKey);
         deserializer.configure(ImmutableMap.of(), true);
         return new TimeWindowedDeserializer<>(
             deserializer,

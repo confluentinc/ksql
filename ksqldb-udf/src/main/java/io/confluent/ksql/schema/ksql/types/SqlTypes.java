@@ -34,8 +34,8 @@ public final class SqlTypes {
     return SqlArray.of(elementType);
   }
 
-  public static SqlMap map(final SqlType valueType) {
-    return SqlMap.of(valueType);
+  public static SqlMap map(final SqlType keyType, final SqlType valueType) {
+    return SqlMap.of(keyType, valueType);
   }
 
   public static SqlStruct.Builder struct() {

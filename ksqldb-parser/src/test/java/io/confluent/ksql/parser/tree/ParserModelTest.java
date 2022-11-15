@@ -87,7 +87,7 @@ public class ParserModelTest {
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
-          ResultMaterialization.CHANGES,
+          Optional.empty(),
           false,
           OptionalInt.empty()
       ))

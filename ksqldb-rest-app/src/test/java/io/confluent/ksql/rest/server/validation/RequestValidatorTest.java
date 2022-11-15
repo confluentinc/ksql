@@ -27,13 +27,16 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -41,6 +44,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
@@ -58,7 +62,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -70,6 +74,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestValidatorTest {
 
+  private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
 
   @Mock
@@ -95,9 +100,9 @@ public class RequestValidatorTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.prepare(any()))
+    when(ksqlEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
-            new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
+            KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
     executionContext = ksqlEngine;
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
@@ -111,10 +116,44 @@ public class RequestValidatorTest {
     final KsqlStream<?> sink = mock(KsqlStream.class);
     when(sink.getName()).thenReturn(SourceName.of("SINK"));
 
-    metaStore.putSource(source);
-    metaStore.putSource(sink);
+    metaStore.putSource(source, false);
+    metaStore.putSource(sink, false);
 
     givenRequestValidator(ImmutableMap.of());
+  }
+
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @Test
+  public void shouldCallPrepareStatementWithSessionVariables() {
+    // Given
+    givenRequestValidator(ImmutableMap.of(CreateStream.class, statementValidator));
+    final Map<String, String> sessionVariables = ImmutableMap.of("a", "1");
+    when(sessionProperties.getSessionVariables()).thenReturn(sessionVariables);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE)).thenReturn(true);
+
+    // When
+    final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
+
+    // Then
+    verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
+    verify(sessionProperties).getSessionVariables();
+  }
+
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @Test
+  public void shouldCallPrepareStatementWithEmptySessionVariablesIfSubstitutionDisabled() {
+    // Given
+    givenRequestValidator(ImmutableMap.of(CreateStream.class, statementValidator));
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE)).thenReturn(false);
+
+    // When
+    final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
+
+    // Then
+    verify(ksqlEngine).prepare(statements.get(0), Collections.emptyMap());
+    verify(sessionProperties, never()).getSessionVariables();
   }
 
   @Test
@@ -293,7 +332,7 @@ public class RequestValidatorTest {
   }
 
   private List<ParsedStatement> givenParsed(final String sql) {
-    return new DefaultKsqlParser().parse(sql);
+    return KSQL_PARSER.parse(sql);
   }
 
   private void givenRequestValidator(

@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.rest.server.services;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.client.KsqlClient;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.util.KeystoreUtil;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
@@ -36,37 +39,55 @@ public final class InternalKsqlClientFactory {
       final Map<String, String> clientProps,
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory,
       final Vertx vertx) {
+    final String internalClientAuth = clientProps.get(
+        KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG);
+    final boolean verifyHost = !Strings.isNullOrEmpty(internalClientAuth)
+        && !KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE.equals(internalClientAuth);
+
     return new KsqlClient(
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
-        httpOptionsFactory(clientProps),
+        httpOptionsFactory(clientProps, verifyHost),
         socketAddressFactory,
         vertx
     );
   }
 
   private static Function<Boolean, HttpClientOptions> httpOptionsFactory(
-      final Map<String, String> clientProps) {
+      final Map<String, String> clientProps, final boolean verifyHost) {
     return (tls) -> {
       final HttpClientOptions httpClientOptions = createClientOptions();
       if (!tls) {
         return httpClientOptions;
       }
-
-      httpClientOptions.setVerifyHost(false);
+      httpClientOptions.setVerifyHost(verifyHost);
       httpClientOptions.setSsl(true);
       final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-      if (trustStoreLocation != null) {
+      if (!Strings.isNullOrEmpty(trustStoreLocation)) {
         final String suppliedTruststorePassword = clientProps
             .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
         httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
-            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
+            .setPassword(Strings.nullToEmpty(suppliedTruststorePassword)));
+
         final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-        if (keyStoreLocation != null) {
-          final String suppliedKeyStorePassord = clientProps
+        if (!Strings.isNullOrEmpty(keyStoreLocation)) {
+          final String suppliedKeyStorePassword = clientProps
               .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-              .setPassword(suppliedTruststorePassword == null ? "" : suppliedKeyStorePassord));
+          final String internalAlias = clientProps
+              .get(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG);
+          final JksOptions keyStoreOptions = new JksOptions()
+              .setPassword(Strings.nullToEmpty(suppliedKeyStorePassword));
+          if (!Strings.isNullOrEmpty(internalAlias)) {
+            keyStoreOptions.setValue(KeystoreUtil.getKeyStore(
+                KsqlRestConfig.SSL_STORE_TYPE_JKS,
+                keyStoreLocation,
+                Optional.ofNullable(Strings.emptyToNull(suppliedKeyStorePassword)),
+                Optional.ofNullable(Strings.emptyToNull(suppliedKeyStorePassword)),
+                internalAlias));
+          } else {
+            keyStoreOptions.setPath(keyStoreLocation);
+          }
+          httpClientOptions.setKeyStoreOptions(keyStoreOptions);
         }
       }
       return httpClientOptions;

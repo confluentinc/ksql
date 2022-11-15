@@ -149,6 +149,11 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
   }
 
   @Override
+  public List<Integer> deleteSubject(final String s, final boolean b) {
+    return ImmutableList.of();
+  }
+
+  @Override
   public List<Integer> deleteSubject(final Map<String, String> map, final String s) {
     return ImmutableList.of();
   }

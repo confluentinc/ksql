@@ -17,15 +17,19 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
+import org.apache.kafka.connect.data.Struct;
 
-public class UserDataProvider extends TestDataProvider<String> {
+public class UserDataProvider extends TestDataProvider {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
@@ -35,18 +39,28 @@ public class UserDataProvider extends TestDataProvider<String> {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOption.none());
+      .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
-      .<String, GenericRow>builder()
-      .put("USER_0", genericRow(0L, "FEMALE", "REGION_0"))
-      .put("USER_1", genericRow(1L, "MALE", "REGION_1"))
-      .put("USER_2", genericRow(2L, "FEMALE", "REGION_1"))
-      .put("USER_3", genericRow(3L, "MALE", "REGION_0"))
-      .put("USER_4", genericRow(4L, "MALE", "REGION_4"))
+  private static final KeyBuilder KEY_BUILDER = StructKeyUtil.keyBuilder(LOGICAL_SCHEMA);
+
+  private static final Multimap<Struct, GenericRow> ROWS = ImmutableListMultimap
+      .<Struct, GenericRow>builder()
+      .put(buildKey("USER_0"), genericRow(0L, "FEMALE", "REGION_0"))
+      .put(buildKey("USER_1"), genericRow(1L, "MALE", "REGION_1"))
+      .put(buildKey("USER_2"), genericRow(2L, "FEMALE", "REGION_1"))
+      .put(buildKey("USER_3"), genericRow(3L, "MALE", "REGION_0"))
+      .put(buildKey("USER_4"), genericRow(4L, "MALE", "REGION_4"))
       .build();
 
   public UserDataProvider() {
     super("USER", PHYSICAL_SCHEMA, ROWS);
+  }
+
+  public String getStringKey(final int position) {
+    return Iterables.get(data().keySet(), position).getString(key());
+  }
+
+  private static Struct buildKey(final String key) {
+    return KEY_BUILDER.build(key);
   }
 }

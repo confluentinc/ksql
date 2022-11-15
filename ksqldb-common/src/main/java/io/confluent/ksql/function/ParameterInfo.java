@@ -17,6 +17,7 @@ package io.confluent.ksql.function;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.types.ParamType;
+import java.util.Objects;
 
 @Immutable
 public final class ParameterInfo {
@@ -52,5 +53,35 @@ public final class ParameterInfo {
 
   public boolean isVariadic() {
     return isVariadic;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final ParameterInfo that = (ParameterInfo) o;
+    return isVariadic == that.isVariadic
+        && Objects.equals(name, that.name)
+        && Objects.equals(type, that.type)
+        && Objects.equals(description, that.description);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, type, description, isVariadic);
+  }
+
+  @Override
+  public String toString() {
+    return "ParameterInfo{"
+        + "name='" + name + '\''
+        + ", type=" + type
+        + ", description='" + description + '\''
+        + ", isVariadic=" + isVariadic
+        + '}';
   }
 }

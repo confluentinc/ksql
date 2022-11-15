@@ -38,8 +38,7 @@ The RUN SCRIPT doesn't support statements such as:
 -   Non-persistent queries: SELECT, *etc*.
 
 RUN SCRIPT can also be used from the command line, for instance when
-writing shell scripts. For more information, see
-[Running ksqlDB Statements From the Command Line](../../tutorials/examples.md#running-ksqldb-statements-from-the-command-line).
+writing shell scripts.
 
 Example
 -------

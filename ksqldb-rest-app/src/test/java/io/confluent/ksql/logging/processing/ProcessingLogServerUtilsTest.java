@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.logging.processing;
 
-import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -37,19 +35,12 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -104,69 +95,6 @@ public class ProcessingLogServerUtilsTest {
     return new ImmutableList.Builder<String>().addAll(path).add(elem).build();
   }
 
-  private void assertLogSchema(
-      final Schema expected,
-      final Schema schema,
-      final List<String> path) {
-    final String pathStr = String.join("->", path);
-    assertThat("Type mismatch at " + pathStr, schema.type(), equalTo(expected.type()));
-    switch (schema.type()) {
-      case STRUCT:
-        assertThat(
-            "Struct field mismatch at " + String.join("->", path),
-            schema.fields().stream()
-                .map(f -> f.name().toUpperCase())
-                .collect(toList()),
-            equalTo(
-                expected.fields().stream()
-                    .map(f -> f.name().toUpperCase())
-                    .collect(toList()))
-        );
-        for (int i = 0; i < schema.fields().size(); i++) {
-          assertLogSchema(
-              schema.fields().get(i).schema(),
-              expected.fields().get(i).schema(),
-              push(path, schema.fields().get(i).name())
-          );
-        }
-        break;
-      case MAP:
-        assertLogSchema(expected.keySchema(), schema.keySchema(), push(path, "KEY"));
-        assertLogSchema(expected.valueSchema(), schema.valueSchema(), push(path, "VALUE"));
-        break;
-      case ARRAY:
-        assertLogSchema(expected.valueSchema(), schema.valueSchema(), push(path, "ELEMENTS"));
-        break;
-      default:
-        break;
-    }
-  }
-
-  private void assertLogStream(final String topicName) {
-    final DataSource dataSource = metaStore.getSource(SourceName.of(STREAM));
-    assertThat(dataSource, instanceOf(KsqlStream.class));
-    final KsqlStream<?> stream = (KsqlStream) dataSource;
-    final Schema expected = ProcessingLogServerUtils.getMessageSchema();
-    assertThat(stream.getKsqlTopic().getValueFormat().getFormat(), is(FormatFactory.JSON));
-    assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
-    assertThat(
-        stream.getSchema().value().stream().map(Column::name).map(ColumnName::text).collect(toList()),
-        equalTo(
-            new ImmutableList.Builder<String>()
-                .addAll(
-                    expected.fields().stream()
-                        .map(f -> f.name().toUpperCase())
-                        .collect(toList()))
-                .build()
-        )
-    );
-    expected.fields().forEach(
-        f -> assertLogSchema(
-            f.schema(),
-            stream.getSchema().valueConnectSchema().field(f.name().toUpperCase()).schema(),
-            ImmutableList.of(f.name())));
-  }
-
   @Test
   public void shouldBuildCorrectStreamCreateDDL() {
     // Given:
@@ -186,11 +114,13 @@ public class ProcessingLogServerUtilsTest {
             + "time BIGINT, "
             + "message STRUCT<"
             + "type INT, "
-            + "deserializationError STRUCT<errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>, "
+            + "deserializationError STRUCT<target VARCHAR, errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>, "
             + "recordProcessingError STRUCT<errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>>, "
-            + "productionError STRUCT<errorMessage VARCHAR>"
+            + "productionError STRUCT<errorMessage VARCHAR>, "
+            + "serializationError STRUCT<target VARCHAR, errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>, "
+            + "kafkaStreamsThreadError STRUCT<errorMessage VARCHAR, threadName VARCHAR, cause ARRAY<VARCHAR>>"
             + ">"
-            + ") WITH(KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');"));
+            + ") WITH(KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');"));
   }
 
   @Test

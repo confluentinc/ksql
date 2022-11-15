@@ -17,7 +17,9 @@ package io.confluent.ksql.engine;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.engine.rewrite.AstSanitizer;
@@ -25,26 +27,32 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
+import org.apache.kafka.streams.KafkaStreams.State;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Holds the mutable state and services of the engine.
@@ -53,6 +61,8 @@ import java.util.function.BiConsumer;
 final class EngineContext {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private static final Logger LOG = LoggerFactory.getLogger(EngineContext.class);
+
   private final MutableMetaStore metaStore;
   private final ServiceContext serviceContext;
   private final CommandFactories ddlCommandFactory;
@@ -60,23 +70,24 @@ final class EngineContext {
   private final QueryIdGenerator queryIdGenerator;
   private final ProcessingLogContext processingLogContext;
   private final KsqlParser parser;
-  private final BiConsumer<ServiceContext, QueryMetadata> outerOnQueryCloseCallback;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
+  private final Set<QueryMetadata> allLiveQueries = ConcurrentHashMap.newKeySet();
+  private final QueryCleanupService cleanupService;
 
   static EngineContext create(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback
+      final QueryCleanupService cleanupService
   ) {
     return new EngineContext(
         serviceContext,
         processingLogContext,
         metaStore,
         queryIdGenerator,
-        onQueryCloseCallback,
-        new DefaultKsqlParser()
+        new DefaultKsqlParser(),
+        cleanupService
     );
   }
 
@@ -85,18 +96,18 @@ final class EngineContext {
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback,
-      final KsqlParser parser
+      final KsqlParser parser,
+      final QueryCleanupService cleanupService
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.queryIdGenerator = requireNonNull(queryIdGenerator, "queryIdGenerator");
     this.ddlCommandFactory = new CommandFactories(serviceContext, metaStore);
-    this.outerOnQueryCloseCallback = requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
     this.ddlCommandExec = new DdlCommandExec(metaStore);
     this.persistentQueries = new ConcurrentHashMap<>();
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.parser = requireNonNull(parser, "parser");
+    this.cleanupService = requireNonNull(cleanupService, "cleanupService");
   }
 
   EngineContext createSandbox(final ServiceContext serviceContext) {
@@ -105,13 +116,13 @@ final class EngineContext {
         processingLogContext,
         metaStore.copy(),
         queryIdGenerator.createSandbox(),
-        (sc, query) -> { /* No-op */ }
+        cleanupService
     );
 
     persistentQueries.forEach((queryId, query) ->
         sandBox.persistentQueries.put(
             query.getQueryId(),
-            query.copyWith(sandBox::unregisterQuery)));
+            SandboxedPersistentQueryMetadata.of(query, sandBox::closeQuery)));
 
     return sandBox;
   }
@@ -140,9 +151,27 @@ final class EngineContext {
     return parser.parse(sql);
   }
 
-  PreparedStatement<?> prepare(final ParsedStatement stmt) {
+  QueryIdGenerator idGenerator() {
+    return queryIdGenerator;
+  }
+
+  List<QueryMetadata> getAllLiveQueries() {
+    return ImmutableList.copyOf(allLiveQueries);
+  }
+
+  private ParsedStatement substituteVariables(
+      final ParsedStatement stmt,
+      final Map<String, String> variablesMap
+  ) {
+    return (!variablesMap.isEmpty())
+        ? parse(VariableSubstitutor.substitute(stmt, variablesMap)).get(0)
+        : stmt ;
+  }
+
+  PreparedStatement<?> prepare(final ParsedStatement stmt, final Map<String, String> variablesMap) {
     try {
-      final PreparedStatement<?> preparedStatement = parser.prepare(stmt, metaStore);
+      final PreparedStatement<?> preparedStatement =
+          parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
       return PreparedStatement.of(
           preparedStatement.getUnMaskedStatementText(),
           AstSanitizer.sanitize(preparedStatement.getStatement(), metaStore)
@@ -159,35 +188,32 @@ final class EngineContext {
   QueryEngine createQueryEngine(final ServiceContext serviceContext) {
     return new QueryEngine(
         serviceContext,
-        processingLogContext,
-        queryIdGenerator);
+        processingLogContext
+    );
   }
 
   QueryExecutor createQueryExecutor(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final ServiceContext serviceContext) {
+      final SessionConfig config,
+      final ServiceContext serviceContext
+  ) {
     return new QueryExecutor(
-        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
-        overriddenProperties,
+        config,
         processingLogContext,
         serviceContext,
         metaStore,
-        this::unregisterQuery
+        this::closeQuery
     );
   }
 
   DdlCommand createDdlCommand(
       final String sqlExpression,
       final ExecutableDdlStatement statement,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties
+      final SessionConfig config
   ) {
     return ddlCommandFactory.create(
         sqlExpression,
         statement,
-        ksqlConfig,
-        overriddenProperties
+        config
     );
   }
 
@@ -208,24 +234,70 @@ final class EngineContext {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final QueryId queryId = persistentQuery.getQueryId();
 
-      if (persistentQueries.putIfAbsent(queryId, persistentQuery) != null) {
-        throw new IllegalStateException("Query already registered:" + queryId);
+      // don't use persistentQueries.put(queryId) here because oldQuery.close()
+      // will remove any query with oldQuery.getQueryId() from the map of persistent
+      // queries
+      final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
+      if (oldQuery != null) {
+        oldQuery.getPhysicalPlan()
+            .validateUpgrade(((PersistentQueryMetadata) query).getPhysicalPlan());
+
+        // don't close the old query so that we don't delete the changelog
+        // topics and the state store, instead use QueryMetadata#stop
+        oldQuery.stop();
+        unregisterQuery(oldQuery);
       }
 
+      persistentQuery.initialize();
+      persistentQueries.put(queryId, persistentQuery);
       metaStore.updateForPersistentQuery(
           queryId.toString(),
           persistentQuery.getSourceNames(),
           ImmutableSet.of(persistentQuery.getSinkName()));
     }
+    allLiveQueries.add(query);
   }
 
-  private void unregisterQuery(final QueryMetadata query) {
+  private void closeQuery(final QueryMetadata query) {
+    if (unregisterQuery(query)) {
+      cleanupExternalQueryResources(query);
+    }
+  }
+
+  private boolean unregisterQuery(final QueryMetadata query) {
     if (query instanceof PersistentQueryMetadata) {
-      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
-      persistentQueries.remove(persistentQuery.getQueryId());
-      metaStore.removePersistentQuery(persistentQuery.getQueryId().toString());
+      persistentQueries.remove(query.getQueryId());
+      metaStore.removePersistentQuery(query.getQueryId().toString());
     }
 
-    outerOnQueryCloseCallback.accept(serviceContext, query);
+    if (!query.getState().equals(State.NOT_RUNNING)) {
+      LOG.warn(
+          "Unregistering query that has not terminated. "
+              + "This may happen when streams threads are hung. State: " + query.getState()
+      );
+    }
+
+    return allLiveQueries.remove(query);
+  }
+
+  private void cleanupExternalQueryResources(
+      final QueryMetadata query
+  ) {
+    final String applicationId = query.getQueryApplicationId();
+    if (query.hasEverBeenStarted()) {
+      cleanupService.addCleanupTask(
+          new QueryCleanupService.QueryCleanupTask(
+              serviceContext,
+              applicationId,
+              query instanceof TransientQueryMetadata
+          ));
+    }
+
+    StreamsErrorCollector.notifyApplicationClose(applicationId);
+  }
+
+  public void close(final boolean closeQueries) {
+    getAllLiveQueries().forEach(closeQueries ? QueryMetadata::close : QueryMetadata::stop);
+
   }
 }

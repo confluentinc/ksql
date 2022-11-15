@@ -200,7 +200,7 @@ topic due to a {{ site.ak }} producer exception. The default value in ksqlDB is
 `true`, which means if a producer error occurs, then the {{ site.kstreams }}
 thread that encountered the error will shut down. To log the error
 message to the
-[Processing Log](../../../developer-guide/test-and-debug/processing-log.md)
+[Processing Log](../../../reference/processing-log.md)
 and have ksqlDB continue processing as normal, add the following setting
 to your ksqlDB Server properties file:
 
@@ -251,7 +251,7 @@ becomes `_confluent-ksql-default__command_topic`).
 The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
-[Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
+[Processing Log](../../../reference/processing-log.md).
 
 The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
@@ -287,6 +287,38 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS`.
 
+### ksql.persistence.default.format.key
+
+Sets the default value for the `KEY_FORMAT` property if one is
+not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md)
+or [CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md)
+statements.
+
+The default value for this configuration is `KAFKA`.
+
+If not set and no explicit key format is provided in the statement, via either the `KEY_FORMAT` or the
+`FORMAT` property, the statement will be rejected as invalid.
+
+For supported formats, see [Serialization Formats](../../../developer-guide/serialization.md#serialization-formats).
+
+[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
+[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md) 
+statements that create streams or tables with key columns, where the source stream or table 
+has a [NONE](../../../developer-guide/serialization.md#none) key format, will also use the default
+key format set in this configuration if no explicit key format is declared in the `WITH` clause.
+
+### ksql.persistence.default.format.value
+
+Sets the default value for the `VALUE_FORMAT` property if one is
+not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md)
+or [CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md)
+statements.
+
+If not set and no explicit value format is provided in the statement, via either the `VALUE_FORMAT` or the
+`FORMAT` property, the statement will be rejected as invalid.
+
+For supported formats, see [Serialization Formats](../../../developer-guide/serialization.md#serialization-formats).
+
 ### ksql.persistence.wrap.single.values
 
 Sets the default value for the `WRAP_SINGLE_VALUE` property if one is
@@ -296,10 +328,12 @@ not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-refere
 [CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md)
 statements.
 
-When set to the default value, `true`, ksqlDB serializes the column value
-nested with a JSON object, Avro record, or Protobuf message, depending on the
-format in use. When set to `false`, ksqlDB persists the column value without any
-nesting.
+If not set and no explicit value is provided in the statement, the value format's default wrapping 
+is used.
+
+When set to `true`, ksqlDB serializes the column value nested within a JSON object, Avro record,
+or Protobuf message, depending on the format in use. When set to `false`, ksqlDB persists the column
+value without any nesting, as an anonymous value.
 
 For example, consider the statement:
 
@@ -325,8 +359,7 @@ format persists the single field's value as a JSON number: `10`.
 10
 ```
 
-The `AVRO` and `PROTOBUF` formats support the same properties. The properties
-control whether or not the field's value is written as a named field within a
+The properties control whether or not the field's value is written as a named field within a
 record or as an anonymous value.
 
 This setting can be toggled using the SET command
@@ -342,10 +375,10 @@ For more information, refer to the
 [CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md)
 statements.
 
-!!! note
-	 The `DELIMITED` format is not affected by the
-    `ksql.persistence.ensure.value.is.struct` setting, because it has no
-    concept of an outer record or structure.
+ !!! note
+   Not all formats support wrapping and unwrapping. If you use a format that doesn't support
+   the default value you set, the format ignores the setting. For information on which formats
+   support wrapping and unwrapping, see the [serialization docs](../../../developer-guide/serialization.md).
 
 ### ksql.query.pull.enable.standby.reads
 
@@ -368,7 +401,6 @@ the pull query REST endpoint (by including it in the request e.g: `"streamsPrope
 
 By default, any amount of lag is allowed. For using this functionality, the server must be configured with `ksql.heartbeat.enable=true` and 
 `ksql.lag.reporting.enable=true`, so the servers can exchange lag information between themselves ahead of time, to validate pull queries against the allowed lag. 
-
 
 ksqlDB Server Settings
 ----------------------
@@ -486,6 +518,10 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_STATE_DIR`.
 
+### ksql.variable.substitution.enable
+
+Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.
+
 Confluent Control Center Settings
 ---------------------------------
 
@@ -518,7 +554,7 @@ ksqlDB Processing Log Settings
 ------------------------------
 
 The following configuration settings control the behavior of the
-[ksqlDB Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
+[ksqlDB Processing Log](../../../reference/processing-log.md).
 
 !!! note
     To enable security for the KSQL Processing Log, assign log4j properties

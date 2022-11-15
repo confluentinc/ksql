@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.version.metrics;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static org.hamcrest.Matchers.is;
+
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
@@ -22,7 +25,6 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.test.TestUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -57,7 +59,7 @@ public class VersionCheckerIntegrationTest {
     );
     versionCheckerAgent.start(KsqlModuleType.SERVER, versionCheckProps);
 
-    TestUtils.waitForCondition(() -> {
+    assertThatEventually("Version not submitted", () -> {
           try {
             WireMock.verify(WireMock.postRequestedFor(WireMock.urlPathEqualTo("/ksql/anon")));
             return true;
@@ -65,7 +67,9 @@ public class VersionCheckerIntegrationTest {
             return false;
           }
         },
-        30000, "Version not submitted"
+        is(true),
+        30000,
+        TimeUnit.MILLISECONDS
     );
   }
 }

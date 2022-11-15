@@ -17,9 +17,14 @@ package io.confluent.ksql.serde;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Immutable Pojo holding information about a source's value format.
@@ -28,26 +33,49 @@ import java.util.Objects;
 public final class ValueFormat {
 
   private final FormatInfo format;
+  private final SerdeFeatures features;
 
-  @JsonCreator
   public static ValueFormat of(
-      final FormatInfo format
+      final FormatInfo format,
+      final SerdeFeatures features
   ) {
-    return new ValueFormat(format);
+    return new ValueFormat(format, features);
   }
 
-  private ValueFormat(final FormatInfo format) {
+  @SuppressWarnings("unused") // Invoked via reflection by Jackson
+  @JsonCreator
+  private static ValueFormat create(
+      @JsonProperty(value = "format", required = true) final String format,
+      @JsonProperty(value = "properties") final Optional<Map<String, String>> properties,
+      @JsonProperty(value = "features") final Optional<SerdeFeatures> features
+  ) {
+    return new ValueFormat(
+        FormatInfo.of(format, properties.orElseGet(ImmutableMap::of)),
+        features.orElseGet(SerdeFeatures::of)
+    );
+  }
+
+  private ValueFormat(final FormatInfo format, final SerdeFeatures features) {
     this.format = Objects.requireNonNull(format, "format");
+    this.features = Objects.requireNonNull(features, "features");
+  }
+
+  public String getFormat() {
+    return format.getFormat();
+  }
+
+  public Map<String, String> getProperties() {
+    return format.getProperties();
   }
 
   @JsonIgnore
-  public Format getFormat() {
-    return FormatFactory.of(format);
-  }
-
-  @JsonValue
   public FormatInfo getFormatInfo() {
     return format;
+  }
+
+  @JsonInclude(value = Include.CUSTOM, valueFilter = SerdeFeatures.NOT_EMPTY.class)
+  public SerdeFeatures getFeatures() {
+    return features;
   }
 
   @Override
@@ -59,18 +87,20 @@ public final class ValueFormat {
       return false;
     }
     final ValueFormat that = (ValueFormat) o;
-    return Objects.equals(format, that.format);
+    return Objects.equals(format, that.format)
+        && Objects.equals(features, that.features);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(format);
+    return Objects.hash(format, features);
   }
 
   @Override
   public String toString() {
     return "ValueFormat{"
         + "format=" + format
+        + ", features=" + features
         + '}';
   }
 }

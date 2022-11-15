@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.connect;
 
+import io.confluent.ksql.serde.SerdeUtils;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.common.errors.SerializationException;
@@ -22,17 +23,20 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.storage.Converter;
 
-public class KsqlConnectDeserializer implements Deserializer<Object> {
+public class KsqlConnectDeserializer<T> implements Deserializer<T> {
 
   private final Converter converter;
   private final DataTranslator translator;
+  private final Class<T> targetType;
 
   public KsqlConnectDeserializer(
       final Converter converter,
-      final DataTranslator translator
+      final DataTranslator translator,
+      final Class<T> targetType
   ) {
     this.converter = Objects.requireNonNull(converter, "converter");
     this.translator = Objects.requireNonNull(translator, "translator");
+    this.targetType = Objects.requireNonNull(targetType, "type");
   }
 
   @Override
@@ -40,10 +44,13 @@ public class KsqlConnectDeserializer implements Deserializer<Object> {
   }
 
   @Override
-  public Object deserialize(final String topic, final byte[] bytes) {
+  public T deserialize(final String topic, final byte[] bytes) {
     try {
       final SchemaAndValue schemaAndValue = converter.toConnectData(topic, bytes);
-      return translator.toKsqlRow(schemaAndValue.schema(), schemaAndValue.value());
+
+      final Object val = translator.toKsqlRow(schemaAndValue.schema(), schemaAndValue.value());
+
+      return SerdeUtils.castToTargetType(val, targetType);
     } catch (final Exception e) {
       throw new SerializationException(
           "Error deserializing message from topic: " + topic, e);

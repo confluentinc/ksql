@@ -20,6 +20,7 @@ import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.json.JsonSchemaFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.util.KsqlException;
 
@@ -34,15 +35,15 @@ public final class FormatFactory {
   public static final Format PROTOBUF   = new ProtobufFormat();
   public static final Format KAFKA      = new KafkaFormat();
   public static final Format DELIMITED  = new DelimitedFormat();
+  public static final Format NONE       = new NoneFormat();
 
-  private FormatFactory() { }
+  private FormatFactory() {
+  }
 
   /**
    * @param formatInfo the format specification
    * @return the corresponding {@code Format} if available
-   *
-   * @throws KsqlException if the {@link FormatInfo#getFormat()} is not a builtin
-   *                       format in ksqlDB
+   * @throws KsqlException if the {@link FormatInfo#getFormat()} is not a builtin format in ksqlDB
    */
   public static Format of(final FormatInfo formatInfo) {
     final Format format = fromName(formatInfo.getFormat().toUpperCase());
@@ -51,13 +52,14 @@ public final class FormatFactory {
   }
 
   public static Format fromName(final String name) {
-    switch (name) {
+    switch (name.toUpperCase()) {
       case AvroFormat.NAME:       return AVRO;
       case JsonFormat.NAME:       return JSON;
       case JsonSchemaFormat.NAME: return JSON_SR;
       case ProtobufFormat.NAME:   return PROTOBUF;
       case KafkaFormat.NAME:      return KAFKA;
       case DelimitedFormat.NAME:  return DELIMITED;
+      case NoneFormat.NAME:       return NONE;
       default:
         throw new KsqlException("Unknown format: " + name);
     }

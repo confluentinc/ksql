@@ -23,7 +23,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -31,7 +30,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class DecimalUtil {
 
-  private static final String PRECISION_FIELD = "connect.decimal.precision";
+  public static final String PRECISION_FIELD = "connect.decimal.precision";
 
   private DecimalUtil() {
   }
@@ -114,19 +113,6 @@ public final class DecimalUtil {
   }
 
   /**
-   * Formats the decimal string, adding trailing zeros if necessary.
-   *
-   * @param value the value
-   * @return the formatted string
-   */
-  public static String format(final int precision, final int scale, final BigDecimal value) {
-    final DecimalFormat format = new DecimalFormat();
-    format.setMinimumFractionDigits(scale);
-
-    return format.format(value);
-  }
-
-  /**
    * @see #ensureFit(BigDecimal, SqlDecimal)
    */
   public static BigDecimal ensureFit(final BigDecimal value, final Schema schema) {
@@ -186,6 +172,21 @@ public final class DecimalUtil {
         throw new KsqlException(
             "Cannot convert schema of type " + schema.baseType() + " to decimal.");
     }
+  }
+
+  /**
+   * Returns True if {@code s1} can be implicitly cast to {@code s2}.
+   * </p>
+   * A decimal {@code s1} can be implicitly cast if precision/scale fits into the {@code s2}
+   * precision/scale.
+   * <ul>
+   *   <li>{@code s1} scale <= {@code s2} scale</li>
+   *   <li>{@code s1} left digits <= {@code s2} left digits</li>
+   * </ul>
+   */
+  public static boolean canImplicitlyCast(final SqlDecimal s1, final SqlDecimal s2) {
+    return s1.getScale() <= s2.getScale()
+        && (s1.getPrecision() - s1.getScale()) <= (s2.getPrecision() - s2.getScale());
   }
 
   public static BigDecimal cast(final long value, final int precision, final int scale) {

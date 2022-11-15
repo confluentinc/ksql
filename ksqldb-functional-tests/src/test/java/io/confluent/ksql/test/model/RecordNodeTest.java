@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.node.DecimalNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import io.confluent.ksql.test.tools.Record;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -16,7 +17,7 @@ public class RecordNodeTest {
     // Given:
     final RecordNode node = new RecordNode(
       "topic",
-        Optional.empty(),
+        NullNode.getInstance(),
         new DecimalNode(new BigDecimal("10.000")),
         Optional.empty(),
         Optional.empty()

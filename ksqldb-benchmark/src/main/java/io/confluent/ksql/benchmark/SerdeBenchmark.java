@@ -16,33 +16,37 @@
 package io.confluent.ksql.benchmark;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -79,116 +83,168 @@ public class SerdeBenchmark {
   private static final String SCHEMA_FILE_SUFFIX = ".avro";
   private static final String TOPIC_NAME = "serde_benchmark";
 
-  @State(Scope.Thread)
-  public static class SchemaAndGenericRowState {
-    org.apache.kafka.connect.data.Schema schema;
-    GenericRow row;
+  private static final String IMPRESSIONS_SCHEMA = "impressions";
+  private static final String METRICS_SCHEMA = "metrics";
+  private static final String SINGLE_KEY_SCHEMA = "single-key";
 
-    @Param({"impressions", "metrics"})
-    public String schemaName;
+  private static final String SEPARATOR = "/";
 
-    @Setup(Level.Iteration)
-    public void setUp() throws Exception {
-      final Generator generator = new Generator(getSchemaStream(), new Random());
+  private static final String JSON_FORMAT = "JSON";
+  private static final String AVRO_FORMAT = "Avro";
+  private static final String PROTOBUF_FORMAT = "Protobuf";
+  private static final String DELIMITED_FORMAT = "Delimited";
+  private static final String KAFKA_FORMAT = "Kafka";
 
-      // choose arbitrary key
-      final String key = generator.schema().getFields().get(0).name();
+  private static final class Params {
 
-      final RowGenerator rowGenerator = new RowGenerator(generator, key);
+    final String schemaName;
+    final String formatName;
 
-      final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
-      row = genericRowPair.getRight();
-      schema = rowGenerator.valueSchema();
+    static Params parse(final String text) {
+      final String[] parts = text.split(SEPARATOR);
+      if (parts.length != 2) {
+        throw new IllegalArgumentException("Param should be in form "
+            + "'<format-name>" + SEPARATOR + "<schema-name>', got: " + text);
+      }
+
+      return new Params(parts[0], parts[1]);
     }
 
-    private InputStream getSchemaStream() {
-      return SerdeBenchmark.class.getClassLoader().getResourceAsStream(
-          SCHEMA_DIR.resolve(schemaName + SCHEMA_FILE_SUFFIX).toString());
+    private Params(final String schemaName, final String formatName) {
+      this.schemaName = Objects.requireNonNull(schemaName, "schemaName");
+      this.formatName = Objects.requireNonNull(formatName, "formatName").toUpperCase();
     }
   }
 
   @State(Scope.Thread)
   public static class SerdeState {
 
-    Serializer<GenericRow> serializer;
-    Deserializer<GenericRow> deserializer;
-    GenericRow row;
+    Serializer<Object> serializer;
+    Deserializer<Object> deserializer;
+    Object data;
     byte[] bytes;
 
-    @Param({"JSON", "Avro"})
-    public String serializationFormat;
+    @Param({
+        SINGLE_KEY_SCHEMA + SEPARATOR + DELIMITED_FORMAT,
+        SINGLE_KEY_SCHEMA + SEPARATOR + KAFKA_FORMAT,
+        // SINGLE_KEY + PROTOBUF excluded as PB isn't yet supported for single key schemas
+        SINGLE_KEY_SCHEMA + SEPARATOR + JSON_FORMAT,
+        SINGLE_KEY_SCHEMA + SEPARATOR + AVRO_FORMAT,
 
+        IMPRESSIONS_SCHEMA + SEPARATOR + DELIMITED_FORMAT,
+        // IMPRESSIONS + KAFKA excluded as KAFKA does not support multiple columns
+        IMPRESSIONS_SCHEMA + SEPARATOR + PROTOBUF_FORMAT,
+        IMPRESSIONS_SCHEMA + SEPARATOR + JSON_FORMAT,
+        IMPRESSIONS_SCHEMA + SEPARATOR + AVRO_FORMAT,
+
+        // METRICS + DELIMITED_FORMAT excluded as DELIMITED does not support complex types
+        // METRICS + KAFKA excluded as KAFKA does not support multiple columns
+        METRICS_SCHEMA + SEPARATOR + PROTOBUF_FORMAT,
+        METRICS_SCHEMA + SEPARATOR + JSON_FORMAT,
+        METRICS_SCHEMA + SEPARATOR + AVRO_FORMAT
+    })
+    public String params;
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Setup(Level.Iteration)
-    public void setUp(final SchemaAndGenericRowState rowState) {
-      final Serde<GenericRow> serde;
-      switch (serializationFormat) {
-        case "JSON":
-          serde = getJsonSerde(rowState.schema);
-          break;
-        case "Avro":
-          serde = getAvroSerde(rowState.schema);
-          break;
-        default:
-          throw new RuntimeException("Invalid format: " + serializationFormat);
+    public void setUp() throws IOException {
+      final Params params = Params.parse(this.params);
+
+      final RowGenerator generator = getRowGenerator(params.schemaName);
+
+      final LogicalSchema schema = generator.schema();
+      final Pair<Struct, GenericRow> row = generator.generateRow();
+
+      if (params.schemaName.equals(SINGLE_KEY_SCHEMA)) {
+        // Benchmark the key serde:
+        final Serde<Struct> serde = getGenericKeySerde(schema, params.formatName);
+
+        serializer = (Serializer) serde.serializer();
+        deserializer = (Deserializer) serde.deserializer();
+        data = row.getLeft();
+      } else {
+
+        // Benchmark the value serde:
+        final Serde<GenericRow> serde = getGenericRowSerde(schema, params.formatName);
+
+        serializer = (Serializer) serde.serializer();
+        deserializer = (Deserializer) serde.deserializer();
+        data = row.getRight();
       }
-      serializer = serde.serializer();
-      deserializer = serde.deserializer();
-      row = rowState.row;
-      bytes = serializer.serialize(TOPIC_NAME, row);
+
+      bytes = serializer.serialize(TOPIC_NAME, data);
     }
 
-    private static Serde<GenericRow> getJsonSerde(
-        final org.apache.kafka.connect.data.Schema schema) {
-      final Serializer<GenericRow> serializer = getJsonSerdeHelper(schema).serializer();
-      // KsqlJsonDeserializer requires schema field names to be uppercase
-      final Deserializer<GenericRow> deserializer =
-          getJsonSerdeHelper(convertFieldNamesToUppercase(schema)).deserializer();
-      return Serdes.serdeFrom(serializer, deserializer);
+    private static RowGenerator getRowGenerator(final String schemaName) throws IOException {
+      final Generator generator = getGenerator(schemaName);
+
+      // choose arbitrary key
+      final String keyField = generator.schema().getFields().get(0).name();
+
+      return new RowGenerator(generator, keyField, Optional.empty());
     }
 
-    private static org.apache.kafka.connect.data.Schema convertFieldNamesToUppercase(
-        final org.apache.kafka.connect.data.Schema schema) {
-      SchemaBuilder builder = SchemaBuilder.struct();
-      for (final Field field : schema.fields()) {
-        builder = builder.field(field.name().toUpperCase(), field.schema());
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
+    private static Generator getGenerator(final String schemaName) throws IOException {
+      final Path schemaPath = SCHEMA_DIR.resolve(schemaName + SCHEMA_FILE_SUFFIX);
+
+      try (InputStream schemaResource = SerdeBenchmark.class.getClassLoader()
+          .getResourceAsStream(schemaPath.toString())) {
+
+        if (schemaResource == null) {
+          throw new FileNotFoundException("Schema file not found: " + schemaName);
+        }
+
+        return new Generator(schemaResource, new Random());
       }
-      return builder.build();
     }
 
-    private static Serde<GenericRow> getJsonSerdeHelper(
-        final org.apache.kafka.connect.data.Schema schema
-    ) {
-      return getGenericRowSerde(
-          FormatInfo.of(FormatFactory.JSON.name()),
-          schema,
-          () -> null
-      );
+    private static FormatInfo getFormatInfo(final String formatName) {
+      if (AvroFormat.NAME.equals(formatName)) {
+        return FormatInfo.of(
+            FormatFactory.AVRO.name(),
+            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "benchmarkSchema")
+        );
+      }
+
+      return FormatInfo.of(formatName);
     }
 
-    private static Serde<GenericRow> getAvroSerde(
-        final org.apache.kafka.connect.data.Schema schema
+    private static Serde<Struct> getGenericKeySerde(
+        final LogicalSchema schema,
+        final String formatName
     ) {
-      final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+      final FormatInfo formatInfo = getFormatInfo(formatName);
 
-      return getGenericRowSerde(
-          FormatInfo.of(
-              FormatFactory.AVRO.name(),
-              ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "benchmarkSchema")),
-          schema,
-          () -> schemaRegistryClient
+      final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
+
+      final PersistenceSchema persistenceSchema = PersistenceSchema
+          .from(schema.key(), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+      return new GenericKeySerDe().create(
+          formatInfo,
+          persistenceSchema,
+          new KsqlConfig(Collections.emptyMap()),
+          () -> srClient,
+          "benchmark",
+          ProcessingLogContext.create(),
+          Optional.empty()
       );
     }
 
     private static Serde<GenericRow> getGenericRowSerde(
-        final FormatInfo format,
-        final org.apache.kafka.connect.data.Schema schema,
-        final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+        final LogicalSchema schema,
+        final String formatName
     ) {
+      final FormatInfo format = getFormatInfo(formatName);
+
+      final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
+
       return GenericRowSerDe.from(
           format,
-          PersistenceSchema.from((ConnectSchema) schema, false),
+          PersistenceSchema.from(schema.value(), SerdeFeatures.of()),
           new KsqlConfig(Collections.emptyMap()),
-          schemaRegistryClientFactory,
+          () -> srClient,
           "benchmark",
           ProcessingLogContext.create()
       );
@@ -198,12 +254,20 @@ public class SerdeBenchmark {
   @SuppressWarnings("MethodMayBeStatic") // Tests can not be static
   @Benchmark
   public byte[] serialize(final SerdeState serdeState) {
-    return serdeState.serializer.serialize(TOPIC_NAME, serdeState.row);
+    if (serdeState.serializer == null) {
+      return null;
+    }
+
+    return serdeState.serializer.serialize(TOPIC_NAME, serdeState.data);
   }
 
   @SuppressWarnings("MethodMayBeStatic") // Tests can not be static
   @Benchmark
-  public GenericRow deserialize(final SerdeState serdeState) {
+  public Object deserialize(final SerdeState serdeState) {
+    if (serdeState.deserializer == null) {
+      return null;
+    }
+
     return serdeState.deserializer.deserialize(TOPIC_NAME, serdeState.bytes);
   }
 

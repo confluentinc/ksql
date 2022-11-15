@@ -20,8 +20,10 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
@@ -30,6 +32,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -49,7 +52,17 @@ public class DefaultKsqlParser implements KsqlParser {
         final String message,
         final RecognitionException e
     ) {
-      throw new ParsingException(message, e, line, charPositionInLine);
+      if (offendingSymbol instanceof Token && isKeywordError(
+              message, ((Token) offendingSymbol).getText())) {
+        //Checks if the error is a reserved keyword error
+        final String tokenName = ((Token) offendingSymbol).getText();
+        final String newMessage =
+                "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier."
+                + " You can use it as an identifier by escaping it as \'" + tokenName + "\' ";
+        throw new ParsingException(newMessage, e, line, charPositionInLine);
+      } else {
+        throw new ParsingException(message, e, line, charPositionInLine);
+      }
     }
   };
 
@@ -59,12 +72,19 @@ public class DefaultKsqlParser implements KsqlParser {
       final SqlBaseParser.StatementsContext statementsContext = getParseTree(sql);
 
       return statementsContext.singleStatement().stream()
-          .map(stmt -> ParsedStatement.of(getStatementString(stmt), stmt))
+          .map(DefaultKsqlParser::parsedStatement)
           .collect(Collectors.toList());
 
     } catch (final Exception e) {
       throw new ParseFailedException(e.getMessage(), sql, e);
     }
+  }
+
+  public static ParsedStatement parsedStatement(final SingleStatementContext statement) {
+    return ParsedStatement.of(
+        getStatementString(statement),
+        statement
+    );
   }
 
   @Override
@@ -124,5 +144,17 @@ public class DefaultKsqlParser implements KsqlParser {
         singleStatementContext.start.getStartIndex(),
         singleStatementContext.stop.getStopIndex()
     ));
+  }
+
+  /**
+   * checks if the error is a reserved keyword error by checking the message and offendingSymbol
+   * @param message the error message
+   * @param offendingSymbol the symbol that caused the error
+   * @return true if the error is a reserved keyword
+   */
+  private static boolean isKeywordError(final String message, final String offendingSymbol) {
+    final Matcher m = ParserUtil.EXTRANEOUS_INPUT_PATTERN.matcher(message);
+
+    return  m.find() && ParserUtil.isReserved(offendingSymbol);
   }
 }

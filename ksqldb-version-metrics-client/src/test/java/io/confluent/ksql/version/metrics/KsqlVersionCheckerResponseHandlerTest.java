@@ -24,12 +24,9 @@ import static org.easymock.EasyMock.verify;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import org.apache.http.Header;
-import org.apache.http.HeaderElement;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -37,24 +34,26 @@ public class KsqlVersionCheckerResponseHandlerTest {
 
   @Test
   public void testHandle() throws IOException {
-    final HttpResponse response = mock(HttpResponse.class);
-    final StatusLine statusLine = mock(StatusLine.class);
+    // Given
+    final ClassicHttpResponse response = mock(ClassicHttpResponse.class);
     final HttpEntity entity = mock(HttpEntity.class);
     final Logger log = mock(Logger.class);
-    final Header header = mock(Header.class);
-    expect(response.getStatusLine()).andReturn(statusLine).once();
-    expect(statusLine.getStatusCode()).andReturn(HttpStatus.SC_OK).once();
+    expect(response.getCode()).andReturn(HttpStatus.SC_OK).once();
     expect(response.getEntity()).andReturn(entity).times(2);
     final ByteArrayInputStream bais = new ByteArrayInputStream("yolo".getBytes(StandardCharsets.UTF_8));
     expect(entity.getContent()).andReturn(bais).times(2);
-    expect(entity.getContentType()).andReturn(header).times(1);
-    expect(header.getElements()).andReturn(new HeaderElement[]{});
-    expect(entity.getContentLength()).andReturn(4L).times(2);
+    expect(entity.getContentType()).andReturn("content-type").times(1);
+    expect(entity.getContentLength()).andReturn(4L).times(1);
     log.warn("yolo");
     expectLastCall().once();
-    replay(response, statusLine, entity, header, log);
+    replay(response, entity, log);
+
     final KsqlVersionCheckerResponseHandler kvcr = new KsqlVersionCheckerResponseHandler(log);
+
+    // When
     kvcr.handle(response);
-    verify(response, statusLine, entity, header, log);
+
+    // Then
+    verify(response, entity, log);
   }
 }

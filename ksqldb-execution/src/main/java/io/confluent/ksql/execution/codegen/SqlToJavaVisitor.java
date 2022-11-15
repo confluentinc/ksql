@@ -545,15 +545,17 @@ public class SqlToJavaVisitor {
         } else {
           paramType = function.parameters().get(i);
         }
-
-        joiner.add(
-            process(
-                convertArgument(arg, sqlType, paramType),
-                new Context(argumentInfos.get(i).getLambdaSqlTypeMapping()))
-            .getLeft()
-        );
+        String code = process(
+            convertArgument(arg, sqlType, paramType),
+            new Context(argumentInfos.get(i).getLambdaSqlTypeMapping()))
+            .getLeft();
+        if (arg instanceof FunctionCall) {
+          code = evaluateOrReturnNull(code, ((FunctionCall) arg).getName().text());
+        } else if (arg instanceof DereferenceExpression) {
+          code = evaluateOrReturnNull(code, ((DereferenceExpression) arg).getFieldName());
+        }
+        joiner.add(code);
       }
-
 
       final String argumentsString = joiner.toString();
       final String codeString = "((" + javaReturnType + ") " + instanceName

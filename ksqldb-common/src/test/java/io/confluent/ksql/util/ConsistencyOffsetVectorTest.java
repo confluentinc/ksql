@@ -16,21 +16,28 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.google.common.collect.ImmutableMap;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 public class ConsistencyOffsetVectorTest {
+  private static final String TEST_TOPIC = "testTopic";
+  private static final String TEST_TOPIC1 = "testTopic1";
+  private static final String TEST_TOPIC2 = "testTopic2";
 
   @Test
   public void shouldSerializeAndDeserialize() {
     // Given:
-    final ConsistencyOffsetVector offsetVector = new ConsistencyOffsetVector();
-
-    offsetVector.setVersion(1);
-    offsetVector.addTopicOffsets("testTopic", ImmutableMap.of(1, 1L, 2, 2L, 3, 3L));
+    final ConsistencyOffsetVector offsetVector = ConsistencyOffsetVector.emptyVector();
+    offsetVector
+        .withComponent(TEST_TOPIC1, 1, 1L)
+        .withComponent(TEST_TOPIC1, 2, 2L)
+        .withComponent(TEST_TOPIC1, 3, 3L);
 
     // When:
     final ConsistencyOffsetVector deserializedCV =
@@ -41,110 +48,151 @@ public class ConsistencyOffsetVectorTest {
   }
 
   @Test
-  public void shouldDominateIfGreater() {
+  public void shouldUpdateWithLargerOffset() {
     // Given:
-    final ConsistencyOffsetVector offsetVector = new ConsistencyOffsetVector();
-    offsetVector.update("testTopic", 0, 1);
-    offsetVector.update("testTopic", 1, 2);
-    offsetVector.update("testTopic", 2, 1);
+    final ConsistencyOffsetVector offsetVector = ConsistencyOffsetVector.emptyVector()
+        .withComponent(TEST_TOPIC1, 1, 1L);
 
-    final ConsistencyOffsetVector other = new ConsistencyOffsetVector();
-    other.update("testTopic", 0, 1);
-    other.update("testTopic", 1, 1);
-    other.update("testTopic", 2, 1);
+    // When:
+    offsetVector.update(TEST_TOPIC1, 1, 2L);
 
-    assertThat(offsetVector.dominates(other), CoreMatchers.is(true));
-    assertThat(other.dominates(offsetVector), CoreMatchers.is(false));
+    // Then:
+    assertThat(offsetVector.getTopicOffsets(TEST_TOPIC1).get(1), is(2L));
   }
 
   @Test
-  public void shouldDominateIfEqual() {
+  public void shouldNotUpdate() {
     // Given:
-    final ConsistencyOffsetVector offsetVector = new ConsistencyOffsetVector();
-    offsetVector.update("testTopic", 0, 1);
-    offsetVector.update("testTopic", 1, 2);
-    offsetVector.update("testTopic", 2, 1);
+    final ConsistencyOffsetVector offsetVector = ConsistencyOffsetVector.emptyVector()
+        .withComponent(TEST_TOPIC1, 1, 2L);
 
-    final ConsistencyOffsetVector other = new ConsistencyOffsetVector();
-    other.update("testTopic", 0, 1);
-    other.update("testTopic", 1, 2);
-    other.update("testTopic", 2, 1);
+    // When:
+    offsetVector.update(TEST_TOPIC1, 1, 1L);
 
-    assertThat(offsetVector.dominates(other), CoreMatchers.is(true));
-    assertThat(other.dominates(offsetVector), CoreMatchers.is(true));
+    // Then:
+    assertThat(offsetVector.getTopicOffsets(TEST_TOPIC1).get(1), is(2L));
   }
 
   @Test
-  public void shouldNotDominateIfLess() {
+  public void shouldUpdateComponentMonotonically() {
     // Given:
-    final ConsistencyOffsetVector offsetVector = new ConsistencyOffsetVector();
-    offsetVector.update("testTopic", 0, 1);
-    offsetVector.update("testTopic", 1, 1);
-    offsetVector.update("testTopic", 2, 1);
+    final ConsistencyOffsetVector offsetVector = ConsistencyOffsetVector.emptyVector();
 
-    final ConsistencyOffsetVector other = new ConsistencyOffsetVector();
-    other.update("testTopic", 0, 1);
-    other.update("testTopic", 1, 2);
-    other.update("testTopic", 2, 1);
+    // When:
+    offsetVector.withComponent(TEST_TOPIC1, 3, 5L);
+    offsetVector.withComponent(TEST_TOPIC1, 3, 4L);
 
-    assertThat(offsetVector.dominates(other), CoreMatchers.is(false));
-    assertThat(other.dominates(offsetVector), CoreMatchers.is(true));
+    // Then:
+    assertThat(offsetVector.getTopicOffsets(TEST_TOPIC1).get(3), equalTo(5L));
+
+    // When:
+    offsetVector.withComponent(TEST_TOPIC1, 3, 6L);
+
+    //Then:
+    assertThat(offsetVector.getTopicOffsets(TEST_TOPIC1).get(3), equalTo(6L));
   }
 
   @Test
-  public void shouldDominateWithPartitionMissing() {
-    // Given:
-    final ConsistencyOffsetVector offsetVector = new ConsistencyOffsetVector();
-    offsetVector.update("testTopic", 0, 1);
-    offsetVector.update("testTopic", 1, 2);
-    offsetVector.update("testTopic", 2, 1);
+  public void shouldCopy() {
+    // Give:
+    final ConsistencyOffsetVector offsetVector = ConsistencyOffsetVector.emptyVector()
+        .withComponent(TEST_TOPIC, 0, 5L)
+        .withComponent(TEST_TOPIC2, 0, 5L)
+        .withComponent(TEST_TOPIC2, 7, 0L);
 
-    final ConsistencyOffsetVector other = new ConsistencyOffsetVector();
-    other.update("testTopic", 0, 1);
-    other.update("testTopic", 2, 1);
+    final ConsistencyOffsetVector copy = offsetVector.copy();
 
-    assertThat(offsetVector.dominates(other), CoreMatchers.is(true));
-    assertThat(other.dominates(offsetVector), CoreMatchers.is(true));
+    // When:
+    // mutate original
+    offsetVector.withComponent(TEST_TOPIC, 0, 6L);
+    offsetVector.withComponent(TEST_TOPIC1, 8, 1L);
+    offsetVector.withComponent(TEST_TOPIC2, 2, 4L);
+
+    // Then:
+    // copy has not changed
+    assertThat(copy.getTopicOffsets(TEST_TOPIC), equalTo(ImmutableMap.of(0, 5L)));
+    assertThat(copy.getTopicOffsets(TEST_TOPIC2), equalTo(ImmutableMap.of(0, 5L, 7, 0L)));
+
+    // original has changed
+    assertThat(offsetVector.getTopicOffsets(TEST_TOPIC), equalTo(ImmutableMap.of(0, 6L)));
+    assertThat(offsetVector.getTopicOffsets(TEST_TOPIC1), equalTo(ImmutableMap.of(8, 1L)));
+    assertThat(offsetVector.getTopicOffsets(TEST_TOPIC2), equalTo(ImmutableMap.of(0, 5L, 7, 0L, 2, 4L)));
   }
 
   @Test
-  public void shouldDominateWithTopicMissing() {
+  public void shouldMatchOnEqual() {
     // Given:
-    final ConsistencyOffsetVector offsetVector = new ConsistencyOffsetVector();
-    offsetVector.update("testTopic1", 0, 1);
-    offsetVector.update("testTopic1", 1, 2);
-    offsetVector.update("testTopic1", 2, 1);
-    offsetVector.update("testTopic2", 0, 2);
-    offsetVector.update("testTopic2", 1, 1);
+    final ConsistencyOffsetVector offsetVector1 = ConsistencyOffsetVector.emptyVector();
+    final ConsistencyOffsetVector offsetVector2 = ConsistencyOffsetVector.emptyVector();
+    offsetVector1.withComponent(TEST_TOPIC1, 0, 1);
+    offsetVector2.withComponent(TEST_TOPIC1, 0, 1);
 
-    final ConsistencyOffsetVector other = new ConsistencyOffsetVector();
-    other.update("testTopic1", 0, 1);
-    other.update("testTopic1", 2, 1);
+    offsetVector1.withComponent(TEST_TOPIC1, 1, 2);
+    offsetVector2.withComponent(TEST_TOPIC1, 1, 2);
 
-    assertThat(offsetVector.dominates(other), CoreMatchers.is(true));
-    assertThat(other.dominates(offsetVector), CoreMatchers.is(true));
+    offsetVector1.withComponent(TEST_TOPIC1, 2, 1);
+    offsetVector2.withComponent(TEST_TOPIC1, 2, 1);
+
+    offsetVector1.withComponent(TEST_TOPIC2, 0, 0);
+    offsetVector2.withComponent(TEST_TOPIC2, 0, 0);
+
+    // Then:
+    assertEquals(offsetVector1, offsetVector2);
+  }
+
+  @Test
+  public void shouldNotMatchOnUnEqual() {
+    // Given:
+    final ConsistencyOffsetVector offsetVector1 = ConsistencyOffsetVector.emptyVector();
+    final ConsistencyOffsetVector offsetVector2 = ConsistencyOffsetVector.emptyVector();
+
+    offsetVector1.withComponent(TEST_TOPIC1, 0, 1);
+    offsetVector2.withComponent(TEST_TOPIC1, 0, 1);
+
+    offsetVector1.withComponent(TEST_TOPIC1, 1, 2);
+
+    offsetVector1.withComponent(TEST_TOPIC1, 2, 1);
+    offsetVector2.withComponent(TEST_TOPIC1, 2, 1);
+
+    offsetVector1.withComponent(TEST_TOPIC2, 0, 0);
+    offsetVector2.withComponent(TEST_TOPIC2, 0, 0);
+
+    assertNotEquals(offsetVector1, offsetVector2);
   }
 
   @Test
   public void shouldMerge() {
     // Given:
-    final ConsistencyOffsetVector offsetVector = new ConsistencyOffsetVector();
-    offsetVector.update("testTopic1", 0, 1);
-    offsetVector.update("testTopic1", 1, 2);
-    offsetVector.update("testTopic1", 2, 1);
+    final ConsistencyOffsetVector offsetVector = ConsistencyOffsetVector.emptyVector();
+    offsetVector.update(TEST_TOPIC1, 0, 1);
+    offsetVector.update(TEST_TOPIC1, 1, 2);
+    offsetVector.update(TEST_TOPIC1, 2, 1);
 
-    final ConsistencyOffsetVector other = new ConsistencyOffsetVector();
-    other.update("testTopic1", 2, 2);
-    other.update("testTopic2", 0, 1);
+    final ConsistencyOffsetVector other = ConsistencyOffsetVector.emptyVector();
+    other.update(TEST_TOPIC1, 2, 2);
+    other.update(TEST_TOPIC2, 0, 1);
 
     offsetVector.merge(other);
 
-    final ConsistencyOffsetVector mergedVector = new ConsistencyOffsetVector();
-    mergedVector.update("testTopic1", 0, 1);
-    mergedVector.update("testTopic1", 1, 2);
-    mergedVector.update("testTopic1", 2, 2);
+    final ConsistencyOffsetVector mergedVector = ConsistencyOffsetVector.emptyVector();
+    mergedVector.update(TEST_TOPIC1, 0, 1);
+    mergedVector.update(TEST_TOPIC1, 1, 2);
+    mergedVector.update(TEST_TOPIC1, 2, 2);
+    mergedVector.update(TEST_TOPIC2, 0, 1);
 
     assertThat(offsetVector, CoreMatchers.is(mergedVector));
   }
 
+  @Test
+  public void shouldMergeNull() {
+    // Given:
+    final ConsistencyOffsetVector offsetVector = ConsistencyOffsetVector.emptyVector()
+        .withComponent(TEST_TOPIC1, 1, 2L);
+
+    // When:
+    offsetVector.merge(null);
+
+    // Then:
+    assertThat(offsetVector.getTopicOffsets(TEST_TOPIC1), equalTo(ImmutableMap.of(1, 2L)));
+  }
 }

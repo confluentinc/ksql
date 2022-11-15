@@ -526,6 +526,34 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatRightJoinWithoutJoinWindow() {
+    final Join join = new Join(leftAlias, ImmutableList.of(new JoinedSource(
+        Optional.empty(),
+        rightAlias,
+        JoinedSource.Type.RIGHT,
+        criteria,
+        Optional.empty())));
+
+    final String result = SqlFormatter.formatSql(join);
+    final String expected = "`left` L\nRIGHT OUTER JOIN `right` R ON (('left.col0' = 'right.col0'))";
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void shouldFormatRightJoinWithWithin() {
+    final Join join = new Join(leftAlias, ImmutableList.of(new JoinedSource(
+        Optional.empty(),
+        rightAlias,
+        JoinedSource.Type.RIGHT,
+        criteria,
+        Optional.of(new WithinExpression(10, TimeUnit.SECONDS)))));
+
+    final String expected = "`left` L\nRIGHT OUTER JOIN `right` R WITHIN 10 SECONDS ON "
+        + "(('left.col0' = 'right.col0'))";
+    assertEquals(expected, SqlFormatter.formatSql(join));
+  }
+
+  @Test
   public void shouldFormatLeftJoinWithoutJoinWindow() {
     final Join join = new Join(leftAlias, ImmutableList.of(new JoinedSource(
         Optional.empty(),

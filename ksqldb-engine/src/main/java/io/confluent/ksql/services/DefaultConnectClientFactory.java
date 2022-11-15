@@ -26,7 +26,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -59,7 +61,7 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
 
   private final KsqlConfig ksqlConfig;
   private final Optional<ConnectRequestHeadersExtension> requestHeadersExtension;
-  private volatile Optional<String> connectAuthHeader;
+  private volatile Optional<String> defaultConnectAuthHeader;
   private FileWatcher credentialsFileWatcher;
 
 
@@ -77,10 +79,11 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
   @Override
   public synchronized DefaultConnectClient get(
       final Optional<String> ksqlAuthHeader,
+      final List<Entry<String, String>> incomingRequestHeaders,
       final Optional<KsqlPrincipal> userPrincipal
   ) {
-    if (connectAuthHeader == null) {
-      connectAuthHeader = buildAuthHeader();
+    if (defaultConnectAuthHeader == null) {
+      defaultConnectAuthHeader = buildDefaultAuthHeader();
     }
 
     final Map<String, Object> configWithPrefixOverrides =
@@ -88,13 +91,13 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
 
     return new DefaultConnectClient(
         ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-        // if no custom auth is configured, then forward incoming request header
-        isCustomBasicAuthConfigured() ? connectAuthHeader : ksqlAuthHeader,
+        buildAuthHeader(ksqlAuthHeader, incomingRequestHeaders),
         requestHeadersExtension
             .map(extension -> extension.getHeaders(userPrincipal))
             .orElse(Collections.emptyMap()),
         Optional.ofNullable(newSslContext(configWithPrefixOverrides)),
-        shouldVerifySslHostname(configWithPrefixOverrides)
+        shouldVerifySslHostname(configWithPrefixOverrides),
+        ksqlConfig.getLong(KsqlConfig.CONNECT_REQUEST_TIMEOUT_MS)
     );
   }
 
@@ -105,7 +108,7 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
     }
   }
 
-  private Optional<String> buildAuthHeader() {
+  private Optional<String> buildDefaultAuthHeader() {
     if (isCustomBasicAuthConfigured()) {
       final String credentialsFile =
           ksqlConfig.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY);
@@ -120,10 +123,30 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
     }
   }
 
+  private Optional<String> buildAuthHeader(
+      final Optional<String> ksqlAuthHeader,
+      final List<Entry<String, String>> incomingRequestHeaders) {
+    // custom extension takes priority
+    if (requestHeadersExtension.isPresent()) {
+      final ConnectRequestHeadersExtension extension = requestHeadersExtension.get();
+      if (extension.shouldUseCustomAuthHeader()) {
+        return extension.getAuthHeader(incomingRequestHeaders);
+      }
+    }
+
+    // check for custom basic auth header
+    if (isCustomBasicAuthConfigured()) {
+      return defaultConnectAuthHeader;
+    }
+
+    // if no custom auth is configured, then forward incoming request header
+    return ksqlAuthHeader;
+  }
+
   private void startBasicAuthFileWatcher(final String filePath) {
     try {
       credentialsFileWatcher = new FileWatcher(Paths.get(filePath), () -> {
-        connectAuthHeader = buildBasicAuthHeader(filePath);
+        defaultConnectAuthHeader = buildBasicAuthHeader(filePath);
       });
       credentialsFileWatcher.start();
       log.info("Enabled automatic connector credentials reload for location: " + filePath);

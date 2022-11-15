@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.model.WindowType;
@@ -76,6 +77,7 @@ public class AnalysisTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetNoneWindowedSourceSchemasPreAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -96,6 +98,7 @@ public class AnalysisTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetWindowedSourceSchemasPreAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -116,6 +119,7 @@ public class AnalysisTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetWindowedGroupBySourceSchemasPreAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -137,6 +141,7 @@ public class AnalysisTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetNonWindowedSourceSchemasPostAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -157,6 +162,7 @@ public class AnalysisTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetWindowedSourceSchemasPostAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -177,6 +183,7 @@ public class AnalysisTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetWindowedGroupBySourceSchemasPostAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);

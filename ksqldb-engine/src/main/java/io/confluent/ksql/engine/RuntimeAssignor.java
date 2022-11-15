@@ -28,23 +28,29 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RuntimeAssignor {
   private final Map<String, Collection<SourceName>> runtimesToSources;
   private final Map<QueryId, String> idToRuntime;
+  private final Logger log = LoggerFactory.getLogger(RuntimeAssignor.class);
+  private final int numDefaultRuntimes;
 
   public RuntimeAssignor(final KsqlConfig config) {
     runtimesToSources = new HashMap<>();
     idToRuntime = new HashMap<>();
-    final int runtimes = config.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT);
-    for (int i = 0; i < runtimes; i++) {
+    numDefaultRuntimes = config.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT);
+    for (int i = 0; i < numDefaultRuntimes; i++) {
       final String runtime = buildSharedRuntimeId(config, true, i);
       runtimesToSources.put(runtime, new HashSet<>());
     }
   }
 
   private RuntimeAssignor(final RuntimeAssignor other) {
+    numDefaultRuntimes = other.numDefaultRuntimes;
     this.runtimesToSources = new HashMap<>();
     this.idToRuntime = new HashMap<>(other.idToRuntime);
     for (Map.Entry<String, Collection<SourceName>> runtime
@@ -76,14 +82,29 @@ public class RuntimeAssignor {
     }
     runtimesToSources.get(runtime).addAll(sources);
     idToRuntime.put(queryId, runtime);
+    log.info("Assigning query {} to runtime {}", queryId, runtime);
     return runtime;
   }
 
   public void dropQuery(final PersistentQueryMetadata queryMetadata) {
     if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
+      if (idToRuntime.containsKey(queryMetadata.getQueryId())) {
+        log.info("Unassigning query {} from runtime {}",
+            queryMetadata.getQueryId(),
+            idToRuntime.get(queryMetadata.getQueryId()));
+      } else {
+        log.warn("Dropping an unassigned query {}, this should"
+            + " only possible with Gen 1 queries", queryMetadata);
+      }
       runtimesToSources.get(queryMetadata.getQueryApplicationId())
           .removeAll(queryMetadata.getSourceNames());
       idToRuntime.remove(queryMetadata.getQueryId());
+      if (runtimesToSources.get(queryMetadata.getQueryApplicationId()).isEmpty()
+          && runtimesToSources.size() > numDefaultRuntimes) {
+        runtimesToSources.remove(queryMetadata.getQueryApplicationId());
+        log.info("Removing runtime {} form selection of possible runtimes",
+            queryMetadata.getQueryApplicationId());
+      }
     }
   }
 
@@ -95,12 +116,36 @@ public class RuntimeAssignor {
   }
 
   public void rebuildAssignment(final Collection<PersistentQueryMetadata> queries) {
+    final Set<QueryId> gen1Queries = new HashSet<>();
     for (PersistentQueryMetadata queryMetadata: queries) {
       if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-        runtimesToSources.put(queryMetadata.getQueryApplicationId(),
-            queryMetadata.getSourceNames());
+        if (!runtimesToSources.containsKey(queryMetadata.getQueryApplicationId())) {
+          runtimesToSources.put(queryMetadata.getQueryApplicationId(), new HashSet<>());
+        }
+        runtimesToSources.get(queryMetadata.getQueryApplicationId())
+            .addAll(queryMetadata.getSourceNames());
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
+      } else {
+        gen1Queries.add(queryMetadata.getQueryId());
       }
+    }
+    if (!idToRuntime.isEmpty()) {
+      log.info("The current assignment of queries to Gen 2 runtimes is: {}",
+          idToRuntime.entrySet()
+              .stream()
+              .map(e -> e.getKey() + "->" + e.getValue())
+              .collect(Collectors.joining(", ")));
+    } else {
+      if (gen1Queries.size() == queries.size()) {
+        log.info("There are no queries assigned to Gen 2 runtimes yet.");
+      } else {
+        log.error("Gen 2 queries are not getting assigned correctly, this should not be possible");
+      }
+    }
+    if (!gen1Queries.isEmpty()) {
+      log.info("Currently there are {} queries running on the Gen 1 runtime which are: {}",
+          gen1Queries.size(),
+          gen1Queries);
     }
   }
 

@@ -18,11 +18,11 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -58,7 +58,9 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   void stop();
 
-  void stop(boolean resetOffsets);
+  void stop(boolean isCreateOrReplace);
+
+  void register();
 
   StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       Throwable error

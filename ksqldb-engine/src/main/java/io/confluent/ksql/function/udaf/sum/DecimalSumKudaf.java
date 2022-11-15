@@ -41,7 +41,7 @@ public class DecimalSumKudaf
     super(
         functionName,
         argIndexInValue,
-        DecimalSumKudaf::initialValue,
+        () -> BigDecimal.ZERO,
         outputSchema,
         outputSchema,
         Collections.singletonList(new ParameterInfo("val", ParamTypes.DECIMAL, "", false)),
@@ -75,9 +75,5 @@ public class DecimalSumKudaf
       return aggregateValue;
     }
     return aggregateValue.subtract(valueToUndo, context);
-  }
-
-  private static BigDecimal initialValue() {
-    return BigDecimal.ZERO;
   }
 }

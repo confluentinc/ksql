@@ -30,7 +30,7 @@ public final class QueryApplicationId {
       final boolean persistent,
       final int sharedRuntimeIndex
   ) {
-    final String queryAppId = buildPrefix(config, persistent) + "-" + sharedRuntimeIndex;
+    final String queryAppId = buildInternalTopicPrefix(config, persistent) + sharedRuntimeIndex;
     if (persistent) {
       return queryAppId;
     } else {
@@ -43,7 +43,7 @@ public final class QueryApplicationId {
       final boolean persistent,
       final QueryId queryId
   ) {
-    final String queryAppId = buildPrefix(config, persistent) + queryId;
+    final String queryAppId = buildInternalTopicPrefix(config, persistent) + queryId;
     if (persistent) {
       return queryAppId;
     } else {
@@ -51,7 +51,7 @@ public final class QueryApplicationId {
     }
   }
 
-  private static String buildPrefix(
+  public static String buildInternalTopicPrefix(
       final KsqlConfig config,
       final boolean persistent
   ) {
@@ -63,6 +63,13 @@ public final class QueryApplicationId {
 
     final String queryPrefix = config.getString(configName);
 
+    return buildInternalTopicPrefix(serviceId, queryPrefix);
+  }
+
+  public static String buildInternalTopicPrefix(
+      final String serviceId,
+      final String queryPrefix
+  ) {
     return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + serviceId
         + queryPrefix;

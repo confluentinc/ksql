@@ -5,9 +5,6 @@
   "tests": [
     {
       "name": "empty response on empty stream",
-      "properties": {
-        "ksql.query.pull.stream.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM S1;"
@@ -15,7 +12,8 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}}
+          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },
@@ -70,9 +68,6 @@
     },
     {
       "name": "simple",
-      "properties": {
-        "ksql.query.pull.stream.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM S1;"
@@ -93,15 +88,40 @@
           {"row":{"columns":[10, 1]}},
           {"row":{"columns":[11, 2]}},
           {"row":{"columns":[12, 3]}},
-          {"row":{"columns":[13, 4]}}
+          {"row":{"columns":[13, 4]}},
+          {"finalMessage":"Query Completed"}
+        ]}
+      ]
+    },
+    {
+      "name": "simple-source",
+      "statements": [
+        "CREATE SOURCE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM S1;"
+      ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1} // to get a stable ordering
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {"myvalue": 1}},
+        {"topic": "test_topic", "timestamp": 12366, "key": 11, "value": {"myvalue": 2}},
+        {"topic": "test_topic", "timestamp": 12367, "key": 12, "value": {"myvalue": 3}},
+        {"topic": "test_topic", "timestamp": 12368, "key": 13, "value": {"myvalue": 4}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}},
+          {"row":{"columns":[10, 1]}},
+          {"row":{"columns":[11, 2]}},
+          {"row":{"columns":[12, 3]}},
+          {"row":{"columns":[13, 4]}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },
     {
       "name": "select key",
-      "properties": {
-        "ksql.query.pull.stream.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT MYKEY FROM S1;"
@@ -122,15 +142,13 @@
           {"row":{"columns":[10]}},
           {"row":{"columns":[11]}},
           {"row":{"columns":[12]}},
-          {"row":{"columns":[13]}}
+          {"row":{"columns":[13]}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },
     {
       "name": "select value",
-      "properties": {
-        "ksql.query.pull.stream.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT MYVALUE FROM S1;"
@@ -151,15 +169,13 @@
           {"row":{"columns":[1]}},
           {"row":{"columns":[2]}},
           {"row":{"columns":[3]}},
-          {"row":{"columns":[4]}}
+          {"row":{"columns":[4]}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },
     {
       "name": "project expression",
-      "properties": {
-        "ksql.query.pull.stream.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT MYKEY, MYVALUE * 2 AS DOUBLEVALUE FROM S1;"
@@ -180,15 +196,13 @@
           {"row":{"columns":[10, 2]}},
           {"row":{"columns":[11, 4]}},
           {"row":{"columns":[12, 6]}},
-          {"row":{"columns":[13, 8]}}
+          {"row":{"columns":[13, 8]}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },
     {
       "name": "where clause",
-      "properties": {
-        "ksql.query.pull.stream.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM S1 WHERE MYVALUE >= 2 AND MYVALUE < 4;"
@@ -207,7 +221,8 @@
         {"query": [
           {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}},
           {"row":{"columns":[11, 2]}},
-          {"row":{"columns":[12, 3]}}
+          {"row":{"columns":[12, 3]}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },

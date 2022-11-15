@@ -63,7 +63,7 @@ public final class KsqlMaterializationFactory {
   }
 
   public Materialization create(
-      final Materialization delegate,
+      final StreamsMaterialization delegate,
       final MaterializationInfo info,
       final QueryId queryId,
       final QueryContext.Stacker contextStacker
@@ -85,7 +85,7 @@ public final class KsqlMaterializationFactory {
   interface MaterializationFactory {
 
     KsqlMaterialization create(
-        Materialization inner,
+        StreamsMaterialization inner,
         LogicalSchema schema,
         List<Transform> transforms
     );

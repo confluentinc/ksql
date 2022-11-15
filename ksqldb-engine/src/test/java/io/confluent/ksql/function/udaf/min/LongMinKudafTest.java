@@ -32,7 +32,7 @@ public class LongMinKudafTest {
 
   @Test
   public void shouldFindCorrectMin() {
-    final LongMinKudaf longMinKudaf = getLongMinKudaf();
+    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
     final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
     long currentMin = Long.MAX_VALUE;
     for (final long i: values) {
@@ -43,7 +43,7 @@ public class LongMinKudafTest {
 
   @Test
   public void shouldHandleNull() {
-    final LongMinKudaf longMinKudaf = getLongMinKudaf();
+    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
     final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
     Long currentMin = null;
 
@@ -64,7 +64,7 @@ public class LongMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final LongMinKudaf longMinKudaf = getLongMinKudaf();
+    final MinKudaf longMinKudaf = getLongMinKudaf();
     final Merger<GenericKey, Long> merger = longMinKudaf.getMerger();
     final Long mergeResult1 = merger.apply(null, 10L, 12L);
     assertThat(mergeResult1, equalTo(10L));
@@ -76,11 +76,11 @@ public class LongMinKudafTest {
   }
 
 
-  private LongMinKudaf getLongMinKudaf() {
+  private MinKudaf getLongMinKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(LongMinKudaf.class));
-    return  (LongMinKudaf) aggregateFunction;
+    assertThat(aggregateFunction, instanceOf(MinKudaf.class));
+    return  (MinKudaf) aggregateFunction;
   }
 }

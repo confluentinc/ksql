@@ -896,10 +896,14 @@ public class AstBuilder {
       final SqlBaseParser.JoinTypeContext joinTypeContext = context.joinType();
       if (joinTypeContext instanceof SqlBaseParser.LeftJoinContext) {
         joinType = JoinedSource.Type.LEFT;
+      } else if (joinTypeContext instanceof SqlBaseParser.RightJoinContext) {
+        joinType = JoinedSource.Type.RIGHT;
       } else if (joinTypeContext instanceof SqlBaseParser.OuterJoinContext) {
         joinType = JoinedSource.Type.OUTER;
-      } else {
+      }  else if (joinTypeContext instanceof SqlBaseParser.InnerJoinContext) {
         joinType = JoinedSource.Type.INNER;
+      } else {
+        throw new KsqlException("Invalid join type - " + joinTypeContext.getText());
       }
 
       WithinExpression withinExpression = null;

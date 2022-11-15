@@ -119,9 +119,15 @@ public final class KsLocator implements Locator {
     // Depending on whether this is a key-based lookup, determine which metadata method to use.
     // If we don't have keys, find the metadata for all partitions since we'll run the query for
     // all partitions of the state store rather than a particular one.
-    final List<PartitionMetadata> metadata = keys.isEmpty() || isRangeScan
-        ? getMetadataForAllPartitions(filterPartitions, keySet)
-        : getMetadataForKeys(keys, filterPartitions);
+    //For issue #7174. Temporarily turn off metadata finding for a partition with keys
+    //if there are more than one key.
+    final List<PartitionMetadata> metadata;
+    if (keys.size() == 1 && keys.get(0).getKey().size() == 1 && !isRangeScan) {
+      metadata = getMetadataForKeys(keys, filterPartitions);
+    } else {
+      metadata = getMetadataForAllPartitions(filterPartitions, keySet);
+    }
+
     // Go through the metadata and group them by partition.
     for (PartitionMetadata partitionMetadata : metadata) {
       LOG.debug("Handling pull query for partition {} of state store {}.",
@@ -130,7 +136,8 @@ public final class KsLocator implements Locator {
       final Set<HostInfo> standByHosts = partitionMetadata.getStandbyHosts();
       final int partition = partitionMetadata.getPartition();
       final Optional<Set<KsqlKey>> partitionKeys = partitionMetadata.getKeys();
-
+      LOG.debug("Active host {}, standby {}, partition {}.",
+               activeHost, standByHosts, partition);
       // For a given partition, find the ordered, filtered list of hosts to consider
       final List<KsqlNode> filteredHosts = getFilteredHosts(routingOptions, routingFilterFactory,
           activeHost, standByHosts, partition);
@@ -264,9 +271,9 @@ public final class KsLocator implements Locator {
    */
   @VisibleForTesting
   protected KeyQueryMetadata getKeyQueryMetadata(final KsqlKey key) {
-    if (sharedRuntimesEnabled || kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
-      throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
-                                          + " version and should not be used.");
+    if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
+      return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
+          .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
     }
     return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
   }
@@ -277,9 +284,9 @@ public final class KsLocator implements Locator {
    */
   @VisibleForTesting
   protected Collection<StreamsMetadata> getStreamsMetadata() {
-    if (sharedRuntimesEnabled || kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
-      throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
-                                          + " version and should not be used.");
+    if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
+      return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
+          .streamsMetadataForStore(storeName, queryId);
     }
 
     return kafkaStreams.streamsMetadataForStore(storeName);
@@ -369,7 +376,6 @@ public final class KsLocator implements Locator {
         .collect(ImmutableList.toImmutableList());
 
     LOG.debug("Filtered and ordered hosts: {}", filteredHosts);
-
     return filteredHosts;
   }
 

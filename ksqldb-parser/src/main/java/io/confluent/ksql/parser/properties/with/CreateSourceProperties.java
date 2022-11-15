@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.properties.with;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -137,6 +138,24 @@ public final class CreateSourceProperties {
 
   public Optional<Integer> getValueSchemaId() {
     return Optional.ofNullable(props.getInt(CommonCreateConfigs.VALUE_SCHEMA_ID));
+  }
+
+  public Optional<String> getKeySchemaFullName() {
+    final String schemaFullName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
+    if (schemaFullName == null) {
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(Strings.emptyToNull(schemaFullName.trim()));
+  }
+
+  public Optional<String> getValueSchemaFullName() {
+    final String schemaFullName = props.getString(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME);
+    if (schemaFullName == null) {
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(Strings.emptyToNull(schemaFullName.trim()));
   }
 
   public Optional<FormatInfo> getKeyFormat(final SourceName name) {

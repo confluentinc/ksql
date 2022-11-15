@@ -110,3 +110,20 @@ The username that will be used to connect to the ksqlDB server. A username and
 The password that will be used to connect to the ksqlDB server. A 
 [username](#ksqlauthbasicusername) and password will be passed as part of 
 HTTP basic authentication. 
+
+Migrations Directory Configs
+----------------------------
+
+### `ksql.migrations.dir.override`
+
+An optional config that allows you to specify the path to the directory
+containing migrations files to be applied. This config is not needed if you
+set up your migrations project using the `ksql-migrations new-project` command.
+
+If no override is provided, the migrations directory is inferred relative 
+to the migrations configuration file passed when using the `ksql-migrations` tool. 
+Specifically, the migrations directory is inferred as a directory with name 
+`migrations` contained in the same directory as the migrations configuration file. 
+This is the default file structure created by the `ksql-migrations new-project` command.
+
+This configuration is available starting with ksqlDB 0.25.0.

@@ -5,6 +5,82 @@
   ],
   "tests": [
     {
+      "name": "earliest by offset with arrays, structs, and maps",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 ARRAY<STRUCT<A VARCHAR, M MAP<STRING, DOUBLE>>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": [{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}]}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": [{"A": "Early1", "M": {"Early0": 2.345}}]}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": [{"A": "Later0", "M": {"Early0": 3.45}}]}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": [{"A": "Later1", "M": {"Early0": 4.56}}]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": [{"A": "Early1", "M": {"Early0": 2.345}}]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": [{"A": "Early1", "M": {"Early0": 2.345}}]}}
+      ]
+    },
+    {
+      "name": "earliest by offset with maps",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 MAP<STRING, DOUBLE>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": {"Early0": 1.234}}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": {"Early1": 2.3456789}}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": {"Later0": 3.6789}}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": {"Later1": 4}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": {"Early0": 1.234}}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": {"Early1": 2.3456789}}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": {"Early0": 1.234}}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": {"Early1": 2.3456789}}}
+      ]
+    },
+    {
+      "name": "earliest by offset with structs",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 STRUCT<A VARCHAR, B BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": {"A": "Early0", "B": 1}}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": {"A": "Early1", "B": 2}}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": {"A": "Later0", "B": 3}}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": {"A": "Later1", "B": 4}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": {"A": "Early0", "B": 1}}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": {"A": "Early1", "B": 2}}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": {"A": "Early0", "B": 1}}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": {"A": "Early1", "B": 2}}}
+      ]
+    },
+    {
+      "name": "earliest by offset with an array added",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING, F5 TIMESTAMP, F6 TIME, F7 DATE, F8 BYTES, F9 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0, EARLIEST_BY_OFFSET(F1) AS L1, EARLIEST_BY_OFFSET(F2) AS L2, EARLIEST_BY_OFFSET(F3) AS L3, EARLIEST_BY_OFFSET(F4) AS L4, EARLIEST_BY_OFFSET(F5) AS L5, EARLIEST_BY_OFFSET(F6) AS L6, EARLIEST_BY_OFFSET(F7) AS L7, EARLIEST_BY_OFFSET(F8) AS L8, EARLIEST_BY_OFFSET(F9) AS L9 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo", "F5": 12, "F6": 123, "F7": 1234, "F8": "YQ==", "F9": [0,0,1,0,-1]}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo", "F5": 12, "F6": 123, "F7": 1234, "F8": "YQ==", "F9": [0,0,1,0,-1]}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "foo", "F5": 34, "F6": 234, "F7": 2345, "F8": "Yg==", "F9": [1,2,3,4,-1]}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "foo", "F5": 34, "F6": 234, "F7": 2345, "F8": "Yg==", "F9": [1,2,3,4,-1]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ==", "L9": [0,0,1,0,-1]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ==", "L9": [0,0,1,0,-1]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ==", "L9": [0,0,1,0,-1]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ==", "L9": [0,0,1,0,-1]}}
+      ]
+    },
+    {
       "name": "earliest by offset",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING, F5 TIMESTAMP, F6 TIME, F7 DATE, F8 BYTES) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -21,6 +97,21 @@
         {"topic": "OUTPUT", "key": 1, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ=="}},
         {"topic": "OUTPUT", "key": 0, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ=="}},
         {"topic": "OUTPUT", "key": 1, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ=="}}
+      ]
+    },
+    {
+      "name": "earliest by offset with decimals",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 DECIMAL(3,2)) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, true) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": "3.4"}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": "8.9"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": "3.40"}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": "3.40"}}
       ]
     },
     {

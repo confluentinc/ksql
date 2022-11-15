@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 public final class DiscoverRemoteHostsUtil {
 
@@ -40,10 +39,9 @@ public final class DiscoverRemoteHostsUtil {
     return currentQueries.stream()
         // required filter else QueryMetadata.getAllMetadata() throws
         .filter(q -> q.getState().isRunningOrRebalancing())
-        .map(QueryMetadata::getAllMetadata)
+        .map(QueryMetadata::getAllStreamsHostMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)))
         .map(StreamsMetadata::hostInfo)
         .filter(hostInfo -> !(hostInfo.host().equals(localHost.host())
             && hostInfo.port() == (localHost.port())))

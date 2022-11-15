@@ -228,6 +228,7 @@ joinType
     : INNER? #innerJoin
     | FULL OUTER? #outerJoin
     | LEFT OUTER? #leftJoin
+    | RIGHT OUTER? #rightJoin
     ;
 
 joinWindow

@@ -21,17 +21,18 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.util.Event;
 import java.io.IOException;
@@ -50,25 +51,37 @@ public class RemoteServerSpecificCommandTest {
 
   private static final String INITIAL_SERVER_ADDRESS = "http://192.168.0.1:8080";
   private static final String VALID_SERVER_ADDRESS = "http://localhost:8088";
-  private static final ServerInfo SERVER_INFO = mock(ServerInfo.class);
+  private static final String CCLOUD_SERVER_ADDRESS =
+      "https://pksqlc-abcde.us-west-2.aws.confluent.cloud:443";
+
+  private static final String KSQL_SERVICE_ID = "default_";
+  private static final String CCLOUD_SERVICE_ID = "pksqlc-abcde";
 
   @Mock
   private KsqlRestClient restClient;
   @Mock
   private Event resetCliForNewServer;
+  @Mock
+  private ServerInfo serverInfo;
+  @Mock
+  private ServerInfo ccloudServerInfo;
 
   private RemoteServerSpecificCommand command;
   private StringWriter out;
   private PrintWriter terminal;
+  private String serverAddress;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     out = new StringWriter();
     terminal = new PrintWriter(out);
     command = RemoteServerSpecificCommand.create(restClient, resetCliForNewServer);
 
-    when(restClient.getServerInfo()).thenReturn(RestResponse.successful(OK.code(), SERVER_INFO));
-    when(restClient.getServerAddress()).thenReturn(new URI(INITIAL_SERVER_ADDRESS));
+    givenServerAddressHandling();
+    givenServerInfoHandling();
+
+    when(serverInfo.getKsqlServiceId()).thenReturn(KSQL_SERVICE_ID);
+    when(ccloudServerInfo.getKsqlServiceId()).thenReturn(CCLOUD_SERVICE_ID);
   }
 
   @Test
@@ -126,6 +139,8 @@ public class RemoteServerSpecificCommandTest {
   @Test
   public void shouldPrintErrorOnErrorResponseFromRestClient() {
     // Given:
+    reset(restClient);
+    givenServerAddressHandling();
     when(restClient.getServerInfo()).thenReturn(RestResponse.erroneous(
         INTERNAL_SERVER_ERROR.code(), "it is broken"));
 
@@ -148,6 +163,8 @@ public class RemoteServerSpecificCommandTest {
   @Test
   public void shouldReportErrorIfFailedToGetRemoteKsqlServerInfo() {
     // Given:
+    reset(restClient);
+    givenServerAddressHandling();
     when(restClient.getServerInfo()).thenThrow(genericConnectionIssue());
 
     // When:
@@ -155,7 +172,7 @@ public class RemoteServerSpecificCommandTest {
 
     // Then:
     assertThat(out.toString(), containsString(
-        "Remote server at http://192.168.0.1:8080 does not appear to be a valid KSQL"
+        "Remote server at " + VALID_SERVER_ADDRESS + " does not appear to be a valid KSQL"
             + System.lineSeparator()
         + "server. Please ensure that the URL provided is for an active KSQL server."));
   }
@@ -163,6 +180,8 @@ public class RemoteServerSpecificCommandTest {
   @Test
   public void shouldReportErrorIfRemoteKsqlServerIsUsingSSL() {
     // Given:
+    reset(restClient);
+    givenServerAddressHandling();
     when(restClient.getServerInfo()).thenThrow(sslConnectionIssue());
 
     // When:
@@ -170,11 +189,29 @@ public class RemoteServerSpecificCommandTest {
 
     // Then:
     assertThat(out.toString(), containsString(
-        "Remote server at http://192.168.0.1:8080 looks to be configured to use HTTPS /"
+        "Remote server at " + VALID_SERVER_ADDRESS + " looks to be configured to use HTTPS /"
             + System.lineSeparator()
             + "SSL. Please refer to the KSQL documentation on how to configure the CLI for SSL:"
             + System.lineSeparator()
             + DocumentationLinks.SECURITY_CLI_SSL_DOC_URL));
+  }
+
+  @Test
+  public void shouldIdentifyNonCCloudServer() {
+    // When:
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
+
+    // Then:
+    verify(restClient).setIsCCloudServer(false);
+  }
+
+  @Test
+  public void shouldIdentifyCCloudServer() {
+    // When:
+    command.execute(ImmutableList.of(CCLOUD_SERVER_ADDRESS), terminal);
+
+    // Then:
+    verify(restClient).setIsCCloudServer(true);
   }
 
   @Test
@@ -184,6 +221,28 @@ public class RemoteServerSpecificCommandTest {
     assertThat(command.getHelpMessage(),
         containsString("server <server>:" + System.lineSeparator()
             + "\tChange the current server to <server>"));
+  }
+
+  private void givenServerAddressHandling() {
+    serverAddress = INITIAL_SERVER_ADDRESS;
+    doAnswer(invocation -> {
+      serverAddress = invocation.getArgument(0);
+      return null;
+    }).when(restClient).setServerAddress(anyString());
+    when(restClient.getServerAddress()).thenAnswer(invocation -> new URI(serverAddress));
+  }
+
+  private void givenServerInfoHandling() {
+    when(restClient.getServerInfo()).thenAnswer(invocation -> {
+      if (serverAddress.equals(VALID_SERVER_ADDRESS)) {
+        return RestResponse.successful(OK.code(), serverInfo);
+      } else if (serverAddress.equals(CCLOUD_SERVER_ADDRESS)) {
+        return RestResponse.successful(OK.code(), ccloudServerInfo);
+      } else {
+        // errors if during execution, but fine during additional mocking
+        return null;
+      }
+    });
   }
 
   private static Exception genericConnectionIssue() {

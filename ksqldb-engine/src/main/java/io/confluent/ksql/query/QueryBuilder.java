@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
@@ -49,7 +50,6 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -66,6 +66,7 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
@@ -92,7 +93,7 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 
 /**
  * A builder for creating queries metadata.
@@ -429,8 +430,11 @@ final class QueryBuilder {
         valueFormat.getFeatures()
     );
 
-    final NamedTopologyStreamsBuilder namedTopologyBuilder =
-        new NamedTopologyStreamsBuilder(queryId.toString());
+    final NamedTopologyBuilder namedTopologyBuilder = sharedKafkaStreamsRuntime.getKafkaStreams()
+            .newNamedTopologyBuilder(
+                queryId.toString(),
+                PropertiesUtil.asProperties(queryOverrides)
+            );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
             applicationId,
@@ -438,8 +442,7 @@ final class QueryBuilder {
             namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final NamedTopology topology =
-        namedTopologyBuilder.buildNamedTopology(PropertiesUtil.asProperties(queryOverrides));
+    final NamedTopology topology = namedTopologyBuilder.build();
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
             materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -505,8 +508,11 @@ final class QueryBuilder {
                                         final String applicationId,
                                         final Map<String, Object>  queryOverrides,
                                         final ExecutionStep<?> physicalPlan) {
-    final NamedTopologyStreamsBuilder namedTopologyBuilder =
-        new NamedTopologyStreamsBuilder(queryId.toString());
+    final NamedTopologyBuilder namedTopologyBuilder =
+        sharedRuntime.getKafkaStreams().newNamedTopologyBuilder(
+            queryId.toString(),
+            PropertiesUtil.asProperties(queryOverrides)
+        );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
@@ -514,7 +520,7 @@ final class QueryBuilder {
         namedTopologyBuilder
     );
     buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    return namedTopologyBuilder.buildNamedTopology(PropertiesUtil.asProperties(queryOverrides));
+    return namedTopologyBuilder.build();
   }
 
   public static Map<String, Object> buildStreamsProperties(
@@ -560,8 +566,20 @@ final class QueryBuilder {
         StorageUtilizationMetricsReporter.class.getName()
     );
 
+    if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
+          ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+              + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+              + "query");
+    }
+
     // Passing shared state into managed components
     newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);
+    newStreamsProperties.put(
+        KsqlConfig.KSQL_CUSTOM_METRICS_TAGS,
+        config.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+    );
+
     newStreamsProperties.put(
         KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG,
         metricCollectors.getMetrics()

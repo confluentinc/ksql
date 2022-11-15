@@ -60,7 +60,7 @@ Follow these steps to do an in-place upgrade of ksqlDB.
 This error occurs when the new ksqlDB version introduces a built-in function that has the same name as yours, creating a conflict with your UDF. Create a new UDF jar by renaming or eliminating the conflicting function(s), and restart ksqlDB with the new UDF jar.
 
 2. DESCRIBE EXTENDED command doesn't work: 
-Usually, this happens when the ksqlDB CLI and ksqlDB Server versions are different. You can create an alias for ksqlDB CLI to make sure to change it to newer version. You should ensure that the ksqlDB CLI and Server versions are the same. In "<Home-Folder-Path>/.bashrc" file, you can create an alias for logging into ksqlDB cli. 
+Usually, this happens when the ksqlDB CLI and ksqlDB Server versions are different. You can create an alias for ksqlDB CLI to make sure to change it to a newer version. You should ensure that the ksqlDB CLI and Server versions are the same. In "<Home-Folder-Path>/.bashrc" file, you can create an alias for logging into ksqlDB cli. 
 Eg : 
 (i) Open .bashrc file
 (ii) Create alias using command : "alias ksqldb='cd <ksqlDB bin folder location> && ./ksql http://<host-ip>:8088'" and save the changes. Now you can type "ksqldb" on shell and can login into ksqlDB.
@@ -96,7 +96,7 @@ If you prefer to recover the schema manually, use the following steps.
      first column and the schema from the second column of the output.
 4. Order by dependency: you'll now have the list of SQL statements to rebuild the schema, but they
    are not yet ordered in terms of dependencies. You will need to reorder the statements to ensure
-   each statement come after any other statements it depends on.
+   each statement comes after any other statements it depends on.
 5. Update the script to take into account any changes in syntax or functionality between the old
    and new clusters. The release notes can help here.  It can also be useful to have a test ksqlDB
    cluster, pointing to a different test Kafka cluster, where you can try running the script to get
@@ -482,7 +482,7 @@ CREATE TABLE output AS SELECT count(1) FROM input GROUP BY CAST(col0 AS STRING);
 ```
 
 The statement will result in a stream or table with a different schema if the single column has
-supported primitive key other than `STRING`.  The type of the `ROWKEY` system column in the resulting
+a supported primitive key other than `STRING`.  The type of the `ROWKEY` system column in the resulting
 table or stream will match the type of the single column.  This can cause downstream statements to
 fail.
 
@@ -505,7 +505,7 @@ CREATE TABLE output AS SELECT count(1) AS COUNT FROM input GROUP BY CAST(col0 AS
 
 ### Joins may result in different schema or may fail
 
-Some existing joins may now fail and others may see the the type of `ROWKEY` in the result schema
+Some existing joins may now fail and others may see that the type of `ROWKEY` in the result schema
 may have changed, due to primitive key support.
 
 The statement may fail if the two sides of the join have a different SQL Type. For example:
@@ -530,7 +530,7 @@ SELECT * FROM L JOIN R ON CAST(L.ID AS BIGINT) = R.ID;
 ```
 
 The statement will result in a stream or table with a different schema if the join column has
-supported primitive key other than `STRING`.  The type of the `ROWKEY` system column in the resulting
+a supported primitive key other than `STRING`.  The type of the `ROWKEY` system column in the resulting
 table or stream will match the type of the join column.  This can cause downstream statements to
 fail.
 

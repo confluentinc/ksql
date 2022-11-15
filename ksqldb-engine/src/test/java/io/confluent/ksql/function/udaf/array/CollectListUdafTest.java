@@ -36,7 +36,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldCollectInts() {
-    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListT();
     final Integer[] values = new Integer[] {3, 4, 5, 3};
     List<Integer> runningList = udaf.initialize();
     for (final Integer i : values) {
@@ -47,7 +47,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldCollectTimestamps() {
-    final TableUdaf<Timestamp, List<Timestamp>, List<Timestamp>> udaf = CollectListUdaf.createCollectListTimestamp();
+    final TableUdaf<Timestamp, List<Timestamp>, List<Timestamp>> udaf = CollectListUdaf.createCollectListT();
     final Timestamp[] values = new Timestamp[] {new Timestamp(1), new Timestamp(2)};
     List<Timestamp> runningList = udaf.initialize();
     for (final Timestamp i : values) {
@@ -58,7 +58,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldCollectTimes() {
-    final TableUdaf<Time, List<Time>, List<Time>> udaf = CollectListUdaf.createCollectListTime();
+    final TableUdaf<Time, List<Time>, List<Time>> udaf = CollectListUdaf.createCollectListT();
     final Time[] values = new Time[] {new Time(1), new Time(2)};
     List<Time> runningList = udaf.initialize();
     for (final Time i : values) {
@@ -69,7 +69,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldCollectDates() {
-    final TableUdaf<Date, List<Date>, List<Date>> udaf = CollectListUdaf.createCollectListDate();
+    final TableUdaf<Date, List<Date>, List<Date>> udaf = CollectListUdaf.createCollectListT();
     final Date[] values = new Date[] {new Date(1), new Date(2)};
     List<Date> runningList = udaf.initialize();
     for (final Date i : values) {
@@ -80,7 +80,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldCollectBytes() {
-    final TableUdaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> udaf = CollectListUdaf.createCollectListBytes();
+    final TableUdaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> udaf = CollectListUdaf.createCollectListT();
     final ByteBuffer[] values = new ByteBuffer[] {ByteBuffer.wrap(new byte[] {1}), ByteBuffer.wrap(new byte[] {2})};
     List<ByteBuffer> runningList = udaf.initialize();
     for (final ByteBuffer i : values) {
@@ -91,7 +91,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldMergeIntLists() {
-    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListT();
 
     List<Integer> lhs = udaf.initialize();
     final Integer[] lhsValues = new Integer[] {1, 2, null, 3};
@@ -113,7 +113,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldRespectSizeLimit() {
-    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListT();
     ((Configurable) udaf).configure(ImmutableMap.of(CollectListUdaf.LIMIT_CONFIG, 10));
 
     List<Integer> runningList = udaf.initialize();
@@ -128,7 +128,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldRespectSizeLimitString() {
-    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListT();
     ((Configurable) udaf).configure(ImmutableMap.of(CollectListUdaf.LIMIT_CONFIG, "10"));
 
     List<Integer> runningList = udaf.initialize();
@@ -143,7 +143,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldIgnoreNegativeLimit() {
-    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListT();
     ((Configurable) udaf).configure(ImmutableMap.of(CollectListUdaf.LIMIT_CONFIG, -10));
 
     List<Integer> runningList = udaf.initialize();
@@ -156,7 +156,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldUndo() {
-    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListT();
     final Integer[] values = new Integer[] {3, 4, 5, 3};
     List<Integer> runningList = udaf.initialize();
     for (final Integer i : values) {
@@ -171,7 +171,7 @@ public class CollectListUdafTest {
   @Test
   public void shouldUndoAfterHittingLimit() {
     final int limit = 10;
-    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListT();
     ((Configurable) udaf).configure(ImmutableMap.of(CollectListUdaf.LIMIT_CONFIG, limit));
     List<Integer> runningList = udaf.initialize();
     for (int i = 0; i < limit ; i++) {

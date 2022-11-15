@@ -177,6 +177,7 @@ public class LocalCommands implements Closeable {
         .collect(Collectors.toSet());
     if (queryApplicationIds.size() > 0) {
       ksqlEngine.cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
+      ksqlEngine.populateTransientQueryCleanupServiceWithOldCommands(queryApplicationIds);
     }
   }
 

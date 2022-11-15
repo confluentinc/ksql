@@ -58,6 +58,8 @@ public class StringToDate {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
+    // NB: We do not perform a null here preferring to throw an exception as
+    // there is no sentinel value for a "null" Date.
     try {
       final DateTimeFormatter formatter = formatters.get(formatPattern);
       return ((int)LocalDate.parse(formattedDate, formatter).toEpochDay());

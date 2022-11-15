@@ -13,6 +13,7 @@
 package io.confluent.ksql.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.test.QueryTranslationTest.QttTestFile;
 import io.confluent.ksql.test.loader.JsonTestLoader;
@@ -20,25 +21,26 @@ import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.util.GrammarTokenExporter;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Scanner;
-import java.util.stream.Collectors;
-import org.approvaltests.Approvals;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.approvaltests.Approvals;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+@RunWith(Enclosed.class)
 public class QueryAnonymizerTest {
   private static final Path QUERIES_TO_ANONYMIZE_PATH =
       Paths.get("src/test/java/io/confluent/ksql/test/QueriesToAnonymizeTest.txt");
@@ -71,7 +73,6 @@ public class QueryAnonymizerTest {
 
   @RunWith(Parameterized.class)
   public static class AnonQuerySetIntersectionTestClass {
-    private static final Stream<TestCase> testCases = testFileLoader().load();
     private List<String> sqlTokens;
     private final QueryAnonymizer anon = new QueryAnonymizer();
     private final String statement;
@@ -83,12 +84,13 @@ public class QueryAnonymizerTest {
     @Before
     public void setUp() {
       sqlTokens = GrammarTokenExporter.getTokens();
-      sqlTokens.addAll(Arrays.asList("INT", "DOUBLE", "VARCHAR", "BOOLEAN", "BIGINT", "*"));
+      sqlTokens.addAll(Arrays.asList("INT", "DOUBLE", "VARCHAR", "BOOLEAN", "BIGINT", "BYTES",
+          "*"));
     }
 
     @Parameterized.Parameters
     public static Collection<String> input() {
-      return testCases
+      return testFileLoader().load()
           .filter(statement -> !statement.expectedException().isPresent())
           .map(TestCase::statements)
           .flatMap(Collection::stream)
@@ -106,7 +108,7 @@ public class QueryAnonymizerTest {
       // Assert:
       intersection.removeAll(sqlTokens);
       intersection.remove("");
-      Assert.assertEquals(0, intersection.size());
+      Assert.assertEquals(Collections.emptySet(), intersection);
     }
   }
 }

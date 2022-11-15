@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.streams.materialization.ks.NotUpToBoundException;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -28,7 +29,6 @@ import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -45,19 +45,16 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   private final HttpServerResponse response;
   private final QueryStreamResponseWriter queryStreamResponseWriter;
-  private final Optional<String> completionMessage;
   private final Supplier<Boolean> hitLimit;
   private int tokens;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QuerySubscriber(final Context context, final HttpServerResponse response,
       final QueryStreamResponseWriter queryStreamResponseWriter,
-      final Optional<String> completionMessage,
       final Supplier<Boolean> hitLimit) {
     super(context);
     this.response = Objects.requireNonNull(response);
     this.queryStreamResponseWriter = Objects.requireNonNull(queryStreamResponseWriter);
-    this.completionMessage = completionMessage;
     this.hitLimit = hitLimit;
   }
 
@@ -68,7 +65,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleValue(final KeyValueMetadata<List<?>, GenericRow> row) {
-    if (row.getRowMetadata().isPresent()) {
+    if (row.getRowMetadata().isPresent() && row.getRowMetadata().get().isStandaloneRow()) {
       // Only one of the metadata are present at a time
       if (row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
         queryStreamResponseWriter.writeContinuationToken(new PushContinuationToken(
@@ -78,7 +75,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
             row.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
       }
     } else {
-      queryStreamResponseWriter.writeRow(row.getKeyValue().value());
+      queryStreamResponseWriter.writeRow(row);
     }
     tokens--;
     if (response.writeQueueFull()) {
@@ -97,9 +94,19 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleError(final Throwable t) {
-    log.error("Error in processing query", t);
-    final KsqlErrorMessage errorResponse = new KsqlErrorMessage(ERROR_CODE_SERVER_ERROR,
-        "Error in processing query. Check server logs for details.");
+    final StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append(t);
+    for (Throwable s: t.getSuppressed()) {
+      if (s instanceof NotUpToBoundException) {
+        stringBuilder.append(" Failed to get value from materialized table, reason: "
+                                 + "NOT_UP_TO_BOUND");
+      } else {
+        stringBuilder.append(s.getMessage());
+      }
+    }
+    final KsqlErrorMessage errorResponse = new KsqlErrorMessage(
+        ERROR_CODE_SERVER_ERROR, stringBuilder.toString());
+    log.error("Error in processing query {}", stringBuilder);
     queryStreamResponseWriter.writeError(errorResponse).end();
   }
 
@@ -108,7 +115,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
     if (hitLimit.get()) {
       queryStreamResponseWriter.writeLimitMessage();
     } else {
-      completionMessage.ifPresent(queryStreamResponseWriter::writeCompletionMessage);
+      queryStreamResponseWriter.writeCompletionMessage();
     }
     queryStreamResponseWriter.end();
   }

@@ -17,7 +17,6 @@ package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,13 +24,11 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Represents a consistency token that is communicated between the client and server.
@@ -40,7 +37,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 //@JsonInclude(JsonInclude.Include.NON_ABSENT)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConsistencyOffsetVector implements OffsetVector {
+public class ConsistencyOffsetVector {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -51,141 +48,94 @@ public class ConsistencyOffsetVector implements OffsetVector {
   // This field should be the first
   private int version;
   // Topic -> Partition -> Offset
-  private Map<String, Map<Integer, Long>> offsetVector;
-  private ReadWriteLock rwLock;
-
-  public ConsistencyOffsetVector() {
-    this.version = 0;
-    this.offsetVector = new HashMap<>();
-    this.rwLock = new ReentrantReadWriteLock();
-  }
+  private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetVector;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   @JsonCreator
   public ConsistencyOffsetVector(
       final @JsonProperty(value = "version", required = true) int version,
       final @JsonProperty(value = "offsetVector", required = true)
-          Map<String, Map<Integer, Long>> offsetVector
+          ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetVector
   ) {
     this.version = version;
     this.offsetVector = offsetVector;
-    this.rwLock = new ReentrantReadWriteLock();
   }
 
+  public static ConsistencyOffsetVector emptyVector() {
+    return new ConsistencyOffsetVector(0, new ConcurrentHashMap<>());
+  }
+
+  public ConsistencyOffsetVector withComponent(
+      final String topic, final int partition, final long offset) {
+    offsetVector
+        .computeIfAbsent(topic, k -> new ConcurrentHashMap<>())
+        .compute(
+            partition,
+            (integer, prior) -> prior == null || offset > prior ? Long.valueOf(offset) : prior
+        );
+    return this;
+  }
+
+  public Map<Integer, Long> getTopicOffsets(final String topic) {
+    final ConcurrentHashMap<Integer, Long> partitionMap = offsetVector.get(topic);
+    return partitionMap == null ? Collections.emptyMap() :
+        Collections.unmodifiableMap(partitionMap);
+  }
+
+  public void update(final String topic, final int partition, final long offset) {
+    offsetVector
+        .computeIfAbsent(topic, k -> new ConcurrentHashMap<>())
+        .compute(partition, (key, prior) -> prior == null || offset > prior ? Long.valueOf(offset) :
+            prior);
+  }
+
+  public void merge(final ConsistencyOffsetVector other) {
+    if (other == null) {
+      return;
+    } else if (getClass() != other.getClass()) {
+      throw new KsqlException("Offset vector types don't match");
+    } else {
+      for (final Entry<String, ConcurrentHashMap<Integer, Long>> entry :
+          other.offsetVector.entrySet()) {
+        final String topic = entry.getKey();
+        final Map<Integer, Long> partitionMap =
+            offsetVector.computeIfAbsent(topic, k -> new ConcurrentHashMap<>());
+        for (final Entry<Integer, Long> partitionOffset : entry.getValue().entrySet()) {
+          final Integer partition = partitionOffset.getKey();
+          final Long offset = partitionOffset.getValue();
+          if (!partitionMap.containsKey(partition)
+              || partitionMap.get(partition) < offset) {
+            partitionMap.put(partition, offset);
+          }
+        }
+      }
+    }
+  }
+
+  public ConsistencyOffsetVector copy() {
+    return new ConsistencyOffsetVector(version, deepCopy(offsetVector));
+  }
+
+  // Required for serialize/deserialize
   public int getVersion() {
     return version;
   }
 
-  public ImmutableMap<String, Map<Integer, Long>> getOffsetVector() {
-    return ImmutableMap.copyOf(offsetVector);
-  }
-
-  public void addTopicOffsets(final String topicID, final Map<Integer, Long> offsets) {
-    offsetVector.putIfAbsent(topicID, new HashMap<>());
-    offsetVector.get(topicID).putAll(offsets);
-  }
-
+  // Required for serialize/deserialize
   public void setVersion(final int newVersion) {
     version = newVersion;
   }
 
+  // Required for serialize/deserialize
+  public ImmutableMap<String, Map<Integer, Long>> getOffsetVector() {
+    return ImmutableMap.copyOf(offsetVector);
+  }
+
   @JsonAnySetter
-  public void setOffsetVector(final Map<String, Map<Integer, Long>> topicOffsets) {
+  // Required for serialize/deserialize
+  public void setOffsetVector(
+      final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> topicOffsets) {
     offsetVector.putAll(topicOffsets);
-  }
-
-  public void update(final String topic, final int partition, final long offset) {
-
-    try {
-      rwLock.writeLock().lock();
-      if (!offsetVector.containsKey(topic)) {
-        final HashMap<Integer, Long> partitionOffsets = new HashMap<>();
-        offsetVector.put(topic, partitionOffsets);
-      }
-      final Map<Integer, Long> partitionOffsets = offsetVector.get(topic);
-      if (partitionOffsets.containsKey(partition)) {
-        final long oldOffset = partitionOffsets.get(partition);
-        partitionOffsets.put(partition, Math.max(oldOffset, offset));
-      } else {
-        partitionOffsets.put(partition, offset);
-      }
-    } finally {
-      rwLock.writeLock().unlock();
-    }
-  }
-
-  @Override
-  public void merge(final OffsetVector other) {
-    if (getClass() != other.getClass()) {
-      throw new KsqlException("Offset vector types don't match");
-    }
-
-    final ConsistencyOffsetVector otherCV = (ConsistencyOffsetVector) other;
-    try {
-      rwLock.writeLock().lock();
-      for (final Entry<String, Map<Integer, Long>> topicEntry : otherCV.offsetVector.entrySet()) {
-        final String topic = topicEntry.getKey();
-        if (offsetVector.containsKey(topic)) {
-          final Map<Integer, Long> partitionOffsets = offsetVector.get(topic);
-          final Map<Integer, Long> otherPartitionOffsets = otherCV.offsetVector.get(topic);
-          for (final Entry<Integer, Long> p : otherPartitionOffsets.entrySet()) {
-            if (partitionOffsets.containsKey(p.getKey())) {
-              final long offset = partitionOffsets.get(p.getKey());
-              partitionOffsets.put(p.getKey(), Math.max(p.getValue(), offset));
-            } else {
-              partitionOffsets.put(p.getKey(), p.getValue());
-            }
-          }
-        } else {
-          final Map<Integer, Long> partitionOffsets = new HashMap<>(topicEntry.getValue());
-          offsetVector.put(topic, partitionOffsets);
-        }
-      }
-    } finally {
-      rwLock.writeLock().unlock();
-    }
-  }
-
-  @Override
-  public boolean dominates(final OffsetVector other) {
-    if (getClass() != other.getClass()) {
-      throw new KsqlException("Offset vector types don't match");
-    }
-    final ConsistencyOffsetVector otherCV = (ConsistencyOffsetVector) other;
-
-    try {
-      rwLock.readLock().lock();
-      for (final Entry<String, Map<Integer, Long>> topicEntry : offsetVector.entrySet()) {
-        final String topic = topicEntry.getKey();
-        if (otherCV.offsetVector.containsKey(topic)) {
-          final Map<Integer, Long> partitionOffsets = offsetVector.get(topic);
-          final Map<Integer, Long> otherPartitionOffsets = otherCV.offsetVector.get(topic);
-          for (final Entry<Integer, Long> p : partitionOffsets.entrySet()) {
-            if (otherPartitionOffsets.containsKey(p.getKey())) {
-              final long offset = partitionOffsets.get(p.getKey());
-              final long otherOffset = otherPartitionOffsets.get(p.getKey());
-              if (offset < otherOffset) {
-                return false;
-              }
-            }
-          }
-        }
-      }
-      return true;
-    } finally {
-      rwLock.readLock().unlock();
-    }
-  }
-
-  @Override
-  public boolean lessThanOrEqualTo(final OffsetVector other) {
-    throw new UnsupportedOperationException("Unsupported");
-  }
-
-  @JsonIgnore
-  @Override
-  public List<Long> getDenseRepresentation() {
-    throw new UnsupportedOperationException("Unsupported");
   }
 
   public String serialize() {
@@ -214,13 +164,13 @@ public class ConsistencyOffsetVector implements OffsetVector {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final ConsistencyOffsetVector that = (ConsistencyOffsetVector) o;
-    return this.dominates(that) && that.dominates(this);
+    final ConsistencyOffsetVector vector1 = (ConsistencyOffsetVector) o;
+    return Objects.equals(offsetVector, vector1.offsetVector) && version == vector1.version;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(version, offsetVector, rwLock);
+    throw new UnsupportedOperationException("Mutable object not suitable for hash key");
   }
 
   @Override
@@ -228,31 +178,21 @@ public class ConsistencyOffsetVector implements OffsetVector {
     final StringBuilder sb = new StringBuilder("ConsistencyOffsetVector{");
     sb.append("version=").append(version);
     sb.append(", offsetVector=").append(offsetVector);
-    sb.append(", rwLock=").append(rwLock);
     sb.append('}');
     return sb.toString();
   }
 
-  public static boolean isConsistencyVectorEnabled(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overrides
-  ) {
-    if (overrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
-      return Boolean.TRUE.equals(overrides.get(
-          KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED));
+  private static ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> deepCopy(
+      final Map<String, ? extends Map<Integer, Long>> map) {
+    if (map == null) {
+      return new ConcurrentHashMap<>();
     } else {
-      return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED);
+      final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> copy =
+          new ConcurrentHashMap<>(map.size());
+      for (final Entry<String, ? extends Map<Integer, Long>> entry : map.entrySet()) {
+        copy.put(entry.getKey(), new ConcurrentHashMap<>(entry.getValue()));
+      }
+      return copy;
     }
-  }
-
-  public static boolean isConsistencyVectorEnabled(final Map<String, Object> requestProperties) {
-    final Object consistencyEnabled
-        = requestProperties.get(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED);
-
-    if (consistencyEnabled instanceof Boolean) {
-      return (boolean) consistencyEnabled;
-    }
-
-    return KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT;
   }
 }

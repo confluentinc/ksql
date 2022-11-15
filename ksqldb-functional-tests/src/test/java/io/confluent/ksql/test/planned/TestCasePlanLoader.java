@@ -226,6 +226,7 @@ public final class TestCasePlanLoader {
         simpleTestName,
         Optional.empty(),
         ImmutableList.of(),
+        ImmutableList.of(),
         testCase.getInputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
         testCase.getOutputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
         allTopicNodes,

@@ -54,6 +54,8 @@ public class StringToTimestamp {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
+    // NB: We do not perform a null here preferring to throw an exception as
+    // there is no sentinel value for a "null" Date.
     try {
       final StringToTimestampParser timestampParser = parsers.get(formatPattern);
       return timestampParser.parse(formattedTimestamp);
@@ -77,6 +79,8 @@ public class StringToTimestamp {
       @UdfParameter(
           description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
               + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String timeZone) {
+    // NB: We do not perform a null here preferring to throw an exception as
+    // there is no sentinel value for a "null" Date.
     try {
       final StringToTimestampParser timestampParser = parsers.get(formatPattern);
       final ZoneId zoneId = ZoneId.of(timeZone);

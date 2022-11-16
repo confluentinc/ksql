@@ -532,14 +532,18 @@ public class ExpressionTypeManagerTest {
                 )));
 
     // When:
-    final Exception e = assertThrows(
-        Exception.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expression)
     );
 
     // Then:
-    assertThat(e.getMessage(), Matchers.containsString(
-        "Unsupported arithmetic types. DOUBLE STRING"));
+    assertThat(e.getUnloggedMessage(), Matchers.containsString(
+        "Error processing expression: (A + B). " +
+            "Unsupported arithmetic types. DOUBLE STRING\n" +
+            "Statement: (A + B)"));
+    assertThat(e.getMessage(), Matchers.is(
+        "Error processing expression."));
   }
 
   @Test

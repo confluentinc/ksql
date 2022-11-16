@@ -419,13 +419,22 @@ final class EngineExecutor {
           e
       );
 
-      throw new KsqlStatementException(
-              e.getMessage() == null
-                      ? "Server Error"
-                      : e.getMessage(),
-              statement.getMaskedStatementText(),
-              e
-      );
+      if (e instanceof KsqlStatementException) {
+        throw new KsqlStatementException(
+            e.getMessage() == null ? "Server Error" : e.getMessage(),
+            ((KsqlStatementException) e).getUnloggedMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      } else {
+        throw new KsqlStatementException(
+            e.getMessage() == null
+                ? "Server Error"
+                : e.getMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      }
     }
   }
 

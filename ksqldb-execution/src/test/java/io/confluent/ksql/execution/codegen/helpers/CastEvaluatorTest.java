@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.codegen.CodeGenTestUtil;
 import io.confluent.ksql.execution.codegen.CodeGenTestUtil.Evaluator;
+import io.confluent.ksql.execution.codegen.CodeGenUtil;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercerTest;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercerTest.LaxValueCoercionTest.LaxOnly;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -189,7 +190,7 @@ public class CastEvaluatorTest {
       // When:
       final Exception exception = assertThrows(
           NumberFormatException.class,
-          () -> evaluator.rawEvaluate("Infinity")
+          () -> evaluator.rawEvaluate(INNER_CODE, "Infinity")
       );
 
       // Then:
@@ -203,7 +204,7 @@ public class CastEvaluatorTest {
       // When:
       final Exception exception = assertThrows(
           NumberFormatException.class,
-          () -> evaluator.rawEvaluate("-Infinity")
+          () -> evaluator.rawEvaluate(INNER_CODE, "-Infinity")
       );
 
       // Then:
@@ -217,7 +218,7 @@ public class CastEvaluatorTest {
       // When:
       final Exception exception = assertThrows(
           NumberFormatException.class,
-          () -> evaluator.rawEvaluate("NaN")
+          () -> evaluator.rawEvaluate(INNER_CODE, "NaN")
       );
 
       // Then:
@@ -238,7 +239,7 @@ public class CastEvaluatorTest {
       // When:
       final Exception exception = assertThrows(
           KsqlException.class,
-          () -> evaluator.rawEvaluate("woof")
+          () -> evaluator.rawEvaluate(INNER_CODE, "woof")
       );
 
       // Then:
@@ -259,7 +260,7 @@ public class CastEvaluatorTest {
       // When:
       final Exception exception = assertThrows(
           KsqlException.class,
-          () -> evaluator.rawEvaluate("woof")
+          () -> evaluator.rawEvaluate(INNER_CODE, "woof")
       );
 
       // Then:
@@ -272,7 +273,7 @@ public class CastEvaluatorTest {
       final Evaluator evaluator = cookCode(SqlTypes.DATE, SqlTypes.TIMESTAMP, config);
 
       // Then:
-      assertThat(evaluator.rawEvaluate(new Date(864000000)), is(new Timestamp(864000000)));
+      assertThat(evaluator.rawEvaluate(INNER_CODE, new Date(864000000)), is(new Timestamp(864000000)));
     }
   }
 
@@ -289,7 +290,7 @@ public class CastEvaluatorTest {
       // When:
       final Exception exception = assertThrows(
           KsqlException.class,
-          () -> evaluator.rawEvaluate("woof")
+          () -> evaluator.rawEvaluate(INNER_CODE, "woof")
       );
 
       // Then:
@@ -302,7 +303,7 @@ public class CastEvaluatorTest {
       final Evaluator evaluator = cookCode(SqlTypes.TIMESTAMP, SqlTypes.DATE, config);
 
       // Then:
-      assertThat(evaluator.rawEvaluate(new Timestamp(864033000)), is(new Date(864000000)));
+      assertThat(evaluator.rawEvaluate(INNER_CODE, new Timestamp(864033000)), is(new Date(864000000)));
     }
 
     @Test
@@ -311,7 +312,7 @@ public class CastEvaluatorTest {
       final Evaluator evaluator = cookCode(SqlTypes.TIMESTAMP, SqlTypes.TIME, config);
 
       // Then:
-      assertThat(evaluator.rawEvaluate(new Timestamp(864033000)), is(new Time(33000)));
+      assertThat(evaluator.rawEvaluate(INNER_CODE, new Timestamp(864033000)), is(new Time(33000)));
     }
   }
 
@@ -688,15 +689,13 @@ public class CastEvaluatorTest {
       final SqlType to,
       final KsqlConfig config
   ) {
-    final String javaCode = CastEvaluator.generateCode(INNER_CODE, from, to, config);
-
-    final Class<?> fromJavaType = SchemaConverters.sqlToJavaConverter()
-        .toJavaType(from);
+    final String paramAccessor = CodeGenUtil.argumentAccessor(INNER_CODE, from);
+    final String javaCode = CastEvaluator.generateCode(paramAccessor, from, to, config);
 
     final Class<?> toJavaType = SchemaConverters.sqlToJavaConverter()
         .toJavaType(to);
 
-    return CodeGenTestUtil.cookCode(javaCode, toJavaType, INNER_CODE, fromJavaType);
+    return CodeGenTestUtil.cookCode(javaCode, toJavaType);
   }
 
   private static Object eval(
@@ -705,7 +704,9 @@ public class CastEvaluatorTest {
       final KsqlConfig config,
       final Object argument
   ) {
-    return cookCode(from, to, config).evaluate(argument);
+    final Map<String, Object> arguments = new HashMap<>();
+    arguments.put("val0", argument);
+    return cookCode(from, to, config).evaluate(arguments);
   }
 
   private static void assertUnsupported(
@@ -716,7 +717,10 @@ public class CastEvaluatorTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> CastEvaluator.generateCode(INNER_CODE, from, to, config)
+        () -> {
+          final String paramAccessor = CodeGenUtil.argumentAccessor(INNER_CODE, from);
+          CastEvaluator.generateCode(paramAccessor, from, to, config);
+        }
     );
 
     // Then:

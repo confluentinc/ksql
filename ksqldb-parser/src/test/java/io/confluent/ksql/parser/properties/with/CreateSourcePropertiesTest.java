@@ -723,16 +723,25 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithUnwrapping() {
+    shouldGetKeyFormatPropertiesWithUnwrapping("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufNoSRKeyFormatPropertiesWithUnwrapping() {
+    shouldGetKeyFormatPropertiesWithUnwrapping("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetKeyFormatPropertiesWithUnwrapping(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .build())
         .withUnwrapProtobufPrimitives(true);
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is(format));
     assertThat(props.getKeyFormat(
         SourceName.of("foo")).get().getProperties(),
         hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
@@ -740,15 +749,24 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithoutUnwrapping() {
+    shouldGetKeyFormatPropertiesWithoutUnwrapping("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufSRKeyFormatPropertiesWithoutUnwrapping() {
+    shouldGetKeyFormatPropertiesWithoutUnwrapping("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetKeyFormatPropertiesWithoutUnwrapping(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is(format));
     assertThat(props.getKeyFormat(
         SourceName.of("foo")).get().getProperties(),
         not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
@@ -756,48 +774,75 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithUnwrapping() {
+    shouldGetValueFormatPropertiesWithUnwrapping("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufSRValueFormatPropertiesWithUnwrapping() {
+    shouldGetValueFormatPropertiesWithUnwrapping("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetValueFormatPropertiesWithUnwrapping(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .build())
         .withUnwrapProtobufPrimitives(true);
 
     // When / Then:
-    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getFormat(), is(format));
     assertThat(props.getValueFormat().get().getProperties(),
         hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
   }
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithoutUnwrapping() {
+    shouldGetValueFormatPropertiesWithoutUnwrapping("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufNoSRValueFormatPropertiesWithoutUnwrapping() {
+    shouldGetValueFormatPropertiesWithoutUnwrapping("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetValueFormatPropertiesWithoutUnwrapping(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .build());
 
     // When / Then:
-    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getFormat(), is(format));
     assertThat(props.getValueFormat().get().getProperties(),
         not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
   }
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithNullableAsWrapper() {
+    shouldGetKeyFormatPropertiesWithNullableAsWrapper("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufNoSRKeyFormatPropertiesWithNullableAsWrapper() {
+    shouldGetKeyFormatPropertiesWithNullableAsWrapper("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetKeyFormatPropertiesWithNullableAsWrapper(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .put(KEY_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
                 ProtobufNullableConfigValues.WRAPPER.name()))
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is(format));
     assertThat(props.getKeyFormat(
             SourceName.of("foo")).get().getProperties(),
         hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
@@ -806,17 +851,26 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithNullableAsOptional() {
+    shouldGetKeyFormatPropertiesWithNullableAsOptional("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufNoSRKeyFormatPropertiesWithNullableAsOptional() {
+    shouldGetKeyFormatPropertiesWithNullableAsOptional("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetKeyFormatPropertiesWithNullableAsOptional(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .put(KEY_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
                 ProtobufNullableConfigValues.OPTIONAL.name()))
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is(format));
     assertThat(props.getKeyFormat(
             SourceName.of("foo")).get().getProperties(),
         hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
@@ -825,15 +879,24 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithoutNullableRepresentation() {
+    shouldGetKeyFormatPropertiesWithoutNullableRepresentation("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufNoSRKeyFormatPropertiesWithoutNullableRepresentation() {
+    shouldGetKeyFormatPropertiesWithoutNullableRepresentation("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetKeyFormatPropertiesWithoutNullableRepresentation(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is(format));
     assertThat(props.getKeyFormat(
             SourceName.of("foo")).get().getProperties(),
         not(hasKey(ProtobufProperties.NULLABLE_REPRESENTATION)));
@@ -841,17 +904,26 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithNullableAsWrapper() {
+    shouldGetValueFormatPropertiesWithNullableAsWrapper("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufNoSRValueFormatPropertiesWithNullableAsWrapper() {
+    shouldGetValueFormatPropertiesWithNullableAsWrapper("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetValueFormatPropertiesWithNullableAsWrapper(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .put(VALUE_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
                 ProtobufNullableConfigValues.WRAPPER.name()))
             .build());
 
     // When / Then:
-    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getFormat(), is(format));
     assertThat(props.getValueFormat().get().getProperties(),
         hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
             ProtobufProperties.NULLABLE_AS_WRAPPER));
@@ -859,17 +931,26 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithNullableAsOptional() {
+    shouldGetValueFormatPropertiesWithNullableAsOptional("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufNoSRValueFormatPropertiesWithNullableAsOptional() {
+    shouldGetValueFormatPropertiesWithNullableAsOptional("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetValueFormatPropertiesWithNullableAsOptional(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .put(VALUE_PROTOBUF_NULLABLE_REPRESENTATION, new StringLiteral(
                 ProtobufNullableConfigValues.OPTIONAL.name()))
             .build());
 
     // When / Then:
-    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getFormat(), is(format));
     assertThat(props.getValueFormat().get().getProperties(),
         hasEntry(ProtobufProperties.NULLABLE_REPRESENTATION,
             ProtobufProperties.NULLABLE_AS_OPTIONAL));
@@ -877,15 +958,24 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithoutNullableRepresentation() {
+    shouldGetValueFormatPropertiesWithoutNullableRepresentation("PROTOBUF");
+  }
+
+  @Test
+  public void shouldGetProtobufNoSRValueFormatPropertiesWithoutNullableRepresentation() {
+    shouldGetValueFormatPropertiesWithoutNullableRepresentation("PROTOBUF_NOSR");
+  }
+
+  private void shouldGetValueFormatPropertiesWithoutNullableRepresentation(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
+            .put(FORMAT_PROPERTY, new StringLiteral(format))
             .build());
 
     // When / Then:
-    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat().get().getFormat(), is(format));
     assertThat(props.getValueFormat().get().getProperties(),
         not(hasKey(ProtobufProperties.NULLABLE_REPRESENTATION)));
   }

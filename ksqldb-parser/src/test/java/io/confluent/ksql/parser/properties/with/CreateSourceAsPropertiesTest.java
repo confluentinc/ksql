@@ -423,84 +423,63 @@ public class CreateSourceAsPropertiesTest {
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithUnwrapping() {
-    shouldGetKeyFormatPropertiesWithUnwrapping("PROTOBUF");
-  }
-
-  @Test
-  public void shouldGetProtobufNoSRKeyFormatPropertiesWithUnwrapping() {
-    shouldGetKeyFormatPropertiesWithUnwrapping("PROTOBUF_NOSR");
-  }
-
-  private void shouldGetKeyFormatPropertiesWithUnwrapping(final String format) {
     // Given:
     final CreateSourceAsProperties props = CreateSourceAsProperties
-        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral(format)))
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")))
         .withUnwrapProtobufPrimitives(true);
 
     // When / Then:
-    assertThat(props.getKeyFormatProperties("foo", format),
+    assertThat(props.getKeyFormatProperties("foo", "PROTOBUF"),
         hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
   }
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithoutUnwrapping() {
-    shouldGetKeyFormatPropertiesWithoutUnwrapping("PROTOBUF");
-  }
-
-  @Test
-  public void shouldGetProtobufSRKeyFormatPropertiesWithoutUnwrapping() {
-    shouldGetKeyFormatPropertiesWithoutUnwrapping("PROTOBUF_NOSR");
-  }
-
-  private void shouldGetKeyFormatPropertiesWithoutUnwrapping(final String format) {
     // Given:
     final CreateSourceAsProperties props = CreateSourceAsProperties
-        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral(format)));
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")));
 
     // When / Then:
-    assertThat(props.getKeyFormatProperties("foo", format),
+    assertThat(props.getKeyFormatProperties("foo", "PROTOBUF"),
         not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
   }
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithUnwrapping() {
-    shouldGetValueFormatPropertiesWithUnwrapping("PROTOBUF");
-  }
-
-  @Test
-  public void shouldGetProtobufSRValueFormatPropertiesWithUnwrapping() {
-    shouldGetValueFormatPropertiesWithUnwrapping("PROTOBUF_NOSR");
-  }
-
-  private void shouldGetValueFormatPropertiesWithUnwrapping(final String format) {
     // Given:
     final CreateSourceAsProperties props = CreateSourceAsProperties
-        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral(format)))
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")))
         .withUnwrapProtobufPrimitives(true);
 
     // When / Then:
-    assertThat(props.getValueFormatProperties(format),
+    assertThat(props.getValueFormatProperties("PROTOBUF"),
         hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
   }
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithoutUnwrapping() {
-    shouldGetValueFormatPropertiesWithoutUnwrapping("PROTOBUF");
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")));
+
+    // When / Then:
+    assertThat(props.getValueFormatProperties("PROTOBUF"),
+        not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
   }
 
   @Test
-  public void shouldGetProtobufNoSRValueFormatPropertiesWithoutUnwrapping() {
-    shouldGetValueFormatPropertiesWithoutUnwrapping("PROTOBUF_NOSR");
-  }
+  public void shouldThrowIfSourceConnectorPropertyProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceAsProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .put(CreateConfigs.SOURCED_BY_CONNECTOR_PROPERTY, new StringLiteral("whatever"))
+                .build())
+    );
 
-  private void shouldGetValueFormatPropertiesWithoutUnwrapping(final String format) {
-    // Given:
-    final CreateSourceAsProperties props = CreateSourceAsProperties
-        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral(format)));
-
-    // When / Then:
-    assertThat(props.getValueFormatProperties(format),
-        not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
+    // Then:
+    assertThat(e.getMessage(), containsString("Invalid config variable(s) in the WITH clause: SOURCED_BY_CONNECTOR"));
   }
 
   @Test

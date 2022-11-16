@@ -723,25 +723,16 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithUnwrapping() {
-    shouldGetKeyFormatPropertiesWithUnwrapping("PROTOBUF");
-  }
-
-  @Test
-  public void shouldGetProtobufNoSRKeyFormatPropertiesWithUnwrapping() {
-    shouldGetKeyFormatPropertiesWithUnwrapping("PROTOBUF_NOSR");
-  }
-
-  private void shouldGetKeyFormatPropertiesWithUnwrapping(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral(format))
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
             .build())
         .withUnwrapProtobufPrimitives(true);
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is(format));
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
     assertThat(props.getKeyFormat(
         SourceName.of("foo")).get().getProperties(),
         hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
@@ -749,24 +740,15 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufKeyFormatPropertiesWithoutUnwrapping() {
-    shouldGetKeyFormatPropertiesWithoutUnwrapping("PROTOBUF");
-  }
-
-  @Test
-  public void shouldGetProtobufSRKeyFormatPropertiesWithoutUnwrapping() {
-    shouldGetKeyFormatPropertiesWithoutUnwrapping("PROTOBUF_NOSR");
-  }
-
-  private void shouldGetKeyFormatPropertiesWithoutUnwrapping(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral(format))
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is(format));
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("PROTOBUF"));
     assertThat(props.getKeyFormat(
         SourceName.of("foo")).get().getProperties(),
         not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
@@ -774,49 +756,31 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithUnwrapping() {
-    shouldGetValueFormatPropertiesWithUnwrapping("PROTOBUF");
-  }
-
-  @Test
-  public void shouldGetProtobufSRValueFormatPropertiesWithUnwrapping() {
-    shouldGetValueFormatPropertiesWithUnwrapping("PROTOBUF_NOSR");
-  }
-
-  private void shouldGetValueFormatPropertiesWithUnwrapping(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral(format))
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
             .build())
         .withUnwrapProtobufPrimitives(true);
 
     // When / Then:
-    assertThat(props.getValueFormat().get().getFormat(), is(format));
+    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
     assertThat(props.getValueFormat().get().getProperties(),
         hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
   }
 
   @Test
   public void shouldGetProtobufValueFormatPropertiesWithoutUnwrapping() {
-    shouldGetValueFormatPropertiesWithoutUnwrapping("PROTOBUF");
-  }
-
-  @Test
-  public void shouldGetProtobufNoSRValueFormatPropertiesWithoutUnwrapping() {
-    shouldGetValueFormatPropertiesWithoutUnwrapping("PROTOBUF_NOSR");
-  }
-
-  private void shouldGetValueFormatPropertiesWithoutUnwrapping(final String format) {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(FORMAT_PROPERTY, new StringLiteral(format))
+            .put(FORMAT_PROPERTY, new StringLiteral("PROTOBUF"))
             .build());
 
     // When / Then:
-    assertThat(props.getValueFormat().get().getFormat(), is(format));
+    assertThat(props.getValueFormat().get().getFormat(), is("PROTOBUF"));
     assertThat(props.getValueFormat().get().getProperties(),
         not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
   }

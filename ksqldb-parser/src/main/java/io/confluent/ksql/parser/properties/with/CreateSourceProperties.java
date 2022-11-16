@@ -192,6 +192,9 @@ public final class CreateSourceProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && unwrapProtobufPrimitives) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
+    }
     handleProtobufNullableProperty(keyFormat, builder,
         CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION);
 
@@ -228,6 +231,9 @@ public final class CreateSourceProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && unwrapProtobufPrimitives) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
+    }
     handleProtobufNullableProperty(valueFormat, builder,
         CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION);
 
@@ -242,11 +248,6 @@ public final class CreateSourceProperties {
       final Builder<String, String> builder, final String propertyName) {
     if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)
         || ProtobufNoSRFormat.NAME.equalsIgnoreCase(valueFormat)) {
-
-      if (unwrapProtobufPrimitives) {
-        builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
-      }
-
       final String nullableRep = props.getString(propertyName);
       if (nullableRep != null) {
         switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {

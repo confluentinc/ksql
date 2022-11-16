@@ -205,13 +205,13 @@
               "name": "input",
               "keyFormat": {"format": "KAFKA"},
               "partitions": 4,
-              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"unwrapPrimitives": "true"}}
+              "valueFormat": {"format": "PROTOBUF_NOSR"}
             },
             {
               "name": "OUTPUT",
               "keyFormat": {"format": "KAFKA"},
               "partitions": 4,
-              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"unwrapPrimitives": "true"}}
+              "valueFormat": {"format": "PROTOBUF_NOSR"}
             }
           ]
         }
@@ -238,13 +238,13 @@
               "name": "input",
               "keyFormat": {"format": "KAFKA"},
               "partitions": 4,
-              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "optional"}}
+              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"nullableRepresentation": "optional"}}
             },
             {
               "name": "OUTPUT",
               "keyFormat": {"format": "KAFKA"},
               "partitions": 4,
-              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "optional"}}
+              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"nullableRepresentation": "optional"}}
             }
           ]
         }
@@ -271,13 +271,13 @@
               "name": "input",
               "keyFormat": {"format": "KAFKA"},
               "partitions": 4,
-              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "wrapper"}}
+              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"nullableRepresentation": "wrapper"}}
             },
             {
               "name": "OUTPUT",
               "keyFormat": {"format": "KAFKA"},
               "partitions": 4,
-              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "wrapper"}}
+              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"nullableRepresentation": "wrapper"}}
             }
           ]
         }

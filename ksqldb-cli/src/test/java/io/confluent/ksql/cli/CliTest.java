@@ -1234,11 +1234,13 @@ public class CliTest {
 
     // Then:
     final String out = terminal.getOutputString();
-    final String expected = "Statement: create stream if not exist s1(id int) "
-        + "with (kafka_topic='s1', value_format='json', partitions=1);\n"
-        + "Caused by: line 2:22: no viable alternative at input 'create stream if not";
+    final String expected = "line 2:22: " +
+        "no viable alternative at input 'create stream if not exist'\n" +
+        "Statement: create stream if not exist s1(id int) with " +
+        "(kafka_topic='s1', value_format='json', partitions=1);\n" +
+        "Caused by: line 2:22: Syntax error at line 2:22\n";
     assertThat(error_code, is(-1));
-    assertThat(out, containsString(expected));
+    assertThat(out, is(expected));
     assertThat(out, not(containsString("drop stream if exists")));
   }
 

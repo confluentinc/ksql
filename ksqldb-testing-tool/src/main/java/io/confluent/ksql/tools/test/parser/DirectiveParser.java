@@ -38,7 +38,6 @@ public final class DirectiveParser {
     if (!matcher.find()) {
       throw new ParsingException(
           "Expected directive matching pattern " + DIRECTIVE_REGEX + " but got " + comment,
-          null,
           loc.getStartLineNumber(),
           loc.getStartColumnNumber()
       );

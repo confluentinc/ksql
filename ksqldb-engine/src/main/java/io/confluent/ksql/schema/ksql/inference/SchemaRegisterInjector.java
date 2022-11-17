@@ -183,6 +183,13 @@ public class SchemaRegisterInjector implements Injector {
               .plan(sandboxServiceContext, cas)
               .getDdlCommand()
               .get();
+    } catch (final KsqlStatementException e) {
+      throw new KsqlStatementException(
+          "Could not determine output schema for query due to error: " + e.getMessage(),
+          "Could not determine output schema for query due to error: " + e.getUnloggedMessage(),
+          cas.getMaskedStatementText(),
+          e
+      );
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Could not determine output schema for query due to error: "

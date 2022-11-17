@@ -342,7 +342,7 @@ public class Console implements Closeable {
     if (errorMessage instanceof KsqlStatementErrorMessage) {
       printKsqlEntityList(((KsqlStatementErrorMessage) errorMessage).getEntities());
     }
-    printError(errorMessage.toString(), errorMessage.toString());
+    printError(errorMessage.getMessage(), errorMessage.toString());
   }
 
   public void printError(final String shortMsg, final String fullMsg) {

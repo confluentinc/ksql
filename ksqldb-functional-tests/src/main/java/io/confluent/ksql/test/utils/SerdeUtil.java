@@ -40,6 +40,7 @@ import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufNoSRFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRProperties;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
@@ -86,7 +87,8 @@ public final class SerdeUtil {
         return new ValueSpecProtobufSerdeSupplier(
             new ProtobufProperties(formatInfo.getProperties()));
       case ProtobufNoSRFormat.NAME:
-        return new ValueSpecProtobufNoSRSerdeSupplier(schema, formatInfo.getProperties());
+        return new ValueSpecProtobufNoSRSerdeSupplier(schema,
+            new ProtobufNoSRProperties(formatInfo.getProperties()));
       case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(properties);
       case JsonSchemaFormat.NAME: return new ValueSpecJsonSchemaSerdeSupplier();
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();

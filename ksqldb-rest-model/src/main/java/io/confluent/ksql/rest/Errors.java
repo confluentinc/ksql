@@ -127,21 +127,6 @@ public final class Errors {
         .build();
   }
 
-  public static EndpointResponse badRequestWithStatement(final Throwable t,
-                                                         final String maskedKsql) {
-    return EndpointResponse.create()
-        .status(BAD_REQUEST.code())
-        .entity(
-            new KsqlStatementErrorMessage(
-                ERROR_CODE_BAD_REQUEST,
-                t,
-                maskedKsql,
-                new KsqlEntityList()
-            )
-        )
-        .build();
-  }
-
   public static EndpointResponse badStatement(final String msg, final String statementText) {
     return badStatement(msg, statementText, new KsqlEntityList());
   }

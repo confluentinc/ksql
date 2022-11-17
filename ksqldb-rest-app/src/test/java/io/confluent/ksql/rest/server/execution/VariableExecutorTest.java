@@ -168,15 +168,17 @@ public class VariableExecutorTest {
 
     for (final String invalidValue : invalidValues) {
       // When:
-      final Exception e = assertThrows(
+      final ParseFailedException e = assertThrows(
           ParseFailedException.class,
           () -> executeDefineVariable(String.format("DEFINE var1=%s;", invalidValue))
       );
 
       // Then:
-      assertThat(e.getMessage(), containsString(
-         "Syntax Error\n"
-             + "Expecting STRING"));
+      assertThat(e.getMessage(), containsString("line 1:13: Syntax error at line 1:13"));
+      assertThat(e.getUnloggedMessage(), containsString(
+          "Syntax Error\n"
+              + "Expecting STRING"));
+      assertThat(e.getSqlStatement(), containsString("DEFINE var1=" + invalidValue + ";"));
     }
   }
 }

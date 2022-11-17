@@ -34,6 +34,7 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -151,40 +152,12 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
-    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat)) {
-
-      if (unwrapProtobufPrimitives) {
-        builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
-      }
-
-      final String nullableRep = props.getString(
-          CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION);
-      if (nullableRep != null) {
-        switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
-          case WRAPPER:
-            builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
-                ProtobufProperties.NULLABLE_AS_WRAPPER);
-            break;
-          case OPTIONAL:
-            builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
-                ProtobufProperties.NULLABLE_AS_OPTIONAL);
-            break;
-          default:
-            throw new RuntimeException(String.format(
-                "Unexpected nullable representation %s. This indicates an implementation error.",
-                nullableRep));
-        }
-      }
-
-    } else {
-      // Reject protobuf options for non-protobuf formats
-      if (props.getString(CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION) != null) {
-        throw new KsqlException(
-            String.format("Property %s can only be enabled with protobuf format",
-                CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION));
-      }
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && unwrapProtobufPrimitives) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
+    handleNullableProtobufProperty(keyFormat, builder,
+        CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION);
 
     final Optional<Integer> keySchemaId = getKeySchemaId();
     keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
@@ -208,14 +181,26 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
-    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)) {
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && unwrapProtobufPrimitives) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
+    }
 
-      if (unwrapProtobufPrimitives) {
-        builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
-      }
+    handleNullableProtobufProperty(valueFormat, builder,
+        CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION);
 
-      final String nullableRep = props.getString(
-          CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION);
+    final Optional<Integer> valueSchemaId = getValueSchemaId();
+    valueSchemaId.ifPresent(id ->
+        builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
+
+    return builder.build();
+  }
+
+  private void handleNullableProtobufProperty(final String valueFormat,
+      final Builder<String, String> builder, final String propertyName) {
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)
+        || ProtobufNoSRFormat.NAME.equalsIgnoreCase(valueFormat)) {
+
+      final String nullableRep = props.getString(propertyName);
       if (nullableRep != null) {
         switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
           case WRAPPER:
@@ -235,18 +220,12 @@ public final class CreateSourceAsProperties {
 
     } else {
       // Reject protobuf options for non-protobuf formats
-      if (props.getString(CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION) != null) {
+      if (props.getString(propertyName) != null) {
         throw new KsqlException(
             String.format("Property %s can only be enabled with protobuf format",
-                CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION));
+                propertyName));
       }
     }
-
-    final Optional<Integer> valueSchemaId = getValueSchemaId();
-    valueSchemaId.ifPresent(id ->
-        builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
-
-    return builder.build();
   }
 
   public CreateSourceAsProperties withKeyValueSchemaName(

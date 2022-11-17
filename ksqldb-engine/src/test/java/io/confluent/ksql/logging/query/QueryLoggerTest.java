@@ -17,22 +17,27 @@ import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;
 import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueryLoggerTest {
-  @Mock public KsqlConfig config;
+  @Mock
+  public KsqlConfig config;
   private final TestAppender testAppender = new TestAppender();
 
   private final QueryAnonymizer anonymizer = new QueryAnonymizer();
@@ -72,7 +77,7 @@ public class QueryLoggerTest {
   }
 
   @Test
-  public void shouldNotLogIfQueryCannotBeParsed() {
+  public void shouldNotLogQueryIfQueryCannotBeParsed() {
     String message = " I love cats";
     String query = "CREATE CAT;";
 
@@ -80,13 +85,36 @@ public class QueryLoggerTest {
     QueryLogger.error(message, query);
     QueryLogger.info(message, query);
     QueryLogger.warn(message, query);
-    testAppender
-        .getLog()
+    final List<LoggingEvent> events = testAppender.getLog();
+    events
         .forEach(
             (e) -> {
               final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
-              assertNotEquals(msg.getMessage(), message);
+              assertEquals(msg.getMessage(), message);
               assertNotEquals(msg.getQuery(), query);
+              assertEquals(msg.getQuery(), "<unparsable query>");
+            });
+  }
+
+  @Test
+  public void shouldLogQueryIfQueryCannotBeParsedIfAnonymizerIsDisabled() {
+    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(false);
+    QueryLogger.configure(config);
+
+    String message = " I love cats";
+    String query = "CREATE CAT;";
+
+    QueryLogger.debug(message, query);
+    QueryLogger.error(message, query);
+    QueryLogger.info(message, query);
+    QueryLogger.warn(message, query);
+    final List<LoggingEvent> events = testAppender.getLog();
+    events
+        .forEach(
+            (e) -> {
+              final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
+              assertEquals(msg.getMessage(), message);
+              assertEquals(msg.getQuery(), query);
             });
   }
 
@@ -146,5 +174,20 @@ public class QueryLoggerTest {
                   msg.getQueryIdentifier().getQueryGuid(),
                   msg.getQueryIdentifier().getStructuralGuid());
             });
+  }
+
+  @Test
+  public void shouldAnonymizeMultipleStatements() {
+    QueryLogger.configure(config);
+    QueryLogger.info("a message", "list streams; list tables; select a, b from mytable; list queries;");
+    final List<LoggingEvent> events = testAppender.getLog();
+    assertThat(events, hasSize(1));
+    final LoggingEvent event = events.get(0);
+    final QueryLoggerMessage message = (QueryLoggerMessage) event.getMessage();
+    assertThat(message.getMessage(), is("a message"));
+    assertThat(message.getQuery(), is("list STREAMS;\n" +
+        "list TABLES;\n" +
+        "SELECT column1, column2 FROM source1;\n" +
+        "list QUERIES;"));
   }
 }

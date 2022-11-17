@@ -47,6 +47,15 @@ public final class CommonCreateConfigs {
   public static final String KEY_FORMAT_PROPERTY = "KEY_FORMAT";
   public static final String FORMAT_PROPERTY = "FORMAT";
   public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
+  public static final String KEY_PROTOBUF_NULLABLE_REPRESENTATION =
+      "KEY_PROTOBUF_NULLABLE_REPRESENTATION";
+  public static final String VALUE_PROTOBUF_NULLABLE_REPRESENTATION =
+      "VALUE_PROTOBUF_NULLABLE_REPRESENTATION";
+
+  public enum ProtobufNullableConfigValues {
+    OPTIONAL,
+    WRAPPER
+  }
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
   public static final String KEY_DELIMITER_PROPERTY = "KEY_DELIMITER";
@@ -133,6 +142,32 @@ public final class CommonCreateConfigs {
                 + "only a single field.  If set to true, KSQL expects the field to have been "
                 + "serialized as a named field within a record. If set to false, KSQL expects the "
                 + "field to have been serialized as an anonymous value."
+        )
+        .define(
+            KEY_PROTOBUF_NULLABLE_REPRESENTATION,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigValidators.enumValues(ProtobufNullableConfigValues.class),
+            Importance.LOW,
+            "If supplied, protobuf schema generation will use fields that distinguish "
+                + "null from default values for primitive values. The value `"
+                + ProtobufNullableConfigValues.OPTIONAL.name()
+                + "` will enable using the `optional` on all fields, whereas `"
+                + ProtobufNullableConfigValues.WRAPPER.name()
+                + "` will use wrappers for all primitive value fields, including strings."
+        )
+        .define(
+            VALUE_PROTOBUF_NULLABLE_REPRESENTATION,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigValidators.enumValues(ProtobufNullableConfigValues.class),
+            Importance.LOW,
+            "If supplied, protobuf schema generation will use fields that distinguish "
+                + "null from default values for primitive values. The value `"
+                + ProtobufNullableConfigValues.OPTIONAL.name()
+                + "` will enable using the `optional` on all fields, whereas `"
+                + ProtobufNullableConfigValues.WRAPPER.name()
+                + "` will use wrappers for all primitive value fields, including strings."
         )
         .define(
             VALUE_AVRO_SCHEMA_FULL_NAME,

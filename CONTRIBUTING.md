@@ -61,6 +61,10 @@ including any errors.
 If you would rather have the ksqlDB server logs spool to the console, then
 drop the `-daemon` switch, and start the CLI in a second console.
 
+It is recommended to instruct maven to use the native `git` client on your system by setting
+`export MAVEN_OPTS="-Dmaven.gitcommitid.nativegit=true $MAVEN_OPTS"`. This will drastically
+reduce build times.
+
 #### Building a released version
 
 The source for standalone ksqlDB versions is tagged with the pattern vN.NN.N. For

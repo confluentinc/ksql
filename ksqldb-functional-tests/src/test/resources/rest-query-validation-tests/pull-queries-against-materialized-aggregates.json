@@ -133,7 +133,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to '10' (STRING) with EQUAL.\nStatement: (ID = '10')",
+        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to '10' (STRING) with EQUAL.",
         "status": 400
       }
     },
@@ -286,7 +286,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to '10' (STRING) with EQUAL.\nStatement: (ID = '10')",
+        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to '10' (STRING) with EQUAL.",
         "status": 400
       }
     },
@@ -1205,7 +1205,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Error in WHERE expression: Comparison with NULL not supported: INTEGER = NULL\nUse 'IS NULL' or 'IS NOT NULL' instead.\nStatement: (ID = null)",
+        "message": "Error in WHERE expression: Comparison with NULL not supported: INTEGER = NULL\nUse 'IS NULL' or 'IS NOT NULL' instead.",
         "status": 400
       }
     },

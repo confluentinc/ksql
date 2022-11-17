@@ -311,6 +311,18 @@ public class QueryAnonymizer {
     }
 
     @Override
+    public String visitListTables(final SqlBaseParser.ListTablesContext context) {
+      final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
+      final StringBuilder stringBuilder = new StringBuilder(listOrVisit.toString() + " TABLES");
+
+      if (context.EXTENDED() != null) {
+        stringBuilder.append(" EXTENDED");
+      }
+
+      return stringBuilder.toString();
+    }
+
+    @Override
     public String visitListFunctions(final ListFunctionsContext context) {
       final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
       return String.format("%s FUNCTIONS", listOrVisit.toString());

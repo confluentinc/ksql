@@ -285,7 +285,7 @@ public class KsqlResource implements KsqlConfigurable {
     // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
     ApiServerUtils.setMaskedSqlIfNeeded(request);
 
-    LOG.info("Received: " + request);
+    QueryLogger.info("Received: " + request.toStringWithoutQuery(), request.getMaskedKsql());
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -338,27 +338,54 @@ public class KsqlResource implements KsqlConfigurable {
           )
       );
 
-      LOG.info("Processed successfully: " + request);
+      QueryLogger.info(
+          "Processed successfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql()
+      );
       addCommandRunnerWarning(
           entities,
           commandRunnerWarning);
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      QueryLogger.warn(
+          "Processed unsuccessfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql(),
+          e
+      );
       throw e;
     } catch (final KsqlStatementException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      QueryLogger.warn(
+          "Processed unsuccessfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql(),
+          e
+      );
+      final EndpointResponse response;
+      if (e.isProblemWithStatement()) {
+        response = Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
+      } else {
+        response = Errors.badRequestWithStatement(e, e.getSqlStatement());
+      }
+      return errorHandler.generateResponse(e, response);
+    } catch (final KsqlException e) {
+      QueryLogger.warn(
+          "Processed unsuccessfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql(),
+          e
+      );
       return errorHandler.generateResponse(
           e,
-          Errors.badStatement(e.getRawMessage(), e.getSqlStatement())
+          Errors.badRequestWithStatement(e, request.getMaskedKsql())
       );
-    } catch (final KsqlException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
-      return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
+      QueryLogger.warn(
+          "Processed unsuccessfully: " + request.toStringWithoutQuery(),
+          request.getMaskedKsql(),
+          e
+      );
       return errorHandler.generateResponse(
-          e, Errors.serverErrorForStatement(e, request.getMaskedKsql()));
+          e,
+          Errors.serverErrorForStatement(e, request.getMaskedKsql())
+      );
     }
   }
 

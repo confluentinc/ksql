@@ -1103,8 +1103,7 @@
         {"topic": "right_topic", "key": 3, "value": {"L2": "d"}, "timestamp": 60000}
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000},
-        {"topic": "INNER_JOIN", "key": 2, "value": {"L1": "C", "L2": "c"}, "timestamp": 90000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000}
       ]
     },
     {
@@ -1127,7 +1126,6 @@
       "outputs": [
         {"topic": "LEFT_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000},
         {"topic": "LEFT_JOIN", "key": 2, "value": {"L1": "C", "L2": null}, "timestamp": 90000},
-        {"topic": "LEFT_JOIN", "key": 2, "value": {"L1": "C", "L2": "c"}, "timestamp": 90000},
         {"topic": "LEFT_JOIN", "key": 3, "value": {"L1": "D", "L2": null}, "timestamp": 60000}
       ]
     },
@@ -1150,7 +1148,7 @@
       ],
       "outputs": [
         {"topic": "RIGHT_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000},
-        {"topic": "RIGHT_JOIN", "key": 2, "value": {"L1": "C", "L2": "c"}, "timestamp": 90000},
+        {"topic": "RIGHT_JOIN", "key": 2, "value": {"L1": null, "L2": "c"}, "timestamp": 90000},
         {"topic": "RIGHT_JOIN", "key": 3, "value": {"L1": null, "L2": "d"}, "timestamp": 60000},
         {"topic": "RIGHT_JOIN", "key": 3, "value": {"L1": "D", "L2": "d"}, "timestamp": 90000}
       ]
@@ -1175,7 +1173,7 @@
       "outputs": [
         {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "L1": "A", "L2": "a"}, "timestamp": 60000},
         {"topic": "OUTER_JOIN", "key": 2, "value": {"T_ID": null, "TT_ID": 2, "L1": null, "L2": "c"}, "timestamp": 90000},
-        {"topic": "OUTER_JOIN", "key": 2, "value": {"T_ID": 2, "TT_ID": 2, "L1": "C", "L2": "c"}, "timestamp": 90000},
+        {"topic": "OUTER_JOIN", "key": 2, "value": {"T_ID": 2, "TT_ID": null, "L1": "C", "L2": null}, "timestamp": 90000},
         {"topic": "OUTER_JOIN", "key": 3, "value": {"T_ID": null, "TT_ID": 3, "L1": null, "L2": "d"}, "timestamp": 60000},
         {"topic": "OUTER_JOIN", "key": 3, "value": {"T_ID": 3, "TT_ID": null, "L1": "D", "L2": null}, "timestamp": 60000}
       ]

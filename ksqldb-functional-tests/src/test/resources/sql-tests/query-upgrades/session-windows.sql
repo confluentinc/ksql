@@ -44,8 +44,7 @@ INSERT INTO TEST (id, value, rowtime) VALUES (1, 200, 60000);
 
 ASSERT VALUES S2 (id, max, ws, we) VALUES (0, 0, 0, 0);
 ASSERT VALUES S2 (id, max, ws, we) VALUES (0, 1, 100010, 100010);
-ASSERT NULL VALUES S2 (id) KEY (0);
-ASSERT VALUES S2 (id, max, ws, we) VALUES (0, 6, 0, 10010);
+ASSERT VALUES S2 (id, max, ws, we) VALUES (0, 6, 10010, 10010);
 ASSERT VALUES S2 (id, max, ws, we) VALUES (1, 101, 10010, 10010);
 ASSERT VALUES S2 (id, max, ws, we) VALUES (1, 200, 86412022, 86412022);
 

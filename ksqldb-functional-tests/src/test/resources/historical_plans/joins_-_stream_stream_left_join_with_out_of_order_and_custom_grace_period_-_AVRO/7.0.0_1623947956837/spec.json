@@ -119,14 +119,6 @@
       "timestamp" : 90000
     }, {
       "topic" : "LEFT_JOIN",
-      "key" : 2,
-      "value" : {
-        "L1" : "C",
-        "L2" : "c"
-      },
-      "timestamp" : 90000
-    }, {
-      "topic" : "LEFT_JOIN",
       "key" : 3,
       "value" : {
         "L1" : "D",

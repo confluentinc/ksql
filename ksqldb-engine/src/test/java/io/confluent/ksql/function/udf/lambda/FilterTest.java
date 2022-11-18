@@ -40,9 +40,22 @@ public class FilterTest {
   }
 
   @Test
-  public void shouldReturnNullForNull() {
+  public void shouldReturnNullForNullInput() {
     assertThat(udf.filterArray(null, function1()), is(nullValue()));
     assertThat(udf.filterMap(null, biFunction1()), is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnNullForNullFunction() {
+    Function<Integer, Boolean> nullFunction = null;
+    assertThat(udf.filterArray(Arrays.asList(1, 2, 3, 4), nullFunction), is(nullValue()));
+
+    BiFunction<Integer, Integer, Boolean> nullBiFunction = null;
+    final Map<Integer, Integer> m1 = new HashMap<>();
+    m1.put(5, 4);
+    m1.put(6, 18);
+    m1.put(77, 45);
+    assertThat(udf.filterMap(m1, nullBiFunction), is(nullValue()));
   }
 
   @Test

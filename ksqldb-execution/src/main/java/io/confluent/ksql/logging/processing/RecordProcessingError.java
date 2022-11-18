@@ -149,4 +149,13 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
       return null;
     }
   }
+
+  @Override
+  public String toString() {
+    return "RecordProcessingError{"
+        + "errorMsg='" + errorMsg + '\''
+        + ", exception=" + exception
+        + ", record=" + record
+        + '}';
+  }
 }

@@ -5,17 +5,6 @@
   ],
   "tests": [
     {
-      "name": "throw on signature mismatch",
-      "statements": [
-        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, false, 2) FROM INPUT GROUP BY ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Function 'EARLIEST_BY_OFFSET' does not accept parameters (INTEGER, BOOLEAN, INTEGER).\nValid alternatives are:"
-      }
-    },
-    {
       "name": "throw on no literal expressions pass for literal params",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",

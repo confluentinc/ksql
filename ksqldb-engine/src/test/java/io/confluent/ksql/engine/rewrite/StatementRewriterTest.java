@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.StatementRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
@@ -878,6 +879,7 @@ public class StatementRewriterTest {
     shouldUsePluginToRewrite(explain, pluginResult);
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   private void shouldUsePluginToRewrite(final AstNode original, final AstNode pluginResult) {
     // Given:
     when(mockPlugin.apply(any(), any())).thenReturn(Optional.of(pluginResult));

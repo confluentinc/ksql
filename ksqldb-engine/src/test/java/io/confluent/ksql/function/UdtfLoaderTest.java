@@ -22,6 +22,7 @@ import static java.util.Optional.empty;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -32,10 +33,12 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,10 +60,10 @@ public class UdtfLoaderTest {
         SqlArgument.of(SqlTypes.INTEGER),
         SqlArgument.of(SqlTypes.BIGINT),
         SqlArgument.of(SqlTypes.DOUBLE),
-        SqlArgument.of( SqlTypes.BOOLEAN),
+        SqlArgument.of(SqlTypes.BOOLEAN),
         SqlArgument.of(SqlTypes.STRING),
-        SqlArgument.of( DECIMAL_SCHEMA),
-        SqlArgument.of( STRUCT_SCHEMA)
+        SqlArgument.of(DECIMAL_SCHEMA),
+        SqlArgument.of(STRUCT_SCHEMA)
     );
 
     // When:
@@ -225,6 +228,56 @@ public class UdtfLoaderTest {
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(STRUCT_SCHEMA));
+  }
+
+  @Test
+  public void shouldNotLetBadUdtfsExitViaBadSchemaProvider() {
+    // Given:
+    // We do need to set up the ExtensionSecurityManager for our test.
+    // This is controlled by a feature flag and in this test, we just directly enable it.
+    SecurityManager manager = System.getSecurityManager();
+    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
+
+    // When:
+    final Exception error = assertThrows(
+        KsqlException.class,
+        () ->
+            FUNC_REG.getTableFunction(
+                    FunctionName.of("bad_test_udtf"),
+                    Collections.singletonList(SqlArgument.of(SqlTypes.decimal(2,0))))
+                .getReturnType(ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE)))
+    );
+
+    // Then:
+    assertThat(error.getMessage(), containsString(
+        "Cannot invoke the schema provider method provideSchema for UDF bad_test_udtf."));
+    System.setSecurityManager(manager);
+    assertEquals(System.getSecurityManager(), manager);
+  }
+
+  @Test
+  public void shouldNotLetBadUdtfsExit() {
+    // Given:
+    // We do need to set up the ExtensionSecurityManager for our test.
+    // This is controlled by a feature flag and in this test, we just directly enable it.
+    SecurityManager manager = System.getSecurityManager();
+    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
+
+    // When:
+    final Exception error = assertThrows(
+        KsqlFunctionException.class,
+        () ->
+            FUNC_REG.getTableFunction(
+                FunctionName.of("bad_test_udtf"),
+                Collections.singletonList(SqlArgument.of(SqlTypes.STRING))).apply("foo")
+    );
+
+    // Then:
+    assertThat(error.getMessage(), containsString(
+        "Failed to invoke function public java.util.List "
+            + "io.confluent.ksql.function.udf.BadTestUdtf.listStringReturn(java.lang.String)"));
+    System.setSecurityManager(manager);
+    assertEquals(System.getSecurityManager(), manager);
   }
 
   @Test

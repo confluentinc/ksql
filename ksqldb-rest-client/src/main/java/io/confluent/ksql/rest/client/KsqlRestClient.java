@@ -19,8 +19,10 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -34,8 +36,6 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
 import java.io.Closeable;
@@ -53,11 +53,18 @@ import java.util.stream.Collectors;
 
 public final class KsqlRestClient implements Closeable {
 
+  static final String CCLOUD_CONNECT_USERNAME_HEADER = "X-Confluent-API-Key";
+  static final String CCLOUD_CONNECT_PASSWORD_HEADER = "X-Confluent-API-Secret";
+
   private final KsqlClient client;
   private final LocalProperties localProperties;
   private final AtomicReference<String> serializedConsistencyVector;
+  private final Optional<BasicCredentials> ccloudApiKey;
 
   private List<URI> serverAddresses;
+  private boolean isCCloudServer;
+
+
 
   /**
    * @param serverAddress the address of the KSQL server to connect to.
@@ -65,6 +72,7 @@ public final class KsqlRestClient implements Closeable {
    * @param clientProps properties used to build the client.
    * @param creds optional credentials
    */
+  @Deprecated
   public static KsqlRestClient create(
       final String serverAddress,
       final Map<String, ?> localProps,
@@ -76,9 +84,37 @@ public final class KsqlRestClient implements Closeable {
         localProps,
         clientProps,
         creds,
+        Optional.empty(),
         (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
-            new HttpClientOptions(), Optional.of(
-                new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)))
+            new HttpClientOptions(),
+            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)))
+    );
+  }
+
+  /**
+   * @param serverAddress the address of the KSQL server to connect to.
+   * @param localProps initial set of local properties.
+   * @param clientProps properties used to build the client.
+   * @param creds optional credentials
+   * @param ccloudApiKey optional Confluent Cloud credentials for connector management
+   *                     from the ksqlDB CLI
+   */
+  public static KsqlRestClient create(
+      final String serverAddress,
+      final Map<String, ?> localProps,
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> creds,
+      final Optional<BasicCredentials> ccloudApiKey
+  ) {
+    return create(
+        serverAddress,
+        localProps,
+        clientProps,
+        creds,
+        ccloudApiKey,
+        (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
+            new HttpClientOptions(),
+            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)))
     );
   }
 
@@ -88,11 +124,12 @@ public final class KsqlRestClient implements Closeable {
       final Map<String, ?> localProps,
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> creds,
+      final Optional<BasicCredentials> ccloudApiKey,
       final KsqlClientSupplier clientSupplier
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
     final KsqlClient client = clientSupplier.get(clientProps, creds, localProperties);
-    return new KsqlRestClient(client, serverAddress, localProperties);
+    return new KsqlRestClient(client, serverAddress, localProperties, ccloudApiKey);
   }
 
   @FunctionalInterface
@@ -107,20 +144,35 @@ public final class KsqlRestClient implements Closeable {
   private KsqlRestClient(
       final KsqlClient client,
       final String serverAddress,
-      final LocalProperties localProps
+      final LocalProperties localProps,
+      final Optional<BasicCredentials> ccloudApiKey
   ) {
     this.client = requireNonNull(client, "client");
     this.serverAddresses = parseServerAddresses(serverAddress);
     this.localProperties = requireNonNull(localProps, "localProps");
+    this.ccloudApiKey = ccloudApiKey;
     this.serializedConsistencyVector = new AtomicReference<>();
+    this.isCCloudServer = false;
   }
 
   public URI getServerAddress() {
     return serverAddresses.get(0);
   }
 
+  public boolean getIsCCloudServer() {
+    return isCCloudServer;
+  }
+
+  public boolean getHasCCloudApiKey() {
+    return ccloudApiKey.isPresent();
+  }
+
   public void setServerAddress(final String serverAddress) {
     this.serverAddresses = parseServerAddresses(serverAddress);
+  }
+
+  public void setIsCCloudServer(final boolean isCCloudServer) {
+    this.isCCloudServer = isCCloudServer;
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
@@ -173,6 +225,14 @@ public final class KsqlRestClient implements Closeable {
         .postKsqlRequest(ksql, Collections.emptyMap(), Optional.ofNullable(commandSeqNum));
   }
 
+  public RestResponse<KsqlEntityList> makeConnectorRequest(
+      final String ksql,
+      final Long commandSeqNum
+  ) {
+    return target(true)
+        .postKsqlRequest(ksql, Collections.emptyMap(), Optional.ofNullable(commandSeqNum));
+  }
+
   public RestResponse<CommandStatuses> makeStatusRequest() {
     return target().getStatuses();
   }
@@ -207,14 +267,7 @@ public final class KsqlRestClient implements Closeable {
       final Map<String, ?> requestProperties
   ) {
     KsqlTarget target = target();
-    final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(localProperties.toMap())) {
-      final String serializedCV = serializedConsistencyVector.get();
-      // KsqlRequest:serializeClassValues throws NPE for null value
-      requestPropertiesToSend.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          serializedCV == null ? "" : serializedCV);
-    }
+    final Map<String, Object> requestPropertiesToSend = setConsistencyVector(requestProperties);
     if (properties != null) {
       target = target.properties(properties);
     }
@@ -250,8 +303,9 @@ public final class KsqlRestClient implements Closeable {
     if (properties != null) {
       target = target.properties(properties);
     }
+    final Map<String, Object> requestPropertiesToSend = setConsistencyVector(requestProperties);
     return target.postQueryRequest(
-        ksql, requestProperties, Optional.ofNullable(commandSeqNum));
+        ksql, requestPropertiesToSend, Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<StreamPublisher<String>> makePrintTopicRequest(
@@ -285,11 +339,28 @@ public final class KsqlRestClient implements Closeable {
   }
 
   private KsqlTarget target() {
-    return client.target(getServerAddress());
+    return target(false);
+  }
+
+  private KsqlTarget target(final boolean includeConnectorHeaders) {
+    final Map<String, String> additionalHeaders = includeConnectorHeaders && isCCloudServer
+        ? ccloudConnectorHeaders()
+        : Collections.emptyMap();
+    return client.target(getServerAddress(), additionalHeaders);
   }
 
   private KsqlTarget targetHttp2() {
     return client.targetHttp2(getServerAddress());
+  }
+
+  private Map<String, String> ccloudConnectorHeaders() {
+    if (!ccloudApiKey.isPresent()) {
+      throw new IllegalStateException("Should not request headers if no credentials provided.");
+    }
+    return ImmutableMap.of(
+        CCLOUD_CONNECT_USERNAME_HEADER, ccloudApiKey.get().username(),
+        CCLOUD_CONNECT_PASSWORD_HEADER, ccloudApiKey.get().password()
+    );
   }
 
   private static List<URI> parseServerAddresses(final String serverAddresses) {
@@ -312,5 +383,15 @@ public final class KsqlRestClient implements Closeable {
       throw new KsqlRestClientException(
           "The supplied serverAddress is invalid: " + serverAddress, e);
     }
+  }
+
+  private Map<String, Object> setConsistencyVector(
+      final Map<String, ?> requestProperties
+  ) {
+    final Map<String, Object> requestPropertiesToSend = new HashMap<>();
+    if (requestProperties != null) {
+      requestPropertiesToSend.putAll(requestProperties);
+    }
+    return requestPropertiesToSend;
   }
 }

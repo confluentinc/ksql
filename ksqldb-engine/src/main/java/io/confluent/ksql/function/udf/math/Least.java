@@ -43,7 +43,7 @@ public class Least {
   @Udf
   public Integer least(@UdfParameter final Integer val, @UdfParameter final Integer... vals) {
 
-    return Stream.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Stream.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(Integer::compareTo)
         .orElse(null);
@@ -52,7 +52,7 @@ public class Least {
   @Udf
   public Long least(@UdfParameter final Long val, @UdfParameter final Long... vals) {
 
-    return Stream.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Stream.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(Long::compareTo)
         .orElse(null);
@@ -61,7 +61,7 @@ public class Least {
   @Udf
   public Double least(@UdfParameter final Double val, @UdfParameter final Double... vals) {
 
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(Double::compareTo)
         .orElse(null);
@@ -70,7 +70,7 @@ public class Least {
   @Udf
   public String least(@UdfParameter final String val, @UdfParameter final String... vals) {
 
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(String::compareTo)
         .orElse(null);
@@ -80,7 +80,7 @@ public class Least {
   public BigDecimal least(@UdfParameter final BigDecimal val,
       @UdfParameter final BigDecimal... vals) {
 
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(Comparator.naturalOrder())
         .orElse(null);

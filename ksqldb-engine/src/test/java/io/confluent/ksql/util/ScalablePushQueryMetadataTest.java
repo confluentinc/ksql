@@ -22,8 +22,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
-import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
-import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
+import io.confluent.ksql.execution.scalablepush.PushQueryQueuePopulator;
+import io.confluent.ksql.execution.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;

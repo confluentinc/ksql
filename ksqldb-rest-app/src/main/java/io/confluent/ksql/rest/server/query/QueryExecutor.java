@@ -22,6 +22,9 @@ import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.pull.HARouting;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.scalablepush.PushRouting;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
@@ -29,9 +32,6 @@ import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
@@ -49,7 +49,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
@@ -169,19 +168,6 @@ public class QueryExecutor {
             statement.getMaskedStatementText());
       }
 
-      Optional<ConsistencyOffsetVector> consistencyOffsetVector = Optional.empty();
-      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)
-          && requestProperties.containsKey(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
-        final String serializedCV = (String)requestProperties.get(
-            KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
-        // serializedCV will be empty on the first request as the consistency vector is initialized
-        // at the server
-        consistencyOffsetVector = serializedCV != null && !serializedCV.equals("")
-            ? Optional.of(ConsistencyOffsetVector.deserialize(serializedCV))
-            : Optional.of(new ConsistencyOffsetVector());
-      }
-
       switch (dataSourceType) {
         case KTABLE: {
           // First thing, set the metrics callback so that it gets called, even if we hit an error
@@ -201,7 +187,7 @@ public class QueryExecutor {
               isInternalRequest,
               pullBandRateLimiter,
               resultForMetrics,
-              consistencyOffsetVector
+              Optional.empty()
           );
         }
         case KSTREAM: {

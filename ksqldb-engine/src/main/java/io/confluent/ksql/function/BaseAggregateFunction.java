@@ -21,6 +21,7 @@ import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -55,12 +56,17 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   ) {
     this.argIndexInValue = argIndexInValue;
     this.initialValueSupplier = () -> {
-      final A val = initialValueSupplier.get();
-      if (val instanceof Struct && !((Struct) val).schema().isOptional()) {
-        throw new KsqlException("Initialize function for " + functionName
-            + " must return struct with optional schema");
+      ExtensionSecurityManager.INSTANCE.pushInUdf();
+      try {
+        final A val = initialValueSupplier.get();
+        if (val instanceof Struct && !((Struct) val).schema().isOptional()) {
+          throw new KsqlException("Initialize function for " + functionName
+              + " must return struct with optional schema");
+        }
+        return val;
+      } finally {
+        ExtensionSecurityManager.INSTANCE.popOutUdf();
       }
-      return val;
     };
     this.aggregateSchema = Objects.requireNonNull(aggregateType, "aggregateType");
     this.outputSchema = Objects.requireNonNull(outputType, "outputType");

@@ -24,6 +24,9 @@
   },
   "testCase" : {
     "name" : "geo distance without radius",
+    "properties": {
+      "use.exact.numeric.comparison": false
+    },
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "",

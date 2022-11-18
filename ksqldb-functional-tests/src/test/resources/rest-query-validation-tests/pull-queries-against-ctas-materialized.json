@@ -795,6 +795,351 @@
       ]
     },
     {
+      "name": "windowed - select star with HAVING filter - AVRO two keys",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, V0 STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='AVRO');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, V0, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID, V0 HAVING COUNT(1) > 1;",
+        "SELECT * FROM AGGREGATE WHERE ID='10' and V0='v10a';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": {"ID": "11", "v0": "v10b"}, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"val": 5}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", "v10a", 12000, 13000, 2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed - select star with HAVING filter - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID HAVING COUNT(1) > 1;",
+        "SELECT * FROM AGGREGATE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 5}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "tumbling windowed single key lookup with window start range - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) WHERE ID='10' GROUP BY ID;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 100 <= WindowStart AND WindowStart < 200000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 12000 <= WindowStart AND WindowStart < 14000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 12000 < WindowStart AND WindowStart <= 14000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE WindowStart > 17000 AND 11234756356 > WindowStart;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12001, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12211, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 14253, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 15364, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}},
+          {"row":{"columns":["10", 14000, 15000, 14253, 1]}},
+          {"row":{"columns":["10", 15000, 16000, 15364, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 14000, 15000, 14253, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "tumbling windowed single key lookup with window start range HAVING CLAUSE - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) WHERE ID='10' GROUP BY ID HAVING COUNT(1)>1;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 100 <= WindowStart AND WindowStart < 200000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 12000 <= WindowStart AND WindowStart < 14000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 12000 < WindowStart AND WindowStart <= 14000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE WindowStart > 17000 AND 11234756356 > WindowStart;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12001, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12211, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 14253, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 15364, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "hopping windowed single key lookup with window start-end range HAVING CLAUSE - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW HOPPING(SIZE 5 SECOND, ADVANCE BY 1 SECONDS) WHERE ID IN ('9', '10') GROUP BY ID HAVING COUNT(1)>2;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 7000 <= WindowStart AND WindowEnd < 16000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 7000 < WindowStart AND WindowEnd <= 16000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 13001 <= WindowStart AND WindowEnd < 11234756356;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 10021, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 10345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 13251, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 13251, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 10345, "key": "9", "value": {}},
+        {"topic": "test_topic", "timestamp": 13251, "key": "9", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 9000, 14000, 13251, 3]}},
+          {"row":{"columns":["10", 10000, 15000, 13251, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 9000, 14000, 13251, 3]}},
+          {"row":{"columns":["10", 10000, 15000, 13251, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "session windowed single key lookup with window start range - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW SESSION(5 SECOND) WHERE ID = '10' GROUP BY ID HAVING COUNT(1)<2;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 10 <= WindowStart AND WindowStart < 200000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 8001 <= WindowStart AND WindowStart < 19444;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 8001 < WindowStart AND WindowStart <= 19444;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 8001, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 10456, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 19444, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 19444, 19444, 19444, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 19444, 19444, 19444, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed - select star with HAVING filter - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='PROTOBUF');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID HAVING COUNT(1) > 1;",
+        "SELECT * FROM AGGREGATE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 5}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "tumbling windowed single key lookup with window start range - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='PROTOBUF');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) WHERE ID='10' GROUP BY ID;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 100 <= WindowStart AND WindowStart < 200000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 12000 <= WindowStart AND WindowStart < 14000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 12000 < WindowStart AND WindowStart <= 14000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE WindowStart > 17000 AND 11234756356 > WindowStart;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12001, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12211, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 14253, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 15364, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}},
+          {"row":{"columns":["10", 14000, 15000, 14253, 1]}},
+          {"row":{"columns":["10", 15000, 16000, 15364, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 14000, 15000, 14253, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "tumbling windowed single key lookup with window start range HAVING CLAUSE - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='PROTOBUF');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) WHERE ID='10' GROUP BY ID HAVING COUNT(1)>1;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 100 <= WindowStart AND WindowStart < 200000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 12000 <= WindowStart AND WindowStart < 14000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 12000 < WindowStart AND WindowStart <= 14000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE WindowStart > 17000 AND 11234756356 > WindowStart;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12001, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12211, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 14253, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 15364, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 12345, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "hopping windowed single key lookup with window start-end range HAVING CLAUSE - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='PROTOBUF');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW HOPPING(SIZE 5 SECOND, ADVANCE BY 1 SECONDS) WHERE ID IN ('9', '10') GROUP BY ID HAVING COUNT(1)>2;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 7000 <= WindowStart AND WindowEnd < 16000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 7000 < WindowStart AND WindowEnd <= 16000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE 13001 <= WindowStart AND WindowEnd < 11234756356;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 10021, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 10345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 13251, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 13251, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 10345, "key": "9", "value": {}},
+        {"topic": "test_topic", "timestamp": 13251, "key": "9", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 9000, 14000, 13251, 3]}},
+          {"row":{"columns":["10", 10000, 15000, 13251, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 9000, 14000, 13251, 3]}},
+          {"row":{"columns":["10", 10000, 15000, 13251, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "session windowed single key lookup with window start range - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='PROTOBUF');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW SESSION(5 SECOND) WHERE ID = '10' GROUP BY ID HAVING COUNT(1)<2;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 10 <= WindowStart AND WindowStart < 200000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 8001 <= WindowStart AND WindowStart < 19444;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 8001 < WindowStart AND WindowStart <= 19444;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 8001, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 10456, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 19444, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 19444, 19444, 19444, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 19444, 19444, 19444, 1]}}
+        ]}
+      ]
+    },
+    {
       "name": "should not allow pull query with disallowed pseudocolumn in SELECT clause",
       "statements": [
         "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",

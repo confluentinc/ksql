@@ -18,11 +18,13 @@ package io.confluent.ksql.rest.server.computation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import java.io.IOException;
 import java.util.Collections;
@@ -30,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class CommandTest {
@@ -90,7 +93,8 @@ public class CommandTest {
   }
 
   private void grep(final String string, final String regex) {
-    assertThat(string.matches(regex), is(true));
+    assertThat(String.format("[%s] does not match [%s]", string, regex), string.matches(regex), is(true));
+
   }
 
   @Test
@@ -107,5 +111,28 @@ public class CommandTest {
     grep(serialized, ".*\"version\" *: *" + Command.VERSION + ".*");
     final Command deserialized = mapper.readValue(serialized, Command.class);
     assertThat(deserialized, equalTo(command));
+  }
+
+  @Test
+  public void shouldCoerceProperties() {
+    // Given/When:
+    final Command command = new Command(
+        "test statement;",
+        ImmutableMap.of(
+            "ksql.internal.topic.replicas", 3L
+        ),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // Then:
+    assertThat(
+        command.getOverwriteProperties().get("ksql.internal.topic.replicas"),
+        instanceOf(Short.class)
+    );
+    assertThat(
+        command.getOverwriteProperties().get("ksql.internal.topic.replicas"),
+        Matchers.equalTo((short) 3)
+    );
   }
 }

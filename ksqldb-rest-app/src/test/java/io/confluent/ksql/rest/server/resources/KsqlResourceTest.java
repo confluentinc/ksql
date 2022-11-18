@@ -102,6 +102,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.DefaultErrorMessages;
@@ -352,6 +353,9 @@ public class KsqlResourceTest {
     registerValueSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
+    final KsqlExecutionContext.ExecuteResult result = mock(KsqlExecutionContext.ExecuteResult.class);
+    when(sandbox.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
+    when(result.getQuery()).thenReturn(Optional.empty());
 
     MutableFunctionRegistry fnRegistry = new InternalFunctionRegistry();
     final Metrics metrics = new Metrics();
@@ -2546,6 +2550,21 @@ public class KsqlResourceTest {
     doThrow(new KsqlException("deny override")).when(denyListPropertyValidator).validateAll(
         properties
     );
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(400));
+  }
+
+  @Test
+  public void shouldReturnBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
+    givenKsqlConfigWith(ImmutableMap.of(
+        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
+    ));
 
     // When:
     final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");

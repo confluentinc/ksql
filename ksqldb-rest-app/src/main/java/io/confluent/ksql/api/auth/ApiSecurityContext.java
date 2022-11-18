@@ -16,6 +16,8 @@
 package io.confluent.ksql.api.auth;
 
 import io.confluent.ksql.security.KsqlPrincipal;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 public interface ApiSecurityContext {
@@ -23,4 +25,6 @@ public interface ApiSecurityContext {
   Optional<KsqlPrincipal> getPrincipal();
 
   Optional<String> getAuthToken();
+
+  List<Entry<String, String>> getRequestHeaders();
 }

@@ -140,7 +140,7 @@ As with a stream, you can declare a table directly on top of an existing
 You can mark a column with the `KEY` keyword to indicate that it's a key
 column. Key columns constitute the key portion of the row's underlying
 {{ site.ak }} record. Only streams can mark columns as keys, and it's optional
-for them to do do. Tables must use the `PRIMARY KEY` constraint instead.
+for them to do. Tables must use the `PRIMARY KEY` constraint instead.
 
 In the following example statement, `k1`'s data is stored in the key portion of
 the row, and `v1`'s data is stored in the value.
@@ -228,9 +228,12 @@ SELECT ROWTIME, * FROM s1 EMIT CHANGES;
 
 The following table lists all pseudocolumns.
 
-| pseudocolumn | meaning                        |
-|--------------|--------------------------------|
-| `ROWTIME`    | Row timestamp, inferred from the underlying Kafka record if not overridden. |
+| Pseudocolumn   | Meaning                        |
+|----------------|--------------------------------|
+| `HEADERS`      | Columns that are populated by the {{ site.ak }} record's header. |
+| `ROWOFFSET`    | The offset of the source record. |
+| `ROWPARTITION` | The partition of the source record. |
+| `ROWTIME`      | Row timestamp, inferred from the underlying {{ site.ak }} record if not overridden. |
 
 You can't create additional pseudocolumns beyond these.
 

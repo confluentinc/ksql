@@ -11,7 +11,7 @@ Look up critical information quickly as you use the project.
 <div class="cards">
   <div class="card reference">
     <a href="/reference/sql/syntax/lexical-structure"><strong>The SQL language</strong></a>
-    <p class="card-body"><small>Learn the make-up of the SQL languge to write programs.</small></p>
+    <p class="card-body"><small>Learn the make-up of the SQL language to write programs.</small></p>
 
     <span><a href="/reference/sql/syntax/lexical-structure">Read →</a></span>
   </div>
@@ -25,7 +25,7 @@ Look up critical information quickly as you use the project.
 
   <div class="card reference">
     <a href="/developer-guide/ksqldb-reference/operators"><strong>Operators</strong></a>
-    <p class="card-body"><small>Call operators built into the language.</small></p>
+    <p class="card-body"><small>Call operators built-into the language.</small></p>
 
     <span><a href="/developer-guide/ksqldb-reference/operators">Read →</a></span>
   </div>

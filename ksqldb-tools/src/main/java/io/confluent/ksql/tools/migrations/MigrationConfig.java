@@ -78,7 +78,7 @@ public final class MigrationConfig extends AbstractConfig {
             "The username for the KSQL server"
         ).define(
             KSQL_BASIC_AUTH_PASSWORD,
-            Type.STRING,
+            Type.PASSWORD,
             null,
             Importance.MEDIUM,
             "The password for the KSQL server"
@@ -90,7 +90,7 @@ public final class MigrationConfig extends AbstractConfig {
             "The trust store path"
         ).define(
             SSL_TRUSTSTORE_PASSWORD,
-            Type.STRING,
+            Type.PASSWORD,
             null,
             Importance.MEDIUM,
             "The trust store password"
@@ -102,13 +102,13 @@ public final class MigrationConfig extends AbstractConfig {
             "The key store path"
         ).define(
             SSL_KEYSTORE_PASSWORD,
-            Type.STRING,
+            Type.PASSWORD,
             null,
             Importance.MEDIUM,
             "The key store password"
         ).define(
             SSL_KEY_PASSWORD,
-            Type.STRING,
+            Type.PASSWORD,
             null,
             Importance.MEDIUM,
             "The key password"

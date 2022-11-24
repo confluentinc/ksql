@@ -892,6 +892,8 @@ public final class KsqlRestApplication implements Executable {
         scalablePushBandRateLimiter,
         pullQueryRouting,
         pushQueryRouting,
+        Duration.ofMillis(
+            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
         localCommands
     );
 

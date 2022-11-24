@@ -19,17 +19,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
-import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.query.QueryMetadataHolder;
 import io.confluent.ksql.schema.ksql.Column;
@@ -45,6 +46,9 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
+
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -78,7 +82,7 @@ public class QueryEndpoint {
     this.queryExecutor = queryExecutor;
   }
 
-  public QueryPublisher createQueryPublisher(
+  public BasePublisher<?> createQueryPublisher(
       final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
@@ -91,51 +95,63 @@ public class QueryEndpoint {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
-    final ConfiguredStatement<Query> statement = createStatement(
+    final ConfiguredStatement<Statement> statement = createStatement(
         sql, properties, sessionVariables);
 
-    final QueryMetadataHolder queryMetadataHolder = queryExecutor.handleStatement(
-        serviceContext,
-        properties,
-        requestProperties,
-        statement.getPreparedStatement(),
-        isInternalRequest,
-        metricsCallbackHolder,
-        context,
-        false
-    );
-
-    if (queryMetadataHolder.getPullQueryResult().isPresent()) {
-      final PullQueryResult result = queryMetadataHolder.getPullQueryResult().get();
-      final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
-
-      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics,
-          statement.getPreparedStatement().getMaskedStatementText()), true, false);
-
-      // Start from the worker thread so that errors can bubble up, and we can get a proper response
-      // code rather than waiting until later after the header has been written and all we can do
-      // is write an error message.
-      publisher.startFromWorkerThread();
-      return publisher;
-    } else if (queryMetadataHolder.getPushQueryMetadata().isPresent()) {
-      final PushQueryMetadata metadata = queryMetadataHolder.getPushQueryMetadata().get();
-      final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
-
-      publisher.setQueryHandle(
-          new KsqlQueryHandle(metadata),
-          false,
-          queryMetadataHolder.getScalablePushQueryMetadata().isPresent()
-      );
-      return publisher;
+    if (statement.getStatement() instanceof PrintTopic) {
+      Duration disconnectCheckInterval = queryExecutor.getPrintDisconnectCheckInterval();
+      BlockingPrintPublisher printPublisher = new BlockingPrintPublisher(context, workerExecutor,
+          serviceContext,
+          consumerProperties(properties), (PrintTopic) statement.getStatement(),
+          disconnectCheckInterval);
+      printPublisher.startFromWorkerThread();
+      return printPublisher;
     } else {
-      throw new KsqlStatementException(
-          "Unexpected metadata for query",
-          statement.getMaskedStatementText()
+      final QueryMetadataHolder queryMetadataHolder = queryExecutor.handleStatement(
+          serviceContext,
+          properties,
+          requestProperties,
+          statement.getPreparedStatement(),
+          isInternalRequest,
+          metricsCallbackHolder,
+          context,
+          false
       );
+
+      if (queryMetadataHolder.getPullQueryResult().isPresent()) {
+        final PullQueryResult result = queryMetadataHolder.getPullQueryResult().get();
+        final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context,
+            workerExecutor);
+
+        publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics,
+            statement.getPreparedStatement().getMaskedStatementText()), true, false);
+
+        // Start from the worker thread so that errors can bubble up, and we can get a proper
+        // response code rather than waiting until later after the header has been written and
+        // all we can do is write an error message.
+        publisher.startFromWorkerThread();
+        return publisher;
+      } else if (queryMetadataHolder.getPushQueryMetadata().isPresent()) {
+        final PushQueryMetadata metadata = queryMetadataHolder.getPushQueryMetadata().get();
+        final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context,
+            workerExecutor);
+
+        publisher.setQueryHandle(
+            new KsqlQueryHandle(metadata),
+            false,
+            queryMetadataHolder.getScalablePushQueryMetadata().isPresent()
+        );
+        return publisher;
+      } else {
+        throw new KsqlStatementException(
+            "Unexpected metadata for query",
+            statement.getMaskedStatementText()
+        );
+      }
     }
   }
 
-  private ConfiguredStatement<Query> createStatement(final String queryString,
+  private ConfiguredStatement<Statement> createStatement(final String queryString,
       final Map<String, Object> properties, final Map<String, Object> sessionVariables) {
     final List<ParsedStatement> statements = ksqlEngine.parse(queryString);
     if ((statements.size() != 1)) {
@@ -151,11 +167,12 @@ public class QueryEndpoint {
             .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()))
     );
     final Statement statement = ps.getStatement();
-    if (!(statement instanceof Query)) {
-      throw new KsqlStatementException("Not a query", queryString);
+
+    if (!(statement instanceof Query) && !(statement instanceof PrintTopic)) {
+      throw new KsqlStatementException("Neither a query nor a print statement", queryString);
     }
-    @SuppressWarnings("unchecked") final PreparedStatement<Query> psq =
-        (PreparedStatement<Query>) ps;
+    @SuppressWarnings("unchecked") final PreparedStatement<Statement> psq =
+        (PreparedStatement<Statement>) ps;
     return ConfiguredStatement.of(psq, SessionConfig.of(ksqlConfig, properties));
   }
 
@@ -171,6 +188,14 @@ public class QueryEndpoint {
         .map(Column::name)
         .map(ColumnName::text)
         .collect(Collectors.toList());
+  }
+
+  private Map<String, Object> consumerProperties(Map<String, Object> properties) {
+    Map<String, Object> consumerProperties = new HashMap<>();
+    consumerProperties.putAll(ksqlConfig.getKsqlStreamConfigProps());
+    consumerProperties.putAll(properties);
+
+    return consumerProperties;
   }
 
   private static class KsqlQueryHandle implements QueryHandle {
@@ -213,7 +238,7 @@ public class QueryEndpoint {
 
     @Override
     public void onException(final Consumer<Throwable> onException) {
-      queryMetadata.setUncaughtExceptionHandler(throwable  -> {
+      queryMetadata.setUncaughtExceptionHandler(throwable -> {
         onException.accept(throwable);
         return null;
       });
@@ -238,7 +263,7 @@ public class QueryEndpoint {
   private static class KsqlPullQueryHandle implements QueryHandle {
 
     private final PullQueryResult result;
-    private final Optional<PullQueryExecutorMetrics>  pullQueryMetrics;
+    private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
     private final String maskedStatementText;
     private final CompletableFuture<Void> future = new CompletableFuture<>();
 

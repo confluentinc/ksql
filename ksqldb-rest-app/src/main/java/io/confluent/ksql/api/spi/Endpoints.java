@@ -19,6 +19,7 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -52,7 +53,7 @@ public interface Endpoints {
    * @param workerExecutor The worker executor to use for blocking operations
    * @return A CompletableFuture representing the future result of the operation
    */
-  CompletableFuture<QueryPublisher> createQueryPublisher(String sql,
+  CompletableFuture<BasePublisher<?>> createQueryPublisher(String sql,
       Map<String, Object> properties,
       Map<String, Object> sessionVariables, Map<String, Object> requestProperties,
       Context context, WorkerExecutor workerExecutor,

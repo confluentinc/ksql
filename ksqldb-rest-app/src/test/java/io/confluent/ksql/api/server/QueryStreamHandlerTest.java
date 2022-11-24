@@ -29,6 +29,7 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -51,6 +52,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -86,6 +88,8 @@ public class QueryStreamHandlerTest {
   @Mock
   private QueryPublisher queryPublisher;
   @Mock
+  private BasePublisher<?> basePublisher;
+  @Mock
   private PushQueryHolder pushQueryHolder;
   @Mock
   private SocketAddress requestAddress;
@@ -104,8 +108,8 @@ public class QueryStreamHandlerTest {
     when(request.version()).thenReturn(HttpVersion.HTTP_2);
     when(request.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
     when(request.remoteAddress()).thenReturn(SocketAddress.inetSocketAddress(9000, "remote"));
-    CompletableFuture<QueryPublisher> future = new CompletableFuture<>();
-    future.complete(queryPublisher);
+    CompletableFuture<BasePublisher<?>> future = new CompletableFuture<>();
+    future.complete((BasePublisher<?>) queryPublisher);
     when(endpoints.createQueryPublisher(any(), any(), any(), any(), any(), any(), any(), any(),
         any())).thenReturn(future);
     when(response.endHandler(endHandler.capture())).thenReturn(response);

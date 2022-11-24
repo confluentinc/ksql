@@ -58,6 +58,7 @@ import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -194,7 +195,7 @@ public class QueryExecutorTest {
     queryExecutor = new QueryExecutor(ksqlEngine, ksqlRestConfig, ksqlConfig,
         Optional.of(pullQueryExecutorMetrics), Optional.of(scalablePushQueryMetrics), rateLimiter,
         concurrencyLimiter, pullBandRateLimiter, scalablePushBandRateLimiter,
-        haRouting, pushRouting, Optional.of(localCommands));
+        haRouting, pushRouting, Duration.ofMillis(100), Optional.of(localCommands));
   }
 
   @Test

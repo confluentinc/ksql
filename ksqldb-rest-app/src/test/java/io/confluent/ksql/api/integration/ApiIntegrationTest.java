@@ -228,7 +228,7 @@ public class ApiIntegrationTest {
         "CREATE STREAM SOME_STREAM AS SELECT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "Not a query");
+    shouldFailToExecuteQuery(sql, "Neither a query nor a print statement");
   }
 
   @Test

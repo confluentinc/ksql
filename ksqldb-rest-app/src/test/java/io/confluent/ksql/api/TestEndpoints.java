@@ -22,9 +22,9 @@ import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -62,7 +62,7 @@ public class TestEndpoints implements Endpoints {
   private JsonObject lastProperties;
   private JsonObject lastSessionVariables;
   private String lastTarget;
-  private final Set<TestQueryPublisher> queryPublishers = new HashSet<>();
+  private final Set<BasePublisher<?>> publishers = new HashSet<>();
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
@@ -72,7 +72,7 @@ public class TestEndpoints implements Endpoints {
   private int queryCount = 0;
 
   @Override
-  public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(
+  public synchronized CompletableFuture<BasePublisher<?>> createQueryPublisher(
       final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
@@ -82,25 +82,37 @@ public class TestEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext,
       final MetricsCallbackHolder metricsCallbackHolder,
       final Optional<Boolean> isInternalRequest) {
-    CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
+    CompletableFuture<BasePublisher<?>> completableFuture = new CompletableFuture<>();
     if (createQueryPublisherException != null) {
       createQueryPublisherException.fillInStackTrace();
       completableFuture.completeExceptionally(createQueryPublisherException);
     } else {
+
       this.lastSql = sql;
       this.lastProperties = new JsonObject(properties);
       this.lastSessionVariables = new JsonObject(sessionVariables);
       this.lastApiSecurityContext = apiSecurityContext;
       final boolean push = sql.toLowerCase().contains("emit changes");
       final int limit = extractLimit(sql);
-      final TestQueryPublisher queryPublisher = new TestQueryPublisher(context,
-          rowGeneratorFactory.get(),
-          rowsBeforePublisherError,
-          push,
-          limit,
-          new QueryId("queryId" + (queryCount > 0 ? queryCount : "")));
-      queryPublishers.add(queryPublisher);
-      completableFuture.complete(queryPublisher);
+      final BasePublisher<?> publisher;
+      if (sql.startsWith("PRINT ")) {
+        publisher = new TestBlockingPrintPublisher(context,
+            rowGeneratorFactory.get(),
+            rowsBeforePublisherError,
+            push,
+            limit,
+            new QueryId("queryId" + (queryCount > 0 ? queryCount : "")));
+      } else {
+        publisher = new TestQueryPublisher(context,
+            rowGeneratorFactory.get(),
+            rowsBeforePublisherError,
+            push,
+            limit,
+            new QueryId("queryId" + (queryCount > 0 ? queryCount : "")));
+
+      }
+      publishers.add(publisher);
+      completableFuture.complete(publisher);
       queryCount++;
     }
     return completableFuture;
@@ -268,8 +280,8 @@ public class TestEndpoints implements Endpoints {
     return lastSessionVariables.copy();
   }
 
-  public synchronized Set<TestQueryPublisher> getQueryPublishers() {
-    return Collections.unmodifiableSet(queryPublishers);
+  public synchronized Set<BasePublisher<?>> getPublishers() {
+    return Collections.unmodifiableSet(publishers);
   }
 
   public synchronized String getLastTarget() {

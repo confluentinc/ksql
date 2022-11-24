@@ -30,6 +30,7 @@ import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -269,7 +270,7 @@ public class BaseApiTest {
   }
 
   protected void waitForQueryPublisherSubscribed() {
-      final Set<TestQueryPublisher> queryPublishers = testEndpoints.getQueryPublishers();
+      final Set<BasePublisher<?>> queryPublishers = testEndpoints.getPublishers();
       assertThat(queryPublishers, hasSize(1));
       queryPublishers.forEach(
           publisher -> {

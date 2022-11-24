@@ -30,7 +30,6 @@ import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -64,6 +63,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -270,12 +270,13 @@ public class BaseApiTest {
   }
 
   protected void waitForQueryPublisherSubscribed() {
-      final Set<BasePublisher<?>> queryPublishers = testEndpoints.getPublishers();
+      final Set<Publisher<?>> queryPublishers = testEndpoints.getPublishers();
       assertThat(queryPublishers, hasSize(1));
       queryPublishers.forEach(
           publisher -> {
+            TestQueryPublisher queryPublisher = (TestQueryPublisher) publisher;
               final long timeout = System.currentTimeMillis() + 30_000L;
-              while (publisher.getSubscriber() == null) {
+              while ( queryPublisher.getSubscriber() == null) {
                   try {
                       Thread.sleep(100L);
                   } catch (InterruptedException swallow) {

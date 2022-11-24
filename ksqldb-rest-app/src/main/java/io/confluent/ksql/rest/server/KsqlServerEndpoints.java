@@ -64,6 +64,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -130,7 +131,7 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<BasePublisher<?>> createQueryPublisher(final String sql,
+  public CompletableFuture<Publisher<?>> createQueryPublisher(final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
       final Map<String, Object> requestProperties,

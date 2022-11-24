@@ -51,6 +51,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 public class TestEndpoints implements Endpoints {
@@ -62,7 +63,7 @@ public class TestEndpoints implements Endpoints {
   private JsonObject lastProperties;
   private JsonObject lastSessionVariables;
   private String lastTarget;
-  private final Set<BasePublisher<?>> publishers = new HashSet<>();
+  private final Set<Publisher<?>> publishers = new HashSet<>();
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
@@ -72,7 +73,7 @@ public class TestEndpoints implements Endpoints {
   private int queryCount = 0;
 
   @Override
-  public synchronized CompletableFuture<BasePublisher<?>> createQueryPublisher(
+  public synchronized CompletableFuture<Publisher<?>> createQueryPublisher(
       final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
@@ -82,7 +83,7 @@ public class TestEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext,
       final MetricsCallbackHolder metricsCallbackHolder,
       final Optional<Boolean> isInternalRequest) {
-    CompletableFuture<BasePublisher<?>> completableFuture = new CompletableFuture<>();
+    CompletableFuture<Publisher<?>> completableFuture = new CompletableFuture<>();
     if (createQueryPublisherException != null) {
       createQueryPublisherException.fillInStackTrace();
       completableFuture.completeExceptionally(createQueryPublisherException);
@@ -94,7 +95,7 @@ public class TestEndpoints implements Endpoints {
       this.lastApiSecurityContext = apiSecurityContext;
       final boolean push = sql.toLowerCase().contains("emit changes");
       final int limit = extractLimit(sql);
-      final BasePublisher<?> publisher;
+      final Publisher<?> publisher;
       if (sql.startsWith("PRINT ")) {
         publisher = new TestBlockingPrintPublisher(context,
             rowGeneratorFactory.get(),
@@ -280,7 +281,7 @@ public class TestEndpoints implements Endpoints {
     return lastSessionVariables.copy();
   }
 
-  public synchronized Set<BasePublisher<?>> getPublishers() {
+  public synchronized Set<Publisher<?>> getPublishers() {
     return Collections.unmodifiableSet(publishers);
   }
 

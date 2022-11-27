@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -18,7 +18,6 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.execution.streams.materialization.ks.NotUpToBoundException;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.vertx.core.Context;
@@ -43,7 +42,7 @@ public class PrintSubscriber extends BaseSubscriber<String> {
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PrintSubscriber(final Context context, final HttpServerResponse response,
-                         final DelimitedPrintResponseWriter printResponseWriter) {
+      final DelimitedPrintResponseWriter printResponseWriter) {
     super(context);
     this.response = Objects.requireNonNull(response);
     this.printResponseWriter = Objects.requireNonNull(printResponseWriter);
@@ -77,15 +76,10 @@ public class PrintSubscriber extends BaseSubscriber<String> {
     final StringBuilder stringBuilder = new StringBuilder();
     stringBuilder.append(t);
     for (Throwable s : t.getSuppressed()) {
-      if (s instanceof NotUpToBoundException) {
-        stringBuilder.append(" Failed to get value from materialized table, reason: "
-                + "NOT_UP_TO_BOUND");
-      } else {
-        stringBuilder.append(s.getMessage());
-      }
+      stringBuilder.append(s.getMessage());
     }
     final KsqlErrorMessage errorResponse = new KsqlErrorMessage(
-            ERROR_CODE_SERVER_ERROR, stringBuilder.toString());
+        ERROR_CODE_SERVER_ERROR, stringBuilder.toString());
     log.error("Error in processing query {}", stringBuilder, t);
     printResponseWriter.writeError(errorResponse).end();
   }

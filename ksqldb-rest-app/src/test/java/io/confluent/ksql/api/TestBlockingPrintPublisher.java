@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -76,7 +76,8 @@ public class TestBlockingPrintPublisher
           getSubscriber().onError(new RuntimeException("Failure in processing"));
         } else {
           rowsSent++;
-          getSubscriber().onNext("// TODO Create record generator to emit proper records");
+          getSubscriber().onNext(
+              "rowtime: 2022/11/27 13:59:37.552 Z, key: {\"F1\":[\"a\"]}, value: {\"STR\":\"FOO\",\"LONG\":1,\"DEC\":1.11,\"BYTES_\":\"AQ==\",\"ARRAY\":[\"a\"],\"MAP\":{\"k1\":\"v1\"},\"STRUCT\":{\"F1\":2},\"COMPLEX\":{\"DECIMAL\":0.0,\"STRUCT\":{\"F1\":\"v0\",\"F2\":0},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v0\"}],\"ARRAY_MAP\":[{\"k1\":0}],\"MAP_ARRAY\":{\"k\":[\"v0\"]},\"MAP_MAP\":{\"k\":{\"k\":0}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v0\"}}},\"TIMESTAMP\":1,\"DATE\":1,\"TIME\":0}, partition: 0");
           if (rowsSent == limit) {
             sendComplete();
           }

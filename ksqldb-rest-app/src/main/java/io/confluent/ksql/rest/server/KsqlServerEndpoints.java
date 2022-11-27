@@ -28,7 +28,6 @@ import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;

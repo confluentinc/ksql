@@ -665,15 +665,14 @@ public class ApiIntegrationTest {
     PrintResponse response = executePrintQuery(sql);
 
     // Then:
-    assertThat(response.rows, hasSize(0));
-    assertThat(response.error.getInteger("error_code"), is(ERROR_CODE_BAD_STATEMENT));
-    assertThat(response.error.getString("message"), startsWith(message));
+    assertThat(response.getRows(), hasSize(0));
+    assertThat(response.getError().getInteger("error_code"), is(ERROR_CODE_BAD_STATEMENT));
+    assertThat(response.getError().getString("message"), startsWith(message));
   }
 
   @Test
   public void shouldExecutePrint() {
     // Given:
-    KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
     String sql = "PRINT " + TEST_TOPIC + " LIMIT 1;";
 
     // Create a write stream to capture the incomplete response
@@ -696,21 +695,20 @@ public class ApiIntegrationTest {
         Buffer buff = writeStream.getBody();
         PrintResponse printResponse = new PrintResponse(buff.toString());
         atomicReference.set(printResponse);
-        return printResponse.rows.size();
+        return printResponse.getRows().size();
       } catch (Throwable t) {
         return -1;
       }
     }, is(1));
 
     PrintResponse printResponse = atomicReference.get();
-    assertThat(printResponse.rows.get(0), containsString(
+    assertThat(printResponse.getRows().get(0), containsString(
         "key: {\"F1\":[\"a\"]}, value: {\"STR\":\"FOO\",\"LONG\":1,\"DEC\":1.11,\"BYTES_\":\"AQ==\",\"ARRAY\":[\"a\"],\"MAP\":{\"k1\":\"v1\"},\"STRUCT\":{\"F1\":2},\"COMPLEX\":{\"DECIMAL\":0.0,\"STRUCT\":{\"F1\":\"v0\",\"F2\":0},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v0\"}],\"ARRAY_MAP\":[{\"k1\":0}],\"MAP_ARRAY\":{\"k\":[\"v0\"]},\"MAP_MAP\":{\"k\":{\"k\":0}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v0\"}}},\"TIMESTAMP\":1,\"DATE\":1,\"TIME\":0}, partition: 0"));
   }
 
   @Test
   public void shouldExecutePrintQueryNoLimit() {
     // Given:
-    KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
     String sql = "PRINT " + TEST_TOPIC + ";";
 
     // Create a write stream to capture the incomplete response
@@ -733,7 +731,7 @@ public class ApiIntegrationTest {
         Buffer buff = writeStream.getBody();
         PrintResponse printResponse = new PrintResponse(buff.toString());
         atomicReference.set(printResponse);
-        return printResponse.rows.size();
+        return printResponse.getRows().size();
       } catch (Throwable t) {
         return -1;
       }
@@ -741,8 +739,8 @@ public class ApiIntegrationTest {
 
     PrintResponse printResponse = atomicReference.get();
     assertThat(writeStream.isEnded(), is(false));
-    assertThat(printResponse.error, is(nullValue()));
-    assertThat(printResponse.rows.get(5), containsString(
+    assertThat(printResponse.getError(), is(nullValue()));
+    assertThat(printResponse.getRows().get(5), containsString(
         "key: {\"F1\":[\"d\"]}, value: {\"STR\":\"BUZZ\",\"LONG\":6,\"DEC\":10.1,\"BYTES_\":\"Bg==\",\"ARRAY\":[\"f\",\"g\"],\"MAP\":{},\"STRUCT\":{\"F1\":null},\"COMPLEX\":{\"DECIMAL\":5.0,\"STRUCT\":{\"F1\":\"v5\",\"F2\":5},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v5\"}],\"ARRAY_MAP\":[{\"k1\":5}],\"MAP_ARRAY\":{\"k\":[\"v5\"]},\"MAP_MAP\":{\"k\":{\"k\":5}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v5\"}}},\"TIMESTAMP\":12,\"DATE\":12,\"TIME\":12}, partition: 0"));
   }
 
@@ -756,20 +754,20 @@ public class ApiIntegrationTest {
     assertThatEventually(() -> {
       PrintResponse printResponse = executePrintQueryWithVariables(sql, new JsonObject());
       atomicReference.set(printResponse);
-      return printResponse.rows.size();
+      return printResponse.getRows().size();
     }, is(3));
 
-    PrintResponse response = atomicReference.get();
+    PrintResponse printResponse = atomicReference.get();
 
     // Then:
-    assertThat(response.rows.get(0), containsString("rowtime:"));
-    assertThat(response.rows.get(0), containsString(
+    assertThat(printResponse.getRows().get(0), containsString("rowtime:"));
+    assertThat(printResponse.getRows().get(0), containsString(
         "key: {\"F1\":[\"a\"]}, value: {\"STR\":\"FOO\",\"LONG\":1,\"DEC\":1.11,\"BYTES_\":\"AQ==\",\"ARRAY\":[\"a\"],\"MAP\":{\"k1\":\"v1\"},\"STRUCT\":{\"F1\":2},\"COMPLEX\":{\"DECIMAL\":0.0,\"STRUCT\":{\"F1\":\"v0\",\"F2\":0},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v0\"}],\"ARRAY_MAP\":[{\"k1\":0}],\"MAP_ARRAY\":{\"k\":[\"v0\"]},\"MAP_MAP\":{\"k\":{\"k\":0}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v0\"}}},\"TIMESTAMP\":1,\"DATE\":1,\"TIME\":0}, partition: 0"));
-    assertThat(response.rows.get(1), containsString("rowtime:"));
-    assertThat(response.rows.get(1), containsString(
+    assertThat(printResponse.getRows().get(1), containsString("rowtime:"));
+    assertThat(printResponse.getRows().get(1), containsString(
         "key: {\"F1\":[\"b\"]}, value: {\"STR\":\"BAR\",\"LONG\":2,\"DEC\":2.22,\"BYTES_\":\"Ag==\",\"ARRAY\":[],\"MAP\":{},\"STRUCT\":{\"F1\":3},\"COMPLEX\":{\"DECIMAL\":1.0,\"STRUCT\":{\"F1\":\"v1\",\"F2\":1},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v1\"}],\"ARRAY_MAP\":[{\"k1\":1}],\"MAP_ARRAY\":{\"k\":[\"v1\"]},\"MAP_MAP\":{\"k\":{\"k\":1}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v1\"}}},\"TIMESTAMP\":2,\"DATE\":2,\"TIME\":1}, partition: 0"));
-    assertThat(response.rows.get(2), containsString("rowtime:"));
-    assertThat(response.rows.get(2), containsString(
+    assertThat(printResponse.getRows().get(2), containsString("rowtime:"));
+    assertThat(printResponse.getRows().get(2), containsString(
         "key: {\"F1\":[\"c\"]}, value: {\"STR\":\"BAZ\",\"LONG\":3,\"DEC\":30.33,\"BYTES_\":\"Aw==\",\"ARRAY\":[\"b\"],\"MAP\":{},\"STRUCT\":{\"F1\":null},\"COMPLEX\":{\"DECIMAL\":2.0,\"STRUCT\":{\"F1\":\"v2\",\"F2\":2},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v2\"}],\"ARRAY_MAP\":[{\"k1\":2}],\"MAP_ARRAY\":{\"k\":[\"v2\"]},\"MAP_MAP\":{\"k\":{\"k\":2}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v2\"}}},\"TIMESTAMP\":3,\"DATE\":3,\"TIME\":2}, partition: 0"));
   }
 

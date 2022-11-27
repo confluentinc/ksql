@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,19 +15,18 @@
 
 package io.confluent.ksql.api.utils;
 
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import io.vertx.core.json.JsonObject;
+import java.util.ArrayList;
+import java.util.List;
+
 public class PrintResponse {
 
-  public final List<String> rows;
-  public final JsonObject error;
+  private final List<String> rows;
+  private final JsonObject error;
 
   public PrintResponse(String responseBody) {
     JsonObject error = null;
@@ -42,6 +41,14 @@ public class PrintResponse {
       }
     }
     this.error = error;
+  }
+
+  public List<String> getRows() {
+    return rows;
+  }
+
+  public JsonObject getError() {
+    return error;
   }
 
   @Override

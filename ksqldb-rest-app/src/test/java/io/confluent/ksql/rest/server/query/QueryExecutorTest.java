@@ -195,7 +195,9 @@ public class QueryExecutorTest {
     queryExecutor = new QueryExecutor(ksqlEngine, ksqlRestConfig, ksqlConfig,
         Optional.of(pullQueryExecutorMetrics), Optional.of(scalablePushQueryMetrics), rateLimiter,
         concurrencyLimiter, pullBandRateLimiter, scalablePushBandRateLimiter,
-        haRouting, pushRouting, Duration.ofMillis(100), Optional.of(localCommands));
+        haRouting, pushRouting, Duration.ofMillis(
+        ksqlRestConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
+        Optional.of(localCommands));
   }
 
   @Test
@@ -230,8 +232,8 @@ public class QueryExecutorTest {
     assertThat(e.getUnloggedMessage(), is(errorMsg));
     final String sanitizedErrorMsg =
         "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
-        + "Add EMIT CHANGES if you intended to issue a push query.\n"
-        + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
+            + "Add EMIT CHANGES if you intended to issue a push query.\n"
+            + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
     assertThat(e.getMessage(), is(sanitizedErrorMsg));
     assertThat(e.getSqlStatement(), is("SELECT * FROM test_stream WHERE ROWKEY='null';"));
   }

@@ -777,7 +777,7 @@ public class ApiIntegrationTest {
     String sql = "PRINT `NON_EXISTING_TOPIC`;";
 
     // Then:
-    shouldFailToExecutePrint(sql, "KsqlException Topic does not exist: NON_EXISTING_TOPIC");
+    shouldFailToExecutePrint(sql, "Topic does not exist: NON_EXISTING_TOPIC");
   }
 
   @Test

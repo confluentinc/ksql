@@ -109,9 +109,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           if (publisher instanceof BlockingPrintPublisher) {
             handlePrintPublisher(
                 routingContext,
-                (BlockingPrintPublisher) publisher,
-                metricsCallbackHolder,
-                startTimeNanos);
+                (BlockingPrintPublisher) publisher);
           } else {
             handleQueryPublisher(
                 routingContext,
@@ -294,9 +292,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
   private void handlePrintPublisher(
       final RoutingContext routingContext,
-      final BlockingPrintPublisher printPublisher,
-      final MetricsCallbackHolder metricsCallbackHolder,
-      final long startTimeNanos
+      final BlockingPrintPublisher printPublisher
   ) {
     // The end handler can be called twice if the connection is closed by the client.  The
     // call to response.end() resulting from queryPublisher.close() may result in a second
@@ -308,9 +304,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         endhandler(
             routingContext,
             printPublisher,
-            endedResponse,
-            metricsCallbackHolder,
-            startTimeNanos
+            endedResponse
         ));
 
     DelimitedPrintResponseWriter printResponseWriter = new DelimitedPrintResponseWriter(
@@ -326,19 +320,13 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   }
 
   private void endhandler(RoutingContext routingContext,
-      BlockingPrintPublisher printPublisher, AtomicBoolean endedResponse,
-      MetricsCallbackHolder metricsCallbackHolder, long startTimeNanos) {
+      BlockingPrintPublisher printPublisher, AtomicBoolean endedResponse) {
     if (endedResponse.getAndSet(true)) {
       log.warn("Connection already closed so just returning");
       return;
     }
 
     printPublisher.close();
-    metricsCallbackHolder.reportMetrics(
-        routingContext.response().getStatusCode(),
-        routingContext.request().bytesRead(),
-        routingContext.response().bytesWritten(),
-        startTimeNanos);
   }
 
   private LogicalSchema preparePushProjectionSchema(final LogicalSchema schema) {

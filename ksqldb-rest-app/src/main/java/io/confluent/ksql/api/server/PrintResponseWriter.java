@@ -26,8 +26,6 @@ public interface PrintResponseWriter {
 
   PrintResponseWriter writeError(KsqlErrorMessage error);
 
-  PrintResponseWriter writeCompletionMessage();
-
   void end();
 
 }

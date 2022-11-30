@@ -86,7 +86,6 @@ public class PrintSubscriber extends BaseSubscriber<String> {
 
   @Override
   public void handleComplete() {
-    printResponseWriter.writeCompletionMessage();
     printResponseWriter.end();
   }
 

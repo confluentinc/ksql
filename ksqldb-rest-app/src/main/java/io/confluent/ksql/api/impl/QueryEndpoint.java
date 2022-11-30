@@ -46,9 +46,7 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
-
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -102,7 +100,8 @@ public class QueryEndpoint {
       Duration disconnectCheckInterval = queryExecutor.getPrintDisconnectCheckInterval();
       BlockingPrintPublisher printPublisher = new BlockingPrintPublisher(context, workerExecutor,
           serviceContext,
-          consumerProperties(properties), (PrintTopic) statement.getStatement(),
+          ksqlConfig,
+          properties, (PrintTopic) statement.getStatement(),
           disconnectCheckInterval);
       printPublisher.startFromWorkerThread();
       return printPublisher;
@@ -188,14 +187,6 @@ public class QueryEndpoint {
         .map(Column::name)
         .map(ColumnName::text)
         .collect(Collectors.toList());
-  }
-
-  private Map<String, Object> consumerProperties(Map<String, Object> properties) {
-    Map<String, Object> consumerProperties = new HashMap<>();
-    consumerProperties.putAll(ksqlConfig.getKsqlStreamConfigProps());
-    consumerProperties.putAll(properties);
-
-    return consumerProperties;
   }
 
   private static class KsqlQueryHandle implements QueryHandle {

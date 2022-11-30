@@ -18,9 +18,6 @@ package io.confluent.ksql.api.server;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.vertx.core.http.HttpServerResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Objects;
 
 /**
@@ -37,9 +34,6 @@ import java.util.Objects;
  * functionality.
  */
 public class DelimitedPrintResponseWriter implements PrintResponseWriter {
-
-  private static final Logger LOG
-      = LoggerFactory.getLogger(DelimitedPrintResponseWriter.class);
 
   private final HttpServerResponse response;
 
@@ -59,11 +53,6 @@ public class DelimitedPrintResponseWriter implements PrintResponseWriter {
   @Override
   public PrintResponseWriter writeError(final KsqlErrorMessage error) {
     response.write(ServerUtils.serializeObject(error).appendString("\n"));
-    return this;
-  }
-
-  @Override
-  public PrintResponseWriter writeCompletionMessage() {
     return this;
   }
 

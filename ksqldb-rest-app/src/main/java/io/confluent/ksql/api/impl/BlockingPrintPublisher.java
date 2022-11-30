@@ -22,35 +22,30 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.server.resources.streaming.PrintTopicUtil;
 import io.confluent.ksql.rest.server.resources.streaming.RecordFormatter;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.WorkerExecutor;
 import java.time.Duration;
-import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.record.RecordBatch;
 import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A query publisher that uses an internal blocking queue to store rows for delivery. It's currently
- * necessary to use a blocking queue as Kafka Streams delivers message in a synchronous fashion with
- * no back pressure. If the queue was not blocking then if the subscriber was slow the messages
- * could build up on the queue eventually resulting in out of memory. The only mechanism we have to
- * slow streams down is to block the thread. Kafka Streams uses dedicated streams per topology so
- * this won't prevent the thread from doing useful work elsewhere but it does mean we can't have too
- * many push queries in the server at any one time as we can end up with a lot of threads.
+ * A publisher that creates a kafka consumer, consumes a topic for as long as necessary and
+ * publishes the records. It's blocking since the doSend method for fetching records has a possibly
+ * infinite while loop and will poll the topic indefinitely until the connection is closed if the
+ * print statement has no LIMIT clause. We use vertx executeBlocking so the doSend function is
+ * safely executed using a thread from the worker pool.
  */
 public class BlockingPrintPublisher extends BasePublisher<String> {
 
@@ -71,6 +66,7 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
   public BlockingPrintPublisher(final Context ctx,
       final WorkerExecutor workerExecutor,
       final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic,
       final Duration disconnectCheckInterval) {
@@ -84,7 +80,8 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
         printTopic.getTopic()
     );
     this.disconnectCheckInterval = disconnectCheckInterval;
-    this.topicConsumer = createTopicConsumer(serviceContext, consumerProperties, printTopic);
+    this.topicConsumer = createTopicConsumer(serviceContext, ksqlConfig, consumerProperties,
+        printTopic);
   }
 
   public Future<Void> close() {
@@ -102,9 +99,7 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
 
   @Override
   protected void maybeSend() {
-    ctx.runOnContext(v -> {
-      ctx.executeBlocking(t -> doSend());
-    });
+    executeOnWorker(this::doSend);
   }
 
   @Override
@@ -128,6 +123,7 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
   }
 
   private void doSend() {
+    VertxUtils.checkIsWorker();
     int messagesWritten = 0;
     int messagesPolled = 0;
 
@@ -140,7 +136,6 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
       final List<String> formattedRecords = formatter.format(
           records.records(this.printTopic.getTopic())
       );
-      final List<String> formattedRecordsOld = formatConsumerRecords(records);
 
       for (final String message : formattedRecords) {
         if (messagesPolled++ % interval == 0) {
@@ -160,6 +155,7 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
   }
 
   private KafkaConsumer<Bytes, Bytes> createTopicConsumer(final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic) {
     try {
@@ -167,36 +163,26 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
           .anyMatch(topicName -> topicName.equalsIgnoreCase(printTopic.getTopic()));
 
       if (!topicExists) {
-        throw new KsqlApiException("KsqlException Topic does not exist: " + printTopic.getTopic(),
+        throw new KsqlApiException("Topic does not exist: " + printTopic.getTopic(),
             Errors.ERROR_CODE_BAD_STATEMENT);
       }
     } catch (InterruptedException | ExecutionException e) {
       throw new KsqlException("Could not list existing kafka topics" + e);
     }
 
-    return PrintTopicUtil.createTopicConsumer(serviceContext, consumerProperties, printTopic);
+    Map<String, Object> populatedConsumerProperties = populateKsqlStreamConfigProps(ksqlConfig,
+        consumerProperties);
+    return PrintTopicUtil.createTopicConsumer(serviceContext, populatedConsumerProperties,
+        printTopic);
   }
 
+  private Map<String, Object> populateKsqlStreamConfigProps(KsqlConfig ksqlConfig,
+      Map<String, Object> properties) {
+    Map<String, Object> consumerProperties = new HashMap<>();
+    consumerProperties.putAll(ksqlConfig.getKsqlStreamConfigProps());
+    consumerProperties.putAll(properties);
 
-  private List<String> formatConsumerRecords(final ConsumerRecords<Bytes, Bytes> records) {
-    return StreamSupport.stream(records.spliterator(), false)
-        .map(this::formatConsumerRecord)
-        .collect(Collectors.toList());
-  }
-
-  private String formatConsumerRecord(final ConsumerRecord<Bytes, Bytes> record) {
-    final String key = record.key() == null ? null : record.key().toString();
-    final String value = record.value() == null ? null : record.value().toString();
-    final String timestamp = record.timestamp() == RecordBatch.NO_TIMESTAMP
-        ? null
-        : Instant.ofEpochMilli(record.timestamp()).toString();
-    return String.format(
-        "rowtime: %s, key: %s, value: %s, partition: %d",
-        timestamp,
-        key,
-        value,
-        record.partition()
-    );
+    return consumerProperties;
   }
 
   private boolean isClosed() {

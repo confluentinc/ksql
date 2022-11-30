@@ -96,22 +96,14 @@ public class TestEndpoints implements Endpoints {
       final boolean push = sql.toLowerCase().contains("emit changes");
       final int limit = extractLimit(sql);
       final Publisher<?> publisher;
-      if (sql.startsWith("PRINT ")) {
-        publisher = new TestBlockingPrintPublisher(context,
-            rowGeneratorFactory.get(),
-            rowsBeforePublisherError,
-            push,
-            limit,
-            new QueryId("queryId" + (queryCount > 0 ? queryCount : "")));
-      } else {
-        publisher = new TestQueryPublisher(context,
-            rowGeneratorFactory.get(),
-            rowsBeforePublisherError,
-            push,
-            limit,
-            new QueryId("queryId" + (queryCount > 0 ? queryCount : "")));
 
-      }
+      publisher = new TestQueryPublisher(context,
+          rowGeneratorFactory.get(),
+          rowsBeforePublisherError,
+          push,
+          limit,
+          new QueryId("queryId" + (queryCount > 0 ? queryCount : "")));
+
       publishers.add(publisher);
       completableFuture.complete(publisher);
       queryCount++;
@@ -181,7 +173,8 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public synchronized CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
+  public synchronized CompletableFuture<EndpointResponse> executeInfo(
+      ApiSecurityContext apiSecurityContext) {
     this.lastApiSecurityContext = apiSecurityContext;
     final ServerInfo entity = new ServerInfo(
         AppInfo.getVersion(), "kafka-cluster-id", "ksql-service-id", "server-status");

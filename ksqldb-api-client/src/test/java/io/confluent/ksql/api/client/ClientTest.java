@@ -1973,7 +1973,7 @@ public class ClientTest extends BaseApiTest {
   }
 
   private void sendQueryPublisherError() {
-    final Set<BasePublisher<?>> queryPublishers = testEndpoints.getPublishers();
+    final Set<Publisher<?>> queryPublishers = testEndpoints.getPublishers();
     assertThat(queryPublishers, hasSize(1));
     final TestQueryPublisher queryPublisher = (TestQueryPublisher) queryPublishers.stream().findFirst().get();
     queryPublisher.sendError();

@@ -307,13 +307,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             endedResponse
         ));
 
-    DelimitedPrintResponseWriter printResponseWriter = new DelimitedPrintResponseWriter(
-        routingContext.response()
-    );
     PrintSubscriber printSubscriber = new PrintSubscriber(
         context,
-        routingContext.response(),
-        printResponseWriter
+        routingContext.response()
     );
 
     printPublisher.subscribe(printSubscriber);

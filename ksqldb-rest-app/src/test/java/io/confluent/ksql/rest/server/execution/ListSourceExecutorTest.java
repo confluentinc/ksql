@@ -104,7 +104,7 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowStreams() {
     // Given:
-    final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "STREAM1");
+    final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
     final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
     engine.givenSource(DataSourceType.KTABLE, "table");
 
@@ -120,14 +120,14 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(descriptionList.getStreams(), containsInAnyOrder(
         new SourceInfo.Stream(
-            stream1.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
+            stream1.getName().toString(FormatOptions.noEscape()),
             stream1.getKafkaTopicName(),
             stream1.getKsqlTopic().getKeyFormat().getFormat(),
             stream1.getKsqlTopic().getValueFormat().getFormat(),
             stream1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Stream(
-            stream2.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
+            stream2.getName().toString(FormatOptions.noEscape()),
             stream2.getKafkaTopicName(),
             stream2.getKsqlTopic().getKeyFormat().getFormat(),
             stream2.getKsqlTopic().getValueFormat().getFormat(),
@@ -223,7 +223,7 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowTables() {
     // Given:
-    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "TABLE1");
+    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
     final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
@@ -239,14 +239,14 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(descriptionList.getTables(), containsInAnyOrder(
         new SourceInfo.Table(
-            table1.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
+            table1.getName().toString(FormatOptions.noEscape()),
             table1.getKsqlTopic().getKafkaTopicName(),
             table2.getKsqlTopic().getKeyFormat().getFormat(),
             table1.getKsqlTopic().getValueFormat().getFormat(),
             table1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Table(
-            table2.getName().toString(FormatOptions.of(IdentifierUtil::needsQuotes)),
+            table2.getName().toString(FormatOptions.noEscape()),
             table2.getKsqlTopic().getKafkaTopicName(),
             table2.getKsqlTopic().getKeyFormat().getFormat(),
             table2.getKsqlTopic().getValueFormat().getFormat(),

@@ -496,19 +496,16 @@ public class TestKsqlRestApp extends ExternalResource {
       final KsqlRestClient client
   ) {
     final Set<String> sourcesDropped = new HashSet<>(streams.size() + tables.size());
-    Set<String> streamsNames = streams.stream().map(Identifiers::getIdentifierText).collect(
-        Collectors.toSet());
-    Iterables.concat(streamsNames, tables).forEach(source -> {
+    Iterables.concat(streams, tables).forEach(source -> {
       if (!sourcesDropped.contains(source)) {
         final Iterator<String> dropInOrder = getOrderedSourcesToDrop(source, client);
         dropInOrder.forEachRemaining(s -> {
-          if (streamsNames.contains(s)) {
+          if (streams.contains(s)) {
             dropStream(s, client);
           } else {
             dropTable(s, client);
           }
           sourcesDropped.add(s);
-
         });
       }
     });

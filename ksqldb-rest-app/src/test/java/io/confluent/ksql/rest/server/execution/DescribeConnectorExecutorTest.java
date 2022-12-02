@@ -193,7 +193,7 @@ public class DescribeConnectorExecutorTest {
     assertThat(description.getConnectorClass(), is(CONNECTOR_CLASS));
     assertThat(description.getStatus(), is(STATUS));
     assertThat(description.getSources().size(), is(1));
-    assertThat(description.getSources().get(0).getName(), is("`source`"));
+    assertThat(description.getSources().get(0).getName(), is("source"));
     assertThat(description.getSources().get(0).getTopic(), is(TOPIC));
     assertThat(description.getTopics().size(), is(1));
     assertThat(description.getTopics().get(0), is(TOPIC));

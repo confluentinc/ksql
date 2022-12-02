@@ -33,7 +33,9 @@ import org.reactivestreams.Subscription;
  *
  * <p>Each entry in the stream is a string with fixed fields.
  *
- * <p>Please consult the API documentation for a full description of the format. The format used
+ * <p>Please consult the API
+ * documentation (https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/print/) for a
+ * description on how formatting works. The format used
  * here is exactly the same used by the previous Websocket implementation of the print topic
  * functionality.
  */

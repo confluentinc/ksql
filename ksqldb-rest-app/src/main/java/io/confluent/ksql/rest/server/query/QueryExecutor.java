@@ -55,7 +55,6 @@ import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -82,7 +81,6 @@ public class QueryExecutor {
   private final SlidingWindowRateLimiter scalablePushBandRateLimiter;
   private final HARouting routing;
   private final PushRouting pushRouting;
-  private final Duration disconnectCheckInterval;
   private final Optional<LocalCommands> localCommands;
 
   @SuppressWarnings("ParameterNumber")
@@ -99,7 +97,6 @@ public class QueryExecutor {
       final SlidingWindowRateLimiter scalablePushBandRateLimiter,
       final HARouting routing,
       final PushRouting pushRouting,
-      final Duration disconnectCheckInterval,
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = ksqlEngine;
@@ -112,7 +109,6 @@ public class QueryExecutor {
     this.scalablePushBandRateLimiter = scalablePushBandRateLimiter;
     this.routing = routing;
     this.pushRouting = pushRouting;
-    this.disconnectCheckInterval = disconnectCheckInterval;
     this.localCommands = localCommands;
   }
 
@@ -409,9 +405,5 @@ public class QueryExecutor {
 
     QueryLogger.info("Streaming query", statement.getMaskedStatementText());
     return QueryMetadataHolder.of(query);
-  }
-
-  public Duration getPrintDisconnectCheckInterval() {
-    return this.disconnectCheckInterval;
   }
 }

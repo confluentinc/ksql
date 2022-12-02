@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 public class BlockingPrintPublisher extends BasePublisher<String> {
 
   private static final Logger log = LoggerFactory.getLogger(BlockingPrintPublisher.class);
-
+  private static final Duration POLL_TIMEOUT = Duration.ofMillis(5000L);
   public static final int SEND_MAX_BATCH_SIZE = 200;
 
   private final WorkerExecutor workerExecutor;
@@ -59,7 +59,6 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
   private final int limit;
   private final long interval;
   private final RecordFormatter formatter;
-  private final Duration disconnectCheckInterval;
   private volatile boolean closed;
   private volatile boolean started;
 
@@ -68,8 +67,7 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> consumerProperties,
-      final PrintTopic printTopic,
-      final Duration disconnectCheckInterval) {
+      final PrintTopic printTopic) {
     super(ctx);
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
     this.printTopic = printTopic;
@@ -79,7 +77,6 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
         serviceContext.getSchemaRegistryClient(),
         printTopic.getTopic()
     );
-    this.disconnectCheckInterval = disconnectCheckInterval;
     this.topicConsumer = createTopicConsumer(serviceContext, ksqlConfig, consumerProperties,
         printTopic);
   }
@@ -128,7 +125,7 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
     int messagesPolled = 0;
 
     while (!isClosed() && getDemand() > 0 && messagesWritten < limit) {
-      final ConsumerRecords<Bytes, Bytes> records = topicConsumer.poll(disconnectCheckInterval);
+      final ConsumerRecords<Bytes, Bytes> records = topicConsumer.poll(POLL_TIMEOUT);
       if (records.isEmpty()) {
         continue;
       }

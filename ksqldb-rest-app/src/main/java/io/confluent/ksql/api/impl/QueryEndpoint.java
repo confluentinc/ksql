@@ -46,7 +46,6 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -97,12 +96,10 @@ public class QueryEndpoint {
         sql, properties, sessionVariables);
 
     if (statement.getStatement() instanceof PrintTopic) {
-      Duration disconnectCheckInterval = queryExecutor.getPrintDisconnectCheckInterval();
       BlockingPrintPublisher printPublisher = new BlockingPrintPublisher(context, workerExecutor,
           serviceContext,
           ksqlConfig,
-          properties, (PrintTopic) statement.getStatement(),
-          disconnectCheckInterval);
+          properties, (PrintTopic) statement.getStatement());
       printPublisher.startFromWorkerThread();
       return printPublisher;
     } else {

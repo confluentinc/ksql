@@ -195,8 +195,7 @@ public class QueryExecutorTest {
     queryExecutor = new QueryExecutor(ksqlEngine, ksqlRestConfig, ksqlConfig,
         Optional.of(pullQueryExecutorMetrics), Optional.of(scalablePushQueryMetrics), rateLimiter,
         concurrencyLimiter, pullBandRateLimiter, scalablePushBandRateLimiter,
-        haRouting, pushRouting, Duration.ofMillis(
-        ksqlRestConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
+        haRouting, pushRouting,
         Optional.of(localCommands));
   }
 

@@ -59,6 +59,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -789,6 +790,37 @@ public class ApiIntegrationTest {
     // Then:
     shouldFailToExecutePrint(sql,
         "line 1:1: Syntax Error\nUnknown statement 'PRONT'\nDid you mean 'PRINT'?\nStatement: PRONT `NON_EXISTING_TOPIC`;");
+  }
+
+  // Print topic currently only supports delimited format. Sendung an "accept" header with
+  // "application/json" or any other format will result in a 406 (Not Acceptable) response.
+  @Test
+  public void shouldFailToPrintInJsonFormat() {
+    // Given:
+    String sql = "PRINT " + TEST_TOPIC + " LIMIT 1;";
+
+    // Create a write stream to capture the incomplete response
+    ReceiveStream writeStream = new ReceiveStream(vertx);
+
+    // Make the request to stream a print
+    JsonObject printProperties = new JsonObject().put("auto.offset.reset", "earliest");
+    JsonObject printRequestBody = new JsonObject().put("sql", sql)
+        .put("properties", printProperties);
+    VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
+
+    // When:
+    client.post("/query-stream").as(BodyCodec.pipe(writeStream))
+        .putHeader("Accept", "application/json")
+        .sendJsonObject(printRequestBody, responseFuture);
+
+    try {
+      HttpResponse<Void> response = responseFuture.get();
+
+      assertThat(response.statusCode(), is(406));
+      assertThat(responseFuture.get().statusMessage(), is("Not Acceptable"));
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private QueryResponse executeQuery(final String sql) {

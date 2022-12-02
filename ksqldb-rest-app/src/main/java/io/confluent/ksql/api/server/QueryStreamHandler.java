@@ -294,6 +294,14 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       final RoutingContext routingContext,
       final BlockingPrintPublisher printPublisher
   ) {
+    String contentType = routingContext.getAcceptableContentType();
+    if (!(DELIMITED_CONTENT_TYPE.equals(contentType)
+        || (contentType == null && !queryCompatibilityMode))) {
+      // We currently only support delimited format for print topic
+      // So we send 406 not acceptable back
+      routingContext.response().setStatusCode(406).end();
+    }
+
     // The end handler can be called twice if the connection is closed by the client.  The
     // call to response.end() resulting from queryPublisher.close() may result in a second
     // call to the end handler, which will mess up metrics, so we ensure that this called just

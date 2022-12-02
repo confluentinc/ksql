@@ -753,7 +753,7 @@ public class ApiIntegrationTest {
     // When:
     AtomicReference<PrintResponse> atomicReference = new AtomicReference<>();
     assertThatEventually(() -> {
-      PrintResponse printResponse = executePrintQueryWithVariables(sql, new JsonObject());
+      PrintResponse printResponse = executePrintQuery(sql);
       atomicReference.set(printResponse);
       return printResponse.getRows().size();
     }, is(3));
@@ -804,14 +804,8 @@ public class ApiIntegrationTest {
   }
 
   private PrintResponse executePrintQuery(final String sql) {
-    return executePrintQueryWithVariables(sql, new JsonObject());
-  }
-
-  private PrintResponse executePrintQueryWithVariables(final String sql,
-      final JsonObject variables) {
     JsonObject properties = new JsonObject();
-    JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties)
-        .put("sessionVariables", variables);
+    JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
     HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
     return new PrintResponse(response.bodyAsString());
   }

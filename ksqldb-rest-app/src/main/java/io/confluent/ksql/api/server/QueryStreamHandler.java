@@ -294,7 +294,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       final RoutingContext routingContext,
       final BlockingPrintPublisher printPublisher
   ) {
-    String contentType = routingContext.getAcceptableContentType();
+    final String contentType = routingContext.getAcceptableContentType();
     if (!(DELIMITED_CONTENT_TYPE.equals(contentType)
         || (contentType == null && !queryCompatibilityMode))) {
       // We currently only support delimited format for print topic
@@ -310,12 +310,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     // When response is complete, publisher should be closed
     routingContext.response().endHandler(v ->
         endhandler(
-            routingContext,
             printPublisher,
             endedResponse
         ));
 
-    PrintSubscriber printSubscriber = new PrintSubscriber(
+    final PrintSubscriber printSubscriber = new PrintSubscriber(
         context,
         routingContext.response()
     );
@@ -323,8 +322,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     printPublisher.subscribe(printSubscriber);
   }
 
-  private void endhandler(RoutingContext routingContext,
-      BlockingPrintPublisher printPublisher, AtomicBoolean endedResponse) {
+  private void endhandler(
+      final BlockingPrintPublisher printPublisher, final AtomicBoolean endedResponse) {
     if (endedResponse.getAndSet(true)) {
       log.warn("Connection already closed so just returning");
       return;

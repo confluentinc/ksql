@@ -96,7 +96,8 @@ public class QueryEndpoint {
         sql, properties, sessionVariables);
 
     if (statement.getStatement() instanceof PrintTopic) {
-      BlockingPrintPublisher printPublisher = new BlockingPrintPublisher(context, workerExecutor,
+      final BlockingPrintPublisher printPublisher = new BlockingPrintPublisher(context,
+          workerExecutor,
           serviceContext,
           ksqlConfig,
           properties, (PrintTopic) statement.getStatement());

@@ -25,8 +25,8 @@ import java.util.List;
 
 public class PrintResponse {
 
-  private final List<String> rows;
-  private final JsonObject error;
+  public final List<String> rows;
+  public final JsonObject error;
 
   public PrintResponse(String responseBody) {
     JsonObject error = null;
@@ -41,14 +41,6 @@ public class PrintResponse {
       }
     }
     this.error = error;
-  }
-
-  public List<String> getRows() {
-    return rows;
-  }
-
-  public JsonObject getError() {
-    return error;
   }
 
   @Override

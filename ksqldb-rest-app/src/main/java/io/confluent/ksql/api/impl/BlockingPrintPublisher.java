@@ -156,8 +156,8 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic) {
     try {
-      boolean topicExists = serviceContext.getAdminClient().listTopics().names().get().stream()
-          .anyMatch(topicName -> topicName.equalsIgnoreCase(printTopic.getTopic()));
+      final boolean topicExists = serviceContext.getAdminClient().listTopics().names().get()
+          .stream().anyMatch(topicName -> topicName.equalsIgnoreCase(printTopic.getTopic()));
 
       if (!topicExists) {
         throw new KsqlApiException("Topic does not exist: " + printTopic.getTopic(),
@@ -167,26 +167,27 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
       throw new KsqlException("Could not list existing kafka topics" + e);
     }
 
-    Map<String, Object> ksqlStreamConfigProps = overrideDefaultKsqlStreamConfigProps(
+    final Map<String, Object> ksqlStreamConfigProps = overrideDefaultKsqlStreamConfigProps(
         ksqlConfig);
 
-    Map<String, Object> finalConsumerProperties = populateKsqlStreamConfigProps(
+    final Map<String, Object> finalConsumerProperties = populateKsqlStreamConfigProps(
         ksqlStreamConfigProps,
         consumerProperties);
     return PrintTopicUtil.createTopicConsumer(serviceContext, finalConsumerProperties,
         printTopic);
   }
 
-  private Map<String, Object> populateKsqlStreamConfigProps(Map<String, Object> ksqlConfig,
-      Map<String, Object> properties) {
-    Map<String, Object> consumerProperties = new HashMap<>(ksqlConfig);
+  private Map<String, Object> populateKsqlStreamConfigProps(final Map<String, Object> ksqlConfig,
+      final Map<String, Object> properties) {
+    final Map<String, Object> consumerProperties = new HashMap<>(ksqlConfig);
     consumerProperties.putAll(properties);
 
     return consumerProperties;
   }
 
-  private Map<String, Object> overrideDefaultKsqlStreamConfigProps(KsqlConfig ksqlConfig) {
-    Map<String, Object> overriddenProperties = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+  private Map<String, Object> overrideDefaultKsqlStreamConfigProps(final KsqlConfig ksqlConfig) {
+    final Map<String, Object> overriddenProperties = new HashMap<>(
+        ksqlConfig.getKsqlStreamConfigProps());
     // We override the default value of auto.offset.reset to latest because that's the default
     // behavior for the print topic command, unlike the default behavior for push and pull queries.
     overriddenProperties.put("auto.offset.reset", "latest");

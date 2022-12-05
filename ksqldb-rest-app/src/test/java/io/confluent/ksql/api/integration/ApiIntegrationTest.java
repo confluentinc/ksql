@@ -76,7 +76,8 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class ApiIntegrationTest {
 
-  private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
+  private static final StructuredTypesDataProvider TEST_DATA_PROVIDER =
+      new StructuredTypesDataProvider();
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
   private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
 
@@ -122,7 +123,8 @@ public class ApiIntegrationTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(TEST_TOPIC);
 
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON,
+        FormatFactory.JSON);
 
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
 
@@ -160,24 +162,27 @@ public class ApiIntegrationTest {
   public void shouldExecutePushQueryWithLimit() {
 
     // Given:
-    String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES LIMIT " + 2 + ";";
+    final String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES LIMIT " + 2 + ";";
 
     // When:
-    QueryResponse response = executeQuery(sql);
+    final QueryResponse response = executeQuery(sql);
 
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
         new JsonArray().add("K").add("STR").add("LONG").add("DEC").add("BYTES_").add("ARRAY")
-            .add("MAP").add("STRUCT").add("COMPLEX").add("TIMESTAMP").add("DATE").add("TIME").add("HEAD")));
+            .add("MAP").add("STRUCT").add("COMPLEX").add("TIMESTAMP").add("DATE").add("TIME")
+            .add("HEAD")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
         new JsonArray().add("STRUCT<`F1` ARRAY<STRING>>").add("STRING").add("BIGINT")
             .add("DECIMAL(4, 2)").add("BYTES").add("ARRAY<STRING>").add("MAP<STRING, STRING>")
             .add("STRUCT<`F1` INTEGER>")
             .add("STRUCT<`DECIMAL` DECIMAL(2, 1), `STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, "
                 + "`ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, `ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, "
-                + "`ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, `MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, "
-                + "`MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>")
+                + "`ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>,"
+                + " `MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, "
+                + "`MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>,"
+                + " `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>")
             .add("TIMESTAMP").add("DATE").add("TIME").add("BYTES")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
@@ -186,15 +191,16 @@ public class ApiIntegrationTest {
   public void shouldExecutePushQueryWithVariableSubstitution() {
 
     // Given:
-    String sql = "SELECT DEC AS ${name} from " + TEST_STREAM + " EMIT CHANGES LIMIT 2;";
+    final String sql = "SELECT DEC AS ${name} from " + TEST_STREAM + " EMIT CHANGES LIMIT 2;";
 
     // When:
-    QueryResponse response = executeQueryWithVariables(sql, new JsonObject().put("name", "COL"));
+    final QueryResponse response = executeQueryWithVariables(sql, new JsonObject().put("name", "COL"));
 
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(new JsonArray().add("COL")));
-    assertThat(response.responseObject.getJsonArray("columnTypes"), is(new JsonArray().add("DECIMAL(4, 2)")));
+    assertThat(response.responseObject.getJsonArray("columnTypes"),
+        is(new JsonArray().add("DECIMAL(4, 2)")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 
@@ -202,7 +208,7 @@ public class ApiIntegrationTest {
   public void shouldFailPushQueryWithInvalidSql() {
 
     // Given:
-    String sql = "SLECTT * from " + TEST_STREAM + " EMIT CHANGES;";
+    final String sql = "SLECTT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
     shouldFailToExecuteQuery(sql, "line 1:1: Syntax Error\n"
@@ -214,7 +220,7 @@ public class ApiIntegrationTest {
   public void shouldFailPushQueryWithMoreThanOneStatement() {
 
     // Given:
-    String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES;" +
+    final String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES;" +
         "SELECT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
@@ -225,7 +231,7 @@ public class ApiIntegrationTest {
   public void shouldFailPushWithNonQuery() {
 
     // Given:
-    String sql =
+    final String sql =
         "CREATE STREAM SOME_STREAM AS SELECT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Then:
@@ -240,7 +246,7 @@ public class ApiIntegrationTest {
     assertThatEventually(engine::numberOfLiveQueries, is(1));
 
     // Given:
-    String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES;";
+    final String sql = "SELECT * from " + TEST_STREAM + " EMIT CHANGES;";
 
     // Create a write stream to capture the incomplete response
     ReceiveStream writeStream = new ReceiveStream(vertx);
@@ -312,7 +318,8 @@ public class ApiIntegrationTest {
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
     assertThat(response.responseObject.getString("queryId"), startsWith("query_"));
-    assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0), is("a")); // rowkey
+    assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0),
+        is("a")); // rowkey
     assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }
 
@@ -341,7 +348,8 @@ public class ApiIntegrationTest {
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
     assertThat(response.responseObject.getString("queryId"), startsWith("query_"));
-    assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0), is("a")); // rowkey
+    assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0),
+        is("a")); // rowkey
     assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }
 
@@ -610,7 +618,8 @@ public class ApiIntegrationTest {
 
     // New row to insert
     JsonObject row = new JsonObject()
-        .put("K", new JsonObject().put("F1", new JsonArray().add("my_key_shouldExecutePushQueryFromLatestOffset")))
+        .put("K", new JsonObject().put("F1",
+            new JsonArray().add("my_key_shouldExecutePushQueryFromLatestOffset")))
         .put("STR", "Value_shouldExecutePushQueryFromLatestOffset")
         .put("LONG", 2000L)
         .put("DEC", 12.34) // JsonObject does not accept BigDecimal
@@ -623,7 +632,8 @@ public class ApiIntegrationTest {
     // Insert a new row and wait for it to arrive
     assertThatEventually(() -> {
       try {
-        shouldInsert(row); // Attempt the insert multiple times, in case the query hasn't started yet
+        shouldInsert(
+            row); // Attempt the insert multiple times, in case the query hasn't started yet
         Buffer buff = writeStream.getBody();
         QueryResponse queryResponse = new QueryResponse(buff.toString());
         return queryResponse.rows.size();
@@ -635,13 +645,17 @@ public class ApiIntegrationTest {
     // Verify that the received row is the expected one
     Buffer buff = writeStream.getBody();
     QueryResponse queryResponse = new QueryResponse(buff.toString());
-    assertThat(queryResponse.rows.get(0).getJsonObject(0), is(new JsonObject().put("F1", new JsonArray().add("my_key_shouldExecutePushQueryFromLatestOffset"))));
-    assertThat(queryResponse.rows.get(0).getString(1), is("Value_shouldExecutePushQueryFromLatestOffset"));
+    assertThat(queryResponse.rows.get(0).getJsonObject(0), is(new JsonObject().put("F1",
+        new JsonArray().add("my_key_shouldExecutePushQueryFromLatestOffset"))));
+    assertThat(queryResponse.rows.get(0).getString(1),
+        is("Value_shouldExecutePushQueryFromLatestOffset"));
     assertThat(queryResponse.rows.get(0).getLong(2), is(2000L));
     assertThat(queryResponse.rows.get(0).getDouble(3), is(12.34));
     assertThat(queryResponse.rows.get(0).getBinary(4), is(new byte[]{0, 1, 2}));
-    assertThat(queryResponse.rows.get(0).getJsonArray(5), is(new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset")));
-    assertThat(queryResponse.rows.get(0).getJsonObject(6), is(new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset")));
+    assertThat(queryResponse.rows.get(0).getJsonArray(5),
+        is(new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset")));
+    assertThat(queryResponse.rows.get(0).getJsonObject(6),
+        is(new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset")));
     assertThat(queryResponse.rows.get(0).getJsonObject(7), is(new JsonObject().put("F1", 3)));
     assertThat(queryResponse.rows.get(0).getJsonObject(8), is(COMPLEX_FIELD_VALUE));
 
@@ -663,12 +677,12 @@ public class ApiIntegrationTest {
 
   private void shouldFailToExecutePrint(final String sql, final String message) {
     // When:
-    PrintResponse response = executePrintTopic(sql);
-
+    PrintResponse printResponse = executePrintTopic(sql);
+    
     // Then:
-    assertThat(response.getRows(), hasSize(0));
-    assertThat(response.getError().getInteger("error_code"), is(ERROR_CODE_BAD_STATEMENT));
-    assertThat(response.getError().getString("message"), startsWith(message));
+    assertThat(printResponse.rows, hasSize(0));
+    assertThat(printResponse.error.getInteger("error_code"), is(ERROR_CODE_BAD_STATEMENT));
+    assertThat(printResponse.error.getString("message"), startsWith(message));
   }
 
   @Test
@@ -694,7 +708,7 @@ public class ApiIntegrationTest {
         Buffer buff = writeStream.getBody();
         PrintResponse printResponse = new PrintResponse(buff.toString());
         atomicReference.set(printResponse);
-        return printResponse.getRows().size();
+        return printResponse.rows.size();
       } catch (Throwable t) {
         return -1;
       }
@@ -702,7 +716,7 @@ public class ApiIntegrationTest {
 
     PrintResponse printResponse = atomicReference.get();
     assertThat(writeStream.isEnded(), is(true));
-    assertThat(printResponse.getRows().get(0), containsString(
+    assertThat(printResponse.rows.get(0), containsString(
         "key: {\"F1\":[\"a\"]}, value: {\"STR\":\"FOO\",\"LONG\":1,\"DEC\":1.11,\"BYTES_\":\"AQ==\",\"ARRAY\":[\"a\"],\"MAP\":{\"k1\":\"v1\"},\"STRUCT\":{\"F1\":2},\"COMPLEX\":{\"DECIMAL\":0.0,\"STRUCT\":{\"F1\":\"v0\",\"F2\":0},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v0\"}],\"ARRAY_MAP\":[{\"k1\":0}],\"MAP_ARRAY\":{\"k\":[\"v0\"]},\"MAP_MAP\":{\"k\":{\"k\":0}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v0\"}}},\"TIMESTAMP\":1,\"DATE\":1,\"TIME\":0}, partition: 0"));
   }
 
@@ -729,7 +743,7 @@ public class ApiIntegrationTest {
         Buffer buff = writeStream.getBody();
         PrintResponse printResponse = new PrintResponse(buff.toString());
         atomicReference.set(printResponse);
-        return printResponse.getRows().size();
+        return printResponse.rows.size();
       } catch (Throwable t) {
         return -1;
       }
@@ -737,8 +751,8 @@ public class ApiIntegrationTest {
 
     PrintResponse printResponse = atomicReference.get();
     assertThat(writeStream.isEnded(), is(false));
-    assertThat(printResponse.getError(), is(nullValue()));
-    assertThat(printResponse.getRows().get(5), containsString(
+    assertThat(printResponse.error, is(nullValue()));
+    assertThat(printResponse.rows.get(5), containsString(
         "key: {\"F1\":[\"d\"]}, value: {\"STR\":\"BUZZ\",\"LONG\":6,\"DEC\":10.1,\"BYTES_\":\"Bg==\",\"ARRAY\":[\"f\",\"g\"],\"MAP\":{},\"STRUCT\":{\"F1\":null},\"COMPLEX\":{\"DECIMAL\":5.0,\"STRUCT\":{\"F1\":\"v5\",\"F2\":5},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v5\"}],\"ARRAY_MAP\":[{\"k1\":5}],\"MAP_ARRAY\":{\"k\":[\"v5\"]},\"MAP_MAP\":{\"k\":{\"k\":5}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v5\"}}},\"TIMESTAMP\":12,\"DATE\":12,\"TIME\":12}, partition: 0"));
   }
 
@@ -752,20 +766,20 @@ public class ApiIntegrationTest {
     assertThatEventually(() -> {
       PrintResponse printResponse = executePrintTopic(sql);
       atomicReference.set(printResponse);
-      return printResponse.getRows().size();
+      return printResponse.rows.size();
     }, is(3));
 
     PrintResponse printResponse = atomicReference.get();
 
     // Then:
-    assertThat(printResponse.getRows().get(0), containsString("rowtime:"));
-    assertThat(printResponse.getRows().get(0), containsString(
+    assertThat(printResponse.rows.get(0), containsString("rowtime:"));
+    assertThat(printResponse.rows.get(0), containsString(
         "key: {\"F1\":[\"a\"]}, value: {\"STR\":\"FOO\",\"LONG\":1,\"DEC\":1.11,\"BYTES_\":\"AQ==\",\"ARRAY\":[\"a\"],\"MAP\":{\"k1\":\"v1\"},\"STRUCT\":{\"F1\":2},\"COMPLEX\":{\"DECIMAL\":0.0,\"STRUCT\":{\"F1\":\"v0\",\"F2\":0},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v0\"}],\"ARRAY_MAP\":[{\"k1\":0}],\"MAP_ARRAY\":{\"k\":[\"v0\"]},\"MAP_MAP\":{\"k\":{\"k\":0}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v0\"}}},\"TIMESTAMP\":1,\"DATE\":1,\"TIME\":0}, partition: 0"));
-    assertThat(printResponse.getRows().get(1), containsString("rowtime:"));
-    assertThat(printResponse.getRows().get(1), containsString(
+    assertThat(printResponse.rows.get(1), containsString("rowtime:"));
+    assertThat(printResponse.rows.get(1), containsString(
         "key: {\"F1\":[\"b\"]}, value: {\"STR\":\"BAR\",\"LONG\":2,\"DEC\":2.22,\"BYTES_\":\"Ag==\",\"ARRAY\":[],\"MAP\":{},\"STRUCT\":{\"F1\":3},\"COMPLEX\":{\"DECIMAL\":1.0,\"STRUCT\":{\"F1\":\"v1\",\"F2\":1},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v1\"}],\"ARRAY_MAP\":[{\"k1\":1}],\"MAP_ARRAY\":{\"k\":[\"v1\"]},\"MAP_MAP\":{\"k\":{\"k\":1}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v1\"}}},\"TIMESTAMP\":2,\"DATE\":2,\"TIME\":1}, partition: 0"));
-    assertThat(printResponse.getRows().get(2), containsString("rowtime:"));
-    assertThat(printResponse.getRows().get(2), containsString(
+    assertThat(printResponse.rows.get(2), containsString("rowtime:"));
+    assertThat(printResponse.rows.get(2), containsString(
         "key: {\"F1\":[\"c\"]}, value: {\"STR\":\"BAZ\",\"LONG\":3,\"DEC\":30.33,\"BYTES_\":\"Aw==\",\"ARRAY\":[\"b\"],\"MAP\":{},\"STRUCT\":{\"F1\":null},\"COMPLEX\":{\"DECIMAL\":2.0,\"STRUCT\":{\"F1\":\"v2\",\"F2\":2},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v2\"}],\"ARRAY_MAP\":[{\"k1\":2}],\"MAP_ARRAY\":{\"k\":[\"v2\"]},\"MAP_MAP\":{\"k\":{\"k\":2}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v2\"}}},\"TIMESTAMP\":3,\"DATE\":3,\"TIME\":2}, partition: 0"));
   }
 
@@ -780,20 +794,20 @@ public class ApiIntegrationTest {
       JsonObject printProperties = new JsonObject().put("auto.offset.reset", "earliest");
       PrintResponse printResponse = executePrintTopicWithProperties(sql, printProperties);
       atomicReference.set(printResponse);
-      return printResponse.getRows().size();
+      return printResponse.rows.size();
     }, is(3));
 
     PrintResponse printResponse = atomicReference.get();
 
     // Then:
-    assertThat(printResponse.getRows().get(0), containsString("rowtime:"));
-    assertThat(printResponse.getRows().get(0), containsString(
+    assertThat(printResponse.rows.get(0), containsString("rowtime:"));
+    assertThat(printResponse.rows.get(0), containsString(
         "key: {\"F1\":[\"a\"]}, value: {\"STR\":\"FOO\",\"LONG\":1,\"DEC\":1.11,\"BYTES_\":\"AQ==\",\"ARRAY\":[\"a\"],\"MAP\":{\"k1\":\"v1\"},\"STRUCT\":{\"F1\":2},\"COMPLEX\":{\"DECIMAL\":0.0,\"STRUCT\":{\"F1\":\"v0\",\"F2\":0},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v0\"}],\"ARRAY_MAP\":[{\"k1\":0}],\"MAP_ARRAY\":{\"k\":[\"v0\"]},\"MAP_MAP\":{\"k\":{\"k\":0}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v0\"}}},\"TIMESTAMP\":1,\"DATE\":1,\"TIME\":0}, partition: 0"));
-    assertThat(printResponse.getRows().get(1), containsString("rowtime:"));
-    assertThat(printResponse.getRows().get(1), containsString(
+    assertThat(printResponse.rows.get(1), containsString("rowtime:"));
+    assertThat(printResponse.rows.get(1), containsString(
         "key: {\"F1\":[\"b\"]}, value: {\"STR\":\"BAR\",\"LONG\":2,\"DEC\":2.22,\"BYTES_\":\"Ag==\",\"ARRAY\":[],\"MAP\":{},\"STRUCT\":{\"F1\":3},\"COMPLEX\":{\"DECIMAL\":1.0,\"STRUCT\":{\"F1\":\"v1\",\"F2\":1},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v1\"}],\"ARRAY_MAP\":[{\"k1\":1}],\"MAP_ARRAY\":{\"k\":[\"v1\"]},\"MAP_MAP\":{\"k\":{\"k\":1}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v1\"}}},\"TIMESTAMP\":2,\"DATE\":2,\"TIME\":1}, partition: 0"));
-    assertThat(printResponse.getRows().get(2), containsString("rowtime:"));
-    assertThat(printResponse.getRows().get(2), containsString(
+    assertThat(printResponse.rows.get(2), containsString("rowtime:"));
+    assertThat(printResponse.rows.get(2), containsString(
         "key: {\"F1\":[\"c\"]}, value: {\"STR\":\"BAZ\",\"LONG\":3,\"DEC\":30.33,\"BYTES_\":\"Aw==\",\"ARRAY\":[\"b\"],\"MAP\":{},\"STRUCT\":{\"F1\":null},\"COMPLEX\":{\"DECIMAL\":2.0,\"STRUCT\":{\"F1\":\"v2\",\"F2\":2},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v2\"}],\"ARRAY_MAP\":[{\"k1\":2}],\"MAP_ARRAY\":{\"k\":[\"v2\"]},\"MAP_MAP\":{\"k\":{\"k\":2}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v2\"}}},\"TIMESTAMP\":3,\"DATE\":3,\"TIME\":2}, partition: 0"));
   }
 
@@ -862,7 +876,8 @@ public class ApiIntegrationTest {
     return executePrintTopicWithProperties(sql, properties);
   }
 
-  private PrintResponse executePrintTopicWithProperties(final String sql, final JsonObject properties) {
+  private PrintResponse executePrintTopicWithProperties(final String sql,
+      final JsonObject properties) {
     JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
     HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
     return new PrintResponse(response.bodyAsString());
@@ -896,7 +911,8 @@ public class ApiIntegrationTest {
     assertThat(insertsResponse.error, is(nullValue()));
   }
 
-  private void shouldRejectInsertRequest(final String target, final JsonObject row, final String message) {
+  private void shouldRejectInsertRequest(final String target, final JsonObject row,
+      final String message) {
     HttpResponse<Buffer> response = makeInsertsRequest(target, row);
 
     assertThat(response.statusCode(), is(400));

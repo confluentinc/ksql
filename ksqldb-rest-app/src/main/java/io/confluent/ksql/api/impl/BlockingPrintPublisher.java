@@ -167,19 +167,31 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
       throw new KsqlException("Could not list existing kafka topics" + e);
     }
 
-    Map<String, Object> populatedConsumerProperties = populateKsqlStreamConfigProps(ksqlConfig,
+    Map<String, Object> ksqlStreamConfigProps = overrideDefaultKsqlStreamConfigProps(
+        ksqlConfig);
+
+    Map<String, Object> finalConsumerProperties = populateKsqlStreamConfigProps(
+        ksqlStreamConfigProps,
         consumerProperties);
-    return PrintTopicUtil.createTopicConsumer(serviceContext, populatedConsumerProperties,
+    return PrintTopicUtil.createTopicConsumer(serviceContext, finalConsumerProperties,
         printTopic);
   }
 
-  private Map<String, Object> populateKsqlStreamConfigProps(KsqlConfig ksqlConfig,
+  private Map<String, Object> populateKsqlStreamConfigProps(Map<String, Object> ksqlConfig,
       Map<String, Object> properties) {
-    Map<String, Object> consumerProperties = new HashMap<>();
-    consumerProperties.putAll(ksqlConfig.getKsqlStreamConfigProps());
+    Map<String, Object> consumerProperties = new HashMap<>(ksqlConfig);
     consumerProperties.putAll(properties);
 
     return consumerProperties;
+  }
+
+  private Map<String, Object> overrideDefaultKsqlStreamConfigProps(KsqlConfig ksqlConfig) {
+    Map<String, Object> overriddenProperties = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+    // We override the default value of auto.offset.reset to latest because that's the default
+    // behavior for the print topic command, unlike the default behavior for push and pull queries.
+    overriddenProperties.put("auto.offset.reset", "latest");
+
+    return overriddenProperties;
   }
 
   private boolean isClosed() {

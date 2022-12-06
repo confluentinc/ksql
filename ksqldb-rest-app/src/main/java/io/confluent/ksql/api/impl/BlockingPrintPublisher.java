@@ -88,7 +88,6 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
     closed = true;
     // Run async as it can block
     ctx.runOnContext(v -> sendComplete());
-    executeOnWorker(topicConsumer::close);
 
     return super.close();
   }
@@ -129,7 +128,6 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
       if (records.isEmpty()) {
         continue;
       }
-
       final List<String> formattedRecords = formatter.format(
           records.records(this.printTopic.getTopic())
       );
@@ -139,7 +137,6 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
           messagesWritten++;
           doOnNext(message);
         }
-
         if (messagesWritten >= limit) {
           ctx.runOnContext(v -> sendComplete());
           break;
@@ -148,6 +145,10 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
           break;
         }
       }
+    }
+
+    if (isClosed()) {
+      topicConsumer.close();
     }
   }
 

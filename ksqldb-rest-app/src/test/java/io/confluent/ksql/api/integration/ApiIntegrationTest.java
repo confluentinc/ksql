@@ -149,6 +149,9 @@ public class ApiIntegrationTest {
 
   @After
   public void tearDown() {
+    // Both client and vertx are currently being closed in the
+    // shouldExecutePrintWithEmptyResponseIfConnectionClosed test
+    // to simulate a connection closed by the client.
     if (client != null) {
       client.close();
     }
@@ -721,6 +724,49 @@ public class ApiIntegrationTest {
   }
 
   @Test
+  public void shouldTryToPrintAndSendDoneResponseIfConnectionClosed() {
+    // Given:
+    KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
+    String sql = "PRINT " + TEST_TOPIC + " FROM BEGINNING LIMIT 1;";
+    ReceiveStream writeStream = new ReceiveStream(vertx);
+    JsonObject printRequestBody = new JsonObject().put("sql", sql);
+    VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
+    AtomicReference<VertxCompletableFuture<HttpResponse<Void>>> responseFutureRef = new AtomicReference<>(
+        responseFuture);
+    AtomicReference<Boolean> doneAtomicReference = new AtomicReference<>(
+        false);
+
+    // When:
+    client.post("/query-stream").as(BodyCodec.pipe(writeStream))
+        .sendJsonObject(printRequestBody, responseFuture);
+    vertx.setTimer(1000, timerId -> {
+      assertThatEventually(engine::numberOfLiveQueries, is(1));
+      // We close the client and vertx to simulate a connection closed from the client.
+      // (Closing the only the client doesn't seem to be enough to simulate this for some reason)
+      // This could be removed if if we can somehow do this in a different
+      // or if the test becomes flaky.
+      client.close();
+      vertx.close().onComplete(v -> {
+        VertxCompletableFuture<HttpResponse<Void>> response = responseFutureRef.get();
+        if (response.isDone()) {
+          doneAtomicReference.set(true);
+        } else {
+          throw new AssertionError("Response is not done");
+        }
+      });
+    });
+
+    // Then:
+    assertThatEventually(() -> {
+      try {
+        return doneAtomicReference.get();
+      } catch (Throwable t) {
+        return false;
+      }
+    }, is(true));
+  }
+
+  @Test
   public void shouldExecutePrintQueryNoLimit() {
     // Given:
     String sql = "PRINT " + TEST_TOPIC + " FROM BEGINNING;";
@@ -883,8 +929,8 @@ public class ApiIntegrationTest {
     return new PrintResponse(response.bodyAsString());
   }
 
-
-  private void shouldFailToInsert(final JsonObject row, final int errorCode, final String message) {
+  private void shouldFailToInsert(final JsonObject row, final int errorCode,
+      final String message) {
     final HttpResponse<Buffer> response = makeInsertsRequest(TEST_STREAM, row);
 
     assertThat(response.statusCode(), is(200));
@@ -919,7 +965,8 @@ public class ApiIntegrationTest {
     assertThat(response.statusMessage(), is("Bad Request"));
 
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
-    assertThat(queryResponse.responseObject.getInteger("error_code"), is(ERROR_CODE_BAD_STATEMENT));
+    assertThat(queryResponse.responseObject.getInteger("error_code"),
+        is(ERROR_CODE_BAD_STATEMENT));
     assertThat(queryResponse.responseObject.getString("message"), is(message));
   }
 

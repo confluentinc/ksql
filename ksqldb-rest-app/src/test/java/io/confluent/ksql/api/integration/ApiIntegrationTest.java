@@ -727,7 +727,7 @@ public class ApiIntegrationTest {
   public void shouldTryToPrintAndSendDoneResponseIfConnectionClosed() {
     // Given:
     KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
-    String sql = "PRINT " + TEST_TOPIC + " FROM BEGINNING LIMIT 1;";
+    String sql = "PRINT " + TEST_TOPIC + ";";
     ReceiveStream writeStream = new ReceiveStream(vertx);
     JsonObject printRequestBody = new JsonObject().put("sql", sql);
     VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
@@ -740,6 +740,7 @@ public class ApiIntegrationTest {
     client.post("/query-stream").as(BodyCodec.pipe(writeStream))
         .sendJsonObject(printRequestBody, responseFuture);
     vertx.setTimer(1000, timerId -> {
+      // Only the persistent query for the agg table running in the background should be left
       assertThatEventually(engine::numberOfLiveQueries, is(1));
       // We close the client and vertx to simulate a connection closed from the client.
       // (Closing the only the client doesn't seem to be enough to simulate this for some reason)

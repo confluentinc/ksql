@@ -53,6 +53,7 @@ import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.rest.entity.AssertSchemaEntity;
 import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -1972,9 +1973,9 @@ public class ClientTest extends BaseApiTest {
   }
 
   private void sendQueryPublisherError() {
-    final Set<TestQueryPublisher> queryPublishers = testEndpoints.getQueryPublishers();
+    final Set<Publisher<?>> queryPublishers = testEndpoints.getPublishers();
     assertThat(queryPublishers, hasSize(1));
-    final TestQueryPublisher queryPublisher = queryPublishers.stream().findFirst().get();
+    final TestQueryPublisher queryPublisher = (TestQueryPublisher) queryPublishers.stream().findFirst().get();
     queryPublisher.sendError();
   }
 

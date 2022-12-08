@@ -190,7 +190,7 @@ public class KsqlRestConfig extends AbstractConfig {
           + "internal endpoints, separate from the external client endpoints, and provide a "
           + "layer of security at the network level.";
 
-  static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
+  public static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
       "query.stream.disconnect.check";
 
   private static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_DOC =

@@ -51,6 +51,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -84,7 +85,7 @@ public class QueryStreamHandlerTest {
   @Mock
   private RoutingContext routingContext;
   @Mock
-  private QueryPublisher queryPublisher;
+  private QueryPublisher publisher;
   @Mock
   private PushQueryHolder pushQueryHolder;
   @Mock
@@ -97,6 +98,7 @@ public class QueryStreamHandlerTest {
   private QueryStreamHandler handler;
 
 
+  // TODO Fix setup for print topic // complement tests
   @Before
   public void setUp() {
     when(routingContext.request()).thenReturn(request);
@@ -104,17 +106,17 @@ public class QueryStreamHandlerTest {
     when(request.version()).thenReturn(HttpVersion.HTTP_2);
     when(request.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
     when(request.remoteAddress()).thenReturn(SocketAddress.inetSocketAddress(9000, "remote"));
-    CompletableFuture<QueryPublisher> future = new CompletableFuture<>();
-    future.complete(queryPublisher);
+    CompletableFuture<Publisher<?>> future = new CompletableFuture<>();
+    future.complete(publisher);
     when(endpoints.createQueryPublisher(any(), any(), any(), any(), any(), any(), any(), any(),
         any())).thenReturn(future);
     when(response.endHandler(endHandler.capture())).thenReturn(response);
-    when(queryPublisher.queryId()).thenReturn(new QueryId(QUERY_ID));
-    when(queryPublisher.getColumnNames()).thenReturn(COL_NAMES);
-    when(queryPublisher.getColumnTypes()).thenReturn(COL_TYPES);
-    when(queryPublisher.geLogicalSchema()).thenReturn(SCHEMA);
-    when(queryPublisher.isPullQuery()).thenReturn(true);
-    doNothing().when(queryPublisher).subscribe(subscriber.capture());
+    when(publisher.queryId()).thenReturn(new QueryId(QUERY_ID));
+    when(publisher.getColumnNames()).thenReturn(COL_NAMES);
+    when(publisher.getColumnTypes()).thenReturn(COL_TYPES);
+    when(publisher.geLogicalSchema()).thenReturn(SCHEMA);
+    when(publisher.isPullQuery()).thenReturn(true);
+    doNothing().when(publisher).subscribe(subscriber.capture());
     handler = new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false);
   }
 
@@ -135,13 +137,29 @@ public class QueryStreamHandlerTest {
 
     // Then:
     assertThat(subscriber.getValue(), notNullValue());
-    verify(queryPublisher).close();
+    verify(publisher).close();
+  }
+
+  @Test
+  public void shouldSucceed_printQuery() {
+    // Given:
+    final QueryStreamArgs req = new QueryStreamArgs("print mytopic;",
+        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+    givenRequest(req);
+
+    // When:
+    handler.handle(routingContext);
+    endHandler.getValue().handle(null);
+
+    // Then:
+    assertThat(subscriber.getValue(), notNullValue());
+    verify(publisher).close();
   }
 
   @Test
   public void shouldSucceed_pushQuery() {
     // Given:
-    when(queryPublisher.isPullQuery()).thenReturn(false);
+    when(publisher.isPullQuery()).thenReturn(false);
     final QueryStreamArgs req = new QueryStreamArgs("select * from foo emit changes;",
         Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     givenRequest(req);
@@ -159,8 +177,8 @@ public class QueryStreamHandlerTest {
   @Test
   public void shouldSucceed_scalablePushQuery() {
     // Given:
-    when(queryPublisher.isPullQuery()).thenReturn(false);
-    when(queryPublisher.isScalablePushQuery()).thenReturn(true);
+    when(publisher.isPullQuery()).thenReturn(false);
+    when(publisher.isScalablePushQuery()).thenReturn(true);
     final QueryStreamArgs req = new QueryStreamArgs("select * from foo emit changes;",
         Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     givenRequest(req);
@@ -171,14 +189,14 @@ public class QueryStreamHandlerTest {
 
     // Then:
     assertThat(subscriber.getValue(), notNullValue());
-    verify(queryPublisher).close();
+    verify(publisher).close();
   }
 
   @Test
   public void verifyEndHandlerNotCalledTwice_scalablePushQuery() {
     // Given:
-    when(queryPublisher.isPullQuery()).thenReturn(false);
-    when(queryPublisher.isScalablePushQuery()).thenReturn(true);
+    when(publisher.isPullQuery()).thenReturn(false);
+    when(publisher.isScalablePushQuery()).thenReturn(true);
     final QueryStreamArgs req = new QueryStreamArgs("select * from foo emit changes;",
         Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     givenRequest(req);
@@ -190,6 +208,6 @@ public class QueryStreamHandlerTest {
 
     // Then:
     assertThat(subscriber.getValue(), notNullValue());
-    verify(queryPublisher, times(1)).close();
+    verify(publisher, times(1)).close();
   }
 }

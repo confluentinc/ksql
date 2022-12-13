@@ -43,12 +43,12 @@ public final class MigrationsUtil {
     return getKsqlClient(
         config.getString(MigrationConfig.KSQL_SERVER_URL),
         config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME),
-        config.getString(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD),
+        config.getPassword(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD).value(),
         config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION),
-        config.getString(MigrationConfig.SSL_TRUSTSTORE_PASSWORD),
+        config.getPassword(MigrationConfig.SSL_TRUSTSTORE_PASSWORD).value(),
         config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION),
-        config.getString(MigrationConfig.SSL_KEYSTORE_PASSWORD),
-        config.getString(MigrationConfig.SSL_KEY_PASSWORD),
+        config.getPassword(MigrationConfig.SSL_KEYSTORE_PASSWORD).value(),
+        config.getPassword(MigrationConfig.SSL_KEY_PASSWORD).value(),
         config.getString(MigrationConfig.SSL_KEY_ALIAS),
         config.getBoolean(MigrationConfig.SSL_ALPN),
         config.getBoolean(MigrationConfig.SSL_VERIFY_HOST)
@@ -134,16 +134,16 @@ public final class MigrationsUtil {
           config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION));
       clientProps.put(
           SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-          config.getString(MigrationConfig.SSL_TRUSTSTORE_PASSWORD));
+          config.getPassword(MigrationConfig.SSL_TRUSTSTORE_PASSWORD).value());
       clientProps.put(
           SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
           config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION));
       clientProps.put(
           SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
-          config.getString(MigrationConfig.SSL_KEYSTORE_PASSWORD));
+          config.getPassword(MigrationConfig.SSL_KEYSTORE_PASSWORD).value());
       clientProps.put(
           SslConfigs.SSL_KEY_PASSWORD_CONFIG,
-          config.getString(MigrationConfig.SSL_KEY_PASSWORD));
+          config.getPassword(MigrationConfig.SSL_KEY_PASSWORD).value());
       clientProps.put(
           KsqlClient.SSL_KEYSTORE_ALIAS_CONFIG,
           config.getString(MigrationConfig.SSL_KEY_ALIAS));
@@ -154,7 +154,7 @@ public final class MigrationsUtil {
     }
 
     final String username = config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME);
-    final String password = config.getString(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD);
+    final String password = config.getPassword(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD).value();
     final Optional<BasicCredentials> basicAuthCreds;
     if (!Strings.isNullOrEmpty(username) || !Strings.isNullOrEmpty(password)) {
       basicAuthCreds = Optional.of(BasicCredentials.of(username, password));

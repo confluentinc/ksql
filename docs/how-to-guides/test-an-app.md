@@ -186,6 +186,8 @@ Expected record does not match actual.
 file:///path/to/failing/test/file.sql:18
 ```
 
+The tool will return an exit code of `1` if any test fails and `0` if all tests pass.
+
 ### Kafka cluster
 
 `run-ksql-test` doesn't use a real Kafka cluster. Instead, it simulates

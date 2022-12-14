@@ -14,7 +14,7 @@ keywords: testing, qa, quality assurance, test runner
 
 ## Context
 
-ksqlDB ships with a command line tool to to test KSQL statements automatically.
+ksqlDB ships with a command line tool to test KSQL statements automatically.
 It doesn't require an active {{ site.aktm }} or ksqlDB cluster.
 
 ## In action

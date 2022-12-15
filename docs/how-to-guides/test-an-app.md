@@ -14,7 +14,7 @@ keywords: testing, qa, quality assurance, test runner
 
 ## Context
 
-ksqlDB ships with a command line tool to to test KSQL statements automatically.
+ksqlDB ships with a command line tool to test KSQL statements automatically.
 It doesn't require an active {{ site.aktm }} or ksqlDB cluster.
 
 ## In action
@@ -185,6 +185,8 @@ Expected record does not match actual.
 
 file:///path/to/failing/test/file.sql:18
 ```
+
+The tool will return an exit code of `1` if any test fails and `0` if all tests pass.
 
 ### Kafka cluster
 

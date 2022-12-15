@@ -53,14 +53,17 @@ public final class KsqlTestingTool {
       }
       if (testOptions.getStatementsFile() != null
           && testOptions.getOutputFile() != null) {
-        runWithTripleFiles(
+        final int resultCode = runWithTripleFiles(
             testOptions.getStatementsFile(),
             testOptions.getInputFile(),
             testOptions.getOutputFile(),
             testOptions.getExtensionDir());
+
+        System.exit(resultCode);
       }
     } catch (final Exception e) {
       System.err.println("Invalid arguments: " + e.getMessage());
+      System.exit(1);
     }
   }
 
@@ -83,7 +86,7 @@ public final class KsqlTestingTool {
   }
 
 
-  static void runWithTripleFiles(
+  static int runWithTripleFiles(
       final String statementFile,
       final String inputFile,
       final String outputFile,
@@ -129,12 +132,12 @@ public final class KsqlTestingTool {
         .buildTests(testCaseNode, location.getTestPath(), name -> location)
         .get(0);
 
-    executeTestCase(
+    return executeTestCase(
         testCase,
         TestExecutor.create(true, extensionDir));
   }
 
-  static void executeTestCase(
+  static int executeTestCase(
       final TestCase testCase,
       final TestExecutor testExecutor
   ) {
@@ -143,8 +146,11 @@ public final class KsqlTestingTool {
       System.out.println("\t >>> Test passed!");
     } catch (final Exception | AssertionError e) {
       System.err.println("\t>>>>> Test failed: " + e.getMessage());
+      return 1;
     } finally {
       testExecutor.close();
     }
+
+    return 0;
   }
 }

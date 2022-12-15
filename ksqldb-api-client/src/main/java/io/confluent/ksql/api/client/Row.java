@@ -213,6 +213,28 @@ public interface Row {
   BigDecimal getDecimal(String columnName);
 
   /**
+   * Returns the value for a particular column of the {@code Row} as a byte array.
+   *
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code String}
+   * @throws IllegalArgumentException if the column value is not a base64 encoded string
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  byte[] getBytes(int columnIndex);
+
+  /**
+   * Returns the value for a particular column of the {@code Row} as byte array.
+   *
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code String}
+   * @throws IllegalArgumentException if the column name is invalid or the column value is not
+   *                                  a base64 encoded string
+   */
+  byte[] getBytes(String columnName);
+
+  /**
    * Returns the value for a particular column of the {@code Row} as a {@link KsqlObject}.
    * Useful for {@code MAP} and {@code STRUCT} column types.
    *

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -32,6 +33,7 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
   final Formats formats;
   final Optional<TimestampColumn> timestampColumn;
   final LogicalSchema sourceSchema;
+  final int pseudoColumnVersion;
 
   @VisibleForTesting
   public SourceStep(
@@ -39,13 +41,15 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
       final String topicName,
       final Formats formats,
       final Optional<TimestampColumn> timestampColumn,
-      final LogicalSchema sourceSchema
+      final LogicalSchema sourceSchema,
+      final int pseudoColumnVersion
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
     this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
+    this.pseudoColumnVersion = pseudoColumnVersion;
   }
 
   @Override
@@ -72,5 +76,12 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
 
   public String getTopicName() {
     return topicName;
+  }
+
+  //Jsonignore here until KLIP-50 (add rowpartition and rowoffset pseudocolumns) is live.
+  //For now, we don't want to write pseudoColumnVersion to the command topic
+  @JsonIgnore
+  public int getPseudoColumnVersion() {
+    return pseudoColumnVersion;
   }
 }

@@ -6,8 +6,6 @@ description: Syntax for the CREATE STREAM statement in ksqlDB
 keywords: ksqlDB, create, stream
 ---
 
-# CREATE STREAM
-
 ## Synopsis
 
 ```sql
@@ -22,6 +20,14 @@ Create a new stream with the specified columns and properties.
 If the IF NOT EXISTS clause is present, the statement won't fail if a 
 stream with the same name already exists.
 
+### Partitioning
+
+Assign the PARTITIONS property in the WITH clause to specify the number of
+partitions in the stream's backing topic. Partitioning streams and tables is
+especially important for stateful or otherwise intensive queries. For more
+information, see [Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
+
+### KEY and VALUE columns
 
 A ksqlDB STREAM is a stream of _facts_. Each fact is immutable and unique.
 A stream can store its data in either `KEY` or `VALUE` columns.
@@ -31,7 +37,7 @@ key. This situation is handled differently by [ksqlDB TABLEs](../create-table), 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
 | Key column type          | `KEY`                                                         | `PRIMARY KEY`                                                     |
-| NON NULL key constraint  | No                                                            | Yes <br> Messages in the Kafka topic with a NULL `PRIMARY KEY` are ignored. |
+| NON NULL key constraint  | No                                                            | Yes <br> Records in the {{ site.ak }} topic with a NULL `PRIMARY KEY` are ignored.  |
 | Unique key constraint    | No <br> Messages with the same key as another have no special meaning. | Yes <br> Later messages with the same key _replace_ earlier. |
 | Tombstones               | No <br> Messages with NULL values are ignored.                | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted. |
 
@@ -53,17 +59,19 @@ For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB can use [Schema Inference](/operate-and-deploy/schema-registry-integration#schema-inference) to
 spare you from defining columns manually in your `CREATE STREAM` statements.
-   
+### ROWTIME
+
 Each row within the stream has a `ROWTIME` pseudo column, which represents the _event time_ 
 of the row. The timestamp has milliseconds accuracy. The timestamp is used by ksqlDB during any
 windowing operations and during joins, where data from each side of a join is generally processed
 in time order.  
 
-By default `ROWTIME` is populated from the corresponding Kafka message timestamp. Set `TIMESTAMP` in
-the `WITH` clause to populate `ROWTIME` from a column in the Kafka message key or value.
+By default, `ROWTIME` is populated from the corresponding {{ site.ak }} message timestamp. Set `TIMESTAMP` in
+the `WITH` clause to populate `ROWTIME` from a column in the {{ site.ak }} message key or value.
+## Stream properties
 
-
-The WITH clause supports the following properties:
+Specify details about your stream by using the WITH clause, which supports the
+following properties:
 
 |        Property         |                                            Description                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
@@ -71,10 +79,10 @@ The WITH clause supports the following properties:
 | KEY_FORMAT              | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](/reference/serialization).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.key](/reference/server-configuration#ksqlpersistencedefaulformatkey), is used. If the default is also not set the statement will be rejected as invalid. |
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.value](/reference/server-configuration#ksqlpersistencedefaultformatvalue), is used. If the default is also not set the statement will be rejected as invalid. |
 | FORMAT                  | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](/reference/serialization). |
-| PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a STREAM without an existing topic (the command will fail if the topic does not exist). |
+| PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a STREAM without an existing topic (the command will fail if the topic does not exist). You can't change the number of partitions on a stream. To change the partition count, you must drop the stream and create it again. |
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is set, then the default Kafka cluster configuration for replicas will be used for creating a new topic. |
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
-| TIMESTAMP               | By default, the pseudo `ROWTIME` column is the timestamp of the message in the Kafka topic. The TIMESTAMP property can be used to override `ROWTIME` with the contents of the specified column within the Kafka message (similar to timestamp extractors in Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations, such as windowing, will process a record according to the timestamp in `ROWTIME`. |
+| TIMESTAMP               | By default, the pseudo `ROWTIME` column is the timestamp of the record in the Kafka topic. The TIMESTAMP property can be used to override `ROWTIME` with the contents of the specified column within the Kafka message (similar to timestamp extractors in Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations, such as windowing, will process a record according to the timestamp in `ROWTIME`.  |
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set the timestamp column must be of type `bigint`. If it is set, then the TIMESTAMP column must be of type `varchar` and have a format that can be parsed with the java `DateTimeFormatter`. If your timestamp format has characters requiring single quotes, you can escape them with successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`. For more information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).                                       |
 | WRAP_SINGLE_VALUE       | Controls how values are deserialized where the value schema contains only a single column. The setting controls how ksqlDB will deserialize the value of the records in the supplied `KAFKA_TOPIC` that contain only a single column.<br>If set to `true`, ksqlDB expects the column to have been serialized as a named column within a record.<br>If set to `false`, ksqlDB expects the column to have been serialized as an anonymous value.<br>If not supplied, the system default, defined by [ksql.persistence.wrap.single.values](/reference/server-configuration#ksqlpersistencewrapsinglevalues) and defaulting to `true`, is used.<br>**Note:** `null` values have special meaning in ksqlDB. Care should be taken when dealing with single-column schemas where the value can be `null`. For more information, see [Single column (un)wrapping](/reference/serialization#single-field-unwrapping).<br>**Note:** Supplying this property for formats that do not support wrapping, for example `DELIMITED`, or when the value schema has multiple columns, will result in an error. |
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed, i.e., was created using ksqlDB using a query that contains a `WINDOW` clause, then the `WINDOW_TYPE` property can be used to provide the window type. Valid values are `SESSION`, `HOPPING`, and `TUMBLING`. |
@@ -116,7 +124,7 @@ CREATE STREAM pageviews (
 -- keyless stream, with value columns loaded from Schema Registry:
 CREATE STREAM pageviews WITH (
     KAFKA_TOPIC = 'keyless-pageviews-topic',
-    VALUE_FORMAT = 'JSON'
+    VALUE_FORMAT = 'JSON_SR'
   );
 
 -- keyed stream, with value columns loaded from Schema Registry:
@@ -124,6 +132,6 @@ CREATE STREAM pageviews (
     page_id BIGINT KEY
   ) WITH (
     KAFKA_TOPIC = 'keyed-pageviews-topic',
-    VALUE_FORMAT = 'JSON'
+    VALUE_FORMAT = 'JSON_SR'
   );
 ```

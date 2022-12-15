@@ -16,9 +16,15 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.BytesValue;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
+import com.google.type.Date;
+import com.google.type.TimeOfDay;
+import java.nio.ByteBuffer;
+import java.util.Collections;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -43,6 +49,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.protobuf.type.Decimal;
 import io.confluent.protobuf.type.utils.DecimalUtils;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -64,6 +71,20 @@ public class KsqlProtobufSerializerTest {
                           "    { key: \"scale\", value: \"2\" }\n" +
                           "  ]}];\n" +
                           "}\n");
+  private static final ParsedSchema TIME_SCHEMA =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "import \"google/type/TimeOfDay.proto\";\n" +
+              "\n" +
+              "message ConnectDefault1 {google.type.TimeOfDay F1 = 1;}\n");
+  private static final ParsedSchema DATE_SCHEMA =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "import \"google/type/Date.proto\";\n" +
+              "\n" +
+              "message ConnectDefault1 {google.type.Date F1 = 1;}\n");
   private static final ParsedSchema TIMESTAMP_SCHEMA =
       parseProtobufSchema(
           "syntax = \"proto3\";\n" +
@@ -103,6 +124,26 @@ public class KsqlProtobufSerializerTest {
   }
 
   @Test
+  public void shouldSerializeTimeField() {
+    shouldSerializeFieldTypeCorrectly(
+        org.apache.kafka.connect.data.Time.SCHEMA,
+        new java.sql.Time(2000),
+        TIME_SCHEMA,
+        TimeOfDay.newBuilder().setSeconds(2).build()
+    );
+  }
+
+  @Test
+  public void shouldSerializeDateField() {
+    shouldSerializeFieldTypeCorrectly(
+        org.apache.kafka.connect.data.Date.SCHEMA,
+        new java.sql.Date(864000000L),
+        TIME_SCHEMA,
+        Date.newBuilder().setMonth(1).setDay(11).setYear(1970).build()
+    );
+  }
+
+  @Test
   public void shouldSerializeTimestampField() {
     shouldSerializeFieldTypeCorrectly(
         org.apache.kafka.connect.data.Timestamp.SCHEMA,
@@ -110,6 +151,14 @@ public class KsqlProtobufSerializerTest {
         TIMESTAMP_SCHEMA,
         Timestamp.newBuilder().setSeconds(2).setNanos(0).build()
     );
+  }
+
+  @Test
+  public void shouldSerializeBytesField() {
+    final Message record = serializeValue(Schema.BYTES_SCHEMA, ByteBuffer.wrap("abc".getBytes(UTF_8)));
+    assertThat(record.getAllFields().size(), equalTo(1));
+    Descriptors.FieldDescriptor field = record.getDescriptorForType().findFieldByName("field0");
+    assertThat(((ByteString) record.getField(field)).toByteArray(), equalTo("abc".getBytes(UTF_8)));
   }
 
 
@@ -122,8 +171,15 @@ public class KsqlProtobufSerializerTest {
       final Schema ksqlSchema,
       final Object ksqlValue,
       final ParsedSchema parsedSchema,
-      final Message protobufValue
+      final Object protobufValue
   ) {
+    final Message record = serializeValue(ksqlSchema, ksqlValue);
+    assertThat(record.getAllFields().size(), equalTo(1));
+    Descriptors.FieldDescriptor field = record.getDescriptorForType().findFieldByName("field0");
+    assertThat(record.getField(field).toString(), equalTo(protobufValue.toString()));
+  }
+
+  private Message serializeValue(final Schema ksqlSchema, final Object ksqlValue) {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("field0", ksqlSchema)
@@ -138,17 +194,14 @@ public class KsqlProtobufSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
 
     // Then:
-    final Message record = deserialize(bytes);
-    assertThat(record.getAllFields().size(), equalTo(1));
-    Descriptors.FieldDescriptor field = record.getDescriptorForType().findFieldByName("field0");
-    assertThat(record.getField(field).toString(), equalTo(protobufValue.toString()));
+    return deserialize(bytes);
   }
 
   private <T> Serializer<T> givenSerializerForSchema(
       final Schema schema,
       final Class<T> targetType
   ) {
-    return ProtobufSerdeFactory
+    return new ProtobufSerdeFactory(new ProtobufProperties(Collections.emptyMap()))
         .createSerde(
             (ConnectSchema) schema,
             ksqlConfig,

@@ -312,6 +312,14 @@
             "format" : "JSON"
           }
         }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
           "name" : "right2",
           "keyFormat" : {
             "format" : "KAFKA"
@@ -320,14 +328,6 @@
             "format" : "JSON"
           },
           "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
-          "keyFormat" : {
-            "format" : "KAFKA"
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
         }, {
           "name" : "right",
           "keyFormat" : {

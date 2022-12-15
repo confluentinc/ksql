@@ -15,17 +15,19 @@
 
 package io.confluent.ksql.serde.connect;
 
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_DATE_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_TIMESTAMP_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_TIME_SCHEMA;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertThrows;
 
-import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Time;
+import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Test;
 
 
@@ -40,6 +42,7 @@ public class ConnectSchemaUtilTest {
         .field("doubleField", Schema.FLOAT64_SCHEMA)
         .field("stringField", Schema.STRING_SCHEMA)
         .field("booleanField", Schema.BOOLEAN_SCHEMA)
+        .field("bytesField", Schema.BYTES_SCHEMA)
         .build();
 
     final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
@@ -54,6 +57,9 @@ public class ConnectSchemaUtilTest {
           equalTo(connectSchema.fields().get(i).schema().type()));
       assertThat(ksqlSchema.fields().get(i).schema().isOptional(), is(true));
     }
+    // Make sure that regular int32/int64 fields do not get converted to date/time/timestamp
+    assertThat(ksqlSchema.field("LONGFIELD").schema(), is(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(ksqlSchema.field("INTFIELD").schema(), is(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
@@ -176,41 +182,18 @@ public class ConnectSchemaUtilTest {
   }
 
   @Test
-  public void shouldIgnoreUnsupportedType() {
-    // Given:
+  public void shouldTranslateTimeTypes() {
     final Schema connectSchema = SchemaBuilder
         .struct()
-        .field("unsupported", Schema.BYTES_SCHEMA)
-        .field("supported", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("timefield", Time.SCHEMA)
+        .field("datefield", Date.SCHEMA)
+        .field("timestampfield", Timestamp.SCHEMA)
         .build();
 
-    // When:
     final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
 
-    // Then:
-    assertThat(ksqlSchema.fields(), hasSize(1));
-    assertThat(ksqlSchema.fields().get(0).name(), is("SUPPORTED"));
-  }
-
-  @Test
-  public void shouldThrowIfAllUnsupportedTypes() {
-    // Given:
-    final Schema connectSchema = SchemaBuilder
-        .struct()
-        .field("bytesField", Schema.BYTES_SCHEMA)
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> ConnectSchemaUtil.toKsqlSchema(connectSchema)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Schema does not include any columns with "
-            + "types that ksqlDB supports."
-            + System.lineSeparator()
-            + "schema: bytesField BYTES"));
+    assertThat(ksqlSchema.field("TIMEFIELD").schema(), equalTo(OPTIONAL_TIME_SCHEMA));
+    assertThat(ksqlSchema.field("DATEFIELD").schema(), equalTo(OPTIONAL_DATE_SCHEMA));
+    assertThat(ksqlSchema.field("TIMESTAMPFIELD").schema(), equalTo(OPTIONAL_TIMESTAMP_SCHEMA));
   }
 }

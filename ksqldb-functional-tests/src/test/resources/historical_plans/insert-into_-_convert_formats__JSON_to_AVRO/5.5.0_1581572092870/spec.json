@@ -140,7 +140,21 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ]
+          }
         } ]
       }
     }

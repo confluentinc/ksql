@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.types;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -41,6 +42,7 @@ public final class LambdaType extends ObjectType {
     return new LambdaType(inputTypes, returnType);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "inputTypes is ImmutableList")
   public List<ParamType> inputTypes() {
     return inputTypes;
   }

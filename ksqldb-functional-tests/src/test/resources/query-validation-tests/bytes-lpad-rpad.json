@@ -1,0 +1,73 @@
+{
+  "comments": [
+    "Tests covering usage of the LPAD and RPAD bytes functions."
+  ],
+  "tests": [
+    {
+      "name": "LPAD with all args from record",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, subject BYTES, len INT, padding BYTES) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, lpad(subject, len, padding) AS result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"subject": "eWVz", "len": 8, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r2", "value": {"subject": "eWVz", "len": 5, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r3", "value": {"subject": "eWVz", "len": 3, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r4", "value": {"subject": "eWVz", "len": 2, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r5", "value": {"subject": "eWVz", "len": 0, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r6", "value": {"subject": "eWVz", "len": -1, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r7", "value": {"subject": "eWVz", "len": 3, "padding": ""}},
+        {"topic": "test_topic", "key": "r8", "value": {"subject": null, "len": 8, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r9", "value": {"subject": "eWVz", "len": null, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r10", "value": {"subject": "eWVz", "len": 8, "padding": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": "bm9ub255ZXM="}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": "bm95ZXM="}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": "eWVz"}},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": "eWU="}},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": ""}},
+        {"topic": "OUTPUT", "key": "r6", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r7", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r8", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r9", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r10", "value": {"RESULT": null}}
+      ]
+    },
+    {
+      "name": "RPAD with all args from record",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, subject BYTES, len INT, padding BYTES) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, rpad(subject, len, padding) AS RESULT FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"subject": "eWVz", "len": 8, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r2", "value": {"subject": "eWVz", "len": 5, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r3", "value": {"subject": "eWVz", "len": 3, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r4", "value": {"subject": "eWVz", "len": 2, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r5", "value": {"subject": "eWVz", "len": 0, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r6", "value": {"subject": "eWVz", "len": -1, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r7", "value": {"subject": "eWVz", "len": 3, "padding": ""}},
+        {"topic": "test_topic", "key": "r8", "value": {"subject": null, "len": 3, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r9", "value": {"subject": "eWVz", "len": null, "padding": "bm8="}},
+        {"topic": "test_topic", "key": "r10", "value": {"subject": "eWVz", "len": -1, "padding": null}}
+
+
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": "eWVzbm9ub24="}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": "eWVzbm8="}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": "eWVz"}},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": "eWU="}},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": ""}},
+        {"topic": "OUTPUT", "key": "r6", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r7", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r8", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r9", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r10", "value": {"RESULT": null}}
+      ]
+    }
+  ]
+}

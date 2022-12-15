@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.execution.streams.RoutingFilter.Host;
 import io.confluent.ksql.util.KsqlHostInfo;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
@@ -45,11 +46,12 @@ public class ActiveHostFilterTest {
     // Given:
 
     // When:
-    final boolean filterActive = activeHostFilter.filter(activeHost);
-    final boolean filterStandby = activeHostFilter.filter(standByHost);
+    final Host filterActive = activeHostFilter.filter(activeHost);
+    final Host filterStandby = activeHostFilter.filter(standByHost);
 
     // Then:
-    assertThat(filterActive, is(true));
-    assertThat(filterStandby, is(false));
+    assertThat(filterActive.isSelected(), is(true));
+    assertThat(filterStandby.isSelected(), is(false));
+    assertThat(filterStandby.getReasonNotSelected(), is("Host is not the active host for this partition."));
   }
 }

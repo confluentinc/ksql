@@ -36,43 +36,72 @@ public final class KsqlAuthorizationValidatorFactory {
 
   public static Optional<KsqlAuthorizationValidator> create(
       final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
+      final Optional<KsqlAuthorizationProvider> externalAuthorizationProvider
+  ) {
+    final Optional<KsqlAccessValidator> accessValidator = getAccessValidator(
+        ksqlConfig,
+        serviceContext,
+        externalAuthorizationProvider
+    );
+
+    return accessValidator.map(v ->
+        new KsqlAuthorizationValidatorImpl(cacheIfEnabled(ksqlConfig, v)));
+  }
+
+  private static Optional<KsqlAccessValidator> getAccessValidator(
+      final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
+      final Optional<KsqlAuthorizationProvider> externalAuthorizationProvider
+  ) {
+    if (externalAuthorizationProvider.isPresent()) {
+      return Optional.of(new KsqlProvidedAccessValidator(externalAuthorizationProvider.get()));
+    } else if (isTopicAccessValidatorEnabled(ksqlConfig, serviceContext)) {
+      return Optional.of(new KsqlBackendAccessValidator());
+    }
+
+    return Optional.empty();
+  }
+
+  private static KsqlAccessValidator cacheIfEnabled(
+      final KsqlConfig ksqlConfig,
+      final KsqlAccessValidator accessValidator
+  ) {
+    return isCacheEnabled(ksqlConfig)
+        ? new KsqlCacheAccessValidator(ksqlConfig, accessValidator)
+        : accessValidator;
+  }
+
+  private static boolean isCacheEnabled(final KsqlConfig ksqlConfig) {
+    // The cache expiry time is used to decided whether to enable the cache or not
+    return ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS) > 0;
+  }
+
+  private static boolean isTopicAccessValidatorEnabled(
+      final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext
   ) {
     final String enabled = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR);
     if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON)) {
-      LOG.info("Forcing topic access validator");
-      return Optional.of(createAuthorizationValidator(ksqlConfig));
+      return true;
     } else if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF)) {
-      return Optional.empty();
+      return false;
     }
 
+    // If KSQL_ACCESS_VALIDATOR_AUTO, then check if Kafka has an authorizer enabled
     final Admin adminClient = serviceContext.getAdminClient();
-
     if (isKafkaAuthorizerEnabled(adminClient)) {
       if (KafkaClusterUtil.isAuthorizedOperationsSupported(adminClient)) {
         LOG.info("KSQL topic authorization checks enabled.");
-        return Optional.of(createAuthorizationValidator(ksqlConfig));
+        return true;
       }
 
       LOG.warn("The Kafka broker has an authorization service enabled, but the Kafka "
           + "version does not support authorizedOperations(). "
           + "KSQL topic authorization checks will not be enabled.");
     }
-    return Optional.empty();
-  }
 
-  private static KsqlAuthorizationValidator createAuthorizationValidator(
-      final KsqlConfig ksqlConfig
-  ) {
-    KsqlAccessValidator accessValidator = new KsqlBackendAccessValidator();
-
-    // The cache expiry time is used to decided whether to enable the cache or not
-    final long expiryTime = ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS);
-    if (expiryTime > 0) {
-      accessValidator = new KsqlCacheAccessValidator(ksqlConfig, accessValidator);
-    }
-
-    return new KsqlAuthorizationValidatorImpl(accessValidator);
+    return false;
   }
 
   private static boolean isKafkaAuthorizerEnabled(final Admin adminClient) {

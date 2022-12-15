@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.parser;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
@@ -37,8 +36,7 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 public class DefaultKsqlParser implements KsqlParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  @VisibleForTesting
-  static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
+  public static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
 
   @Override
   public List<ParsedStatement> parse(final String sql) {

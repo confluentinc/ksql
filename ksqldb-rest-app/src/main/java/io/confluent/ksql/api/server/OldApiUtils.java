@@ -138,30 +138,34 @@ public final class OldApiUtils {
       final long startTimeNanos) {
     final WorkerExecutor workerExecutor = server.getWorkerExecutor();
     final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
-    workerExecutor.executeBlocking(promise -> {
-      final OutputStream ros = new ResponseOutputStream(routingContext.response(),
-          streamingOutput.getWriteTimeoutMs());
-      routingContext.request().connection().closeHandler(v -> {
-        // Close the OutputStream on close of the HTTP connection
-        try {
-          ros.close();
-        } catch (IOException e) {
-          promise.fail(e);
-        }
-      });
-      try {
-        streamingOutput.write(new BufferedOutputStream(ros));
-        promise.complete();
-      } catch (Exception e) {
-        promise.fail(e);
-      } finally {
-        try {
-          ros.close();
-        } catch (IOException ignore) {
-          // Ignore - it might already be closed
-        }
-      }
-    }, vcf);
+    workerExecutor.executeBlocking(
+        promise -> {
+          final OutputStream ros = new ResponseOutputStream(routingContext.response(),
+                  streamingOutput.getWriteTimeoutMs());
+          routingContext.request().connection().closeHandler(v -> {
+            // Close the OutputStream on close of the HTTP connection
+            try {
+              ros.close();
+            } catch (IOException e) {
+              promise.fail(e);
+            }
+          });
+          try {
+            streamingOutput.write(new BufferedOutputStream(ros));
+            promise.complete();
+          } catch (Exception e) {
+            promise.fail(e);
+          } finally {
+            try {
+              ros.close();
+            } catch (IOException ignore) {
+              // Ignore - it might already be closed
+            }
+          }
+        },
+        false /*if this is true, worker execution blocks the main event loop*/,
+        vcf
+    );
     vcf.handle((v, throwable) -> {
       reportMetrics(routingContext, metricsCallbackHolder, startTimeNanos);
       return null;
@@ -174,6 +178,7 @@ public final class OldApiUtils {
       final long startTimeNanos
   ) {
     metricsCallbackHolder.ifPresent(mc -> mc.reportMetrics(
+        routingContext.response().getStatusCode(),
         routingContext.request().bytesRead(),
         routingContext.response().bytesWritten(),
         startTimeNanos));

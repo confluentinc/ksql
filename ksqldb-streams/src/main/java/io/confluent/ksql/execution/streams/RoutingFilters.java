@@ -27,8 +27,12 @@ public final class RoutingFilters implements RoutingFilter {
     this.routingFilters = Objects.requireNonNull(routingFilters, "routingFilters");
   }
 
-  public  boolean filter(final KsqlHostInfo host) {
+  public Host filter(final KsqlHostInfo host) {
     return routingFilters.stream()
-        .allMatch(f -> f.filter(host));
+        .reduce(
+            Host.include(host),
+            (combined, rFilter) -> combined.combine(rFilter.filter(host)),
+            Host::combine
+        );
   }
 }

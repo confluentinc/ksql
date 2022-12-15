@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -119,10 +120,12 @@ public class GenericSerializerTest {
 
     private final List<?> values;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public TestListWrapper(final List<?> values) {
       this.values = values;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<?> getList() {
       return values;
     }

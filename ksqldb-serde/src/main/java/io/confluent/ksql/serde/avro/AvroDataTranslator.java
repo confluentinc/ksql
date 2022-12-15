@@ -17,6 +17,8 @@ package io.confluent.ksql.serde.avro;
 
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
+import io.confluent.ksql.util.DecimalUtil;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -117,7 +119,12 @@ public class AvroDataTranslator implements DataTranslator {
 
       case STRUCT:
         return convertStruct((Struct) object, schema);
-
+      case BYTES:
+        if (DecimalUtil.isDecimal(schema)) {
+          return DecimalUtil.ensureFit((BigDecimal) object, schema);
+        } else {
+          return object;
+        }
       default:
         return object;
     }

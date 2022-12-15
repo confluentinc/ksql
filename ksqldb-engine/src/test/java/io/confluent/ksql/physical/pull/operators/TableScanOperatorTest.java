@@ -76,5 +76,6 @@ public class TableScanOperatorTest {
     assertThat(lookupOperator.next(), is(ROW3_1));
     assertThat(lookupOperator.next(), is(ROW3_2));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(4L));
   }
 }

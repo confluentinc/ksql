@@ -57,7 +57,7 @@ public class WelcomeMsgUtilsTest {
         + "                  =      |   <\\__ \\ (_| | | |_| | |_) |     =\n"
         + "                  =      |_|\\_\\___/\\__, |_|____/|____/      =\n"
         + "                  =                   |_|                   =\n"
-        + "                  =  Event Streaming Database purpose-built =\n"
+        + "                  =        The Database purpose-built       =\n"
         + "                  =        for stream processing apps       =\n"
         + "                  ===========================================\n"
         + "\n"

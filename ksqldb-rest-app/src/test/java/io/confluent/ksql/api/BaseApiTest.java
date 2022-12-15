@@ -55,6 +55,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,10 +65,10 @@ public class BaseApiTest {
   protected static final Logger log = LoggerFactory.getLogger(BaseApiTest.class);
 
   protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("f_str").add("f_int")
-      .add("f_bool").add("f_long").add("f_double").add("f_decimal")
+      .add("f_bool").add("f_long").add("f_double").add("f_decimal").add("f_bytes")
       .add("f_array").add("f_map").add("f_struct").add("f_null");
   protected static final JsonArray DEFAULT_COLUMN_TYPES = new JsonArray().add("STRING").add("INTEGER")
-      .add("BOOLEAN").add("BIGINT").add("DOUBLE").add("DECIMAL(4, 2)")
+      .add("BOOLEAN").add("BIGINT").add("DOUBLE").add("DECIMAL(4, 2)").add("BYTES")
       .add("ARRAY<STRING>").add("MAP<STRING, STRING>").add("STRUCT<`F1` STRING, `F2` INTEGER>").add("INTEGER");
   protected static final Schema F_STRUCT_SCHEMA = SchemaBuilder.struct()
         .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
@@ -87,6 +89,9 @@ public class BaseApiTest {
   protected Server server;
   protected TestEndpoints testEndpoints;
   protected ServerState serverState;
+
+  @Rule
+  public final Timeout timeout = Timeout.seconds(90);
 
   @Before
   public void setUp() {
@@ -258,6 +263,7 @@ public class BaseApiTest {
         index * index,
         index + 0.1111,
         BigDecimal.valueOf(index + 0.1),
+        new byte[]{0, 1, 2, 3, 4, 5},
         ImmutableList.of("s" + index, "t" + index),
         ImmutableMap.of("k" + index, "v" + index),
         structField,

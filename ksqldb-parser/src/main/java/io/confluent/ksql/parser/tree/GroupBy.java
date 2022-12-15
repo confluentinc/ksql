@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.util.KsqlException;
@@ -53,6 +54,10 @@ public class GroupBy extends AstNode {
     });
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "groupingExpressions is ImmutableList"
+  )
   public List<Expression> getGroupingExpressions() {
     return groupingExpressions;
   }

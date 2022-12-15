@@ -27,6 +27,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -34,6 +35,7 @@ import static org.hamcrest.Matchers.not;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.api.AuthTest.StringPrincipal;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.server.KsqlApiException;
@@ -60,6 +62,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
@@ -109,7 +112,7 @@ public class PullQueryRoutingFunctionalTest {
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
   private static final int HEADER = 1;
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private static final TemporaryFolder TMP = new TemporaryFolder();
+  private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
   private static final int BASE_TIME = 1_000_000;
   private final static String KEY = USER_PROVIDER.getStringKey(0);
   private final static String KEY1 = USER_PROVIDER.getStringKey(1);
@@ -231,7 +234,7 @@ public class PullQueryRoutingFunctionalTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(1, TimeUnit.MINUTES)
+      .withTimeout(2, TimeUnit.MINUTES)
       .withLookingForStuckThread(true)
       .build();
 
@@ -349,8 +352,8 @@ public class PullQueryRoutingFunctionalTest {
         makePullQueryWsRequest(clusterFormation.router.getApp().getWsListener(), sql, "", "", credentials, Optional.empty(), Optional.empty());
 
     // Then:
-    // websocket pull query returns a header, the value row
-    assertThat(rows_0, hasSize(HEADER + 1));
+    // websocket pull query returns a header, the value row, and an error row indicating that it is done
+    assertThat(rows_0, hasSize(HEADER + 2));
   }
 
   @Test
@@ -489,7 +492,7 @@ public class PullQueryRoutingFunctionalTest {
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
         HighAvailabilityTestUtil.lagsReported(clusterFormation.standBy.getHost(),
-            Optional.empty(), 5),
+            Optional.of(5L), 5),
         USER_CREDS);
 
     // Cut off standby from Kafka to simulate lag
@@ -508,7 +511,7 @@ public class PullQueryRoutingFunctionalTest {
     // Make sure that the lags get reported before we kill active
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
-        HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.empty(),
+        HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.of(10L),
             10),
         USER_CREDS);
 
@@ -542,8 +545,9 @@ public class PullQueryRoutingFunctionalTest {
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
         clusterFormation.router.getApp(), sql, LAG_FILTER_3);
     Assert.assertEquals(40001, errorMessage.getErrorCode());
-    Assert.assertTrue(
-        errorMessage.getMessage().contains("All nodes are dead or exceed max allowed lag."));
+    assertThat(errorMessage.getMessage(), containsString("Partition 0 failed to find valid host."));
+    assertThat(errorMessage.getMessage(), containsString("was not selected because Host is not alive as of "));
+    assertThat(errorMessage.getMessage(), containsString("was not selected because Host excluded because lag 5 exceeds maximum allowed lag 3"));
   }
 
   private static KsqlErrorMessage makePullQueryRequestWithError(

@@ -6,11 +6,7 @@ description: Syntax for the CREATE TABLE AS SELECT statement in ksqlDB
 keywords: ksqlDB, create, table, push query
 ---
 
-CREATE TABLE AS SELECT
-======================
-
-Synopsis
---------
+## Synopsis
 
 ```sql
 CREATE [OR REPLACE] TABLE table_name
@@ -25,14 +21,15 @@ CREATE [OR REPLACE] TABLE table_name
   [ EMIT CHANGES ];
 ```
 
-Description
------------
+## Description
 
 Create a new ksqlDB materialized table view, along with the corresponding Kafka topic, and
 stream the result of the query as a changelog into the topic.
 
-Note that the WINDOW clause can only be used if the `from_item` is a stream and the query contains
+The WINDOW clause can only be used if the `from_item` is a stream and the query contains
 a `GROUP BY` clause.
+
+### Joins
 
 Joins to streams can use any stream column. If the join criteria is not the key column of the stream
 ksqlDB will internally repartition the data. 
@@ -44,38 +41,61 @@ ksqlDB will internally repartition the data.
     messages. The use case will determine if these ordering guarantees are
     acceptable.
 
-Joins to tables must use the table's PRIMARY KEY as the join criteria: none primary key joins are 
-[not yet supported](https://github.com/confluentinc/ksql/issues/4424).
-For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
+Joins to tables must use the table's PRIMARY KEY as the join criteria: non-key joins are 
+not supported. For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
 
 See [Partition Data to Enable Joins](../joins/partition-data.md) for more information about how to
 correctly partition your data for joins.
 
+!!! note
+
+    - Partitioning streams and tables is especially important for stateful or otherwise
+      intensive queries. For more information, see
+      [Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
+    - Once a table is created, you can't change the number of partitions.
+      To change the partition count, you must drop the table and create it again.
+
 The primary key of the resulting table is determined by the following rules, in order of priority:
- 1. if the query has a  `GROUP BY`, then the resulting number of primary key columns will match the
-    number of grouping expressions. For each grouping expression: 
-    1. if the grouping expression is a single source column reference, the corresponding primary key
-       column will match the name, type and contents of the source column.
-    1. if the grouping expression is a reference to a field within a `STRUCT`-type column, then the
-       corresponding primary key column will match the name, type, and contents of the `STRUCT` field.
-    1. if the `GROUP BY` is any other expression, the primary key will have a system 
-       generated name, unless you provide an alias in the projection, and will match the type and 
-       contents of the result of the expression.
- 1. if the query has a join see [Join Synthetic Key Columns](/developer-guide/joins/synthetic-keys) for more info.
- 1. otherwise, the primary key will match the name, unless you provide an alias in the projection, 
-    and type of the source table's primary key.
+
+1. If the query has a  `GROUP BY`, then the resulting number of primary key
+   columns will match the number of grouping expressions. For each grouping
+   expression: 
+
+    1. If the grouping expression is a single source-column reference, the
+       corresponding primary key column matches the name, type, and contents
+       of the source column.
+
+    2. If the grouping expression is a reference to a field within a
+       `STRUCT`-type column, the corresponding primary key column matches the
+       name, type, and contents of the `STRUCT` field.
+
+    3. If the `GROUP BY` is any other expression, the primary key has a
+       system-generated name, unless you provide an alias in the projection,
+       and matches the type and contents of the result of the expression.
+
+1. If the query has a join. For more information, see
+   [Join Synthetic Key Columns](/developer-guide/joins/synthetic-keys).
+1. Otherwise, the primary key matches the name, unless you provide an alias
+   in the projection, and type of the source table's primary key.
  
 The projection must include all columns required in the result, including any primary key columns.
+
+### Serialization
 
 For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
 The schema is registered under the subject `<topic-name>-value`.
 
+### Windowed aggregation
+
 Specify the WINDOW clause to create a windowed aggregation. For more information,
 see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
 
-The WITH clause supports the following properties:
+## Table properties
+
+Specify details about your table by using the WITH clause, which supports the
+following properties:
 
 |     Property      |                                             Description                                              |
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -84,7 +104,7 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
 | FORMAT            | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](/reference/serialization). |
 | VALUE_DELIMITER   | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
-| PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-most stream or table. |
+| PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-most stream or table. You can't change the number of partitions on a table. To change the partition count, you must drop the table and create it again. |
 | REPLICAS          | The replication factor for the topic. If this property is not set, then the number of replicas of the input stream or table will be used. In join queries, the property values are taken from the left-most stream or table. |
 | TIMESTAMP         | Sets a column within this stream's schema to be used as the default source of `ROWTIME` for any downstream queries. Downstream queries that use time-based operations, such as windowing, will process records in this stream based on the timestamp in this column. The column will be used to set the timestamp on any records emitted to Kafka. Timestamps have a millisecond accuracy. If not supplied, the `ROWTIME` of the source stream is used. <br>**Note**: This doesn't affect the processing of the query that populates this stream. For example, given the following statement:<br><pre>CREATE STREAM foo WITH (TIMESTAMP='t2') AS<br>&#0009;SELECT * FROM bar<br>&#0009;WINDOW TUMBLING (size 10 seconds);<br>&#0009;EMIT CHANGES;</pre>The window into which each row of `bar` is placed is determined by bar's `ROWTIME`, not `t2`. |
 | TIMESTAMP_FORMAT  | Used in conjunction with TIMESTAMP. If not set the timestamp column must be of type `bigint`. If it is set, then the TIMESTAMP column must be of type varchar and have a format that can be parsed with the Java `DateTimeFormatter`. If your timestamp format has characters requiring single quotes, you can escape them with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`. For more information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf). |
@@ -109,7 +129,8 @@ CREATE TABLE derived AS
     b,
     d
   FROM source
-  WHERE A is not null;
+  WHERE A is not null
+  EMIT CHANGES;
 ```
 
 ```sql
@@ -121,7 +142,8 @@ CREATE TABLE weeklyMusicCharts AS
    FROM playStream p
       JOIN songs s ON p.song_id = s.id
    WINDOW TUMBLING (7 DAYS)
-   GROUP BY s.songName;
+   GROUP BY s.songName
+   EMIT CHANGES;
 ```
 
 ```sql

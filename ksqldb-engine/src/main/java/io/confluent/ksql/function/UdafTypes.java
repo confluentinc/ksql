@@ -30,6 +30,9 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
@@ -56,11 +59,14 @@ class UdafTypes {
       .add(Struct.class)
       .add(List.class)
       .add(Map.class)
+      .add(Date.class)
+      .add(Time.class)
       .add(Timestamp.class)
       .add(TimeUnit.class)
       .add(Function.class)
       .add(BiFunction.class)
       .add(TriFunction.class)
+      .add(ByteBuffer.class)
       .build();
 
   private final Type inputType;

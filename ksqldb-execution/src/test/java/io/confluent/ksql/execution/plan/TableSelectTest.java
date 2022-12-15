@@ -14,17 +14,17 @@
 
 package io.confluent.ksql.execution.plan;
 
-import static org.mockito.Mockito.mock;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -39,6 +39,10 @@ public class TableSelectTest {
   private ExecutionStep<KTableHolder<Struct>> source1;
   @Mock
   private ExecutionStep<KTableHolder<Struct>> source2;
+  @Mock
+  private Optional<Formats> internalFormats1;
+  @Mock
+  private Optional<Formats> internalFormats2;
 
   private List<ColumnName> keys1;
   private List<ColumnName> keys2;
@@ -57,13 +61,14 @@ public class TableSelectTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableSelect<>(properties1, source1, keys1, selects1),
-            new TableSelect<>(properties1, source1, keys1, selects1)
+            new TableSelect<>(properties1, source1, keys1, selects1, internalFormats1),
+            new TableSelect<>(properties1, source1, keys1, selects1, internalFormats1)
         )
-        .addEqualityGroup(new TableSelect<>(properties2, source1, keys1, selects1))
-        .addEqualityGroup(new TableSelect<>(properties1, source2, keys1, selects1))
-        .addEqualityGroup(new TableSelect<>(properties1, source1, keys2, selects1))
-        .addEqualityGroup(new TableSelect<>(properties1, source1, keys1, selects2))
+        .addEqualityGroup(new TableSelect<>(properties2, source1, keys1, selects1, internalFormats1))
+        .addEqualityGroup(new TableSelect<>(properties1, source2, keys1, selects1, internalFormats1))
+        .addEqualityGroup(new TableSelect<>(properties1, source1, keys2, selects1, internalFormats1))
+        .addEqualityGroup(new TableSelect<>(properties1, source1, keys1, selects2, internalFormats1))
+        .addEqualityGroup(new TableSelect<>(properties1, source1, keys1, selects1, internalFormats2))
         .testEquals();
   }
 }

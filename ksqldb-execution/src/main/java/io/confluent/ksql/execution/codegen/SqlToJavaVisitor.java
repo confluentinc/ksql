@@ -40,12 +40,14 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -95,7 +97,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
-import io.confluent.ksql.schema.ksql.SqlTimestamps;
+import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -131,8 +133,13 @@ public class SqlToJavaVisitor {
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
+      "io.confluent.ksql.logging.processing.RecordProcessingError",
+      "java.lang.reflect.InvocationTargetException",
       "java.util.concurrent.TimeUnit",
+      "java.sql.Time",
+      "java.sql.Date",
       "java.sql.Timestamp",
+      "java.nio.ByteBuffer",
       "java.util.Arrays",
       "java.util.HashMap",
       "java.util.Map",
@@ -161,7 +168,7 @@ public class SqlToJavaVisitor {
       InListEvaluator.class.getCanonicalName(),
       SqlDoubles.class.getCanonicalName(),
       SqlBooleans.class.getCanonicalName(),
-      SqlTimestamps.class.getCanonicalName()
+      SqlTimeTypes.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -329,6 +336,16 @@ public class SqlToJavaVisitor {
     }
 
     @Override
+    public Pair<String, SqlType> visitBytesLiteral(
+        final BytesLiteral node, final Context context
+    ) {
+      return new Pair<>(
+          node.toString(),
+          SqlTypes.BYTES
+      );
+    }
+
+    @Override
     public Pair<String, SqlType> visitTimestampLiteral(
         final TimestampLiteral node, final Context context
     ) {
@@ -337,10 +354,18 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitTimeLiteral(
-        final TimeLiteral timeLiteral,
+        final TimeLiteral node,
         final Context context
     ) {
-      return visitUnsupported(timeLiteral);
+      return new Pair<>(node.toString(), SqlTypes.TIME);
+    }
+
+    @Override
+    public Pair<String, SqlType> visitDateLiteral(
+        final DateLiteral node,
+        final Context context
+    ) {
+      return new Pair<>(node.toString(), SqlTypes.DATE);
     }
 
     @Override
@@ -661,7 +686,7 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private String visitBytesComparisonExpression(
+    private String visitDecimalComparisonExpression(
         final ComparisonExpression.Type type, final SqlType left, final SqlType right
     ) {
       final String comparator = SQL_COMPARE_TO_JAVA.get(type);
@@ -700,39 +725,89 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private String visitTimestampComparisonExpression(
+    private String visitTimeComparisonExpression(
         final ComparisonExpression.Type type,
         final SqlType left,
         final SqlType right
     ) {
       final String comparator = SQL_COMPARE_TO_JAVA.get(type);
       if (comparator == null) {
-        throw new KsqlException("Unexpected timestamp comparison: " + type.getValue());
+        throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
+      }
+
+      final String compareLeft;
+      final String compareRight;
+
+      if (left.baseType() == SqlBaseType.TIME || right.baseType() == SqlBaseType.TIME) {
+        compareLeft = toTime(left, 1);
+        compareRight = toTime(right, 2);
+      } else if (
+          left.baseType() == SqlBaseType.TIMESTAMP || right.baseType() == SqlBaseType.TIMESTAMP
+      ) {
+        compareLeft = toTimestamp(left, 1);
+        compareRight = toTimestamp(right, 2);
+      } else {
+        compareLeft = toDate(left, 1);
+        compareRight = toDate(right, 2);
       }
 
       return String.format(
           "(%s.compareTo(%s) %s 0)",
-          toTimestamp(left, 1),
-          toTimestamp(right, 2),
+          compareLeft,
+          compareRight,
           comparator
       );
+    }
+
+    private String toTime(final SqlType schema, final int index) {
+      switch (schema.baseType()) {
+        case TIME:
+          return "%" + index + "$s";
+        case STRING:
+          return "SqlTimeTypes.parseTime(%" + index + "$s)";
+        default:
+          throw new KsqlException("Unexpected comparison to TIME: " + schema.baseType());
+      }
+    }
+
+    private String toDate(final SqlType schema, final int index) {
+      switch (schema.baseType()) {
+        case DATE:
+          return "%" + index + "$s";
+        case STRING:
+          return "SqlTimeTypes.parseDate(%" + index + "$s)";
+        default:
+          throw new KsqlException("Unexpected comparison to DATE: " + schema.baseType());
+      }
     }
 
     private String toTimestamp(final SqlType schema, final int index) {
       switch (schema.baseType()) {
         case TIMESTAMP:
+        case DATE:
           return "%" + index + "$s";
         case STRING:
-          return "SqlTimestamps.parseTimestamp(%" + index + "$s)";
+          return "SqlTimeTypes.parseTimestamp(%" + index + "$s)";
         default:
           throw new KsqlException("Unexpected comparison to TIMESTAMP: " + schema.baseType());
       }
     }
 
+    private String visitBytesComparisonExpression(final ComparisonExpression.Type type) {
+      final String comparator = SQL_COMPARE_TO_JAVA.get(type);
+      if (comparator == null) {
+        throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
+      }
+
+      return "(%1$s.compareTo(%2$s) " + comparator + " 0)";
+    }
+
+    // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
     @Override
     public Pair<String, SqlType> visitComparisonExpression(
         final ComparisonExpression node, final Context context
     ) {
+      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       final Pair<String, SqlType> left = process(node.getLeft(), context);
       final Pair<String, SqlType> right = process(node.getRight(), context);
 
@@ -740,11 +815,10 @@ public class SqlToJavaVisitor {
 
       if (left.getRight().baseType() == SqlBaseType.DECIMAL
           || right.getRight().baseType() == SqlBaseType.DECIMAL) {
-        exprFormat += visitBytesComparisonExpression(
+        exprFormat += visitDecimalComparisonExpression(
             node.getType(), left.getRight(), right.getRight());
-      } else if (left.getRight().baseType() == SqlBaseType.TIMESTAMP
-          || right.getRight().baseType() == SqlBaseType.TIMESTAMP) {
-        exprFormat += visitTimestampComparisonExpression(
+      } else if (left.getRight().baseType().isTime() || right.getRight().baseType().isTime()) {
+        exprFormat += visitTimeComparisonExpression(
             node.getType(), left.getRight(), right.getRight());
       } else {
         switch (left.getRight().baseType()) {
@@ -762,6 +836,9 @@ public class SqlToJavaVisitor {
             break;
           case BOOLEAN:
             exprFormat += visitBooleanComparisonExpression(node.getType());
+            break;
+          case BYTES:
+            exprFormat += visitBytesComparisonExpression(node.getType());
             break;
           default:
             exprFormat += visitScalarComparisonExpression(node.getType());
@@ -1033,7 +1110,7 @@ public class SqlToJavaVisitor {
 
       for (Expression value : expressions) {
         array.append(".add(");
-        array.append(process(value, context).getLeft());
+        array.append(evaluateOrReturnNull(process(value, context).getLeft(), "array item"));
         array.append(")");
       }
       return new Pair<>(
@@ -1064,8 +1141,8 @@ public class SqlToJavaVisitor {
       final String entries = Streams.zip(
           keys.stream(),
           values.stream(),
-          (k, v) -> ".put(" + process(k, context).getLeft() + ", " + process(v, context).getLeft()
-              + ")"
+          (k, v) -> ".put(" + evaluateOrReturnNull(process(k, context).getLeft(), "map key")
+              + ", " + evaluateOrReturnNull(process(v, context).getLeft(), "map value") + ")"
       ).collect(Collectors.joining());
 
       return new Pair<>(
@@ -1086,13 +1163,33 @@ public class SqlToJavaVisitor {
             .append(field.getName())
             .append('"')
             .append(",")
-            .append(process(field.getValue(), context).getLeft())
+            .append(evaluateOrReturnNull(
+                process(field.getValue(), context).getLeft(), "struct field"))
             .append(")");
       }
       return new Pair<>(
           "((Struct)" + struct.toString() + ")",
           expressionTypeManager.getExpressionSqlType(node, context.getLambdaSqlTypeMapping())
       );
+    }
+
+    private String evaluateOrReturnNull(final String s, final String type) {
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NESTED_ERROR_HANDLING_CONFIG)) {
+        return " (new " + Supplier.class.getSimpleName() + "<Object>() {"
+            + "@Override public Object get() {"
+            + " try {"
+            + "  return " + s + ";"
+            + " } catch (Exception e) {"
+            + "  logger.error(RecordProcessingError.recordProcessingError("
+            + "    \"Error processing " + type + "\","
+            + "    e instanceof InvocationTargetException? e.getCause() : e,"
+            + "    row));"
+            + "  return defaultValue;"
+            + " }"
+            + "}}).get()";
+      } else {
+        return s;
+      }
     }
 
     @Override

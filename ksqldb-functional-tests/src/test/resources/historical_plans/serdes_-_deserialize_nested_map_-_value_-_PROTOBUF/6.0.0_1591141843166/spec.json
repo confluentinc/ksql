@@ -109,7 +109,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated ConnectDefault2Entry FOO = 1;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    int32 value = 2;\n  }\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -118,7 +119,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated ConnectDefault2Entry FOO = 1;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    int32 value = 2;\n  }\n}\n"
         } ]
       }
     }

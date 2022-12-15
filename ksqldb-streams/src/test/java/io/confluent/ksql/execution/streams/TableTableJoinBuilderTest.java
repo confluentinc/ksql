@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
@@ -46,14 +61,14 @@ public class TableTableJoinBuilderTest {
       .keyColumn(L_KEY, SqlTypes.STRING)
       .valueColumn(ColumnName.of("L_BLUE"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("L_GREEN"), SqlTypes.INTEGER)
-      .valueColumn(L_KEY, SqlTypes.STRING)
+      .valueColumn(L_KEY, SqlTypes.STRING) // Copy of key in value
       .build();
 
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .keyColumn(R_KEY, SqlTypes.STRING)
       .valueColumn(ColumnName.of("R_RED"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
-      .valueColumn(R_KEY, SqlTypes.STRING)
+      .valueColumn(R_KEY, SqlTypes.STRING) // Copy of key in value
       .build();
 
   @Mock
@@ -193,7 +208,12 @@ public class TableTableJoinBuilderTest {
     // Then:
     assertThat(
         result.getSchema(),
-        is(JoinParamsFactory.create(R_KEY, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+        is(LogicalSchema.builder()
+            .keyColumns(RIGHT_SCHEMA.key())
+            .valueColumns(LEFT_SCHEMA.value())
+            .valueColumns(RIGHT_SCHEMA.value())
+            .build()
+        )
     );
   }
 
@@ -208,7 +228,12 @@ public class TableTableJoinBuilderTest {
     // Then:
     assertThat(
         result.getSchema(),
-        is(JoinParamsFactory.create(SYNTH_KEY, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+        is(LogicalSchema.builder()
+            .keyColumn(SYNTH_KEY, SqlTypes.STRING)
+            .valueColumns(LEFT_SCHEMA.value())
+            .valueColumns(RIGHT_SCHEMA.value())
+            .valueColumn(SYNTH_KEY, SqlTypes.STRING)
+            .build())
     );
   }
 
@@ -229,7 +254,12 @@ public class TableTableJoinBuilderTest {
     // Then:
     assertThat(
         result.getSchema(),
-        is(JoinParamsFactory.create(ROWKEY_NAME, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+        is(LogicalSchema.builder()
+            .keyColumn(ROWKEY_NAME, SqlTypes.STRING)
+            .valueColumns(LEFT_SCHEMA.value())
+            .valueColumns(RIGHT_SCHEMA.value())
+            .valueColumn(ROWKEY_NAME, SqlTypes.STRING)
+            .build())
     );
   }
 

@@ -1,0 +1,1 @@
+INSERT INTO stream1 SELECT column1, column2, column3 FROM source1 INNER JOIN source2 WITHIN '0' SECOND ON anonKey1=anonKey2;

@@ -23,7 +23,9 @@ import io.confluent.ksql.util.KsqlException;
 
 public final class LogicalBinaryTerms {
 
-  private LogicalBinaryTerms() { }
+  private LogicalBinaryTerms() {
+
+  }
 
   public static class AndTerm implements Term {
     private final Term left;

@@ -39,6 +39,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TopicDescription;
@@ -52,6 +53,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.JksOptions;
 import java.math.BigDecimal;
 import java.net.URI;
@@ -78,7 +80,7 @@ public class KsqlClientTest {
   private FakeApiServer server;
   private KsqlClient ksqlClient;
   private String deploymentId;
-  private Map<String, ?> properties;
+  private Map<String, Object> properties;
   private URI serverUri;
 
   @Before
@@ -407,6 +409,54 @@ public class KsqlClientTest {
   }
 
   @Test
+  public void shouldPostQueryRequestStreamedHttp2() throws Exception {
+
+    // Given:
+
+    int numRows = 10;
+    List<List<?>> expectedResponse = setQueryStreamDelimitedResponse(numRows);
+    String sql = "whateva";
+
+    // When:
+    KsqlTarget target = ksqlClient.targetHttp2(serverUri);
+    CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>> future = target
+        .postQueryRequestStreamedAsync(sql, ImmutableMap.of());
+    RestResponse<StreamPublisher<StreamedRow>> response = future.get();
+
+    // Then:
+    assertThat(server.getHttpMethod(), is(HttpMethod.POST));
+
+    assertThat(server.getPath(), is("/query-stream"));
+    assertThat(server.getHeaders().get("Accept"), is("application/vnd.ksqlapi.delimited.v1"));
+    assertThat(getQueryStreamArgs(), is(new QueryStreamArgs(sql, properties,
+        Collections.emptyMap(), Collections.emptyMap())));
+
+    List<StreamedRow> rows = getElementsFromPublisher(numRows + 1, response.getResponse());
+    int i = 0;
+    for (StreamedRow row : rows) {
+      assertThat(row.getRow().isPresent(), is(true));
+      assertThat(row.getRow().get().getColumns(), is(expectedResponse.get(i++)));
+    }
+  }
+
+  @Test
+  public void shouldFailWithNonHttp2Options() {
+    // When:
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new KsqlClient(new HashMap<>(), Optional.empty(),
+            new LocalProperties(properties),
+            new HttpClientOptions().setVerifyHost(false),
+            Optional.of(new HttpClientOptions()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expecting http2 protocol version"
+    ));
+  }
+
+  @Test
   public void shouldExecutePrintTopic() throws Exception {
 
     // Given:
@@ -699,6 +749,16 @@ public class KsqlClientTest {
     return expectedResponse;
   }
 
+  private List<List<?>> setQueryStreamDelimitedResponse(int numRows) {
+    List<List<?>> expectedResponse = new ArrayList<>();
+    for (int i = 0; i < numRows; i++) {
+      GenericRow row = GenericRow.genericRow("foo", 123, true);
+      expectedResponse.add(row.values());
+    }
+    server.setResponseBuffer(createDelimitedResponseBuffer(expectedResponse));
+    return expectedResponse;
+  }
+
   private List<String> setupPrintTopicResponse(int numRows) {
     List<String> expectedResponse = new ArrayList<>();
     Buffer responseBuffer = Buffer.buffer();
@@ -776,13 +836,15 @@ public class KsqlClientTest {
   private void createClient(Optional<BasicCredentials> credentials) {
     ksqlClient = new KsqlClient(new HashMap<>(), credentials,
         new LocalProperties(properties),
-        new HttpClientOptions().setVerifyHost(false));
+        new HttpClientOptions().setVerifyHost(false),
+        Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)));
   }
 
   private void createClient(Map<String, String> clientProps) {
     ksqlClient = new KsqlClient(clientProps, Optional.empty(),
         new LocalProperties(properties),
-        new HttpClientOptions().setVerifyHost(false));
+        new HttpClientOptions().setVerifyHost(false),
+        Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)));
   }
 
   private String toAuthHeader(BasicCredentials credentials) {
@@ -793,6 +855,10 @@ public class KsqlClientTest {
 
   private KsqlRequest getKsqlRequest() {
     return KsqlClientUtil.deserialize(server.getBody(), KsqlRequest.class);
+  }
+
+  private QueryStreamArgs getQueryStreamArgs() {
+    return KsqlClientUtil.deserialize(server.getBody(), QueryStreamArgs.class);
   }
 
   private static Buffer createResponseBuffer(List<StreamedRow> rows) {
@@ -811,6 +877,23 @@ public class KsqlClientTest {
       }
     }
     buffer.appendString("]");
+    return buffer;
+  }
+
+  private static Buffer createDelimitedResponseBuffer(List<List<?>> rows) {
+    // The old API returns rows in a strange format - it looks like a JSON array but it isn't.
+    // There are newlines separating the elements which are illegal in JSON
+    // And there can be an extra comma after the last element
+    // There can also be random newlines in the response
+    Buffer buffer = Buffer.buffer();
+    for (int i = 0; i < rows.size(); i++) {
+      buffer.appendBuffer(KsqlClientUtil.serialize(rows.get(i)));
+      buffer.appendString(",\n");
+      if (i == rows.size() / 2) {
+        // insert a random newline for good measure - the server can actually do this
+        buffer.appendString("\n");
+      }
+    }
     return buffer;
   }
 

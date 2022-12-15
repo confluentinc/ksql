@@ -41,6 +41,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
@@ -160,7 +161,9 @@ public class InsertsStreamRunner extends BasePerfRunner {
 
     @Override
     public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-        final JsonObject properties,
+        final Map<String, Object> properties,
+        final Map<String, Object> sessionVariables,
+        final Map<String, Object> requestProperties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
@@ -194,7 +197,8 @@ public class InsertsStreamRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
+        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder,
+        Context context) {
       return null;
     }
 
@@ -218,6 +222,12 @@ public class InsertsStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
         String action, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
       return null;
     }
 
@@ -253,7 +263,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
 
     @Override
     public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
     }
   }

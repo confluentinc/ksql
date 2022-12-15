@@ -47,6 +47,6 @@ public enum PlanJsonMapper {
       .setSerializationInclusion(Include.NON_EMPTY);
 
   public ObjectMapper get() {
-    return mapper;
+    return mapper.copy();
   }
 }

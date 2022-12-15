@@ -18,15 +18,15 @@ The previous statement seems straightforward enough: create a new table that's t
 performing a full outer join of two source tables, joining on their ID columns. But in a 
 full-outer join, either `L.ID` or `R.ID` may be missing (`NULL`), or both 
 may have the same value. Since the data produced to {{ site.aktm }} should always have a non-null 
-message key, ksql selects the first non-null key to use:
+record key, ksql selects the first non-null key to use:
 
-| L.ID  | R.ID | Kafka message key |
+| L.ID  | R.ID | Kafka record key |
 |-------|------|:------------------|
 |  10   | null | 10                |
 |  null | 7    | 7                 |
 |  8    | 8    | 8                 |
 
-The data stored in the {{ site.ak }} message's key may not match either of the source `ID`
+The data stored in the {{ site.ak }} record's key may not match either of the source `ID`
 columns. Instead, it's a new column: a *synthetic* column, which means a column that doesn't belong
 to either source table.
 

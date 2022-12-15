@@ -17,7 +17,7 @@ Motivated by discussion on [Gihub issue #3734](https://github.com/confluentinc/k
 `ROWTIME`s current status as a column within a source's schema is confusing for users and confusing in the code base.
 It is not a column name users can use within `CREATE TABLE` style statements, nor set within a 
 `CREATE TABLE AS SELECT` statement. It is not a field within their data. 
-It is a implicit column added to represent the event-time the system uses when processing the message.
+It is a implicit column added to represent the event-time the system uses when processing the record.
 
 `ROWTIME` is very similar to the [`ROWNUM` pseudocolumn in Oracle's RDBS](https://docs.oracle.com/cd/B19306_01/server.102/b14200/pseudocolumns009.htm).
 In Oracle, a `SELECT * from Foo` on a table would not include `ROWNUM` in the output, but `ROWNUM` can be included if required:

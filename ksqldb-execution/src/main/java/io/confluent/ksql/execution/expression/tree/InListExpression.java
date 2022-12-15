@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
 import java.util.Objects;
@@ -42,6 +43,7 @@ public class InListExpression extends Expression {
     }
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "values is ImmutableList")
   public List<Expression> getValues() {
     return values;
   }

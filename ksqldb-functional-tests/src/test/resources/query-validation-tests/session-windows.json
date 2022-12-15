@@ -50,17 +50,17 @@
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 0},
-        {"topic": "test_topic", "key": 0,"value": "1", "timestamp": 70010},
-        {"topic": "test_topic", "key": 0,"value": "5", "timestamp": 10009, "comment": "ignored as streamtime(70010) beyond ts(10009) + grace-period(60000)"},
+        {"topic": "test_topic", "key": 0,"value": "1", "timestamp": 100010},
+        {"topic": "test_topic", "key": 0,"value": "5", "timestamp": 10009, "comment": "ignored as streamtime(100010) beyond ts(10009) + grace-period(60000) + gap(30000)"},
         {"topic": "test_topic", "key": 0,"value": "6", "timestamp": 10010},
-        {"topic": "test_topic", "key": 1,"value": "100", "timestamp": 10009, "comment": "ignored as streamtime(70010) beyond ts(10009) + grace-period(60000)"},
+        {"topic": "test_topic", "key": 1,"value": "100", "timestamp": 10009, "comment": "ignored as streamtime(100010) beyond ts(10009) + grace-period(60000) + gap(30000)"},
         {"topic": "test_topic", "key": 1,"value": "101", "timestamp": 10010},
         {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 86412022},
-        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 60000, "comment": "ignored as streamtime(86412022) beyond ts(60000) + grace-period(60000)"}
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 60000, "comment": "ignored as streamtime(86412022) beyond ts(60000) + grace-period(60000) + gap(30000)"}
       ],
       "outputs": [
         {"topic": "S2", "key": 0,"value": "0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
-        {"topic": "S2", "key": 0,"value": "1", "timestamp": 70010, "window": {"start": 70010, "end": 70010, "type": "session"}},
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 100010, "window": {"start": 100010, "end": 100010, "type": "session"}},
         {"topic": "S2", "key": 0,"value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
         {"topic": "S2", "key": 0,"value": "6", "timestamp": 10010, "window": {"start": 0, "end": 10010, "type": "session"}},
         {"topic": "S2", "key": 1,"value": "101", "timestamp": 10010, "window": {"start": 10010, "end": 10010, "type": "session"}},

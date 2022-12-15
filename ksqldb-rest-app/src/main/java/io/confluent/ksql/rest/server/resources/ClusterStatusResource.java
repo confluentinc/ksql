@@ -36,8 +36,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
+import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 /**
  * Endpoint that reports the view of the cluster that this server has.
@@ -102,7 +103,7 @@ public class ClusterStatusResource {
     final Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
     for (PersistentQueryMetadata persistentQueryMetadata: engine.getPersistentQueries()) {
       for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllMetadata()) {
-        if (streamsMetadata == StreamsMetadata.NOT_AVAILABLE
+        if (streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)
             || !streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {
           continue;
         }

@@ -1,0 +1,1 @@
+CREATE SOURCE CONNECTOR connector WITH (connector.class='[string]', connection.url='[string]', mode='[string]', topic.prefix='[string]', table.whitelist='[string]', key='[string]');

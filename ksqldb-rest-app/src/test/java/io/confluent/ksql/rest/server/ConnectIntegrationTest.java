@@ -255,7 +255,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
-  public void shouldReadTimestampsFromConnect() {
+  public void shouldReadTimeTypesFromConnect() {
     // Given:
     create("mock-source", ImmutableMap.<String, String> builder()
         .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
@@ -266,18 +266,22 @@ public class ConnectIntegrationTest {
         .put("topic.creation.default.partitions", "1")
         .build());
 
-    final long start = System.nanoTime();
-    RestResponse<KsqlEntityList> response;
-    do {
-      response = ksqlRestClient.makeKsqlRequest("CREATE STREAM FOO (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
-    } while(!response.isSuccessful() && System.nanoTime() - start < TIMEOUT_NS);
+    makeKsqlRequest("CREATE STREAM TIMESTAMP_STREAM (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
+    makeKsqlRequest("CREATE STREAM TIME_STREAM (PAYLOAD TIME) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
+    makeKsqlRequest("CREATE STREAM DATE_STREAM (PAYLOAD DATE) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
 
     // When:
-    final RestResponse<List<StreamedRow>> queryFoo = ksqlRestClient.makeQueryRequest("SELECT * FROM FOO EMIT CHANGES LIMIT 1;", 1L);
+    final RestResponse<List<StreamedRow>> queryTimestamp = ksqlRestClient.makeQueryRequest("SELECT * FROM TIMESTAMP_STREAM EMIT CHANGES LIMIT 1;", 1L);
+    final RestResponse<List<StreamedRow>> queryTime = ksqlRestClient.makeQueryRequest("SELECT * FROM TIME_STREAM EMIT CHANGES LIMIT 1;", 1L);
+    final RestResponse<List<StreamedRow>> queryDate = ksqlRestClient.makeQueryRequest("SELECT * FROM DATE_STREAM EMIT CHANGES LIMIT 1;", 1L);
 
     // Then:
-    assertThat("successfully queried FOO", queryFoo.isSuccessful());
-    assertThat(queryFoo.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01T00:00:00.000"));
+    assertThat("successfully queried TIMESTAMP_STREAM", queryTimestamp.isSuccessful());
+    assertThat("successfully queried TIME_STREAM", queryTime.isSuccessful());
+    assertThat("successfully queried DATE_STREAM", queryDate.isSuccessful());
+    assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01T00:00:00.000"));
+    assertThat(queryTime.getResponse().get(1).getRow().get().getColumns().get(0), is("00:00"));
+    assertThat(queryDate.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01"));
   }
 
   @Test
@@ -330,4 +334,11 @@ public class ConnectIntegrationTest {
     LOG.info("Got response from Connect: {}", response);
   }
 
+  private void makeKsqlRequest(final String request) {
+    final long start = System.nanoTime();
+    RestResponse<KsqlEntityList> response;
+    do {
+      response = ksqlRestClient.makeKsqlRequest(request);
+    } while(!response.isSuccessful() && System.nanoTime() - start < TIMEOUT_NS);
+  }
 }

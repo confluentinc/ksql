@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -69,10 +70,12 @@ public class InsertValues extends Statement {
     return target;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is ImmutableList")
   public List<ColumnName> getColumns() {
     return columns;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "values is ImmutableList")
   public List<Expression> getValues() {
     return values;
   }

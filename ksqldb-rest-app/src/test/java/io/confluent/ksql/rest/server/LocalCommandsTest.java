@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.File;
@@ -68,7 +69,7 @@ public class LocalCommandsTest {
   private LocalCommandsFile localCommandsFile;
 
   @Rule
-  public TemporaryFolder commandsDir = new TemporaryFolder();
+  public TemporaryFolder commandsDir = KsqlTestFolder.temporaryFolder();
 
   @Before
   public void setup() throws IOException {

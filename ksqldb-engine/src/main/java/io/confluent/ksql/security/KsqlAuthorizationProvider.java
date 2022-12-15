@@ -16,6 +16,8 @@
 package io.confluent.ksql.security;
 
 import java.security.Principal;
+import java.util.List;
+import org.apache.kafka.common.acl.AclOperation;
 
 /**
  * Interface that provides authorization to KSQL.
@@ -29,4 +31,18 @@ public interface KsqlAuthorizationProvider {
    * @param path The endpoint path to access, i.e. "/ksql", "/ksql/terminate", "/query"*
    */
   void checkEndpointAccess(Principal user, String method, String path);
+
+  /**
+   * Checks if the user (if available) with the {@code userSecurityContext} has the specified
+   * {@code privileges} on the the specified {@code objectType} and {@code objectName}.
+   *
+   * @param userSecurityContext The user security context which privileges will be checked
+   * @param objectType The object type to check for privileges
+   * @param objectName The object name to check for privileges
+   * @param privileges The list of privileges to check in the resource
+   */
+  void checkPrivileges(KsqlSecurityContext userSecurityContext,
+                       AuthObjectType objectType,
+                       String objectName,
+                       List<AclOperation> privileges);
 }

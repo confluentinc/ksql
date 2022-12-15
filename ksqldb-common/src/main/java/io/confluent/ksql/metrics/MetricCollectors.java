@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.metrics;
 
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
+
+import com.google.common.base.Functions;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.Time;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -24,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -43,11 +46,9 @@ import org.apache.kafka.common.utils.SystemTime;
  */
 @SuppressWarnings("ClassDataAbstractionCoupling")
 public final class MetricCollectors {
-  private static final String KSQL_JMX_PREFIX = "io.confluent.ksql.metrics";
+
   public static final String RESOURCE_LABEL_PREFIX =
       CommonClientConfigs.METRICS_CONTEXT_PREFIX + "resource.";
-  private static final String KSQL_RESOURCE_TYPE = "ksql";
-
   public static final String RESOURCE_LABEL_TYPE =
       RESOURCE_LABEL_PREFIX + "type";
   public static final String RESOURCE_LABEL_VERSION =
@@ -58,15 +59,15 @@ public final class MetricCollectors {
       RESOURCE_LABEL_PREFIX + "cluster.id";
   public static final String RESOURCE_LABEL_KAFKA_CLUSTER_ID =
       RESOURCE_LABEL_PREFIX + "kafka.cluster.id";
-
+  private static final String KSQL_JMX_PREFIX = "io.confluent.ksql.metrics";
+  private static final String KSQL_RESOURCE_TYPE = "ksql";
+  private static final Time time = new io.confluent.common.utils.SystemTime();
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
 
   static {
     initialize();
   }
-
-  private static final Time time = new io.confluent.common.utils.SystemTime();
 
   private MetricCollectors() {
   }
@@ -156,7 +157,7 @@ public final class MetricCollectors {
     collectorMap.remove(id);
   }
 
-  static Map<String, TopicSensors.Stat> getStatsFor(
+  public static Collection<TopicSensors.Stat> getStatsFor(
       final String topic, final boolean isError) {
     return getAggregateMetrics(
         collectorMap.values().stream()
@@ -167,25 +168,21 @@ public final class MetricCollectors {
 
   public static String getAndFormatStatsFor(final String topic, final boolean isError) {
     return format(
-        getStatsFor(topic, isError).values(),
+        getStatsFor(topic, isError),
         isError ? "last-failed" : "last-message");
   }
 
-  static Map<String, TopicSensors.Stat> getAggregateMetrics(
+  static Collection<TopicSensors.Stat> getAggregateMetrics(
       final List<TopicSensors.Stat> allStats
   ) {
-    final Map<String, TopicSensors.Stat> results = new TreeMap<>();
-    allStats.forEach(stat -> {
-      results.computeIfAbsent(
-          stat.name(),
-          k -> new TopicSensors.Stat(stat.name(), 0, stat.getTimestamp())
-      );
-      results.get(stat.name()).aggregate(stat.getValue());
-    });
-    return results;
+    return allStats.stream().collect(toImmutableMap(
+        TopicSensors.Stat::name,
+        Functions.identity(),
+        (first, other) -> first.aggregate(other.getValue())
+    )).values();
   }
 
-  private static String format(
+  public static String format(
       final Collection<TopicSensors.Stat> stats,
       final String lastEventTimestampMsg) {
     final StringBuilder results = new StringBuilder();
@@ -241,6 +238,7 @@ public final class MetricCollectors {
         .sum();
   }
 
+  @SuppressFBWarnings(value = "MS_EXPOSE_REP", justification = "should be mutable")
   public static Metrics getMetrics() {
     return metrics;
   }

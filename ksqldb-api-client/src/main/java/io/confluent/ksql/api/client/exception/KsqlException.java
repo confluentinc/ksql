@@ -20,10 +20,7 @@ package io.confluent.ksql.api.client.exception;
  */
 public class KsqlException extends RuntimeException {
 
-  private final int errorCode;
-
-  public KsqlException(final int errorCode, final String message) {
+  public KsqlException(final String message) {
     super(message);
-    this.errorCode = errorCode;
   }
 }

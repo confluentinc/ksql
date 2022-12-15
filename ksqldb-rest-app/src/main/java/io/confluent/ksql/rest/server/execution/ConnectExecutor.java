@@ -46,10 +46,9 @@ public final class ConnectExecutor {
   ) {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
-    final String maskedStatementText = statement.getMaskedStatementText();
 
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
-        maskedStatementText, createConnector, client);
+        statement, createConnector, client);
     if (connectorsResponse.isPresent()) {
       return connectorsResponse;
     }
@@ -64,15 +63,14 @@ public final class ConnectExecutor {
     if (response.datum().isPresent()) {
       return Optional.of(
           new CreateConnectorEntity(
-              maskedStatementText,
+              statement.getMaskedStatementText(),
               response.datum().get()
           )
       );
     }
 
     if (createConnector.ifNotExists()) {
-      final Optional<KsqlEntity> connectors = handleIfNotExists(maskedStatementText,
-          createConnector, client);
+      final Optional<KsqlEntity> connectors = handleIfNotExists(statement, createConnector, client);
 
       if (connectors.isPresent()) {
         return connectors;
@@ -80,22 +78,22 @@ public final class ConnectExecutor {
     }
 
     return response.error()
-        .map(err -> new ErrorEntity(maskedStatementText, err));
+        .map(err -> new ErrorEntity(statement.getMaskedStatementText(), err));
   }
 
   private static Optional<KsqlEntity> handleIfNotExists(
-      final String maskedStatementText,
+      final ConfiguredStatement<CreateConnector> statement,
       final CreateConnector createConnector,
       final ConnectClient client) {
     if (createConnector.ifNotExists()) {
       final ConnectResponse<List<String>> connectorsResponse = client.connectors();
       if (connectorsResponse.error().isPresent()) {
         return connectorsResponse.error()
-            .map(err -> new ErrorEntity(maskedStatementText, err));
+            .map(err -> new ErrorEntity(statement.getMaskedStatementText(), err));
       }
 
       if (checkIfConnectorExists(createConnector, connectorsResponse)) {
-        return Optional.of(new WarningEntity(maskedStatementText,
+        return Optional.of(new WarningEntity(statement.getMaskedStatementText(),
             String.format("Connector %s already exists", createConnector.getName())));
       }
     }

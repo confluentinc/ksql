@@ -224,7 +224,7 @@ public class CreateSourceFactoryTest {
     when(ksqlTopic.getValueFormat()).thenReturn(SOME_VALUE_FORMAT);
 
     final KsqlStructuredDataOutputNode outputNode = mock(KsqlStructuredDataOutputNode.class);
-    when(outputNode.getIntoSourceName()).thenReturn(SOME_NAME);
+    when(outputNode.getSinkName()).thenReturn(Optional.of(SOME_NAME));
     when(outputNode.getSchema()).thenReturn(EXPECTED_SCHEMA);
     when(outputNode.getTimestampColumn()).thenReturn(Optional.of(TIMESTAMP_COLUMN));
     when(outputNode.getKsqlTopic()).thenReturn(ksqlTopic);
@@ -267,7 +267,7 @@ public class CreateSourceFactoryTest {
     when(ksqlTopic.getValueFormat()).thenReturn(SOME_VALUE_FORMAT);
 
     final KsqlStructuredDataOutputNode outputNode = mock(KsqlStructuredDataOutputNode.class);
-    when(outputNode.getIntoSourceName()).thenReturn(SOME_NAME);
+    when(outputNode.getSinkName()).thenReturn(Optional.of(SOME_NAME));
     when(outputNode.getSchema()).thenReturn(EXPECTED_SCHEMA);
     when(outputNode.getTimestampColumn()).thenReturn(Optional.of(TIMESTAMP_COLUMN));
     when(outputNode.getKsqlTopic()).thenReturn(ksqlTopic);

@@ -25,12 +25,14 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
+import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
+import io.confluent.ksql.physical.common.operators.ProjectOperator;
+import io.confluent.ksql.physical.common.operators.SelectOperator;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedWindowedTableLookupOperator;
-import io.confluent.ksql.physical.pull.operators.ProjectOperator;
-import io.confluent.ksql.physical.pull.operators.SelectOperator;
 import io.confluent.ksql.physical.pull.operators.TableScanOperator;
 import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -40,8 +42,8 @@ import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.planner.plan.NonKeyConstraint;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullFilterNode;
-import io.confluent.ksql.planner.plan.PullProjectNode;
+import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -66,6 +68,8 @@ public class PullPhysicalPlanBuilder {
   private final Materialization mat;
 
   private List<LookupConstraint> lookupConstraints;
+  private PullPhysicalPlanType pullPhysicalPlanType;
+  private PullSourceType pullSourceType;
   private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
@@ -105,10 +109,10 @@ public class PullPhysicalPlanBuilder {
     AbstractPhysicalOperator rootPhysicalOp = null;
     while (true) {
       AbstractPhysicalOperator currentPhysicalOp = null;
-      if (currentLogicalNode instanceof PullProjectNode) {
-        currentPhysicalOp = translateProjectNode((PullProjectNode)currentLogicalNode);
-      } else if (currentLogicalNode instanceof PullFilterNode) {
-        currentPhysicalOp = translateFilterNode((PullFilterNode) currentLogicalNode);
+      if (currentLogicalNode instanceof QueryProjectNode) {
+        currentPhysicalOp = translateProjectNode((QueryProjectNode)currentLogicalNode);
+      } else if (currentLogicalNode instanceof QueryFilterNode) {
+        currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
         seenSelectOperator = true;
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
@@ -144,11 +148,13 @@ public class PullPhysicalPlanBuilder {
         (rootPhysicalOp).getLogicalNode().getSchema(),
         queryId,
         lookupConstraints,
+        pullPhysicalPlanType,
+        pullSourceType,
         mat,
         dataSourceOperator);
   }
 
-  private ProjectOperator translateProjectNode(final PullProjectNode logicalNode) {
+  private ProjectOperator translateProjectNode(final QueryProjectNode logicalNode) {
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
         .getLogger(
@@ -162,7 +168,7 @@ public class PullPhysicalPlanBuilder {
     );
   }
 
-  private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
+  private SelectOperator translateFilterNode(final QueryFilterNode logicalNode) {
     lookupConstraints = logicalNode.getLookupConstraints();
 
     final ProcessingLogger logger = processingLogContext
@@ -184,13 +190,17 @@ public class PullPhysicalPlanBuilder {
     } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
       isTableScan = true;
     }
+    pullSourceType = logicalNode.isWindowed()
+        ? PullSourceType.WINDOWED : PullSourceType.NON_WINDOWED;
     if (isTableScan) {
+      pullPhysicalPlanType = PullPhysicalPlanType.TABLE_SCAN;
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode);
       } else {
         return new WindowedTableScanOperator(mat, logicalNode);
       }
     }
+    pullPhysicalPlanType = PullPhysicalPlanType.KEY_LOOKUP;
     if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {

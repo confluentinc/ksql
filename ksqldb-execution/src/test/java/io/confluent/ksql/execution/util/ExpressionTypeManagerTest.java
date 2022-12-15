@@ -39,19 +39,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -90,8 +91,10 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -890,6 +893,63 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
+  public void shouldThrowGoodErrorMessageForSubscriptOnStruct() {
+    // Given:
+    final SqlStruct structType = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
+
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(COL0, structType)
+        .build();
+
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+
+    final Expression expression = new SubscriptExpression(
+        Optional.empty(),
+        TestExpressions.COL0,
+        new StringLiteral("IN0")
+    );
+
+    // When:
+    final UnsupportedOperationException e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression));
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        is("Subscript expression (COL0['IN0']) do not apply to STRUCT<`IN0` INTEGER>. "
+            + "Use the dereference operator for STRUCTS: COL0->'IN0'"));
+  }
+
+  @Test
+  public void shouldThrowGoodErrorMessageForSubscriptOnScalar() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(COL0, SqlTypes.INTEGER)
+        .build();
+
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+
+    final Expression expression = new SubscriptExpression(
+        Optional.empty(),
+        TestExpressions.COL0,
+        new StringLiteral("IN0")
+    );
+
+    // When:
+    final UnsupportedOperationException e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression));
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        is("Subscript expression (COL0['IN0']) do not apply to INTEGER."));
+  }
+
+  @Test
   public void shouldEvaluateTypeForArrayReferenceInStruct() {
     // Given:
     final SqlStruct inner = SqlTypes
@@ -1059,12 +1119,18 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldThrowOnTimeLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(new TimeLiteral("TIME '00:00:00'"))
-    );
+  public void shouldProcessTimeLiteral() {
+    assertThat(expressionTypeManager.getExpressionSqlType(new TimeLiteral(new Time(1000))), is(SqlTypes.TIME));
+  }
+
+  @Test
+  public void shouldProcessDateLiteral() {
+    assertThat(expressionTypeManager.getExpressionSqlType(new DateLiteral(new Date(86400000))), is(SqlTypes.DATE));
+  }
+
+  @Test
+  public void shouldProcessBytesLiteral() {
+    assertThat(expressionTypeManager.getExpressionSqlType(new BytesLiteral(ByteBuffer.wrap(new byte[] {123}))), is(SqlTypes.BYTES));
   }
 
   @Test

@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class ShowColumns extends Statement {
+public class ShowColumns extends StatementWithExtendedClause {
 
   private final SourceName table;
   private final boolean isExtended;
@@ -38,7 +38,7 @@ public class ShowColumns extends Statement {
       final SourceName table,
       final boolean isExtended
   ) {
-    super(location);
+    super(location, isExtended);
     this.table = requireNonNull(table, "table");
     this.isExtended = isExtended;
   }

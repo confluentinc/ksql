@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -65,6 +66,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -238,14 +240,30 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
+  public EndpointResponse isValidProperty(final String property) {
+    try {
+      final Map<String, Object> properties = new HashMap<>();
+      properties.put(property, "");
+      denyListPropertyValidator.validateAll(properties);
+
+      return EndpointResponse.ok(true);
+    } catch (final KsqlException e) {
+      LOG.info("Processed unsuccessfully, reason: ", e);
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
+    } catch (final Exception e) {
+      LOG.info("Processed unsuccessfully, reason: ", e);
+      throw e;
+    }
+  }
+
   public EndpointResponse handleKsqlStatements(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
     // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
     ApiServerUtils.setMaskedSqlIfNeeded(request);
-    LOG.info("Received: " + request);
 
+    LOG.info("Received: " + request);
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -270,10 +288,21 @@ public class KsqlResource implements KsqlConfigurable {
               configProperties,
               localHost,
               localUrl,
-              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
+              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
+              request.getSessionVariables()
           ),
           request.getUnmaskedKsql()
       );
+
+      // log validated statements for query anonymization
+      statements.forEach(s -> {
+        if (s.getUnMaskedStatementText().toLowerCase().contains("terminate")
+            || s.getUnMaskedStatementText().toLowerCase().contains("drop")) {
+          QueryLogger.info("Query terminated", s.getMaskedStatementText());
+        } else {
+          QueryLogger.info("Query created", s.getMaskedStatementText());
+        }
+      });
 
       final KsqlEntityList entities = handler.execute(
           securityContext,
@@ -282,7 +311,8 @@ public class KsqlResource implements KsqlConfigurable {
               configProperties,
               localHost,
               localUrl,
-              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
+              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
+              request.getSessionVariables()
           )
       );
 

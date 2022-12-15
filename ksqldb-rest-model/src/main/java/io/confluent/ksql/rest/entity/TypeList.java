@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
 
@@ -38,6 +39,7 @@ public class TypeList extends KsqlEntity {
     this.types = ImmutableMap.copyOf(Objects.requireNonNull(types, "types"));
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "types is ImmutableMap")
   public Map<String, SchemaInfo> getTypes() {
     return types;
   }

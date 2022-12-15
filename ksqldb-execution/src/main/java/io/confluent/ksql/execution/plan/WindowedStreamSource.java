@@ -20,9 +20,11 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.apache.kafka.streams.kstream.Windowed;
 
 @Immutable
@@ -36,9 +38,17 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo", required = true) final WindowInfo windowInfo,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
   ) {
-    super(props, topicName, formats, timestampColumn, sourceSchema);
+    super(
+        props,
+        topicName,
+        formats,
+        timestampColumn,
+        sourceSchema,
+        pseudoColumnVersion.orElse(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER)
+    );
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
   }
 
@@ -69,7 +79,8 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema);
+        && Objects.equals(sourceSchema, that.sourceSchema)
+        && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion);
   }
 
   @Override
@@ -79,7 +90,8 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        pseudoColumnVersion
     );
   }
 }

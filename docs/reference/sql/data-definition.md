@@ -29,6 +29,10 @@ data locality, and enables you to integrate with the wider {{ site.ak }}
 ecosystem, which uses the same key/value data model. By default, a column is a
 value column. Marking a column as a `(PRIMARY) KEY` makes it a key column.
 
+!!! important
+    You must declare a PRIMARY KEY when you create a table on a {{ site.ak }}
+    topic.
+
 Internally, each row is backed by a [Kafka record](../../../overview/apache-kafka-primer/#records).
 In {{ site.ak }}, the key and value parts of a record are
 [serialized](../../../overview/apache-kafka-primer/#serializers) independently.
@@ -196,7 +200,7 @@ a unique identifier for all rows in a table. If you have a table that has a row
 with primary key `5`, you can't insert another row whose primary key is also `5`.
 
 ksqlDB uses primary keys in a similar way, but there are a few differences,
-because ksqlDB is an event streaming database, not a relational database.
+because ksqlDB is a streaming database, not a relational database.
 
 - Only tables can have primary keys. Streams do not support them.
 - Adding multiple rows to a table with the same primary key doesn't cause the

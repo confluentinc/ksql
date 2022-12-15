@@ -18,6 +18,7 @@ package io.confluent.ksql.test.planned;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.test.QueryTranslationTest;
 import io.confluent.ksql.test.tools.TestCase;
@@ -76,6 +77,7 @@ public class PlannedTestsUpToDateTest {
    * @param testCase test case to check for requiring plan generation
    */
   @SuppressWarnings("unused") // `name` is used to name the test.
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PlannedTestsUpToDateTest(final String name, final TestCase testCase) {
     this.testCase = Objects.requireNonNull(testCase);
   }

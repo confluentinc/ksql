@@ -26,7 +26,9 @@ import static org.hamcrest.Matchers.hasItem;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.TopicSensors.Stat;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
@@ -98,12 +100,12 @@ public class StreamsErrorCollectorTest {
     IntStream.range(0, nmsgs + 1).forEach(i -> recordError(applicationId, otherTopic));
 
     // Then:
-    final Map<String, Stat> stats = MetricCollectors.getStatsFor(TOPIC_NAME, true);
-    assertThat(stats.keySet(), hasItem(CONSUMER_FAILED_MESSAGES));
-    assertThat(stats.get(CONSUMER_FAILED_MESSAGES).getValue(), equalTo(nmsgs * 1.0));
-    final Map<String, Stat> otherStats = MetricCollectors.getStatsFor(otherTopic, true);
-    assertThat(otherStats.keySet(), hasItem(CONSUMER_FAILED_MESSAGES));
-    assertThat(otherStats.get(CONSUMER_FAILED_MESSAGES).getValue(), equalTo((nmsgs + 1) * 1.0));
+    final Collection<Stat> stats = MetricCollectors.getStatsFor(TOPIC_NAME, true);
+    final Optional<Stat> stat = stats.stream().filter((c) -> c.name().equals(CONSUMER_FAILED_MESSAGES)).findFirst();
+    assertThat(stat.get().getValue(), equalTo(nmsgs * 1.0));
+    final Collection<Stat> otherStats = MetricCollectors.getStatsFor(otherTopic, true);
+    final Optional<Stat> otherStat = otherStats.stream().filter((c) -> c.name().equals(CONSUMER_FAILED_MESSAGES)).findFirst();
+    assertThat(otherStat.get().getValue(), equalTo((nmsgs + 1) * 1.0));
   }
 
   @Test

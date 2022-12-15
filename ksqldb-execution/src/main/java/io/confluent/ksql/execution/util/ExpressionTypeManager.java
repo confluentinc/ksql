@@ -17,15 +17,18 @@ package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -153,14 +156,20 @@ public class ExpressionTypeManager {
     public Void visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
         final Context context
-    ) {
+    ) throws KsqlException {
       process(node.getLeft(), context);
       final SqlType leftType = context.getSqlType();
 
       process(node.getRight(), context);
       final SqlType rightType = context.getSqlType();
 
-      final SqlType resultType = node.getOperator().resultType(leftType, rightType);
+      final SqlType resultType;
+      try {
+        resultType = node.getOperator().resultType(leftType, rightType);
+      } catch (KsqlException e) {
+        throw new KsqlException(String.format(
+                "Error processing expression: %s. %s", node.toString(), e.getMessage()), e);
+      }
 
       context.setSqlType(resultType);
       return null;
@@ -300,6 +309,14 @@ public class ExpressionTypeManager {
     }
 
     @Override
+    public Void visitBytesLiteral(
+        final BytesLiteral node, final Context context
+    ) {
+      context.setSqlType(SqlTypes.BYTES);
+      return null;
+    }
+
+    @Override
     public Void visitBooleanLiteral(
         final BooleanLiteral node, final Context context
     ) {
@@ -408,7 +425,20 @@ public class ExpressionTypeManager {
       } else if (arrayMapType instanceof SqlArray) {
         valueType = ((SqlArray) arrayMapType).getItemType();
       } else {
-        throw new UnsupportedOperationException("Unsupported container type: " + arrayMapType);
+        final String structMessage = (arrayMapType instanceof SqlStruct)
+            ? String.format(
+                " Use the dereference operator for STRUCTS: %s",
+                new DereferenceExpression(
+                Optional.empty(),
+                node.getBase(),
+                ExpressionFormatter.formatExpression(node.getIndex())))
+            : "";
+
+        throw new UnsupportedOperationException(
+            String.format("Subscript expression (%s) do not apply to %s.%s",
+                node,
+                arrayMapType,
+                structMessage));
       }
 
       context.setSqlType(valueType);
@@ -567,7 +597,16 @@ public class ExpressionTypeManager {
     public Void visitTimeLiteral(
         final TimeLiteral timeLiteral, final Context context
     ) {
-      throw VisitorUtil.unsupportedOperation(this, timeLiteral);
+      context.setSqlType(SqlTypes.TIME);
+      return null;
+    }
+
+    @Override
+    public Void visitDateLiteral(
+        final DateLiteral dateLiteral, final Context context
+    ) {
+      context.setSqlType(SqlTypes.DATE);
+      return null;
     }
 
     @Override

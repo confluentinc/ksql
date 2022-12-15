@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.List;
 import java.util.Objects;
@@ -73,6 +74,7 @@ public final class PersistenceSchema {
     return features;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is ImmutableList")
   public List<SimpleColumn> columns() {
     return columns;
   }

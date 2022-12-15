@@ -154,6 +154,17 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
 
+  public static final String KSQL_QUERYANONYMIZER_ENABLED =
+      "ksql.queryanonymizer.logs_enabled";
+  private static final String KSQL_QUERYANONYMIZER_ENABLED_DOC =
+      "This defines whether we log anonymized queries out of query logger or if we log them"
+      + "in plain text. Defaults to true";
+  public static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE =
+      "ksql.queryanonymizer.cluster_namespace";
+  private static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC =
+      "Namespace used in the query anonymization process, representing cluster id and "
+          + "organization id respectively. For example, 'clusterid.orgid'.";
+
   public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
   private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
       "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
@@ -239,6 +250,14 @@ public class KsqlConfig extends AbstractConfig {
       "The maximum number of concurrent requests allowed for pull "
       + "queries on this host. Once the limit is hit, queries will fail immediately";
 
+  public static final String KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG
+      = "ksql.query.pull.max.hourly.bandwidth.megabytes";
+  public static final Integer KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT
+      = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
+      = "The maximum amount of pull query bandwidth in megabytes allowed over"
+      + " a period of one hour. Once the limit is hit, queries will fail immediately";
+
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
   public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
@@ -259,10 +278,32 @@ public class KsqlConfig extends AbstractConfig {
           + " much faster for short-lived queries.";
   public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
+  public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED
+      = "ksql.query.push.scalable.enabled";
+  public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC =
+      "Enables whether scalable push queries are enabled. Scalable push queries require no window "
+          + "functions, aggregations, or joins, but may include projections and filters.";
+  public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED
+      = "ksql.query.push.scalable.interpreter.enabled";
+  public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC =
+      "Enables whether we use the interpreter for expression evaluation for scalable push queries, "
+          + "or the default code generator. They should produce the same results, but may have "
+          + "different performance characteristics.";
+  public static final boolean KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DEFAULT = true;
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
           + "Objects.toString()";
+
+  public static final String KSQL_NESTED_ERROR_HANDLING_CONFIG =
+      "ksql.nested.error.set.null";
+  public static final String KSQL_NESTED_ERROR_HANDLING_CONFIG_DOC =
+      "If there is a processing error in an element of a map, struct or array, if true set only the"
+          + " failing element to null and preserve the rest of the value, else if false, set the"
+          + " the entire value to null.";
 
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
       "ksql.streams.shutdown.timeout.ms";
@@ -417,16 +458,27 @@ public class KsqlConfig extends AbstractConfig {
     CURRENT
   }
 
-  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
-      = ImmutableList.of(new CompatibilityBreakingConfigDef(
-          KSQL_STRING_CASE_CONFIG_TOGGLE,
-          Type.BOOLEAN,
-          false,
-          true,
-          Importance.LOW,
-          Optional.empty(),
-          KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
-      ));
+  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS =
+      ImmutableList.of(
+          new CompatibilityBreakingConfigDef(
+              KSQL_STRING_CASE_CONFIG_TOGGLE,
+              Type.BOOLEAN,
+              false,
+              true,
+              Importance.LOW,
+              Optional.empty(),
+              KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_NESTED_ERROR_HANDLING_CONFIG,
+              Type.BOOLEAN,
+              false,
+              true,
+              Importance.LOW,
+              Optional.empty(),
+              KSQL_NESTED_ERROR_HANDLING_CONFIG_DOC
+          )
+      );
 
   public static class CompatibilityBreakingConfigDef {
 
@@ -508,9 +560,9 @@ public class KsqlConfig extends AbstractConfig {
       COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of(
           // Turn on optimizations by default, unless the user explicitly disables in config:
           new CompatibilityBreakingStreamsConfig(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG,
-            StreamsConfig.OPTIMIZE,
-            StreamsConfig.OPTIMIZE)
+              StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG,
+              StreamsConfig.OPTIMIZE,
+              StreamsConfig.OPTIMIZE)
   );
 
   private static final class CompatibilityBreakingStreamsConfig {
@@ -697,6 +749,18 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_TAGS_DOC
         ).define(
+            KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigDef.Importance.LOW,
+            KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC
+        ).define(
+            KSQL_QUERYANONYMIZER_ENABLED,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.LOW,
+            KSQL_QUERYANONYMIZER_ENABLED_DOC
+        ).define(
             KSQL_CUSTOM_METRICS_EXTENSION,
             ConfigDef.Type.CLASS,
             null,
@@ -811,6 +875,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC
         )
         .define(
+            KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT,
+            Importance.HIGH,
+            KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
+        )
+        .define(
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,
             Type.INT,
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
@@ -830,6 +901,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_SCALABLE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
@@ -1090,6 +1175,10 @@ public class KsqlConfig extends AbstractConfig {
       map.put(config.key, config.value);
     }
     return Collections.unmodifiableMap(map);
+  }
+
+  public Optional<Object> getKsqlStreamConfigProp(final String key) {
+    return Optional.ofNullable(ksqlStreamConfigProps.get(key)).map(cv -> cv.value);
   }
 
   public Map<String, Object> getKsqlAdminClientConfigProps() {

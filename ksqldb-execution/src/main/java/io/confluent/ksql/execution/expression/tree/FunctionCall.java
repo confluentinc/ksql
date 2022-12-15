@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
@@ -49,6 +50,7 @@ public class FunctionCall extends Expression {
     return name;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "arguments is ImmutableList")
   public List<Expression> getArguments() {
     return arguments;
   }

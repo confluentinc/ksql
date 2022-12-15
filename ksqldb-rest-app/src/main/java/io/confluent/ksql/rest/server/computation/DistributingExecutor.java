@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -61,6 +62,7 @@ public class DistributingExecutor {
   private final Errors errorHandler;
   private final Supplier<String> commandRunnerWarning;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public DistributingExecutor(
       final KsqlConfig ksqlConfig,
       final CommandQueue commandQueue,

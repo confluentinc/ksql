@@ -213,17 +213,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SESSIONS_0-Aggregate-Aggregate-Materialize-changelog",
-          "keyFormat" : {
-            "format" : "KAFKA",
-            "windowInfo" : {
-              "type" : "SESSION"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
           "name" : "SESSION_STARTS",
           "keyFormat" : {
             "format" : "KAFKA",
@@ -235,6 +224,17 @@
             "format" : "JSON"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SESSIONS_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
         }, {
           "name" : "SESSIONS",
           "keyFormat" : {

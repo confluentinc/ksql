@@ -16,11 +16,14 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
+import java.nio.ByteBuffer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,6 +89,46 @@ public class KsqlProtobufDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeTimeField() {
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
+        .field("f0", Time.SCHEMA)
+        .build();
+
+    // Given:
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema(schema,
+            Struct.class);
+    final Struct value = new Struct(schema).put("f0", new java.sql.Time(2000));
+    final byte[] bytes = givenConnectSerialized(value, schema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldDeserializeDateField() {
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
+        .field("f0", Date.SCHEMA)
+        .build();
+
+    // Given:
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema(schema,
+            Struct.class);
+    final Struct value = new Struct(schema).put("f0", new java.sql.Date(864000000L));
+    final byte[] bytes = givenConnectSerialized(value, schema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
+  }
+
+  @Test
   public void shouldDeserializeTimestampField() {
     final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
         .field("f0", Timestamp.SCHEMA)
@@ -103,6 +146,26 @@ public class KsqlProtobufDeserializerTest {
 
     // Then:
     assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldDeserializeBytesField() {
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
+        .field("f0", Schema.BYTES_SCHEMA)
+        .build();
+
+    // Given:
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema(schema,
+            Struct.class);
+    final Struct value = new Struct(schema).put("f0", ByteBuffer.wrap(new byte[] {123}));
+    final byte[] bytes = givenConnectSerialized(value, schema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(((Struct) result).getBytes("f0"), is(value.getBytes("f0")));
   }
 
   private byte[] givenConnectSerialized(
@@ -124,12 +187,13 @@ public class KsqlProtobufDeserializerTest {
       final ConnectSchema schema,
       final Class<T> targetType
   ) {
-    final Deserializer<T> deserializer = ProtobufSerdeFactory.createSerde(
-        schema,
-        KSQL_CONFIG,
-        () -> schemaRegistryClient,
-        targetType,
-        false).deserializer();
+    final Deserializer<T> deserializer = new ProtobufSerdeFactory(new ProtobufProperties(Collections.emptyMap()))
+        .createSerde(
+            schema,
+            KSQL_CONFIG,
+            () -> schemaRegistryClient,
+            targetType,
+            false).deserializer();
 
     deserializer.configure(Collections.emptyMap(), false);
 

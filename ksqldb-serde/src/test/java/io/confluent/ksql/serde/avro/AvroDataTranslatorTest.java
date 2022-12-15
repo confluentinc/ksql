@@ -15,14 +15,19 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlException;
+import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -287,5 +292,71 @@ public class AvroDataTranslatorTest {
 
     // Then:
     assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
+  }
+
+  @Test
+  public void shouldRejectUnmatchingDecimalSchema() {
+    // Given:
+    final Schema ksqlSchema = DecimalUtil.builder(4, 2).build();
+    final Schema topicSchema = DecimalUtil.builder(6, 3).build();
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(ksqlSchema, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+
+    // Then:
+    final ArithmeticException e = assertThrows(
+        ArithmeticException.class,
+        () -> translator.toKsqlRow(topicSchema, new BigDecimal("123.456")));
+    assertThat(
+        e.getMessage(),
+        containsString("Numeric field overflow: A field with precision 4 and scale 2 must round to an absolute value less than 10^2"));
+  }
+
+  @Test
+  public void shouldForceUnmatchingDecimalSchemaIfPossible() {
+    // Given:
+    final Schema ksqlSchema = DecimalUtil.builder(4, 2).build();
+    final Schema topicSchema = DecimalUtil.builder(2, 1).build();
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(ksqlSchema, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+
+    // Then:
+    assertThat(
+        translator.toKsqlRow(topicSchema, new BigDecimal("12.1")),
+        is(new BigDecimal("12.10")));
+  }
+
+  @Test
+  public void shouldRejectConversionsRequiringRounding() {
+    // Given:
+    final Schema ksqlSchema = DecimalUtil.builder(3, 0).build();
+    final Schema topicSchema = DecimalUtil.builder(4, 1).build();
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(ksqlSchema, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+
+    // Then:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> translator.toKsqlRow(topicSchema, new BigDecimal("123.4")));
+    assertThat(
+        e.getMessage(),
+        containsString("Cannot fit decimal '123.4' into DECIMAL(3, 0) without rounding. (Requires 4,1)"));
+  }
+
+  @Test
+  public void shouldReturnBytes() {
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(Schema.BYTES_SCHEMA, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+
+    // Then:
+    assertThat(
+        translator.toKsqlRow(Schema.BYTES_SCHEMA, new byte[] {123}),
+        is(new byte[] {123}));
   }
 }

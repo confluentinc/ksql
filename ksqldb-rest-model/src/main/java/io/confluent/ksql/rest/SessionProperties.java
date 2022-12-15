@@ -15,13 +15,17 @@
 
 package io.confluent.ksql.rest;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KsqlHostInfo;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Wraps the incoming {@link io.confluent.ksql.rest.entity.KsqlRequest} streamsProperties
@@ -38,6 +42,33 @@ public class SessionProperties {
 
   /**
    * @param mutableScopedProperties   The streamsProperties of the incoming request
+   * @param ksqlHostInfo              The ksqlHostInfo of the server that handles the request
+   * @param localUrl                  The url of the server that handles the request
+   * @param internalRequest           Flag indicating if request is from within the KSQL cluster
+   * @param sessionVariables          Initial session variables
+   */
+  public SessionProperties(
+      final Map<String, Object> mutableScopedProperties,
+      final KsqlHostInfo ksqlHostInfo,
+      final URL localUrl,
+      final boolean internalRequest,
+      final Map<String, Object> sessionVariables
+  ) {
+    this.mutableScopedProperties =
+        new HashMap<>(Objects.requireNonNull(mutableScopedProperties, "mutableScopedProperties"));
+    this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
+    this.localUrl = Objects.requireNonNull(localUrl, "localUrl");
+    this.internalRequest = internalRequest;
+    this.sessionVariables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    this.sessionVariables.putAll(
+        Objects.requireNonNull(sessionVariables, "sessionVariables")
+            .entrySet()
+            .stream()
+            .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().toString())));
+  }
+
+  /**
+   * @param mutableScopedProperties   The streamsProperties of the incoming request
    * @param ksqlHostInfo              The ksqlHostInfo of the server that handles the request 
    * @param localUrl                  The url of the server that handles the request
    * @param internalRequest           Flag indicating if request is from within the KSQL cluster
@@ -48,14 +79,10 @@ public class SessionProperties {
       final URL localUrl,
       final boolean internalRequest
   ) {
-    this.mutableScopedProperties = 
-        new HashMap<>(Objects.requireNonNull(mutableScopedProperties, "mutableScopedProperties"));
-    this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
-    this.localUrl = Objects.requireNonNull(localUrl, "localUrl");
-    this.internalRequest = internalRequest;
-    this.sessionVariables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    this(mutableScopedProperties, ksqlHostInfo, localUrl, internalRequest, Collections.emptyMap());
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public Map<String, Object> getMutableScopedProperties() {
     return mutableScopedProperties;
   }
@@ -65,7 +92,11 @@ public class SessionProperties {
   }
 
   public URL getLocalUrl() {
-    return localUrl;
+    try {
+      return new URL(localUrl.toString());
+    } catch (final MalformedURLException fatalError) {
+      throw new IllegalStateException("Could not deep copy URL: " + localUrl);
+    }
   }
 
   public boolean getInternalRequest() {

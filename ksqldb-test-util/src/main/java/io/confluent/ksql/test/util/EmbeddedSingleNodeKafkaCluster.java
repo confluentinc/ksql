@@ -62,6 +62,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.IsolationLevel;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AccessControlEntry;
 import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
@@ -117,7 +119,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private final String previousJassConfig;
   private final Map<String, Object> customBrokerConfig;
   private final Map<String, Object> customClientConfig;
-  private final TemporaryFolder tmpFolder = new TemporaryFolder();
+  private final TemporaryFolder tmpFolder = KsqlTestFolder.temporaryFolder();
   private final List<AclBinding> addedAcls = new ArrayList<>();
   private final Map<AclKey, Set<AclOperation>> initialAcls;
 
@@ -521,6 +523,36 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
       adminClient.deleteAcls(filters);
     }
+  }
+
+  /**
+   * Returns mapping of all TopicPartitions to current offsets for a given consumer group.
+   */
+  public Map<TopicPartition, Long> getConsumerGroupOffset(final String consumerGroup) {
+    return broker.getConsumerGroupOffset(consumerGroup);
+  }
+
+  /**
+   * The end offsets for a given collection of TopicPartitions
+   */
+  public Map<TopicPartition, Long> getEndOffsets(
+      final Collection<TopicPartition> topicPartitions,
+      final IsolationLevel isolationLevel) {
+    return broker.getEndOffsets(topicPartitions, isolationLevel);
+  }
+
+  /**
+   * Gets the partition count for a given collection of topics.
+   */
+  public Map<String, Integer> getPartitionCount(final Collection<String> topics) {
+    return broker.getPartitionCount(topics);
+  }
+
+  /**
+   * Gets all topics on this broker.
+   */
+  public Set<String> getTopics() {
+    return broker.getTopics();
   }
 
   public static Builder newBuilder() {

@@ -338,7 +338,117 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "ORDERTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "ORDERID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "ITEMID",
+              "type" : [ "null", {
+                "type" : "record",
+                "name" : "KsqlDataSourceSchema_ITEMID",
+                "fields" : [ {
+                  "name" : "ITEMID",
+                  "type" : [ "null", "long" ],
+                  "default" : null
+                }, {
+                  "name" : "NAME",
+                  "type" : [ "null", "string" ],
+                  "default" : null
+                }, {
+                  "name" : "CATEGORY",
+                  "type" : [ "null", {
+                    "type" : "record",
+                    "name" : "KsqlDataSourceSchema_ITEMID_CATEGORY",
+                    "fields" : [ {
+                      "name" : "ID",
+                      "type" : [ "null", "long" ],
+                      "default" : null
+                    }, {
+                      "name" : "NAME",
+                      "type" : [ "null", "string" ],
+                      "default" : null
+                    } ],
+                    "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_ITEMID_CATEGORY"
+                  } ],
+                  "default" : null
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_ITEMID"
+              } ],
+              "default" : null
+            }, {
+              "name" : "ORDERUNITS",
+              "type" : [ "null", "double" ],
+              "default" : null
+            }, {
+              "name" : "ARRAYCOL",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", "double" ]
+              } ],
+              "default" : null
+            }, {
+              "name" : "MAPCOL",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_MAPCOL",
+                  "fields" : [ {
+                    "name" : "key",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "value",
+                    "type" : [ "null", "double" ],
+                    "default" : null
+                  } ],
+                  "connect.internal.type" : "MapEntry"
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_MAPCOL"
+              } ],
+              "default" : null
+            }, {
+              "name" : "ADDRESS",
+              "type" : [ "null", {
+                "type" : "record",
+                "name" : "KsqlDataSourceSchema_ADDRESS",
+                "fields" : [ {
+                  "name" : "NUMBER",
+                  "type" : [ "null", "long" ],
+                  "default" : null
+                }, {
+                  "name" : "STREET",
+                  "type" : [ "null", "string" ],
+                  "default" : null
+                }, {
+                  "name" : "CITY",
+                  "type" : [ "null", "string" ],
+                  "default" : null
+                }, {
+                  "name" : "STATE",
+                  "type" : [ "null", "string" ],
+                  "default" : null
+                }, {
+                  "name" : "ZIPCODE",
+                  "type" : [ "null", "long" ],
+                  "default" : null
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_ADDRESS"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "S3",
           "keyFormat" : {
@@ -347,7 +457,29 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "STREET",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "ZIPCODE",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "STATE",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ]
+          }
         } ]
       }
     }

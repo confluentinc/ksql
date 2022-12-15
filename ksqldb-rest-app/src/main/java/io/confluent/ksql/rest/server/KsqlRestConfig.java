@@ -198,10 +198,10 @@ public class KsqlRestConfig extends AbstractConfig {
           + "JSON; this helps proactively determine if the connection has been terminated in "
           + "order to avoid keeping the created streams job alive longer than necessary";
 
-  static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG =
+  public static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG =
       KSQL_CONFIG_PREFIX + "server.command.response.timeout.ms";
 
-  private static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC =
+  protected static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC =
             "How long to wait for a distributed command to be executed by the local node before "
               + "returning a response";
 
@@ -297,6 +297,21 @@ public class KsqlRestConfig extends AbstractConfig {
       "The number of server verticle instances to start per listener. Usually you want at least "
           + "many instances as there are cores you want to use, as each instance is single "
           + "threaded.";
+
+  public static final String IDLE_CONNECTION_TIMEOUT_SECONDS =
+          KSQL_CONFIG_PREFIX + "idle.connection.timeout.seconds";
+  public static final int DEFAULT_IDLE_CONNECTION_TIMEOUT_SECONDS = 60 * 60 * 24; // one day
+  public static final String IDLE_CONNECTION_TIMEOUT_SECONDS_DOC =
+      "The timeout for idle connections. A connection is idle if there is no data in either "
+          + "direction on that connection for the duration of the timeout. This includes "
+          + "connections where the client only makes occasional requests as well as connections "
+          + "where the server takes a long time to send back any data. An example of the latter "
+          + "case is when there is a long period with no new results to send back in response to "
+          + "a streaming query. You can decrease this timeout to close connections more "
+          + "aggressively and save server resources, or make it longer to be more tolerant of "
+          + "low data volume use cases. Note: even though the server's idle connection timeout "
+          + "is set to a high value, you may have firewalls or proxies that enforce their own "
+          + "idle connection timeouts.";
 
   public static final String WORKER_POOL_SIZE = KSQL_CONFIG_PREFIX + "worker.pool.size";
   public static final String WORKER_POOL_DOC =
@@ -631,6 +646,13 @@ public class KsqlRestConfig extends AbstractConfig {
             oneOrMore(),
             Importance.MEDIUM,
             VERTICLE_INSTANCES_DOC
+        ).define(
+            IDLE_CONNECTION_TIMEOUT_SECONDS,
+            Type.INT,
+            DEFAULT_IDLE_CONNECTION_TIMEOUT_SECONDS,
+            oneOrMore(),
+            Importance.LOW,
+            IDLE_CONNECTION_TIMEOUT_SECONDS_DOC
         ).define(
             WORKER_POOL_SIZE,
             Type.INT,

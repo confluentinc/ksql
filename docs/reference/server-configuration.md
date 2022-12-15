@@ -33,6 +33,12 @@ For more information on setting properties, see
     environment variable is `KSQL_KSQL_SERVICE_ID`. For more information,
     see [Install ksqlDB with Docker](/operate-and-deploy/installation/install-ksqldb-with-docker).
 
+!!! info
+    The underlying producer and consumer clients in ksqlDB's server can be
+    modified with any valid properties. Simply use the form `ksql.streams.producer.xxx`,
+    `ksql.streams.consumer.xxx` to pass the property through. For example,
+    `ksql.streams.producer.compression.type` sets the compression type on the producer.
+
 ## `ksql.advertised.listener`
 
 This is the URL used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`,
@@ -71,6 +77,11 @@ The connect worker configuration file, if spinning up {{ site.kconnect }}
 alongside the ksqlDB server. Don't set this property if you're using
 an external `ksql.connect.url`.
 
+## `ksql.extension.dir`
+
+The directory in which ksqlDB looks for UDFs. The default value
+is the `ext` directory relative to ksqlDB's current working directory.
+
 ## `ksql.fail.on.deserialization.error`
 
 **Per query:** no
@@ -105,6 +116,15 @@ to your ksqlDB Server properties file:
 ```properties
 ksql.fail.on.production.error=false
 ```
+
+## `ksql.functions.<UDF Name>.<UDF Config>`
+
+Makes custom configuration values available to the UDF specified by name.
+For example, if a UDF is named "formula", you can pass a config
+to that UDF by specifying the `ksql.functions.formula.base.value` property.
+Access the property in the UDF's `configure` method
+by using its full name, `ksql.functions.formula.base.value`. This example
+is explored in detail [here](/how-to-guides/create-a-user-defined-function/).
 
 ## `ksql.functions.collect_list.limit`
 
@@ -354,6 +374,41 @@ statements.
     the default value you set, the format ignores the setting. For information on which formats
     support wrapping and unwrapping, see the [serialization docs](/reference/serialization).
 
+
+## `ksql.properties.overrides.denylist`
+
+**Per query:** no
+
+Specifies the server properties that ksqlDB clients and users can't override.
+
+!!! important
+    Validation of a dynamic property assignment doesn't happen until a DDL or
+    query statement executes, so an attempt to set a property that's on the
+    deny list doesn't cause an immediate error.
+
+    For example, the following commands show an attempt to set the
+    `ksql.streams.num.stream.threads` property, which is on the deny list.
+    The override error doesn't appear until the `show streams` command
+    executes. The `unset` command removes the error.
+
+    ```
+    ksql> set 'ksql.streams.num.stream.threads'='4';
+    Successfully changed local property 'ksql.streams.num.stream.threads' from '4' to '4'.
+
+    ksql> show streams;
+    Cannot override property 'ksql.streams.num.stream.threads'
+
+    ksql> unset 'ksql.streams.num.stream.threads';
+    Successfully unset local property 'ksql.streams.num.stream.threads' (value was '4').
+
+    ksql> show streams;
+
+      Stream Name         | Kafka Topic                 | Format 
+    ------------------------------------------------------------
+      KSQL_PROCESSING_LOG | default_ksql_processing_log | JSON   
+    ------------------------------------------------------------
+    ```
+
 ## `ksql.schema.registry.url`
 
 **Per query:** yes
@@ -387,6 +442,13 @@ becomes `_confluent-ksql-default__command_topic`).
     By convention, the `ksql.service.id` property should end with a
     separator character of some form, like a dash or underscore, as
     this makes the internal topic names easier to read.
+
+## `ksql.source.table.materialization.enabled`
+
+Controls whether the SOURCE table feature is enabled. If you specify the SOURCE
+clause when you create a table, you can execute pull queries against the table.
+For more information, see
+[SOURCE Tables](/developer-guide/ksqldb-reference/create-table/#source-tables).
 
 ## `ksql.streams.auto.offset.reset`
 
@@ -448,6 +510,15 @@ For more information, see the
 [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
 [CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
+
+## `ksql.streams.num.standby.replicas`
+
+The number of standby replicas. Standby replicas are shadow copies of tables. ksqlDB, through
+{{ site.kstreams }}, attempts to create the specified number of replicas and keep them up to date
+as long as there are enough instances running. Standby replicas are used to minimize the latency of
+failover. A table that was previously hosted on a failed instance is preferred to restart on an
+instance that has standby replicas so that the local state store restoration process from its
+changelog can be minimized.
 
 ## `ksql.streams.num.stream.threads`
 
@@ -572,6 +643,16 @@ at the limit.
 Sets the maximum number of concurrent pull queries. This limit is enforced per host, not per cluster.
 After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
+
+## `ksql.idle.connection.timeout.seconds`
+
+Sets the timeout for idle connections. A connection is idle if there is no data in either direction
+on that connection for the duration of the timeout. This configuration can be helpful if you are 
+issuing push queries that only receive data infrequently from the server, as otherwise those
+connections will be severed when the timeout (default 10 minutes) is hit.
+
+Decreasing this timeout enables closing connections more aggressively to save server resources.
+Increasing this timeout makes the server more tolerant of low-data volume use cases.
 
 ## `ksql.variable.substitution.enable`
 

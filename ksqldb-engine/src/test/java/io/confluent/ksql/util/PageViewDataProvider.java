@@ -53,4 +53,9 @@ public class PageViewDataProvider extends TestDataProvider {
   public PageViewDataProvider() {
     super("PAGEVIEW", PHYSICAL_SCHEMA, ROWS);
   }
+
+  // If you need to create a different topic with the same data
+  public PageViewDataProvider(final String namePrefix) {
+    super(namePrefix, PHYSICAL_SCHEMA, ROWS);
+  }
 }

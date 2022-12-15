@@ -62,7 +62,9 @@ public final class MultiNodeTrustStore {
 
   private static final AtomicReference<Path> trustStorePath = new AtomicReference<>();
 
-  private MultiNodeTrustStore() {}
+  private MultiNodeTrustStore() {
+
+  }
 
   /**
    * @return props consumers and producers will need to connect to a secure Kafka cluster over SSL.

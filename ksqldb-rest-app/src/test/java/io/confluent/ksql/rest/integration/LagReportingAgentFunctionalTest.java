@@ -16,6 +16,7 @@ import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.io.IOException;
 import java.util.Comparator;
@@ -41,7 +42,7 @@ import org.slf4j.LoggerFactory;
 @Category({IntegrationTest.class})
 public class LagReportingAgentFunctionalTest {
   private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgentFunctionalTest.class);
-  private static final TemporaryFolder TMP = new TemporaryFolder();
+  private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   static {
     try {

@@ -85,12 +85,17 @@ public class RestQueryTranslationTest {
       )
       .withProperty(
           KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
-          StreamsConfig.EXACTLY_ONCE // To stabilize tests
+          StreamsConfig.EXACTLY_ONCE_V2 // To stabilize tests
       )
+      // Setting to anything lower will cause the tests to fail because we won't correctly commit
+      // transaction marker offsets. This was previously set to 0 to presumably avoid flakiness,
+      // so we should keep an eye out for this.
+      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 2000)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
@@ -104,8 +109,11 @@ public class RestQueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
+    final String testRegex = System.getProperty("ksql.rqtt.regex");
+
     return JsonTestLoader.of(TEST_DIR, RqttTestFile.class)
         .load()
+        .filter(testCase -> testRegex == null || testCase.getName().matches(testRegex))
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toCollection(ArrayList::new));
   }
@@ -130,7 +138,8 @@ public class RestQueryTranslationTest {
     REST_APP.dropSourcesExcept();
     TEST_HARNESS.getKafkaCluster().deleteAllTopics(TestKsqlRestApp.getCommandTopicName());
 
-    if (STARTING_THREADS.get() == null) {
+    final ThreadSnapshot thread = STARTING_THREADS.get();
+    if (thread == null) {
       // Only set once one full run completed to ensure all persistent threads created:
       STARTING_THREADS.set(ThreadTestUtil.threadSnapshot(filterBuilder()
           .excludeTerminated()
@@ -140,7 +149,7 @@ public class RestQueryTranslationTest {
           .nameMatches(name -> !name.startsWith("pull-query-executor"))
           .build()));
     } else {
-      STARTING_THREADS.get().assertSameThreads();
+      thread.assertSameThreads();
     }
   }
 

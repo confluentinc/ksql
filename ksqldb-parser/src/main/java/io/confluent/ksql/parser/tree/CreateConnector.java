@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Map;
@@ -69,6 +70,7 @@ public class CreateConnector extends Statement {
     return notExists;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "config is ImmutableMap")
   public Map<String, Literal> getConfig() {
     return config;
   }

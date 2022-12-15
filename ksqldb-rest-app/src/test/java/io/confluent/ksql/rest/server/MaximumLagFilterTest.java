@@ -1,11 +1,13 @@
 package io.confluent.ksql.rest.server;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.streams.RoutingFilter.Host;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.QueryStateStoreId;
@@ -61,7 +63,9 @@ public class MaximumLagFilterTest {
         PARTITION).get();
 
     // Then:
-    assertTrue(filter.filter(HOST1));
+    final Host host = filter.filter(HOST1);
+    assertTrue(host.isSelected());
+    assertEquals(host.getReasonNotSelected(), "");
   }
 
   @Test
@@ -77,7 +81,9 @@ public class MaximumLagFilterTest {
         PARTITION).get();
 
     // Then:
-    assertFalse(filter.filter(HOST1));
+    final Host host = filter.filter(HOST1);
+    assertFalse(host.isSelected());
+    assertEquals(host.getReasonNotSelected(), "Host excluded because lag 12 exceeds maximum allowed lag 11.");
   }
 
   @Test
@@ -94,7 +100,9 @@ public class MaximumLagFilterTest {
         PARTITION).get();
 
     // Then:
-    assertFalse(filter.filter(HOST1));
+    final Host host = filter.filter(HOST1);
+    assertFalse(host.isSelected());
+    assertEquals(host.getReasonNotSelected(), "Lag information is not present for host.");
   }
 
   @Test

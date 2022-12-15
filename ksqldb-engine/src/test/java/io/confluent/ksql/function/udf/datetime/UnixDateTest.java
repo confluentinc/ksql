@@ -14,11 +14,15 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
+import java.sql.Date;
 import org.junit.Before;
 import org.junit.Test;
 import java.time.LocalDate;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class UnixDateTest {
 
@@ -39,6 +43,24 @@ public class UnixDateTest {
 
     // Then:
     assertEquals(now, result);
+  }
+
+  @Test
+  public void shouldReturnDays() {
+    // When:
+    final int result = udf.unixDate(new Date(864000000));
+
+    // Then:
+    assertThat(result, is(10));
+  }
+
+  @Test
+  public void shouldReturnNull() {
+    // When:
+    final Integer result = udf.unixDate(null);
+
+    // Then:
+    assertNull(result);
   }
 
 }

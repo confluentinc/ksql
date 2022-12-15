@@ -35,6 +35,7 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.api.client.SourceDescription;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
@@ -70,7 +71,7 @@ public class MigrationInfoCommandTest {
   private static final String MIGRATIONS_TABLE = "migrations_table";
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
+  public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
   @Mock
   private MigrationConfig config;

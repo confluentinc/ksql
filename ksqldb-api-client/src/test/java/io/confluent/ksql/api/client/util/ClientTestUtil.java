@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.Row;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,6 +99,7 @@ public final class ClientTestUtil {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public synchronized void onError(final Throwable t) {
       this.error = t;
     }
@@ -111,10 +113,12 @@ public final class ClientTestUtil {
       return completed;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public synchronized Throwable getError() {
       return error;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public synchronized List<T> getValues() {
       return values;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -39,17 +39,17 @@ public final class TableTableJoinBuilder {
 
     final KTable<K, GenericRow> result;
     switch (join.getJoinType()) {
-      case LEFT:
-        result = left.getTable().leftJoin(right.getTable(), joinParams.getJoiner());
-        break;
       case INNER:
         result = left.getTable().join(right.getTable(), joinParams.getJoiner());
+        break;
+      case LEFT:
+        result = left.getTable().leftJoin(right.getTable(), joinParams.getJoiner());
         break;
       case OUTER:
         result = left.getTable().outerJoin(right.getTable(), joinParams.getJoiner());
         break;
       default:
-        throw new IllegalStateException("invalid join type");
+        throw new IllegalStateException("invalid join type: " + join.getJoinType());
     }
 
     return KTableHolder.unmaterialized(

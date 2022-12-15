@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -48,6 +48,8 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import java.time.Duration;
+import java.util.Optional;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
@@ -59,6 +61,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+// Can be fixed after GRACE is mandatory
+@SuppressWarnings("deprecation")
 @RunWith(MockitoJUnitRunner.class)
 public class StreamStreamJoinBuilderTest {
 
@@ -102,7 +106,16 @@ public class StreamStreamJoinBuilderTest {
 
   private static final Duration BEFORE = Duration.ofMillis(1000);
   private static final Duration AFTER = Duration.ofMillis(2000);
-  private static final JoinWindows WINDOWS = JoinWindows.of(BEFORE).after(AFTER);
+  private static final Duration GRACE = Duration.ofMillis(3000);
+  @SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
+  private static final JoinWindows WINDOWS_NO_GRACE = JoinWindows
+      .of(BEFORE)
+      .after(AFTER);
+  @SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
+  private static final JoinWindows WINDOWS_WITH_GRACE = JoinWindows
+      .of(BEFORE)
+      .after(AFTER)
+      .grace(GRACE);
 
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
@@ -151,9 +164,9 @@ public class StreamStreamJoinBuilderTest {
     when(right.build(any(), eq(planInfo))).thenReturn(
         new KStreamHolder<>(rightKStream, RIGHT_SCHEMA, executionKeyFactory));
 
-    when(leftKStream.leftJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
-    when(leftKStream.outerJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
-    when(leftKStream.join(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+    when(leftKStream.leftJoin(any(KStream.class), any(KsqlValueJoiner.class), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+    when(leftKStream.outerJoin(any(KStream.class), any(KsqlValueJoiner.class), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+    when(leftKStream.join(any(KStream.class), any(KsqlValueJoiner.class), any(), any(StreamJoined.class))).thenReturn(resultKStream);
 
     planBuilder = new KSPlanBuilder(
         buildContext,
@@ -181,7 +194,7 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).leftJoin(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -201,7 +214,7 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).leftJoin(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -221,7 +234,7 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).outerJoin(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -241,7 +254,7 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).join(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -261,7 +274,7 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).join(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -298,7 +311,8 @@ public class StreamStreamJoinBuilderTest {
         left,
         right,
         BEFORE,
-        AFTER
+        AFTER,
+        Optional.empty()
     );
 
     // When:
@@ -363,6 +377,10 @@ public class StreamStreamJoinBuilderTest {
   }
 
   private void givenLeftJoin(final ColumnName keyName) {
+    givenLeftJoin(keyName, Optional.empty());
+  }
+
+  private void givenLeftJoin(final ColumnName keyName, final Optional<Duration> grace) {
     join = new StreamStreamJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.LEFT,
@@ -372,11 +390,16 @@ public class StreamStreamJoinBuilderTest {
         left,
         right,
         BEFORE,
-        AFTER
+        AFTER,
+        grace
     );
   }
 
   private void givenOuterJoin() {
+    givenOuterJoin(Optional.empty());
+  }
+
+  private void givenOuterJoin(final Optional<Duration> grace) {
     join = new StreamStreamJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.OUTER,
@@ -386,11 +409,16 @@ public class StreamStreamJoinBuilderTest {
         left,
         right,
         BEFORE,
-        AFTER
+        AFTER,
+        grace
     );
   }
 
   private void givenInnerJoin(final ColumnName keyName) {
+    givenInnerJoin(keyName, Optional.empty());
+  }
+
+  private void givenInnerJoin(final ColumnName keyName, final Optional<Duration> grace) {
     join = new StreamStreamJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.INNER,
@@ -400,7 +428,8 @@ public class StreamStreamJoinBuilderTest {
         left,
         right,
         BEFORE,
-        AFTER
+        AFTER,
+        grace
     );
   }
 }

@@ -14,13 +14,16 @@ keywords: ksqldb, sql, syntax, data type
 
 ## Character types
 
-| name                | description            | backing Java type
-|---------------------|------------------------|------------------
-| `varchar`, `string` | variable-length string | [`java.lang.String`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)
+| name                | description                | backing Java type
+|---------------------|----------------------------|------------------
+| `varchar`, `string` | variable-length string     | [`java.lang.String`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)
+| `bytes`             | variable-length byte array | [byte []](https://docs.oracle.com/javase/8/docs/api/java/lang/Byte.html)
 
 The `varchar` type represents a string in UTF-16 format.
 
 Comparisons between `varchar` instances don't account for locale.
+
+The `bytes` type represents an array of raw bytes.
 
 ## Numeric types
 
@@ -81,10 +84,12 @@ and a scale of _0_.
 - Upcasting a `bigint` to a `decimal` produces a `decimal` with a precision of _19_
 and a scale of _0_.
 
-## Timestamp types
+## Time types
 
 | name      | description                                                     | backing Java type
 |-----------|-----------------------------------------------------------------|------------------
+|`time`     | value representing a time of day in millisecond precision.      | [`java.sql.Time`](https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/java/sql/Time.html)
+|`date`     | value representing a calendar date independent of time zone.    | [`java.sql.Date`](https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/java/sql/Date.html)
 |`timestamp`| value representing a point in time in millisecond precision without timezone information | [`java.sql.Timestamp`](https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/java/sql/Timestamp.html)
 
 ## Compound types

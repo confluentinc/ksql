@@ -45,6 +45,7 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,7 @@ public class DefaultConnectClient implements ConnectClient {
 
   private static final ObjectMapper MAPPER = ConnectJsonMapper.INSTANCE.get();
 
+  private static final String CONNECTOR_PLUGINS = "/connector-plugins";
   private static final String CONNECTORS = "/connectors";
   private static final String STATUS = "/status";
   private static final String TOPICS = "/topics";
@@ -89,8 +91,8 @@ public class DefaultConnectClient implements ConnectClient {
       final String connector,
       final Map<String, String> config
   ) {
+    final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
     try {
-      final Map<String, String> maskedConfig = QueryMask.getMaskedConnectConfig(config);
       LOG.debug("Issuing create request to Kafka Connect at URI {} with name {} and config {}",
           connectUri,
           connector,
@@ -141,6 +143,30 @@ public class DefaultConnectClient implements ConnectClient {
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
+
+      return connectResponse;
+    } catch (final Exception e) {
+      throw new KsqlServerException(e);
+    }
+  }
+
+  @Override
+  public ConnectResponse<List<ConnectorPluginInfo>> connectorPlugins() {
+    try {
+      LOG.debug("Issuing request to Kafka Connect at URI {} to list connector plugins", connectUri);
+
+      final ConnectResponse<List<ConnectorPluginInfo>> connectResponse = withRetries(() -> Request
+          .get(connectUri.resolve(CONNECTOR_PLUGINS))
+          .setHeaders(headers())
+          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .execute()
+          .handleResponse(
+              createHandler(HttpStatus.SC_OK, new TypeReference<List<ConnectorPluginInfo>>() {},
+                  Function.identity())));
+
+      connectResponse.error()
+          .ifPresent(error -> LOG.warn("Could not list connector plugins: {}.", error));
 
       return connectResponse;
     } catch (final Exception e) {

@@ -145,7 +145,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "LEFT",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "format" : "KAFKA"
           },
@@ -154,7 +154,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "OUTPUT",
+          "name" : "LEFT",
           "keyFormat" : {
             "format" : "KAFKA"
           },

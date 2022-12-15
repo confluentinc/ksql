@@ -16,8 +16,10 @@
 package io.confluent.ksql.execution.codegen.helpers;
 
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIME;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIMESTAMP;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -51,6 +53,9 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
@@ -153,6 +158,8 @@ public class CastEvaluatorTest {
         // Given:
         final Matcher<Object> expected = returnJavaType.equals(String.class)
             && !from.equals(SqlTypes.STRING)
+            && !from.equals(SqlTypes.TIME)
+            && !from.equals(SqlTypes.DATE)
             && !from.equals(SqlTypes.TIMESTAMP)
             && !from.baseType().equals(SqlBaseType.DECIMAL)
             && !config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
@@ -218,13 +225,64 @@ public class CastEvaluatorTest {
   }
 
   @RunWith(MockitoJUnitRunner.class)
+  public static final class TimeTest {
+
+    @Mock
+    private KsqlConfig config;
+
+    @Test
+    public void shouldNotCastIncorrectlyFormattedString() {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.TIME, config);
+      // When:
+      final Exception exception = assertThrows(
+          KsqlException.class,
+          () -> evaluator.rawEvaluate("woof")
+      );
+
+      // Then:
+      assertThat(exception.getMessage(), containsString("Required format is: \"HH:mm:ss.SSS\""));
+    }
+  }
+
+  @RunWith(MockitoJUnitRunner.class)
+  public static final class DateTest {
+
+    @Mock
+    private KsqlConfig config;
+
+    @Test
+    public void shouldNotCastIncorrectlyFormattedString() {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.DATE, config);
+      // When:
+      final Exception exception = assertThrows(
+          KsqlException.class,
+          () -> evaluator.rawEvaluate("woof")
+      );
+
+      // Then:
+      assertThat(exception.getMessage(), containsString("Required format is: \"yyyy-MM-dd\""));
+    }
+
+    @Test
+    public void shouldCastDateToTimestamp() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.DATE, SqlTypes.TIMESTAMP, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Date(864000000)), is(new Timestamp(864000000)));
+    }
+  }
+
+  @RunWith(MockitoJUnitRunner.class)
   public static final class TimestampTest {
 
     @Mock
     private KsqlConfig config;
 
     @Test
-    public void shouldNotCastPositiveInfinite() {
+    public void shouldNotCastIncorrectlyFormattedString() {
       // Given:
       final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.TIMESTAMP, config);
       // When:
@@ -235,6 +293,24 @@ public class CastEvaluatorTest {
 
       // Then:
       assertThat(exception.getMessage(), containsString("Required format is: \"yyyy-MM-dd'T'HH:mm:ss.SSS\", with an optional numeric"));
+    }
+
+    @Test
+    public void shouldCastTimestampToDate() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.TIMESTAMP, SqlTypes.DATE, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Timestamp(864033000)), is(new Date(864000000)));
+    }
+
+    @Test
+    public void shouldCastTimestampToTime() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.TIMESTAMP, SqlTypes.TIME, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Timestamp(864033000)), is(new Time(33000)));
     }
   }
 
@@ -599,7 +675,8 @@ public class CastEvaluatorTest {
           is(ImmutableSet.of(
               SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DECIMAL,
               SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, MAP,
-              SqlBaseType.STRUCT, SqlBaseType.TIMESTAMP
+              SqlBaseType.STRUCT, SqlBaseType.TIME, SqlBaseType.DATE, SqlBaseType.TIMESTAMP,
+              SqlBaseType.BYTES
           ))
       );
     }
@@ -663,7 +740,10 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.STRUCT, SqlTypes.struct()
             .field("Bob", SqlTypes.STRING)
             .build())
+        .put(SqlBaseType.TIME, SqlTypes.TIME)
+        .put(SqlBaseType.DATE, SqlTypes.DATE)
         .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
+        .put(SqlBaseType.BYTES, SqlTypes.BYTES)
         .build();
 
     static SqlType typeInstanceFor(final SqlBaseType baseType) {
@@ -687,9 +767,13 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.DECIMAL, new BigDecimal("12.01"))
         .put(SqlBaseType.DOUBLE, 34.98d)
         .put(SqlBaseType.STRING, "\t 11 \t")
+        .put(SqlBaseType.TIME, new Time(500L))
+        .put(SqlBaseType.DATE, new Date(500L))
         .put(SqlBaseType.TIMESTAMP, new Timestamp(500))
+        .put(SqlBaseType.BYTES, ByteBuffer.wrap(new byte[] {123}))
         .build();
 
+    @SuppressWarnings("fallthrough")
     static Object instanceFor(final SqlType type, final SqlType to) {
       switch (type.baseType()) {
         case ARRAY:
@@ -728,6 +812,10 @@ public class CastEvaluatorTest {
         case STRING:
           if (to.baseType() == TIMESTAMP) {
             return "2020-05-26T07:59:58.000";
+          } else if (to.baseType() == TIME) {
+            return "07:59:58";
+          } else if (to.baseType() == DATE) {
+            return "2020-05-26";
           }
           // Intentional fall through
         default:
@@ -785,6 +873,8 @@ public class CastEvaluatorTest {
                 .add(SqlBaseType.DECIMAL)
                 .add(SqlBaseType.DOUBLE)
                 .add(SqlBaseType.STRING)
+                .add(SqlBaseType.TIME)
+                .add(SqlBaseType.DATE)
                 .add(SqlBaseType.TIMESTAMP)
                 .build())
             .put(SqlBaseType.ARRAY, ImmutableSet.<SqlBaseType>builder()
@@ -799,9 +889,23 @@ public class CastEvaluatorTest {
                 .add(SqlBaseType.STRUCT)
                 .add(SqlBaseType.STRING)
                 .build())
-            .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
+            .put(SqlBaseType.TIME, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.TIME)
+                .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.DATE, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.DATE)
                 .add(SqlBaseType.TIMESTAMP)
                 .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.TIMESTAMP)
+                .add(SqlBaseType.TIME)
+                .add(SqlBaseType.DATE)
+                .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.BYTES, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.BYTES)
                 .build())
             .build();
 

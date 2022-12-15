@@ -16,6 +16,7 @@
 package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -27,16 +28,16 @@ import org.apache.kafka.test.TestUtils;
 
 public final class KsqlConfigTestUtil {
 
-  private static final Map<String, Object> BASE_CONFIG = ImmutableMap.of(
+  private static final ImmutableMap<String, Object> BASE_CONFIG = ImmutableMap.of(
       "commit.interval.ms", 0,
       "cache.max.bytes.buffering", 0,
       "auto.offset.reset", "earliest",
       StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath()
   );
 
-  private KsqlConfigTestUtil() {
-  }
+  private KsqlConfigTestUtil() {}
 
+  @SuppressFBWarnings(value = "MS_EXPOSE_REP", justification = "BASE_CONFIG is ImmutableMap")
   public static Map<String, Object> baseTestConfig() {
     return BASE_CONFIG;
   }

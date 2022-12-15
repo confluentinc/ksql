@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.runtime;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -123,6 +124,7 @@ public final class RuntimeBuildContext {
     return serviceContext;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KsqlConfig getKsqlConfig() {
     return ksqlConfig;
   }

@@ -34,7 +34,7 @@ public class SearchedCaseTerm implements Term {
       final List<Pair<Term, Term>> operandResultTerms,
       final Optional<Term> defaultValue,
       final SqlType resultType) {
-    this.operandResultTerms = operandResultTerms;
+    this.operandResultTerms = ImmutableList.copyOf(operandResultTerms);
     this.defaultValue = defaultValue;
     this.resultType = resultType;
   }

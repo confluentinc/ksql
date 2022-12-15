@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.CommandParser.preserveCase;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllMigrations;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
@@ -29,17 +30,18 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.FieldInfo;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.parser.VariableParser;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDefineVariableCommand;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlUndefineVariableCommand;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
@@ -121,6 +123,14 @@ public class ApplyMigrationCommand extends BaseCommand {
   @Once
   private boolean dryRun = false;
 
+  @Option(
+      name = {"--define", "-d"},
+      description = "Define variables for the session. This is equivalent to including DEFINE "
+          + "statements before each migration. The `--define` option should be followed by a "
+          + "string of the form `name=value` and may be passed any number of times."
+  )
+  private List<String> definedVars = null;
+
   @Override
   protected int command() {
     if (!validateConfigFilePresent()) {
@@ -138,7 +148,6 @@ public class ApplyMigrationCommand extends BaseCommand {
     return command(
         config,
         MigrationsUtil::getKsqlClient,
-        MigrationsUtil::createRestClient,
         getMigrationsDirFromConfigFile(getConfigFile()),
         Clock.systemDefaultZone()
     );
@@ -149,16 +158,13 @@ public class ApplyMigrationCommand extends BaseCommand {
   int command(
       final MigrationConfig config,
       final Function<MigrationConfig, Client> clientSupplier,
-      final Function<MigrationConfig, KsqlRestClient> restClientSupplier,
       final String migrationsDir,
       final Clock clock
   ) {
     // CHECKSTYLE_RULES.ON: NPathComplexity
     final Client ksqlClient;
-    final KsqlRestClient restClient;
     try {
       ksqlClient = clientSupplier.apply(config);
-      restClient = restClientSupplier.apply(config);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
@@ -177,13 +183,12 @@ public class ApplyMigrationCommand extends BaseCommand {
     boolean success;
     try {
       success = validateCurrentState(config, ksqlClient, migrationsDir)
-          && apply(config, ksqlClient, restClient, migrationsDir, clock);
+          && apply(config, ksqlClient, migrationsDir, clock);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       success = false;
     } finally {
       ksqlClient.close();
-      restClient.close();
     }
 
     return success ? 0 : 1;
@@ -192,19 +197,15 @@ public class ApplyMigrationCommand extends BaseCommand {
   private boolean apply(
       final MigrationConfig config,
       final Client ksqlClient,
-      final KsqlRestClient restClient,
       final String migrationsDir,
       final Clock clock
   ) {
     String previous = MetadataUtil.getLatestMigratedVersion(config, ksqlClient);
-    final int minimumVersion = previous.equals(MetadataUtil.NONE_VERSION)
-        ? 1
-        : Integer.parseInt(previous) + 1;
 
     LOGGER.info("Loading migration files");
     final List<MigrationFile> migrations;
     try {
-      migrations = loadMigrationsToApply(migrationsDir, minimumVersion);
+      migrations = loadMigrationsToApply(migrationsDir, previous);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return false;
@@ -217,7 +218,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
 
     for (MigrationFile migration : migrations) {
-      if (!applyMigration(config, ksqlClient, restClient, migration, clock, previous)) {
+      if (!applyMigration(config, ksqlClient, migration, clock, previous)) {
         return false;
       }
       previous = Integer.toString(migration.getVersion());
@@ -228,13 +229,21 @@ public class ApplyMigrationCommand extends BaseCommand {
 
   private List<MigrationFile> loadMigrationsToApply(
       final String migrationsDir,
-      final int minimumVersion
+      final String previousVersion
   ) {
+    final int minimumVersion = previousVersion.equals(MetadataUtil.NONE_VERSION)
+        ? 1
+        : Integer.parseInt(previousVersion) + 1;
     if (version > 0) {
       final Optional<MigrationFile> migration =
           getMigrationForVersion(String.valueOf(version), migrationsDir);
       if (!migration.isPresent()) {
         throw new MigrationException("No migration file with version " + version + " exists.");
+      }
+      if (version < minimumVersion) {
+        throw new MigrationException(
+            "Version must be newer than the last version migrated. Last version migrated was "
+                + previousVersion);
       }
       return Collections.singletonList(migration.get());
     }
@@ -265,7 +274,6 @@ public class ApplyMigrationCommand extends BaseCommand {
   private boolean applyMigration(
       final MigrationConfig config,
       final Client ksqlClient,
-      final KsqlRestClient restClient,
       final MigrationFile migration,
       final Clock clock,
       final String previous
@@ -295,7 +303,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
 
     try {
-      executeCommands(migrationFileContent, ksqlClient, restClient, config,
+      executeCommands(migrationFileContent, ksqlClient, config,
           executionStart, migration, clock, previous);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
@@ -313,21 +321,52 @@ public class ApplyMigrationCommand extends BaseCommand {
   private void executeCommands(
       final String migrationFileContent,
       final Client ksqlClient,
-      final KsqlRestClient restClient,
       final MigrationConfig config,
       final String executionStart,
       final MigrationFile migration,
       final Clock clock,
       final String previous
   ) {
+    final List<String> commands = CommandParser.splitSql(migrationFileContent);
+
+    executeCommands(
+        commands, ksqlClient, config, executionStart, migration, clock, previous, true);
+    executeCommands(
+        commands, ksqlClient, config, executionStart, migration, clock, previous, false);
+  }
+
+  /**
+   * If validateOnly is set to true, then this parses each of the commands but only executes
+   * DEFINE/UNDEFINE commands (variables are needed for parsing INSERT INTO... VALUES, SET/UNSET
+   * and DEFINE commands). If validateOnly is set to false, then each command will execute after
+   * parsing.
+   */
+  private void executeCommands(
+      final List<String> commands,
+      final Client ksqlClient,
+      final MigrationConfig config,
+      final String executionStart,
+      final MigrationFile migration,
+      final Clock clock,
+      final String previous,
+      final boolean validateOnly
+  ) {
+    setUpJavaClientVariables(ksqlClient);
     final Map<String, Object> properties = new HashMap<>();
-    final List<SqlCommand> commands = CommandParser.parse(migrationFileContent);
-    for (final SqlCommand command : commands) {
+    for (final String command : commands) {
       try {
-        executeCommand(command, ksqlClient, restClient, properties);
-      } catch (InterruptedException | ExecutionException e) {
+        final Map<String, String> variables = ksqlClient.getVariables().entrySet()
+            .stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
+        executeCommand(
+            CommandParser.transformToSqlCommand(command, variables),
+            ksqlClient,
+            properties,
+            validateOnly
+        );
+      } catch (InterruptedException | ExecutionException | MigrationException e) {
+        final String action = validateOnly ? "parse" : "execute";
         final String errorMsg = String.format(
-            "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
+            "Failed to %s sql: %s. Error: %s", action, command, e.getMessage());
         updateState(config, ksqlClient, MigrationState.ERROR,
             executionStart, migration, clock, previous, Optional.of(errorMsg));
         throw new MigrationException(errorMsg);
@@ -335,10 +374,39 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
   }
 
+  private void setUpJavaClientVariables(final Client ksqlClient) {
+    ksqlClient.getVariables().forEach((k, v) -> ksqlClient.undefine(k));
+    try {
+      VariableParser.getVariables(definedVars).forEach((k, v) -> ksqlClient.define(k, v));
+    } catch (IllegalArgumentException e) {
+      throw new MigrationException(e.getMessage());
+    }
+  }
+
   private void executeCommand(
       final SqlCommand command,
       final Client ksqlClient,
-      final KsqlRestClient restClient,
+      final Map<String, Object> properties,
+      final boolean defineUndefineOnly
+  ) throws ExecutionException, InterruptedException {
+    if (command instanceof SqlDefineVariableCommand) {
+      ksqlClient.define(
+          ((SqlDefineVariableCommand) command).getVariable(),
+          ((SqlDefineVariableCommand) command).getValue()
+      );
+    } else if (command instanceof SqlUndefineVariableCommand) {
+      ksqlClient.undefine(((SqlUndefineVariableCommand) command).getVariable());
+    } else if (!defineUndefineOnly) {
+      executeNonVariableCommands(command, ksqlClient, properties);
+    }
+  }
+
+  /**
+   * Executes everything besides define/undefine commands
+   */
+  private void executeNonVariableCommands(
+      final SqlCommand command,
+      final Client ksqlClient,
       final Map<String, Object> properties
   ) throws ExecutionException, InterruptedException {
     if (command instanceof SqlStatement) {
@@ -347,17 +415,19 @@ public class ApplyMigrationCommand extends BaseCommand {
       final List<FieldInfo> fields =
           ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
       ksqlClient.insertInto(
-          preserveCase(((SqlInsertValues) command).getSourceName()),
+          ((SqlInsertValues) command).getSourceName(),
           getRow(
               fields,
               ((SqlInsertValues) command).getColumns(),
               ((SqlInsertValues) command).getValues())).get();
-    } else if (command instanceof SqlConnectorStatement) {
-      final RestResponse<KsqlEntityList> response =
-          restClient.makeKsqlRequest(command.getCommand());
-      if (!response.isSuccessful()) {
-        throw new MigrationException(response.getErrorMessage().getMessage());
-      }
+    } else if (command instanceof SqlCreateConnectorStatement) {
+      ksqlClient.createConnector(
+          ((SqlCreateConnectorStatement) command).getName(),
+          ((SqlCreateConnectorStatement) command).isSource(),
+          ((SqlCreateConnectorStatement) command).getProperties()
+      ).get();
+    } else if (command instanceof SqlDropConnectorStatement) {
+      ksqlClient.dropConnector(((SqlDropConnectorStatement) command).getName()).get();
     } else if (command instanceof SqlPropertyCommand) {
       if (((SqlPropertyCommand) command).isSetCommand()
           && ((SqlPropertyCommand) command).getValue().isPresent()) {
@@ -498,9 +568,5 @@ public class ApplyMigrationCommand extends BaseCommand {
   ) {
     LOGGER.info("Validating current migration state before applying new migrations");
     return ValidateMigrationsCommand.validate(config, migrationsDir, ksqlClient);
-  }
-
-  private static String preserveCase(final String fieldOrSourceName) {
-    return "`" + fieldOrSourceName + "`";
   }
 }

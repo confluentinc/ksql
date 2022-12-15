@@ -9,12 +9,17 @@ keywords: ksqldb, join, partition, key, schema
 When you use ksqlDB to join streaming data, you must ensure that your
 streams and tables are *co-partitioned*, which means that input records
 on both sides of the join have the same configuration settings for
-partitions.
+partitions. The only exception is foreign-key table-table joins, which
+do not have any co-partitioning requirement.
 
 To join two data sources, streams or tables, ksqlDB needs to compare their
 records based on the joining column. To ensure that records with the same
 join column are co-located on the same stream task, the join column must
 coincide with the column that the sources are partitioned by.
+
+Partitioning streams and tables is especially important for stateful or otherwise
+intensive queries. For more information, see
+[Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
 
 Keys
 ----
@@ -76,7 +81,8 @@ Co-partitioning Requirements
 ----------------------------
 
 When you use ksqlDB to join streaming data, you must ensure that your streams
-and tables are *co-partitioned*, which means that input records on both sides
+and tables are *co-partitioned* (except for foreign-key table-table joins),
+which means that input records on both sides
 of the join have the same configuration settings for partitions.
 
 - The input records for the join must have the
@@ -141,9 +147,10 @@ unless there is an explicit `GROUP BY` or `JOIN` clause, which can change what t
 is keyed on.
 
 !!! note
-    ksqlDB automatically repartitions a stream if a join requires it, but ksqlDB
-    rejects any join on a table's column that is *not* the key. This is
-    because ksqlDB doesn't support joins on foreign keys, and repartitioning a
+    ksqlDB automatically repartitions a stream if a join requires it, but for
+    stream-table and table-table joins, ksqlDB
+    rejects a join on a (right) table's column that is *not* the primary key.
+    This is because repartitioning a
     table's topic has the potential to reorder events and misinterpret
     tombstones, which can lead to unintended or undesired side effects.
 
@@ -181,8 +188,8 @@ in [Kafka Tutorials](https://kafka-tutorials.confluent.io/).
 
 ### Records Have the Same Number of Partitions
 
-The input records for the join must have the same number of partitions on both
-sides.
+The input records for joins must have the same number of partitions on both
+sides, except for foreign-key table-table joins.
 
 ksqlDB checks this part of the co-partitioning requirement and rejects any join
 where the partition counts differ.

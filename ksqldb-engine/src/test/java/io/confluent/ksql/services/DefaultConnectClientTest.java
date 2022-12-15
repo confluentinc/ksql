@@ -36,6 +36,7 @@ import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ActiveTopicsInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
@@ -61,6 +62,11 @@ public class DefaultConnectClientTest {
           new TaskState(0, "taskState", "worker", "taskMsg")
       ),
       ConnectorType.SOURCE
+  );
+  private static final ConnectorPluginInfo SAMPLE_PLUGIN = new ConnectorPluginInfo(
+      "io.confluent.connect.replicator.ReplicatorSourceConnector",
+      ConnectorType.SOURCE,
+      "1.0"
   );
   private static final String AUTH_HEADER = "Basic FOOBAR";
 
@@ -140,6 +146,25 @@ public class DefaultConnectClientTest {
 
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of("one", "two"))));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testListPlugins() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.get(WireMock.urlEqualTo("/connector-plugins"))
+            .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody(MAPPER.writeValueAsString(ImmutableList.of(SAMPLE_PLUGIN))))
+    );
+
+    // When:
+    final ConnectResponse<List<ConnectorPluginInfo>> response = client.connectorPlugins();
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of(SAMPLE_PLUGIN))));
     assertThat("Expected no error!", !response.error().isPresent());
   }
 

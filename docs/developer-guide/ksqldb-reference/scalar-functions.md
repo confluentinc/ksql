@@ -52,10 +52,14 @@ Converts one type to another. The following casts are supported:
 
 | from | to | notes |
 |------|----|-------|
-| any  | `STRING` | Converts the type to its string representation. |
+| any except `BYTES` | `STRING` | Converts the type to its string representation. |
 | `VARCHAR` | `BOOLEAN` | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
 | `VARCHAR` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
+| `VARCHAR` | `TIME` | Converts time strings to `TIME`. Conversion fails if text is not in `HH:mm:ss` format.     |
+| `VARCHAR` | `DATE` | Converts date strings to `DATE`. Conversion fails if text is not in `yyyy-MM-dd` format.     |
 | `VARCHAR` | `TIMESTAMP` | Converts datestrings to `TIMESTAMP`. Conversion fails if text is not in ISO-8601 format.     |
+| `TIMESTAMP` | `TIME`, `DATE` | Converts a `TIMESTAMP` to `TIME` or `DATE` by extracting the time or date portion of the `TIMESTAMP`.|
+| `DATE` | `TIMESTAMP` | Converts a `DATE` to `TIMESTAMP` by setting the time portion to `00:00:00.000` |
 | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Convert between numeric types. Conversion can result in rounding |
 | `ARRAY` | `ARRAY` | (Since 0.14) Convert between arrays of different element types |   
 | `MAP` | `MAP` | (Since 0.14) Convert between maps of different key and value types |   
@@ -135,6 +139,30 @@ GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)
 The great-circle distance between two lat-long points, both specified
 in decimal degrees. An optional final parameter specifies `KM`
 (the default) or `miles`.
+
+### `GREATEST`
+
+Since: 0.20.0
+
+```sql
+GREATEST(col1, col2...)
+```
+
+The highest non-null value among a variable number of comparable columns.
+If comparing columns of different numerical types, use [CAST](#cast) to first
+cast them to be of the same type.
+
+### `LEAST`
+
+Since: 0.20.0
+
+```sql
+LEAST(col1, col2...)
+```
+
+The highest non-null value among a variable number of comparable columns.
+If comparing columns of different numerical types, use [CAST](#cast) to first
+cast them to be of the same type.
 
 ### `LN`
 
@@ -398,6 +426,24 @@ ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
 ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
 ```
 
+### `ARRAY_CONCAT`
+
+Since: 0.20.0
+
+```sql
+ARRAY_CONCAT(array1, array2)
+```
+
+Returns an array representing the concatenation of both input arrays.
+
+Returns NULL if both input arrays are NULL. If only one argument is NULL, the result is the other argument.
+
+Examples:
+```sql 
+ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
+ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
+```
+
 ### `AS_MAP`
 
 Since: 0.6.0
@@ -604,9 +650,10 @@ Since: -
 
 ```sql
 CONCAT(col1, col2, 'hello', ..., col-n)
+CONCAT(bytes1, bytes2, ..., bytes-n)
 ```
 
-Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
+Concatenate two or more string or bytes expressions. Any inputs which evaluate to NULL are replaced with an empty string or bytes in the output.
 
 ### `CONCAT_WS`
 
@@ -616,7 +663,7 @@ Since: 0.10.0
 CONCAT_WS(separator, expr1, expr2, ...)
 ```
 
-Concatenates two or more string expressions, inserting a separator string between each.
+Concatenates two or more string or bytes expressions, inserting a separator string or bytes between each.
 
 If the separator is NULL, this function returns NULL.
 Any expressions which evaluate to NULL are skipped.
@@ -669,17 +716,30 @@ The result of EXTRACTJSONFIELD is always a STRING. Use `CAST` to convert the res
 type. For example, `CAST(EXTRACTJSONFIELD(message, '$.log.instance') AS INT)` will extract the
 instance number from the above JSON object as a INT.
 
+The return type of the UDF is STRING, so JSONPaths that select
+multiple elements, like those containing wildcards, aren't supported.
+
 !!! note
     EXTRACTJSONFIELD is useful for extracting data from JSON where either the schema of the JSON
     data is not static, or where the JSON data is embedded in a row encoded using a different
     format, for example, a JSON field within an Avro-encoded message.
 
     If the whole row is encoded as JSON with a known schema or structure, use the `JSON` format and
-
     define the structure as the source's columns.  For example, a stream of JSON objects similar to
     the example above could be defined using a statement similar to this:
 
-    `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT, ...) WITH (VALUE_FORMAT=JSON, ...)`
+    `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, ...) WITH (VALUE_FORMAT='JSON', ...)`
+
+### `FROM_BYTES`
+
+Since: - 0.21
+
+```sql
+FROM_BYTES(bytes, encoding)
+```
+
+Converts a BYTES column to a STRING in the specified encoding type.
+Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
 
 ### `INITCAP`
 
@@ -735,10 +795,11 @@ Convert a string to lowercase.
 Since: -
 
 ```sql
-LEN(col1)
+LEN(string)
+LEN(bytes)
 ```
 
-The length of a string.
+The length of a string or the number of bytes in a BYTES value.
 
 ### `LPAD`
 
@@ -748,10 +809,10 @@ Since: 0.10.0
 LPAD(input, length, padding)
 ```
 
-Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
-If the input string is longer than the specified target length, it is truncated.
+Pads the input string or bytes, starting from the left, with the specified padding of the same type until the target length is reached. 
+If the input is longer than the specified target length, it is truncated.
 
-If the padding string is empty or NULL, or the target length is negative, NULL is returned.
+If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
 
 Examples:
 ```sql
@@ -928,9 +989,10 @@ Since: 0.10.0
 RPAD(input, length, padding)
 ```
 
-Pads the input string, starting from the end, with the specified padding string until the target length is reached. If the input string is longer than the specified target length it will be truncated. 
+Pads the input string or bytes, starting from the end, with the specified padding of the same type until the target length is reached. 
+If the input is longer than the specified target length, it is truncated. 
 
-If the padding string is empty or NULL, or the target length is negative, then NULL is returned.
+If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
 
 Examples:
 ```sql
@@ -947,16 +1009,16 @@ Since: 0.6.0
 SPLIT(col1, delimiter)
 ```
 
-Splits a string into an array of substrings based
+Splits a string into an array of substrings, or
+bytes into an array of subarrays, based
 on a delimiter. If the delimiter is not found,
-then the original string is returned as the only
+the original string or byte array is returned as the only
 element in the array. If the delimiter is empty,
-then all characters in the string are split.
-If either, string or delimiter, are NULL, then a
-NULL value is returned.
+every character in the string or byte in the array is split.
+Returns NULL if either parameter is NULL.
 
 If the delimiter is found at the beginning or end
-of the string, or there are contiguous delimiters,
+of the string or bytes, or there are contiguous delimiters,
 then an empty space is added to the array.
 
 ### `SPLIT_TO_MAP`
@@ -988,15 +1050,27 @@ SUBSTRING(col1, 2, 5)
 
 ```sql
 SUBSTRING(str, pos, [len])
+SUBSTRING(bytes, pos, [len])
 ```
 
-Returns a substring of `str` that starts at
-`pos` (first character is at position 1) and
+Returns the portion of `str` or `bytes` that starts at
+`pos` (first character or byte is at position 1) and
 has length `len`, or continues to the end of
-the string.
+the string or bytes.
 
 For example, `SUBSTRING("stream", 1, 4)`
 returns "stre".
+
+### `TO_BYTES`
+
+Since: - 0.21
+
+```sql
+TO_BYTES(string, encoding)
+```
+
+Converts a STRING column in the specified encoding type to a BYTES column.
+Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
 
 ### `TRIM`
 
@@ -1058,6 +1132,19 @@ If the provided `expression` is NULL, returns `altValue`, otherwise, returns `ex
 Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
 complex type are not inspected.
 
+### `NULLIF`
+
+Since: -
+
+```sql
+NULLIF(expression1, expression2)
+```
+
+Returns NULL if `expression1` is equal to `expression2`; otherwise, returns `expression1`.
+
+If the parameter type is a complex type, for example, `ARRAY` or `STRUCT`, the contents of the
+complex type are not inspected.
+
 ## Date and time
 
 ### `UNIX_DATE`
@@ -1065,11 +1152,14 @@ complex type are not inspected.
 Since: 0.6.0
 
 ```sql
-UNIX_DATE()
+UNIX_DATE([date])
 ```
- 
-Gets an integer representing days since epoch. The returned timestamp
-may differ depending on the local time of different ksqlDB Server instances.
+
+If `UNIX_DATE` is called with the date parameter, the function returns the DATE
+value as an INTEGER value representing the number of days since `1970-01-01`.
+
+If the `date` parameter is not provided, it returns an integer representing days since `1970-01-01`.
+The returned integer may differ depending on the local time of different ksqlDB Server instances.
 
 ### `UNIX_TIMESTAMP`
 
@@ -1090,6 +1180,8 @@ ksqlDB Server instances.
 
 Since: -
 
+Deprecated since 0.20.0 (use FORMAT_DATE)
+
 ```sql
 DATETOSTRING(START_DATE, 'yyyy-MM-dd')
 ```
@@ -1103,6 +1195,8 @@ The integer represents days since epoch matching the encoding used by
 ### `STRINGTODATE`
 
 Since: -
+
+Deprecated since 0.20.0 (use PARSE_DATE)
 
 ```sql
 STRINGTODATE(col1, 'yyyy-MM-dd')
@@ -1186,6 +1280,54 @@ TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, fo
 "America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
+### `FORMAT_DATE`
+
+```sql
+FORMAT_DATE(date, 'yyyy-MM-dd')
+```
+
+Converts a DATE value into a string that represents the date in the given format.
+You can escape single-quote characters in the timestamp format by using two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `PARSE_DATE`
+
+```sql
+PARSE_DATE(col1, 'yyyy-MM-dd')
+```
+
+Converts a string representation of a date in the
+given format into a DATE value. You can escape
+single-quote characters in the timestamp format by using two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `FORMAT_TIME`
+
+Since: 0.20
+
+```sql
+FORMAT_TIME(time, 'HH:mm:ss.SSS')
+```
+
+Converts a TIME value into the string representation of the time in the given format.
+Single quotes in the time format can be escaped with two successive single quotes, `''`, for
+example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `PARSE_TIME`
+
+Since: 0.20
+
+```sql
+PARSE_TIME(col1, 'HH:mm:ss.SSS')
+```
+
+Converts a string value in the given format into a TIME value. Single quotes in the time
+format can be escaped with two successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
 ### `CONVERT_TZ`
 
 ```sql
@@ -1204,6 +1346,14 @@ FROM_UNIXTIME(milliseconds)
 ```
 
 Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
+
+### `FROM_DAYS`
+
+```sql
+FROM_DAYS(days)
+```
+
+Converts an INT number of days since epoch to a DATE value.
 
 ### TIMESTAMPADD
 
@@ -1225,6 +1375,50 @@ TIMESTAMPSUB(unit, interval, COL0)
 ```
 
 Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### TIMEADD
+
+Since: 0.20
+
+```sql
+TIMEADD(unit, interval, COL0)
+```
+
+Adds an interval to a time. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### TIMESUB
+
+Since: 0.20
+
+```sql
+TIMESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a time. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### DATEADD
+
+Since: 0.20
+
+```sql
+DATEADD(unit, interval, COL0)
+```
+
+Adds an interval to a date. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### DATESUB
+
+Since: 0.20
+
+```sql
+DATESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a date. Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
 ## URLs

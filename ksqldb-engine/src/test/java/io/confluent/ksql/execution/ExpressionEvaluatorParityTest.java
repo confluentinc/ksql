@@ -37,6 +37,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +72,10 @@ public class ExpressionEvaluatorParityTest {
   private static final long CATEGORY_ID = 456;
   private static final String CATEGORY_NAME = "cat";
   private static final int ORDER_UNITS = 20;
+  private static final Timestamp TIMESTAMP = new Timestamp(1273881610000L);
+  private static final Time TIME = new Time(7205000);
+  private static final Date DATE = new Date(864000000);
+  private static final ByteBuffer BYTES = ByteBuffer.wrap(new byte[] {123});
 
   private GenericRow ordersRow;
 
@@ -101,7 +109,7 @@ public class ExpressionEvaluatorParityTest {
     final Map<String, Double> map = ImmutableMap.of("abc", 6.75d, "def", 9.5d);
     // Note key isn't included first since it's assumed that it's provided as a value
     ordersRow = GenericRow.genericRow(ORDER_ID, ITEM_ID, itemInfo, ORDER_UNITS,
-        doubleArray, map, null, ROW_TIME, ORDER_TIME);
+        doubleArray, map, null, TIMESTAMP, TIME, DATE, BYTES, ROW_TIME, ORDER_TIME);
   }
 
   @After
@@ -124,6 +132,13 @@ public class ExpressionEvaluatorParityTest {
     assertOrdersError("ARRAYCOL = MAPCOL",
         compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"),
         compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"));
+    assertOrders("TIMESTAMPCOL > DATECOL", true);
+    assertOrders("TIMECOL > '03:00:00'", false);
+    assertOrders("DATECOL = '1970-01-11'", true);
+    assertOrdersError("TIMESTAMPCOL = TIMECOL",
+        compileTime("Unexpected comparison to TIME: TIMESTAMP"),
+        compileTime("Cannot compare TIMESTAMPCOL (TIMESTAMP) to TIMECOL (TIME)"));
+    assertOrders("BYTESCOL = BYTESCOL", true);
   }
 
   @Test
@@ -148,6 +163,7 @@ public class ExpressionEvaluatorParityTest {
   public void shouldDoUdfs() throws Exception {
     assertOrders("CONCAT('abc-', 'def')", "abc-def");
     assertOrders("SPLIT('a-b-c', '-')", ImmutableList.of("a", "b", "c"));
+    assertOrders("TIMESTAMPADD(SECONDS, 1, '2020-01-01')", new Timestamp(1577836801000L));
     assertOrdersError("SPLIT(123, '2')",
         compileTime("Function 'split' does not accept parameters (INTEGER, STRING)"),
         compileTime("Function 'split' does not accept parameters (INTEGER, STRING)"));
@@ -174,10 +190,35 @@ public class ExpressionEvaluatorParityTest {
   @Test
   public void shouldDoArithmetic_nulls() throws Exception {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
-    assertOrdersError("1 + null",  compileTime("Unexpected error generating code for Test"),
-        compileTime("Unexpected error generating code for expression: (1 + null)"));
-    assertOrdersError("'a' + null",  compileTime("Unexpected error generating code for Test"),
-        compileTime("Unexpected error generating code for expression: ('a' + null)"));
+
+    //The error message coming from the compiler and the interpreter should be the same
+    assertOrdersError("1 + null",  compileTime("Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."),
+        compileTime("Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."));
+
+    assertOrdersError("'a' + null",  compileTime("Error processing expression: ('a' + null). Arithmetic on types STRING and null are not supported."),
+        compileTime("Error processing expression: ('a' + null). Arithmetic on types STRING and null are not supported."));
+
+    assertOrdersError("MAP(1 := 'cat') + null",  compileTime("Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."),
+            compileTime("Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."));
+
+    assertOrdersError("Array[1,2,3] + null",  compileTime("Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."),
+            compileTime("Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."));
+
+    assertOrdersError("1 - null",  compileTime("Error processing expression: (1 - null). Arithmetic on types INTEGER and null are not supported."),
+            compileTime("Error processing expression: (1 - null). Arithmetic on types INTEGER and null are not supported."));
+
+    assertOrdersError("1 * null",  compileTime("Error processing expression: (1 * null). Arithmetic on types INTEGER and null are not supported."),
+            compileTime("Error processing expression: (1 * null). Arithmetic on types INTEGER and null are not supported."));
+
+    assertOrdersError("1 / null",  compileTime("Error processing expression: (1 / null). Arithmetic on types INTEGER and null are not supported."),
+            compileTime("Error processing expression: (1 / null). Arithmetic on types INTEGER and null are not supported."));
+
+    assertOrdersError("null + null",  compileTime("Error processing expression: (null + null). Arithmetic on types null and null are not supported."),
+            compileTime("Error processing expression: (null + null). Arithmetic on types null and null are not supported."));
+
+    assertOrdersError("null / 0",  compileTime("Error processing expression: (null / 0). Arithmetic on types null and INTEGER are not supported."),
+            compileTime("Error processing expression: (null / 0). Arithmetic on types null and INTEGER are not supported."));
+
     assertOrdersError("1 + ORDERID",  evalLogger(null));
   }
 
@@ -214,6 +255,17 @@ public class ExpressionEvaluatorParityTest {
         compileTime("Unsupported cast from STRING to ARRAY<INTEGER>"));
     assertOrders("CAST('true' as BOOLEAN)", true);
     assertOrders("TRUE AND CAST('true' as BOOLEAN)", true);
+    assertOrders("CAST('01:00:00.005' as TIME)", new Time(3600005));
+    assertOrders("CAST('2002-02-20' as DATE)", new Date(1014163200000L));
+    assertOrders("CAST(TIMESTAMPCOL as DATE)", new Date(1273881600000L));
+    assertOrders("CAST(TIMESTAMPCOL as TIME)", new Time(10000));
+    assertOrdersError("CAST(TIMECOL as TIMESTAMP)",
+        compileTime("Cast of TIME to TIMESTAMP is not supported"),
+        compileTime("Unsupported cast from TIME to TIMESTAMP"));
+    assertOrdersError("CAST(BYTESCOL as STRING)",
+        compileTime("Cast of BYTES to STRING is not supported"),
+        compileTime("Unsupported cast from BYTES to STRING"));
+    assertOrders("CAST(BYTESCOL as BYTES)", BYTES);
   }
 
   @Test

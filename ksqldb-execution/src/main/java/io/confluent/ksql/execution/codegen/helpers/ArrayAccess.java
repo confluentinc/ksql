@@ -23,7 +23,9 @@ import java.util.List;
  */
 public final class ArrayAccess {
 
-  private ArrayAccess() { }
+  private ArrayAccess() {
+
+  }
 
   /**
    * @param list  the input list

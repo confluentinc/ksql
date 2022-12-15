@@ -15,6 +15,7 @@
 
 package io.confluent.ksql;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.cli.console.KsqlTerminal;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -41,6 +42,7 @@ public class TestTerminal implements KsqlTerminal {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public PrintWriter writer() {
     return printWriter;
   }

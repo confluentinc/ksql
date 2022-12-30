@@ -296,7 +296,8 @@ public class Server {
         .setReusePort(true)
         .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
-        .setPerFrameWebSocketCompressionSupported(true);
+        .setPerFrameWebSocketCompressionSupported(true)
+        .setUseProxyProtocol(true);
 
     if (tls) {
       final String ksConfigName = isInternalListener

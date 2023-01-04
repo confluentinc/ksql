@@ -718,6 +718,14 @@ public class ApiIntegrationTest {
     }, is(1));
 
     PrintResponse printResponse = atomicReference.get();
+
+    assertThatEventually(() -> {
+      try {
+        return responseFuture.isDone();
+      } catch (Throwable t) {
+        return false;
+      }
+    }, is(true));
     assertThat(writeStream.isEnded(), is(true));
     assertThat(printResponse.rows.get(0), containsString(
         "key: {\"F1\":[\"a\"]}, value: {\"STR\":\"FOO\",\"LONG\":1,\"DEC\":1.11,\"BYTES_\":\"AQ==\",\"ARRAY\":[\"a\"],\"MAP\":{\"k1\":\"v1\"},\"STRUCT\":{\"F1\":2},\"COMPLEX\":{\"DECIMAL\":0.0,\"STRUCT\":{\"F1\":\"v0\",\"F2\":0},\"ARRAY_ARRAY\":[[\"foo\"]],\"ARRAY_STRUCT\":[{\"F1\":\"v0\"}],\"ARRAY_MAP\":[{\"k1\":0}],\"MAP_ARRAY\":{\"k\":[\"v0\"]},\"MAP_MAP\":{\"k\":{\"k\":0}},\"MAP_STRUCT\":{\"k\":{\"F1\":\"v0\"}}},\"TIMESTAMP\":1,\"DATE\":1,\"TIME\":0}, partition: 0"));

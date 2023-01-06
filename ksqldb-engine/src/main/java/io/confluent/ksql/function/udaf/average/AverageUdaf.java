@@ -122,7 +122,7 @@ public final class AverageUdaf {
       public Double map(final Struct aggregate) {
         final long count = aggregate.getInt64(COUNT);
         if (count == 0) {
-          return 0.0;
+          return null;
         }
         return mapper.apply(aggregate,((double)count));
       }

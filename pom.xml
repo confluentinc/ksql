@@ -155,6 +155,7 @@
         <netty-codec-http2-version>4.1.86.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
+        <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
 
     <dependencyManagement>

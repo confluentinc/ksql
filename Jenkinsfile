@@ -14,7 +14,7 @@ common {
     pinnedNanoVersions = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dkafka.version='${ce.kafka.version}'"
-    mavenBuildGoals = "clean install"
+    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
+    mavenBuildGoals = "clean install -Dkafka.version='${ce.kafka.version}'"
 }
 

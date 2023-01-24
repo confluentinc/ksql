@@ -16,15 +16,20 @@
 package io.confluent.ksql.api.auth;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.api.server.LoggingHandler;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 
 public final class DefaultApiSecurityContext implements ApiSecurityContext {
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultApiSecurityContext.class);
 
   private final Optional<KsqlPrincipal> principal;
   private final Optional<String> authToken;
@@ -45,6 +50,7 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
 
     final List<Entry<String, String>> requestHeaders = routingContext.request().headers().entries();
     final String ipAddress = routingContext.request().remoteAddress().host();
+    LOG.warn("Request to create DefaultApiSecurityContext from {}", ipAddress);
     return new DefaultApiSecurityContext(
         apiUser != null
             ? apiUser.getPrincipal().withIpAddress(ipAddress == null ? "" : ipAddress)

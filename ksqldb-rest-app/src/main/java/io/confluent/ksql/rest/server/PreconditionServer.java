@@ -159,7 +159,8 @@ public class PreconditionServer {
         .setReusePort(true)
         .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
-        .setPerFrameWebSocketCompressionSupported(true);
+        .setPerFrameWebSocketCompressionSupported(true)
+        .setUseProxyProtocol(true);
 
     if (tls) {
       final String ksConfigName = KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG;

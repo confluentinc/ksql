@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -59,6 +60,11 @@ final class SandboxedSchemaRegistryClient {
 
     private SandboxSchemaRegistryCache(final SchemaRegistryClient delegate) {
       this.srClient = delegate;
+    }
+
+    @Override
+    public Ticker ticker() {
+      throw new UnsupportedOperationException();
     }
 
     @Override

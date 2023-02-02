@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Message;
@@ -1228,6 +1229,7 @@ public class RecordFormatterTest {
       props.put("schema.registry.url", "localhost:9092");
 
       final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
+      when(schemaRegistryClient.ticker()).thenReturn(Ticker.systemTicker());
       return new KafkaAvroSerializer(schemaRegistryClient, props);
     }
 
@@ -1249,6 +1251,7 @@ public class RecordFormatterTest {
       props.put("schema.registry.url", "localhost:9092");
 
       final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
+      when(schemaRegistryClient.ticker()).thenReturn(Ticker.systemTicker());
       return new KafkaProtobufSerializer<>(schemaRegistryClient, props);
     }
 
@@ -1257,6 +1260,7 @@ public class RecordFormatterTest {
       props.put("schema.registry.url", "localhost:9092");
 
       final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
+      when(schemaRegistryClient.ticker()).thenReturn(Ticker.systemTicker());
       return new KafkaJsonSchemaSerializer<>(schemaRegistryClient, props);
     }
   }

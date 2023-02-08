@@ -8,7 +8,7 @@ common {
     dockerPush = false
     dockerScan = false
     dockerImageClean = false
-    downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins", "cc-docker-ksql"]
+    downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
     downStreamValidate = false
     nanoVersion = true
     pinnedNanoVersions = true

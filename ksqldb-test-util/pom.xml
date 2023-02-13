@@ -20,7 +20,7 @@
   <parent>
     <artifactId>ksqldb-parent</artifactId>
     <groupId>io.confluent.ksql</groupId>
-    <version>7.5.0-7</version>
+    <version>7.5.0-cc-docker-kafka.16-7-rc1</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 

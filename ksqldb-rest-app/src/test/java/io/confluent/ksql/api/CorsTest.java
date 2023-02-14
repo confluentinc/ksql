@@ -58,7 +58,7 @@ public final class CorsTest {
   protected static final String DEFAULT_PULL_QUERY = "select * from foo where rowkey='1234';";
 
   private static final String URI = "/query-stream";
-  private static final String ORIGIN = "wibble.com";
+  private static final String ORIGIN = "http://wibble.com";
 
   private final Function<Map<String, String>, WebClient> clientSupplier;
   private final int successStatus;
@@ -135,7 +135,7 @@ public final class CorsTest {
   }
 
   public void shouldAcceptCorsRequestOriginExactMatchOneOfList() throws Exception {
-    shouldAcceptCorsRequest(ORIGIN, "foo.com,wibble.com");
+    shouldAcceptCorsRequest(ORIGIN, "foo.com," + ORIGIN);
   }
 
   public void shouldRejectCorsRequestOriginExactMatchOenOfList() throws Exception {

@@ -122,7 +122,7 @@
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.14</vertx.version>
+        <vertx.version>4.3.7</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -131,15 +131,15 @@
         <jetty.version>9.4.44.v20210927</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
 
-        <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.54.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.84.Final</netty.version>
-        <netty-codec-http2-version>4.1.84.Final</netty-codec-http2-version>
+        <netty.version>4.1.86.Final</netty.version>
+        <netty-codec-http2-version>4.1.86.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
     </properties>
 

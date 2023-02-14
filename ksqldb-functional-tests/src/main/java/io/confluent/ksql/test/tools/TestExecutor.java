@@ -162,20 +162,23 @@ public class TestExecutor implements Closeable {
     this.topicInfoCache = new TopicInfoCache(ksqlEngine, serviceContext.getSchemaRegistryClient());
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public void buildAndExecuteQuery(
       final TestCase testCase,
       final TestExecutionListener listener
   )  {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     topicInfoCache.clear();
 
     final KsqlConfig ksqlConfig = testCase.applyPersistedProperties(new KsqlConfig(config));
 
+    List<TopologyTestDriverContainer> topologyTestDrivers = null;
     try {
       System.setProperty(RuntimeBuildContext.KSQL_TEST_TRACK_SERDE_TOPICS, "true");
 
       maybeRegisterTopicSchemas(testCase.getTopics());
 
-      final List<TopologyTestDriverContainer> topologyTestDrivers = topologyBuilder
+      topologyTestDrivers = topologyBuilder
           .buildStreamsTopologyTestDrivers(
               testCase,
               serviceContext,
@@ -274,6 +277,11 @@ public class TestExecutor implements Closeable {
       assertThat(e, isThrowable(expectedExceptionMatcher.get()));
     } finally {
       System.clearProperty(RuntimeBuildContext.KSQL_TEST_TRACK_SERDE_TOPICS);
+      if (topologyTestDrivers != null) {
+        for (final TopologyTestDriverContainer topologyTestDriverContainer : topologyTestDrivers) {
+          topologyTestDriverContainer.close();
+        }
+      }
     }
   }
 

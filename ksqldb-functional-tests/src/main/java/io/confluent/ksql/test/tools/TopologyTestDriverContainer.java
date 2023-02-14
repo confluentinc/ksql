@@ -106,4 +106,8 @@ public final class TopologyTestDriverContainer {
   public Set<String> getSourceTopicNames() {
     return sourceTopics.keySet();
   }
+
+  public void close() {
+    topologyTestDriver.close();
+  }
 }

@@ -49,7 +49,7 @@ public class CorsTest extends BaseApiTest {
   private static final String DEFAULT_ACCESS_CONTROL_ALLOW_METHODS = "GET,POST,HEAD";
 
   private static final String URI = "/query-stream";
-  private static final String ORIGIN = "wibble.com";
+  private static final String ORIGIN = "http://wibble.com";
 
   private final Map<String, Object> config = new HashMap<>();
 
@@ -132,7 +132,7 @@ public class CorsTest extends BaseApiTest {
 
   @Test
   public void shouldAcceptCorsRequestOriginExactMatchOneOfList() throws Exception {
-    shouldAcceptCorsRequest(ORIGIN, "foo.com,wibble.com");
+    shouldAcceptCorsRequest(ORIGIN, "foo.com," + ORIGIN);
   }
 
   @Test

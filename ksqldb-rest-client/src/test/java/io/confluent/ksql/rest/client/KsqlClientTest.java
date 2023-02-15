@@ -537,7 +537,7 @@ public class KsqlClientTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
+    assertThat(e.getCause().getMessage(), containsString(
         "java.io.IOException: Keystore was tampered with, or password was incorrect"
     ));
   }
@@ -558,7 +558,7 @@ public class KsqlClientTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
+    assertThat(e.getCause().getMessage(), containsString(
         "java.io.IOException: Keystore was tampered with, or password was incorrect"
     ));
   }
@@ -786,6 +786,7 @@ public class KsqlClientTest {
     props.putAll(ClientTrustStore.trustStoreProps());
     props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, password);
     createClient(props);
+    ksqlClient.target(serverUri).getServerInfo().get();
   }
 
   private void startServerWithTls() throws Exception {

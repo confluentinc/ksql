@@ -16,6 +16,8 @@
 package io.confluent.ksql.execution.codegen;
 
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 
 public final class CodeGenUtil {
 
@@ -35,6 +37,17 @@ public final class CodeGenUtil {
 
   public static String functionName(final FunctionName fun, final int index) {
     return fun.text() + "_" + index;
+  }
+
+  public static String argumentAccessor(final String name,
+                                        final SqlType type) {
+    final Class<?> javaType = SchemaConverters.sqlToJavaConverter().toJavaType(type);
+    return argumentAccessor(name, javaType);
+  }
+
+  public static String argumentAccessor(final String name,
+                                        final Class<?> type) {
+    return String.format("((%s) arguments.get(\"%s\"))", type.getCanonicalName(), name);
   }
 
 }

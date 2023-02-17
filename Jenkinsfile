@@ -16,6 +16,5 @@ common {
     maxDaysToKeep = 90
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
     mavenBuildGoals = "clean install"
-    runMergeCheck = true
 }
 

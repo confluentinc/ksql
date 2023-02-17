@@ -36,7 +36,7 @@
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.5.0-0</version>
+    <version>7.4.0-0</version>
 
     <licenses>
         <license>

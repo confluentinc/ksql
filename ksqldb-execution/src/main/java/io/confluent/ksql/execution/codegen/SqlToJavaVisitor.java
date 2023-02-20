@@ -89,6 +89,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
@@ -124,6 +125,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
@@ -465,7 +467,9 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + node.getColumnName()));
 
-      return new Pair<>(colRefToCodeName.apply(fieldName), schemaColumn.type());
+      final String codeName = colRefToCodeName.apply(fieldName);
+      final String paramAccessor = CodeGenUtil.argumentAccessor(codeName, schemaColumn.type());
+      return new Pair<>(paramAccessor, schemaColumn.type());
     }
 
     @Override
@@ -515,6 +519,7 @@ public class SqlToJavaVisitor {
     ) {
       final FunctionName functionName = node.getName();
       final String instanceName = funNameToCodeName.apply(functionName);
+      final String functionAccessor = CodeGenUtil.argumentAccessor(instanceName, Kudf.class);
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
       final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
           .getFunctionTypeInfo(
@@ -561,7 +566,7 @@ public class SqlToJavaVisitor {
       }
 
       final String argumentsString = joiner.toString();
-      final String codeString = "((" + javaReturnType + ") " + instanceName
+      final String codeString = "((" + javaReturnType + ") " + functionAccessor
           + ".evaluate(" + argumentsString + "))";
       return new Pair<>(codeString, returnType);
     }
@@ -1165,7 +1170,10 @@ public class SqlToJavaVisitor {
         final Context context
     ) {
       final String schemaName = structToCodeName.apply(node);
-      final StringBuilder struct = new StringBuilder("new Struct(").append(schemaName).append(")");
+      final String schemaAccessor = CodeGenUtil.argumentAccessor(schemaName, Schema.class);
+      final StringBuilder struct = new StringBuilder("new Struct(")
+              .append(schemaAccessor)
+              .append(")");
       for (final Field field : node.getFields()) {
         struct.append(".put(")
             .append('"')

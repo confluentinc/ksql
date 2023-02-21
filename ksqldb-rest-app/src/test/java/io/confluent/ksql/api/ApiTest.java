@@ -331,7 +331,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size() - 1));
     validateError(ERROR_CODE_SERVER_ERROR, "java.lang.RuntimeException: Failure in processing", queryResponse.error);
     assertThat(testEndpoints.getPublishers(), hasSize(1));
-    assertThat(server.getQueryIDs().isEmpty(), is(true));
+    assertThatEventually(() -> server.getQueryIDs().isEmpty(), is(true));
   }
 
   @Test

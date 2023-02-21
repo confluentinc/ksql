@@ -1170,7 +1170,7 @@ JSON_RECORDS('abc') => NULL
 ```
 ### `JSON_ITEMS`
 
-```sql title="Since: 0.28.0"
+```sql title="Since: 0.29.0"
 JSON_ITEMS(json_string) => Array<String>
 ```
 

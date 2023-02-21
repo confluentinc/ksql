@@ -24,7 +24,7 @@ import java.util.Map;
 public interface ClientOptions {
 
   String DEFAULT_HOST = "localhost";
-  int DEFAULT_HOST_PORT = 8088;
+  int DEFAULT_HOST_PORT = 6969;
   int DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS = 10000;
   int DEFAULT_HTTP2_MULTIPLEXING_LIMIT = -1;
 

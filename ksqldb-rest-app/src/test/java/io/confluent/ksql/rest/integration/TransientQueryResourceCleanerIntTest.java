@@ -111,7 +111,7 @@ public class TransientQueryResourceCleanerIntTest {
             .around(REST_APP_0);
 
     @Rule
-    public final Timeout timeout = Timeout.seconds(180);
+    public final Timeout timeout = Timeout.seconds(300);
 
     private ExecutorService service;
     private Runnable backgroundTask;

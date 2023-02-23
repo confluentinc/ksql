@@ -1,7 +1,10 @@
 #!/usr/bin/env groovy
 
+def channel = "${env.BRANCH_NAME}".contains('master') ? '#ksqldb-quality-oncall' : '#ksqldb-warn'
+
 common {
-    slackChannel = '#ksqldb-quality-oncall'
+    nodeLabel = 'docker-openjdk11'
+    slackChannel = channel
     timeoutHours = 5
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'

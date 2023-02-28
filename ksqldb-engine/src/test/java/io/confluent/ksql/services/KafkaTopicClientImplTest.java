@@ -734,7 +734,7 @@ public class KafkaTopicClientImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Authorization denied to Describe on topic(s): [" + topicName + "]"));
+        "Authorization denied to Describe_configs on topic(s): [" + topicName + "]"));
   }
 
   @Test

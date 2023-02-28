@@ -420,7 +420,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           .filter(e -> includeDefaults || !e.isDefault())
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
     } catch (final TopicAuthorizationException e) {
-      throw new KsqlTopicAuthorizationException(AclOperation.DESCRIBE_CONFIGS, e.unauthorizedTopics());
+      throw new KsqlTopicAuthorizationException(
+          AclOperation.DESCRIBE_CONFIGS,
+          e.unauthorizedTopics());
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to get config for Kafka Topic " + topicName, e);

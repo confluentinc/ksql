@@ -720,6 +720,24 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldThrowKsqlTopicAuthorizationExceptionFromGetTopicConfig() {
+    // Given:
+    final String topicName = "foobar";
+    when(adminClient.describeConfigs(ImmutableList.of(topicResource(topicName))))
+        .thenAnswer(describeConfigsResult(new TopicAuthorizationException(ImmutableSet.of(topicName))));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.getTopicConfig(topicName)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Authorization denied to Describe_configs on topic(s): [" + topicName + "]"));
+  }
+
+  @Test
   public void shouldSetTopicCleanupPolicyToCompact() {
     // Given:
     final Map<String, String> configs = ImmutableMap.of(

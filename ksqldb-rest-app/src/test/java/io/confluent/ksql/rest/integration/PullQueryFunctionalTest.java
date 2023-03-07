@@ -137,9 +137,6 @@ public class PullQueryFunctionalTest {
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 10000)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG, KsqlRestConfig.AUTHENTICATION_METHOD_BASIC)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
       .build();
 
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
@@ -153,9 +150,6 @@ public class PullQueryFunctionalTest {
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 10000)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG, KsqlRestConfig.AUTHENTICATION_METHOD_BASIC)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
       .build();
 
   @ClassRule

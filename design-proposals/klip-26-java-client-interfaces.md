@@ -1,8 +1,8 @@
 # KLIP 26 - Java client interfaces
 
 **Author**: Victoria Xia (@vcrfxia) | 
-**Release Target**: ksqlDB 0.10.0 | 
-**Status**: _In development_ | 
+**Release Target**: 0.10.0; 6.0.0 | 
+**Status**: _Merged_ | 
 **Discussion**: [GitHub PR](https://github.com/confluentinc/ksql/pull/5236)
 
 **tl;dr:** _[KLIP 15](./klip-15-new-api-and-client.md) already made the case for why it makes sense

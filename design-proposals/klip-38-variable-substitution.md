@@ -1,7 +1,7 @@
 # KLIP 38 - Variable Substitution
 
 **Author**: Sergio Peña (@spena) |
-**Release Target**: 0.14 |
+**Release Target**: 0.14.0; 6.1.0 |
 **Status**: _Merged_ |
 **Discussion**: https://github.com/confluentinc/ksql/pull/6259
 

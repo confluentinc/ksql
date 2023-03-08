@@ -1,8 +1,8 @@
 # KLIP 42 - Schema Migrations Tool
 
 **Author**: Sergio Peña (@spena) |
-**Release Target**: 0.18 |
-**Status**: _Design Approved_ |
+**Release Target**: 0.17.0; 6.2.0 |
+**Status**: _Merged_ |
 **Discussion**: https://github.com/confluentinc/ksql/pull/6721
 
 **tl;dr:** _New tool to provide ksqlDB users for easy and automated schema migrations for their

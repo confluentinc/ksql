@@ -1,8 +1,8 @@
 # KLIP 13 - Introduce KSQL command to print connect worker properties to the console
 
 **Author**: alex-dukhno | 
-**Release Target**: N/A | 
-**Status**: _In Discussion_ | 
+**Release Target**: 0.8.0; 5.5.0 | 
+**Status**: _Merged_ | 
 **Discussion**: _link to the design discussion PR_
 
 **tl;dr:** The best tools are ones that greatly support users workflow. As of today users couldn't 

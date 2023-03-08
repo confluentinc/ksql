@@ -1,9 +1,9 @@
 # KLIP-63: PAUSE and RESUME for persistent queries 
 
-**Author**: Jim Hughes (jnh5y) | 
-**Release Target**: Unknown | 
-**Status**: In Discussion | 
-**Discussion**: 
+**Author**: Jim Hughes (jnh5y) |
+**Release Target**: 0.28.0; 7.3.0 |
+**Status**: _Merged_ |
+**Discussion**: https://github.com/confluentinc/ksql/pull/9095 
 
 **tl;dr:** Adds the ability to pause the processing of a persistent query.
            

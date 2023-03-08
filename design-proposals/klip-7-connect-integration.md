@@ -2,7 +2,7 @@
 
 **Author**: agavra | 
 **Release Target**: 5.4 | 
-**Status**: Approved | 
+**Status**: _Merged_ | 
 **Discussion**: link
 
 **tl;dr:** _provide first-class integration with Kafka connect for KSQL data ingress and egress_

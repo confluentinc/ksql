@@ -33,6 +33,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.PageViewDataProvider;

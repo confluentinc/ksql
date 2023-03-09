@@ -360,6 +360,13 @@ public class KsqlConfig extends AbstractConfig {
           = "Enables the use of LIMIT clause in pull queries";
   public static final boolean KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT = true;
 
+  public static final String KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG
+      = "ksql.query.pull.forwarding.timeout.ms";
+  public static final String KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DOC
+      = "Pull query forwarding timeout in milliseconds";
+  public static final long KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DEFAULT =
+      15000L;
+
   public static final String KSQL_QUERY_PUSH_V2_ENABLED
       = "ksql.query.push.v2.enabled";
   public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
@@ -1210,6 +1217,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG,
+            Type.LONG,
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DOC
         )
         .define(
             KSQL_QUERY_PUSH_V2_ENABLED,

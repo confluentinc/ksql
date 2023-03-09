@@ -28,6 +28,7 @@ import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
@@ -132,7 +133,7 @@ public final class KsqlClient implements AutoCloseable {
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader, server.getHost(), additionalHeaders);
+        basicAuthHeader, server.getHost(), additionalHeaders, RequestOptions.DEFAULT_TIMEOUT);
   }
 
   public KsqlTarget targetHttp2(final URI server) {
@@ -141,7 +142,7 @@ public final class KsqlClient implements AutoCloseable {
         () -> new IllegalStateException("Must provide http2 options to use targetHttp2"));
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader, server.getHost(), Collections.emptyMap());
+        basicAuthHeader, server.getHost(), Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
   }
 
   @VisibleForTesting

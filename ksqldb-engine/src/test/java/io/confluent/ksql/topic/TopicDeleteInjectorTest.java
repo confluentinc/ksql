@@ -128,7 +128,7 @@ public class TopicDeleteInjectorTest {
     final ConfiguredStatement<DropStream> injected = deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
 
     // Then:
-    assertThat(injected.getStatementText(), is("DROP STREAM SOMETHING;"));
+    assertThat(injected.getMaskedStatementText(), is("DROP STREAM SOMETHING;"));
     assertThat("expected !isDeleteTopic", !injected.getStatement().isDeleteTopic());
   }
 

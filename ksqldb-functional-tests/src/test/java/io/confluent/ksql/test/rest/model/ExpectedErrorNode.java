@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
+import io.confluent.ksql.util.QueryMask;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -97,7 +98,8 @@ public final class ExpectedErrorNode {
           // Ensure exception contains last statement, otherwise the test case is invalid:
           matchers.add(
               RestResponseMatchers.hasErrorMessage(
-                  (Matcher)KsqlStatementErrorMessageMatchers.statement(containsString(lastStatement))
+                  (Matcher)KsqlStatementErrorMessageMatchers.statement(containsString(
+                      QueryMask.getMaskedStatement(lastStatement)))
               )
           );
       }

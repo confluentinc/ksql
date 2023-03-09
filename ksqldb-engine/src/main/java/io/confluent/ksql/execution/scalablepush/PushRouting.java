@@ -171,10 +171,10 @@ public class PushRouting implements AutoCloseable {
 
     if (hosts.isEmpty()) {
       LOG.error("Unable to execute push query: {}. No nodes executing persistent queries",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
       throw new KsqlException(String.format(
           "Unable to execute push query. No nodes executing persistent queries %s",
-          statement.getStatementText()));
+          statement.getMaskedStatementText()));
     }
     return hosts;
   }
@@ -255,7 +255,7 @@ public class PushRouting implements AutoCloseable {
             }
           }
           LOG.warn("Error routing query {} id {} to host {} at timestamp {} with exception {}",
-              statement.getStatementText(), pushPhysicalPlanManager.getQueryId(), node,
+              statement.getMaskedStatementText(), pushPhysicalPlanManager.getQueryId(), node,
               System.currentTimeMillis(), t.getCause());
 
           // We only fail the whole thing if this is not a new dynamically added node. We allow
@@ -264,7 +264,7 @@ public class PushRouting implements AutoCloseable {
             pushConnectionsHandle.completeExceptionally(
                 new KsqlException(String.format(
                     "Unable to execute push query \"%s\". %s",
-                    statement.getStatementText(), t.getCause().getMessage())));
+                    statement.getMaskedStatementText(), t.getCause().getMessage())));
           }
           return pushConnectionsHandle;
         })
@@ -292,7 +292,7 @@ public class PushRouting implements AutoCloseable {
   ) {
     if (node.isLocal()) {
       LOG.info("Query {} id {} executed locally at host {} at timestamp {}.",
-          statement.getStatementText(), pushPhysicalPlanManager.getQueryId(), node.location(),
+          statement.getMaskedStatementText(), pushPhysicalPlanManager.getQueryId(), node.location(),
           System.currentTimeMillis());
       scalablePushQueryMetrics
           .ifPresent(metrics -> metrics.recordLocalRequests(1));
@@ -320,7 +320,7 @@ public class PushRouting implements AutoCloseable {
           })
           .exceptionally(t -> {
             LOG.error("Error executing query {} locally at node {}",
-                statement.getStatementText(), node.location(), t.getCause());
+                statement.getMaskedStatementText(), node.location(), t.getCause());
             final BufferedPublisher<QueryRow> publisher = publisherRef.get();
             closeable.get().run();
             if (publisher != null) {
@@ -334,7 +334,7 @@ public class PushRouting implements AutoCloseable {
           });
     } else {
       LOG.info("Query {} routed to host {} at timestamp {}.",
-          statement.getStatementText(), node.location(), System.currentTimeMillis());
+          statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
       scalablePushQueryMetrics
               .ifPresent(metrics -> metrics.recordRemoteRequests(1));
       final AtomicReference<BufferedPublisher<StreamedRow>> publisherRef
@@ -351,7 +351,7 @@ public class PushRouting implements AutoCloseable {
         return new RoutingResult(RoutingResultStatus.SUCCESS, publisher::close);
       }).exceptionally(t -> {
         LOG.error("Error forwarding query {} to node {}",
-            statement.getStatementText(), node, t.getCause());
+            statement.getMaskedStatementText(), node, t.getCause());
         final BufferedPublisher<StreamedRow> publisher = publisherRef.get();
         if (publisher != null) {
           publisher.close();
@@ -393,7 +393,7 @@ public class PushRouting implements AutoCloseable {
         .getKsqlClient()
         .makeQueryRequestStreamed(
             owner.location(),
-            statement.getStatementText(),
+            statement.getUnMaskedStatementText(),
             statement.getSessionConfig().getOverrides(),
             requestProperties
         );

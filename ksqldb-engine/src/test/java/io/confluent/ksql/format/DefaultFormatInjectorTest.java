@@ -78,7 +78,7 @@ public class DefaultFormatInjectorTest {
     final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then
-    assertThat(result.getStatementText(), containsString("KEY_FORMAT='KAFKA'"));
+    assertThat(result.getMaskedStatementText(), containsString("KEY_FORMAT='KAFKA'"));
   }
 
   @Test
@@ -95,7 +95,7 @@ public class DefaultFormatInjectorTest {
     final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then
-    assertThat(result.getStatementText(), containsString("VALUE_FORMAT='JSON'"));
+    assertThat(result.getMaskedStatementText(), containsString("VALUE_FORMAT='JSON'"));
   }
 
   @Test
@@ -111,8 +111,8 @@ public class DefaultFormatInjectorTest {
     final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then
-    assertThat(result.getStatementText(), containsString("KEY_FORMAT='KAFKA'"));
-    assertThat(result.getStatementText(), containsString("VALUE_FORMAT='JSON'"));
+    assertThat(result.getMaskedStatementText(), containsString("KEY_FORMAT='KAFKA'"));
+    assertThat(result.getMaskedStatementText(), containsString("VALUE_FORMAT='JSON'"));
   }
 
   @Test
@@ -158,7 +158,7 @@ public class DefaultFormatInjectorTest {
     final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then
-    assertThat(result.getStatementText(), containsString("KEY_FORMAT='KAFKA'"));
+    assertThat(result.getMaskedStatementText(), containsString("KEY_FORMAT='KAFKA'"));
   }
 
   @Test
@@ -197,7 +197,7 @@ public class DefaultFormatInjectorTest {
     final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then
-    assertThat(result.getStatementText(), containsString("VALUE_FORMAT='JSON'"));
+    assertThat(result.getMaskedStatementText(), containsString("VALUE_FORMAT='JSON'"));
   }
 
   private void givenConfig(final Map<String, Object> additionalConfigProps) {

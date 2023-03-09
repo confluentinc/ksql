@@ -292,7 +292,7 @@ public final class HARouting implements AutoCloseable {
     if (node.isLocal()) {
       try {
         LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-            statement.getStatementText(), node.location(), System.currentTimeMillis());
+            statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
         synchronized (pullPhysicalPlan) {
@@ -315,7 +315,7 @@ public final class HARouting implements AutoCloseable {
     } else {
       try {
         LOG.debug("Query {} routed to host {} at timestamp {}.",
-            statement.getStatementText(), node.location(), System.currentTimeMillis());
+            statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
         forwardTo(node, ImmutableList.of(location), statement, serviceContext, pullQueryQueue,
@@ -366,7 +366,7 @@ public final class HARouting implements AutoCloseable {
           .getKsqlClient()
           .makeQueryRequest(
               owner.location(),
-              statement.getStatementText(),
+              statement.getUnMaskedStatementText(),
               statement.getSessionConfig().getOverrides(),
               requestProperties,
               streamedRowsHandler(

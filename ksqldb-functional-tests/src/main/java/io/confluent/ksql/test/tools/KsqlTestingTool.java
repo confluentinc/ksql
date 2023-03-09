@@ -72,7 +72,7 @@ public final class KsqlTestingTool {
       final List<ParsedStatement> parsedStatements = ksqlParser.parse(sqlStatements);
       return parsedStatements
           .stream()
-          .map(ParsedStatement::getStatementText)
+          .map(ParsedStatement::getUnMaskedStatementText)
           .collect(Collectors.toList());
     } catch (final IOException e) {
       throw new KsqlException(

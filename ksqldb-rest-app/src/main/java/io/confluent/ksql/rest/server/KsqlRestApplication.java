@@ -367,7 +367,8 @@ public final class KsqlRestApplication implements Executable {
           serverMetadataResource,
           wsQueryEndpoint,
           pullQueryMetrics,
-          queryExecutor
+          queryExecutor,
+          securityExtension.getAuthTokenProvider()
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);

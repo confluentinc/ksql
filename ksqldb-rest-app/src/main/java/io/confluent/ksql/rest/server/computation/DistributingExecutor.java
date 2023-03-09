@@ -137,7 +137,7 @@ public class DistributingExecutor {
     if (sourceName != null
         && executionContext.getMetaStore().getSource(sourceName) != null) {
       return Optional.of(StatementExecutorResponse.handled(Optional.of(
-          new WarningEntity(statement.getStatementText(),
+          new WarningEntity(statement.getMaskedStatementText(),
               String.format("Cannot add %s %s: A %s with the same name already exists.",
                   type,
                   sourceName,
@@ -203,7 +203,7 @@ public class DistributingExecutor {
     } catch (final Exception e) {
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
-          statement.getStatementText()), e);
+          statement.getMaskedStatementText()), e);
     }
 
     if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
@@ -231,7 +231,7 @@ public class DistributingExecutor {
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return StatementExecutorResponse.handled(Optional.of(new CommandStatusEntity(
-          injected.getStatementText(),
+          injected.getMaskedStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber(),
@@ -248,7 +248,7 @@ public class DistributingExecutor {
       }
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic.",
-          statement.getStatementText()), e);
+          statement.getMaskedStatementText()), e);
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
       if (commandId != null) {
@@ -256,7 +256,7 @@ public class DistributingExecutor {
       }
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic.",
-          statement.getStatementText()), e);
+          statement.getMaskedStatementText()), e);
     } finally {
       transactionalProducer.close();
     }

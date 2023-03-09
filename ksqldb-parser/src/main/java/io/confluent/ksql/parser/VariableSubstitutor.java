@@ -72,7 +72,7 @@ public final class VariableSubstitutor {
       final KsqlParser.ParsedStatement parsedStatement,
       final Map<String, String> valueMap
   ) {
-    final String statementText = parsedStatement.getStatementText();
+    final String statementText = parsedStatement.getUnMaskedStatementText();
     final SqlSubstitutorVisitor visitor = new SqlSubstitutorVisitor(statementText, valueMap);
     return visitor.replace(parsedStatement.getStatement());
   }

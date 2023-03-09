@@ -114,6 +114,7 @@ import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
+import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
@@ -178,10 +179,11 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan, final boolean restoreInProgress) {
+    final String maskedStatement = QueryMask.getMaskedStatement(plan.getStatementText());
     if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
-          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet(),
+          .map(ddl -> executeDdl(ddl, maskedStatement, false, Collections.emptySet(),
               restoreInProgress))
           .orElseThrow(
               () -> new IllegalStateException(
@@ -207,7 +209,7 @@ final class EngineExecutor {
     }
 
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources(),
+        executeDdl(ddl, maskedStatement, true, queryPlan.getSources(),
             restoreInProgress));
 
     // Return if the source to create already exists.
@@ -222,14 +224,14 @@ final class EngineExecutor {
         && !isSourceTableMaterializationEnabled()) {
       LOG.info(String.format(
           "Source table query '%s' won't be materialized because '%s' is disabled.",
-          plan.getStatementText(),
+          maskedStatement,
           KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED));
       return ExecuteResult.of(ddlResult.get());
     }
 
     return ExecuteResult.of(executePersistentQuery(
         queryPlan,
-        plan.getStatementText(),
+        maskedStatement,
         persistentQueryType)
     );
   }
@@ -310,7 +312,7 @@ final class EngineExecutor {
         ));
       }
 
-      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
       final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
       final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
 
@@ -334,13 +336,13 @@ final class EngineExecutor {
             queryPlannerOptions.debugString(),
             e);
       }
-      LOG.debug("Failed pull query text {}, {}", statement.getStatementText(), e);
+      LOG.debug("Failed pull query text {}, {}", statement.getMaskedStatementText(), e);
 
       throw new KsqlStatementException(
           e.getMessage() == null
               ? "Server Error" + Arrays.toString(e.getStackTrace())
               : e.getMessage(),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e
       );
     }
@@ -423,7 +425,7 @@ final class EngineExecutor {
         ));
       }
 
-      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String stmtLower = statement.getMaskedStatementText().toLowerCase(Locale.ROOT);
       final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
       final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
 
@@ -447,13 +449,13 @@ final class EngineExecutor {
                 queryPlannerOptions.debugString(),
                 e);
       }
-      LOG.debug("Failed push query V2 text {}, {}", statement.getStatementText(), e);
+      LOG.debug("Failed push query V2 text {}, {}", statement.getMaskedStatementText(), e);
 
       throw new KsqlStatementException(
               e.getMessage() == null
                       ? "Server Error" + Arrays.toString(e.getStackTrace())
                       : e.getMessage(),
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               e
       );
     }
@@ -476,7 +478,7 @@ final class EngineExecutor {
         serviceContext,
         engineContext.getProcessingLogContext(),
         engineContext.getMetaStore(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         plans.executionPlan.getQueryId(),
         getSourceNames(outputNode),
         plans.executionPlan.getPhysicalPlan(),
@@ -508,7 +510,7 @@ final class EngineExecutor {
         serviceContext,
         engineContext.getProcessingLogContext(),
         engineContext.getMetaStore(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         plans.executionPlan.getQueryId(),
         getSourceNames(outputNode),
         plans.executionPlan.getPhysicalPlan(),
@@ -528,7 +530,7 @@ final class EngineExecutor {
       final ConfiguredStatement<?> statement) {
     final CreateTable createTable = (CreateTable) statement.getStatement();
     final CreateTableCommand ddlCommand = (CreateTableCommand) engineContext.createDdlCommand(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         (ExecutableDdlStatement) statement.getStatement(),
         config
     );
@@ -573,7 +575,7 @@ final class EngineExecutor {
     final MutableMetaStore tempMetastore = new MetaStoreImpl(new InternalFunctionRegistry());
     final Formats formats = ddlCommand.getFormats();
     tempMetastore.putSource(new KsqlTable<>(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         createTable.getName(),
         ddlCommand.getSchema(),
         Optional.empty(),
@@ -613,7 +615,7 @@ final class EngineExecutor {
     );
 
     return KsqlPlan.queryPlanCurrent(
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         Optional.of(ddlCommand),
         queryPlan);
   }
@@ -637,20 +639,20 @@ final class EngineExecutor {
 
         if ((isSourceStream || isSourceTable) && !isSourceTableMaterializationEnabled()) {
           throw new KsqlStatementException("Cannot execute command because source table "
-              + "materialization is disabled.", statement.getStatementText());
+              + "materialization is disabled.", statement.getMaskedStatementText());
         }
 
         if (isSourceTable) {
           return sourceTablePlan(statement);
         } else {
           final DdlCommand ddlCommand = engineContext.createDdlCommand(
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               (ExecutableDdlStatement) statement.getStatement(),
               config
           );
 
           return KsqlPlan.ddlPlanCurrent(
-              statement.getStatementText(),
+              statement.getMaskedStatementText(),
               ddlCommand);
         }
       }
@@ -690,14 +692,14 @@ final class EngineExecutor {
       );
 
       return KsqlPlan.queryPlanCurrent(
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           ddlCommand,
           queryPlan
       );
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
     }
   }
 
@@ -805,13 +807,10 @@ final class EngineExecutor {
           metaStore,
           ksqlConfig,
           getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
-          statement.getStatementText()
+          statement.getMaskedStatementText()
       );
 
-      final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-          statement.getStatementText(),
-          Optional.of(outputNode)
-      );
+      final LogicalPlanNode logicalPlan = new LogicalPlanNode(Optional.of(outputNode));
 
       final QueryId queryId = QueryIdUtil.buildId(
           statement.getStatement(),
@@ -956,10 +955,7 @@ final class EngineExecutor {
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
         .buildQueryLogicalPlan(queryPlannerOptions, isScalablePush);
-    return new LogicalPlanNode(
-        statement.getStatementText(),
-        Optional.of(outputNode)
-    );
+    return new LogicalPlanNode(Optional.of(outputNode));
   }
 
   private PushPhysicalPlan buildScalablePushPhysicalPlan(
@@ -1081,7 +1077,7 @@ final class EngineExecutor {
       throw new KsqlStatementException("Invalid result type. "
                                            + "Your SELECT query produces a TABLE. "
                                            + "Please use CREATE TABLE AS SELECT statement instead.",
-                                       statement.getStatementText());
+                                       statement.getMaskedStatementText());
     }
 
     if (statement.getStatement() instanceof CreateTableAsSelect
@@ -1089,13 +1085,14 @@ final class EngineExecutor {
       throw new KsqlStatementException(
           "Invalid result type. Your SELECT query produces a STREAM. "
            + "Please use CREATE STREAM AS SELECT statement instead.",
-          statement.getStatementText());
+          statement.getMaskedStatementText());
     }
   }
 
   private static void throwOnNonExecutableStatement(final ConfiguredStatement<?> statement) {
     if (!KsqlEngine.isExecutableStatement(statement.getStatement())) {
-      throw new KsqlStatementException("Statement not executable", statement.getStatementText());
+      throw new KsqlStatementException("Statement not executable",
+          statement.getMaskedStatementText());
     }
   }
 

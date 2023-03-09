@@ -174,7 +174,7 @@ public class RequestValidator {
       throw new KsqlStatementException(
           "Do not know how to validate statement of type: " + statementClass
               + " Known types: " + customValidators.keySet(),
-          configured.getStatementText());
+          configured.getMaskedStatementText());
     }
 
     return (statement instanceof CreateAsSelect || statement instanceof InsertInto) ? 1 : 0;

@@ -72,16 +72,16 @@ public class DefaultKsqlParser implements KsqlParser {
       final AstBuilder astBuilder = new AstBuilder(typeRegistry);
       final Statement root = astBuilder.buildStatement(stmt.getStatement());
 
-      return PreparedStatement.of(stmt.getStatementText(), root);
+      return PreparedStatement.of(stmt.getUnMaskedStatementText(), root);
     } catch (final ParseFailedException e) {
       if (!e.getSqlStatement().isEmpty()) {
         throw e;
       }
       throw new ParseFailedException(
-          e.getRawMessage(), stmt.getStatementText(), e.getCause());
+          e.getRawMessage(), stmt.getMaskedStatementText(), e.getCause());
     } catch (final Exception e) {
       throw new ParseFailedException(
-          "Failed to prepare statement: " + e.getMessage(), stmt.getStatementText(), e);
+          "Failed to prepare statement: " + e.getMessage(), stmt.getMaskedStatementText(), e);
     }
   }
 

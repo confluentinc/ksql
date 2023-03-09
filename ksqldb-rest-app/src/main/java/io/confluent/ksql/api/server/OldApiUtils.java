@@ -21,9 +21,11 @@ import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
@@ -65,6 +67,10 @@ public final class OldApiUtils {
         return;
       }
       requestObject = optRequestObject.get();
+      if (requestObject instanceof KsqlRequest) {
+        final KsqlRequest request = (KsqlRequest) requestObject;
+        ApiServerUtils.setMaskedSql(request);
+      }
     } else {
       requestObject = null;
     }

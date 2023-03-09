@@ -114,7 +114,8 @@ public final class ValidatedCommandFactory {
       final ServiceContext serviceContext,
       final KsqlExecutionContext context
   ) {
-    if (statement.getStatementText().equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+    if (statement.getUnMaskedStatementText().equals(
+        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
       return Command.of(statement);
     }
 
@@ -195,12 +196,12 @@ public final class ValidatedCommandFactory {
     final PersistentQueryMetadata queryMetadata = context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()));
+            statement.getMaskedStatementText()));
 
     if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
       throw new KsqlStatementException(
           String.format("Cannot terminate query '%s' because it is linked to a source table.",
-              queryId.get()), statement.getStatementText());
+              queryId.get()), statement.getMaskedStatementText());
     }
 
     queryMetadata.close();

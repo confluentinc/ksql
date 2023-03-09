@@ -49,7 +49,9 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -117,7 +119,7 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final PreparedStatement<?> statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
 
-    assertThat(statement.getStatementText(), is(simpleQuery));
+    assertThat(statement.getMaskedStatementText(), is(simpleQuery));
     assertThat(statement.getStatement(), is(instanceOf(Query.class)));
     final Query query = (Query) statement.getStatement();
     assertThat(query.getSelect().getSelectItems(), hasSize(3));
@@ -1432,6 +1434,67 @@ public class KsqlParserTest {
     assertThat(parseDouble("0.123"), is(new DecimalLiteral(new BigDecimal("0.123"))));
     assertThat(parseDouble("00123.000"), is(new DecimalLiteral(new BigDecimal("123.000"))));
   }
+
+  @Test
+  public void shouldMaskParsedStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    final String masked = "CREATE SOURCE CONNECTOR `test-connector` WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "\"mode\"='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
+
+    // when
+    final ParsedStatement parsedStatement = ParsedStatement.of(query, mock(SingleStatementContext.class));
+
+    // Then
+    assertThat(parsedStatement.getMaskedStatementText(), is(masked));
+    assertThat(parsedStatement.getUnMaskedStatementText(), is(query));
+    assertThat(parsedStatement.toString(), is(masked));
+  }
+
+  @Test
+  public void shouldMaskPreparedStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    final String masked = "CREATE SOURCE CONNECTOR `test-connector` WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "\"mode\"='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
+
+    // when
+    final PreparedStatement<CreateConnector> preparedStatement =
+        PreparedStatement.of(query, mock(CreateConnector.class));
+
+    // Then
+    assertThat(preparedStatement.getMaskedStatementText(), is(masked));
+    assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
+    assertThat(preparedStatement.toString(), is(masked));
+  }
+
+
 
   private Literal parseDouble(final String literalText) {
     final PreparedStatement<Query> query = KsqlParserTestUtil

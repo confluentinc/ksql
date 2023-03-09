@@ -48,18 +48,18 @@ public final class RemoteHostExecutor {
   private static final int TIMEOUT_SECONDS = 10;
   private static final Logger LOG = LoggerFactory.getLogger(RemoteHostExecutor.class);
 
-  private final String statementText;
+  private final ConfiguredStatement<?> statement;
   private final SessionProperties sessionProperties;
   private final KsqlExecutionContext executionContext;
   private final SimpleKsqlClient ksqlClient;
 
   private RemoteHostExecutor(
-      final String statementText,
+      final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final SimpleKsqlClient ksqlClient
   ) {
-    this.statementText = Objects.requireNonNull(statementText);
+    this.statement = Objects.requireNonNull(statement);
     this.sessionProperties = Objects.requireNonNull(sessionProperties);
     this.executionContext = Objects.requireNonNull(executionContext);
     this.ksqlClient = Objects.requireNonNull(ksqlClient);
@@ -72,7 +72,7 @@ public final class RemoteHostExecutor {
       final SimpleKsqlClient ksqlClient
   ) {
     return new RemoteHostExecutor(
-        statement.getStatementText(), sessionProperties, executionContext, ksqlClient);
+        statement, sessionProperties, executionContext, ksqlClient);
   }
 
   private RestResponse<KsqlEntityList> makeKsqlRequest(
@@ -114,7 +114,8 @@ public final class RemoteHostExecutor {
       final Map<HostInfo, CompletableFuture<RestResponse<KsqlEntityList>>> futureResponses =
           new HashMap<>();
       for (HostInfo host : remoteHosts) {
-        futureResponses.put(host, fetchRemoteData(statementText, host, executorService));
+        futureResponses.put(host, fetchRemoteData(statement.getUnMaskedStatementText(), host,
+            executorService));
       }
 
       final ImmutableMap.Builder<HostInfo, KsqlEntity> results = ImmutableMap.builder();
@@ -132,7 +133,7 @@ public final class RemoteHostExecutor {
           }
         } catch (final Exception cause) {
           LOG.warn("Failed to retrieve info from host: {}, statement: {}, cause: {}",
-              e.getKey(), statementText, cause.getMessage());
+              e.getKey(), statement.getMaskedStatementText(), cause.getMessage());
           unresponsiveHosts.add(e.getKey());
         }
       }

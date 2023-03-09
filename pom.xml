@@ -29,14 +29,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.2.1-0, 7.2.2-0)</version>
+        <version>[7.2.5-0, 7.2.6-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.2.1-0</version>
+    <version>7.2.5-0</version>
 
     <licenses>
         <license>
@@ -111,12 +111,11 @@
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
         <antlr.version>4.9.2</antlr.version>
-        <commons-text.version>1.8</commons-text.version>
+        <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
         <lang3.version>3.5</lang3.version>
         <guava.version>30.1.1-jre</guava.version>
-        <protobuf.version>3.19.4</protobuf.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
@@ -132,7 +131,7 @@
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.12</vertx.version>
+        <vertx.version>3.9.14</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -141,19 +140,18 @@
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.44.v20210927</jetty.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
-        <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
-        <io.confluent.ksql.version>7.2.1-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>7.2.5-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.54.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.72.Final</netty.version>
-        <netty-codec-http2-version>4.1.72.Final</netty-codec-http2-version>
+        <netty.version>4.1.84.Final</netty.version>
+        <netty-codec-http2-version>4.1.84.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
     </properties>
 
@@ -391,6 +389,12 @@
                 <groupId>com.github.rholder</groupId>
                 <artifactId>guava-retrying</artifactId>
                 <version>${retrying.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>

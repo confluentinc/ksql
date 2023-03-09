@@ -53,7 +53,7 @@ public final class KsqlParserTestUtil {
     return KSQL_PARSER.parse(sql).stream()
         .map(parsed -> KSQL_PARSER.prepare(parsed, metaStore))
         .map(prepared -> PreparedStatement.of(
-            prepared.getStatementText(),
+            prepared.getUnMaskedStatementText(),
             AstSanitizer.sanitize(
                 prepared.getStatement(), metaStore, rowpartitionRowoffsetEnabled)))
         .collect(Collectors.toList());

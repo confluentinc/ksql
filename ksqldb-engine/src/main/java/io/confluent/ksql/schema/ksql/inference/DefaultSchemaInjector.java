@@ -134,7 +134,7 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e.getCause());
     }
   }
@@ -161,7 +161,7 @@ public class DefaultSchemaInjector implements Injector {
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Could not determine output schema for query due to error: "
-              + e.getMessage(), statement.getStatementText(), e);
+              + e.getMessage(), statement.getMaskedStatementText(), e);
     }
 
     final Optional<SchemaAndId> keySchema = getCreateAsKeySchema(statement, createSourceCommand);
@@ -217,7 +217,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKeySchemaId(),
         keyFormat,
         serdeFeatures,
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         true
     );
 
@@ -244,7 +244,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getValueSchemaId(),
         valueFormat,
         createSourceCommand.getFormats().getValueFeatures(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         false
     );
 
@@ -303,7 +303,7 @@ public class DefaultSchemaInjector implements Injector {
         // until we support user-configuration of single key wrapping/unwrapping, we choose
         // to have key schema inference always result in an unwrapped key
         SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat), true),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         true
     ));
   }
@@ -323,7 +323,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getValueSchemaId(),
         valueFormat,
         props.getValueSerdeFeatures(),
-        statement.getStatementText(),
+        statement.getMaskedStatementText(),
         false
     ));
   }

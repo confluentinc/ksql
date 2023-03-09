@@ -742,8 +742,8 @@ public class InteractiveStatementExecutorTest {
 
     @Override
     public boolean matches(final ConfiguredStatement<T> matchStatement) {
-      return statement.getStatementText().equals(matchStatement.getStatementText()) &&
-          statement.getStatement().equals(matchStatement.getStatement());
+      return statement.getUnMaskedStatementText().equals(matchStatement.getUnMaskedStatementText())
+          && statement.getStatement().equals(matchStatement.getStatement());
     }
   }
 

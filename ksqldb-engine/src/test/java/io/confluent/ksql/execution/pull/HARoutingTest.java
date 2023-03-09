@@ -150,7 +150,8 @@ public class HARoutingTest {
   public void setUp() {
     when(pullPhysicalPlan.getMaterialization()).thenReturn(materialization);
     when(pullPhysicalPlan.getMaterialization().locator()).thenReturn(locator);
-    when(statement.getStatementText()).thenReturn("foo");
+    when(statement.getUnMaskedStatementText()).thenReturn("foo");
+    when(statement.getMaskedStatementText()).thenReturn("foo");
     when(statement.getSessionConfig()).thenReturn(SessionConfig.of(ksqlConfig,
         ImmutableMap.of()));
     when(node1.isLocal()).thenReturn(true);

@@ -383,3 +383,36 @@ io.confluent.ksql.metrics:type=_confluent-ksql-rest-app-command-runner
 `status`
 
 The status of the commandRunner thread as it processes the command topic.
+
+## RocksDB
+
+Metrics that report the resource utilization for RocksDB. If RocksDB runs out
+of resources, it spools to disk, affecting performance. 
+
+Run the `free -m` command to check for high cache usage. You may see that the
+process is running at its configured memory threshold.
+
+Also, you can check the following JMX metrics for high usage.
+
+```
+io.confluent.ksql.metrics:type=_ksql-rocksdb-aggregates
+```
+
+### Attributes
+
+**Block cache usage**
+
+`block-cache-usage`
+
+Bytes allocated for the block cache. 
+
+!!! note
+
+    The `block-cache-usage` metric is distinct from the OS page cache reported
+    by the `free -m` command.
+
+**Current size of all memory tables**
+
+`cur-size-all-mem-tables`
+
+Amount of memory allocated for the write buffer.

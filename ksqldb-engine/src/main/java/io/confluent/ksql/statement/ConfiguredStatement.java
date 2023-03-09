@@ -63,8 +63,23 @@ public final class ConfiguredStatement<T extends Statement> {
     return statement.getStatement();
   }
 
-  public String getStatementText() {
-    return statement.getStatementText();
+  /**
+   * Use masked statement for logging and other output places it could be read by human. It
+   * masked sensitive information such as passwords, keys etc. For normal processing which
+   * needs unmasked statement text, please use {@code getUnMaskedStatementText}
+   * @return Masked statement text
+   */
+  public String getMaskedStatementText() {
+    return statement.getMaskedStatementText();
+  }
+
+  /**
+   * This method returns unmasked statement text which can be used for processing. For logging
+   * and other output purposed for debugging etc, please use {@code getStatementText}
+   * @return Masked statement text
+   */
+  public String getUnMaskedStatementText() {
+    return statement.getUnMaskedStatementText();
   }
 
   public SessionConfig getSessionConfig() {

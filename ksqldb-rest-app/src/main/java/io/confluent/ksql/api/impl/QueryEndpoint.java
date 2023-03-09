@@ -110,7 +110,7 @@ public class QueryEndpoint {
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
       publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics,
-          statement.getPreparedStatement().getStatementText()), true, false);
+          statement.getPreparedStatement().getMaskedStatementText()), true, false);
 
       // Start from the worker thread so that errors can bubble up, and we can get a proper response
       // code rather than waiting until later after the header has been written and all we can do
@@ -130,7 +130,7 @@ public class QueryEndpoint {
     } else {
       throw new KsqlStatementException(
           "Unexpected metadata for query",
-          statement.getStatementText()
+          statement.getMaskedStatementText()
       );
     }
   }
@@ -239,16 +239,16 @@ public class QueryEndpoint {
 
     private final PullQueryResult result;
     private final Optional<PullQueryExecutorMetrics>  pullQueryMetrics;
-    private final String statementText;
+    private final String maskedStatementText;
     private final CompletableFuture<Void> future = new CompletableFuture<>();
 
     KsqlPullQueryHandle(final PullQueryResult result,
         final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-        final String statementText
+        final String maskedStatementText
     ) {
       this.result = Objects.requireNonNull(result);
       this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
-      this.statementText = statementText;
+      this.maskedStatementText = maskedStatementText;
     }
 
     @Override
@@ -278,7 +278,7 @@ public class QueryEndpoint {
         // Let this error bubble up since start is called from the worker thread and will fail the
         // query.
         throw new KsqlStatementException("Error starting pull query: " + e.getMessage(),
-            statementText, e);
+            maskedStatementText, e);
       }
     }
 

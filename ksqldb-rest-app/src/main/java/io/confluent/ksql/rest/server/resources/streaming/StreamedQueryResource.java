@@ -180,7 +180,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
-    final String ksql = request.getKsql();
+    final String ksql = request.getUnmaskedKsql();
     if (ksql.trim().isEmpty()) {
       throw new KsqlRestException(Errors.badRequest("\"ksql\" field must be populated"));
     }

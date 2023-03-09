@@ -48,6 +48,7 @@ import io.vertx.core.http.ServerWebSocket;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
@@ -105,10 +106,20 @@ public class WSQueryEndpoint {
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
-      final KsqlSecurityContext ksqlSecurityContext, final Context context) {
+      final KsqlSecurityContext ksqlSecurityContext, final Context context,
+      final Optional<Long> timeout) {
 
     try {
       final long startTimeNanos = Time.SYSTEM.nanoseconds();
+      if (timeout.isPresent()) {
+        log.info("Setting websocket timeout to " + timeout.get() + " ms");
+        exec.schedule(
+            () -> SessionUtil.closeSilently(
+                webSocket, INTERNAL_SERVER_ERROR.code(), "The request token has expired."),
+            timeout.get(),
+            TimeUnit.MILLISECONDS
+        );
+      }
 
       activenessRegistrar.updateLastRequestTime();
 
@@ -187,7 +198,7 @@ public class WSQueryEndpoint {
 
       final KsqlRequest request = ApiJsonMapper.INSTANCE.get()
           .readValue(jsonRequest, KsqlRequest.class);
-      if (request.getKsql().isEmpty()) {
+      if (request.getUnmaskedKsql().isEmpty()) {
         throw new IllegalArgumentException("\"ksql\" field of \"request\" must be populated");
       }
       // To validate props:
@@ -200,7 +211,7 @@ public class WSQueryEndpoint {
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
     try {
-      return statementParser.parseSingleStatement(request.getKsql());
+      return statementParser.parseSingleStatement(request.getUnmaskedKsql());
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing query: " + e.getMessage(), e);
     }
@@ -226,7 +237,8 @@ public class WSQueryEndpoint {
 
     attachCloseHandler(info.websocket, streamSubscriber);
 
-    final PreparedStatement<Query> statement = PreparedStatement.of(info.request.getKsql(), query);
+    final PreparedStatement<Query> statement = PreparedStatement.of(
+        info.request.getUnmaskedKsql(), query);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final QueryMetadataHolder queryMetadataHolder
         = queryExecutor.handleStatement(info.securityContext.getServiceContext(),
@@ -253,7 +265,7 @@ public class WSQueryEndpoint {
           startTimeNanos
       ).subscribe(streamSubscriber);
     } else {
-      throw new KsqlStatementException("Unknown query type", statement.getStatementText());
+      throw new KsqlStatementException("Unknown query type", statement.getMaskedStatementText());
     }
   }
 

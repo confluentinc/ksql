@@ -32,20 +32,20 @@ public class DummyConnectServerErrors implements ConnectServerErrors {
   public Optional<KsqlEntity> handleForbidden(
       final ConfiguredStatement<? extends Statement> statement,
       final ConnectResponse<?> response) {
-    return Optional.of(new ErrorEntity(statement.getStatementText(), FORBIDDEN_ERR));
+    return Optional.of(new ErrorEntity(statement.getMaskedStatementText(), FORBIDDEN_ERR));
   }
 
   @Override
   public Optional<KsqlEntity> handleUnauthorized(
       final ConfiguredStatement<? extends Statement> statement,
       final ConnectResponse<?> response) {
-    return Optional.of(new ErrorEntity(statement.getStatementText(), UNAUTHORIZED_ERR));
+    return Optional.of(new ErrorEntity(statement.getMaskedStatementText(), UNAUTHORIZED_ERR));
   }
 
   @Override
   public Optional<KsqlEntity> handleDefault(
       final ConfiguredStatement<? extends Statement> statement,
       final ConnectResponse<?> response) {
-    return Optional.of(new ErrorEntity(statement.getStatementText(), DEFAULT_ERR));
+    return Optional.of(new ErrorEntity(statement.getMaskedStatementText(), DEFAULT_ERR));
   }
 }

@@ -61,7 +61,7 @@ public class SourcePropertyInjector implements Injector {
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
           ErrorMessageUtil.buildErrorMessage(e),
-          statement.getStatementText(),
+          statement.getMaskedStatementText(),
           e.getCause());
     }
   }

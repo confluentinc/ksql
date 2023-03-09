@@ -49,6 +49,6 @@ public final class ListTypesExecutor {
     }
 
     return StatementExecutorResponse.handled(Optional.of(
-        new TypeList(configuredStatement.getStatementText(), types.build())));
+        new TypeList(configuredStatement.getMaskedStatementText(), types.build())));
   }
 }

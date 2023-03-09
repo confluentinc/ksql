@@ -61,6 +61,16 @@ public interface KsqlSecurityExtension extends AutoCloseable {
   Optional<KsqlUserContextProvider> getUserContextProvider();
 
   /**
+   * Returns a {@link KsqlAuthTokenProvider} object, which is used to extract information
+   * from the auth token.
+   * </p>
+   * If token authentication is not used for ksqlDB, then return {@code Optional.empty()}.
+   *
+   * @return An Optional {@link KsqlAuthTokenProvider} object.
+   */
+  Optional<KsqlAuthTokenProvider> getAuthTokenProvider();
+
+  /**
    * Closes the current security extension. This is called in case the implementation requires
    * to clean any security data in memory, files, and/or close connections to external security
    * services.

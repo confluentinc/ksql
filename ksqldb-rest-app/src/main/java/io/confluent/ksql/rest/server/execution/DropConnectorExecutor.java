@@ -47,7 +47,7 @@ public final class DropConnectorExecutor {
     if (response.error().isPresent()) {
       if (ifExists && response.httpCode() == HttpStatus.SC_NOT_FOUND) {
         return StatementExecutorResponse.handled(Optional.of(
-            new WarningEntity(statement.getStatementText(),
+            new WarningEntity(statement.getMaskedStatementText(),
                 "Connector '" + connectorName + "' does not exist.")));
       } else {
         return StatementExecutorResponse.handled(connectErrorHandler.handle(
@@ -56,6 +56,6 @@ public final class DropConnectorExecutor {
     }
 
     return StatementExecutorResponse.handled(Optional.of(
-        new DropConnectorEntity(statement.getStatementText(), connectorName)));
+        new DropConnectorEntity(statement.getMaskedStatementText(), connectorName)));
   }
 }

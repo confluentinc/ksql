@@ -1,6 +1,7 @@
 package io.confluent.ksql.rest.integration;
 
 import io.confluent.ksql.security.AuthObjectType;
+import io.confluent.ksql.security.KsqlAuthTokenProvider;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -48,6 +49,11 @@ public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
 
   @Override
   public Optional<KsqlUserContextProvider> getUserContextProvider() {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<KsqlAuthTokenProvider> getAuthTokenProvider() {
     return Optional.empty();
   }
 

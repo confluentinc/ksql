@@ -67,7 +67,7 @@ public final class ListFunctionsExecutor {
         .forEach(all::add);
 
     return StatementExecutorResponse.handled(
-        Optional.of(new FunctionNameList(statement.getStatementText(), all)));
+        Optional.of(new FunctionNameList(statement.getMaskedStatementText(), all)));
   }
 
 }

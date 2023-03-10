@@ -61,6 +61,7 @@ public class ParserUtilTest {
 
     // Then:
     assertThat(e.getUnloggedDetails(), containsString("line 1:4: Invalid numeric literal: NaN"));
+    assertThat(e.getMessage(), containsString("line 1:4: Syntax error at line 1:4"));
   }
 
   @Test
@@ -76,6 +77,7 @@ public class ParserUtilTest {
 
     // Then:
     assertThat(e.getUnloggedDetails(), containsString("line 1:4: Not a number: NaN"));
+    assertThat(e.getMessage(), containsString("line 1:4: Syntax error at line 1:4"));
   }
 
   @Test
@@ -91,6 +93,7 @@ public class ParserUtilTest {
 
     // Then:
     assertThat(e.getUnloggedDetails(), containsString("line 1:4: Invalid numeric literal: What?"));
+    assertThat(e.getMessage(), containsString("line 1:4: Syntax error at line 1:4"));
   }
 
   @Test
@@ -106,6 +109,7 @@ public class ParserUtilTest {
 
     // Then:
     assertThat(e.getUnloggedDetails(), containsString("line 1:4: Number overflows DOUBLE: 1.7976931348623159E308"));
+    assertThat(e.getMessage(), containsString("line 1:4: Syntax error at line 1:4"));
   }
 
   private static void mockLocation(final ParserRuleContext ctx, final int line, final int col) {

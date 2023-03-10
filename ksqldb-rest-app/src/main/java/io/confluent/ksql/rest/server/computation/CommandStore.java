@@ -25,7 +25,6 @@ import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.rest.util.CommandTopicBackupUtil;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMask;

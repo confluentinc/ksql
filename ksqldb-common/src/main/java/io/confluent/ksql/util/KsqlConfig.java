@@ -365,7 +365,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DOC
       = "Pull query forwarding timeout in milliseconds";
   public static final long KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DEFAULT =
-      15000L;
+      20000L;
 
   public static final String KSQL_QUERY_PUSH_V2_ENABLED
       = "ksql.query.push.v2.enabled";

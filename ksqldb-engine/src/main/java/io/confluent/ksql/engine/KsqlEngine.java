@@ -316,6 +316,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       // add the statement text to the KsqlException
       throw new KsqlStatementException(
           e.getMessage(),
+          e.getMessage(),
           plan.getPlan().getStatementText(),
           e.getCause()
       );

@@ -128,13 +128,13 @@ public class VariableSubstitutorTest {
 
     final List<Pair<String, String>> statements = Arrays.asList(
         // DESCRIBE
-        Pair.of("DESCRIBE ${identifier};", "Got: 'EXTENDED _id_'"),
-        Pair.of("DESCRIBE ${quotedIdentifier};", "Got: 'EXTENDED \"_id_\"'"),
-        Pair.of("DESCRIBE ${backQuotedIdentifier};", "Got: 'EXTENDED `_id_`'"),
-        Pair.of("DESCRIBE ${singleQuoteIdentifier};", "Got: 'EXTENDED '_id_''"),
-        Pair.of("DESCRIBE ${quotedIdentifier2};", "Got: '\"EXTENDED _id_\"'"),
-        Pair.of("DESCRIBE ${backQuotedIdentifier2};", "Got: '`EXTENDED _id_`'"),
-        Pair.of("DESCRIBE ${singleQuoteIdentifier2};", "Got: ''EXTENDED _id_''")
+        Pair.of("DESCRIBE ${identifier};", "Illegal argument"),
+        Pair.of("DESCRIBE ${quotedIdentifier};", "Illegal argument"),
+        Pair.of("DESCRIBE ${backQuotedIdentifier};", "Illegal argument"),
+        Pair.of("DESCRIBE ${singleQuoteIdentifier};", "Illegal argument"),
+        Pair.of("DESCRIBE ${quotedIdentifier2};", "Illegal argument"),
+        Pair.of("DESCRIBE ${backQuotedIdentifier2};", "Illegal argument"),
+        Pair.of("DESCRIBE ${singleQuoteIdentifier2};", "Illegal argument")
     );
 
     assertThrowOnInvalidVariables(statements, variablesMap);
@@ -221,19 +221,19 @@ public class VariableSubstitutorTest {
     final List<Pair<String, String>> statements = Arrays.asList(
         // INSERT
         Pair.of("INSERT INTO ${injectSchema} VALUES (1);",
-            "Got: 's1 (id, name)'"),
+            "Identifier names cannot start"),
         Pair.of("INSERT INTO s1 VALUES (${injectValues});",
-            "Got: '1, 5'"),
+            "Illegal argument"),
 
         // SELECT
         Pair.of("SELECT * FROM ${injectWhere};",
-            "Got: 's1 WHERE id = 1'"),
+            "Identifier names cannot start"),
         Pair.of("SELECT * FROM s1 WHERE id = ${injectExpression};",
-            "5 and id != 5"),
+            "Illegal argument"),
 
         // CREATE
         Pair.of("CREATE STREAM ${injectSchema} WITH (kafka_topic='t1');",
-            "Got: 's1 (id, name)'")
+            "Identifier names cannot start")
     );
 
     // When/Then

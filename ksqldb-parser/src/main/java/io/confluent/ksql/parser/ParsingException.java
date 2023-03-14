@@ -18,18 +18,17 @@ package io.confluent.ksql.parser;
 import static java.lang.String.format;
 
 import java.util.Optional;
-import org.antlr.v4.runtime.RecognitionException;
 
 public class ParsingException
     extends RuntimeException {
 
   private final int line;
   private final int charPositionInLine;
+  private final String unloggedDetails;
 
   public ParsingException(final String message, final Optional<NodeLocation> nodeLocation) {
     this(
         message,
-        null,
         nodeLocation.map(NodeLocation::getLineNumber).orElse(1),
         nodeLocation.map(NodeLocation::getColumnNumber).orElse(0)
     );
@@ -37,12 +36,11 @@ public class ParsingException
 
   public ParsingException(
       final String message,
-      final RecognitionException cause,
       final int line,
       final int charPositionInLine
   ) {
-    super(message, cause);
-
+    super("Syntax error at line " + line + ":" + (charPositionInLine + 1));
+    this.unloggedDetails = message;
     this.line = line;
     this.charPositionInLine = charPositionInLine;
   }
@@ -62,5 +60,9 @@ public class ParsingException
   @Override
   public String getMessage() {
     return format("line %s:%s: %s", getLineNumber(), getColumnNumber(), getErrorMessage());
+  }
+
+  public String getUnloggedDetails() {
+    return format("line %s:%s: %s", getLineNumber(), getColumnNumber(), unloggedDetails);
   }
 }

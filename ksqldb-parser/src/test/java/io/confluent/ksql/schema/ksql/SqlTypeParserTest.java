@@ -11,6 +11,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -181,18 +182,21 @@ public class SqlTypeParserTest {
     final String schemaString = "STRUCT<foo VARCHAR,>";
 
     // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> parser.parse(schemaString)
     );
 
     // Then:
     System.out.println(e.getMessage());
-    assertThat(e.getMessage(), containsString(
-        "Failed to parse: STRUCT<foo VARCHAR,>"
+    assertThat(e.getUnloggedMessage(), is(
+        "Failed to parse: STRUCT<foo VARCHAR,>\nStatement: STRUCT<foo VARCHAR,>"
     ));
-    assertThat(e.getCause().getMessage(), containsString(
-        "line 1:20: mismatched input '>'"
+    assertThat(e.getMessage(), is(
+        "Failed to parse schema"
+    ));
+    assertThat(e.getCause().getMessage(), is(
+        "line 1:20: Syntax error at line 1:20"
     ));
   }
 }

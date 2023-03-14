@@ -412,7 +412,7 @@ public class QueryExecutor {
 
     localCommands.ifPresent(lc -> lc.write(query));
 
-    log.info("Streaming query '{}'", statement.getMaskedStatementText());
+    QueryLogger.info("Streaming query", statement.getMaskedStatementText());
     return QueryMetadataHolder.of(query);
   }
 }

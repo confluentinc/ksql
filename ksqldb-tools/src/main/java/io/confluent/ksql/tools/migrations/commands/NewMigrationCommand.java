@@ -34,6 +34,7 @@ import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import org.apache.kafka.common.config.types.Password;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,7 +199,7 @@ public class NewMigrationCommand extends BaseCommand {
       builder.append("\n# ");
       builder.append(cfg);
       builder.append("=");
-      builder.append(value == null ? "" : value);
+      builder.append((value == null || value instanceof Password) ? "" : value);
     }
   }
 }

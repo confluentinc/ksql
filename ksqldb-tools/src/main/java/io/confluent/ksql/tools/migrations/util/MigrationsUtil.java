@@ -106,7 +106,7 @@ public final class MigrationsUtil {
         .setHost(url.getHost())
         .setPort(url.getPort());
 
-    if (username != null || password != null) {
+    if (!Strings.isNullOrEmpty(username) || !Strings.isNullOrEmpty(password)) {
       options.setBasicAuthCredentials(username, password);
     }
 

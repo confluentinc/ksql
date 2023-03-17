@@ -19,7 +19,6 @@ import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
-import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;

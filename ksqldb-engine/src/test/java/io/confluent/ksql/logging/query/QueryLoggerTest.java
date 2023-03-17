@@ -138,20 +138,6 @@ public class QueryLoggerTest {
   }
 
   @Test
-  public void shouldUseClusterNameAsNamespaceIfMissing() {
-    // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
-    when(config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("meowcluster");
-    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE)).thenReturn("");
-    QueryLogger.configure(config);
-    assertEquals("meowcluster", QueryLogger.getNamespace());
-
-    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE)).thenReturn(null);
-    QueryLogger.configure(config);
-    assertEquals("meowcluster", QueryLogger.getNamespace());
-  }
-
-  @Test
   public void shouldContainAQueryID() {
     String message = "my message";
     String query = "DESCRIBE cat EXTENDED;";

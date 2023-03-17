@@ -85,11 +85,6 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>com.approvaltests</groupId>
-            <artifactId>approvaltests</artifactId>
-            <version>9.5.0</version>
-        </dependency>
     </dependencies>
 
     <build>

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.parser.DefaultKsqlParser.ERROR_VALIDATOR;
+
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.CaseInsensitiveStream;
@@ -120,6 +122,8 @@ public final class SqlTypeParser {
     final CommonTokenStream tokenStream = new CommonTokenStream(lexer);
     final SqlBaseParser parser = new SqlBaseParser(tokenStream);
     parser.getInterpreter().setPredictionMode(PredictionMode.LL);
+    parser.removeErrorListeners();
+    parser.addErrorListener(ERROR_VALIDATOR);
     return parser.type();
   }
 

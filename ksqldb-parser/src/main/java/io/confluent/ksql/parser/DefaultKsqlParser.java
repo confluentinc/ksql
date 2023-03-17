@@ -39,7 +39,7 @@ public class DefaultKsqlParser implements KsqlParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   @VisibleForTesting
-  static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
+  public static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
 
   @Override
   public List<ParsedStatement> parse(final String sql) {

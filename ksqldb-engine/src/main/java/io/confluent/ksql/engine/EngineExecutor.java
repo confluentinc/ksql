@@ -17,11 +17,6 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
@@ -69,11 +64,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -195,14 +186,6 @@ final class EngineExecutor {
       }
       return result;
     } catch (final Exception e) {
-      final PullSourceType finalSourceType = sourceType;
-      final PullPhysicalPlanType finalPlanType = planType;
-      final RoutingNodeType finalRoutingNodeType = routingNodeType;
-      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
-          Optional.ofNullable(finalSourceType).orElse(PullSourceType.UNKNOWN),
-          Optional.ofNullable(finalPlanType).orElse(PullPhysicalPlanType.UNKNOWN),
-          Optional.ofNullable(finalRoutingNodeType).orElse(RoutingNodeType.UNKNOWN)));
-
       QueryLogger.error(
           "Failure to execute pull query",
           statement.getMaskedStatementText(),

@@ -12,15 +12,15 @@
 
 package io.confluent.ksql.logging.query;
 
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryGuid;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
-
-import io.confluent.ksql.util.QueryGuid;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -36,6 +36,11 @@ public final class QueryLogger {
 
   private QueryLogger() {
 
+  }
+
+  @VisibleForTesting
+  public static String getNamespace() {
+    return namespace;
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
@@ -63,7 +68,13 @@ public final class QueryLogger {
   }
 
   public static void configure(final KsqlConfig config) {
-    rewriteAppender.setRewritePolicy(new QueryAnonymizingRewritePolicy(config));
+    final String clusterNamespace =
+        config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE);
+    namespace =
+        clusterNamespace == null || clusterNamespace.isEmpty()
+            ? config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+            : clusterNamespace;
+    anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);
   }
 
   private static void log(final Level level, final Object message, final String query) {

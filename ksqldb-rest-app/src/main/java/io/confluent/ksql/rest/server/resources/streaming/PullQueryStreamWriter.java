@@ -83,17 +83,6 @@ public class PullQueryStreamWriter implements StreamingOutput {
         interruptWriterThread();
       }
     });
-    try {
-      result.start();
-    } catch (Exception e) {
-      throw new KsqlStatementException(
-          e.getMessage() == null
-              ? "Server Error"
-              : e.getMessage(),
-          statement.getMaskedStatementText(),
-          e
-      );
-    }
   }
 
   @Override

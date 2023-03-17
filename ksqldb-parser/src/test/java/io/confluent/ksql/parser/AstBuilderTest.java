@@ -389,13 +389,20 @@ public class AstBuilderTest {
   @Test
   public void shouldNotBuildLambdaFunctionNotLastArguments() {
     // Given:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> givenQuery("SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;")
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("mismatched input '=>' expecting {',', ')'}"));
+    assertThat(
+        e.getUnloggedMessage(),
+        containsString("line 1:26: mismatched input '=>' expecting {',', ')'}\n" +
+            "Statement: SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;"));
+    assertThat(
+        e.getMessage(),
+        containsString("line 1:26: Syntax error at line 1:26")
+    );
   }
 
   @Test

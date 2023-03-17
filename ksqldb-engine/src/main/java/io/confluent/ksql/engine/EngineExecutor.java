@@ -17,11 +17,6 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
@@ -83,11 +78,7 @@ import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -301,7 +292,7 @@ final class EngineExecutor {
 
       return metadata;
     } catch (final Exception e) {
-           QueryLogger.error(
+      QueryLogger.error(
           "Failure to execute push query V2. "
               + pushRoutingOptions.toString() + " "
               + queryPlannerOptions.debugString(),

@@ -16,11 +16,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryGuid;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
-
-import io.confluent.ksql.util.QueryGuid;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;

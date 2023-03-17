@@ -67,6 +67,7 @@ import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Optional;
@@ -252,14 +253,16 @@ public class DistributingExecutorTest {
     when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
 
     // When:
-    final Exception e = assertThrows(
-        KsqlServerException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
+    assertThat(e.getMessage(), containsString("Could not write the statement into the command topic."));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Could not write the statement 'statement' into the command topic."));
+    assertThat(e.getSqlStatement(), containsString("statement"));
     assertThat(e.getCause(), (is(cause)));
     verify(transactionalProducer, times(1)).abortTransaction();
   }
@@ -407,13 +410,15 @@ public class DistributingExecutorTest {
   public void shouldAbortOnError_ProducerFencedException() {
     // When:
     doThrow(new ProducerFencedException("Error!")).when(transactionalProducer).commitTransaction();
-    final Exception e = assertThrows(
-        KsqlServerException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
     );
 
-    assertThat(e.getMessage(), containsString("Could not write the statement "
+    assertThat(e.getMessage(), containsString("Could not write the statement into the command topic."));
+    assertThat(e.getUnloggedMessage(), containsString("Could not write the statement "
         + "'statement' into the command topic."));
+    assertThat(e.getSqlStatement(), containsString("statement"));
 
     // Then:
     verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
@@ -423,13 +428,15 @@ public class DistributingExecutorTest {
   public void shouldAbortOnError_Exception() {
     // When:
     doThrow(new RuntimeException("Error!")).when(transactionalProducer).commitTransaction();
-    final Exception e = assertThrows(
-        KsqlServerException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
     );
 
-    assertThat(e.getMessage(), containsString("Could not write the statement "
+    assertThat(e.getMessage(), containsString("Could not write the statement into the command topic."));
+    assertThat(e.getUnloggedMessage(), containsString("Could not write the statement "
         + "'statement' into the command topic."));
+    assertThat(e.getSqlStatement(), containsString("statement"));
 
     // Then:
     verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));

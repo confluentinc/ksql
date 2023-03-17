@@ -36,12 +36,12 @@ public class SingleColumnTest {
   @Test
   public void shouldThrowIfAliasIsSystemColumnName() {
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> new SingleColumn(A_LOCATION, AN_EXPRESSION, of(WINDOWSTART_NAME))
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("is a reserved column name."));
+    assertThat(e.getUnloggedMessage(), containsString("is a reserved column name."));
   }
 }

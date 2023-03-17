@@ -32,6 +32,7 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.Objects;
 import java.util.Optional;
@@ -56,7 +57,13 @@ public final class SqlTypeParser {
       final TypeContext typeContext = parseTypeContext(schema);
       return getType(typeContext);
     } catch (final ParsingException e) {
-      throw new KsqlException("Failed to parse: " + schema, e);
+      throw new KsqlStatementException(
+          "Failed to parse schema",
+          "Failed to parse: " + schema,
+          schema,
+          KsqlStatementException.Problem.STATEMENT,
+          e
+      );
     }
   }
 

@@ -126,9 +126,18 @@ public class SchemaRegisterInjector implements Injector {
               .getDdlCommand()
               .get();
     } catch (final Exception e) {
-      throw new KsqlStatementException(
-          "Could not determine output schema for query due to error: "
-              + e.getMessage(), cas.getMaskedStatementText(), e);
+      if (e instanceof KsqlStatementException) {
+        throw new KsqlStatementException(
+            e.getMessage() == null ? "Server Error" : e.getMessage(),
+            ((KsqlStatementException) e).getUnloggedMessage(),
+            ((KsqlStatementException) e).getSqlStatement(),
+            e
+        );
+      } else {
+        throw new KsqlStatementException(
+            "Could not determine output schema for query due to error: "
+                + e.getMessage(), cas.getMaskedStatementText(), e);
+      }
     }
 
     registerSchemas(

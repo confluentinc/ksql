@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
@@ -52,6 +53,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
   private final boolean ownSharedClient;
+  private final KsqlConfig ksqlConfig;
 
   @VisibleForTesting
   DefaultKsqlClient(final Optional<String> authHeader,
@@ -60,25 +62,29 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     this(
         authHeader,
         createInternalClient(toClientProps(clientProps), socketAddressFactory, Vertx.vertx()),
-        true
+        true,
+        new KsqlConfig(clientProps)
     );
   }
 
   DefaultKsqlClient(
       final Optional<String> authHeader,
-      final KsqlClient sharedClient
+      final KsqlClient sharedClient,
+      final KsqlConfig ksqlConfig
   ) {
-    this(authHeader, sharedClient, false);
+    this(authHeader, sharedClient, false, ksqlConfig);
   }
 
   DefaultKsqlClient(
       final Optional<String> authHeader,
       final KsqlClient sharedClient,
-      final boolean ownSharedClient
+      final boolean ownSharedClient,
+      final KsqlConfig ksqlConfig
   ) {
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.sharedClient = requireNonNull(sharedClient, "sharedClient");
     this.ownSharedClient = ownSharedClient;
+    this.ksqlConfig = ksqlConfig;
   }
 
   @Override
@@ -103,7 +109,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
-        .properties(configOverrides);
+        .properties(configOverrides)
+        .timeout(getQueryTimeout(configOverrides));
 
     final RestResponse<List<StreamedRow>> resp = getTarget(target)
         .postQueryRequest(sql, requestProperties, Optional.empty());
@@ -127,7 +134,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   ) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
-        .properties(configOverrides);
+        .properties(configOverrides)
+        .timeout(getQueryTimeout(configOverrides));
 
     final RestResponse<Integer> resp = getTarget(target)
         .postQueryRequest(sql, requestProperties, Optional.empty(), rowConsumer,
@@ -224,5 +232,12 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       clientProps.put(entry.getKey(), entry.getValue().toString());
     }
     return clientProps;
+  }
+
+  private long getQueryTimeout(final Map<String, ?> configOverrides) {
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG)) {
+      return (Long) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG);
+    }
+    return ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG);
   }
 }

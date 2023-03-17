@@ -38,8 +38,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
-import io.confluent.ksql.util.KsqlStatementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

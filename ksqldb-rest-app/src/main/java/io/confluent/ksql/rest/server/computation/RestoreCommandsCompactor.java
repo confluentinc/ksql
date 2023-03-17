@@ -128,26 +128,8 @@ public final class RestoreCommandsCompactor {
 
       // keep track of the latest query ID for the new CREATE_AS source
       ddlCommand.ifPresent(ddl ->
-          getCreateSourceName(ddl).ifPresent(sourceName -> {
-            // Only CREATE statements are executed at this point
-            final CreateSourceCommand createCommand = (CreateSourceCommand) ddl;
-            if (!createCommand.isOrReplace() && isCreateIfNotExists(command)) {
-              // This condition is hit only for create statements with queries. If the CREATE_AS
-              // does not have OR REPLACE clause, but has an IF NOT EXISTS clause, then we are
-              // hitting a known bug that wrote IF NOT EXISTS statements to the command topic.
-              // See https://github.com/confluentinc/ksql/issues/8173
-              if (createAsIfNotExistsBugDetection.contains(sourceName)) {
-                QueryLogger.warn(
-                    "A known bug is found while restoring the command topic. The restoring "
-                    + "process will continue, but the query of the affected stream or table won't "
-                    + "be executed until https://github.com/confluentinc/ksql/issues/8173 "
-                    + "is fixed.", command.getStatement());
-              }
-            }
-
-            createAsIfNotExistsBugDetection.add(sourceName);
-            latestCreateAsWithId.put(sourceName, queryId);
-          }));
+          getCreateSourceName(ddl).ifPresent(sourceName ->
+              latestCreateAsWithId.put(sourceName, queryId)));
 
       return node;
     }

@@ -174,14 +174,15 @@ public class VariableExecutorTest {
 
     for (final String invalidValue : invalidValues) {
       // When:
-      final Exception e = assertThrows(
+      final ParseFailedException e = assertThrows(
           ParseFailedException.class,
           () -> executeDefineVariable(String.format("DEFINE var1=%s;", invalidValue))
       );
 
       // Then:
-      assertThat(e.getMessage(), containsString(
+      assertThat(e.getUnloggedMessage(), containsString(
           String.format("mismatched input '%s'", invalidValue)));
+      assertThat(e.getMessage(), containsString("line 1:13: Syntax error at line 1:13"));
     }
   }
 }

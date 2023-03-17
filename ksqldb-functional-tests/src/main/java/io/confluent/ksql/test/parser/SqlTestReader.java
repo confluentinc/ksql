@@ -65,7 +65,7 @@ public final class SqlTestReader implements Iterator<TestStatement> {
         final String message,
         final RecognitionException e
     ) {
-      throw new ParsingException(message, e, line, charPositionInLine);
+      throw new ParsingException(message, line, charPositionInLine);
     }
   };
 

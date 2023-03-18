@@ -839,7 +839,7 @@ public class ApiTest extends BaseApiTest {
   private void shouldRejectInvalidQuery(final String query) throws Exception {
 
     // Given
-    ParseFailedException pfe = new ParseFailedException("invalid query blah");
+    ParseFailedException pfe = new ParseFailedException("invalid query blah", "bad query text");
     testEndpoints.setCreateQueryPublisherException(pfe);
     JsonObject requestBody = new JsonObject().put("sql", query);
 

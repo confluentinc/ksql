@@ -1337,7 +1337,8 @@ public class CliTest {
     givenCommandSequenceNumber(mockRestClient, 5L);
     givenRequestPipelining("ON");
     when(mockRestClient.getServerInfo()).thenReturn(
-        RestResponse.successful(OK.code(), SERVER_INFO));
+        RestResponse.successful(OK.code(),
+            new ServerInfo("version", "kafkaClusterId", "ksqlServiceId", "serverStatus")));
 
     // When:
     runCliSpecificCommand("server foo");

@@ -13,11 +13,10 @@
 package io.confluent.ksql.logging.query;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.parser.ParsingException;
-import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryGuid;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -29,6 +28,9 @@ import org.apache.log4j.rewrite.RewriteAppender;
 
 public final class QueryLogger {
   private static final Logger logger = LogManager.getLogger(QueryLogger.class);
+  private static final QueryAnonymizer anonymizer = new QueryAnonymizer();
+  private static String namespace = "";
+  private static Boolean anonymizeQueries = true;
   private static final RewriteAppender rewriteAppender = new RewriteAppender();
 
   private QueryLogger() {
@@ -64,25 +66,51 @@ public final class QueryLogger {
   }
 
   private static void log(final Level level, final Object message, final String query) {
+    log(level, message, query, null);
+  }
+
+  private static void log(final Level level,
+                          final Object message,
+                          final String query,
+                          final Throwable t) {
     try {
-      DefaultKsqlParser.getParseTree(query);
-      logger.log(level, buildPayload(message, query));
-    } catch (ParsingException e) {
-      if (logger.isDebugEnabled()) {
-        Logger.getRootLogger()
-            .log(
-                Level.DEBUG,
-                String.format("Failed to parse a query in query logger, message: %s", message));
-      }
+      final String anonQuery = anonymizeQueries
+          ? anonymizer.anonymize(query) : query;
+      final QueryGuid queryGuids = buildGuids(query, anonQuery);
+      final QueryLoggerMessage payload = buildPayload(message, anonQuery, queryGuids);
+      innerLog(level, payload, t);
+    } catch (final Exception e) {
+      final String unparsable = "<unparsable query>";
+      final QueryLoggerMessage payload = buildPayload(
+          message,
+          unparsable,
+          buildGuids(query, unparsable)
+      );
+      innerLog(level, payload, t);
     }
   }
 
   private static void log(final Level level, final Object message, final Statement query) {
-    logger.log(level, buildPayload(message, SqlFormatter.formatSql(query)));
+    log(level, message, query.toString(), null);
   }
 
-  private static QueryLoggerMessage buildPayload(final Object message, final String query) {
-    return new QueryLoggerMessage(message, query);
+  private static void innerLog(final Level level,
+                               final QueryLoggerMessage payload,
+                               final Throwable t) {
+    if (t == null) {
+      logger.log(level, payload);
+    } else {
+      logger.log(level, payload, t);
+    }
+  }
+
+  private static QueryGuid buildGuids(final String query, final String anonymizedQuery) {
+    return new QueryGuid(namespace, query, anonymizedQuery);
+  }
+
+  private static QueryLoggerMessage buildPayload(final Object message, final String query,
+                                                 final QueryGuid guid) {
+    return new QueryLoggerMessage(message, query, guid);
   }
 
   public static void debug(final Object message, final String query) {
@@ -97,12 +125,20 @@ public final class QueryLogger {
     log(Level.INFO, message, query);
   }
 
+  public static void info(final Object message, final String query, final Throwable t) {
+    log(Level.INFO, message, query, t);
+  }
+
   public static void info(final Object message, final Statement query) {
     log(Level.INFO, message, query);
   }
 
   public static void warn(final Object message, final String query) {
     log(Level.WARN, message, query);
+  }
+
+  public static void warn(final Object message, final String query, final Throwable t) {
+    log(Level.WARN, message, query, t);
   }
 
   public static void warn(final Object message, final Statement query) {
@@ -115,5 +151,9 @@ public final class QueryLogger {
 
   public static void error(final Object message, final Statement query) {
     log(Level.ERROR, message, query);
+  }
+
+  public static void error(final String message, final String query, final Throwable t) {
+    log(Level.ERROR, message, query, t);
   }
 }

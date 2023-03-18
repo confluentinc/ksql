@@ -63,7 +63,7 @@ public final class QueryAnonymizingRewritePolicy implements RewritePolicy {
     final Object message = ((QueryLoggerMessage) inputMessage).getMessage();
 
     final String anonymizedQuery =
-        anonymizeQueries && !query.toString().equals("<unparsable query>") ? anonymizer.anonymize(query) : query;
+        anonymizeQueries && !query.equals("<unparsable query>") ? anonymizer.anonymize(query) : query;
 
     final QueryGuid queryGuids = buildGuids(query, anonymizedQuery);
     final QueryLoggerMessage anonymized =

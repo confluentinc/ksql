@@ -21,6 +21,8 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.ParserUtil;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -42,6 +44,7 @@ public class DefaultKsqlParser implements KsqlParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   @VisibleForTesting
+  public static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
   static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
     public void syntaxError(
@@ -75,6 +78,17 @@ public class DefaultKsqlParser implements KsqlParser {
           .map(DefaultKsqlParser::parsedStatement)
           .collect(Collectors.toList());
 
+    } catch (final ParsingException e) {
+      // ParsingException counts lines starting from 1
+      final String failedLine =  sql.split(System.lineSeparator())[e.getLineNumber() - 1];
+      throw new ParseFailedException(
+          e.getMessage(),
+          e.getUnloggedDetails(),
+          failedLine,
+          e
+      );
+    } catch (final KsqlStatementException e) {
+      throw new ParseFailedException(e.getMessage(), e.getUnloggedMessage(), sql, e);
     } catch (final Exception e) {
       throw new ParseFailedException(e.getMessage(), sql, e);
     }
@@ -103,6 +117,13 @@ public class DefaultKsqlParser implements KsqlParser {
       }
       throw new ParseFailedException(
           e.getRawMessage(), stmt.getMaskedStatementText(), e.getCause());
+    } catch (final ParsingException e) {
+      throw new ParseFailedException(
+          "Failed to prepare statement: " + e.getMessage(),
+          "Failed to prepare statement: " + e.getUnloggedDetails(),
+          stmt.getMaskedStatementText(),
+          e
+      );
     } catch (final Exception e) {
       throw new ParseFailedException(
           "Failed to prepare statement: " + e.getMessage(), stmt.getMaskedStatementText(), e);

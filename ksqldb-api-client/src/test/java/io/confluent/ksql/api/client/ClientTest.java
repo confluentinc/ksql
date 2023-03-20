@@ -278,7 +278,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldHandleErrorResponseFromStreamQuery() {
     // Given
-    ParseFailedException pfe = new ParseFailedException("invalid query blah");
+    ParseFailedException pfe = new ParseFailedException("invalid query blah", "bad query text");
     testEndpoints.setCreateQueryPublisherException(pfe);
 
     // When
@@ -488,7 +488,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldHandleErrorResponseFromExecuteQuery() {
     // Given
-    ParseFailedException pfe = new ParseFailedException("invalid query blah");
+    ParseFailedException pfe = new ParseFailedException("invalid query blah", "bad query text");
     testEndpoints.setCreateQueryPublisherException(pfe);
 
     // When

@@ -24,6 +24,9 @@ import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.streams.RoutingOptions;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -58,6 +61,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -117,6 +121,81 @@ final class EngineExecutor {
     plan.getDdlCommand().map(ddl -> executeDdl(ddl, maskedStatement, true));
     return ExecuteResult.of(executePersistentQuery(queryPlan, maskedStatement));
   }
+
+  /**
+   * Evaluates a pull query by first analyzing it, then building the logical plan and finally
+   * the physical plan. The execution is then done using the physical plan in a pipelined manner.
+   * @param statement The pull query
+   * @param routingOptions Configuration parameters used for HA routing
+   * @param pullQueryMetrics JMX metrics
+   * @return the rows that are the result of evaluating the pull query
+   */
+  PullQueryResult executePullQuery(
+      final ConfiguredStatement<Query> statement,
+      final HARouting routing,
+      final RoutingOptions routingOptions,
+      final PullPlannerOptions pullPlannerOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
+  ) {
+
+    if (!statement.getStatement().isPullQuery()) {
+      throw new IllegalArgumentException("Executor can only handle pull queries");
+    }
+    final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    try {
+      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(), "");
+      final ImmutableAnalysis analysis = new RewrittenAnalysis(
+          queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
+          new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
+      );
+      // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
+      // query performance significantly.  Instead use PullPlannerOptions which check overrides
+      // deliberately.
+      final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
+      final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
+          statement, analysis, ksqlConfig, pullPlannerOptions);
+      final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(
+          logicalPlan,
+          analysis
+      );
+      final PullQueryQueue pullQueryQueue = new PullQueryQueue();
+      final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
+          serviceContext,
+          physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
+          physicalPlan.getQueryId(), pullQueryQueue);
+      final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
+          physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics);
+      if (startImmediately) {
+        result.start();
+      }
+      return result;
+    } catch (final Exception e) {
+      QueryLogger.error(
+          "Failure to execute pull query",
+          statement.getMaskedStatementText(),
+          e
+      );
+      if (e instanceof KsqlStatementException) {
+        throw new KsqlStatementException(
+            e.getMessage() == null ? "Server Error" : e.getMessage(),
+            ((KsqlStatementException) e).getUnloggedMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      } else {
+        throw new KsqlStatementException(
+            e.getMessage() == null
+                ? "Server Error"
+                : e.getMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      }
+    }
+  }
+
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   TransientQueryMetadata executeQuery(final ConfiguredStatement<Query> statement) {

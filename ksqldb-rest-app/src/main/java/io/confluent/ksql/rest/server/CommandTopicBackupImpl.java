@@ -156,8 +156,16 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   @Override
   public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
     if (corruptionDetected) {
-      throw new KsqlServerException(
-          "Failed to write record due to out of sync command topic and backup file: " + record);
+      throw new CommandTopicCorruptionException(
+          "Failed to write record due to out of sync command topic and backup file. "
+              + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
+    }
+
+    if (record.key() == null || record.value() == null) {
+      LOG.warn(String.format("Can't backup a command topic record with a null key/value:"
+              + " partition=%d, offset=%d",
+          record.partition(), record.offset()));
+      return;
     }
 
     throwIfInvalidRecord(record);
@@ -168,8 +176,9 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
         return;
       } else {
         corruptionDetected = true;
-        throw new KsqlServerException(
-            "Failed to write record due to out of sync command topic and backup file: " + record);
+        throw new CommandTopicCorruptionException(
+            "Failed to write record due to out of sync command topic and backup file. "
+                + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
       }
     } else if (latestReplay.size() > 0) {
       // clear latest replay from memory

@@ -21,6 +21,8 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
@@ -82,5 +84,32 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
         .add("notExists", isNotExists())
         .add("properties", getProperties())
         .toString();
+  }
+
+  private static void throwOnPrimaryKeys(final TableElements elements) {
+    final Optional<TableElement> wrongKey = elements.stream()
+        .filter(e -> e.getNamespace().isKey() && e.getNamespace() != Namespace.KEY)
+        .findFirst();
+
+    wrongKey.ifPresent(col -> {
+      final String loc = NodeLocation.asPrefix(col.getLocation());
+      final String fullMessage = loc + "Column " + col.getName() + " is a 'PRIMARY KEY' column: "
+          + "please use 'KEY' for streams."
+          + System.lineSeparator()
+          + "Tables have PRIMARY KEYs, which are unique and NON NULL."
+          + System.lineSeparator()
+          + "Streams have KEYs, which have no uniqueness or NON NULL constraints.";
+      final String sanitizedMessage = loc + "Column is a 'PRIMARY KEY' column: "
+          + "please use 'KEY' for streams."
+          + System.lineSeparator()
+          + "Tables have PRIMARY KEYs, which are unique and NON NULL."
+          + System.lineSeparator()
+          + "Streams have KEYs, which have no uniqueness or NON NULL constraints.";
+      throw new ParseFailedException(
+          sanitizedMessage,
+          fullMessage,
+          Objects.toString(col.getName())
+      );
+    });
   }
 }

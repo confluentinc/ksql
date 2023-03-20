@@ -22,7 +22,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "ROWTIME is a reserved system column name. You cannot use it as an alias for a column."
+        "message": "'ROWTIME' is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {
@@ -33,7 +33,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "WINDOWSTART is a reserved system column name. You cannot use it as an alias for a column."
+        "message": "'WINDOWSTART' is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {
@@ -44,7 +44,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "WINDOWEND is a reserved system column name. You cannot use it as an alias for a column."
+        "message": "'WINDOWEND' is a reserved column name. You cannot use it as an alias for a column."
       }
     }
   ]

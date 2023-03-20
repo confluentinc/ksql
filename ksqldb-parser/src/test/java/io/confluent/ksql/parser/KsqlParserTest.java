@@ -52,7 +52,9 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -447,20 +449,19 @@ public class KsqlParserTest {
   @Test
   public void testReservedRowKeyAlias() {
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> buildSingleAst("SELECT C2 as ROWKEY FROM test1 t1;", metaStore)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "ROWKEY is a reserved system column name. You cannot use it as an alias for a column."));
+    assertThat(e.getUnloggedMessage(), containsString("'ROWTIME' is a reserved column name. You cannot use it as an alias for a column."));
   }
 
   @Test
   public void shouldThrowOnNonAlphanumericSourceName() {
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> buildSingleAst(
             "CREATE STREAM `foo!bar` WITH (kafka_topic='foo', value_format='AVRO');",
@@ -468,7 +469,10 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Got: 'foo!bar'"));
+    assertThat(e.getUnloggedMessage(), containsString(
+        "Got: 'foo!bar'"));
+    assertThat(e.getMessage(), containsString("Illegal argument at Line: 1, Col: 15. Source names may only contain alphanumeric values, '_' or '-'."));
+    assertThat(e.getSqlStatement(), containsString("foo!bar"));
   }
 
   @Test
@@ -611,8 +615,12 @@ public class KsqlParserTest {
       KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
       fail(format("Expected query: %s to fail", simpleQuery));
     } catch (final ParseFailedException e) {
-      final String errorMessage = e.getMessage();
+      final String errorMessage = e.getUnloggedMessage();
       Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
+      assertThat(
+          e.getMessage(),
+          containsString("line 1:1: Syntax error at line 1:1")
+      );
     }
   }
 
@@ -1095,14 +1103,14 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT ONLY, COLUMNS;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "line 1:21: extraneous input ';' expecting {',', 'FROM'}"));
+    assertThat(e.getUnloggedMessage(), containsString("line 1:21: extraneous input ';' expecting {',', 'FROM'}"));
+    assertThat(e.getMessage(), containsString("line 1:21: Syntax error at line 1:21"));
   }
 
   @Test
@@ -1110,14 +1118,26 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT A B C FROM address;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "line 1:12: extraneous input 'C' expecting"));
+    assertThat(e.getUnloggedMessage(), containsString("line 1:12: extraneous input 'C' expecting"));
+    assertThat(e.getMessage(), containsString("line 1:12: Syntax error at line 1:12"));
+  }
+
+  @Test
+  public void testNonReservedKeywordShouldNotThrowException() {
+    // 'sink' is a keyword but is non-reserved. should not throw an exception
+    final CreateStream result = (CreateStream) KsqlParserTestUtil.buildSingleAst("CREATE STREAM ORDERS" +
+            " (place VARCHAR, Sink INTEGER)\n" +
+            " WITH (kafka_topic='orders_topic', value_format='json');", metaStore).getStatement();
+
+    // Then:
+    assertThat(result.getName(), equalTo(SourceName.of("ORDERS")));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
   }
 
   @Test
@@ -1125,14 +1145,14 @@ public class KsqlParserTest {
     final String simpleQuery = "SELECT * FROM address, itemid;";
 
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> buildSingleAst(simpleQuery, metaStore)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "line 1:22: mismatched input ',' expecting"));
+    assertThat(e.getUnloggedMessage(), containsString("line 1:22: mismatched input ',' expecting"));
+    assertThat(e.getMessage(), containsString("line 1:22: Syntax error at line 1:22"));
   }
 
   @Test
@@ -1306,6 +1326,65 @@ public class KsqlParserTest {
     assertThat(parseDouble("0.1"), is(new DecimalLiteral(new BigDecimal("0.1"))));
     assertThat(parseDouble("0.123"), is(new DecimalLiteral(new BigDecimal("0.123"))));
     assertThat(parseDouble("00123.000"), is(new DecimalLiteral(new BigDecimal("123.000"))));
+  }
+
+  @Test
+  public void shouldMaskParsedStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    final String masked = "CREATE SOURCE CONNECTOR `test-connector` WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "\"mode\"='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
+
+    // when
+    final ParsedStatement parsedStatement = ParsedStatement.of(query, mock(SingleStatementContext.class));
+
+    // Then
+    assertThat(parsedStatement.getMaskedStatementText(), is(masked));
+    assertThat(parsedStatement.getUnMaskedStatementText(), is(query));
+    assertThat(parsedStatement.toString(), is(masked));
+  }
+
+  @Test
+  public void shouldMaskPreparedStatement() {
+    // Given
+    final String query = "--this is a comment. \n"
+        + "CREATE SOURCE CONNECTOR `test-connector` WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    final String masked = "CREATE SOURCE CONNECTOR `test-connector` WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "\"mode\"='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
+
+    // when
+    final PreparedStatement<CreateConnector> preparedStatement =
+        PreparedStatement.of(query, mock(CreateConnector.class));
+
+    // Then
+    assertThat(preparedStatement.getMaskedStatementText(), is(masked));
+    assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
+    assertThat(preparedStatement.toString(), is(masked));
   }
 
   private Literal parseDouble(final String literalText) {

@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
@@ -160,6 +159,39 @@ public class CommandTopicBackupImplTest {
 
     // Then
     assertThat(Files.exists(dir), is(true));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldNotFailIfRecordKeyIsNull() throws IOException {
+    // Given
+    commandTopicBackup.initialize();
+    final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
+    when(record.key()).thenReturn(null);
+
+    // When
+    commandTopicBackup.writeRecord(record);
+
+    // Then
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
+    assertThat(commands.size(), is(0));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldNotFailIfRecordValueIsNull() throws IOException {
+    // Given
+    commandTopicBackup.initialize();
+    final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
+    when(record.key()).thenReturn(new byte[]{});
+    when(record.value()).thenReturn(null);
+
+    // When
+    commandTopicBackup.writeRecord(record);
+
+    // Then
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
+    assertThat(commands.size(), is(0));
   }
 
   @Test

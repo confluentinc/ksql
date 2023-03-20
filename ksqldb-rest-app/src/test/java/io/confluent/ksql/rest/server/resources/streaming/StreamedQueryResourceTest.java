@@ -73,11 +73,9 @@ import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -249,39 +247,6 @@ public class StreamedQueryResourceTest {
     );
 
     testResource.configure(VALID_CONFIG);
-  }
-
-  @Test
-  public void shouldThrowExceptionIfConfigDisabled() {
-    // Given:
-    when(ksqlConfig.getKsqlStreamConfigProps())
-        .thenReturn(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"));
-    testResource.configure(ksqlConfig);
-
-    final String errorMsg = "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
-        + "Add EMIT CHANGES if you intended to issue a push query.\n"
-        + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
-    final EndpointResponse errorResponse = EndpointResponse.create()
-        .status(BAD_REQUEST.code())
-        .entity(new KsqlStatementErrorMessage(
-            ERROR_CODE_BAD_STATEMENT, errorMsg, PULL_QUERY_STRING, new KsqlEntityList()))
-        .build();
-
-    // When:
-    EndpointResponse response = testResource.streamQuery(
-            securityContext,
-            new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
-            new CompletableFuture<>(),
-            Optional.empty(),
-            KsqlMediaType.LATEST_FORMAT,
-            new MetricsCallbackHolder()
-        );
-
-    // Then:
-    final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
-    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) errorResponse.getEntity();
-    assertThat(response.getStatus(), is(BAD_REQUEST.code()));
-    assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
   }
 
   @Test

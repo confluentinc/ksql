@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -63,7 +64,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
@@ -186,14 +186,27 @@ final class EngineExecutor {
       }
       return result;
     } catch (final Exception e) {
-      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
-      throw new KsqlStatementException(
-          e.getMessage() == null
-              ? "Server Error" + Arrays.toString(e.getStackTrace())
-              : e.getMessage(),
+      QueryLogger.error(
+          "Failure to execute pull query",
           statement.getMaskedStatementText(),
           e
       );
+      if (e instanceof KsqlStatementException) {
+        throw new KsqlStatementException(
+            e.getMessage() == null ? "Server Error" : e.getMessage(),
+            ((KsqlStatementException) e).getUnloggedMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      } else {
+        throw new KsqlStatementException(
+            e.getMessage() == null
+                ? "Server Error"
+                : e.getMessage(),
+            statement.getMaskedStatementText(),
+            e
+        );
+      }
     }
   }
 

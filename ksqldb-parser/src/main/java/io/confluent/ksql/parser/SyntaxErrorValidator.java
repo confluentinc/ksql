@@ -134,9 +134,9 @@ public class SyntaxErrorValidator extends BaseErrorListener {
       final String newMessage =
           "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier."
               + " You can use it as an identifier by escaping it as \'" + tokenName + "\' ";
-      throw new ParsingException(newMessage, e, line, charPositionInLine);
+      throw new ParsingException(newMessage, line, charPositionInLine);
     } else {
-      throw new ParsingException(message, e, line, charPositionInLine);
+      throw new ParsingException(message, line, charPositionInLine);
     }
   }
 }

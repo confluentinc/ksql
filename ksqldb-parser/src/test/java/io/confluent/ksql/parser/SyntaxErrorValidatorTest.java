@@ -52,14 +52,16 @@ public class SyntaxErrorValidatorTest {
     final RecognitionException exception = null;
 
     // When
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> callSyntaxError(errorMessage, exception)
     );
 
     // Then:
-    assertThat(e.getMessage(),
+    assertThat(e.getUnloggedDetails(),
         containsString("mismatched input 'topic' expecting IDENTIFIER"));
+    assertThat(e.getMessage(),
+        containsString("line 0:1: Syntax error at line 0:1"));
   }
 
   @Test
@@ -69,14 +71,15 @@ public class SyntaxErrorValidatorTest {
     final RecognitionException exception = givenException(null, getToken("topic"));
 
     // When
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> callSyntaxError(errorMessage, exception)
     );
 
     // Then:
-    assertThat(e.getMessage(),
+    assertThat(e.getUnloggedDetails(),
         containsString("mismatched input 'topic' expecting IDENTIFIER"));
+    assertThat(e.getMessage(), containsString("line 0:1: Syntax error at line 0:1"));
   }
 
   @Test
@@ -87,14 +90,15 @@ public class SyntaxErrorValidatorTest {
         givenException(mock(VariableNameContext.class), getToken("1"));
 
     // When
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> callSyntaxError(errorMessage, exception)
     );
 
     // Then:
-    assertThat(e.getMessage(),
+    assertThat(e.getUnloggedDetails(),
         containsString("mismatched input '1' expecting IDENTIFIER"));
+    assertThat(e.getMessage(), containsString("line 0:1: Syntax error at line 0:1"));
   }
 
   @Test
@@ -105,14 +109,16 @@ public class SyntaxErrorValidatorTest {
         givenException(mock(CreateStreamContext.class), getToken("size"));
 
     // When:
-    final Exception e = assertThrows(
+    final ParsingException e = assertThrows(
         ParsingException.class,
         () -> callSyntaxError(errorMessage, exception)
     );
 
     // Then:
-    assertThat(e.getMessage(),
+    assertThat(e.getUnloggedDetails(),
         containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
+    assertThat(e.getMessage(),
+        containsString("line 0:1: Syntax error at line 0:1"));
   }
 
   private void callSyntaxError(final String errorMessage, final RecognitionException exception) {

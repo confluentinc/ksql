@@ -17,12 +17,10 @@ package io.confluent.ksql.parser;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.TypeRegistry;
-import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.ParserUtil;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -62,9 +60,9 @@ public class DefaultKsqlParser implements KsqlParser {
         final String newMessage =
                 "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier."
                 + " You can use it as an identifier by escaping it as \'" + tokenName + "\' ";
-        throw new ParsingException(newMessage, e, line, charPositionInLine);
+        throw new ParsingException(newMessage, line, charPositionInLine);
       } else {
-        throw new ParsingException(message, e, line, charPositionInLine);
+        throw new ParsingException(message, line, charPositionInLine);
       }
     }
   };
@@ -94,7 +92,8 @@ public class DefaultKsqlParser implements KsqlParser {
     }
   }
 
-  public static ParsedStatement parsedStatement(final SingleStatementContext statement) {
+  public static ParsedStatement parsedStatement(
+      final SqlBaseParser.SingleStatementContext statement) {
     return ParsedStatement.of(
         getStatementString(statement),
         statement
@@ -159,7 +158,8 @@ public class DefaultKsqlParser implements KsqlParser {
     }
   }
 
-  private static String getStatementString(final SingleStatementContext singleStatementContext) {
+  private static String getStatementString(
+      final SqlBaseParser.SingleStatementContext singleStatementContext) {
     final CharStream charStream = singleStatementContext.start.getInputStream();
     return charStream.getText(Interval.of(
         singleStatementContext.start.getStartIndex(),

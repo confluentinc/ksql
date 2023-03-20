@@ -156,7 +156,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   @Override
   public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
     if (corruptionDetected) {
-      throw new CommandTopicCorruptionException(
+      throw new KsqlServerException(
           "Failed to write record due to out of sync command topic and backup file. "
               + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
     }
@@ -176,7 +176,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
         return;
       } else {
         corruptionDetected = true;
-        throw new CommandTopicCorruptionException(
+        throw new KsqlServerException(
             "Failed to write record due to out of sync command topic and backup file. "
                 + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
       }

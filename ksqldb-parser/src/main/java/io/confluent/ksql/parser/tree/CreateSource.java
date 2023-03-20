@@ -110,6 +110,8 @@ public abstract class CreateSource extends Statement {
           .collect(Collectors.joining(", "));
 
       throw new ParseFailedException("Only single KEY column supported. "
+          + "Multiple KEY columns found",
+          "Only single KEY column supported. "
           + "Multiple KEY columns found: " + namesAndLocs);
     }
   }

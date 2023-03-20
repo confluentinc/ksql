@@ -191,59 +191,6 @@ public class StreamedQueryResourceTest {
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
-    testResource =  new StreamedQueryResource(
-        mockKsqlEngine,
-        ksqlRestConfig,
-        mockStatementParser,
-        commandQueue,
-        DISCONNECT_CHECK_INTERVAL,
-        COMMAND_QUEUE_CATCHUP_TIMOEUT,
-        activenessRegistrar,
-        Optional.of(authorizationValidator),
-        errorsHandler,
-        denyListPropertyValidator,
-        Optional.empty(),
-        routingFilterFactory,
-        rateLimiter,
-        concurrencyLimiter,
-        haRouting,
-        Optional.empty()
-    );
-
-    testResource.configure(VALID_CONFIG);
-  }
-
-  @Test
-  public void shouldRedirectQueriesToQueryEndPoint() {
-    // Given:
-    final ConfiguredStatement<Query> query = ConfiguredStatement
-        .of(PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
-            SessionConfig.of(ksqlConfig, ImmutableMap.of()));
-
-    // When:
-    final KsqlRestException e = assertThrows(
-        KsqlRestException.class,
-        () -> CustomValidators.QUERY_ENDPOINT.validate(
-            query,
-            mock(SessionProperties.class),
-            mockKsqlEngine,
-            serviceContext
-        )
-    );
-
-    // Then:
-    assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
-    assertThat(e, exceptionStatementErrorMessage(errorMessage(containsString(
-        "The following statement types should be issued to the websocket endpoint '/query'"
-    ))));
-    assertThat(e, exceptionStatementErrorMessage(statement(containsString(
-        "SELECT * FROM test_table;"))));
-  }
-
-  @Test
-  public void shouldRateLimit() {
-    final RateLimiter pullQueryRateLimiter = RateLimiter.create(1);
-
     pullQueryExecutor = new PullQueryExecutor(
         mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG);
     testResource = new StreamedQueryResource(

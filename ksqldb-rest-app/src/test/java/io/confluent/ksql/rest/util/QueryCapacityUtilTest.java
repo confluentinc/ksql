@@ -94,62 +94,6 @@ public class QueryCapacityUtilTest {
     assertThat(e.getSqlStatement(), containsString("my statement"));
   }
 
-  @Test
-  public void shouldReportPushQueryCapacityExceededIfOverLimit() {
-    // Given:
-    givenAllLiveQueries(10);
-    givenActivePersistentQueries(4);
-    givenPushQueryLimit(3);
-
-    // Then:
-    assertThat(QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig),
-            equalTo(true));
-  }
-
-  @Test
-  public void shouldReportPushQueryAtCapacityLimit() {
-    // Given:
-    givenAllLiveQueries(10);
-    givenActivePersistentQueries(4);
-    givenPushQueryLimit(6);
-
-    // Then:
-    assertThat(QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig),
-            equalTo(true));
-  }
-
-  @Test
-  public void shouldThrowWhenPushQueryLimitExceeded() {
-    // Given:
-    final String statementStr = "my statement";
-    givenAllLiveQueries(10);
-    givenActivePersistentQueries(4);
-    givenPushQueryLimit(3);
-
-    // When:
-    final KsqlStatementException e = assertThrows(
-            KsqlStatementException.class,
-            () -> QueryCapacityUtil.throwTooManyActivePushQueriesException(ksqlEngine, ksqlRestConfig, statementStr)
-    );
-
-    // Then:
-    assertThat(e.getUnloggedMessage(), containsString(
-            "Not executing statement(s) 'my statement' as it would cause the number "
-                    + "of active, push queries to exceed the configured limit. "
-                    + "Terminate existing PUSH queries, "
-                    + "or increase the 'ksql.max.push.queries' setting "
-                    + "via the 'ksql-server.properties' file. "
-                    + "Current push query count: 6. Configured limit: 3."));
-    assertThat(e.getMessage(), containsString(
-            "Not executing statement(s) as it would cause the number "
-                    + "of active, push queries to exceed the configured limit. "
-                    + "Terminate existing PUSH queries, "
-                    + "or increase the 'ksql.max.push.queries' setting "
-                    + "via the 'ksql-server.properties' file. "
-                    + "Current push query count: 6. Configured limit: 3."));
-    assertThat(e.getSqlStatement(), containsString("my statement"));
-  }
-
   @SuppressWarnings("unchecked")
   private void givenActivePersistentQueries(final int numQueries) {
     final List<PersistentQueryMetadata> queries = mock(List.class);

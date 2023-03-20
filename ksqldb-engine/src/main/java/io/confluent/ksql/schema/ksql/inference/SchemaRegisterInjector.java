@@ -111,29 +111,6 @@ public class SchemaRegisterInjector implements Injector {
   }
 
   private void registerForCreateAs(final ConfiguredStatement<? extends CreateAsSelect> cas) {
-    final CreateSourceCommand createSourceCommand;
-
-    try {
-      final ServiceContext sandboxServiceContext = SandboxedServiceContext.create(serviceContext);
-      createSourceCommand = (CreateSourceCommand)
-          executionContext.createSandbox(sandboxServiceContext)
-              .plan(sandboxServiceContext, cas)
-              .getDdlCommand()
-              .get();
-    } catch (final Exception e) {
-      if (e instanceof KsqlStatementException) {
-        throw new KsqlStatementException(
-            e.getMessage() == null ? "Server Error" : e.getMessage(),
-            ((KsqlStatementException) e).getUnloggedMessage(),
-            ((KsqlStatementException) e).getSqlStatement(),
-            e
-        );
-      } else {
-        throw new KsqlStatementException(
-            "Could not determine output schema for query due to error: "
-                + e.getMessage(), cas.getMaskedStatementText(), e);
-      }
-    }
     final ServiceContext sandboxServiceContext = SandboxedServiceContext.create(serviceContext);
     final ExecuteResult executeResult = executionContext
         .createSandbox(sandboxServiceContext)

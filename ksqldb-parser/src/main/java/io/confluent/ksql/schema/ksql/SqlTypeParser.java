@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.CaseInsensitiveStream;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TypeContext;
@@ -29,6 +30,7 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,8 +51,18 @@ public final class SqlTypeParser {
   }
 
   public Type parse(final String schema) {
-    final TypeContext typeContext = parseTypeContext(schema);
-    return getType(typeContext);
+    try {
+      final TypeContext typeContext = parseTypeContext(schema);
+      return getType(typeContext);
+    } catch (final ParsingException e) {
+      throw new KsqlStatementException(
+          "Failed to parse schema",
+          "Failed to parse: " + schema,
+          schema,
+          KsqlStatementException.Problem.STATEMENT,
+          e
+      );
+    }
   }
 
   public Type getType(
@@ -108,6 +120,7 @@ public final class SqlTypeParser {
     final CommonTokenStream tokenStream = new CommonTokenStream(lexer);
     final SqlBaseParser parser = new SqlBaseParser(tokenStream);
     parser.getInterpreter().setPredictionMode(PredictionMode.LL);
+    parser.removeErrorListeners();
     return parser.type();
   }
 

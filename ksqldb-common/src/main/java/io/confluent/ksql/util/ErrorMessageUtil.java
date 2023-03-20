@@ -70,7 +70,13 @@ public final class ErrorMessageUtil {
     if (e instanceof ConnectException) {
       return "Could not connect to the server.";
     } else {
-      return e.getMessage() == null ? e.toString() : e.getMessage();
+      final String message;
+      if (e instanceof KsqlStatementException) {
+        message = ((KsqlStatementException) e).getUnloggedMessage();
+      } else {
+        message = e.getMessage();
+      }
+      return message == null ? e.toString() : message;
     }
   }
 

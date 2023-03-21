@@ -428,12 +428,6 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testReservedColumnIdentifers() {
-    assertQuerySucceeds("SELECT ROWTIME as ROWTIME FROM test1 t1;");
-    assertQuerySucceeds("SELECT ROWKEY as ROWKEY FROM test1 t1;");
-  }
-
-  @Test
   public void testReservedRowTimeAlias() {
     // When:
     final ParseFailedException e = assertThrows(

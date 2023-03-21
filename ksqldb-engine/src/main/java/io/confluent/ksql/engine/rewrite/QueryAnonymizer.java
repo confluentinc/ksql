@@ -341,6 +341,7 @@ public class QueryAnonymizer {
       return "TERMINATE query";
     }
 
+
     @Override
     public String visitShowColumns(final ShowColumnsContext context) {
       final StringBuilder stringBuilder = new StringBuilder("DESCRIBE ");

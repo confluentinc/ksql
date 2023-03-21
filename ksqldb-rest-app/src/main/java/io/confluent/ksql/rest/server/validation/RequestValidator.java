@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
@@ -108,6 +109,10 @@ public class RequestValidator {
 
       numPersistentQueries +=
           validate(serviceContext, configured, sessionProperties, ctx, injector);
+
+      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig)) {
+        QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
+      }
     }
 
     return numPersistentQueries;

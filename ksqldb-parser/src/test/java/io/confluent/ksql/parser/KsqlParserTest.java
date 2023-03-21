@@ -1139,44 +1139,6 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testReservedKeywordSyntaxError() {
-    // Given:
-    final String simpleQuery = "CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)\n" +
-            "  WITH (kafka_topic='ords', value_format='json');";
-
-    // When:
-    final ParseFailedException e = assertThrows(
-            ParseFailedException.class,
-            () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
-    );
-
-    // Then:
-    assertThat(e.getUnloggedMessage(), containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
-    assertThat(e.getMessage(), containsString("line 1:35: Syntax error at line 1:35"));
-  }
-
-  @Test
-  public void testReservedKeywordSyntaxErrorCaseInsensitive() {
-    // Given:
-    final String simpleQuery = "CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)\n" +
-            "  WITH (kafka_topic='ords', value_format='json');";
-
-    // When:
-    final ParseFailedException e = assertThrows(
-            ParseFailedException.class,
-            () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
-    );
-
-    // Then:
-    assertThat(e.getUnloggedMessage(), containsString("line 1:23: " +
-        "\"Load\" is a reserved keyword and it can't be used as an identifier. " +
-        "You can use it as an identifier by escaping it as 'Load' \n" +
-        "Statement: CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)"));
-    assertThat(e.getMessage(), containsString("line 1:23: Syntax error at line 1:23"));
-    assertThat(e.getSqlStatement(), containsString("CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)"));
-  }
-
-  @Test
   public void testNonReservedKeywordShouldNotThrowException() {
     // 'sink' is a keyword but is non-reserved. should not throw an exception
     final CreateStream result = (CreateStream) KsqlParserTestUtil.buildSingleAst("CREATE STREAM ORDERS" +

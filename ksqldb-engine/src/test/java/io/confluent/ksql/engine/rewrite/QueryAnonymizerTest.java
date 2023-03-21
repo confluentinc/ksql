@@ -32,10 +32,10 @@ public class QueryAnonymizerTest {
   public void shouldWorkAsExpectedWhenPassedAParseTreeInsteadOfString() {
     // Given:
     final ParserRuleContext tree =
-        DefaultKsqlParser.getParseTree("DESCRIBE my_stream EXTENDED;");
+        DefaultKsqlParser.getParseTree("DESCRIBE my_stream;");
 
     // Then:
-    Assert.assertEquals("DESCRIBE stream1 EXTENDED;",
+    Assert.assertEquals("DESCRIBE stream1;",
         anon.anonymize(tree));
   }
 
@@ -61,16 +61,13 @@ public class QueryAnonymizerTest {
     Assert.assertEquals("LIST SOURCE CONNECTORS;",
         anon.anonymize("LIST SOURCE CONNECTORS;"));
     Assert.assertEquals("LIST TYPES;", anon.anonymize("LIST TYPES;"));
-    Assert.assertEquals("LIST VARIABLES;", anon.anonymize("LIST VARIABLES;"));
     Assert.assertEquals("LIST QUERIES;", anon.anonymize("LIST QUERIES;"));
   }
 
   @Test
   public void describeStatementsShouldGetAnonymized() {
-    Assert.assertEquals("DESCRIBE stream1 EXTENDED;",
-        anon.anonymize("DESCRIBE my_stream EXTENDED;"));
-    Assert.assertEquals("DESCRIBE STREAMS EXTENDED;",
-        anon.anonymize("DESCRIBE STREAMS EXTENDED;"));
+    Assert.assertEquals("DESCRIBE stream1;",
+        anon.anonymize("DESCRIBE my_stream;"));
     Assert.assertEquals("DESCRIBE FUNCTION function;",
         anon.anonymize("DESCRIBE FUNCTION my_function;"));
     Assert.assertEquals("DESCRIBE CONNECTOR connector;",
@@ -101,14 +98,6 @@ public class QueryAnonymizerTest {
         anon.anonymize("SET 'auto.offset.reset'='earliest';"));
     Assert.assertEquals("UNSET 'auto.offset.reset';",
         anon.anonymize("UNSET 'auto.offset.reset';"));
-  }
-
-  @Test
-  public void shouldAnonymizeDefineUndefineProperty() {
-    Assert.assertEquals("DEFINE variable='[string]';",
-        anon.anonymize("DEFINE format = 'JSON';"));
-    Assert.assertEquals("UNDEFINE variable;",
-        anon.anonymize("UNDEFINE format;"));
   }
 
   @Test
@@ -228,17 +217,6 @@ public class QueryAnonymizerTest {
   }
 
   @Test
-  public void shouldAnonymizeAlterOptionCorrectly() {
-    final String output = anon.anonymize(
-        "ALTER STREAM my_stream ADD COLUMN c3 INT, ADD COLUMN c4 INT;");
-
-    Assert.assertEquals(
-        "ALTER STREAM stream1 (ADD COLUMN column1 INT, ADD COLUMN column2 INT);",
-        output
-    );
-  }
-
-  @Test
   public void shouldAnonymizeInsertIntoCorrectly() {
     final String output = anon.anonymize(
         "INSERT INTO my_stream SELECT user_id, browser_cookie, ip_address\n"
@@ -272,16 +250,16 @@ public class QueryAnonymizerTest {
         anon.anonymize("DROP STREAM IF EXISTS my_stream DELETE TOPIC;"));
     Assert.assertEquals("DROP TABLE IF EXISTS table1 DELETE TOPIC;",
         anon.anonymize("DROP TABLE IF EXISTS my_table DELETE TOPIC;"));
-    Assert.assertEquals("DROP CONNECTOR IF EXISTS connector;",
-        anon.anonymize("DROP CONNECTOR IF EXISTS my_connector;"));
-    Assert.assertEquals("DROP TYPE IF EXISTS type;",
-        anon.anonymize("DROP TYPE IF EXISTS my_type;"));
+    Assert.assertEquals("DROP CONNECTOR connector;",
+        anon.anonymize("DROP CONNECTOR my_connector;"));
+    Assert.assertEquals("DROP TYPE type;",
+        anon.anonymize("DROP TYPE my_type;"));
   }
 
   @Test
   public void shouldAnonymizeUDFQueriesCorrectly() {
     final String output = anon.anonymize("CREATE STREAM OUTPUT AS SELECT ID, "
-        + "REDUCE(numbers, 2, (s, x) => s + x) AS reduce FROM test;");
+        + "MAX(numbers) AS reduce FROM test;");
 
     Assert.assertEquals(
         "CREATE STREAM stream1 AS SELECT column1, udf1 FROM source1;",

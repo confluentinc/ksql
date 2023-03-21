@@ -66,6 +66,17 @@ public class QueryAnonymizerTest {
   }
 
   @Test
+  public void describeStatementsShouldGetAnonymized() {
+    Assert.assertEquals("DESCRIBE stream1;",
+        anon.anonymize("DESCRIBE my_stream;"));
+    Assert.assertEquals("DESCRIBE FUNCTION function;",
+        anon.anonymize("DESCRIBE FUNCTION my_function;"));
+    Assert.assertEquals("DESCRIBE CONNECTOR connector;",
+        anon.anonymize("DESCRIBE CONNECTOR my_connector;"));
+  }
+
+
+  @Test
   public void printStatementsShouldGetAnonymized() {
     Assert.assertEquals("PRINT topic FROM BEGINNING;",
         anon.anonymize("PRINT my_topic FROM BEGINNING;"));
@@ -264,5 +275,16 @@ public class QueryAnonymizerTest {
         anon.anonymize("DROP CONNECTOR IF EXISTS my_connector;"));
     Assert.assertEquals("DROP TYPE IF EXISTS type;",
         anon.anonymize("DROP TYPE IF EXISTS my_type;"));
+  }
+
+  @Test
+  public void shouldAnonymizeUDFQueriesCorrectly() {
+    final String output = anon.anonymize("CREATE STREAM OUTPUT AS SELECT ID, "
+        + "MAX(numbers) AS reduce FROM test;");
+
+    Assert.assertEquals(
+        "CREATE STREAM stream1 AS SELECT column1, udf1 FROM source1;",
+        output
+    );
   }
 }

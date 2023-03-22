@@ -241,7 +241,7 @@ public class KsqlResource implements KsqlConfigurable {
           "Processed successfully: " + request.toStringWithoutQuery(),
           request.getMaskedKsql()
       );
-      return EndpointResponse.ok(entities);
+      return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
       QueryLogger.info(
           "Processed unsuccessfully: " + request.toStringWithoutQuery(),
@@ -255,7 +255,7 @@ public class KsqlResource implements KsqlConfigurable {
           request.getMaskedKsql(),
           e
       );
-      final EndpointResponse response;
+      final Response response;
       if (e.getProblem() == KsqlStatementException.Problem.STATEMENT) {
         response = Errors.badStatement(e.getRawUnloggedDetails(), e.getSqlStatement());
       } else if (e.getProblem() == KsqlStatementException.Problem.OTHER) {

@@ -155,6 +155,17 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
 
+  public static final String KSQL_QUERYANONYMIZER_ENABLED =
+      "ksql.queryanonymizer.logs_enabled";
+  private static final String KSQL_QUERYANONYMIZER_ENABLED_DOC =
+      "This defines whether we log anonymized queries out of query logger or if we log them"
+      + "in plain text. Defaults to true";
+  public static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE =
+      "ksql.queryanonymizer.cluster_namespace";
+  private static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC =
+      "Namespace used in the query anonymization process, representing cluster id and "
+          + "organization id respectively. For example, 'clusterid.orgid'.";
+
   public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
   private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
       "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "

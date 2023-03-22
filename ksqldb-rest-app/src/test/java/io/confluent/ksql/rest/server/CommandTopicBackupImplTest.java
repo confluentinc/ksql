@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Ticker;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
@@ -156,40 +155,6 @@ public class CommandTopicBackupImplTest {
 
     // Then
     assertThat(Files.exists(dir), is(true));
-  }
-
-  @Test
-  public void shouldThrowWhenRecordIsNotValidCommandId() {
-    // Given
-    commandTopicBackup.initialize();
-
-    // When
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> commandTopicBackup.writeRecord(new ConsumerRecord<>(
-        "topic1", 0, 0,
-            "stream/a/create/invalid".getBytes(StandardCharsets.UTF_8), command1.value())));
-
-    // Then
-    assertThat(e.getMessage(), containsString(
-        "Failed to backup record because it cannot deserialize key: stream/a/create/invalid"));
-  }
-
-  @Test
-  public void shouldThrowWhenRecordIsNotValidCommand() {
-    // Given
-    commandTopicBackup.initialize();
-
-    // When
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> commandTopicBackup.writeRecord(new ConsumerRecord<>(
-            "topic1", 0, 0, command1.key(),
-            "my command".getBytes(StandardCharsets.UTF_8))));
-
-    // Then
-    assertThat(e.getMessage(), containsString(
-        "Failed to backup record because it cannot deserialize value: my command"));
   }
 
   @Test

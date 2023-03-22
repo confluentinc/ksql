@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
 import org.junit.Test;
@@ -70,20 +70,28 @@ public class QueryCapacityUtilTest {
     givenQueryLimit(2);
 
     // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
         ksqlEngine, ksqlConfig, statementStr)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
+    assertThat(e.getUnloggedMessage(), containsString(
         "Not executing statement(s) 'my statement' as it would cause the number "
             + "of active, persistent queries to exceed the configured limit. "
             + "Use the TERMINATE command to terminate existing queries, "
             + "or increase the 'ksql.query.persistent.active.limit' setting "
             + "via the 'ksql-server.properties' file. "
             + "Current persistent query count: 3. Configured limit: 2."));
+    assertThat(e.getMessage(), containsString(
+        "Not executing statement(s) as it would cause the number "
+            + "of active, persistent queries to exceed the configured limit. "
+            + "Use the TERMINATE command to terminate existing queries, "
+            + "or increase the 'ksql.query.persistent.active.limit' setting "
+            + "via the 'ksql-server.properties' file. "
+            + "Current persistent query count: 3. Configured limit: 2."));
+    assertThat(e.getSqlStatement(), containsString("my statement"));
   }
 
   @SuppressWarnings("unchecked")

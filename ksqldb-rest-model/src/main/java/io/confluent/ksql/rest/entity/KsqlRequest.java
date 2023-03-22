@@ -130,6 +130,14 @@ public class KsqlRequest {
         + '}';
   }
 
+  public String toStringWithoutQuery() {
+    return "KsqlRequest{"
+        + "configOverrides=" + configOverrides
+        + ", requestProperties=" + requestProperties
+        + ", commandSequenceNumber=" + commandSequenceNumber
+        + '}';
+  }
+
   /**
    * Converts all Class references values to their canonical String value.
    * </p>

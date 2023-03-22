@@ -81,7 +81,7 @@ public class CreateSourceTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Only single KEY column supported. "
+    assertThat(e.getUnloggedMessage(), containsString("Only single KEY column supported. "
         + "Multiple KEY columns found: `K1` (Line: 2, Col: 4), `K2` (Line: 4, Col: 6)"));
   }
 

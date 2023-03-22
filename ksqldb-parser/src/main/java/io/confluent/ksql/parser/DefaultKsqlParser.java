@@ -17,9 +17,9 @@ package io.confluent.ksql.parser;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.TypeRegistry;
-import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.function.Function;
@@ -42,6 +42,7 @@ public class DefaultKsqlParser implements KsqlParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   @VisibleForTesting
+  public static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
   static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
     public void syntaxError(
@@ -59,9 +60,9 @@ public class DefaultKsqlParser implements KsqlParser {
         final String newMessage =
                 "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier."
                 + " You can use it as an identifier by escaping it as \'" + tokenName + "\' ";
-        throw new ParsingException(newMessage, e, line, charPositionInLine);
+        throw new ParsingException(newMessage, line, charPositionInLine);
       } else {
-        throw new ParsingException(message, e, line, charPositionInLine);
+        throw new ParsingException(message, line, charPositionInLine);
       }
     }
   };
@@ -75,12 +76,24 @@ public class DefaultKsqlParser implements KsqlParser {
           .map(DefaultKsqlParser::parsedStatement)
           .collect(Collectors.toList());
 
+    } catch (final ParsingException e) {
+      // ParsingException counts lines starting from 1
+      final String failedLine =  sql.split(System.lineSeparator())[e.getLineNumber() - 1];
+      throw new ParseFailedException(
+          e.getMessage(),
+          e.getUnloggedDetails(),
+          failedLine,
+          e
+      );
+    } catch (final KsqlStatementException e) {
+      throw new ParseFailedException(e.getMessage(), e.getUnloggedMessage(), sql, e);
     } catch (final Exception e) {
       throw new ParseFailedException(e.getMessage(), sql, e);
     }
   }
 
-  public static ParsedStatement parsedStatement(final SingleStatementContext statement) {
+  public static ParsedStatement parsedStatement(
+      final SqlBaseParser.SingleStatementContext statement) {
     return ParsedStatement.of(
         getStatementString(statement),
         statement
@@ -103,6 +116,13 @@ public class DefaultKsqlParser implements KsqlParser {
       }
       throw new ParseFailedException(
           e.getRawMessage(), stmt.getMaskedStatementText(), e.getCause());
+    } catch (final ParsingException e) {
+      throw new ParseFailedException(
+          "Failed to prepare statement: " + e.getMessage(),
+          "Failed to prepare statement: " + e.getUnloggedDetails(),
+          stmt.getMaskedStatementText(),
+          e
+      );
     } catch (final Exception e) {
       throw new ParseFailedException(
           "Failed to prepare statement: " + e.getMessage(), stmt.getMaskedStatementText(), e);
@@ -138,7 +158,8 @@ public class DefaultKsqlParser implements KsqlParser {
     }
   }
 
-  private static String getStatementString(final SingleStatementContext singleStatementContext) {
+  private static String getStatementString(
+      final SqlBaseParser.SingleStatementContext singleStatementContext) {
     final CharStream charStream = singleStatementContext.start.getInputStream();
     return charStream.getText(Interval.of(
         singleStatementContext.start.getStartIndex(),

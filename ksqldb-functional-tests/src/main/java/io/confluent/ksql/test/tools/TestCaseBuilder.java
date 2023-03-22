@@ -16,7 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import io.confluent.ksql.test.model.ExpectedExceptionNode;
 import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TestCaseNode;
@@ -75,7 +75,7 @@ public final class TestCaseBuilder {
       );
 
       final Optional<Matcher<Throwable>> ee = test.expectedException()
-          .map(een -> een.build(Iterables.getLast(statements)));
+          .map(ExpectedExceptionNode::build);
 
       final List<Topic> topics = test.topics().stream()
           .map(TopicNode::build)

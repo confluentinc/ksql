@@ -19,8 +19,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMask;
 import java.io.Closeable;
 import java.time.Duration;
@@ -174,12 +174,14 @@ public class CommandStore implements CommandQueue, Closeable {
       return new QueuedCommandStatus(recordMetadata.offset(), statusFuture);
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);
-      throw new KsqlException(
+      throw new KsqlStatementException(
+          "Could not write the statement into the command topic.",
           String.format(
-              "Could not write the statement '%s' into the "
-                  + "command topic"
-                  + ".", QueryMask.getMaskedStatement(command.getStatement())
+              "Could not write the statement '%s' into the command topic.",
+              QueryMask.getMaskedStatement(command.getStatement())
           ),
+          QueryMask.getMaskedStatement(command.getStatement()),
+          KsqlStatementException.Problem.OTHER,
           e
       );
     }

@@ -32,6 +32,7 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
 import java.util.Objects;
@@ -120,9 +121,15 @@ public class DistributingExecutor {
     } catch (final TimeoutException e) {
       throw new KsqlServerException(errorHandler.transactionInitTimeoutErrorMessage(e), e);
     } catch (final Exception e) {
-      throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
-          statement.getMaskedStatementText()), e);
+      throw new KsqlStatementException(
+          "Could not write the statement into the command topic: " + e.getMessage(),
+          String.format(
+              "Could not write the statement '%s' into the command topic: " + e.getMessage(),
+              statement.getMaskedStatementText()
+          ),
+          statement.getMaskedStatementText(),
+          KsqlStatementException.Problem.OTHER,
+          e);
     }
     
     try {
@@ -153,14 +160,28 @@ public class DistributingExecutor {
     ) {
       // We can't recover from these exceptions, so our only option is close producer and exit.
       // This catch doesn't abortTransaction() since doing that would throw another exception.
-      throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic.",
-          statement.getMaskedStatementText()), e);
+      throw new KsqlStatementException(
+          "Could not write the statement into the command topic.",
+          String.format(
+              "Could not write the statement '%s' into the command topic.",
+              statement.getMaskedStatementText()
+          ),
+          statement.getMaskedStatementText(),
+          KsqlStatementException.Problem.OTHER,
+          e
+      );
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
-      throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic.",
-          statement.getMaskedStatementText()), e);
+      throw new KsqlStatementException(
+          "Could not write the statement into the command topic.",
+          String.format(
+              "Could not write the statement '%s' into the command topic.",
+              statement.getMaskedStatementText()
+          ),
+          statement.getMaskedStatementText(),
+          KsqlStatementException.Problem.OTHER,
+          e
+      );
     } finally {
       transactionalProducer.close();
     }

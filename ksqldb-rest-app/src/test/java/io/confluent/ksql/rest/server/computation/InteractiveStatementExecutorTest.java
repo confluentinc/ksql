@@ -452,9 +452,10 @@ public class InteractiveStatementExecutorTest {
       handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
     } catch (final KsqlStatementException e) {
       // Then:
-      assertEquals("Cannot add stream 'FOO': A stream with the same name already exists\n" +
-              "Statement: " + CREATE_STREAM_FOO_STATMENT,
-          e.getMessage());
+      assertEquals(
+          "Cannot add stream 'FOO': A stream with the same name already exists",
+          e.getMessage()
+      );
     }
     final InOrder inOrder = Mockito.inOrder(status);
     final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);

@@ -436,14 +436,15 @@ public class KsqlParserTest {
   @Test
   public void testReservedRowTimeAlias() {
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> buildSingleAst("SELECT C1 as ROWTIME FROM test1 t1;", metaStore)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "ROWTIME is a reserved system column name. You cannot use it as an alias for a column."));
+    assertThat(e.getUnloggedMessage(), containsString(
+        "`ROWTIME`' is a reserved column name. You cannot use it as an alias for a column." +
+            "\nStatement: C1"));
   }
 
   @Test
@@ -455,7 +456,7 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedMessage(), containsString("'ROWTIME' is a reserved column name. You cannot use it as an alias for a column."));
+    assertThat(e.getUnloggedMessage(), containsString("`ROWKEY`' is a reserved column name. You cannot use it as an alias for a column."));
   }
 
   @Test
@@ -1243,13 +1244,13 @@ public class KsqlParserTest {
   @Test
   public void shouldThrowHelpfulErrorMessageIfKeyFieldNotQuoted() {
     // When:
-    final Exception e = assertThrows(
+    final ParseFailedException e = assertThrows(
         ParseFailedException.class,
         () -> buildSingleAst("CREATE STREAM S (ID INT) WITH (KEY=ID);", metaStore)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("mismatched input 'ID'"));
+    assertThat(e.getUnloggedMessage(), containsString("mismatched input 'ID'"));
   }
 
   @Test

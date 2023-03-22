@@ -22,8 +22,6 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMask;
 import java.io.Closeable;

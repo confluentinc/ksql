@@ -12,14 +12,12 @@
 
 package io.confluent.ksql.engine.rewrite;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
-import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.AliasedRelationContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanDefaultContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanLiteralContext;
@@ -40,11 +38,7 @@ import io.confluent.ksql.parser.SqlBaseParser.GroupByContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertIntoContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
-import io.confluent.ksql.parser.SqlBaseParser.JoinRelationContext;
 import io.confluent.ksql.parser.SqlBaseParser.JoinWindowSizeContext;
-import io.confluent.ksql.parser.SqlBaseParser.JoinWindowWithBeforeAndAfterContext;
-import io.confluent.ksql.parser.SqlBaseParser.JoinedSourceContext;
-import io.confluent.ksql.parser.SqlBaseParser.LeftJoinContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListFunctionsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListPropertiesContext;
@@ -54,7 +48,6 @@ import io.confluent.ksql.parser.SqlBaseParser.ListTopicsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.LogicalBinaryContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumericLiteralContext;
-import io.confluent.ksql.parser.SqlBaseParser.OuterJoinContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.QueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
@@ -64,7 +57,6 @@ import io.confluent.ksql.parser.SqlBaseParser.SelectSingleContext;
 import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ShowColumnsContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleExpressionContext;
-import io.confluent.ksql.parser.SqlBaseParser.SingleJoinWindowContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementsContext;
 import io.confluent.ksql.parser.SqlBaseParser.StringLiteralContext;
@@ -78,7 +70,6 @@ import io.confluent.ksql.parser.SqlBaseParser.TypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnquotedIdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ValueExpressionContext;
-import io.confluent.ksql.parser.SqlBaseParser.WithinExpressionContext;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -704,79 +695,6 @@ public class QueryAnonymizer {
     @Override
     public String visitTableName(final TableNameContext context) {
       return getAnonSourceName(context.getText());
-    }
-
-    @Override
-    public String visitJoinRelation(final JoinRelationContext context) {
-      final String left = visit(context.left);
-      final ImmutableList<String> rights = context
-          .joinedSource()
-          .stream()
-          .map(this::visitJoinedSource)
-          .collect(ImmutableList.toImmutableList());
-
-      return String.format("%s %s", left, String.join(" ", rights));
-    }
-
-    @Override
-    public String visitJoinedSource(final JoinedSourceContext context) {
-      final StringBuilder stringBuilder = new StringBuilder();
-
-      // get join type
-      final SqlBaseParser.JoinTypeContext joinTypeContext = context.joinType();
-      if (joinTypeContext instanceof LeftJoinContext) {
-        stringBuilder.append("LEFT OUTER ");
-      } else if (joinTypeContext instanceof OuterJoinContext) {
-        stringBuilder.append("FULL OUTER ");
-      } else {
-        stringBuilder.append("INNER ");
-      }
-
-      // right side of join
-      final String right = visit(context.aliasedRelation());
-      stringBuilder.append(String.format("JOIN %s", right));
-
-      // visit within expression
-      if (context.joinWindow() != null) {
-        stringBuilder.append(visitWithinExpression(context.joinWindow().withinExpression()));
-      }
-
-      // visit join on
-      stringBuilder.append("ON anonKey1=anonKey2");
-
-      return stringBuilder.toString();
-    }
-
-    private static String visitWithinExpression(final WithinExpressionContext context) {
-      final StringBuilder stringBuilder = new StringBuilder(" WITHIN ");
-
-      if (context instanceof SingleJoinWindowContext) {
-        final SqlBaseParser.SingleJoinWindowContext singleWithin
-            = (SqlBaseParser.SingleJoinWindowContext) context;
-
-        stringBuilder.append(String.format("%s",
-            anonymizeJoinWindowSize(singleWithin.joinWindowSize())));
-      } else if (context instanceof JoinWindowWithBeforeAndAfterContext) {
-        final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
-            = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) context;
-
-        stringBuilder.append(String.format("(%s, %s)",
-            anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0)),
-            anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1))));
-      } else {
-        throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\" or \"WITHIN 10 seconds GRACE PERIOD 2 seconds\", or a join window with "
-            + "before and after specified, ie. \"WITHIN (10 seconds, 20 seconds)\" or "
-            + "WITHIN (10 seconds, 20 seconds) GRACE PERIOD 5 seconds");
-      }
-
-      return stringBuilder.append(' ').toString();
-    }
-
-    private static String anonymizeGracePeriod(
-        final SqlBaseParser.GracePeriodClauseContext gracePeriodClause
-    ) {
-      return String.format("'0' %s", gracePeriodClause.windowUnit().getText().toUpperCase());
     }
 
     private static String anonymizeJoinWindowSize(

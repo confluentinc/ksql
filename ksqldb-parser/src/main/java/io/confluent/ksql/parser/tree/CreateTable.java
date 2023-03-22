@@ -21,8 +21,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
-import java.util.Objects;
 import java.util.Optional;
 
 @Immutable

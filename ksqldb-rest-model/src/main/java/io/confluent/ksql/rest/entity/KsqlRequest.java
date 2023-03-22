@@ -120,8 +120,6 @@ public class KsqlRequest {
 
   public String toStringWithoutQuery() {
     return "KsqlRequest{"
-        + "configOverrides=" + configOverrides
-        + ", requestProperties=" + requestProperties
         + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';
   }

@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 

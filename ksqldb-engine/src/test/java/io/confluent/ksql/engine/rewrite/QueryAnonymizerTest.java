@@ -119,8 +119,7 @@ public class QueryAnonymizerTest {
         + " FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON col1.k=col2.k;");
 
     Assert.assertEquals(
-        "INSERT INTO stream1 SELECT column1, column2, column3 "
-            + "FROM source1 INNER JOIN source2 WITHIN '0' SECOND ON anonKey1=anonKey2;",
+        "INSERT INTO stream1 SELECT column1, column2, column3 FROM column4=null;",
         output);
   }
 

@@ -86,9 +86,9 @@ public class DefaultKsqlParser implements KsqlParser {
 
       return PreparedStatement.of(stmt.getUnMaskedStatementText(), root);
     } catch (final ParseFailedException e) {
-      //      if (!e.getSqlStatement().isEmpty()) {
-      //        throw e;
-      //      }
+      if (!e.getSqlStatement().isEmpty()) {
+        throw e;
+      }
       throw new ParseFailedException(
           e.getUnloggedMessage(), stmt.getMaskedStatementText(), e.getCause());
     } catch (final ParsingException e) {

@@ -443,7 +443,7 @@ public class KsqlParserTest {
 
     // Then:
     assertThat(e.getUnloggedMessage(), containsString(
-        "`ROWTIME`' is a reserved column name. You cannot use it as an alias for a column." +
+        "'ROWTIME' is a reserved column name. You cannot use it as an alias for a column." +
             "\nStatement: C1"));
   }
 
@@ -456,7 +456,7 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedMessage(), containsString("`ROWKEY`' is a reserved column name. You cannot use it as an alias for a column."));
+    assertThat(e.getUnloggedMessage(), containsString("'ROWKEY' is a reserved column name. You cannot use it as an alias for a column."));
   }
 
   @Test

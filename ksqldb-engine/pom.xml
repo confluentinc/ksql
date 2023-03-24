@@ -171,7 +171,7 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>confluent-log4j-extensions</artifactId>
-            <version>${io.confluent.common.version}</version>
+            <version>${confluent.version}</version>
             <scope>test</scope>
         </dependency>
 

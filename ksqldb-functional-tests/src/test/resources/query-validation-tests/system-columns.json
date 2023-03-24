@@ -11,7 +11,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "ROWKEY is a reserved system column name. You cannot use it as an alias for a column."
+        "message": "'ROWKEY' is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {

@@ -90,7 +90,7 @@ public class DefaultKsqlParser implements KsqlParser {
         throw e;
       }
       throw new ParseFailedException(
-          e.getUnloggedMessage(), stmt.getMaskedStatementText(), e.getCause());
+          e.getRawMessage(), stmt.getMaskedStatementText(), e.getCause());
     } catch (final ParsingException e) {
       throw new ParseFailedException(
           "Failed to prepare statement: " + e.getMessage(),

@@ -1934,7 +1934,7 @@ public class KsqlResourceTest {
     assertThat(e, exceptionStatusCode(is(Code.INTERNAL_SERVER_ERROR)));
     assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
-            + "' into the command topic: blah\nCaused by: blah"))));
+            + "' into the command topic.\nCaused by: blah"))));
   }
 
   private Answer<?> executeAgainstEngine(final String sql) {

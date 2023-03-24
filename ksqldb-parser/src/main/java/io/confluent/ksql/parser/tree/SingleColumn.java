@@ -68,9 +68,12 @@ public class SingleColumn extends SelectItem {
     if (alias.get().name().equalsIgnoreCase(reservedToken.name())) {
       final String text = expression.toString();
       if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken.name())) {
-        throw new ParseFailedException(reservedToken.name()
-            + " is a reserved system column name. "
-            + "You cannot use it as an alias for a column.");
+        throw new ParseFailedException("ERROR in the column, reserved",
+            "'" + reservedToken.name() + "'"
+                + " is a reserved column name. "
+                + "You cannot use it as an alias for a column.",
+            expression.toString()
+        );
       }
     }
   }

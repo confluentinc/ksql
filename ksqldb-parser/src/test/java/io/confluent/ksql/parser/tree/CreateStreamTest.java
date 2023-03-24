@@ -49,6 +49,7 @@ public class CreateStreamTest {
           CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("foo"))
   );
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()

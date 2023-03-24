@@ -168,6 +168,13 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>confluent-log4j-extensions</artifactId>
+            <version>${confluent.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

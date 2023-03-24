@@ -405,7 +405,7 @@ public final class TestExecutorUtil {
         );
       } catch (final KsqlStatementException e) {
         throw new KsqlStatementException(
-            e.getMessage(), withSchema.getMaskedStatementText(), e.getCause());
+            e.getUnloggedMessage(), withSchema.getMaskedStatementText(), e.getCause());
       }
     }
 

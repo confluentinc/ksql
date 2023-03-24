@@ -23,10 +23,28 @@ public class ParseFailedException extends KsqlStatementException {
     super(message, "");
   }
 
+  public ParseFailedException(final String message, final String sqlStatement) {
+    super(message, sqlStatement);
+  }
+
+  public ParseFailedException(final String message,
+                              final String unloggedDetails,
+                              final String sqlStatement) {
+    super(message, unloggedDetails, sqlStatement);
+  }
+
   public ParseFailedException(
       final String message,
       final String sqlStatement,
       final Throwable cause) {
     super(message, sqlStatement, cause);
+  }
+
+  public ParseFailedException(
+      final String message,
+      final String unloggedDetails,
+      final String sqlStatement,
+      final Throwable cause) {
+    super(message, unloggedDetails, sqlStatement, cause);
   }
 }

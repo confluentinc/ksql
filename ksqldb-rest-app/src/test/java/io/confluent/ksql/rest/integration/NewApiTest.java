@@ -225,7 +225,7 @@ public class NewApiTest {
     String sql = "SLECTT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;";
 
     // Then:
-    shouldFail(sql, "line 1:1: mismatched input 'SLECTT' expecting");
+    shouldFail(sql, "line 1:1: Syntax error at line 1:1");
   }
 
   @Test

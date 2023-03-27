@@ -194,7 +194,7 @@ public final class HARouting implements AutoCloseable {
         for (Map.Entry<KsqlNode, Future<NodeFetchResult>> entry : futures.entrySet()) {
           final Future<NodeFetchResult> future = entry.getValue();
           final KsqlNode node = entry.getKey();
-          NodeFetchResult routingResult  = future.get();
+          final NodeFetchResult routingResult  = future.get();
           if (routingResult.isError()) {
             nextRoundRemaining.addAll(groupedByHost.get(node));
             exceptionsPerNode.computeIfAbsent(
@@ -212,8 +212,7 @@ public final class HARouting implements AutoCloseable {
           return;
         }
       }
-    }
-    catch (final Exception e) {
+    } catch (final Exception e) {
       final MaterializationException exception =
           new MaterializationException(
               "Unable to execute pull query: " + e.getMessage());

@@ -25,12 +25,16 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.Test;
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
 
 public class KsqlBoundedMemoryRocksDBConfigTest {
 
   private static final long CACHE_SIZE = 16 * 1024 * 1024 * 1024L;
   private static final int NUM_BACKGROUND_THREADS = 4;
   private static final double INDEX_FILTER_BLOCK_RATIO = 0.1;
+  private static final CompactionStyle COMPACTION_STYLE = CompactionStyle.LEVEL;
+  private static final CompressionType COMPRESSION_TYPE = CompressionType.LZ4_COMPRESSION;
 
   @Test
   public void shouldCreateConfig() {
@@ -38,7 +42,9 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
     final Map<String, Object> configs = ImmutableMap.of(
         "ksql.plugins.rocksdb.cache.size", CACHE_SIZE,
         "ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS,
-        "ksql.plugins.rocksdb.index.filter.block.ratio", INDEX_FILTER_BLOCK_RATIO
+        "ksql.plugins.rocksdb.index.filter.block.ratio", INDEX_FILTER_BLOCK_RATIO,
+        "ksql.plugins.rocksdb.compaction.style", COMPACTION_STYLE.name(),
+        "ksql.plugins.rocksdb.compression.type", COMPRESSION_TYPE.name()
     );
 
     // When:
@@ -54,6 +60,12 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
     assertThat(
         pluginConfig.getDouble(KsqlBoundedMemoryRocksDBConfig.INDEX_FILTER_BLOCK_RATIO_CONFIG),
         is(INDEX_FILTER_BLOCK_RATIO));
+    assertThat(
+        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPACTION_STYLE_CONFIG),
+        is(COMPACTION_STYLE.name()));
+    assertThat(
+        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPRESSION_TYPE_CONFIG),
+        is(COMPRESSION_TYPE.name()));
   }
 
   @Test
@@ -105,5 +117,37 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
     assertThat(
         pluginConfig.getDouble(KsqlBoundedMemoryRocksDBConfig.INDEX_FILTER_BLOCK_RATIO_CONFIG),
         is(0.0));
+  }
+
+  @Test
+  public void shouldDefaultCompactionStyleConfig() {
+    // Given:
+    final Map<String, Object> configs = ImmutableMap.of(
+        "ksql.plugins.rocksdb.cache.size", CACHE_SIZE
+    );
+
+    // When:
+    final KsqlBoundedMemoryRocksDBConfig pluginConfig = new KsqlBoundedMemoryRocksDBConfig(configs);
+
+    // Then:
+    assertThat(
+        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPACTION_STYLE_CONFIG),
+        is(CompactionStyle.UNIVERSAL.name()));
+  }
+
+  @Test
+  public void shouldDefaultCompressionTypeConfig() {
+    // Given:
+    final Map<String, Object> configs = ImmutableMap.of(
+        "ksql.plugins.rocksdb.cache.size", CACHE_SIZE
+    );
+
+    // When:
+    final KsqlBoundedMemoryRocksDBConfig pluginConfig = new KsqlBoundedMemoryRocksDBConfig(configs);
+
+    // Then:
+    assertThat(
+        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPRESSION_TYPE_CONFIG),
+        is(CompressionType.NO_COMPRESSION.name()));
   }
 }

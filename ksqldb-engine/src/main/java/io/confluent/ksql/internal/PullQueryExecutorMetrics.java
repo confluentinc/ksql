@@ -135,11 +135,11 @@ public class PullQueryExecutorMetrics implements Closeable {
     sensors.forEach(sensor -> metrics.removeSensor(sensor.name()));
   }
 
-  public void registerCoordinatorThreadPoolSupplier(Supplier<Integer> supplier) {
+  public void registerCoordinatorThreadPoolSupplier(final Supplier<Integer> supplier) {
     coordinatorThreadPoolSupplier = supplier;
   }
 
-  public void registerRouterThreadPoolSupplier(Supplier<Integer> supplier) {
+  public void registerRouterThreadPoolSupplier(final Supplier<Integer> supplier) {
     routerThreadPoolSupplier = supplier;
   }
 
@@ -532,8 +532,9 @@ public class PullQueryExecutorMetrics implements Closeable {
         "Number of available threads in the coordinator pool",
         customMetricsTags
     );
-    if (!metrics.metrics().containsKey(coordinatorThreadsAvailable))
+    if (!metrics.metrics().containsKey(coordinatorThreadsAvailable)) {
       metrics.addMetric(coordinatorThreadsAvailable, coordinatorThreadPoolSizeGauge);
+    }
 
     final MetricName routerThreadsAvailable = metrics.metricName(
         PULL_REQUESTS + "-router-thread-pool-free-size",
@@ -541,8 +542,9 @@ public class PullQueryExecutorMetrics implements Closeable {
         "Number of available threads in the router pool",
         customMetricsTags
     );
-    if (!metrics.metrics().containsKey(routerThreadsAvailable))
+    if (!metrics.metrics().containsKey(routerThreadsAvailable)) {
       metrics.addMetric(routerThreadsAvailable, routerThreadPoolSizeGauge);
+    }
   }
 
   private void addRequestMetricsToSensor(
@@ -866,16 +868,16 @@ public class PullQueryExecutorMetrics implements Closeable {
   public static class IntGauge implements Gauge<Integer> {
     private int value;
 
-    IntGauge(Integer initialValue) {
+    IntGauge(final Integer initialValue) {
       this.value = initialValue;
     }
 
     @Override
-    public synchronized Integer value(MetricConfig config, long now) {
+    public synchronized Integer value(final MetricConfig config, final long now) {
       return value;
     }
 
-    public synchronized int update(int value) {
+    public synchronized int update(final int value) {
       return this.value = value;
     }
 

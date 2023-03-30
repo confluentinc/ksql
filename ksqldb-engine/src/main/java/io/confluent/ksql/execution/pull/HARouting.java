@@ -77,8 +77,10 @@ public final class HARouting implements AutoCloseable {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.coordinatorPoolSize = ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
-    this.routerPoolSize = ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG);
+    this.coordinatorPoolSize = ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
+    this.routerPoolSize = ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG);
     this.coordinatorExecutorService = Executors.newFixedThreadPool(
         coordinatorPoolSize,
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
@@ -87,8 +89,8 @@ public final class HARouting implements AutoCloseable {
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.pullQueryMetrics.ifPresent(pm -> pm.registerCoordinatorThreadPoolSupplier(
-        () -> coordinatorPoolSize -
-            ((ThreadPoolExecutor) coordinatorExecutorService).getActiveCount()));
+        () -> coordinatorPoolSize
+            - ((ThreadPoolExecutor) coordinatorExecutorService).getActiveCount()));
     this.pullQueryMetrics.ifPresent(pm -> pm.registerRouterThreadPoolSupplier(
         () -> routerPoolSize - ((ThreadPoolExecutor) routerExecutorService).getActiveCount()));
   }

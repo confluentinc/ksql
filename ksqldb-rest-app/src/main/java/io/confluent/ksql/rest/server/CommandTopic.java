@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -111,16 +113,22 @@ public class CommandTopic {
         commandTopicPartition,
         Optional.of(commandTopicBackup),
         duration
-    );
+    ).stream().map(record ->
+          new QueuedCommand(
+              record.key(),
+              record.value(),
+              Optional.empty(),
+              record.offset()))
+        .collect(Collectors.toList());
   }
 
-  public static List<QueuedCommand> getAllCommandsInCommandTopic(
+  public static List<ConsumerRecord<byte[], byte[]>> getAllCommandsInCommandTopic(
       final Consumer<byte[], byte[]> commandConsumer,
       final TopicPartition topicPartition,
       final Optional<CommandTopicBackup> backup,
       final Duration duration
   ) {
-    final List<QueuedCommand> commands = Lists.newArrayList();
+    final List<ConsumerRecord<byte[], byte[]>> commandTopicRecords = Lists.newArrayList();
     final long endOffset = getEndOffsetFromTopicPartition(commandConsumer, topicPartition);
 
     commandConsumer.seekToBeginning(
@@ -138,21 +146,16 @@ public class CommandTopic {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
               + "restored or all backup files are deleted.", e);
-          return commands;
+          return commandTopicRecords;
         }
 
         if (record.value() == null) {
           continue;
         }
-        commands.add(
-            new QueuedCommand(
-                record.key(),
-                record.value(),
-                Optional.empty(),
-                record.offset()));
+        commandTopicRecords.add(record);
       }
     }
-    return commands;
+    return commandTopicRecords;
   }
 
   public long getCommandTopicConsumerPosition() {

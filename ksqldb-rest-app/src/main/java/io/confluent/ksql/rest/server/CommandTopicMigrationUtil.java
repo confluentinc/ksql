@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -34,6 +36,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +89,7 @@ public final class CommandTopicMigrationUtil {
         );
     oldBrokerConsumer.assign(Collections.singleton(topicPartition));
 
-    final List<QueuedCommand> commands = CommandTopic.getAllCommandsInCommandTopic(
+    final List<ConsumerRecord<byte[], byte[]>> records = CommandTopic.getAllCommandsInCommandTopic(
         oldBrokerConsumer,
         topicPartition,
         Optional.empty(),
@@ -95,14 +98,20 @@ public final class CommandTopicMigrationUtil {
     oldBrokerConsumer.close();
 
     // remove the incompatible command that was just written to the command topic
-    final List<QueuedCommand> commandsToMigrate = new ArrayList<>();
-    for (QueuedCommand command : commands) {
+    final List<ConsumerRecord<byte[], byte[]>> recordsToMigrate = new ArrayList<>();
+    for (ConsumerRecord<byte[], byte[]> record : records) {
+      final QueuedCommand command = new QueuedCommand(
+          record.key(),
+          record.value(),
+          Optional.empty(),
+          record.offset());
+
       final CommandId currentCommandId = command.getAndDeserializeCommandId();
       if (currentCommandId.equals(MIGRATION_COMMAND_ID)) {
         log.info("skipping migration command sent to old command "
             + "topic when migrating to new one");
       } else {
-        commandsToMigrate.add(command);
+        recordsToMigrate.add(record);
       }
     }
 
@@ -112,21 +121,21 @@ public final class CommandTopicMigrationUtil {
         ProducerConfig.TRANSACTIONAL_ID_CONFIG,
         config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG) + "-migration-producer"
     );
-    try (Producer<CommandId, Command> newBrokerProducer = new KafkaProducer<>(
+    try (Producer<byte[], byte[]> newBrokerProducer = new KafkaProducer<>(
         newBrokerProducerConfigs,
-        InternalTopicSerdes.serializer(),
-        InternalTopicSerdes.serializer()
+        new ByteArraySerializer(),
+        new ByteArraySerializer()
     )) {
       newBrokerProducer.initTransactions();
       newBrokerProducer.beginTransaction();
 
       // re-create command topic
-      for (QueuedCommand command : commandsToMigrate) {
-        final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
+      for (ConsumerRecord<byte[], byte[]> record : recordsToMigrate) {
+        final ProducerRecord<byte[], byte[]> producerRecord = new ProducerRecord<>(
             commandTopic,
             0,
-            command.getAndDeserializeCommandId(),
-            command.getAndDeserializeCommand(InternalTopicSerdes.deserializer(Command.class)));
+            record.key(),
+            record.value());
         newBrokerProducer.send(producerRecord);
       }
       newBrokerProducer.commitTransaction();

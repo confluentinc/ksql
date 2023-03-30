@@ -50,6 +50,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -64,6 +65,9 @@ public final class HARouting implements AutoCloseable {
   private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final KsqlConfig ksqlConfig;
+  private final int coordinatorPoolSize;
+  private final int routerPoolSize;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
@@ -72,13 +76,21 @@ public final class HARouting implements AutoCloseable {
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.coordinatorPoolSize = ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
+    this.routerPoolSize = ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG);
     this.coordinatorExecutorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
+        coordinatorPoolSize,
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
     this.routerExecutorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG),
+        routerPoolSize,
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.pullQueryMetrics.ifPresent(pm -> pm.registerCoordinatorThreadPoolSupplier(
+        () -> coordinatorPoolSize -
+            ((ThreadPoolExecutor) coordinatorExecutorService).getActiveCount()));
+    this.pullQueryMetrics.ifPresent(pm -> pm.registerRouterThreadPoolSupplier(
+        () -> routerPoolSize - ((ThreadPoolExecutor) routerExecutorService).getActiveCount()));
   }
 
   @Override
@@ -132,14 +144,18 @@ public final class HARouting implements AutoCloseable {
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
     coordinatorExecutorService.submit(() -> {
       try {
+        pullQueryMetrics.ifPresent(pm -> pm.getCoordinatorThreadPoolGauge().update(
+            pm.getCoordinatorThreadPoolSupplier().get()));
         executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions,
             locations, pullQueryQueue, shouldCancelRequests);
         completableFuture.complete(null);
       } catch (Throwable t) {
         completableFuture.completeExceptionally(t);
+      } finally {
+        pullQueryMetrics.ifPresent(pm -> pm.getCoordinatorThreadPoolGauge().update(
+            pm.getCoordinatorThreadPoolSupplier().get()));
       }
     });
-
     return completableFuture;
   }
 
@@ -179,10 +195,14 @@ public final class HARouting implements AutoCloseable {
         for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
           final KsqlNode node = entry.getKey();
           futures.put(node, routerExecutorService.submit(
-              () -> executeOrRouteQuery(
-                  node, entry.getValue(), statement, serviceContext, routingOptions,
-                  pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
-                  shouldCancelRequests)
+              () -> {
+                pullQueryMetrics.ifPresent(pm -> pm.getRouterThreadPoolGauge().update(
+                    pm.getRouterThreadPoolSupplier().get()));
+                return executeOrRouteQuery(
+                    node, entry.getValue(), statement, serviceContext, routingOptions,
+                    pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
+                    shouldCancelRequests);
+              }
           ));
         }
 
@@ -190,7 +210,6 @@ public final class HARouting implements AutoCloseable {
         // the locations to the nextRoundRemaining list.
         final ImmutableList.Builder<KsqlPartitionLocation> nextRoundRemaining
             = ImmutableList.builder();
-
         for (Map.Entry<KsqlNode, Future<NodeFetchResult>> entry : futures.entrySet()) {
           final Future<NodeFetchResult> future = entry.getValue();
           final KsqlNode node = entry.getKey();
@@ -224,6 +243,8 @@ public final class HARouting implements AutoCloseable {
       throw exception;
     } finally {
       pullQueryQueue.close();
+      pullQueryMetrics.ifPresent(pm -> pm.getRouterThreadPoolGauge().update(
+          pm.getRouterThreadPoolSupplier().get()));
     }
   }
 

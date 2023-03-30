@@ -69,6 +69,7 @@ public class PullQueryResult {
       final Supplier<Long> rowsProcessedSupplier,
       final CompletableFuture<Void> shouldCancelRequests,
       final Optional<ConsistencyOffsetVector> consistencyOffsetVector
+
   ) {
     this.schema = schema;
     this.populator = populator;
@@ -125,6 +126,9 @@ public class PullQueryResult {
   public void stop() {
     try {
       pullQueryQueue.end();
+      pullQueryMetrics.ifPresent(pm -> pm.getCoordinatorThreadPoolGauge().update(
+          pm.getCoordinatorThreadPoolSupplier().get()));
+
     } catch (final Throwable t) {
       LOG.error("Error closing pull query queue", t);
     }
@@ -144,6 +148,8 @@ public class PullQueryResult {
   }
 
   public void onCompletionOrException(final BiConsumer<Void, Throwable> biConsumer) {
+    pullQueryMetrics.ifPresent(pm -> pm.getCoordinatorThreadPoolGauge().update(
+        pm.getCoordinatorThreadPoolSupplier().get()));
     future.handle((v, t) -> {
       biConsumer.accept(v, t);
       return null;

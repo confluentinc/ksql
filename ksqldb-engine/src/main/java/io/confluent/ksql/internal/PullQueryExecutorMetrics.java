@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
@@ -31,7 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.MeasurableStat;
+import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -76,13 +81,20 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final String ksqlServiceIdLegacyPrefix;
   private final String ksqlServicePrefix;
   private final Time time;
+  private final IntGauge routerThreadPoolSizeGauge;
+  private final IntGauge coordinatorThreadPoolSizeGauge;
+
+  private Supplier<Integer> coordinatorThreadPoolSupplier;
+  private Supplier<Integer> routerThreadPoolSupplier;
+
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "metrics")
   public PullQueryExecutorMetrics(
       final String ksqlServiceId,
       final Map<String, String> customMetricsTags,
       final Time time,
-      final Metrics metrics
+      final Metrics metrics,
+      final KsqlConfig ksqlConfig
   ) {
     this.ksqlServiceIdLegacyPrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlServiceId;
@@ -92,7 +104,6 @@ public class PullQueryExecutorMetrics implements Closeable {
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
     metricsTags.put(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId);
     this.customMetricsTags = ImmutableMap.copyOf(metricsTags);
-
     this.time = Objects.requireNonNull(time, "time");
     this.metrics = metrics;
     this.sensors = new ArrayList<>();
@@ -112,11 +123,32 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.responseCode5XX = configureStatusCodeSensor("5XX");
     this.rowsReturnedSensorMap = configureRowsReturnedSensorMap();
     this.rowsProcessedSensorMap = configureRowsProcessedSensorMap();
+    this.routerThreadPoolSizeGauge = new IntGauge(
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG));
+    this.coordinatorThreadPoolSizeGauge = new IntGauge(
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG));
+    configureThreadPoolMetrics();
   }
 
   @Override
   public void close() {
     sensors.forEach(sensor -> metrics.removeSensor(sensor.name()));
+  }
+
+  public void registerCoordinatorThreadPoolSupplier(Supplier<Integer> supplier) {
+    coordinatorThreadPoolSupplier = supplier;
+  }
+
+  public void registerRouterThreadPoolSupplier(Supplier<Integer> supplier) {
+    routerThreadPoolSupplier = supplier;
+  }
+
+  public Supplier<Integer> getCoordinatorThreadPoolSupplier() {
+    return coordinatorThreadPoolSupplier;
+  }
+
+  public Supplier<Integer> getRouterThreadPoolSupplier() {
+    return routerThreadPoolSupplier;
   }
 
   public void recordLocalRequests(final double value) {
@@ -265,6 +297,14 @@ public class PullQueryExecutorMetrics implements Closeable {
     } else {
       throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
+  }
+
+  public IntGauge getCoordinatorThreadPoolGauge() {
+    return coordinatorThreadPoolSizeGauge;
+  }
+
+  public IntGauge getRouterThreadPoolGauge() {
+    return routerThreadPoolSizeGauge;
   }
 
   public List<Sensor> getSensors() {
@@ -483,6 +523,26 @@ public class PullQueryExecutorMetrics implements Closeable {
       addRequestMetricsToSensor(sensor, ksqlServicePrefix, PULL_REQUESTS + "-detailed",
           tags, " - " + variantName);
     });
+  }
+
+  public void configureThreadPoolMetrics() {
+    final MetricName coordinatorThreadsAvailable = metrics.metricName(
+        PULL_REQUESTS + "-coordinator-thread-pool-free-size",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Number of available threads in the coordinator pool",
+        customMetricsTags
+    );
+    if (!metrics.metrics().containsKey(coordinatorThreadsAvailable))
+      metrics.addMetric(coordinatorThreadsAvailable, coordinatorThreadPoolSizeGauge);
+
+    final MetricName routerThreadsAvailable = metrics.metricName(
+        PULL_REQUESTS + "-router-thread-pool-free-size",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Number of available threads in the router pool",
+        customMetricsTags
+    );
+    if (!metrics.metrics().containsKey(routerThreadsAvailable))
+      metrics.addMetric(routerThreadsAvailable, routerThreadPoolSizeGauge);
   }
 
   private void addRequestMetricsToSensor(
@@ -800,6 +860,31 @@ public class PullQueryExecutorMetrics implements Closeable {
       } else {
         return o.name().toLowerCase();
       }
+    }
+  }
+
+  public static class IntGauge implements Gauge<Integer> {
+    private int value;
+
+    IntGauge(Integer initialValue) {
+      this.value = initialValue;
+    }
+
+    @Override
+    public synchronized Integer value(MetricConfig config, long now) {
+      return value;
+    }
+
+    public synchronized int update(int value) {
+      return this.value = value;
+    }
+
+    public synchronized void increment() {
+      this.value += 1;
+    }
+
+    public synchronized void decrement() {
+      this.value -= 1;
     }
   }
 }

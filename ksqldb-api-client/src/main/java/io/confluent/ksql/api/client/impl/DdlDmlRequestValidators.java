@@ -22,7 +22,22 @@ import java.util.concurrent.CompletableFuture;
 
 final class DdlDmlRequestValidators {
 
-  private static final String QUOTED_STRING_OR_IDENTIFIER = "(`([^`]*|(``))*`)|('([^']*|(''))*')";
+  /**
+   * This regex is used to split the statement by quoted strings/identifier pieces.
+   * <p>
+   * The pattern does not have catastrophic backtracking, but leaves open the possibility that a
+   * single quoted string/identifier will be split into multiple pieces, which is fine for counting
+   * the number of statements in {@link #countStatements(String)}. However, it would not be fine
+   * for other types of potential use cases that require identifying quoted strings/identifiers
+   * (e.g., validating whether an identifier name exists, checking for max length of identifiers,
+   * etc).
+   * </p>
+   * <p>
+   *   See git blame and <a href="https://github.com/confluentinc/ksql/pull/9855">
+   *     https://github.com/confluentinc/ksql/pull/985</a> for more details.
+   * </p>
+   **/
+  private static final String QUOTED_STRING_OR_IDENTIFIER_PIECE = "(`[^`]*`)|('[^']*')";
 
   private DdlDmlRequestValidators() {
   }
@@ -57,7 +72,7 @@ final class DdlDmlRequestValidators {
    * @return the number of sql statements in the string
    */
   private static int countStatements(final String sql) {
-    return Arrays.stream(sql.split(QUOTED_STRING_OR_IDENTIFIER))
+    return Arrays.stream(sql.split(QUOTED_STRING_OR_IDENTIFIER_PIECE))
         .mapToInt(part -> part.split(";", -1).length - 1)
         .sum();
   }

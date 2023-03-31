@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.pull;
 
+import static io.confluent.ksql.util.KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -65,6 +66,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.junit.After;
@@ -588,5 +590,14 @@ public class HARoutingTest {
         routingFilterFactory,
         false
     )).thenReturn(locationsList);
+  }
+
+  private int getMetricValue(final String metricName) {
+    final Metrics metrics = pullMetrics.getMetrics();
+    final MetricName name = metrics.metricName(
+        "pull-query-requests" + metricName,
+        "_confluent-ksql-pull-query",
+        ImmutableMap.of(KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID));
+    return (int) metrics.metric(name).metricValue();
   }
 }

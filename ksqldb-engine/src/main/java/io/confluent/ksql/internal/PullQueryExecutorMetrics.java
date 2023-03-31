@@ -36,7 +36,6 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.MeasurableStat;
-import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -81,8 +80,6 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final String ksqlServiceIdLegacyPrefix;
   private final String ksqlServicePrefix;
   private final Time time;
-  private final IntGauge routerThreadPoolSizeGauge;
-  private final IntGauge coordinatorThreadPoolSizeGauge;
 
   private Supplier<Integer> coordinatorThreadPoolSupplier;
   private Supplier<Integer> routerThreadPoolSupplier;
@@ -123,10 +120,6 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.responseCode5XX = configureStatusCodeSensor("5XX");
     this.rowsReturnedSensorMap = configureRowsReturnedSensorMap();
     this.rowsProcessedSensorMap = configureRowsProcessedSensorMap();
-    this.routerThreadPoolSizeGauge = new IntGauge(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG));
-    this.coordinatorThreadPoolSizeGauge = new IntGauge(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG));
     configureThreadPoolMetrics();
   }
 
@@ -297,14 +290,6 @@ public class PullQueryExecutorMetrics implements Closeable {
     } else {
       throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
-  }
-
-  public IntGauge getCoordinatorThreadPoolGauge() {
-    return coordinatorThreadPoolSizeGauge;
-  }
-
-  public IntGauge getRouterThreadPoolGauge() {
-    return routerThreadPoolSizeGauge;
   }
 
   public List<Sensor> getSensors() {
@@ -532,9 +517,11 @@ public class PullQueryExecutorMetrics implements Closeable {
         "Number of available threads in the coordinator pool",
         customMetricsTags
     );
-    if (!metrics.metrics().containsKey(coordinatorThreadsAvailable)) {
-      metrics.addMetric(coordinatorThreadsAvailable, coordinatorThreadPoolSizeGauge);
-    }
+    metrics.addMetric(coordinatorThreadsAvailable,
+                      (Gauge<Integer>) (config, now) -> coordinatorThreadPoolSupplier.get());
+//    if (!metrics.metrics().containsKey(coordinatorThreadsAvailable)) {
+//      metrics.addMetric(coordinatorThreadsAvailable, coordinatorThreadPoolSizeGauge);
+//    }
 
     final MetricName routerThreadsAvailable = metrics.metricName(
         PULL_REQUESTS + "-router-thread-pool-free-size",
@@ -542,9 +529,11 @@ public class PullQueryExecutorMetrics implements Closeable {
         "Number of available threads in the router pool",
         customMetricsTags
     );
-    if (!metrics.metrics().containsKey(routerThreadsAvailable)) {
-      metrics.addMetric(routerThreadsAvailable, routerThreadPoolSizeGauge);
-    }
+    metrics.addMetric(routerThreadsAvailable,
+                      (Gauge<Integer>) (config, now) -> routerThreadPoolSupplier.get());
+//    if (!metrics.metrics().containsKey(routerThreadsAvailable)) {
+//      metrics.addMetric(routerThreadsAvailable, routerThreadPoolSizeGauge);
+//    }
   }
 
   private void addRequestMetricsToSensor(
@@ -862,31 +851,6 @@ public class PullQueryExecutorMetrics implements Closeable {
       } else {
         return o.name().toLowerCase();
       }
-    }
-  }
-
-  public static class IntGauge implements Gauge<Integer> {
-    private int value;
-
-    IntGauge(final Integer initialValue) {
-      this.value = initialValue;
-    }
-
-    @Override
-    public synchronized Integer value(final MetricConfig config, final long now) {
-      return value;
-    }
-
-    public synchronized int update(final int value) {
-      return this.value = value;
-    }
-
-    public synchronized void increment() {
-      this.value += 1;
-    }
-
-    public synchronized void decrement() {
-      this.value -= 1;
     }
   }
 }

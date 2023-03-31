@@ -146,16 +146,11 @@ public final class HARouting implements AutoCloseable {
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
     coordinatorExecutorService.submit(() -> {
       try {
-        pullQueryMetrics.ifPresent(pm -> pm.getCoordinatorThreadPoolGauge().update(
-            pm.getCoordinatorThreadPoolSupplier().get()));
         executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions,
             locations, pullQueryQueue, shouldCancelRequests);
         completableFuture.complete(null);
       } catch (Throwable t) {
         completableFuture.completeExceptionally(t);
-      } finally {
-        pullQueryMetrics.ifPresent(pm -> pm.getCoordinatorThreadPoolGauge().update(
-            pm.getCoordinatorThreadPoolSupplier().get()));
       }
     });
     return completableFuture;
@@ -198,8 +193,6 @@ public final class HARouting implements AutoCloseable {
           final KsqlNode node = entry.getKey();
           futures.put(node, routerExecutorService.submit(
               () -> {
-                pullQueryMetrics.ifPresent(pm -> pm.getRouterThreadPoolGauge().update(
-                    pm.getRouterThreadPoolSupplier().get()));
                 return executeOrRouteQuery(
                     node, entry.getValue(), statement, serviceContext, routingOptions,
                     pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
@@ -245,8 +238,6 @@ public final class HARouting implements AutoCloseable {
       throw exception;
     } finally {
       pullQueryQueue.close();
-      pullQueryMetrics.ifPresent(pm -> pm.getRouterThreadPoolGauge().update(
-          pm.getRouterThreadPoolSupplier().get()));
     }
   }
 

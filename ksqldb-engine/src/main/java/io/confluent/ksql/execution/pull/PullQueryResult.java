@@ -126,9 +126,6 @@ public class PullQueryResult {
   public void stop() {
     try {
       pullQueryQueue.end();
-      pullQueryMetrics.ifPresent(pm -> pm.getCoordinatorThreadPoolGauge().update(
-          pm.getCoordinatorThreadPoolSupplier().get()));
-
     } catch (final Throwable t) {
       LOG.error("Error closing pull query queue", t);
     }
@@ -148,8 +145,6 @@ public class PullQueryResult {
   }
 
   public void onCompletionOrException(final BiConsumer<Void, Throwable> biConsumer) {
-    pullQueryMetrics.ifPresent(pm -> pm.getCoordinatorThreadPoolGauge().update(
-        pm.getCoordinatorThreadPoolSupplier().get()));
     future.handle((v, t) -> {
       biConsumer.accept(v, t);
       return null;

@@ -308,11 +308,6 @@ public class PullQueryMetricsTest {
 
   @Test
   public void shouldRecordThreadsInCoordinatorPool() {
-    // Given:
-    pullMetrics.getCoordinatorThreadPoolGauge().update(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG) -
-            pullMetrics.getCoordinatorThreadPoolSupplier().get());
-
     // When:
     final double detailedValue = getMetricValue("-coordinator-thread-pool-free-size");
 
@@ -322,11 +317,6 @@ public class PullQueryMetricsTest {
 
   @Test
   public void shouldRecordThreadsInRouterPool() {
-    // Given:
-    pullMetrics.getRouterThreadPoolGauge().update(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG) -
-            pullMetrics.getRouterThreadPoolSupplier().get());
-
     // When:
     final double detailedValue = getMetricValue("-router-thread-pool-free-size");
 

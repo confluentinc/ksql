@@ -519,9 +519,6 @@ public class PullQueryExecutorMetrics implements Closeable {
     );
     metrics.addMetric(coordinatorThreadsAvailable,
                       (Gauge<Integer>) (config, now) -> coordinatorThreadPoolSupplier.get());
-//    if (!metrics.metrics().containsKey(coordinatorThreadsAvailable)) {
-//      metrics.addMetric(coordinatorThreadsAvailable, coordinatorThreadPoolSizeGauge);
-//    }
 
     final MetricName routerThreadsAvailable = metrics.metricName(
         PULL_REQUESTS + "-router-thread-pool-free-size",
@@ -531,9 +528,6 @@ public class PullQueryExecutorMetrics implements Closeable {
     );
     metrics.addMetric(routerThreadsAvailable,
                       (Gauge<Integer>) (config, now) -> routerThreadPoolSupplier.get());
-//    if (!metrics.metrics().containsKey(routerThreadsAvailable)) {
-//      metrics.addMetric(routerThreadsAvailable, routerThreadPoolSizeGauge);
-//    }
   }
 
   private void addRequestMetricsToSensor(

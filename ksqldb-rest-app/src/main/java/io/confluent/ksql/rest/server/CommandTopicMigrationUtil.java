@@ -38,8 +38,9 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class CommandTopicMigrationUtil {
-
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(CommandTopicMigrationUtil.class);
   public static final CommandId MIGRATION_COMMAND_ID =
       new CommandId(CommandId.Type.CLUSTER, "migration", CommandId.Action.ALTER);

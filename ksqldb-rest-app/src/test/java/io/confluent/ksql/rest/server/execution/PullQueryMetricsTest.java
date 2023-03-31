@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -61,17 +60,11 @@ public class PullQueryMetricsTest {
 
   @Mock
   private Time time;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   @Before
   public void setUp() {
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
     when(time.nanoseconds()).thenReturn(6000L);
-//    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG))
-//        .thenReturn(10);
-//    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG))
-//        .thenReturn(10);
 
     pullMetrics = new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time, new Metrics());
     pullMetrics.registerCoordinatorThreadPoolSupplier(() -> 5);

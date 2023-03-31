@@ -193,9 +193,9 @@ public final class HARouting implements AutoCloseable {
           final KsqlNode node = entry.getKey();
           futures.put(node, routerExecutorService.submit(
               () -> executeOrRouteQuery(
-                    node, entry.getValue(), statement, serviceContext, routingOptions,
-                    pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
-                    shouldCancelRequests)
+                  node, entry.getValue(), statement, serviceContext, routingOptions,
+                  pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
+                  shouldCancelRequests)
           ));
         }
 

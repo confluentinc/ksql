@@ -863,8 +863,7 @@ public final class KsqlRestApplication implements Executable {
         ? Optional.of(new PullQueryExecutorMetrics(
         ksqlEngine.getServiceId(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),
-        Time.SYSTEM, metricCollectors.getMetrics(),
-        ksqlConfig))
+        Time.SYSTEM, metricCollectors.getMetrics()))
         : Optional.empty();
 
     final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics =

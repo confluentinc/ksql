@@ -192,12 +192,10 @@ public final class HARouting implements AutoCloseable {
         for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
           final KsqlNode node = entry.getKey();
           futures.put(node, routerExecutorService.submit(
-              () -> {
-                return executeOrRouteQuery(
+              () -> executeOrRouteQuery(
                     node, entry.getValue(), statement, serviceContext, routingOptions,
                     pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
-                    shouldCancelRequests);
-              }
+                    shouldCancelRequests)
           ));
         }
 
@@ -205,6 +203,7 @@ public final class HARouting implements AutoCloseable {
         // the locations to the nextRoundRemaining list.
         final ImmutableList.Builder<KsqlPartitionLocation> nextRoundRemaining
             = ImmutableList.builder();
+
         for (Map.Entry<KsqlNode, Future<NodeFetchResult>> entry : futures.entrySet()) {
           final Future<NodeFetchResult> future = entry.getValue();
           final KsqlNode node = entry.getKey();

@@ -68,12 +68,12 @@ public class PullQueryMetricsTest {
   public void setUp() {
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
     when(time.nanoseconds()).thenReturn(6000L);
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG))
-        .thenReturn(10);
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG))
-        .thenReturn(10);
+//    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG))
+//        .thenReturn(10);
+//    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG))
+//        .thenReturn(10);
 
-    pullMetrics = new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time, new Metrics(), ksqlConfig);
+    pullMetrics = new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time, new Metrics());
     pullMetrics.registerCoordinatorThreadPoolSupplier(() -> 5);
     pullMetrics.registerRouterThreadPoolSupplier(() -> 5);
   }

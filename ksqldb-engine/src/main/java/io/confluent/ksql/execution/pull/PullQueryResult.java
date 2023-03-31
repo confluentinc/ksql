@@ -69,7 +69,6 @@ public class PullQueryResult {
       final Supplier<Long> rowsProcessedSupplier,
       final CompletableFuture<Void> shouldCancelRequests,
       final Optional<ConsistencyOffsetVector> consistencyOffsetVector
-
   ) {
     this.schema = schema;
     this.populator = populator;

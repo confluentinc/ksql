@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
@@ -90,8 +89,7 @@ public class PullQueryExecutorMetrics implements Closeable {
       final String ksqlServiceId,
       final Map<String, String> customMetricsTags,
       final Time time,
-      final Metrics metrics,
-      final KsqlConfig ksqlConfig
+      final Metrics metrics
   ) {
     this.ksqlServiceIdLegacyPrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlServiceId;
@@ -134,14 +132,6 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void registerRouterThreadPoolSupplier(final Supplier<Integer> supplier) {
     routerThreadPoolSupplier = supplier;
-  }
-
-  public Supplier<Integer> getCoordinatorThreadPoolSupplier() {
-    return coordinatorThreadPoolSupplier;
-  }
-
-  public Supplier<Integer> getRouterThreadPoolSupplier() {
-    return routerThreadPoolSupplier;
   }
 
   public void recordLocalRequests(final double value) {

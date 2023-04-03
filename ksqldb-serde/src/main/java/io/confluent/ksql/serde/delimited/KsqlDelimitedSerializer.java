@@ -135,7 +135,7 @@ class KsqlDelimitedSerializer implements Serializer<List<?>> {
 
     private static String handleDecimal(final BigDecimal value) {
       // Avoid scientific notation for now:
-      return value.toPlainString();
+      return value == null ? null : value.toPlainString();
     }
   }
 }

@@ -163,7 +163,8 @@ maven_install(
     repositories = [
         # Private repositories are supported through HTTP Basic auth
         # "http://username:password@localhost:8081/artifactory/my-repository",
-        "https://confluent.jfrog.io/confluent/maven-public",
+        "https://confluent-519856050701.dp.confluent.io/maven/maven-public/",
+        "https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven/",
         "https://packages.confluent.io/maven/",
         "https://repo1.maven.org/maven2/",
     ],
@@ -303,21 +304,21 @@ container_deps()
 
 load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 
-container_pull(
-    name = "base",
-    registry = "docker.io",
-    repository = "confluentinc/cp-base-new",
-    # 'tag' is also supported, but digest is encouraged for reproducibility.
-    #    digest = "sha256:deadbeef",
-    tag = "latest",
-)
+# container_pull(
+#     name = "base",
+#     registry = "docker.io",
+#     repository = "confluentinc/cp-base-new",
+#     # 'tag' is also supported, but digest is encouraged for reproducibility.
+#     #    digest = "sha256:deadbeef",
+#     tag = "latest",
+# )
 
 # confluent hub for docker container
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
 CONFLUENT_HUB_CLIENT_VERSION = "latest"
 
-CONFLUENT_HUB_CLIENT_SHA256 = "92fa71f9901d7950cf770587f1c024f1f30fa68be6c3ae06f32af85912e97a2c"
+CONFLUENT_HUB_CLIENT_SHA256 = "5513032967e2b75af7eb527ac37b64ab7fb018fb91c9d23006542752799e0cb5"
 
 http_file(
     name = "confluent_hub_client",

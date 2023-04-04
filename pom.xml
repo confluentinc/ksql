@@ -241,7 +241,13 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-server-common</artifactId>
+                <version>${kafka.version}</version>
+                <classifier>test</classifier>
+                <scope>test</scope>
+            </dependency>
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-common</artifactId>

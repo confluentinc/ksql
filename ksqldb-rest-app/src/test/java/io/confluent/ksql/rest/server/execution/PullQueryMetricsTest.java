@@ -30,8 +30,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.execution.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -67,6 +67,8 @@ public class PullQueryMetricsTest {
     when(time.nanoseconds()).thenReturn(6000L);
 
     pullMetrics = new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time, new Metrics());
+    pullMetrics.registerCoordinatorThreadPoolSupplier(() -> 5);
+    pullMetrics.registerRouterThreadPoolSupplier(() -> 5);
   }
 
   @After
@@ -295,6 +297,24 @@ public class PullQueryMetricsTest {
 
     // Then:
     assertThat(detailedValue, equalTo(1399.0));
+  }
+
+  @Test
+  public void shouldRecordThreadsInCoordinatorPool() {
+    // When:
+    final double detailedValue = getMetricValue("-coordinator-thread-pool-free-size");
+
+    // Then:
+    assertThat(detailedValue, equalTo(5.0));
+  }
+
+  @Test
+  public void shouldRecordThreadsInRouterPool() {
+    // When:
+    final double detailedValue = getMetricValue("-router-thread-pool-free-size");
+
+    // Then:
+    assertThat(detailedValue, equalTo(5.0));
   }
 
   private double getMetricValue(final String metricName) {

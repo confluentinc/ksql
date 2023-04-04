@@ -50,6 +50,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -64,6 +65,9 @@ public final class HARouting implements AutoCloseable {
   private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final KsqlConfig ksqlConfig;
+  private final int coordinatorPoolSize;
+  private final int routerPoolSize;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
@@ -72,13 +76,23 @@ public final class HARouting implements AutoCloseable {
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.coordinatorPoolSize = ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
+    this.routerPoolSize = ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG);
     this.coordinatorExecutorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
+        coordinatorPoolSize,
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
     this.routerExecutorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG),
+        routerPoolSize,
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.pullQueryMetrics.ifPresent(pm -> pm.registerCoordinatorThreadPoolSupplier(
+        () -> coordinatorPoolSize
+            - ((ThreadPoolExecutor) coordinatorExecutorService).getActiveCount()));
+    this.pullQueryMetrics.ifPresent(pm -> pm.registerRouterThreadPoolSupplier(
+        () -> routerPoolSize - ((ThreadPoolExecutor) routerExecutorService).getActiveCount()));
   }
 
   @Override
@@ -139,7 +153,6 @@ public final class HARouting implements AutoCloseable {
         completableFuture.completeExceptionally(t);
       }
     });
-
     return completableFuture;
   }
 

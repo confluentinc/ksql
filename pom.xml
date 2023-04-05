@@ -246,7 +246,7 @@
                 <artifactId>kafka-server-common</artifactId>
                 <version>${kafka.version}</version>
                 <classifier>test</classifier>
-                <scope>test</scope>
+                <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
@@ -428,6 +428,12 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>broker-plugins</artifactId>
+                <version>${kafka.version}</version>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -710,7 +716,10 @@
             <groupId>io.confluent</groupId>
             <artifactId>logredactor</artifactId>
         </dependency>
-
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>broker-plugins</artifactId>
+            </dependency>
     </dependencies>
 
     <build>

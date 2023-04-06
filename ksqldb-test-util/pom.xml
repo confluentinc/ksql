@@ -50,6 +50,19 @@
 
     <dependency>
       <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-server-common</artifactId>
+      <classifier>test</classifier>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>ce-sbk_${kafka.scala.version}</artifactId>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_${kafka.scala.version}</artifactId>
       <classifier>test</classifier>
       <scope>compile</scope>

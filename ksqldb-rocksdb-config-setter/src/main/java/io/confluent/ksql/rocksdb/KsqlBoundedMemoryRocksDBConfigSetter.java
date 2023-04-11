@@ -22,6 +22,8 @@ import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.Cache;
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
 import org.rocksdb.Options;
 
 /**
@@ -29,6 +31,11 @@ import org.rocksdb.Options;
  * across all RocksDB instances to the number of bytes passed via
  * "ksql.plugins.rocksdb.total.memory", and also configures
  * the shared RocksDB thread pool to use "ksql.plugins.rocksdb.num.background.threads" threads.
+ * Moreover, it sets the RocksDB compaction and compression algorithms as well as maximum
+ * background jobs for compaction and memtable flushes and the trivial move as they are configured
+ * through "ksql.plugins.rocksdb.compaction.style", "ksql.plugins.rocksdb.compression.type",
+ * "ksql.plugins.rocksdb.max.background.jobs", and "ksql.plugins.rocksdb.compaction.trivial.move"
+ * respectively.
  * </p>
  * See https://docs.confluent.io/5.3.0/streams/developer-guide/memory-mgmt.html#rocksdb.
  */
@@ -65,10 +72,41 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
 
       limitTotalMemory(pluginConfig, cacheFactory, bufferManagerFactory);
       configureNumThreads(pluginConfig, options);
+      setCompactionStyle(pluginConfig, options);
+      setCompressionType(pluginConfig, options);
+      setCompactionTrivialMove(pluginConfig, options);
     } catch (final IllegalArgumentException e) {
       reset();
       throw e;
     }
+  }
+
+  private static void setCompactionStyle(final KsqlBoundedMemoryRocksDBConfig config,
+      final Options options) {
+    final CompactionStyle compactionStyle =
+        CompactionStyle.valueOf(config.getString(KsqlBoundedMemoryRocksDBConfig.COMPACTION_STYLE));
+    options.setCompactionStyle(compactionStyle);
+  }
+
+  private static void setCompressionType(final KsqlBoundedMemoryRocksDBConfig config,
+      final Options options) {
+    final CompressionType compressionType =
+        CompressionType.valueOf(config.getString(KsqlBoundedMemoryRocksDBConfig.COMPRESSION_TYPE));
+    options.setCompressionType(compressionType);
+  }
+
+  private static void setCompactionTrivialMove(final KsqlBoundedMemoryRocksDBConfig config,
+      final Options options) {
+    final boolean trivialMove = config.getBoolean(
+        KsqlBoundedMemoryRocksDBConfig.COMPACTION_TRIVIAL_MOVE);
+    options.compactionOptionsUniversal().setAllowTrivialMove(trivialMove);
+  }
+
+  private static void setMaximumConcurrentBackgroundJobs(
+      final KsqlBoundedMemoryRocksDBConfig config, final Options options) {
+    final int maxBackgroundJobs = config.getInt(
+        KsqlBoundedMemoryRocksDBConfig.MAX_BACKGROUND_JOBS);
+    options.setMaxBackgroundJobs(maxBackgroundJobs);
   }
 
   @VisibleForTesting

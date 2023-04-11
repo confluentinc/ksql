@@ -35,6 +35,8 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   private static final double INDEX_FILTER_BLOCK_RATIO = 0.1;
   private static final CompactionStyle COMPACTION_STYLE = CompactionStyle.LEVEL;
   private static final CompressionType COMPRESSION_TYPE = CompressionType.LZ4_COMPRESSION;
+  private static final int MAX_BACKGROUND_JOBS = 10;
+  private static final boolean ALLOW_TRIVIAL_MOVE = true;
 
   @Test
   public void shouldCreateConfig() {
@@ -61,10 +63,10 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
         pluginConfig.getDouble(KsqlBoundedMemoryRocksDBConfig.INDEX_FILTER_BLOCK_RATIO_CONFIG),
         is(INDEX_FILTER_BLOCK_RATIO));
     assertThat(
-        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPACTION_STYLE_CONFIG),
+        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPACTION_STYLE),
         is(COMPACTION_STYLE.name()));
     assertThat(
-        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPRESSION_TYPE_CONFIG),
+        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPRESSION_TYPE),
         is(COMPRESSION_TYPE.name()));
   }
 
@@ -131,7 +133,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
 
     // Then:
     assertThat(
-        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPACTION_STYLE_CONFIG),
+        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPACTION_STYLE),
         is(CompactionStyle.UNIVERSAL.name()));
   }
 
@@ -147,7 +149,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
 
     // Then:
     assertThat(
-        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPRESSION_TYPE_CONFIG),
+        pluginConfig.getString(KsqlBoundedMemoryRocksDBConfig.COMPRESSION_TYPE),
         is(CompressionType.NO_COMPRESSION.name()));
   }
 }

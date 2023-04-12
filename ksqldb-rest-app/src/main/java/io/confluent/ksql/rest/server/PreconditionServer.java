@@ -47,6 +47,7 @@ public class PreconditionServer {
   private final Set<String> deploymentIds = new HashSet<>();
   private final ServerState serverState;
   private final List<URI> listeners;
+  private final Set<URI> proxyProtocolListeners;
   private FileWatcher fileWatcher;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -59,6 +60,8 @@ public class PreconditionServer {
     this.config = Objects.requireNonNull(config);
     this.serverState = Objects.requireNonNull(serverState);
     this.listeners = ImmutableList.copyOf(ApiServerUtils.parseListeners(config));
+    this.proxyProtocolListeners = new HashSet<>(
+        ApiServerUtils.parseProxyProtocolListeners(config));
   }
 
   public synchronized void start() {
@@ -76,13 +79,16 @@ public class PreconditionServer {
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
     for (URI listener : listeners) {
+      final boolean useProxyProtocol = proxyProtocolListeners.contains(listener);
 
       for (int i = 0; i < instances; i++) {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final Verticle serverVerticle = new PreconditionVerticle(
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https"),
-                idleConnectionTimeoutSeconds),
+                idleConnectionTimeoutSeconds,
+                useProxyProtocol
+            ),
             serverState,
             config
         );
@@ -149,7 +155,8 @@ public class PreconditionServer {
       final String host,
       final int port,
       final boolean tls,
-      final int idleTimeoutSeconds
+      final int idleTimeoutSeconds,
+      final boolean useProxyProtocol
   ) {
 
     final HttpServerOptions options = new HttpServerOptions()
@@ -159,7 +166,8 @@ public class PreconditionServer {
         .setReusePort(true)
         .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
-        .setPerFrameWebSocketCompressionSupported(true);
+        .setPerFrameWebSocketCompressionSupported(true)
+        .setUseProxyProtocol(useProxyProtocol);
 
     if (tls) {
       final String ksConfigName = KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG;

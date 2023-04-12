@@ -135,6 +135,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -382,8 +383,14 @@ public final class KsqlRestApplication implements Executable {
       metricsProperties.putAll(restConfig.getOriginals());
       versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
 
-      log.info("ksqlDB API server listening on {}", StringUtils.join(getListeners(), ", "));
-      displayWelcomeMessage();
+      final HashSet<URI> pp = new HashSet<>(apiServer.getProxyProtocolListeners());
+      final String allListenersDescription =
+          apiServer.getListeners().stream()
+              .map(x -> pp.contains(x) ? x.toString() + " (PROXY protocol enabled)" : x.toString())
+              .collect(Collectors.joining(", "));
+
+      log.info("ksqlDB API server listening on {}", allListenersDescription);
+      displayWelcomeMessage(allListenersDescription);
     } catch (AbortApplicationStartException e) {
       log.error("Aborting application start", e);
     } finally {
@@ -581,6 +588,17 @@ public final class KsqlRestApplication implements Executable {
   // Current tests require URIs as URLs, even though they're not URLs
   List<URL> getListeners() {
     return apiServer.getListeners().stream().map(uri -> {
+      try {
+        return uri.toURL();
+      } catch (MalformedURLException e) {
+        throw new KsqlException(e);
+      }
+    }).collect(Collectors.toList());
+  }
+
+  // Current tests require URIs as URLs, even though they're not URLs
+  List<URL> getProxyProtocolListeners() {
+    return apiServer.getProxyProtocolListeners().stream().map(uri -> {
       try {
         return uri.toURL();
       } catch (MalformedURLException e) {
@@ -1160,7 +1178,7 @@ public final class KsqlRestApplication implements Executable {
     return authenticationPlugin;
   }
 
-  private void displayWelcomeMessage() {
+  private void displayWelcomeMessage(String allListenersDescription) {
     
     final Console console = System.console();
     if (console == null) {
@@ -1173,15 +1191,11 @@ public final class KsqlRestApplication implements Executable {
     WelcomeMsgUtils.displayWelcomeMessage(80, writer);
 
     final String version = AppInfo.getVersion();
-    final List<URL> listeners = getListeners();
-    final String allListeners = listeners.stream()
-        .map(Object::toString)
-        .collect(Collectors.joining(", "));
 
-    writer.printf("Server %s listening on %s%n", version, allListeners);
+    writer.printf("Server %s listening on %s%n", version, allListenersDescription);
     writer.println();
     writer.println("To access the KSQL CLI, run:");
-    writer.println("ksql " + listeners.get(0));
+    writer.println("ksql " + getListeners().get(0));
     writer.println();
 
     writer.flush();

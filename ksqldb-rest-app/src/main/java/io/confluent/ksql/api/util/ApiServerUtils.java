@@ -133,6 +133,22 @@ public final class ApiServerUtils {
     return parseListenerStrings(config, sListeners);
   }
 
+  public static List<URI> parseProxyProtocolListeners(final KsqlRestConfig config) {
+    final List<String> sListeners = config.getList(KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG);
+    final Set<URI> listenUriSet = new HashSet<>(parseListeners(config));
+    final List<URI> proxyProtocolListenUris = parseListenerStrings(config, sListeners);
+
+    for (URI u: proxyProtocolListenUris) {
+      if (!listenUriSet.contains(u)) {
+        throw new ConfigException(String.format("Listener %s is listed in %s but not in %s.", u,
+            KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG,
+            KsqlRestConfig.LISTENERS_CONFIG));
+      }
+    }
+
+    return proxyProtocolListenUris;
+  }
+
   public static void setTlsOptions(
       final KsqlRestConfig ksqlRestConfig,
       final HttpServerOptions options,

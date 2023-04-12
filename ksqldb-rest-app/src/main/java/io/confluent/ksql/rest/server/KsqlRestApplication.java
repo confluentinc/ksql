@@ -152,7 +152,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
@@ -1178,7 +1177,7 @@ public final class KsqlRestApplication implements Executable {
     return authenticationPlugin;
   }
 
-  private void displayWelcomeMessage(String allListenersDescription) {
+  private void displayWelcomeMessage(final String allListenersDescription) {
     
     final Console console = System.console();
     if (console == null) {

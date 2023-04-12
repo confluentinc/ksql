@@ -22,6 +22,7 @@ import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.Cache;
+import org.rocksdb.CompactionOptionsUniversal;
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
 import org.rocksdb.Options;
@@ -44,6 +45,11 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
   private static org.rocksdb.Cache cache;
   private static org.rocksdb.WriteBufferManager writeBufferManager;
   private static final AtomicBoolean configured = new AtomicBoolean(false);
+  private static CompactionStyle compactionStyle;
+  private static CompressionType compressionType;
+  private static int maxNumConcurrentJobs;
+  private static boolean allowTrivialMove;
+
 
   @Override
   public void configure(final Map<String, ?> config) {
@@ -72,41 +78,35 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
 
       limitTotalMemory(pluginConfig, cacheFactory, bufferManagerFactory);
       configureNumThreads(pluginConfig, options);
-      setCompactionStyle(pluginConfig, options);
-      setCompressionType(pluginConfig, options);
-      setCompactionTrivialMove(pluginConfig, options);
+      setCompactionStyle(pluginConfig);
+      setCompressionType(pluginConfig);
+      setCompactionTrivialMove(pluginConfig);
+      setMaximumConcurrentBackgroundJobs(pluginConfig);
     } catch (final IllegalArgumentException e) {
       reset();
       throw e;
     }
   }
 
-  private static void setCompactionStyle(final KsqlBoundedMemoryRocksDBConfig config,
-      final Options options) {
-    final CompactionStyle compactionStyle =
+  private static void setCompactionStyle(final KsqlBoundedMemoryRocksDBConfig config) {
+    compactionStyle =
         CompactionStyle.valueOf(config.getString(KsqlBoundedMemoryRocksDBConfig.COMPACTION_STYLE));
-    options.setCompactionStyle(compactionStyle);
   }
 
-  private static void setCompressionType(final KsqlBoundedMemoryRocksDBConfig config,
-      final Options options) {
-    final CompressionType compressionType =
+  private static void setCompressionType(final KsqlBoundedMemoryRocksDBConfig config) {
+    compressionType =
         CompressionType.valueOf(config.getString(KsqlBoundedMemoryRocksDBConfig.COMPRESSION_TYPE));
-    options.setCompressionType(compressionType);
   }
 
-  private static void setCompactionTrivialMove(final KsqlBoundedMemoryRocksDBConfig config,
-      final Options options) {
-    final boolean trivialMove = config.getBoolean(
+  private static void setCompactionTrivialMove(final KsqlBoundedMemoryRocksDBConfig config) {
+    allowTrivialMove = config.getBoolean(
         KsqlBoundedMemoryRocksDBConfig.COMPACTION_TRIVIAL_MOVE);
-    options.compactionOptionsUniversal().setAllowTrivialMove(trivialMove);
   }
 
   private static void setMaximumConcurrentBackgroundJobs(
-      final KsqlBoundedMemoryRocksDBConfig config, final Options options) {
-    final int maxBackgroundJobs = config.getInt(
+      final KsqlBoundedMemoryRocksDBConfig config) {
+    maxNumConcurrentJobs = config.getInt(
         KsqlBoundedMemoryRocksDBConfig.MAX_BACKGROUND_JOBS);
-    options.setMaxBackgroundJobs(maxBackgroundJobs);
   }
 
   @VisibleForTesting
@@ -173,6 +173,21 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
     tableConfig.setBlockCache(cache);
     tableConfig.setCacheIndexAndFilterBlocks(true);
     options.setWriteBufferManager(writeBufferManager);
+    options.setCompactionStyle(compactionStyle);
+    options.setCompressionType(compressionType);
+    if (maxNumConcurrentJobs != -1) {
+      options.setMaxBackgroundJobs(maxNumConcurrentJobs);
+    }
+    if (compactionStyle.equals(CompactionStyle.UNIVERSAL)) {
+      if (options.compactionOptionsUniversal() == null) {
+        final CompactionOptionsUniversal compactionOptionsUniversal =
+            new CompactionOptionsUniversal();
+        compactionOptionsUniversal.setAllowTrivialMove(allowTrivialMove);
+        options.setCompactionOptionsUniversal(compactionOptionsUniversal);
+      } else {
+        options.compactionOptionsUniversal().setAllowTrivialMove(allowTrivialMove);
+      }
+    }
 
     tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
     tableConfig.setPinTopLevelIndexAndFilter(true);

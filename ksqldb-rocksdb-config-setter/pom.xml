@@ -54,6 +54,10 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
+      <dependency>
+        <groupId>io.confluent.ksql</groupId>
+        <artifactId>ksqldb-common</artifactId>
+      </dependency>
     </dependencies>
 
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rocksdb;
 
+import io.confluent.ksql.configdef.ConfigValidators;
 import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -121,18 +122,21 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
           COMPACTION_STYLE,
           Type.STRING,
           CompactionStyle.UNIVERSAL.name(),
+          ConfigDef.ValidString.in(
+              CompactionStyle.UNIVERSAL.name(), CompactionStyle.LEVEL.name()),
           Importance.LOW,
           COMPACTION_STYLE_DOC)
       .define(
           COMPRESSION_TYPE,
           Type.STRING,
           CompressionType.NO_COMPRESSION.name(),
+          ConfigValidators.enumValues(CompressionType.class),
           Importance.LOW,
           COMPRESSION_TYPE_DOC
       ).define(
           MAX_BACKGROUND_JOBS,
           Type.INT,
-          5,
+          -1,
           Importance.LOW,
           MAX_BACKGROUND_JOBS_DOC
       ).define(

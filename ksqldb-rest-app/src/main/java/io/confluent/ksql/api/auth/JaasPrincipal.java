@@ -37,11 +37,12 @@ public class JaasPrincipal extends DefaultKsqlPrincipal {
   private final String token;
 
   public JaasPrincipal(final String name, final String password) {
-    this(name, password, "");
+    this(name, password, "", 0);
   }
 
-  private JaasPrincipal(final String name, final String password, final String ipAddress) {
-    super(new BasicJaasPrincipal(name), ipAddress);
+  private JaasPrincipal(final String name, final String password,
+      final String ipAddress, final int port) {
+    super(new BasicJaasPrincipal(name), ipAddress, port);
 
     this.name = Objects.requireNonNull(name, "name");
     this.password = Objects.requireNonNull(password, "password");
@@ -67,8 +68,8 @@ public class JaasPrincipal extends DefaultKsqlPrincipal {
    * IP address is set from the routing context.
    */
   @Override
-  public DefaultKsqlPrincipal withIpAddress(final String ipAddress) {
-    return new JaasPrincipal(name, password, ipAddress);
+  public DefaultKsqlPrincipal withIpAddressAndPort(final String ipAddress, final int port) {
+    return new JaasPrincipal(name, password, ipAddress, port);
   }
 
   private static String createToken(final String name, final String secret) {

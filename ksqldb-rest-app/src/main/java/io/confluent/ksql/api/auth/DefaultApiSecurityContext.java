@@ -45,9 +45,11 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
 
     final List<Entry<String, String>> requestHeaders = routingContext.request().headers().entries();
     final String ipAddress = routingContext.request().remoteAddress().host();
+    final int port = routingContext.request().remoteAddress().port();
+
     return new DefaultApiSecurityContext(
         apiUser != null
-            ? apiUser.getPrincipal().withIpAddress(ipAddress == null ? "" : ipAddress)
+            ? apiUser.getPrincipal().withIpAddressAndPort(ipAddress == null ? "" : ipAddress, port)
             : null,
         authToken,
         requestHeaders);

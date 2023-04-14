@@ -29,14 +29,17 @@ public class DefaultKsqlPrincipal implements KsqlPrincipal {
 
   private final Principal principal;
   private final String ipAddress;
+  private final int port;
 
   public DefaultKsqlPrincipal(final Principal principal) {
-    this(principal, "");
+    this(principal, "", 0);
   }
 
-  protected DefaultKsqlPrincipal(final Principal principal, final String ipAddress) {
+  protected DefaultKsqlPrincipal(final Principal principal,
+      final String ipAddress, final int port) {
     this.principal = Objects.requireNonNull(principal, "principal");
     this.ipAddress = Objects.requireNonNull(ipAddress, "ipAddress");
+    this.port = port;
   }
 
   @Override
@@ -66,11 +69,16 @@ public class DefaultKsqlPrincipal implements KsqlPrincipal {
     return ipAddress;
   }
 
+  @Override
+  public int getPort() {
+    return port;
+  }
+
   /**
-   * IP address is populated from the request context, and subsequently passed
+   * IP address and port are populated from the request context, and subsequently passed
    * throughout the engine.
    */
-  public DefaultKsqlPrincipal withIpAddress(final String ipAddress) {
-    return new DefaultKsqlPrincipal(principal, ipAddress);
+  public DefaultKsqlPrincipal withIpAddressAndPort(final String ipAddress, final int port) {
+    return new DefaultKsqlPrincipal(principal, ipAddress, port);
   }
 }

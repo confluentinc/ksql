@@ -58,7 +58,8 @@ public class TestRestServiceContextFactory {
               Optional.empty(),
               false,
               CONNECT_REQUEST_TIMEOUT_DEFAULT),
-          () -> ksqlClientFactory.create(authHeader, ksqlConfig.originals(), sharedClient)
+          () -> ksqlClientFactory.create(authHeader, ksqlConfig.originals(), sharedClient),
+          userPrincipal
       );
     };
 

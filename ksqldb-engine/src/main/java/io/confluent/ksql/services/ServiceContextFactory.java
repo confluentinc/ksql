@@ -17,14 +17,25 @@ package io.confluent.ksql.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.common.network.ProxyProtocol;
+import org.apache.kafka.common.network.ProxyProtocolCommand;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ServiceContextFactory {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceContextFactory.class);
 
   private ServiceContextFactory() {
 
@@ -44,7 +55,8 @@ public final class ServiceContextFactory {
             Optional.empty(),
             Collections.emptyList(),
             Optional.empty()),
-        ksqlClientSupplier
+        ksqlClientSupplier,
+        Optional.empty()
     );
   }
 
@@ -53,13 +65,37 @@ public final class ServiceContextFactory {
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory,
       final Supplier<ConnectClient> connectClientSupplier,
-      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier,
+      final Optional<KsqlPrincipal> userPrincipal
   ) {
+    final Supplier<Admin> topicAdminClientSupplier;
+    if (userPrincipal.isPresent()) {
+      LOGGER.info("Configuring adminClient with ip address {}", userPrincipal.get().getIpAddress());
+
+      // Create new map to make it modifiable
+      final Map<String, Object> topicAdminConfig = new HashMap<>(
+          ksqlConfig.getKsqlAdminClientConfigProps());
+
+      // Set Client address config for topicAdminClientSupplier if user principal exists
+      topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_MODE,
+          ProxyProtocolCommand.PROXY.name());
+      topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
+          userPrincipal.get().getIpAddress());
+      topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_PORT,
+          userPrincipal.get().getPort());
+      topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_VERSION, ProxyProtocol.V2.name);
+      topicAdminClientSupplier = () -> kafkaClientSupplier.getAdmin(topicAdminConfig);
+    } else {
+      LOGGER.info("Configuring adminClient without ip address");
+      topicAdminClientSupplier = () -> kafkaClientSupplier.getAdmin(
+          ksqlConfig.getKsqlAdminClientConfigProps());
+    }
 
     return new DefaultServiceContext(
         kafkaClientSupplier,
         () -> kafkaClientSupplier
             .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps()),
+        topicAdminClientSupplier,
         srClientFactory,
         connectClientSupplier,
         ksqlClientSupplier

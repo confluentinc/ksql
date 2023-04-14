@@ -595,17 +595,6 @@ public final class KsqlRestApplication implements Executable {
     }).collect(Collectors.toList());
   }
 
-  // Current tests require URIs as URLs, even though they're not URLs
-  List<URL> getProxyProtocolListeners() {
-    return apiServer.getProxyProtocolListeners().stream().map(uri -> {
-      try {
-        return uri.toURL();
-      } catch (MalformedURLException e) {
-        throw new KsqlException(e);
-      }
-    }).collect(Collectors.toList());
-  }
-
   Optional<URL> getInternalListener() {
     return apiServer.getInternalListener().map(uri -> {
       try {

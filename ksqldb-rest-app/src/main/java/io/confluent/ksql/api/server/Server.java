@@ -103,6 +103,7 @@ public class Server {
     }
   }
 
+  @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC")
   public synchronized void start() {
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");

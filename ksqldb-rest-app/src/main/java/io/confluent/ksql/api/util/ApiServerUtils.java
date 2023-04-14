@@ -22,6 +22,7 @@ import io.confluent.ksql.util.FileWatcher;
 import io.confluent.ksql.util.FileWatcher.Callback;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
+import io.netty.handler.codec.haproxy.HAProxyProtocolException;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
@@ -66,6 +67,8 @@ public final class ApiServerUtils {
   public static void unhandledExceptionHandler(final Throwable t) {
     if (t instanceof ClosedChannelException) {
       LOG.debug("Unhandled ClosedChannelException (connection likely closed early)", t);
+    } else if (t instanceof HAProxyProtocolException) {
+      LOG.error("Failed to decode proxy protocol header", t);
     } else {
       LOG.error("Unhandled exception", t);
     }

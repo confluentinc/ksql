@@ -78,7 +78,7 @@ public class DefaultKsqlPrincipal implements KsqlPrincipal {
    * IP address and port are populated from the request context, and subsequently passed
    * throughout the engine.
    */
-  public DefaultKsqlPrincipal withIpAddressAndPort(final String ipAddress, int port) {
+  public DefaultKsqlPrincipal withIpAddressAndPort(final String ipAddress, final int port) {
     return new DefaultKsqlPrincipal(principal, ipAddress, port);
   }
 }

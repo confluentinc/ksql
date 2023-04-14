@@ -41,7 +41,7 @@ public class JaasPrincipal extends DefaultKsqlPrincipal {
   }
 
   private JaasPrincipal(final String name, final String password,
-      final String ipAddress, int port) {
+      final String ipAddress, final int port) {
     super(new BasicJaasPrincipal(name), ipAddress, port);
 
     this.name = Objects.requireNonNull(name, "name");
@@ -68,7 +68,7 @@ public class JaasPrincipal extends DefaultKsqlPrincipal {
    * IP address is set from the routing context.
    */
   @Override
-  public DefaultKsqlPrincipal withIpAddressAndPort(final String ipAddress, int port) {
+  public DefaultKsqlPrincipal withIpAddressAndPort(final String ipAddress, final int port) {
     return new JaasPrincipal(name, password, ipAddress, port);
   }
 

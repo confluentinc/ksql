@@ -548,6 +548,13 @@ public class KsqlConfig extends AbstractConfig {
           + "that contains headers columns will work with the headers functionality to prevent "
           + "a degraded command topic situation when restarting ksqlDB.";
 
+  public static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED =
+      "ksql.client.ip_port.configuration.enabled";
+  private static final Boolean KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT = false;
+  private static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC =
+      "Feature flag that enables configuration of client IP and PORT in internal ksql Kafka Client."
+      + " So that Kafka broker can get client IP and PORT for logging and other purposes";
+
   public static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
       = "ksql.json_sr.converter.deserializer.enabled";
 
@@ -1488,6 +1495,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC
+        )
+        .define(
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED,
+            Type.BOOLEAN,
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC
         )
         .withClientSslSupport();
 

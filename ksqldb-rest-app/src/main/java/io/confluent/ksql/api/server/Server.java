@@ -103,7 +103,6 @@ public class Server {
     }
   }
 
-  @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC")
   public synchronized void start() {
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
@@ -171,14 +170,21 @@ public class Server {
     } catch (Exception e) {
       throw new KsqlException("Failed to start API server", e);
     }
+    initListeners(listenUris, proxyProtocolListenUris, internalListenUri, uris);
+    log.info("API server started");
+  }
+
+  private void initListeners(final List<URI> listenUris, final List<URI> proxyProtocolListenUris,
+      final Optional<URI> internalListenUri, final Map<URI, URI> uris) {
     for (URI uri : listenUris) {
       listeners.add(uris.get(uri));
     }
     for (URI uri : proxyProtocolListenUris) {
       proxyProtocolListeners.add(uris.get(uri));
     }
-    internalListenUri.ifPresent(uri -> internalListener = uris.get(uri));
-    log.info("API server started");
+    if (internalListenUri.isPresent()) {
+      internalListener = uris.get(internalListenUri.get());
+    }
   }
 
   public synchronized void stop() {

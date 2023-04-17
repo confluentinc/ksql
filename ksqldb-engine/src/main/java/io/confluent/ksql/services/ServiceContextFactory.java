@@ -31,12 +31,8 @@ import org.apache.kafka.common.network.ProxyProtocol;
 import org.apache.kafka.common.network.ProxyProtocolCommand;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class ServiceContextFactory {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceContextFactory.class);
 
   private ServiceContextFactory() {
 

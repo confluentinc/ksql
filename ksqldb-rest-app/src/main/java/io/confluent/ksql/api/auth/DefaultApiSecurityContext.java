@@ -23,12 +23,8 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class DefaultApiSecurityContext implements ApiSecurityContext {
-  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultApiSecurityContext.class);
-
   private final Optional<KsqlPrincipal> principal;
   private final Optional<String> authToken;
   private final List<Entry<String, String>> requestHeaders;

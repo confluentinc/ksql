@@ -16,7 +16,6 @@
 package io.confluent.ksql.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.function.udf.math.Log;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.util.KsqlConfig;

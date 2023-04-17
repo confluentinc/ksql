@@ -16,6 +16,7 @@
 package io.confluent.ksql.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.function.udf.math.Log;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.util.KsqlConfig;
@@ -69,9 +70,8 @@ public final class ServiceContextFactory {
       final Optional<KsqlPrincipal> userPrincipal
   ) {
     final Supplier<Admin> topicAdminClientSupplier;
-    if (userPrincipal.isPresent()) {
-      LOGGER.info("Configuring adminClient with ip address {}", userPrincipal.get().getIpAddress());
-
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED)
+        && userPrincipal.isPresent()) {
       // Create new map to make it modifiable
       final Map<String, Object> topicAdminConfig = new HashMap<>(
           ksqlConfig.getKsqlAdminClientConfigProps());
@@ -86,7 +86,6 @@ public final class ServiceContextFactory {
       topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_VERSION, ProxyProtocol.V2.name);
       topicAdminClientSupplier = () -> kafkaClientSupplier.getAdmin(topicAdminConfig);
     } else {
-      LOGGER.info("Configuring adminClient without ip address");
       topicAdminClientSupplier = () -> kafkaClientSupplier.getAdmin(
           ksqlConfig.getKsqlAdminClientConfigProps());
     }

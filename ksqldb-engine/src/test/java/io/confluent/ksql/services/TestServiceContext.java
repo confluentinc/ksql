@@ -149,6 +149,7 @@ public final class TestServiceContext {
     final DefaultServiceContext serviceContext = new DefaultServiceContext(
         kafkaClientSupplier,
         () -> adminClient,
+        () -> adminClient,
         topicClient,
         srClientFactory,
         () -> connectClient,

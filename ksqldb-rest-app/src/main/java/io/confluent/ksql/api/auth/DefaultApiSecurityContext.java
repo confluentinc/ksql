@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 
 public final class DefaultApiSecurityContext implements ApiSecurityContext {
-
   private final Optional<KsqlPrincipal> principal;
   private final Optional<String> authToken;
   private final List<Entry<String, String>> requestHeaders;

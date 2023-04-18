@@ -163,6 +163,9 @@ public class DefaultServiceContext implements ServiceContext {
     if (adminClientSupplier.isInitialized()) {
       adminClientSupplier.get().close();
     }
+    if (topicAdminClientSupplier.isInitialized()) {
+      topicAdminClientSupplier.get().close();
+    }
     if (ksqlClientSupplier.isInitialized()) {
       ksqlClientSupplier.get().close();
     }

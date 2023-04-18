@@ -2,7 +2,7 @@
 
 common {
     slackChannel = '#ksqldb-quality-oncall'
-    timeoutHours = 5
+    timeoutHours = 6
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'
     dockerPush = false

@@ -1,0 +1,20 @@
+{
+  "comments": [
+    "Tests covering the use of the MD5() function."
+  ],
+  "tests": [
+    {
+      "name": "md5 to hex string",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, STR STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MD5(STR) AS MD5 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"str": "r1"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"MD5": "7c92cf1eee8d99cc85f8355a3d6e4b86"}}
+      ]
+    }
+  ]
+}

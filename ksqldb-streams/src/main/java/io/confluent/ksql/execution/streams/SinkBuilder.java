@@ -138,7 +138,7 @@ public final class SinkBuilder {
         @Override
         public KeyValue<K, GenericRow> transform(final K key, final GenericRow row) {
           try {
-            long timestamp;
+            final long timestamp;
             if (row == null) {
               timestamp = processorContext.currentStreamTimeMs();
             } else {

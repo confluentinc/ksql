@@ -52,7 +52,6 @@ public class MD5Test {
     // Now generate random input strings and compare results to DigestUtils
     for (int i = 0; i < 1000; i++) {
       String uuid = UUID.randomUUID().toString();
-      DigestUtils.md5Hex(uuid);
       assertThat(udf.md5(uuid), is(DigestUtils.md5Hex(uuid)));
     }
   }

@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class CommandParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-  private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String SELECT = "SELECT";
   private static final String DESCRIBE = "DESCRIBE";
@@ -221,8 +220,7 @@ public final class CommandParser {
   /**
    * Validates that the sql statement represented by the list of input tokens
    * (keywords separated whitespace, or strings identified by single quotes)
-   * is not unsupported by the migrations tool. Assumes that tokens have already
-   * been upper-cased.
+   * is not unsupported by the migrations tool.
    *
    * @param sql components that make up the sql statement. Each component is
    *               either a keyword separated by whitespace or a string enclosed
@@ -230,7 +228,7 @@ public final class CommandParser {
    */
   private static void validateSupportedStatementType(final String sql) {
     final List<String> tokens = Arrays
-            .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
+            .stream(sql.toUpperCase().split("\\s+"))
             .filter(s -> !s.isEmpty())
             .collect(Collectors.toList());
     if (tokens.size() > 0 && UNSUPPORTED_STATEMENTS.contains(tokens.get(0))) {

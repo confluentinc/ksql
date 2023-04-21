@@ -221,6 +221,11 @@ public final class CommandParser {
    * Validates that the sql statement represented by the list of input tokens
    * (keywords separated whitespace, or strings identified by single quotes)
    * is not unsupported by the migrations tool.
+   * <p>
+   * NOTE: this method is obsolete and should be replaced with type-checking after the parsing
+   * step. See https://github.com/confluentinc/ksql/pull/9881#discussion_r1174178200 for more
+   * details.
+   * </p>
    *
    * @param sql components that make up the sql statement. Each component is
    *               either a keyword separated by whitespace or a string enclosed

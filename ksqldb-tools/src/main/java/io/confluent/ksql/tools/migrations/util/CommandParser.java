@@ -47,7 +47,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class CommandParser {
-  private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
   private static final Pattern SET_PROPERTY = Pattern.compile(
       "\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
       Pattern.CASE_INSENSITIVE);
@@ -195,7 +194,7 @@ public final class CommandParser {
   */
   private static SqlCommand transformToSqlCommand(final String sql) {
     final List<String> tokens = Arrays
-        .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
+        .stream(sql.toUpperCase().split("\\s+"))
         .filter(s -> !s.isEmpty())
         .collect(Collectors.toList());
     switch (getStatementType(tokens)) {

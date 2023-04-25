@@ -54,8 +54,6 @@ import java.util.stream.Collectors;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class CommandParser {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-  private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
   private static final Pattern SET_PROPERTY = Pattern.compile(
       "\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
       Pattern.CASE_INSENSITIVE);
@@ -214,7 +212,7 @@ public final class CommandParser {
 
     // Splits the sql string into tokens(uppercased keyowords, identifiers and strings)
     final List<String> tokens = Arrays
-        .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
+        .stream(sql.toUpperCase().split("\\s+"))
         .filter(s -> !s.isEmpty())
         .collect(Collectors.toList());
     switch (getStatementType(tokens)) {

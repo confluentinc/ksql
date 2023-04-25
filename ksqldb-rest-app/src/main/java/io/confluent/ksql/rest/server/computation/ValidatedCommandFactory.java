@@ -95,8 +95,8 @@ public final class ValidatedCommandFactory {
       final ServiceContext serviceContext,
       final KsqlExecutionContext context
   ) {
-    if (statement.getUnMaskedStatementText()
-        .equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+    if (statement.getUnMaskedStatementText().equals(
+        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
       return Command.of(statement);
     }
 

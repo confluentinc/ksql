@@ -43,6 +43,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStep<KStreamHolder<K>> rightSource;
   private final Duration beforeMillis;
   private final Duration afterMillis;
+  private final Optional<Duration> graceMillis;
 
   @SuppressWarnings("unused") // Invoked by reflection
   @JsonCreator
@@ -59,7 +60,8 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
       @JsonProperty(value = "rightSource", required = true)
       final ExecutionStep<KStreamHolder<K>> rightSource,
       @JsonProperty(value = "beforeMillis", required = true) final Duration beforeMillis,
-      @JsonProperty(value = "afterMillis", required = true) final Duration afterMillis
+      @JsonProperty(value = "afterMillis", required = true) final Duration afterMillis,
+      @JsonProperty(value = "graceMillis") final Optional<Duration> graceMillis
   ) {
     this(
         props,
@@ -70,7 +72,8 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
         leftSource,
         rightSource,
         beforeMillis,
-        afterMillis
+        afterMillis,
+        graceMillis
     );
   }
 
@@ -83,7 +86,8 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
       final ExecutionStep<KStreamHolder<K>> leftSource,
       final ExecutionStep<KStreamHolder<K>> rightSource,
       final Duration beforeMillis,
-      final Duration afterMillis
+      final Duration afterMillis,
+      final Optional<Duration> graceMillis
   ) {
     this.properties = requireNonNull(props, "props");
     this.leftInternalFormats = requireNonNull(leftIntFormats, "leftIntFormats");
@@ -94,6 +98,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
     this.rightSource = requireNonNull(rightSource, "rightSource");
     this.beforeMillis = requireNonNull(beforeMillis, "beforeMillis");
     this.afterMillis = requireNonNull(afterMillis, "afterMillis");
+    this.graceMillis = requireNonNull(graceMillis, "graceMillis");
   }
 
   @Override
@@ -132,11 +137,15 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   public Duration getAfterMillis() {
-    return afterMillis;
+    return Duration.ofMillis(afterMillis.toMillis());
   }
 
   public Duration getBeforeMillis() {
-    return beforeMillis;
+    return Duration.ofMillis(beforeMillis.toMillis());
+  }
+
+  public Optional<Duration> getGraceMillis() {
+    return graceMillis;
   }
 
   @Override
@@ -167,7 +176,8 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
         && Objects.equals(leftSource, that.leftSource)
         && Objects.equals(rightSource, that.rightSource)
         && Objects.equals(beforeMillis, that.beforeMillis)
-        && Objects.equals(afterMillis, that.afterMillis);
+        && Objects.equals(afterMillis, that.afterMillis)
+        && Objects.equals(graceMillis, that.graceMillis);
   }
   // CHECKSTYLE_RULES.ON: CyclomaticComplexity
 
@@ -182,7 +192,8 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
         leftSource,
         rightSource,
         beforeMillis,
-        afterMillis
+        afterMillis,
+        graceMillis
     );
   }
 }

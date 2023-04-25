@@ -18,8 +18,8 @@ package io.confluent.ksql.schema.query;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Pojo for holding data about the schemas and formats in use at the different stages within a
@@ -56,6 +57,9 @@ public final class QuerySchemas {
 
   // Maps topic name -> (map of key/value flag -> set of logger name prefixes)
   private final Map<String, Map<Boolean, Set<String>>> topicsToLoggers = new HashMap<>();
+
+  private static final boolean IS_KEY_SCHEMA = true;
+  private static final boolean IS_VALUE_SCHEMA = false;
 
   /**
    * Called when creating a key serde.
@@ -118,47 +122,54 @@ public final class QuerySchemas {
     return Collections.unmodifiableMap(loggerToSchemas);
   }
 
+  Map<String, Map<Boolean, Set<String>>> getTopicsToLoggers() {
+    return Collections.unmodifiableMap(topicsToLoggers);
+  }
+
   /**
-   * Builds complete SchemaInfo for a topic:
+   * Returns all different schemas and serde formats that the {@code topicName} is using. The
+   * {@link MultiSchemaInfo} contains a list of key/value schemas and serde formats that were
+   * tracked for the specified topic.
+   * </p>
+   * Key and/or value schemas may be empty if no schemas were detected.
    */
-  public SchemaInfo getTopicInfo(final String topicName) {
+  public MultiSchemaInfo getTopicInfo(final String topicName) {
+    final Set<SchemaInfo> keySchemasInfo = getTopicSchemas(topicName, IS_KEY_SCHEMA);
+    final Set<SchemaInfo> valueSchemasInfo = getTopicSchemas(topicName, IS_VALUE_SCHEMA);
+
+    return new MultiSchemaInfo(keySchemasInfo, valueSchemasInfo);
+  }
+
+  /**
+   * Returns a list of schemas and serde formats detected on the specified topicName.
+   * The isKeySchema is a boolean value that specifies whether to look at the key schema (True)
+   * or at the value schema (False).
+   * </p>
+   * Each schema information is tracked by the loggers the topicName has. Some topics may have
+   * multiple schemas and serde formats if the topicName is used with stream-stream joins and
+   * foreign key joins.
+   */
+  private Set<SchemaInfo> getTopicSchemas(final String topicName,
+                                          final boolean isKeySchema) {
+    // Look at the different loggers that tne topicName uses. There might be multiple
+    // loggers if the topicName was used by joins, which contains internal state stores.
     final Map<Boolean, Set<String>> kvLoggerNames = topicsToLoggers.get(topicName);
     if (kvLoggerNames == null) {
       throw new IllegalArgumentException("Unknown topic: " + topicName);
     }
 
-    final Set<String> keyLoggerNames = kvLoggerNames.getOrDefault(true, ImmutableSet.of());
-    if (keyLoggerNames.size() != 1) {
-      throw new IllegalStateException("Multiple key logger names registered for topic."
-          + System.lineSeparator()
-          + "topic: " + topicName
-          + "loggers: " + keyLoggerNames
-      );
+    final Map<SchemaInfo, Set<String>> schemaToLoggers = new HashMap<>();
+
+    // Look at the loggers linked to the key or value serde, and get all schema and formats
+    // detected.
+    for (final String loggerName : kvLoggerNames.getOrDefault(isKeySchema, ImmutableSet.of())) {
+      final SchemaInfo schemaInfo = loggerToSchemas.get(loggerName);
+      if (schemaInfo != null) {
+        schemaToLoggers.computeIfAbsent(schemaInfo, k -> new HashSet<>()).add(loggerName);
+      }
     }
 
-    final Set<String> valueTopicNames = kvLoggerNames.getOrDefault(false, ImmutableSet.of());
-    if (valueTopicNames.size() != 1) {
-      throw new IllegalStateException("Multiple value logger names registered for topic."
-          + System.lineSeparator()
-          + "topic: " + topicName
-          + "loggers: " + valueTopicNames
-      );
-    }
-
-    final SchemaInfo keyInfo = loggerToSchemas.get(Iterables.getOnlyElement(keyLoggerNames));
-    final SchemaInfo valueInfo = loggerToSchemas.get(Iterables.getOnlyElement(valueTopicNames));
-    if (keyInfo == null || valueInfo == null) {
-      throw new IllegalStateException("Incomplete schema info for topic."
-          + System.lineSeparator()
-          + "topic: " + topicName
-          + "keyInfo: " + keyInfo
-          + "valueInfo: " + valueInfo
-      );
-    }
-
-    return keyInfo.equals(valueInfo)
-        ? valueInfo
-        : valueInfo.merge(keyInfo.keyFormat, keyInfo.valueFormat);
+    return schemaToLoggers.keySet();
   }
 
   @Override
@@ -197,6 +208,50 @@ public final class QuerySchemas {
 
       return existing.merge(keyFormat, valueFormat);
     });
+  }
+
+  public static class MultiSchemaInfo {
+    private final Set<SchemaInfo> keySchemas;
+    private final Set<SchemaInfo> valueSchemas;
+    private final Set<KeyFormat> keyFormats;
+    private final Set<ValueFormat> valueFormats;
+
+    public MultiSchemaInfo(final Set<SchemaInfo> keySchemas, final Set<SchemaInfo> valueSchemas) {
+      this.keySchemas = ImmutableSet.copyOf(requireNonNull(keySchemas, "keySchemas"));
+      this.valueSchemas = ImmutableSet.copyOf(requireNonNull(valueSchemas, "valuesSchemas"));
+
+      keyFormats = ImmutableSet.copyOf(keySchemas.stream()
+          .map(SchemaInfo::keyFormat)
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .collect(Collectors.toSet()));
+
+      valueFormats = ImmutableSet.copyOf(valueSchemas.stream()
+          .map(SchemaInfo::valueFormat)
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .collect(Collectors.toSet()));
+    }
+
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "keySchemas is ImmutableSet")
+    public Set<SchemaInfo> getKeySchemas() {
+      return keySchemas;
+    }
+
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "valueSchemas is ImmutableSet")
+    public Set<SchemaInfo> getValueSchemas() {
+      return valueSchemas;
+    }
+
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "keyFormats is ImmutableSet")
+    public Set<KeyFormat> getKeyFormats() {
+      return keyFormats;
+    }
+
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "valueFormats is ImmutableSet")
+    public Set<ValueFormat> getValueFormats() {
+      return valueFormats;
+    }
   }
 
   @Immutable

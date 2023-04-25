@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 
 abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends ResponseHandler<T> {
 
-  private static ObjectMapper JSON_MAPPER = JsonMapper.get();
+  private static final ObjectMapper JSON_MAPPER = JsonMapper.get();
 
   protected boolean hasReadArguments;
 

@@ -30,7 +30,7 @@ a simple event streaming application with ksqlDB, up to 4 clients may be needed:
 2. A WebSocket client to access the streaming query WebSockets endpoint
 3. A JDBC client to access data in JDBC tables that are synced with KSQL via connect, as the current support for
 pull queries does not make the data otherwise easily accessible.
-4. A Kafka client for producing and consuming messages from topics.
+4. A Kafka client for producing and consuming records from topics.
 
 This is a lot for an application to handle and creates a steep learning curve for application developers.
 

@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.execution.util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.codegen.LambdaMappingUtil;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -48,7 +50,7 @@ public final class FunctionArgumentsUtil {
   }
 
   public static final class FunctionTypeInfo {
-    private final List<ArgumentInfo> argumentInfos;
+    private final ImmutableList<ArgumentInfo> argumentInfos;
     private final SqlType returnType;
     private final KsqlScalarFunction function;
 
@@ -65,11 +67,12 @@ public final class FunctionArgumentsUtil {
         final SqlType returnType,
         final KsqlScalarFunction function
     ) {
-      this.argumentInfos = argumentInfos;
+      this.argumentInfos = ImmutableList.copyOf(argumentInfos);
       this.returnType = returnType;
       this.function = function;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "argumentInfos is ImmutableList")
     public List<ArgumentInfo> getArgumentInfos() {
       return argumentInfos;
     }
@@ -85,7 +88,7 @@ public final class FunctionArgumentsUtil {
 
   public static final class ArgumentInfo {
     final SqlArgument sqlArgument;
-    final Map<String,SqlType> lambdaSqlTypeMapping;
+    final ImmutableMap<String,SqlType> lambdaSqlTypeMapping;
 
     private static ArgumentInfo of(
         final SqlArgument sqlArgument,
@@ -99,13 +102,17 @@ public final class FunctionArgumentsUtil {
         final Map<String, SqlType> lambdaSqlTypeMapping
     ) {
       this.sqlArgument = sqlArgument;
-      this.lambdaSqlTypeMapping = lambdaSqlTypeMapping;
+      this.lambdaSqlTypeMapping = ImmutableMap.copyOf(lambdaSqlTypeMapping);
     }
 
     public SqlArgument getSqlArgument() {
       return sqlArgument;
     }
 
+    @SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification = "lambdaSqlTypeMapping is ImmutableMap"
+    )
     public Map<String,SqlType> getLambdaSqlTypeMapping() {
       return lambdaSqlTypeMapping;
     }

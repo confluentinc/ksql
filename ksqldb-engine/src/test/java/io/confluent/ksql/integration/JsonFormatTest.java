@@ -107,7 +107,9 @@ public class JsonFormatTest {
         functionRegistry,
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
-        ksqlConfig);
+        ksqlConfig,
+        Collections.emptyList()
+    );
 
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();

@@ -34,10 +34,11 @@ public final class JsonMapper {
   }
 
   private JsonMapper() {
+
   }
 
   public static ObjectMapper get() {
-    return MAPPER;
+    return MAPPER.copy();
   }
 
 }

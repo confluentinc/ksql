@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.expression.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.NodeLocation;
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -37,6 +38,7 @@ public class DecimalLiteral extends Literal {
     this.value = requireNonNull(value, "value");
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   @Override
   public BigDecimal getValue() {
     return value;

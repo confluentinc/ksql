@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.parser.NodeLocation;
 import java.time.Duration;
 import java.util.Objects;
@@ -33,9 +34,25 @@ public class WithinExpression extends AstNode {
   private final TimeUnit beforeTimeUnit;
   private final TimeUnit afterTimeUnit;
   private final JoinWindows joinWindows;
+  private final Optional<WindowTimeClause> gracePeriod;
 
   public WithinExpression(final long size, final TimeUnit timeUnit) {
-    this(size, size, timeUnit, timeUnit);
+    this(Optional.empty(), size, size, timeUnit, timeUnit, Optional.empty());
+  }
+
+  public WithinExpression(final long size, final TimeUnit timeUnit,
+                          final WindowTimeClause gracePeriod) {
+    this(Optional.empty(), size, size, timeUnit, timeUnit, Optional.of(gracePeriod));
+  }
+
+  public WithinExpression(
+      final long before,
+      final long after,
+      final TimeUnit beforeTimeUnit,
+      final TimeUnit afterTimeUnit,
+      final WindowTimeClause gracePeriod
+  ) {
+    this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit, Optional.of(gracePeriod));
   }
 
   public WithinExpression(
@@ -44,7 +61,7 @@ public class WithinExpression extends AstNode {
       final TimeUnit beforeTimeUnit,
       final TimeUnit afterTimeUnit
   ) {
-    this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit);
+    this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit, Optional.empty());
   }
 
   public WithinExpression(
@@ -52,13 +69,15 @@ public class WithinExpression extends AstNode {
       final long before,
       final long after,
       final TimeUnit beforeTimeUnit,
-      final TimeUnit afterTimeUnit
+      final TimeUnit afterTimeUnit,
+      final Optional<WindowTimeClause> gracePeriod
   ) {
     super(location);
     this.before = before;
     this.after = after;
     this.beforeTimeUnit = requireNonNull(beforeTimeUnit, "beforeTimeUnit");
     this.afterTimeUnit = requireNonNull(afterTimeUnit, "afterTimeUnit");
+    this.gracePeriod = requireNonNull(gracePeriod, "gracePeriod");
     this.joinWindows = createJoinWindows();
   }
 
@@ -88,12 +107,18 @@ public class WithinExpression extends AstNode {
           .append(afterTimeUnit)
           .append(")");
     }
+
+    gracePeriod.ifPresent(windowTimeClause -> builder.append(" GRACE PERIOD ")
+        .append(windowTimeClause.getValue())
+        .append(' ')
+        .append(windowTimeClause.getTimeUnit()));
+
     return builder.toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(before, after, beforeTimeUnit, afterTimeUnit);
+    return Objects.hash(before, after, beforeTimeUnit, afterTimeUnit, gracePeriod);
   }
 
   @Override
@@ -107,13 +132,19 @@ public class WithinExpression extends AstNode {
     final WithinExpression withinExpression = (WithinExpression) o;
     return before == withinExpression.before && after == withinExpression.after
            && Objects.equals(beforeTimeUnit, withinExpression.beforeTimeUnit)
-           && Objects.equals(afterTimeUnit, withinExpression.afterTimeUnit);
+           && Objects.equals(afterTimeUnit, withinExpression.afterTimeUnit)
+           && Objects.equals(gracePeriod, withinExpression.gracePeriod);
   }
 
+  @SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
   private JoinWindows createJoinWindows() {
     final JoinWindows joinWindow = JoinWindows
-        .of(Duration.ofMillis(beforeTimeUnit.toMillis(before)));
-    return joinWindow.after(Duration.ofMillis(afterTimeUnit.toMillis(after)));
+        .of(Duration.ofMillis(beforeTimeUnit.toMillis(before)))
+        .after(Duration.ofMillis(afterTimeUnit.toMillis(after)));
+
+    return (gracePeriod.isPresent())
+        ? joinWindow.grace(gracePeriod.get().toDuration())
+        : joinWindow;
   }
 
   // Visible for testing
@@ -124,6 +155,11 @@ public class WithinExpression extends AstNode {
   // Visible for testing
   public long getAfter() {
     return after;
+  }
+
+  // Visible for testing
+  public Optional<WindowTimeClause> getGrace() {
+    return gracePeriod;
   }
 
   // Visible for testing

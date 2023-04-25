@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -40,7 +41,7 @@ import org.junit.rules.TemporaryFolder;
 public class PropertiesUtilTest {
 
   @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  public static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   private File propsFile;
 

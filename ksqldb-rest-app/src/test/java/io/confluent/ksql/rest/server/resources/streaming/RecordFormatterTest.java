@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Message;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -50,12 +52,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.common.serialization.DoubleSerializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
@@ -272,11 +276,12 @@ public class RecordFormatterTest {
           1,
           timestamp,
           TimestampType.CREATE_TIME,
-          123,
           1,
           1,
           keyBytes,
-          valueBytes
+          valueBytes,
+          new RecordHeaders(),
+          Optional.empty()
       );
     }
   }
@@ -366,7 +371,7 @@ public class RecordFormatterTest {
     private static final Bytes SERIALIZED_KAFKA_INT = serialize(KAFKA_INT, new IntegerSerializer());
     private static final Bytes SERIALIZED_TIME_WINDOWED_KAFKA_INT = serialize(
         new Windowed<>(KAFKA_INT, TIME_WINDOW),
-        WindowedSerdes.timeWindowedSerdeFrom(Integer.class).serializer()
+        WindowedSerdes.timeWindowedSerdeFrom(Integer.class, TIME_WINDOW.end() - TIME_WINDOW.start()).serializer()
     );
     private static final Bytes SERIALIZED_SESSION_WINDOWED_KAFKA_INT = serialize(
         new Windowed<>(KAFKA_INT, SESSION_WINDOW),
@@ -379,7 +384,7 @@ public class RecordFormatterTest {
     );
     private static final Bytes SERIALIZED_TIME_WINDOWED_KAFKA_BIGINT = serialize(
         new Windowed<>(KAFKA_BIGINT, TIME_WINDOW),
-        WindowedSerdes.timeWindowedSerdeFrom(Long.class).serializer()
+        WindowedSerdes.timeWindowedSerdeFrom(Long.class, TIME_WINDOW.end() - TIME_WINDOW.start()).serializer()
     );
     private static final Bytes SERIALIZED_SESSION_WINDOWED_KAFKA_BIGINT = serialize(
         new Windowed<>(KAFKA_BIGINT, SESSION_WINDOW),
@@ -393,7 +398,7 @@ public class RecordFormatterTest {
     );
     private static final Bytes SERIALIZED_TIME_WINDOWED_KAFKA_DOUBLE = serialize(
         new Windowed<>(KAFKA_DOUBLE, TIME_WINDOW),
-        WindowedSerdes.timeWindowedSerdeFrom(Double.class).serializer()
+        WindowedSerdes.timeWindowedSerdeFrom(Double.class, TIME_WINDOW.end() - TIME_WINDOW.start()).serializer()
     );
     private static final Bytes SERIALIZED_SESSION_WINDOWED_KAFKA_DOUBLE = serialize(
         new Windowed<>(KAFKA_DOUBLE, SESSION_WINDOW),
@@ -410,7 +415,7 @@ public class RecordFormatterTest {
     );
     private static final Bytes SERIALIZED_TIME_WINDOWED_KAFKA_STRING = serialize(
         new Windowed<>(KAFKA_STRING, TIME_WINDOW),
-        WindowedSerdes.timeWindowedSerdeFrom(String.class).serializer()
+        WindowedSerdes.timeWindowedSerdeFrom(String.class, TIME_WINDOW.end() - TIME_WINDOW.start()).serializer()
     );
     private static final Bytes SERIALIZED_SESSION_WINDOWED_KAFKA_STRING = serialize(
         new Windowed<>(KAFKA_STRING, SESSION_WINDOW),
@@ -791,7 +796,7 @@ public class RecordFormatterTest {
         // Given:
         final Bytes serialized = serialize(
             new Windowed<>(json, TIME_WINDOW),
-            WindowedSerdes.timeWindowedSerdeFrom(String.class).serializer()
+            WindowedSerdes.timeWindowedSerdeFrom(String.class, TIME_WINDOW.end() - TIME_WINDOW.start()).serializer()
         );
 
         // When:
@@ -810,7 +815,7 @@ public class RecordFormatterTest {
         // Given:
         final Bytes serialized = serialize(
             new Windowed<>(json, TIME_WINDOW),
-            WindowedSerdes.timeWindowedSerdeFrom(String.class).serializer()
+            WindowedSerdes.timeWindowedSerdeFrom(String.class, TIME_WINDOW.end() - TIME_WINDOW.start()).serializer()
         );
 
         // When:
@@ -1163,7 +1168,7 @@ public class RecordFormatterTest {
     private void givenAvroSchemaRegistered() {
       try {
         final AvroSchema avroSchema = new AvroSchema(AVRO_SCHEMA);
-        when(schemaRegistryClient.getSchemaById(anyInt())).thenReturn(avroSchema);
+        when(schemaRegistryClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(avroSchema);
       } catch (final Exception e) {
         fail("invalid test:" + e.getMessage());
       }
@@ -1171,7 +1176,7 @@ public class RecordFormatterTest {
 
     private void givenProtoSchemaRegistered() {
       try {
-        when(schemaRegistryClient.getSchemaById(anyInt())).thenReturn(PROTOBUF_SCHEMA);
+        when(schemaRegistryClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(PROTOBUF_SCHEMA);
       } catch (final Exception e) {
         fail("invalid test:" + e.getMessage());
       }
@@ -1179,12 +1184,13 @@ public class RecordFormatterTest {
 
     private void givenJsonSrSchemaRegistered() {
       try {
-        when(schemaRegistryClient.getSchemaById(anyInt())).thenReturn(JSON_SCHEMA);
+        when(schemaRegistryClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(JSON_SCHEMA);
       } catch (final Exception e) {
         fail("invalid test:" + e.getMessage());
       }
     }
 
+    @SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE")
     private static Bytes getBytes(final int size) {
       final byte[] bytes = new byte[size];
       RNG.nextBytes(bytes);
@@ -1323,11 +1329,12 @@ public class RecordFormatterTest {
           1,
           1234L,
           TimestampType.CREATE_TIME,
-          123,
           1,
           1,
           keyBytes,
-          valueBytes
+          valueBytes,
+          new RecordHeaders(),
+          Optional.empty()
       );
     }
   }

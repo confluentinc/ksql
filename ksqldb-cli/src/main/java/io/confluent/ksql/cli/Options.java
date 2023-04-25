@@ -24,11 +24,10 @@ import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
 import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.parser.VariableParser;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -233,20 +232,6 @@ public class Options {
   }
 
   public Map<String, String> getVariables() {
-    if (definedVars == null) {
-      return Collections.emptyMap();
-    }
-
-    final ImmutableMap.Builder<String, String> variables = ImmutableMap.builder();
-    for (String pair : definedVars) {
-      final String[] parts = pair.split("=");
-      if (parts.length != 2) {
-        throw new IllegalArgumentException("Variables must be defined using '=' (i.e. var=val).");
-      }
-
-      variables.put(parts[0], parts[1]);
-    }
-
-    return variables.build();
+    return VariableParser.getVariables(definedVars);
   }
 }

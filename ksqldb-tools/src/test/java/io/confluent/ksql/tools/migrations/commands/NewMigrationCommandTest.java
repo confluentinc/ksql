@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.github.rvesse.airline.SingleCommand;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -65,7 +66,7 @@ public class NewMigrationCommandTest {
       "# ksql.auth.basic.password=\n";
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
+  public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
   private String testDir;
   private NewMigrationCommand command;

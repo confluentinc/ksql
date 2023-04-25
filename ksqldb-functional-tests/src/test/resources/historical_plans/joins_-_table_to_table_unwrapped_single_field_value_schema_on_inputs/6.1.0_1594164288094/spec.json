@@ -142,6 +142,15 @@
             "features" : [ "UNWRAP_SINGLES" ]
           }
         }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "T2",
           "keyFormat" : {
             "format" : "KAFKA"
@@ -149,15 +158,6 @@
           "valueFormat" : {
             "format" : "JSON",
             "features" : [ "UNWRAP_SINGLES" ]
-          },
-          "partitions" : 4
-        }, {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "format" : "KAFKA"
-          },
-          "valueFormat" : {
-            "format" : "JSON"
           },
           "partitions" : 4
         }, {

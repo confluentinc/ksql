@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.streams.materialization;
 
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import java.net.URI;
@@ -58,6 +59,11 @@ public interface Locator {
      * @return The base URI of the node, including protocol, host and port.
      */
     URI location();
+
+    /**
+     * @return the host as well as whether or not it should be queried
+     */
+    RoutingFilter.Host getHost();
   }
 
   interface KsqlPartitionLocation {
@@ -77,6 +83,12 @@ public interface Locator {
      *     for queries which don't enumerate them up front, such as range queries.
      */
     Optional<Set<KsqlKey>> getKeys();
+
+    /**
+     * @return a {@code KsqlPartitionLocation} without any hosts that were indicated by the
+     *         {@link RoutingOptions} as invalid candidates for routing.
+     */
+    KsqlPartitionLocation removeFilteredHosts();
   }
 
   /**

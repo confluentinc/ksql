@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
+import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
@@ -55,6 +56,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,11 +68,13 @@ public final class KsqlTarget {
   private static final String STATUS_PATH = "/status";
   private static final String KSQL_PATH = "/ksql";
   private static final String QUERY_PATH = "/query";
+  private static final String QUERY_STREAM_PATH = "/query-stream";
   private static final String HEARTBEAT_PATH = "/heartbeat";
   private static final String CLUSTERSTATUS_PATH = "/clusterStatus";
   private static final String LAG_REPORT_PATH = "/lag";
   private static final String SERVER_METADATA_PATH = "/v1/metadata";
   private static final String SERVER_METADATA_ID_PATH = "/v1/metadata/id";
+  private static final String IS_VALID_PATH = "/is_valid_property/";
 
   private final HttpClient httpClient;
   private final SocketAddress socketAddress;
@@ -162,6 +166,10 @@ public final class KsqlTarget {
     return get(SERVER_METADATA_ID_PATH, ServerClusterId.class);
   }
 
+  public RestResponse<Boolean> getIsValidRequest(final String propertyName) {
+    return get(IS_VALID_PATH + propertyName, Boolean.class);
+  }
+
   public RestResponse<KsqlEntityList> postKsqlRequest(
       final String ksql,
       final Map<String, ?> requestProperties,
@@ -210,6 +218,15 @@ public final class KsqlTarget {
   ) {
     return executeQueryRequestWithStreamResponse(sql, previousCommandSeqNum,
         buff -> deserialize(buff, StreamedRow.class));
+  }
+
+  public CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>>
+      postQueryRequestStreamedAsync(
+      final String sql,
+      final Map<String, ?> requestProperties
+  ) {
+    return executeQueryStreamRequest(sql, requestProperties,
+        KsqlTargetUtil::toRowFromDelimited);
   }
 
   public RestResponse<StreamPublisher<String>> postPrintTopicRequest(
@@ -261,7 +278,7 @@ public final class KsqlTarget {
       final Object jsonEntity,
       final Function<ResponseWithBody, T> mapper
   ) {
-    return executeAsync(httpMethod, path, jsonEntity, mapper, (resp, vcf) -> {
+    return executeAsync(httpMethod, path, Optional.empty(), jsonEntity, mapper, (resp, vcf) -> {
       resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
     });
   }
@@ -272,7 +289,7 @@ public final class KsqlTarget {
       final Object requestBody,
       final Function<ResponseWithBody, T> mapper
   ) {
-    return executeSync(httpMethod, path, requestBody, mapper, (resp, vcf) -> {
+    return executeSync(httpMethod, path, Optional.empty(), requestBody, mapper, (resp, vcf) -> {
       resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
     });
   }
@@ -285,7 +302,8 @@ public final class KsqlTarget {
       final Function<Buffer, T> chunkMapper,
       final Consumer<T> chunkHandler
   ) {
-    return executeSync(httpMethod, path, requestBody, resp -> responseSupplier.get(),
+    return executeSync(httpMethod, path, Optional.empty(), requestBody,
+        resp -> responseSupplier.get(),
         (resp, vcf) -> {
         resp.handler(buff -> {
           try {
@@ -315,11 +333,36 @@ public final class KsqlTarget {
     final KsqlRequest ksqlRequest = createKsqlRequest(
         ksql, Collections.emptyMap(), previousCommandSeqNum);
     final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
-    return executeSync(HttpMethod.POST, QUERY_PATH, ksqlRequest, resp -> pubRef.get(),
+    return executeSync(HttpMethod.POST, QUERY_PATH, Optional.empty(), ksqlRequest,
+        resp -> pubRef.get(),
         (resp, vcf) -> {
           if (resp.statusCode() == 200) {
             pubRef.set(new StreamPublisher<>(Vertx.currentContext(),
-                resp, mapper, vcf));
+                resp, mapper, vcf, true));
+            vcf.complete(new ResponseWithBody(resp));
+          } else {
+            resp.bodyHandler(body -> vcf.complete(new ResponseWithBody(resp, body)));
+          }
+        });
+  }
+
+  private <T> CompletableFuture<RestResponse<StreamPublisher<T>>> executeQueryStreamRequest(
+      final String ksql,
+      final Map<String, ?> requestProperties,
+      final Function<Buffer, T> mapper
+  ) {
+    final Map<String, Object> requestPropertiesObject = requestProperties.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    final QueryStreamArgs queryStreamArgs = new QueryStreamArgs(ksql, localProperties.toMap(),
+        Collections.emptyMap(), requestPropertiesObject);
+    final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
+    return executeAsync(HttpMethod.POST, QUERY_STREAM_PATH,
+        Optional.of("application/vnd.ksqlapi.delimited.v1"), queryStreamArgs,
+        resp -> pubRef.get(),
+        (resp, vcf) -> {
+          if (resp.statusCode() == 200) {
+            pubRef.set(new StreamPublisher<>(Vertx.currentContext(),
+                resp, mapper, vcf, false));
             vcf.complete(new ResponseWithBody(resp));
           } else {
             resp.bodyHandler(body -> vcf.complete(new ResponseWithBody(resp, body)));
@@ -330,12 +373,13 @@ public final class KsqlTarget {
   private <T> RestResponse<T> executeSync(
       final HttpMethod httpMethod,
       final String path,
+      final Optional<String> mediaType,
       final Object requestBody,
       final Function<ResponseWithBody, T> mapper,
       final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
     final CompletableFuture<ResponseWithBody> vcf =
-        execute(httpMethod, path, requestBody, responseHandler);
+        execute(httpMethod, path, mediaType, requestBody, responseHandler);
 
     final ResponseWithBody response;
     try {
@@ -350,18 +394,20 @@ public final class KsqlTarget {
   private <T> CompletableFuture<RestResponse<T>> executeAsync(
       final HttpMethod httpMethod,
       final String path,
+      final Optional<String> mediaType,
       final Object requestBody,
       final Function<ResponseWithBody, T> mapper,
       final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
     final CompletableFuture<ResponseWithBody> vcf =
-        execute(httpMethod, path, requestBody, responseHandler);
+        execute(httpMethod, path, mediaType, requestBody, responseHandler);
     return vcf.thenApply(response -> KsqlClientUtil.toRestResponse(response, path, mapper));
   }
 
   private CompletableFuture<ResponseWithBody> execute(
       final HttpMethod httpMethod,
       final String path,
+      final Optional<String> mediaType,
       final Object requestBody,
       final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
@@ -373,7 +419,11 @@ public final class KsqlTarget {
         resp -> responseHandler.accept(resp, vcf))
         .exceptionHandler(vcf::completeExceptionally);
 
-    httpClientRequest.putHeader("Accept", "application/json");
+    if (mediaType.isPresent()) {
+      httpClientRequest.putHeader("Accept", mediaType.get());
+    } else {
+      httpClientRequest.putHeader("Accept", "application/json");
+    }
     authHeader.ifPresent(v -> httpClientRequest.putHeader("Authorization", v));
 
     if (requestBody != null) {
@@ -400,7 +450,7 @@ public final class KsqlTarget {
           || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
         if (begin != i) { // Ignore random newlines - the server can send these
           final Buffer sliced = buff.slice(begin, i);
-          final Buffer tidied = StreamPublisher.toJsonMsg(sliced);
+          final Buffer tidied = StreamPublisher.toJsonMsg(sliced, true);
           final StreamedRow row = deserialize(tidied, StreamedRow.class);
           rows.add(row);
         }

@@ -19,6 +19,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
+import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
@@ -34,6 +35,7 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -48,6 +50,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.http.WebsocketVersion;
@@ -66,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public final class RestIntegrationTestUtil {
@@ -88,6 +93,15 @@ public final class RestIntegrationTestUtil {
 
   public static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
     return makeKsqlRequest(restApp, sql, Optional.empty());
+  }
+
+  public static String makeKsqlRequestWithVariables(
+      final TestKsqlRestApp restApp, final String sql, final Map<String, Object> variables) {
+    final KsqlRequest request =
+        new KsqlRequest(sql, ImmutableMap.of(), ImmutableMap.of(), variables, null);
+
+    return rawRestRequest(restApp, HTTP_1_1, POST, "/ksql", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty()).body().toString();
   }
 
   static List<KsqlEntity> makeKsqlRequest(
@@ -331,6 +345,67 @@ public final class RestIntegrationTestUtil {
     }
   }
 
+  static VertxCompletableFuture<Void> rawRestRequest(
+      final TestKsqlRestApp restApp,
+      final HttpVersion httpVersion,
+      final HttpMethod method,
+      final String uri,
+      final Object requestBody,
+      final String mediaType,
+      final Consumer<Buffer> chunkConsumer
+  ) {
+
+    final byte[] bytes;
+    try {
+      bytes = ApiJsonMapper.INSTANCE.get().writeValueAsBytes(requestBody);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+      HttpClientOptions options = new HttpClientOptions()
+          .setDefaultPort(restApp.getHttpListener().getPort())
+          .setDefaultHost(restApp.getHttpListener().getHost())
+          .setVerifyHost(false);
+
+      if (httpVersion == HttpVersion.HTTP_2) {
+        options.setProtocolVersion(HttpVersion.HTTP_2);
+      }
+
+      final Vertx vertx = Vertx.vertx();
+      final HttpClient httpClient = vertx.createHttpClient(options);
+      final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
+      final HttpClientRequest httpClientRequest = httpClient.request(method,
+          uri,
+          resp -> {
+            resp.handler(buffer -> {
+              try {
+                chunkConsumer.accept(buffer);
+              } catch (final Throwable t) {
+                vcf.completeExceptionally(t);
+              }
+            });
+            resp.endHandler(v -> {
+              chunkConsumer.accept(null);
+              vcf.complete(null);
+            });
+          })
+          .exceptionHandler(vcf::completeExceptionally);
+
+      httpClientRequest.putHeader("Accept", mediaType);
+
+      Buffer bodyBuffer = Buffer.buffer(bytes);
+      httpClientRequest.end(bodyBuffer);
+
+      // cleanup
+      vcf.handle((v, throwable) -> {
+        httpClient.close();
+        vertx.close();
+        return null;
+      });
+      return vcf;
+  }
+
+
   public static void createStream(
       final TestKsqlRestApp restApp,
       final TestDataProvider dataProvider
@@ -432,7 +507,7 @@ public final class RestIntegrationTestUtil {
       httpClient = vertx.createHttpClient();
 
       final String uri = baseUri.toString() + "/ws/query?request="
-          + buildStreamingRequest(sql)
+          + buildStreamingRequest(sql, Optional.empty())
           + "&access_token=" + buildBasicAuthHeader(credentials.get());
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
@@ -470,15 +545,73 @@ public final class RestIntegrationTestUtil {
     }
   }
 
+  public static CompletableFuture<Void> makeWsRequest(
+      final URI baseUri,
+      final String sql,
+      final Optional<String> mediaType,
+      final Optional<String> contentType,
+      final Optional<Credentials> credentials,
+      final Map<String, Object> overrides,
+      final Consumer<String> chunkConsumer
+  ) {
+    Vertx vertx = Vertx.vertx();
+    final HttpClient httpClient = vertx.createHttpClient();
+
+    final String uri = baseUri.toString() + "/ws/query?request="
+        + buildStreamingRequest(sql, Optional.of(overrides));
+
+    final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+    credentials.ifPresent(
+        creds -> headers.add(AUTHORIZATION, "Basic " + buildBasicAuthHeader(creds)));
+
+    mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
+    contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));
+
+    CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+
+    httpClient.webSocketAbs(uri, headers, WebsocketVersion.V07,
+        Collections.emptyList(), ar -> {
+          if (ar.succeeded()) {
+            ar.result().frameHandler(frame -> {
+              if (frame.isText()) {
+                chunkConsumer.accept(frame.textData());
+              }
+            });
+            ar.result().endHandler(v -> {
+              completableFuture.complete(null);
+            });
+          } else {
+            completableFuture.completeExceptionally(ar.cause());
+          }
+        });
+
+    // cleanup
+    completableFuture.handle((v, throwable) -> {
+      httpClient.close();
+      vertx.close();
+      return null;
+    });
+
+    return completableFuture;
+  }
+
   private static String buildBasicAuthHeader(final Credentials credentials) {
     final String creds = credentials.username + ":" + credentials.password;
     return Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
   }
 
-  private static String buildStreamingRequest(final String sql) {
+  private static String buildStreamingRequest(final String sql,
+      Optional<Map<String, Object>> overrides) {
+    KsqlRequest request = new KsqlRequest(sql, overrides.orElse(Collections.emptyMap()),
+        Collections.emptyMap(), null);
+    final String requestStr;
+    try {
+      requestStr = ApiJsonMapper.INSTANCE.get().writeValueAsString(request);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
     return UrlEscapers.urlFormParameterEscaper()
-        .escape("{"
-            + " \"ksql\": \"" + sql + "\""
-            + "}");
+        .escape(requestStr);
   }
 }

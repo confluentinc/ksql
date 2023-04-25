@@ -1,0 +1,20 @@
+[ {
+  "@type" : "tables",
+  "statementText" : "e",
+  "tables" : [ {
+    "type" : "TABLE",
+    "name" : "B",
+    "topic" : "t2",
+    "keyFormat" : "JSON",
+    "valueFormat" : "JSON",
+    "isWindowed" : true
+  }, {
+    "type" : "TABLE",
+    "name" : "A",
+    "topic" : "t1",
+    "keyFormat" : "KAFKA",
+    "valueFormat" : "AVRO",
+    "isWindowed" : false
+  } ],
+  "warnings" : [ ]
+} ]

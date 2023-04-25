@@ -18,6 +18,7 @@ package io.confluent.ksql.api;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.util.KeyValue;
 import io.vertx.core.Context;
@@ -99,4 +100,13 @@ public class TestQueryPublisher
     return !push;
   }
 
+  @Override
+  public boolean isScalablePushQuery() {
+    return false;
+  }
+
+  @Override
+  public QueryId queryId() {
+    return new QueryId("queryId");
+  }
 }

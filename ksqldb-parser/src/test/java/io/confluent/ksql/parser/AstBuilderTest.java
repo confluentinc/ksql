@@ -764,4 +764,60 @@ public class AstBuilderTest {
   ) {
     return new QualifiedColumnReferenceExp(source, ColumnName.of(fieldName));
   }
+
+  @Test
+  public void shouldFailOnStringWithParameter() {
+     assertThrows(
+            ParseFailedException.class,
+            () -> givenQuery("CREATE STREAM INPUT (K STRING (KEY)) WITH (kafka_topic='input',value_format='JSON');")
+    );
+  }
+
+  @Test
+  public void shouldFailOnIntegerWithParameter() {
+    assertThrows(
+            ParseFailedException.class,
+            () -> givenQuery("CREATE STREAM INPUT (K INTEGER (KEY)) WITH (kafka_topic='input',value_format='JSON');")
+    );
+  }
+
+  @Test
+  public void shouldFailOnVarcharWithParameter() {
+    assertThrows(
+            ParseFailedException.class,
+            () -> givenQuery("CREATE STREAM INPUT (K VARCHAR (KEY)) WITH (kafka_topic='input',value_format='JSON');")
+    );
+  }
+
+  @Test
+  public void shouldFailOnIntWithParameter() {
+    assertThrows(
+            ParseFailedException.class,
+            () -> givenQuery("CREATE STREAM INPUT (K INT (KEY)) WITH (kafka_topic='input',value_format='JSON');")
+    );
+  }
+
+  @Test
+  public void shouldFailOnDoubleWithParameter() {
+    assertThrows(
+            ParseFailedException.class,
+            () -> givenQuery("CREATE STREAM INPUT (K DOUBLE (KEY)) WITH (kafka_topic='input',value_format='JSON');")
+    );
+  }
+
+  @Test
+  public void shouldFailOnBooleanWithParameter() {
+    assertThrows(
+            ParseFailedException.class,
+            () -> givenQuery("CREATE STREAM INPUT (K BOOLEAN (KEY)) WITH (kafka_topic='input',value_format='JSON');")
+    );
+  }
+
+  @Test
+  public void shouldFailOnBigIntWithParameter() {
+    assertThrows(
+            ParseFailedException.class,
+            () -> givenQuery("CREATE STREAM INPUT (K BIGINT (KEY)) WITH (kafka_topic='input',value_format='JSON');")
+    );
+  }
 }

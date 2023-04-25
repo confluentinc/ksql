@@ -180,7 +180,7 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "s2",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_InsertQuery_0-Join-right-repartition",
           "keyFormat" : {
             "format" : "KAFKA"
           },
@@ -189,7 +189,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_InsertQuery_0-Join-right-repartition",
+          "name" : "s2",
           "keyFormat" : {
             "format" : "KAFKA"
           },

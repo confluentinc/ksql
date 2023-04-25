@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,16 +32,17 @@ public class ClusterTerminateRequest {
 
   public static final String DELETE_TOPIC_LIST_PROP = "deleteTopicList";
 
-  private final List<String> deleteTopicList;
+  private final ImmutableList<String> deleteTopicList;
 
   public ClusterTerminateRequest(
       @JsonProperty(DELETE_TOPIC_LIST_PROP) final List<String> deleteTopicList
   ) {
     this.deleteTopicList = deleteTopicList == null
-        ? Collections.emptyList()
+        ? ImmutableList.of()
         : ImmutableList.copyOf(deleteTopicList);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "deleteTopicList is ImmutableList")
   public List<String> getDeleteTopicList() {
     return deleteTopicList;
   }

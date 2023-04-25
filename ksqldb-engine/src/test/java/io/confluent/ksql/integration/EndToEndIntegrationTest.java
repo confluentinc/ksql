@@ -313,7 +313,7 @@ public class EndToEndIntegrationTest {
       final String statement,
       final String... args
   ) {
-    final String formatted = String.format(statement, (Object[])args);
+    final String formatted = format(statement, (Object[])args);
     log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries = ksqlContext.sql(formatted);

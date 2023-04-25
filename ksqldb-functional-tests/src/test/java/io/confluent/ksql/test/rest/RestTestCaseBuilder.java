@@ -101,7 +101,8 @@ final class RestTestCaseBuilder {
           outputRecords,
           statements,
           test.getResponses(),
-          ee
+          ee,
+          test.getInputConditions()
       );
     } catch (final Exception e) {
       throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);

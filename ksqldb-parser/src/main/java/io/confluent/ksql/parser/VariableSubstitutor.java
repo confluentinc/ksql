@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.commons.text.StringSubstitutor;
 
 public final class VariableSubstitutor {
@@ -55,6 +56,16 @@ public final class VariableSubstitutor {
 
       return variables;
     }
+  }
+
+  public static String substitute(
+      final String string,
+      final Map<String, String> valueMap
+  ) {
+    return StringSubstitutor.replace(
+        string, valueMap.entrySet().stream()
+            .collect(Collectors.toMap(e -> e.getKey(), e -> sanitize(e.getValue())))
+    );
   }
 
   public static String substitute(

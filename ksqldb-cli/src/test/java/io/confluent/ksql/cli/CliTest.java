@@ -68,6 +68,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -75,7 +76,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
-import io.confluent.ksql.util.AppInfo;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -144,10 +145,11 @@ public class CliTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
+      .withProperty(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG, 30000L)
       .build();
 
   @Rule
-  public final TemporaryFolder TMP = new TemporaryFolder();
+  public final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -520,7 +522,6 @@ public class CliTest {
     assertRunCommand("set 'ksql.streams.max.request.size' = '1048576';", is(EMPTY_RESULT));
     assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
     assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true';", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.service.id' = 'assertPrint';", is(EMPTY_RESULT));
 
     assertRunCommand("unset 'application.id';", is(EMPTY_RESULT));
     assertRunCommand("unset 'producer.batch.size';", is(EMPTY_RESULT));
@@ -532,7 +533,6 @@ public class CliTest {
     assertRunCommand("unset 'ksql.streams.max.request.size';", is(EMPTY_RESULT));
     assertRunCommand("unset 'ksql.streams.consumer.max.poll.records';", is(EMPTY_RESULT));
     assertRunCommand("unset 'ksql.streams.enable.auto.commit';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.service.id';", is(EMPTY_RESULT));
 
     assertRunListCommand("properties", hasRows(
         // SERVER OVERRIDES:
@@ -1042,7 +1042,7 @@ public class CliTest {
     assertThat(output, containsString(
         "Name        : SUBSTRING\n"
         + "Author      : Confluent\n"
-        + "Overview    : Returns a substring of the passed in value.\n"
+        + "Overview    : Returns the portion of the string or bytes passed in value.\n"
     ));
     assertThat(output, containsString(
         "Type        : SCALAR\n"
@@ -1054,7 +1054,7 @@ public class CliTest {
     assertThat(output, containsString(
         "\tVariation   : SUBSTRING(str VARCHAR, pos INT)\n"
         + "\tReturns     : VARCHAR\n"
-        + "\tDescription : Returns a substring of str from pos to the end of str"
+        + "\tDescription : Returns the portion of str from pos to the end of str"
     ));
     assertThat(output, containsString(
         "\tstr         : The source string.\n"
@@ -1163,6 +1163,21 @@ public class CliTest {
     // Then:
     assertThat(terminal.getOutputString(),
         containsString("Created query with ID CSAS_SHOULDRUNCOMMAND"));
+  }
+
+  @Test
+  public void shouldThrowWhenTryingToSetDeniedProperty() throws Exception {
+    // Given
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeIsValidRequest("ksql.service.id"))
+        .thenReturn(RestResponse.erroneous(
+            NOT_ACCEPTABLE.code(),
+            new KsqlErrorMessage(Errors.toErrorCode(NOT_ACCEPTABLE.code()),
+                "Property cannot be set")));
+
+    // When:
+    assertThrows(IllegalArgumentException.class, () ->
+        localCli.handleLine("set 'ksql.service.id'='test';"));
   }
 
   @Test
@@ -1404,10 +1419,10 @@ public class CliTest {
     verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private static Matcher<String>[] prependWithKey(final String key, final List<?> values) {
 
-    final Matcher<String>[] allMatchers = new Matcher[values.size() + 1];
+    final Matcher[] allMatchers = new Matcher[values.size() + 1];
     allMatchers[0] = is(key);
 
     for (int idx = 0; idx != values.size(); ++idx) {

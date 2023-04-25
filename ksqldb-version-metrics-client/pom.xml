@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.2.11-0</version>
+        <version>7.0.10-0</version>
     </parent>
 
     <artifactId>ksqldb-version-metrics-client</artifactId>
@@ -66,6 +66,7 @@
             <artifactId>httpclient5</artifactId>
             <version>${apache.httpcomponents.version}</version>
         </dependency>
+
     </dependencies>
 
     <build>

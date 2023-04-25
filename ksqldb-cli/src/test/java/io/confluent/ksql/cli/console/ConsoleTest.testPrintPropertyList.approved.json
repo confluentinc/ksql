@@ -1,0 +1,20 @@
+[ {
+  "@type" : "properties",
+  "statementText" : "e",
+  "properties" : [ {
+    "name" : "k1",
+    "scope" : "KSQL",
+    "value" : "1"
+  }, {
+    "name" : "k2",
+    "scope" : "KSQL",
+    "value" : "v2"
+  }, {
+    "name" : "k3",
+    "scope" : "KSQL",
+    "value" : "true"
+  } ],
+  "overwrittenProperties" : [ ],
+  "defaultProperties" : [ ],
+  "warnings" : [ ]
+} ]

@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql.inference;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -35,12 +36,12 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.Formats;
@@ -71,8 +72,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -100,17 +99,9 @@ public class SchemaRegisterInjectorTest {
           + "\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":"
           + "[{\"name\":\"F1\",\"type\":[\"null\",\"string\"],\"default\":null}],"
           + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
-  private static final ProtobufSchema TIMESTAMP_SCHEMA = new ProtobufSchema(
-      "syntax = \"proto3\"; package google.protobuf;"
-          + "option java_package = \"com.google.protobuf\";"
-          + "option java_outer_classname = \"TimestampProto\";\n"
-          + "option java_multiple_files = true;"
-          + "message Timestamp {int64 seconds = 1; int32 nanos = 2;}");
-  private static final List<SchemaReference> REFERENCE_LIST =
-      Arrays.asList(new SchemaReference("google/protobuf/timestamp.proto", "google/protobuf/timestamp.proto", 0));
-  private static final ProtobufSchema PROTOBUF_SCHEMA_WITH_REFS = new ProtobufSchema(
+  private static final ProtobufSchema PROTOBUF_SCHEMA = new ProtobufSchema(
       "syntax = \"proto3\"; import \"google/protobuf/timestamp.proto\";"
-          + "message ConnectDefault1 {google.protobuf.Timestamp F1 = 1;}").copy(REFERENCE_LIST);
+          + "message ConnectDefault1 {google.protobuf.Timestamp F1 = 1;}");
 
   @Mock
   private ServiceContext serviceContext;
@@ -308,6 +299,25 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
+  public void shouldThrowAuthorizationException() throws Exception {
+    // Given:
+    givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
+    when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class)))
+        .thenThrow(new RestClientException(
+            "User is denied operation Write on Subject", 403, 40301));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlSchemaAuthorizationException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), equalTo(
+        "Authorization denied to Write on Schema Registry subject: [SINK-key]"));
+  }
+
+  @Test
   public void shouldPropagateErrorOnSRClientError() throws Exception {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
@@ -376,7 +386,7 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldRegisterDependanciesForProtobuf() throws Exception {
+  public void shouldRegisterDependenciesForProtobuf() throws Exception {
     // Given:
     givenStatement("CREATE STREAM source (f1 TIMESTAMP) "
         + "WITH ("
@@ -390,8 +400,7 @@ public class SchemaRegisterInjectorTest {
     injector.inject(statement);
 
     // Then:
-    verify(schemaRegistryClient).register("google/protobuf/timestamp.proto", TIMESTAMP_SCHEMA);
-    verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA_WITH_REFS);
+    verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA);
   }
 
   private void givenStatement(final String sql) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -111,7 +111,7 @@ public class StreamSelectKeyBuilderV1Test {
   private StreamSelectKeyV1 selectKey;
 
   @Before
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void init() {
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
     when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));

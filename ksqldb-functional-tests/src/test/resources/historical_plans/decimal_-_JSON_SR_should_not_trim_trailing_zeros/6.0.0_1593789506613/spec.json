@@ -112,7 +112,27 @@
           "valueFormat" : {
             "format" : "JSON_SR"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "DEC" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "number",
+                  "title" : "org.apache.kafka.connect.data.Decimal",
+                  "connect.version" : 1,
+                  "connect.type" : "bytes",
+                  "connect.parameters" : {
+                    "scale" : "4",
+                    "connect.decimal.precision" : "6"
+                  }
+                } ]
+              }
+            }
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -121,7 +141,27 @@
           "valueFormat" : {
             "format" : "JSON_SR"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "DEC" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "number",
+                  "title" : "org.apache.kafka.connect.data.Decimal",
+                  "connect.version" : 1,
+                  "connect.type" : "bytes",
+                  "connect.parameters" : {
+                    "scale" : "4",
+                    "connect.decimal.precision" : "6"
+                  }
+                } ]
+              }
+            }
+          }
         } ]
       }
     }

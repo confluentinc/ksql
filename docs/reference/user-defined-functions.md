@@ -27,10 +27,13 @@ values.
 | `DOUBLE`  | `double`, `java.lang.Double`          |
 | `DECIMAL` | `java.math.BigDecimal`                |
 | `VARCHAR` | `java.lang.String`                    |
+| `TIME`    | `java.sql.Time`                       |
+| `DATE`    | `java.sql.Date`                       |
 |`TIMESTAMP`| `java.sql.Timestamp`                  |
 | `ARRAY`   | `java.util.List`                      |
 | `MAP`     | `java.util.Map`                       |
 | `STRUCT`  | `org.apache.kafka.connect.data.Struct`|
+| `BYTES`   | `java.nio.ByteBuffer`                 |
 
 !!! note
     Using `Struct` or `BigDecimal` in your functions requires specifying the

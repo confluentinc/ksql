@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.FieldInfo;
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.SourceDescription;
@@ -26,16 +28,16 @@ public final class SourceDescriptionImpl implements SourceDescription {
 
   private final String name;
   private final String type;
-  private final List<FieldInfo> fields;
+  private final ImmutableList<FieldInfo> fields;
   private final String topic;
   private final String keyFormat;
   private final String valueFormat;
-  private final List<QueryInfo> readQueries;
-  private final List<QueryInfo> writeQueries;
+  private final ImmutableList<QueryInfo> readQueries;
+  private final ImmutableList<QueryInfo> writeQueries;
   private final Optional<String> timestampColumn;
   private final Optional<String> windowType;
   private final String sqlStatement;
-  private final List<String> sourceConstraints;
+  private final ImmutableList<String> sourceConstraints;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   SourceDescriptionImpl(
@@ -55,16 +57,22 @@ public final class SourceDescriptionImpl implements SourceDescription {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
-    this.fields = Objects.requireNonNull(fields, "fields");
+    this.fields = ImmutableList.copyOf(Objects.requireNonNull(fields, "fields"));
     this.topic = Objects.requireNonNull(topic, "topic");
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
-    this.readQueries = Objects.requireNonNull(readQueries, "readQueries");
-    this.writeQueries = Objects.requireNonNull(writeQueries, "writeQueries");
+    this.readQueries = ImmutableList.copyOf(
+        Objects.requireNonNull(readQueries, "readQueries")
+    );
+    this.writeQueries = ImmutableList.copyOf(
+        Objects.requireNonNull(writeQueries, "writeQueries")
+    );
     this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
     this.sqlStatement = Objects.requireNonNull(sqlStatement, "sqlStatement");
-    this.sourceConstraints = Objects.requireNonNull(sourceConstraints, "sourceConstraints");
+    this.sourceConstraints = ImmutableList.copyOf(
+        Objects.requireNonNull(sourceConstraints, "sourceConstraints")
+    );
   }
 
   @Override
@@ -78,6 +86,7 @@ public final class SourceDescriptionImpl implements SourceDescription {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "fields is ImmutableList")
   public List<FieldInfo> fields() {
     return fields;
   }
@@ -98,11 +107,13 @@ public final class SourceDescriptionImpl implements SourceDescription {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "readQueries is ImmutableList")
   public List<QueryInfo> readQueries() {
     return readQueries;
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "writeQueries is ImmutableList")
   public List<QueryInfo> writeQueries() {
     return writeQueries;
   }
@@ -123,6 +134,7 @@ public final class SourceDescriptionImpl implements SourceDescription {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sourceConstraints is ImmutableList")
   public List<String> getSourceConstraints() {
     return sourceConstraints;
   }

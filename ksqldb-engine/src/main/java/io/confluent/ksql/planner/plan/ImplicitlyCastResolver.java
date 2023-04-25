@@ -26,7 +26,9 @@ import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 
 public final class ImplicitlyCastResolver {
-  private ImplicitlyCastResolver() {}
+  private ImplicitlyCastResolver() {
+
+  }
 
   public static Expression resolve(final Expression expression, final SqlType sqlType) {
     if (sqlType instanceof SqlDecimal) {

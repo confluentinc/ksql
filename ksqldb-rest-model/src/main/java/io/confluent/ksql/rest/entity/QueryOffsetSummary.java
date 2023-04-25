@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 
@@ -41,6 +42,7 @@ public class QueryOffsetSummary {
     return groupId;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topicSummaries is ImmutableList")
   public List<QueryTopicOffsetSummary> getTopicSummaries() {
     return topicSummaries;
   }

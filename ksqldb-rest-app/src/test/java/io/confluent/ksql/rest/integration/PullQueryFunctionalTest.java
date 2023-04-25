@@ -41,6 +41,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
@@ -74,7 +75,7 @@ import org.junit.rules.TemporaryFolder;
 @Category({IntegrationTest.class})
 public class PullQueryFunctionalTest {
 
-  private static final TemporaryFolder TMP = new TemporaryFolder();
+  private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   static {
     try {

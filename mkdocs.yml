@@ -84,6 +84,7 @@ nav:
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
+      - High availability for pull queries: operate-and-deploy/high-availability-pull-queries.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - Performance Guidelines: operate-and-deploy/performance-guidelines.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
@@ -151,6 +152,7 @@ nav:
       - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
       - Introspect cluster status: developer-guide/ksqldb-rest-api/cluster-status-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
+      - Get the validity of a property: developer-guide/ksqldb-rest-api/is_valid_property-endpoint.md
     - Clients:
       - Synopsis: developer-guide/ksqldb-clients/index.md
       - Java Client: developer-guide/ksqldb-clients/java-client.md
@@ -248,11 +250,11 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 2.8
-        ksqldbversion: 0.17.0
-        kstreamsbetatag: 6.2.0-beta210310224144-cp8
+        ksqldbversion: 0.21.0
+        kstreamsbetatag: 7.0.0-beta210811194853
         kstreamsbetabuild: 1
-        cprelease: 6.2.0
-        releasepostbranch: 6.2.0-post
+        cprelease: 7.0.0
+        releasepostbranch: 7.0.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

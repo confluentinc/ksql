@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.server.InternalEndpointHandler.CONTEXT_DATA_
 import static io.confluent.ksql.api.server.OldApiUtils.handleOldApiRequest;
 import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -70,6 +71,7 @@ public class ServerVerticle extends AbstractVerticle {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final LoggingRateLimiter loggingRateLimiter;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ServerVerticle(
       final Endpoints endpoints,
       final HttpServerOptions httpServerOptions,
@@ -139,14 +141,14 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.POST, "/query-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
-        .handler(BodyHandler.create())
+        .handler(BodyHandler.create(false))
         .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
         .handler(new InsertsStreamHandler(context, endpoints, server));
     router.route(HttpMethod.POST, "/close-query")
-        .handler(BodyHandler.create())
+        .handler(BodyHandler.create(false))
         .handler(new CloseQueryHandler(server));
 
     // The old API which we continue to support as-is
@@ -155,17 +157,17 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.GET, "/")
         .handler(ServerVerticle::handleInfoRedirect);
     router.route(HttpMethod.POST, "/ksql")
-        .handler(BodyHandler.create())
+        .handler(BodyHandler.create(false))
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleKsqlRequest);
     router.route(HttpMethod.POST, "/ksql/terminate")
-        .handler(BodyHandler.create())
+        .handler(BodyHandler.create(false))
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleTerminateRequest);
     router.route(HttpMethod.POST, "/query")
-        .handler(BodyHandler.create())
+        .handler(BodyHandler.create(false))
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleQueryRequest);
@@ -174,7 +176,7 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleInfoRequest);
     router.route(HttpMethod.POST, "/heartbeat")
-        .handler(BodyHandler.create())
+        .handler(BodyHandler.create(false))
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleHeartbeatRequest);
@@ -191,7 +193,7 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleAllStatusesRequest);
     router.route(HttpMethod.POST, "/lag")
-        .handler(BodyHandler.create())
+        .handler(BodyHandler.create(false))
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleLagReportRequest);
@@ -211,9 +213,14 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleWebsocket);
+    router.route(HttpMethod.GET, "/is_valid_property/:property")
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(JSON_CONTENT_TYPE)
+        .handler(this::handleIsValidPropertyRequest);
 
     return router;
   }
+
 
   private void handleKsqlRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, KsqlRequest.class, Optional.empty(),
@@ -234,7 +241,6 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleQueryRequest(final RoutingContext routingContext) {
-
     final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
     routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
@@ -247,7 +253,8 @@ public class ServerVerticle extends AbstractVerticle {
                     DefaultApiSecurityContext.create(routingContext, server),
                     isInternalRequest(routingContext),
                     getContentType(routingContext),
-                    metricsCallbackHolder
+                    metricsCallbackHolder,
+                    context
                 )
 
     );
@@ -284,6 +291,17 @@ public class ServerVerticle extends AbstractVerticle {
         (r, apiSecurityContext) ->
             endpoints.executeStatus(type, entity, action,
                 DefaultApiSecurityContext.create(routingContext, server))
+    );
+  }
+
+  private void handleIsValidPropertyRequest(final RoutingContext routingContext) {
+    final HttpServerRequest request = routingContext.request();
+    final String property = request.getParam("property");
+    handleOldApiRequest(server, routingContext, null, Optional.empty(),
+        (ksqlRequest, apiSecurityContext) ->
+            endpoints
+                .executeIsValidProperty(property, server.getWorkerExecutor(),
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -339,7 +357,7 @@ public class ServerVerticle extends AbstractVerticle {
     final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
     endpoints
         .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
-            server.getWorkerExecutor(), apiSecurityContext);
+            server.getWorkerExecutor(), apiSecurityContext, context);
   }
 
   private static void chcHandler(final RoutingContext routingContext) {

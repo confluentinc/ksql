@@ -12,7 +12,6 @@
 
 package io.confluent.ksql.logging.query;
 
-import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.parser.tree.Statement;
@@ -36,11 +35,6 @@ public final class QueryLogger {
 
   private QueryLogger() {
 
-  }
-
-  @VisibleForTesting
-  public static String getNamespace() {
-    return namespace;
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
@@ -68,13 +62,7 @@ public final class QueryLogger {
   }
 
   public static void configure(final KsqlConfig config) {
-    final String clusterNamespace =
-        config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE);
-    namespace =
-        clusterNamespace == null || clusterNamespace.isEmpty()
-            ? config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-            : clusterNamespace;
-    anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);
+    rewriteAppender.setRewritePolicy(new QueryAnonymizingRewritePolicy(config));
   }
 
   private static void log(final Level level, final Object message, final String query) {

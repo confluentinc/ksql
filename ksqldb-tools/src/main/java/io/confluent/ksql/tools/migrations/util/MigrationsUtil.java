@@ -16,21 +16,12 @@
 package io.confluent.ksql.tools.migrations.util;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Strings;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
-import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.client.KsqlClient;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import org.apache.kafka.common.config.SslConfigs;
 
 public final class MigrationsUtil {
 
@@ -103,7 +94,8 @@ public final class MigrationsUtil {
         .setHost(url.getHost())
         .setPort(url.getPort());
 
-    if (!Strings.isNullOrEmpty(username) || !Strings.isNullOrEmpty(password)) {
+    if (!(username == null || username.isEmpty())
+        || !(password == null || password.isEmpty())) {
       options.setBasicAuthCredentials(username, password);
     }
 
@@ -121,52 +113,5 @@ public final class MigrationsUtil {
       options.setVerifyHost(verifyHost);
     }
     return options;
-  }
-
-  public static KsqlRestClient createRestClient(final MigrationConfig config) {
-    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
-
-    final boolean useTls = ksqlServerUrl.trim().toLowerCase().startsWith("https://");
-    final Map<String, String> clientProps = new HashMap<>();
-    if (useTls) {
-      clientProps.put(
-          SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-          config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION));
-      clientProps.put(
-          SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-          config.getPassword(MigrationConfig.SSL_TRUSTSTORE_PASSWORD).value());
-      clientProps.put(
-          SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
-          config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION));
-      clientProps.put(
-          SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
-          config.getPassword(MigrationConfig.SSL_KEYSTORE_PASSWORD).value());
-      clientProps.put(
-          SslConfigs.SSL_KEY_PASSWORD_CONFIG,
-          config.getPassword(MigrationConfig.SSL_KEY_PASSWORD).value());
-      clientProps.put(
-          KsqlClient.SSL_KEYSTORE_ALIAS_CONFIG,
-          config.getString(MigrationConfig.SSL_KEY_ALIAS));
-      if (config.getBoolean(MigrationConfig.SSL_VERIFY_HOST)) {
-        clientProps.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https");
-      }
-      // rest client doesn't set ALPN anywhere, so MigrationConfig.SSL_ALPN is ignored
-    }
-
-    final String username = config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME);
-    final String password = config.getPassword(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD).value();
-    final Optional<BasicCredentials> basicAuthCreds;
-    if (!Strings.isNullOrEmpty(username) || !Strings.isNullOrEmpty(password)) {
-      basicAuthCreds = Optional.of(BasicCredentials.of(username, password));
-    } else {
-      basicAuthCreds = Optional.empty();
-    }
-
-    return KsqlRestClient.create(
-        ksqlServerUrl,
-        Collections.EMPTY_MAP,
-        clientProps,
-        basicAuthCreds
-    );
   }
 }

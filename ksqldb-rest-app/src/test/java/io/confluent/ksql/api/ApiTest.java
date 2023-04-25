@@ -116,6 +116,33 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldExecutePullQueryWithVariableSubstitution() throws Exception {
+
+    // Given
+    JsonObject requestBody = new JsonObject().put("sql", "select * from ${name} where rowkey='1234';");
+    JsonObject properties = new JsonObject().put("prop1", "val1").put("prop2", 23);
+    JsonObject sessionVariables = new JsonObject().put("name", "foo");
+    requestBody.put("properties", properties).put("sessionVariables", sessionVariables);
+
+    // When
+    HttpResponse<Buffer> response = sendPostRequest("/query-stream", requestBody.toBuffer());
+
+    // Then
+    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusMessage(), is("OK"));
+    assertThat(testEndpoints.getLastSql(), is("select * from ${name} where rowkey='1234';"));
+    assertThat(testEndpoints.getLastProperties(), is(properties));
+    assertThat(testEndpoints.getLastSessionVariables(), is(sessionVariables));
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
+    assertThat(queryResponse.responseObject.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
+    assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
+    assertThat(server.getQueryIDs(), hasSize(0));
+    String queryId = queryResponse.responseObject.getString("queryId");
+    assertThat(queryId, is(nullValue()));
+  }
+
+  @Test
   @CoreApiTest
   public void shouldExecutePushQuery() throws Exception {
 
@@ -125,6 +152,29 @@ public class ApiTest extends BaseApiTest {
     // Then
     assertThat(testEndpoints.getLastSql(), is(DEFAULT_PUSH_QUERY));
     assertThat(testEndpoints.getLastProperties(), is(DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES));
+    assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
+    assertThat(queryResponse.responseObject.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
+    assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
+    assertThat(server.getQueryIDs(), hasSize(1));
+    String queryId = queryResponse.responseObject.getString("queryId");
+    assertThat(queryId, is(notNullValue()));
+    assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
+  }
+
+  @Test
+  public void shouldExecutePushQueryWithVariableSubstitution() throws Exception {
+
+    // When
+    JsonObject requestBody = new JsonObject().put("sql", "select * from ${name} emit changes;");
+    JsonObject properties = new JsonObject().put("prop1", "val1").put("prop2", 23);
+    JsonObject sessionVariables = new JsonObject().put("name", "foo");
+    requestBody.put("properties", properties).put("sessionVariables", sessionVariables);
+    QueryResponse queryResponse = executePushQueryAndWaitForRows(requestBody);
+
+    // Then
+    assertThat(testEndpoints.getLastSql(), is("select * from ${name} emit changes;"));
+    assertThat(testEndpoints.getLastProperties(), is(DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES));
+    assertThat(testEndpoints.getLastSessionVariables(), is(sessionVariables));
     assertThat(queryResponse.responseObject.getJsonArray("columnNames"), is(DEFAULT_COLUMN_NAMES));
     assertThat(queryResponse.responseObject.getJsonArray("columnTypes"), is(DEFAULT_COLUMN_TYPES));
     assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));

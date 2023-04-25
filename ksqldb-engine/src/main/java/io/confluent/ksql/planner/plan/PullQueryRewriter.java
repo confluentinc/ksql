@@ -29,7 +29,9 @@ import java.util.Optional;
 
 public final class PullQueryRewriter {
 
-  private PullQueryRewriter() { }
+  private PullQueryRewriter() {
+
+  }
 
   public static Expression rewrite(final Expression expression) {
     final Expression pseudoTimestamp = new StatementRewriteForMagicPseudoTimestamp()

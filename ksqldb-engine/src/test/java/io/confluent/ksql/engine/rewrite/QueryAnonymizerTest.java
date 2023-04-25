@@ -15,6 +15,7 @@ package io.confluent.ksql.engine.rewrite;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.ParsingException;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.approvaltests.Approvals;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -129,22 +130,16 @@ public class QueryAnonymizerTest {
     final String output = anon.anonymize("INSERT INTO OUTPUT SELECT col1, col2, col3"
         + " FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON col1.k=col2.k;");
 
-    Assert.assertEquals(
-        "INSERT INTO stream1 SELECT column1, column2, column3 "
-            + "FROM source1 INNER JOIN source2 WITHIN '0' SECOND ON anonKey1=anonKey2;",
-        output);
+    Approvals.verify(output);
   }
 
   @Test
   public void shouldAnonymizeCreateStreamQueryCorrectly() {
     final String output = anon.anonymize(
         "CREATE STREAM my_stream (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE)\n"
-            + "WITH (kafka_topic='locations', value_format='json', partitions=1);");
+        + "WITH (kafka_topic='locations', value_format='json', partitions=1);");
 
-    Assert.assertEquals(
-        "CREATE STREAM stream1 (column1 VARCHAR, column2 DOUBLE, column3 DOUBLE) "
-            + "WITH (KAFKA_TOPIC='[string]', VALUE_FORMAT='[string]', PARTITIONS='0');",
-        output);
+    Approvals.verify(output);
   }
 
   @Test
@@ -156,11 +151,7 @@ public class QueryAnonymizerTest {
             + "AND browser_cookie = 'aefde34ec'\n"
             + "AND ip_address = '10.10.0.2';");
 
-    Assert.assertEquals(
-        "CREATE STREAM stream1 AS SELECT column1, column2, column3 "
-            + "FROM source1 WHERE column1='0' AND column2='[string]' AND column3='[string]';",
-        output
-    );
+    Approvals.verify(output);
   }
 
   @Test
@@ -169,11 +160,7 @@ public class QueryAnonymizerTest {
         "CREATE TABLE my_table (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE)\n"
             + "WITH (kafka_topic='locations', value_format='json', partitions=1);");
 
-    Assert.assertEquals(
-        "CREATE TABLE table1 (column1 VARCHAR, column2 DOUBLE, column3 DOUBLE) "
-            + "WITH (KAFKA_TOPIC='[string]', VALUE_FORMAT='[string]', PARTITIONS='0');",
-        output
-    );
+    Approvals.verify(output);
   }
 
   @Test
@@ -185,11 +172,7 @@ public class QueryAnonymizerTest {
             + "AND browser_cookie = 'aefde34ec'\n"
             + "AND ip_address = '10.10.0.2';");
 
-    Assert.assertEquals(
-        "CREATE TABLE table1 AS SELECT column1, column2, column3 FROM source1 "
-            + "WHERE column1='0' AND column2='[string]' AND column3='[string]';",
-        output
-    );
+    Approvals.verify(output);
   }
 
   @Test
@@ -203,12 +186,7 @@ public class QueryAnonymizerTest {
             + "\"table.whitelist\"='users',\n"
             + "\"key\"='username');");
 
-    Assert.assertEquals(
-        "CREATE SOURCE CONNECTOR connector WITH (connector.class='[string]', "
-            + "connection.url='[string]', mode='[string]', topic.prefix='[string]', "
-            + "table.whitelist='[string]', key='[string]');",
-        output
-    );
+    Approvals.verify(output);
   }
 
   @Test
@@ -221,10 +199,7 @@ public class QueryAnonymizerTest {
     final String output = anon.anonymize(
         "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;");
 
-    Assert.assertEquals(
-        "CREATE TYPE type AS STRUCT<INTEGER, VARCHAR, VARCHAR>;",
-        output
-    );
+    Approvals.verify(output);
   }
 
   @Test
@@ -232,10 +207,7 @@ public class QueryAnonymizerTest {
     final String output = anon.anonymize(
         "ALTER STREAM my_stream ADD COLUMN c3 INT, ADD COLUMN c4 INT;");
 
-    Assert.assertEquals(
-        "ALTER STREAM stream1 (ADD COLUMN column1 INT, ADD COLUMN column2 INT);",
-        output
-    );
+    Approvals.verify(output);
   }
 
   @Test
@@ -247,11 +219,7 @@ public class QueryAnonymizerTest {
             + "AND browser_cookie = 'aefde34ec'\n"
             + "AND ip_address = '10.10.0.2';");
 
-    Assert.assertEquals(
-        "INSERT INTO stream1 SELECT column1, column2, column3 FROM source1 "
-            + "WHERE column1='0' AND column2='[string]' AND column3='[string]';",
-        output
-    );
+    Approvals.verify(output);
   }
 
   @Test
@@ -259,11 +227,7 @@ public class QueryAnonymizerTest {
     final String output = anon.anonymize(
         "INSERT INTO foo (ROWTIME, KEY_COL, COL_A) VALUES (1510923225000, 'key', 'A');");
 
-    Assert.assertEquals(
-        "INSERT INTO stream1 (column1, column2, column3) "
-            + "VALUES ('0' ,'[string]' ,'[string]');",
-        output
-    );
+    Approvals.verify(output);
   }
 
   @Test
@@ -283,9 +247,6 @@ public class QueryAnonymizerTest {
     final String output = anon.anonymize("CREATE STREAM OUTPUT AS SELECT ID, "
         + "REDUCE(numbers, 2, (s, x) => s + x) AS reduce FROM test;");
 
-    Assert.assertEquals(
-        "CREATE STREAM stream1 AS SELECT column1, udf1 FROM source1;",
-        output
-    );
+    Approvals.verify(output);
   }
 }

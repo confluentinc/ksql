@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.serde.protobuf;
 
+import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
+import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 
 /**
@@ -28,8 +32,16 @@ import org.apache.kafka.connect.data.Schema;
  */
 class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
-  private final ProtobufData protobufData =
-      new ProtobufData(new ProtobufDataConfig(ImmutableMap.of()));
+  private final Map<String, Object> protobufDataConfig;
+  private final ProtobufData protobufData;
+
+  ProtobufSchemaTranslator(final ProtobufProperties properties) {
+    Objects.requireNonNull(properties, "properties");
+    this.protobufDataConfig = ImmutableMap.of(
+        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives());
+
+    this.protobufData = new ProtobufData(new ProtobufDataConfig(protobufDataConfig));
+  }
 
   @Override
   public String name() {
@@ -45,6 +57,6 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
   public ParsedSchema fromConnectSchema(final Schema schema) {
     // Bug in ProtobufData means `fromConnectSchema` throws on the second invocation if using
     // default naming.
-    return new ProtobufData().fromConnectSchema(schema);
+    return new ProtobufData(new ProtobufDataConfig(protobufDataConfig)).fromConnectSchema(schema);
   }
 }

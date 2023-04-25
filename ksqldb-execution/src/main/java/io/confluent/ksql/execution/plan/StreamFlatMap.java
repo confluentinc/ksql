@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.Collections;
 import java.util.List;
@@ -66,6 +67,7 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
     return extractor.visitFlatMap(this);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "tableFunctions is ImmutableList")
   public List<FunctionCall> getTableFunctions() {
     return tableFunctions;
   }

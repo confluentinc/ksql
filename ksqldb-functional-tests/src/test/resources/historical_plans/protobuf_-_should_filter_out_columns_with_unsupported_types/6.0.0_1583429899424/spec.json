@@ -82,7 +82,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 1
+          "partitions" : 1,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  int32 expected = 1;\n  bytes c2 = 2;\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -91,7 +92,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 EXPECTED = 1;\n}\n"
         } ]
       }
     }

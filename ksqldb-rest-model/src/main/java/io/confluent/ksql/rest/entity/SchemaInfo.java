@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -45,6 +46,7 @@ public class SchemaInfo {
   private final ImmutableMap<String, Object> parameters;
 
   @JsonCreator
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "parameters is ImmutableMap")
   public SchemaInfo(
       @JsonProperty("type") final SqlBaseType type,
       @JsonProperty("fields") final List<? extends FieldInfo> fields,
@@ -84,6 +86,7 @@ public class SchemaInfo {
     return Optional.ofNullable(memberSchema);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "parameters is ImmutableMap")
   public ImmutableMap<String, Object> getParameters() {
     return parameters;
   }

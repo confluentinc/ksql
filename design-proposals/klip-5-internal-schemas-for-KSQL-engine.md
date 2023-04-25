@@ -38,7 +38,7 @@ from the external schema fields into the internal schema fields. All of the comp
 field names from the internal schema.
 
 As an example, consider we want to declare s stream on a topic with values in JSON format. The following
-is a sample message value in this topic:
+is a sample record value in this topic:
 
 ```json
 {"@ID": 0, "@NAME": "foo", "MESSAGE.AMOUNT": 0.0, "SELECT": "bar"}
@@ -70,7 +70,7 @@ WHERE “MESSAGE.AMOUNT” < 1;
 ```
 
 KSQL will generate an internal schema for foo before processing the above query and rewrites the query
-based on the internal schema. It then will use the rewritten query to process the messages from the topic.
+based on the internal schema. It then will use the rewritten query to process the records from the topic.
 
 ## Scope
 
@@ -82,7 +82,7 @@ identifiers for Stream/Table names are out of scope.
 
 ## Value/Return
 
-This will eliminate the current requirement of having message field names in Kafka topics to conform
+This will eliminate the current requirement of having record field names in Kafka topics to conform
 to KSQL internal requirements. With this KLIP, KSQL will be able to process topics with any naming convention.
 
 

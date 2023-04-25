@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.2.11-0</version>
+        <version>7.0.10-0</version>
     </parent>
 
     <artifactId>ksqldb-parser</artifactId>
@@ -90,6 +90,7 @@
             <artifactId>approvaltests</artifactId>
             <version>9.5.0</version>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -121,24 +122,14 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
         </plugins>
 
-        <resources>
-            <resource>
-                <directory>src/test/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>ksql-version.streamsProperties</include>
-                </includes>
-            </resource>
-
-            <resource>
-                <directory>src/test/resources</directory>
-                <filtering>false</filtering>
-                <excludes>
-                    <exclude>ksql-version.streamsProperties</exclude>
-                </excludes>
-            </resource>
-        </resources>
     </build>
 </project>

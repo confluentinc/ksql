@@ -23,11 +23,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,6 +64,8 @@ public class OrphanedTransientQueryCleanerTest {
   private ServiceContext serviceContext;
   @Mock
   private KafkaTopicClient topicClient;
+  @Mock
+  private KsqlConfig ksqlConfig;
   @Captor
   private ArgumentCaptor<QueryCleanupTask> taskCaptor;
 
@@ -70,7 +74,8 @@ public class OrphanedTransientQueryCleanerTest {
   @Before
   public void setUp() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
-    cleaner = new OrphanedTransientQueryCleaner(queryCleanupService);
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "tmp/cat/"));
+    cleaner = new OrphanedTransientQueryCleaner(queryCleanupService, ksqlConfig);
   }
 
   @Test

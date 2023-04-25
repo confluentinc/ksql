@@ -53,7 +53,7 @@ public class FilterTest {
 
     assertThat(udf.filterArray(Collections.emptyList(), function1()), is(Collections.emptyList()));
     assertThat(udf.filterArray(Arrays.asList("bowow", "hello", "goodbye", "wowowo"), function2()), is(Arrays.asList("bowow", "wowowo")));
-    assertThat(udf.filterArray(Arrays.asList("woow", "", "wwow"), function2()), is(Arrays.asList("wwow")));
+    assertThat(udf.filterArray(Arrays.asList("woow", "", "wwow"), function2()), is(Collections.singletonList("wwow")));
   }
 
   @Test
@@ -79,8 +79,8 @@ public class FilterTest {
 
   @Test
   public void shouldThrowErrorOnNullArrayInput() {
-    assertThrows(NullPointerException.class, () -> udf.filterArray(Arrays.asList(null), function1()));
-    assertThrows(NullPointerException.class, () -> udf.filterArray(Arrays.asList(null), function2()));
+    assertThrows(NullPointerException.class, () -> udf.filterArray(Collections.singletonList(null), function1()));
+    assertThrows(NullPointerException.class, () -> udf.filterArray(Collections.singletonList(null), function2()));
   }
 
   @Test

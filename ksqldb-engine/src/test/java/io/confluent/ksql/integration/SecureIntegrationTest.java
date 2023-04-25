@@ -128,7 +128,7 @@ public class SecureIntegrationTest {
 
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(30);
+  public final Timeout timeout = Timeout.seconds(90);
 
   private QueryId queryId;
   private KsqlConfig ksqlConfig;
@@ -342,7 +342,7 @@ public class SecureIntegrationTest {
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
     ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
     ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
-    ksqlConfig.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_BETA);
+    ksqlConfig.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2);
 
     givenTestSetupWithAclsForQuery(); // does not authorize TX, but we enabled EOS above
     givenTestSetupWithConfig(ksqlConfig);
@@ -420,7 +420,9 @@ public class SecureIntegrationTest {
         new InternalFunctionRegistry(),
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
-        ksqlConfig);
+        ksqlConfig,
+        Collections.emptyList()
+    );
 
     execInitCreateStreamQueries();
   }

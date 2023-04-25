@@ -215,6 +215,34 @@
           },
           "valueFormat" : {
             "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 2,
+                "precision" : 4,
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            }, {
+              "name" : "KSQL_AGG_VARIABLE_0",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 2,
+                "precision" : 4,
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            } ]
           }
         }, {
           "name" : "test_topic",
@@ -224,7 +252,29 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 2,
+                "precision" : 4,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "2",
+                  "connect.decimal.precision" : "4"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "S2",
           "keyFormat" : {
@@ -233,7 +283,22 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "MIN",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 2,
+                "precision" : 4,
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            } ]
+          }
         } ]
       }
     }

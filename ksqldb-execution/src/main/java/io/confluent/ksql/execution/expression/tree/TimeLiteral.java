@@ -19,26 +19,27 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
+import java.sql.Time;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public class TimeLiteral extends Literal {
 
-  private final String value;
+  private final long value;
 
-  public TimeLiteral(final String value) {
+  public TimeLiteral(final Time value) {
     this(Optional.empty(), value);
   }
 
-  public TimeLiteral(final Optional<NodeLocation> location, final String value) {
+  public TimeLiteral(final Optional<NodeLocation> location, final Time value) {
     super(location);
-    this.value = requireNonNull(value, "value");
+    this.value = requireNonNull(value, "value").getTime();
   }
 
   @Override
-  public String getValue() {
-    return value;
+  public Time getValue() {
+    return new Time(value);
   }
 
   @Override
@@ -61,6 +62,6 @@ public class TimeLiteral extends Literal {
 
   @Override
   public int hashCode() {
-    return value.hashCode();
+    return Long.hashCode(value);
   }
 }

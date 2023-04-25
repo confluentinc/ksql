@@ -63,7 +63,9 @@ public final class SessionStoreCacheBypass {
     }
   }
 
-  private SessionStoreCacheBypass() {}
+  private SessionStoreCacheBypass() {
+
+  }
 
   interface SessionStoreCacheBypassFetcher {
 

@@ -56,8 +56,10 @@ import org.slf4j.LoggerFactory;
  *   <li>If two methods exist that match given the above rules, and both
  *       have variable arguments, return the method with the more non-variable
  *       arguments.</li>
- *   <li>If two methods exist that match only null values, return the one
- *       that was added first.</li>
+ *   <li>If two methods exist that match given the above rules, return the
+ *       method with fewer generic arguments.</li>
+ *   <li>If two methods exist that match given the above rules, the function
+ *       call is ambiguous and an exception is thrown.</li>
  * </ul>
  */
 public class UdfIndex<T extends FunctionSignature> {
@@ -112,7 +114,6 @@ public class UdfIndex<T extends FunctionSignature> {
       );
     }
 
-    final int order = allFunctions.size();
 
     Node curr = root;
     Node parent = curr;
@@ -125,14 +126,14 @@ public class UdfIndex<T extends FunctionSignature> {
     if (function.isVariadic()) {
       // first add the function to the parent to address the
       // case of empty varargs
-      parent.update(function, order);
+      parent.update(function);
 
       // then add a new child node with the parameter value type
       // and add this function to that node
       final ParamType varargSchema = Iterables.getLast(parameters);
       final Parameter vararg = new Parameter(varargSchema, true);
       final Node leaf = parent.children.computeIfAbsent(vararg, ignored -> new Node());
-      leaf.update(function, order);
+      leaf.update(function);
 
       // add a self referential loop for varargs so that we can
       // add as many of the same param at the end and still retrieve
@@ -140,33 +141,46 @@ public class UdfIndex<T extends FunctionSignature> {
       leaf.children.putIfAbsent(vararg, leaf);
     }
 
-    curr.update(function, order);
+    curr.update(function);
   }
 
   T getFunction(final List<SqlArgument> arguments) {
-    final List<Node> candidates = new ArrayList<>();
 
     // first try to get the candidates without any implicit casting
-    getCandidates(arguments, 0, root, candidates, new HashMap<>(), false);
-    final Optional<T> fun = candidates
-        .stream()
-        .max(Node::compare)
-        .map(node -> node.value);
-
-    if (fun.isPresent()) {
-      return fun.get();
+    Optional<T> candidate = findMatchingCandidate(arguments, false);
+    if (candidate.isPresent()) {
+      return candidate.get();
     } else if (!supportsImplicitCasts) {
       throw createNoMatchingFunctionException(arguments);
     }
 
-    // if none were found (candidates is empty) try again with
-    // implicit casting
-    getCandidates(arguments, 0, root, candidates, new HashMap<>(), true);
-    return candidates
-        .stream()
-        .max(Node::compare)
-        .map(node -> node.value)
-        .orElseThrow(() -> createNoMatchingFunctionException(arguments));
+    // if none were found (candidate isn't present) try again with implicit casting
+    candidate = findMatchingCandidate(arguments, true);
+    if (candidate.isPresent()) {
+      return candidate.get();
+    }
+    throw createNoMatchingFunctionException(arguments);
+  }
+
+  private Optional<T> findMatchingCandidate(
+      final List<SqlArgument> arguments, final boolean allowCasts) {
+
+    final List<Node> candidates = new ArrayList<>();
+
+    getCandidates(arguments, 0, root, candidates, new HashMap<>(), allowCasts);
+    candidates.sort(Node::compare);
+
+    final int len = candidates.size();
+    if (len == 1) {
+      return Optional.of(candidates.get(0).value);
+    } else if (len > 1) {
+      if (candidates.get(len - 1).compare(candidates.get(len - 2)) > 0) {
+        return Optional.of(candidates.get(len - 1).value);
+      }
+      throw createVagueImplicitCastException(arguments);
+    }
+
+    return Optional.empty();
   }
 
   private void getCandidates(
@@ -194,10 +208,8 @@ public class UdfIndex<T extends FunctionSignature> {
     }
   }
 
-  private KsqlException createNoMatchingFunctionException(final List<SqlArgument> paramTypes) {
-    LOG.debug("Current UdfIndex:\n{}", describe());
-
-    final String requiredTypes = paramTypes.stream()
+  private String getParamsAsString(final List<SqlArgument> paramTypes) {
+    return paramTypes.stream()
         .map(argument -> {
           if (argument == null) {
             return "null";
@@ -206,10 +218,35 @@ public class UdfIndex<T extends FunctionSignature> {
           }
         })
         .collect(Collectors.joining(", ", "(", ")"));
+  }
 
-    final String acceptedTypes = allFunctions.values().stream()
+  private String getAcceptedTypesAsString() {
+    return allFunctions.values().stream()
         .map(UdfIndex::formatAvailableSignatures)
         .collect(Collectors.joining(System.lineSeparator()));
+  }
+
+  private KsqlException createVagueImplicitCastException(final List<SqlArgument> paramTypes) {
+    LOG.debug("Current UdfIndex:\n{}", describe());
+    throw new KsqlException("Function '" + udfName
+        + "' cannot be resolved due to ambiguous method parameters "
+        + getParamsAsString(paramTypes) + "."
+        + System.lineSeparator()
+        + "Use CAST() to explicitly cast your parameters to one of the supported function calls."
+        + System.lineSeparator()
+        + "Valid function calls are:"
+        + System.lineSeparator()
+        + getAcceptedTypesAsString()
+        + System.lineSeparator()
+        + "For detailed information on a function run: DESCRIBE FUNCTION <Function-Name>;");
+  }
+
+  private KsqlException createNoMatchingFunctionException(final List<SqlArgument> paramTypes) {
+    LOG.debug("Current UdfIndex:\n{}", describe());
+
+    final String requiredTypes = getParamsAsString(paramTypes);
+
+    final String acceptedTypes = getAcceptedTypesAsString();
 
     return new KsqlException("Function '" + udfName
         + "' does not accept parameters " + requiredTypes + "."
@@ -273,17 +310,15 @@ public class UdfIndex<T extends FunctionSignature> {
 
     private final Map<Parameter, Node> children;
     private T value;
-    private int order = 0;
 
     private Node() {
       this.children = new HashMap<>();
       this.value = null;
     }
 
-    private void update(final T function, final int order) {
+    private void update(final T function) {
       if (compareFunctions.compare(function, value) > 0) {
         value = function;
-        this.order = order;
       }
     }
 
@@ -307,8 +342,15 @@ public class UdfIndex<T extends FunctionSignature> {
     }
 
     int compare(final Node other) {
-      final int compare = compareFunctions.compare(value, other.value);
-      return compare == 0 ? -(order - other.order) : compare;
+      final int compareVal = compareFunctions.compare(value, other.value);
+      return compareVal == 0 ? countGenerics(other) - countGenerics(this) : compareVal;
+    }
+
+    private int countGenerics(final Node node) {
+      return node.value.parameters().stream()
+          .filter(GenericsUtil::hasGenerics)
+          .mapToInt(p -> 1)
+          .sum();
     }
 
   }

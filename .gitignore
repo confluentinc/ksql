@@ -8,11 +8,17 @@ node/
 node_modules/
 logs/
 
+# Test directories
+junit*/
+
 # IntelliJ data
 *.iml
 *.iws
 *.ipr
 .idea/
+
+# Maven wrapper
+.mvn/
 
 # VSCode data
 .vscode/

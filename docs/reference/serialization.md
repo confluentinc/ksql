@@ -5,7 +5,7 @@ tagline:  Serialize and deserialize data with ksqlDB
 description: Learn how to control serialization and deserialization in ksqlDB queries
 ---
 
-The term _serialization format_ refers to the manner in which an event's raw bytes
+The term _serialization format_ refers to the manner in which a record's raw bytes
 are translated to and from information structures that ksqlDB can understand
 at runtime. ksqlDB offers several mechanisms for controlling serialization
 and deserialization.
@@ -121,7 +121,14 @@ delimiter characters by specifying the KEY_DELIMITER and/or VALUE_DELIMITER when
 FORMAT='DELIMITED' in a WITH clause. Only a single character is valid
 as a delimiter. The default is the comma character. For space- and
 tab-delimited values, use the special values `SPACE` or `TAB`, not an actual
-space or tab character.
+space or tab character. 
+
+The delimiter is a Unicode character, as defined in `java.lang.Character`.
+For example, the smiley-face character works:
+
+```sql
+CREATE STREAM delim_stream (f1 STRING, f2 STRING) with (KAFKA_TOPIC='delim', FORMAT='DELIMITED', VALUE_DELIMITER='☺', ...);
+```
 
 The serialized object should be a Kafka-serialized string, which will be
 split into columns.
@@ -137,7 +144,12 @@ with `ORGID KEY` of `120`, `ID KEY` of `21`, `NAME` of `bob` and `AGE` of `49`.
 
 This data format supports all SQL
 [data types](/reference/sql/data-types) except `ARRAY`, `MAP` and
-`STRUCT`. `TIMESTAMP` typed data is serialized as a long value indicating the Unix epoch time in milliseconds.
+`STRUCT`. 
+
+`TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
+`TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
+`DATE` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
+`BYTES` typed data is serialized as a Base64-encoded string value.
 
 ### JSON
 
@@ -259,6 +271,47 @@ a timestamp at `1970-01-01T00:00:00.001` is serialized as
 ksqlDb deserializes a number as a `TIMESTAMP` if it corresponds to a `TIMESTAMP` typed field in
 the stream.
 
+#### Time Serialization
+
+Times are serialized as numbers indicating the number of milliseconds since the beginning of the day.
+For example, `00:00:01` is serialized as
+
+```json
+{
+  "value": 1000
+}
+```
+
+ksqlDb deserializes a number as a `TIME` if it corresponds to a `TIME` typed field in
+the stream.
+
+#### Date Serialization
+
+Dates are serialized as numbers indicating the number of days since the Unix epoch. For example,
+a timestamp at `1970-01-03` is serialized as
+
+```json
+{
+  "value": 2
+}
+```
+
+ksqlDb deserializes a number as a `DATE` if it corresponds to a `DATE` typed field in
+the stream.
+
+#### Bytes Serialization
+Bytes are serialized as a Base64-encoded string value. For example, the byte array `[61, 62, 63]` is
+serialized as
+
+```json
+{
+  "value": "YWJj"
+}
+```
+
+ksqlDb deserializes a string as `BYTES` if it corresponds to a `BYTES` typed field in
+the stream.
+
 #### Field Name Case Sensitivity
 
 The format is case-insensitive when matching a SQL field name with a
@@ -280,6 +333,10 @@ used.
 The `AVRO` format supports Avro binary serialization of all SQL
 [data types](/reference/sql/data-types), including records and
 top-level primitives, arrays, and maps.
+
+!!! note
+    ksqlDB doesn't support creating streams or tables from a topic that
+    has a recursive Avro schema.
 
 The format requires ksqlDB to be configured to store and retrieve the Avro
 schemas from the {{ site.srlong }}. For more information, see

@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser;
 
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
@@ -53,7 +54,7 @@ public interface KsqlParser {
     private ParsedStatement(final String statementText, final SingleStatementContext statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
       this.statement = Objects.requireNonNull(statement, "statement");
-      this.maskedStatementText = QueryMask.getMaskedStatement(statementText);
+      maskedStatementText = QueryMask.getMaskedStatement(statementText);
     }
 
     public static ParsedStatement of(
@@ -82,13 +83,14 @@ public interface KsqlParser {
       return statementText;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+    public SingleStatementContext getStatement() {
+      return statement;
+    }
+
     @Override
     public String toString() {
       return maskedStatementText;
-    }
-
-    public SingleStatementContext getStatement() {
-      return statement;
     }
   }
 
@@ -102,7 +104,7 @@ public interface KsqlParser {
     private PreparedStatement(final String statementText, final T statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
       this.statement = Objects.requireNonNull(statement, "statement");
-      this.maskedStatementText = QueryMask.getMaskedStatement(statementText);
+      maskedStatementText = QueryMask.getMaskedStatement(statementText);
     }
 
     public static <T extends Statement> PreparedStatement<T> of(
@@ -137,7 +139,7 @@ public interface KsqlParser {
 
     @Override
     public String toString() {
-      return this.maskedStatementText;
+      return maskedStatementText;
     }
 
     @Override

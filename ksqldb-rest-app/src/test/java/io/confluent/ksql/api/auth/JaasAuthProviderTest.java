@@ -261,11 +261,11 @@ public class JaasAuthProviderTest {
     when(server.getWorkerExecutor()).thenReturn(worker);
     doAnswer(invocation -> {
       final Handler<Promise<User>> blockingCodeHandler = invocation.getArgument(0);
-      final Handler<AsyncResult<User>> resultHandler = invocation.getArgument(1);
+      final Handler<AsyncResult<User>> resultHandler = invocation.getArgument(2);
       final Promise<User> promise = Promise.promise();
       promise.future().onComplete(resultHandler);
       blockingCodeHandler.handle(promise);
       return null;
-    }).when(worker).executeBlocking(any(), any());
+    }).when(worker).executeBlocking(any(), eq(false), any());
   }
 }

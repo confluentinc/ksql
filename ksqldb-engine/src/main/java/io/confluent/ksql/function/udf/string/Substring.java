@@ -19,18 +19,20 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
+import java.nio.ByteBuffer;
 
 @SuppressWarnings("unused") // Invoked via reflection.
 @UdfDescription(
     name = "substring",
     category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Returns a substring of the passed in value."
+    description = "Returns the portion of the string or bytes passed in value."
 )
 public class Substring {
 
-  @Udf(description = "Returns a substring of str from pos to the end of str")
+  @Udf(description = "Returns the portion of str from pos to the end of str")
   public String substring(
       @UdfParameter(description = "The source string.") final String str,
       @UdfParameter(description = "The base-one position to start from.") final Integer pos
@@ -38,11 +40,11 @@ public class Substring {
     if (str == null || pos == null) {
       return null;
     }
-    final int start = getStartIndex(str, pos);
+    final int start = getStartIndex(str.length(), pos);
     return str.substring(start);
   }
 
-  @Udf(description = "Returns a substring of str that starts at pos and is of length len")
+  @Udf(description = "Returns the portion of str that starts at pos and is of length len")
   public String substring(
       @UdfParameter(description = "The source string.") final String str,
       @UdfParameter(description = "The base-one position to start from.") final Integer pos,
@@ -51,18 +53,49 @@ public class Substring {
     if (str == null || pos == null || length == null) {
       return null;
     }
-    final int start = getStartIndex(str, pos);
-    final int end = getEndIndex(str, start, length);
+    final int start = getStartIndex(str.length(), pos);
+    final int end = getEndIndex(str.length(), start, length);
     return str.substring(start, end);
   }
 
-  private static int getStartIndex(final String value, final Integer pos) {
-    return pos < 0
-        ? Math.max(value.length() + pos, 0)
-        : Math.max(Math.min(pos - 1, value.length()), 0);
+  @Udf(description = "Returns the portion of the bytes value from pos to the end of the "
+      + "bytes value")
+  public ByteBuffer substring(
+      @UdfParameter(description = "The source bytes.") final ByteBuffer bytes,
+      @UdfParameter(description = "The base-one position to start from.") final Integer pos
+  ) {
+    if (bytes == null || pos == null) {
+      return null;
+    }
+
+    final int start = getStartIndex(bytes.capacity(), pos);
+    final int end = bytes.capacity();
+    return ByteBuffer.wrap(BytesUtils.getByteArray(bytes, start, end));
   }
 
-  private static int getEndIndex(final String value, final int start, final int length) {
-    return Math.max(Math.min(start + length, value.length()), start);
+  @Udf(description = "Returns the portion of the bytes value that starts at pos and is of "
+      + "length len")
+  public ByteBuffer substring(
+      @UdfParameter(description = "The source bytes.") final ByteBuffer bytes,
+      @UdfParameter(description = "The base-one position to start from.") final Integer pos,
+      @UdfParameter(description = "The length to extract.") final Integer length
+  ) {
+    if (bytes == null || pos == null || length == null) {
+      return null;
+    }
+
+    final int start = getStartIndex(bytes.capacity(), pos);
+    final int end = getEndIndex(bytes.capacity(), start, length);
+    return ByteBuffer.wrap(BytesUtils.getByteArray(bytes, start, end));
+  }
+
+  private static int getStartIndex(final int valueLength, final Integer pos) {
+    return pos < 0
+        ? Math.max(valueLength + pos, 0)
+        : Math.max(Math.min(pos - 1, valueLength), 0);
+  }
+
+  private static int getEndIndex(final int valueLength, final int start, final int length) {
+    return Math.max(Math.min(start + length, valueLength), start);
   }
 }

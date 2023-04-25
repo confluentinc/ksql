@@ -18,7 +18,7 @@ package io.confluent.support.metrics.utils;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
@@ -27,7 +27,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Test;
 
 public class WebClientTest {
-  private String customerId = CustomerIdExamples.VALID_CUSTOMER_IDS.get(0);
+  private final String customerId = CustomerIdExamples.VALID_CUSTOMER_IDS.get(0);
   private static final String SECURE_LIVE_TEST_ENDPOINT = "https://support-metrics.confluent.io/test";
 
   @Test
@@ -40,7 +40,7 @@ public class WebClientTest {
     WebClient.send(customerId, nullData, p, null);
 
     // Then
-    verifyZeroInteractions(p);
+    verifyNoMoreInteractions(p);
   }
 
   @Test
@@ -53,7 +53,7 @@ public class WebClientTest {
     WebClient.send(customerId, emptyData, p, null);
 
     // Then
-    verifyZeroInteractions(p);
+    verifyNoMoreInteractions(p);
   }
 
   @Test

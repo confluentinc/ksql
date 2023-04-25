@@ -1,0 +1,25 @@
+{
+  "comments": [
+    "Tests covering the use of the LEN function"
+  ],
+  "tests": [
+    {
+      "name": "length of a string",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, S STRING, B BYTES) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEN(S) AS S, LEN(B) AS B FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"S": "ABC", "B": "YWJj"}},
+        {"topic": "input_topic", "key": 2, "value": {"S": "", "B": ""}},
+        {"topic": "input_topic", "key": 3, "value": {"S": null, "B": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"S": 3, "B": 3}},
+        {"topic": "OUTPUT", "key": 2, "value": {"S": 0, "B": 0}},
+        {"topic": "OUTPUT", "key": 3, "value": {"S": null, "B": null}}
+      ]
+    }
+  ]
+}

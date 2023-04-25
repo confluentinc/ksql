@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -123,7 +123,7 @@ public class TableSuppressBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldSuppressSourceTable() {
     // When:
     final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, buildContext, executionKeyFactory, physicalSchemaFactory, materializedFactory);

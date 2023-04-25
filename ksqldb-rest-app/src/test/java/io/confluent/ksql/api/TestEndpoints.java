@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
@@ -39,8 +41,10 @@ import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -54,8 +58,9 @@ public class TestEndpoints implements Endpoints {
   private List<KsqlEntity> ksqlEndpointResponse;
   private String lastSql;
   private JsonObject lastProperties;
+  private JsonObject lastSessionVariables;
   private String lastTarget;
-  private Set<TestQueryPublisher> queryPublishers = new HashSet<>();
+  private final Set<TestQueryPublisher> queryPublishers = new HashSet<>();
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
@@ -64,8 +69,13 @@ public class TestEndpoints implements Endpoints {
   private ApiSecurityContext lastApiSecurityContext;
 
   @Override
-  public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-      final JsonObject properties, final Context context, final WorkerExecutor workerExecutor,
+  public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(
+      final String sql,
+      final Map<String, Object> properties,
+      final Map<String, Object> sessionVariables,
+      final Map<String, Object> requestProperties,
+      final Context context,
+      final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
       final MetricsCallbackHolder metricsCallbackHolder) {
     CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
@@ -74,7 +84,8 @@ public class TestEndpoints implements Endpoints {
       completableFuture.completeExceptionally(createQueryPublisherException);
     } else {
       this.lastSql = sql;
-      this.lastProperties = properties;
+      this.lastProperties = new JsonObject(properties);
+      this.lastSessionVariables = new JsonObject(sessionVariables);
       this.lastApiSecurityContext = apiSecurityContext;
       final boolean push = sql.toLowerCase().contains("emit changes");
       final int limit = extractLimit(sql);
@@ -103,7 +114,7 @@ public class TestEndpoints implements Endpoints {
       completableFuture.completeExceptionally(createInsertsSubscriberException);
     } else {
       this.lastTarget = target;
-      this.lastProperties = properties;
+      this.lastProperties = properties.copy();
       this.lastApiSecurityContext = apiSecurityContext;
       BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(
           Vertx.currentContext());
@@ -122,6 +133,7 @@ public class TestEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
     this.lastSql = request.getUnmaskedKsql();
     this.lastProperties = new JsonObject(request.getConfigOverrides());
+    this.lastSessionVariables = new JsonObject(request.getSessionVariables());
     this.lastApiSecurityContext = apiSecurityContext;
     CompletableFuture<EndpointResponse> cf = new CompletableFuture<>();
 
@@ -145,7 +157,7 @@ public class TestEndpoints implements Endpoints {
   public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
       WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
       ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-      KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
+      KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder, Context context) {
     return null;
   }
 
@@ -172,6 +184,12 @@ public class TestEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
       String action, ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
     return null;
   }
 
@@ -209,7 +227,7 @@ public class TestEndpoints implements Endpoints {
 
   @Override
   public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
   }
 
@@ -223,7 +241,7 @@ public class TestEndpoints implements Endpoints {
   }
 
   public synchronized void setKsqlEndpointResponse(final List<KsqlEntity> entities) {
-    this.ksqlEndpointResponse = entities;
+    this.ksqlEndpointResponse = ImmutableList.copyOf(entities);
   }
 
   public synchronized String getLastSql() {
@@ -231,11 +249,15 @@ public class TestEndpoints implements Endpoints {
   }
 
   public synchronized JsonObject getLastProperties() {
-    return lastProperties;
+    return lastProperties.copy();
+  }
+
+  public synchronized JsonObject getLastSessionVariables() {
+    return lastSessionVariables.copy();
   }
 
   public synchronized Set<TestQueryPublisher> getQueryPublishers() {
-    return queryPublishers;
+    return Collections.unmodifiableSet(queryPublishers);
   }
 
   public synchronized String getLastTarget() {
@@ -254,14 +276,17 @@ public class TestEndpoints implements Endpoints {
     this.rowsBeforePublisherError = rowsBeforePublisherError;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public synchronized void setCreateQueryPublisherException(final RuntimeException exception) {
     this.createQueryPublisherException = exception;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public synchronized void setCreateInsertsSubscriberException(final RuntimeException exception) {
     this.createInsertsSubscriberException = exception;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public synchronized void setExecuteKsqlRequestException(final RuntimeException exception) {
     this.executeKsqlRequestException = exception;
   }

@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
@@ -63,6 +64,7 @@ public final class CodeGenSpec {
     return arguments.stream().map(ArgumentSpec::type).toArray(Class[]::new);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "arguments is ImmutableList")
   public List<ArgumentSpec> arguments() {
     return arguments;
   }

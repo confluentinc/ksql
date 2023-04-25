@@ -46,6 +46,7 @@ import java.util.List;
     @JsonSubTypes.Type(value = CreateConnectorEntity.class, name = "connector_info"),
     @JsonSubTypes.Type(value = DropConnectorEntity.class, name = "drop_connector"),
     @JsonSubTypes.Type(value = ConnectorList.class, name = "connector_list"),
+    @JsonSubTypes.Type(value = ConnectorPluginsList.class, name = "connector_plugins_list"),
     @JsonSubTypes.Type(value = ConnectorDescription.class, name = "connector_description"),
     @JsonSubTypes.Type(value = TypeList.class, name = "type_list"),
     @JsonSubTypes.Type(value = ErrorEntity.class, name = "error_entity"),
@@ -70,7 +71,7 @@ public abstract class KsqlEntity {
   }
 
   public List<KsqlWarning> getWarnings() {
-    return warnings;
+    return Collections.unmodifiableList(warnings);
   }
   
   public void updateWarnings(final List<KsqlWarning> warnings) {

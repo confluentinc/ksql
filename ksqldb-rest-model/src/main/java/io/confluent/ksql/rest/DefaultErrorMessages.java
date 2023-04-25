@@ -31,6 +31,8 @@ public class DefaultErrorMessages implements ErrorMessages {
           + System.lineSeparator()
           + "DDL statements will not be processed any further."
           + System.lineSeparator()
+          + "Queries may not run properly while the server is in a corrupted state."
+          + System.lineSeparator()
           + "If a backup of the command topic is available, "
           + "restore the command topic using the backup file."
           + System.lineSeparator()

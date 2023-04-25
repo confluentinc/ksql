@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 
 /**
@@ -34,6 +35,13 @@ public interface ConnectClient {
    * @return a list of connector names
    */
   ConnectResponse<List<String>> connectors();
+
+  /**
+   * List all of the connector plugins available in this connect cluster.
+   *
+   * @return a list of connector plugins
+   */
+  ConnectResponse<List<ConnectorPluginInfo>> connectorPlugins();
 
   /**
    * Gets the configuration for a specified connector.

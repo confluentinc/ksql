@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.expression.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
 import java.util.Objects;
@@ -46,6 +47,7 @@ public class CreateStructExpression extends Expression {
     return visitor.visitStructExpression(this, context);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "fields is ImmutableList")
   public ImmutableList<Field> getFields() {
     return fields;
   }

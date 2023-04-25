@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -123,7 +124,7 @@ public final class CoercionUtil {
   public static final class Result {
 
     private final Optional<SqlType> commonType;
-    private final List<Expression> expressions;
+    private final ImmutableList<Expression> expressions;
 
 
     public Result(
@@ -131,13 +132,14 @@ public final class CoercionUtil {
         final List<Expression> expressions
     ) {
       this.commonType = requireNonNull(commonType, "commonType");
-      this.expressions = requireNonNull(expressions, "expressions");
+      this.expressions = ImmutableList.copyOf(requireNonNull(expressions, "expressions"));
     }
 
     public Optional<SqlType> commonType() {
       return commonType;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "expressions is ImmutableList")
     public List<Expression> expressions() {
       return expressions;
     }

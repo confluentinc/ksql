@@ -18,6 +18,7 @@ package io.confluent.ksql.tools.migrations.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -33,7 +34,7 @@ import org.junit.rules.TemporaryFolder;
 public class MigrationsDirectoryUtilTest {
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
+  public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
   private String testDir;
 

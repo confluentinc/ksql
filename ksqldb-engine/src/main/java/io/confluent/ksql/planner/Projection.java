@@ -18,6 +18,7 @@ package io.confluent.ksql.planner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.name.SourceName;
@@ -68,10 +69,12 @@ public final class Projection {
         .collect(Collectors.toSet()));
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "selectItems is ImmutableList")
   public List<? extends SelectItem> selectItems() {
     return selectItems;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "singles is ImmutableSet")
   public Set<Expression> singleExpressions() {
     return singles;
   }

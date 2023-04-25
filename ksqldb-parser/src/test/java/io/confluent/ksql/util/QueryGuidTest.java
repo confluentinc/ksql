@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import java.time.LocalDateTime;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -87,10 +88,10 @@ public class QueryGuidTest {
     // When:
     final String id1 =
         new QueryGuid(TEST_NAMESPACE, "TEST", anonQuery1)
-            .getStructuralGuid();
+        .getStructuralGuid();
     final String id2 =
         new QueryGuid(TEST_NAMESPACE, "TEST", anonQuery2)
-            .getStructuralGuid();
+        .getStructuralGuid();
 
     // Then:
     Assert.assertNotEquals(id1, id2);

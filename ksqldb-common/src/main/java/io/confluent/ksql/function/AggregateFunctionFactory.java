@@ -36,7 +36,7 @@ public abstract class AggregateFunctionFactory {
   private final UdfMetadata metadata;
 
   // used in most numeric functions
-  protected static final List<List<ParamType>> NUMERICAL_ARGS = ImmutableList
+  protected static final ImmutableList<List<ParamType>> NUMERICAL_ARGS = ImmutableList
       .<List<ParamType>>builder()
       .add(ImmutableList.of(ParamTypes.INTEGER))
       .add(ImmutableList.of(ParamTypes.LONG))

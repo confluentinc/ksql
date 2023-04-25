@@ -1,10 +1,10 @@
 # ![KSQL rocket](ksql-rocket.png) ksqlDB
 
-### The event streaming database purpose-built for stream processing applications
+### The database purpose-built for stream processing applications
 
 # Overview
 
-ksqlDB is an event streaming database for Apache Kafka. It is **distributed**, **scalable**, **reliable**, and **real-time**. ksqlDB combines the power of real-time stream processing with the approachable feel of a relational database through a familiar, lightweight SQL syntax. ksqlDB offers these core primitives:
+ksqlDB is a database for building stream processing applications on top of Apache Kafka. It is **distributed**, **scalable**, **reliable**, and **real-time**. ksqlDB combines the power of real-time stream processing with the approachable feel of a relational database through a familiar, lightweight SQL syntax. ksqlDB offers these core primitives:
 
 * **[Streams](https://docs.ksqldb.io/en/latest/concepts/collections/streams/) and [tables](https://docs.ksqldb.io/en/latest/concepts/collections/tables/)** - Create relations with schemas over your Apache Kafka topic data
 * **[Materialized views](https://docs.ksqldb.io/en/latest/concepts/materialized-views/)** - Define real-time, incrementally updated materialized views over streams using SQL
@@ -81,7 +81,7 @@ CREATE TABLE possible_fraud AS
 
 ## Monitoring
 
-Kafka's ability to provide scalable ordered messages with stream processing make it a common solution for log data monitoring and alerting. ksqlDB lends a familiar syntax for tracking, understanding, and managing alerts.
+Kafka's ability to provide scalable ordered records with stream processing make it a common solution for log data monitoring and alerting. ksqlDB lends a familiar syntax for tracking, understanding, and managing alerts.
 
 ```sql
 CREATE TABLE error_counts AS

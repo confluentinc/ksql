@@ -40,6 +40,10 @@ CREATE STREAM pageviews_enriched AS
   EMIT CHANGES;
 ```
 
+!!! note
+    Currently, the join expression must be a single column equal comparison.
+    Non-equi joins, or joins on multiple columns are not supported. 
+
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
 units, see [Time Units](/reference/sql/time/#time-units).
@@ -51,7 +55,7 @@ the order was placed, and shipped within 2 hours of the payment being received.
 ```sql
    CREATE STREAM shipped_orders AS
      SELECT 
-        o.id as orderId 
+        o.id as orderId,
         o.itemid as itemId,
         s.id as shipmentId,
         p.id as paymentId
@@ -64,18 +68,19 @@ Joins and Windows
 -----------------
 
 ksqlDB enables grouping records that have the same key for stateful
-operations, like joins, into *windows*. You specify a retention period
-for the window, and this retention period controls how long ksqlDB waits
-for out-of-order records. If a record arrives after
-the window's retention period has passed, the record is discarded and
-isn't processed in that window.
+operations, like joins, into *windows*. At the moment, ksqlDB uses a fixed grace period of 24 hours,
+which mean that a record can arrive out-of-order for up to 24 hours, and it's still joined correctly
+based on its timestamp.
+If a record arrives after the window's grace period has passed, the record is discarded and
+isn't processed.
 
->Note: Only stream-stream joins are windowed.
+!!! note
+    Only stream-stream joins are windowed.
 
 Windows are tracked per record key. In join operations, ksqlDB uses a
 windowing *state store* to store all of the records received so far
 within the defined window boundary. Old records in the state store are
-purged after the specified window retention period.
+purged after the window grace period passed.
 
 For more information on windows, see
 [Windows in ksqlDB Queries](../../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
@@ -88,10 +93,12 @@ successful.
 
 ### Co-partitioned data
 
-Input data must be co-partitioned when joining. This ensures that
+For most joins, input data must be co-partitioned when joining. This ensures that
 input records with the same key, from both sides of the join, are
-delivered to the same stream task during processing. It's your
-responsibility to ensure data co-partitioning when joining. For more
+delivered to the same stream task during processing. For some cases, ksqlDB
+may repartition the data automatically, if required. But there are some cases
+for which it's your responsibility to ensure data co-partitioning when joining. The only
+join that does not require co-partitioning is a foreign-key table-table join. For more
 information, see [Partition Data to Enable Joins](partition-data.md).
 
 Join Capabilities
@@ -102,7 +109,7 @@ including INNER, LEFT OUTER, and FULL OUTER. Frequently, LEFT OUTER is
 shortened to LEFT JOIN, and FULL OUTER is shortened to OUTER JOIN.
 
 !!! note
-      RIGHT OUTER JOIN isn't supported. Instead, swap the operands and use
+      RIGHT OUTER JOIN isn't supported at the moment. Instead, swap the operands and use
       LEFT JOIN.
 
 The following table shows the supported combinations.
@@ -179,7 +186,8 @@ ignored and don't trigger the join.
 Stream-Table Joins
 ------------------
 
-ksqlDB only supports INNER and LEFT joins between a stream and a table.
+ksqlDB supports INNER and LEFT joins between a stream and a table.
+An OUTER join is not available because it can't be defined with sound semantics.
 
 Stream-table joins are always non-windowed joins. You can perform table
 lookups against a table when a new record arrives on the stream. Only
@@ -247,8 +255,13 @@ the table data _before_ starting to produce to your stream.
 Table-Table Joins
 -----------------
 
-ksqlDB supports INNER, LEFT OUTER, and FULL OUTER joins between tables.
-Joins matching multiple records (one-to-many) aren't supported.
+ksqlDB supports primary-key (1:1) as well as foreign-key (1:N) joins between tables.
+Many-to-many (N:M) joins are not supported currently.
+For a foreign-key join, you can use any left table column in the join condition
+to join it with the primary-key of the right table.
+
+For primary-key joins INNER, LEFT OUTER, and FULL OUTER joins are supported.
+For foreign-key joins INNER and LEFT OUTER joins are supported.
 
 Table-table joins are always non-windowed joins.
 
@@ -259,23 +272,19 @@ Table-table joins are eventually consistent.
       are no guarantees, which can cause missing results or leftRecord-NULL
       results.
 
-Table-table joins can be joined only on their `PRIMARY KEY` field, and one-to-many
-(1:N) joins aren't supported.
+### Semantics of Primary-Key Table-Table Joins
 
-### Semantics of Table-Table Joins
-
-The semantics of the various table-table join variants are shown in the
+The semantics of the various 1:1 table-table join variants are shown in the
 following table. In the table, each row represents a new incoming
 record. The following assumptions apply:
 
 -   All records have the same key.
 -   All records are processed in timestamp order.
 
-Input records with a NULL value are interpreted as tombstones for the
-corresponding key, which indicate the deletion of the key from the
-table. Tombstones don't trigger the join. When an input tombstone is
-received, an output tombstone is forwarded directly to the join result
-table, if the corresponding key exists already in the join result table.
+Input records with a `null` value are interpreted as tombstones for the
+corresponding key, which indicate the deletion of the key from the table.
+When an input tombstone is received, an output tombstone may be forwarded
+to the join result table, if the corresponding join result exists in the result table.
 
 
 | Timestamp | Left Table       | Right Table      | INNER JOIN       | LEFT JOIN        | OUTER JOIN       |
@@ -295,6 +304,40 @@ table, if the corresponding key exists already in the join result table.
 | 13        |                  | null (tombstone) |                  |                  |                  |
 | 14        |                  | d                |                  |                  | [null, d]        |
 | 15        | D                |                  | [D, d]           | [D, d]           | [D, d]           |
+
+### Semantics of Foreign-Key Table-Table Joins
+
+The semantics of the various 1:N table-table join variants are shown in the
+following table. In the table, each row represents a new incoming
+record. The following assumptions apply:
+
+-   The primary-key of the left and output table is denoted in upper-case letters.
+-   The foreign-key from the left table and the primary-key of the right table is denoted in lower-case letters.
+-   All records are processed in timestamp order.
+
+Input records with a `null` value are interpreted as tombstones for the
+corresponding key, which indicate the deletion of the key from the table.
+When an input tombstone is received, one or multiple output tombstones
+may be forwarded to the join result table, if a corresponding join results
+exists in the result table.
+
+
+| Timestamp | Left Table           | Right Table          | INNER JOIN                                 | LEFT JOIN                            |
+|-----------|----------------------|----------------------|--------------------------------------------|--------------------------------------|
+| 1         | [A] null (tombstone) |                      |                                            |                                      |
+| 2         |                      | [a] null (tombstone) |                                            |                                      |
+| 3         | [A,a,1]              |                      |                                            | [A,a,1,NULL,NULL]                    |
+| 4         |                      | [a,10]               | [A,a,1,a,10]                               | [A,a,1,a,10]                         |
+| 5         |                      | [a,11]               | [A,a,1,a,11]                               | [A,a,1,a,11]                         |
+| 6         | [A,a,2]              |                      | [A,a,2,a,11]                               | [A,a,2,a,11]                         |
+| 7         | [B,a,3]              |                      | [B,a,3,a,11]                               | [B,a,3,a,11]                         |
+| 8         |                      | [a,12]               | [A,a,2,a,12], [B,a,3,a,12]                 | [A,a,2,a,12], [B,a,3,a,12]           |
+| 9         |                      | [c,13]               |                                            |                                      |
+| 10        | [C,c,4]              |                      | [C,c,4,c,13]                               | [C,c,4,c,13]                         |
+| 11        | [C] null (tombstone) |                      | [C] null (tombstone)                       | [C] null (tombstone)                 |
+| 12        |                      | [c] null (tombstone) |                                            |                                      |
+| 13        |                      | [a] null (tombstone) | [A] null (tombstone), [B] null (tombstone) | [A,a,2,NULL,NULL], [B,a,3,NULL,NULL] |
+| 14        | [B] null (tombstone) |                      |                                            | [B] null (tombstone)                 |
 
 N-Way Joins
 -----------

@@ -17,21 +17,60 @@ package io.confluent.ksql.parser.tree;
 
 import static org.junit.Assert.assertEquals;
 
+import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import io.confluent.ksql.execution.windows.WindowTimeClause;
+import org.apache.kafka.streams.kstream.JoinWindows;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
 public class WithinExpressionTest {
 
   @Test
   public void shouldDisplayCorrectStringWithSingleWithin() {
     final WithinExpression expression = new WithinExpression(20, TimeUnit.SECONDS);
     assertEquals(" WITHIN 20 SECONDS", expression.toString());
+    assertEquals(
+        JoinWindows.of(Duration.ofSeconds(20)),
+        expression.joinWindow());
   }
 
   @Test
   public void shouldDisplayCorrectStringWithBeforeAndAfter() {
     final WithinExpression expression = new WithinExpression(30, 40, TimeUnit.MINUTES, TimeUnit.HOURS);
     assertEquals(" WITHIN (30 MINUTES, 40 HOURS)", expression.toString());
+    assertEquals(
+        JoinWindows.of(Duration.ofMinutes(30)).after(Duration.ofHours(40)),
+        expression.joinWindow());
   }
 
+  @Test
+  public void shouldDisplayCorrectStringWithGracePeriod() {
+    final WindowTimeClause gracePeriod = new WindowTimeClause(5, TimeUnit.SECONDS);
+    final WithinExpression expression = new WithinExpression(20, TimeUnit.SECONDS, gracePeriod);
+    assertEquals(" WITHIN 20 SECONDS GRACE PERIOD 5 SECONDS", expression.toString());
+    assertEquals(
+        JoinWindows.of(Duration.ofSeconds(20)).grace(Duration.ofSeconds(5)),
+        expression.joinWindow());
+  }
+
+  @Test
+  public void shouldDisplayCorrectStringWithBeforeAndAfterWithGracePeriod() {
+    final WindowTimeClause gracePeriod = new WindowTimeClause(5, TimeUnit.SECONDS);
+    final WithinExpression expression = new WithinExpression(
+        30,
+        40,
+        TimeUnit.MINUTES,
+        TimeUnit.HOURS,
+        gracePeriod);
+
+    assertEquals(" WITHIN (30 MINUTES, 40 HOURS) GRACE PERIOD 5 SECONDS", expression.toString());
+    assertEquals(
+        JoinWindows.of(Duration.ofMinutes(30))
+            .after(Duration.ofHours(40))
+            .grace(Duration.ofSeconds(5)),
+        expression.joinWindow());
+  }
 }

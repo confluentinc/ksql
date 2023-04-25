@@ -11,27 +11,6 @@ client-facing and internal endpoints. ksqlDB also supports many of the security
 features of the other services it communicates with, like {{ site.aktm }} and
 {{ site.sr }}.
 
-- [Securing ksqlDB on Confluent Cloud](#securing-ksqldb-for-confluent-cloud)
-- [Securing ksqlDB on premise](#securing-ksqldb-on-premise)
-  * [Securing ksqlDB installation](#securing-ksqldb-installation)
-    - [Securing interactive deployments](#securing-interactive-deployments)
-      * [Securing single listener setup](#securing-single-listener-setup)
-        - [Configuring listener for SSL encryption](#configuring-listener-for-ssl-encryption)
-        - [Configuring listener for HTTP-BASIC authentication](#configuring-listener-for-http-basic-authentication)
-      * [Securing dual listener setup](#securing-dual-listener-setup)
-        - [Configuring internal for SSL-mutual authentication](#configuring-internal-for-ssl-mutual-authentication)
-        - [Configuring internal for SSL-mutual authentication and external for SSL encryption](#configuring-internal-for-ssl-mutual-authentication-and-external-for-ssl-encryption)
-        - [Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-and-external-for-http-basic-authentication)
-    - [Securing headless deployments](#securing-headless-deployments)
-  * [Securing communication with other services](#securing-communication-with-other-services)
-    - [Configure ksqlDB for Secured Confluent Schema Registry](#configure-ksqldb-for-secured-confluent-schema-registry)
-    - [Configure ksqlDB for Secured Apache Kafka clusters](#configure-ksqldb-for-secured-apache-kafka-clusters)
-        * [Configuring Kafka Encrypted Communication](#configuring-kafka-encrypted-communication)
-        * [Configuring Kafka Authentication](#configuring-kafka-authentication)
-        * [Configure Authorization of ksqlDB with Kafka ACLs](#configure-authorization-of-ksqldb-with-kafka-acls)
-            - [Confluent Platform v5.0 (Apache Kafka v2.0) and above](#confluent-platform-v50-apache-kafka-v20-and-above)
-            - [Confluent Platform versions below v5.0 (Apache Kafka < v2.0)](#confluent-platform-versions-below-v50-apache-kafka-v20)
-
 Securing ksqlDB for Confluent Cloud
 ------------------------------------
 
@@ -142,8 +121,11 @@ To enable the server to authenticate clients (2-way authentication), use
 the following additional setting:
 
 ```properties
-ssl.client.auth=true
+ssl.client.authentication=REQUIRED
 ```
+
+!!! note
+    The `ssl.client.auth` setting is deprecated.
 
 ### Additional server configuration options for HTTPS
 
@@ -814,21 +796,21 @@ cluster to allow ksqlDB to operate:
 
 ```bash
 # Allow ksqlDB to discover the cluster:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
 
 # Allow ksqlDB to read the input topics (including output-topic1):
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --topic input-topic1 --topic input-topic2 --topic output-topic1
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --topic input-topic1 --topic input-topic2 --topic output-topic1
 
 # Allow ksqlDB to write to the output topics:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Write --topic output-topic1 --topic output-topic2
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Write --topic output-topic1 --topic output-topic2
 # Or, if the output topics do not already exist, the 'create' operation is also required:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Create --operation Write --topic output-topic1 --topic output-topic2
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Create --operation Write --topic output-topic1 --topic output-topic2
 
 # Allow ksqlDB to manage its own internal topics and consumer groups:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
 
 # Allow ksqlDB to manage its record processing log topic, if configured:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic production_ksql_processing_log
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic production_ksql_processing_log
 ```
 
 #### Interactive ksqlDB clusters
@@ -870,22 +852,22 @@ cluster to allow ksqlDB to operate:
 
 ```bash
 # Allow ksqlDB to discover the cluster:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
 
 # Allow ksqlDB to read the input topics:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --resource-pattern-type prefixed --topic accounts- --topic orders- --topic payments-
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --resource-pattern-type prefixed --topic accounts- --topic orders- --topic payments-
 
 # Allow ksqlDB to manage output topics:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic ksql-fraud-
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic ksql-fraud-
 
 # Allow ksqlDB to manage its own internal topics and consumer groups:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-fraud_ --group _confluent-ksql-fraud_
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-fraud_ --group _confluent-ksql-fraud_
 
 # Allow ksqlDB to manage its record processing log topic, if configured:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
 
 # Allow ksqlDB to produce to the command topic:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --producer --transactional-id ksql-fraud_ --topic _confluent-ksql-fraud__command_topic
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --producer --transactional-id ksql-fraud_ --topic _confluent-ksql-fraud__command_topic
 ```
 
 The following table shows the necessary ACLs in the Kafka cluster to
@@ -1018,10 +1000,10 @@ cluster to allow ksqlDB to operate:
 
 ```bash
 # Allow ksqlDB to discover the cluster and create topics:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --operation Create --cluster
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --operation Create --cluster
 
 # Allow ksqlDB access to topics and consumer groups:
-bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic '*' --group '*'
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic '*' --group '*'
 ```
 
 #### Non-Interactive (headless) ksqlDB clusters pre Kafka 2.0

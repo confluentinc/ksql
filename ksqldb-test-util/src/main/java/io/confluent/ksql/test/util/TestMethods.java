@@ -18,12 +18,14 @@ package io.confluent.ksql.test.util;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -65,11 +67,66 @@ public final class TestMethods {
   public static final class Builder<T> {
 
     private final Class<T> typeUnderTest;
-    private final Set<Method> blackList = new HashSet<>();
+    private final Set<MethodRef> blackList = new HashSet<>();
     private final Map<Class<?>, Object> defaults = new HashMap<>();
 
     public Builder(final Class<T> typeUnderTest) {
       this.typeUnderTest = Objects.requireNonNull(typeUnderTest, "typeUnderTest");
+    }
+
+    /**
+     * The purpose of this class is to provide a more general reference to the actual Method
+     * that we can use in the blacklist. Note that the equality algorithm is the same as
+     * Method's: class name, method name, and argument types. I expect this to be a valid
+     * equality algorithm for methods indefinitely because it's the same as the method
+     * overload resolution criteria specified in the Java language.
+     */
+    public static class MethodRef {
+      private final Class<?> clazz;
+      private final String methodName;
+      private final Class<?>[] paramTypes;
+
+      @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+      public MethodRef(final Class<?> clazz, final String methodName, final Class<?>[] paramTypes) {
+        this.clazz = clazz;
+        this.methodName = methodName;
+        this.paramTypes = Arrays.copyOf(paramTypes, paramTypes.length);
+      }
+
+      public MethodRef(final Method method) {
+        this(method.getDeclaringClass(), method.getName(), method.getParameterTypes());
+      }
+
+      public static Collection<MethodRef> refs(
+              final Collection<? extends Method> declaredPublicMethods
+      ) {
+        final List<MethodRef> methodRefs = new ArrayList<>(declaredPublicMethods.size());
+        for (final Method method : declaredPublicMethods) {
+          methodRefs.add(new MethodRef(method));
+        }
+        return methodRefs;
+      }
+
+      @Override
+      public boolean equals(final Object o) {
+        if (this == o) {
+          return true;
+        } else if (o == null || getClass() != o.getClass()) {
+          return false;
+        } else {
+          final MethodRef methodRef = (MethodRef) o;
+          return Objects.equals(clazz, methodRef.clazz)
+                  && Objects.equals(methodName, methodRef.methodName)
+                  && Arrays.equals(paramTypes, methodRef.paramTypes);
+        }
+      }
+
+      @Override
+      public int hashCode() {
+        int result = Objects.hash(clazz, methodName);
+        result = 31 * result + Arrays.hashCode(paramTypes);
+        return result;
+      }
     }
 
     /**
@@ -80,7 +137,23 @@ public final class TestMethods {
      * @return the builder.
      */
     public Builder<T> ignore(final String methodName, final Class<?>... paramTypes) {
-      blackList.addAll(getDeclaredPublicMethods(methodName, paramTypes));
+      blackList.addAll(MethodRef.refs(getDeclaredPublicMethods(methodName, paramTypes)));
+      return this;
+    }
+
+    /**
+     * Exclude a certain method from the test cases without checking first that the
+     * method-to-ignore actually exists. This was added to let us keep "ignore"
+     * directives for methods that get deleted. Because of modular dependencies,
+     * it's not always possible to "atomically" remove a method from the declaration
+     * and the test all at once.
+     *
+     * @param methodName the name of the method
+     * @param paramTypes the types of the parameters to the method.
+     * @return the builder.
+     */
+    public Builder<T> ignoreUnchecked(final String methodName, final Class<?>... paramTypes) {
+      blackList.add(new MethodRef(typeUnderTest, methodName, paramTypes));
       return this;
     }
 
@@ -112,7 +185,7 @@ public final class TestMethods {
       return Arrays.stream(typeUnderTest.getDeclaredMethods())
           .filter(method -> !Modifier.isStatic(method.getModifiers()))
           .filter(method -> Modifier.isPublic(method.getModifiers()))
-          .filter(method -> !blackList.contains(method))
+          .filter(method -> !blackList.contains(new MethodRef(method)))
           .map(this::buildTestCase)
           .collect(Collectors.toList());
     }

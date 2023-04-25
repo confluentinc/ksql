@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -65,9 +66,9 @@ public class MetricCollectorsTest {
   @Test
   public void shouldAggregateStats() {
     final List<TopicSensors.Stat> stats = Arrays.asList(new TopicSensors.Stat("metric", 1, 1L), new TopicSensors.Stat("metric", 1, 1L), new TopicSensors.Stat("metric", 1, 1L));
-    final Map<String, TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
+    final Collection<TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
     assertThat(aggregateMetrics.size(), equalTo(1));
-    assertThat(aggregateMetrics.values().iterator().next().getValue(), equalTo(3.0));
+    assertThat(aggregateMetrics.iterator().next().getValue(), equalTo(3.0));
   }
 
   @Test

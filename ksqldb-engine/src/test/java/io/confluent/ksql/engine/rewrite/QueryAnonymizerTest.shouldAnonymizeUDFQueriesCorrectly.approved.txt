@@ -1,0 +1,1 @@
+CREATE STREAM stream1 AS SELECT column1, udf1 FROM source1;

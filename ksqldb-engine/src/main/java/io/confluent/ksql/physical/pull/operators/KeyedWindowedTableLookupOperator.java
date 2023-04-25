@@ -15,14 +15,18 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
+import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint.KeyConstraintKey;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
+import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -39,12 +43,13 @@ public class KeyedWindowedTableLookupOperator
   private final Materialization mat;
   private final DataSourceNode logicalNode;
 
-  private List<KsqlPartitionLocation> partitionLocations;
+  private ImmutableList<KsqlPartitionLocation> partitionLocations;
   private Iterator<WindowedRow> resultIterator;
   private Iterator<KsqlKey> keyIterator;
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
   private KsqlPartitionLocation nextLocation;
   private KsqlKey nextKey;
+  private long returnedRows = 0;
 
 
   public KeyedWindowedTableLookupOperator(
@@ -102,8 +107,8 @@ public class KeyedWindowedTableLookupOperator
           windowBounds.getMergedEnd())
           .iterator();
     }
+    returnedRows++;
     return resultIterator.next();
-
   }
 
   private static WindowBounds getWindowBounds(final KsqlKey ksqlKey) {
@@ -114,7 +119,7 @@ public class KeyedWindowedTableLookupOperator
     final KeyConstraintKey keyConstraintKey = (KeyConstraintKey) ksqlKey;
     if (!keyConstraintKey.getWindowBounds().isPresent()) {
       throw new IllegalStateException(String.format("Table windowed queries should be done with "
-          + "window bounds: %s", ksqlKey.toString()));
+          + "window bounds: %s", ksqlKey));
     }
     return keyConstraintKey.getWindowBounds().get();
   }
@@ -150,6 +155,10 @@ public class KeyedWindowedTableLookupOperator
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "partitionLocations is ImmutableList"
+  )
   public List<KsqlPartitionLocation> getPartitionLocations() {
     return partitionLocations;
   }
@@ -157,6 +166,11 @@ public class KeyedWindowedTableLookupOperator
   @Override
   public void setPartitionLocations(final List<KsqlPartitionLocation> locations) {
     Objects.requireNonNull(locations, "locations");
-    partitionLocations = locations;
+    partitionLocations = ImmutableList.copyOf(locations);
+  }
+
+  @Override
+  public long getReturnedRowCount() {
+    return returnedRows;
   }
 }

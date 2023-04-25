@@ -1,0 +1,26 @@
+
+Name        : FOO
+Author      : Andy
+Version     : v1.1.0
+Overview    : Description that is very, very, very, very, very, very, very, very, very, very, very, 
+              very, very, very, very, very, very, very, very, very, very long
+              and containing new lines
+              	AND TABS
+              too!
+Type        : SCALAR
+Jar         : some.jar
+Variations  : 
+
+	Variation   : FOO(arg1 INT[])
+	Returns     : LONG
+	Description : The function description, which too can be really, really, really, really, really, 
+                really, really, really, really, really, really, really, really, really, really, 
+                really, really, really, really, really, long
+                and contains
+                	tabs and stuff
+	arg1        : Another really, really, really, really, really, really, really,really, really, 
+                really, really, really, really, really, really  really, really, really, really, 
+                really, really, really, long
+                description
+                	Containing Tabs
+                and stuff

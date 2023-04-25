@@ -140,7 +140,7 @@
             "features" : [ "UNWRAP_SINGLES" ]
           }
         }, {
-          "name" : "T2",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "format" : "KAFKA"
           },
@@ -150,7 +150,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "OUTPUT",
+          "name" : "T2",
           "keyFormat" : {
             "format" : "KAFKA"
           },

@@ -178,7 +178,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 TS = 2;\n}\n"
         }, {
           "name" : "S1_JOIN_T1",
           "keyFormat" : {
@@ -187,7 +188,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 TS = 2;\n  string F1 = 3;\n  string F2 = 4;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_T1_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
@@ -195,7 +197,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  string F2 = 2;\n  int64 RTS = 3;\n}\n"
         }, {
           "name" : "t1",
           "keyFormat" : {
@@ -204,7 +207,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  string F2 = 2;\n  int64 RTS = 3;\n}\n"
         } ]
       }
     }

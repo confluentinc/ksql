@@ -28,15 +28,17 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
   private final HttpClientResponse response;
   private boolean drainHandlerSet;
 
-  public static Buffer toJsonMsg(final Buffer responseLine) {
+  public static Buffer toJsonMsg(final Buffer responseLine, final boolean stripArray) {
 
     int start = 0;
     int end = responseLine.length() - 1;
-    if (responseLine.getByte(0) == (byte) '[') {
-      start = 1;
-    }
-    if (responseLine.getByte(end) == (byte) ']') {
-      end -= 1;
+    if (stripArray) {
+      if (responseLine.getByte(0) == (byte) '[') {
+        start = 1;
+      }
+      if (responseLine.getByte(end) == (byte) ']') {
+        end -= 1;
+      }
     }
     if (responseLine.getByte(end) == (byte) ',') {
       end -= 1;
@@ -46,7 +48,8 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
 
   StreamPublisher(final Context context, final HttpClientResponse response,
       final Function<Buffer, T> mapper,
-      final CompletableFuture<ResponseWithBody> bodyFuture) {
+      final CompletableFuture<ResponseWithBody> bodyFuture,
+      final boolean stripArray) {
     super(context);
     this.response = response;
     final RecordParser recordParser = RecordParser.newDelimited("\n", response);
@@ -56,7 +59,7 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
             // Ignore empty buffer - the server can insert random newlines!
             return;
           }
-          final Buffer jsonMsg = toJsonMsg(buff);
+          final Buffer jsonMsg = toJsonMsg(buff, stripArray);
           if (!accept(mapper.apply(jsonMsg))) {
             if (!drainHandlerSet) {
               recordParser.pause();

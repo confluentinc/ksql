@@ -188,7 +188,7 @@ This section is a record of some suggestions for Connect that would make it more
    and a `/connectors/<name>/<topic>/schema` endpoint (or something similar).
 1. **JDBC Primary Key (P1):** Since we're targeting the JDBC connector as the first "blessed" 
    integration point with KSQL, it is important that the experience is as good as possible. It would
-   be great if the connector populated the primary key of the row into the kafka message without 
+   be great if the connector populated the primary key of the row into the kafka record without 
    requiring an SMT.
 1. **Push updates (P2):** It would be nice to be able to "subscribe" to get updates for any new
    topic/schema that was created (see the first item) without polling connect.

@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,6 +43,7 @@ public final class PlanBuildContext {
     );
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   private PlanBuildContext(
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
@@ -56,6 +58,7 @@ public final class PlanBuildContext {
     return serviceContext;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KsqlConfig getKsqlConfig() {
     return ksqlConfig;
   }

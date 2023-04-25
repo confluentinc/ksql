@@ -40,14 +40,22 @@ public class LivenessFilter implements RoutingFilter {
    * @return true if the host is alive, false otherwise.
    */
   @Override
-  public boolean filter(final KsqlHostInfo host) {
+  public Host filter(final KsqlHostInfo host) {
 
     if (!heartbeatAgent.isPresent()) {
-      return true;
+      return Host.include(host);
     }
 
     final Map<KsqlHostInfo, HostStatus> allHostsStatus = heartbeatAgent.get().getHostsStatus();
     final HostStatus status = allHostsStatus.get(host);
-    return status == null ? true : allHostsStatus.get(host).isHostAlive();
+    if (status == null) {
+      return Host.include(host);
+    }
+
+    if (status.isHostAlive()) {
+      return Host.include(host);
+    } else {
+      return Host.exclude(host, "Host is not alive as of time " + status.getLastStatusUpdateMs());
+    }
   }
 }

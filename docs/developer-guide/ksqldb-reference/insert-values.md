@@ -25,6 +25,9 @@ based on explicitly specified values.
 
 If column names are specified, the order of the values must match the
 order of the names. Any column not explicitly given a value is set to `null`.
+If a column is given a null value or is not set, it does not act as a tombstone. 
+
+Tombstones are not supported with `INSERT INTO`.
 Pseudo columns, for example `ROWTIME`, may be provided.
 
 If no columns are specified, a value for every column is expected in the same

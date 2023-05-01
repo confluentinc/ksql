@@ -1873,6 +1873,10 @@ for example:
 - "PDT"
 - "Europe/London"
 
+The timestamp format permits up to 9 digits in the millisecond field, for
+example, `yyyy-MM-dd HH:mm:ss.SSSSSSSSS`. If you provide more than 9 digits,
+the function fails to parse the timestamp.
+
 ---
 
 ### **`TIMEADD`**

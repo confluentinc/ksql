@@ -45,7 +45,7 @@ import org.apache.kafka.streams.state.HostInfo;
 
 
 public final class RemoteHostExecutor {
-  private static final int TIMEOUT_SECONDS = 10;
+  private static final int TIMEOUT_SECONDS = 20;
   private static final Logger LOG = LoggerFactory.getLogger(RemoteHostExecutor.class);
 
   private final ConfiguredStatement<?> statement;

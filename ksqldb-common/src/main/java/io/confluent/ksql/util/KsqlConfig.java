@@ -702,6 +702,13 @@ public class KsqlConfig extends AbstractConfig {
       + "lifespan (if present) and the value of this config. If this config is set to 0, then "
       + "ksqlDB will not close websockets even if the token has an expiration time.";
 
+  public static final String KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS
+      = "ksql.fetch.remote.hosts.max.timeout.seconds";
+  public static final long KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT = 10;
+  public static final String KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
+      = "Configure how long the remote host executor will wait for in seconds "
+      + "when fetching all remote hosts.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -1502,6 +1509,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC
+        )
+        .define(
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS,
+            Type.LONG,
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
         )
         .withClientSslSupport();
 

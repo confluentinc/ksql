@@ -27,6 +27,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
 import java.util.Optional;
@@ -65,12 +66,14 @@ public class TerminateTransientQueryFunctionalTest {
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + INT_PORT0)
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT0)
+      .withProperty(KsqlConfig.KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS, 20)
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + INT_PORT1)
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT1)
+      .withProperty(KsqlConfig.KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS, 20)
       .build();
 
   @ClassRule

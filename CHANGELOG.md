@@ -10,6 +10,7 @@
 * Add `TRUNC` function ([#9502](https://github.com/confluentinc/ksql/pull/9502)) ([#9522](https://github.com/confluentinc/ksql/issues/9522)) ([4755817](https://github.com/confluentinc/ksql/commit/4755817))
 * add `CORRELATION` UDAF ([#9383](https://github.com/confluentinc/ksql/pull/9383)) ([cb9d163](https://github.com/confluentinc/ksql/commit/cb9d163))
 * Variadic TopK that can select other columns ([#9493](https://github.com/confluentinc/ksql/pull/9493)) ([2a4c696](https://github.com/confluentinc/ksql/commit/2a4c696))
+* Support Bytes to UUID UDF Function ([#9640](https://github.com/confluentinc/ksql/pull/9640)) ([c3bc367](https://github.com/confluentinc/ksql/commit/c3bc367))
 * Add config to set topic retention in the WITH clause [#5148](https://github.com/confluentinc/ksql/issues/5148) ([0f69926](https://github.com/confluentinc/ksql/commit/0f69926))
 * Add metrics for pull query thread pools ([#9856](https://github.com/confluentinc/ksql/pull/9856)) ([79f8471](https://github.com/confluentinc/ksql/commit/79f8471))
 * add support for JSON arrays ([#9402](https://github.com/confluentinc/ksql/pull/9402)) ([c62c2d2](https://github.com/confluentinc/ksql/commit/c62c2d2))

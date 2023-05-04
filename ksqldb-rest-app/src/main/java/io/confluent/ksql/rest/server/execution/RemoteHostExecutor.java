@@ -28,7 +28,6 @@ import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.Pair;
 import io.vertx.core.logging.Logger;
@@ -125,7 +124,9 @@ public final class RemoteHostExecutor {
           : futureResponses.entrySet()) {
         try {
           final RestResponse<KsqlEntityList> response =
-              e.getValue().get(getFetchRemoteHostsTimeout(), TimeUnit.SECONDS);
+              e.getValue().get(
+                  executionContext.getKsqlConfig().getLong(KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS),
+                  TimeUnit.SECONDS);
           if (response.isErroneous()) {
             LOG.warn("Error response from host. host: {}, cause: {}",
                 e.getKey(), response.getErrorMessage().getMessage());
@@ -144,16 +145,5 @@ public final class RemoteHostExecutor {
     } finally {
       executorService.shutdown();
     }
-  }
-
-  private long getFetchRemoteHostsTimeout(){
-    final Object timeout
-        = executionContext.getKsqlConfig().getLong(KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS);
-
-    if (timeout instanceof Long) {
-      return (long) timeout;
-    }
-
-    return KsqlConfig.KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT;
   }
 }

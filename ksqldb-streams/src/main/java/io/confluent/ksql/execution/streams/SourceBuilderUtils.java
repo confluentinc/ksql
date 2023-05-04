@@ -366,35 +366,38 @@ final class SourceBuilderUtils {
             return row;
           }
 
+          final GenericRow rowCopy = GenericRow.fromList(row.values());
+
           final Collection<?> keyColumns = keyGenerator.apply(key);
 
           final int numPseudoColumns = SystemColumns
               .pseudoColumnNames(pseudoColumnVersion).size();
 
-          row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size() + headerColumns.size());
+          rowCopy.ensureAdditionalCapacity(
+              numPseudoColumns + keyColumns.size() + headerColumns.size());
 
           for (final Column col : headerColumns) {
             if (col.headerKey().isPresent()) {
-              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
+              rowCopy.append(extractHeader(processorContext.headers(), col.headerKey().get()));
             } else {
-              row.append(createHeaderData(processorContext.headers()));
+              rowCopy.append(createHeaderData(processorContext.headers()));
             }
           }
 
           if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
             final long timestamp = processorContext.timestamp();
-            row.append(timestamp);
+            rowCopy.append(timestamp);
           }
 
           if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
             final int partition = processorContext.partition();
             final long offset = processorContext.offset();
-            row.append(partition);
-            row.append(offset);
+            rowCopy.append(partition);
+            rowCopy.append(offset);
           }
 
-          row.appendAll(keyColumns);
-          return row;
+          rowCopy.appendAll(keyColumns);
+          return rowCopy;
         }
 
         @Override

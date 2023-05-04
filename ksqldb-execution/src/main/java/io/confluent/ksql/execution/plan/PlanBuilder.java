@@ -38,6 +38,9 @@ public interface PlanBuilder {
 
   <K> KStreamHolder<K> visitStreamSelect(StreamSelect<K> streamSelect, PlanInfo planInfo);
 
+  <K> KStreamHolder<K> visitStreamNoOpPreJoinSelect(
+      StreamNoOpPreJoinSelect<K> streamSelect, PlanInfo planInfo, boolean addToTopology);
+
   <K> KStreamHolder<K> visitFlatMap(StreamFlatMap<K> streamFlatMap, PlanInfo planInfo);
 
   KStreamHolder<GenericKey> visitStreamSelectKey(
@@ -49,11 +52,17 @@ public interface PlanBuilder {
 
   KStreamHolder<GenericKey> visitStreamSource(StreamSource streamSource, PlanInfo planInfo);
 
+  KStreamHolder<GenericKey> visitStreamSource(StreamSource streamSource, PlanInfo planInfo,
+                                              boolean addToTopology);
+
   KStreamHolder<Windowed<GenericKey>> visitWindowedStreamSource(
       WindowedStreamSource windowedStreamSource, PlanInfo planInfo);
 
   <K> KStreamHolder<K> visitStreamStreamJoin(
       StreamStreamJoin<K> streamStreamJoin, PlanInfo planInfo);
+
+  <K> KStreamHolder<K> visitStreamStreamSelfJoin(
+      StreamStreamSelfJoin<K> streamStreamSelfJoin, PlanInfo planInfo);
 
   <K> KStreamHolder<K> visitStreamTableJoin(StreamTableJoin<K> streamTableJoin, PlanInfo planInfo);
 

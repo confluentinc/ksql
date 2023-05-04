@@ -702,6 +702,16 @@ public class KsqlConfig extends AbstractConfig {
       + "lifespan (if present) and the value of this config. If this config is set to 0, then "
       + "ksqlDB will not close websockets even if the token has an expiration time.";
 
+
+  public static final String KSQL_SELF_JOIN_OPTIMIZATION_ENABLE
+      = "ksql.self.join.enable";
+  public static final boolean KSQL_SELF_JOIN_OPTIMIZATION_ENABLE_DEFAULT = true;
+  public static final String KSQL_SELF_JOIN_OPTIMIZATION_ENABLE_DOC
+      = "Enable self join optimization, ON by default. Must also enable in Streams by "
+      + "setting StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG to StreamsConfig.OPTIMIZE or "
+      + "StreamsConfig.SELF_JOIN.";
+
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -1495,6 +1505,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC
+        ).define(
+            KSQL_SELF_JOIN_OPTIMIZATION_ENABLE,
+            Type.BOOLEAN,
+            KSQL_SELF_JOIN_OPTIMIZATION_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_SELF_JOIN_OPTIMIZATION_ENABLE_DOC
         )
         .define(
             KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED,

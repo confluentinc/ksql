@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
@@ -29,12 +30,14 @@ import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamGroupByV1;
+import io.confluent.ksql.execution.plan.StreamNoOpPreJoinSelect;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
+import io.confluent.ksql.execution.plan.StreamStreamSelfJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -51,8 +54,12 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -163,6 +170,28 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
+  public <K> KStreamHolder<K> visitStreamNoOpPreJoinSelect(
+      final StreamNoOpPreJoinSelect<K> streamSelect,
+      final PlanInfo planInfo,
+      final boolean addToTopology
+  ) {
+    final KStreamHolder<K> source = streamSelect.getSource().build(this, planInfo, addToTopology);
+    final LogicalSchema sourceSchema = source.getSchema();
+    final Optional<ImmutableList<ColumnName>> selectedKeys = streamSelect.getSelectedKeys();
+
+    final Selection<K> selection = Selection.of(
+        sourceSchema,
+        streamSelect.getKeyColumnNames(),
+        selectedKeys,
+        streamSelect.getSelectExpressions(),
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
+    );
+    return source.withStream(source.getStream(), selection.getSchema());
+  }
+
+
+  @Override
   public <K> KStreamHolder<K> visitFlatMap(
       final StreamFlatMap<K> streamFlatMap,
       final PlanInfo planInfo) {
@@ -204,7 +233,21 @@ public final class KSPlanBuilder implements PlanBuilder {
     return SourceBuilderV1.instance().buildStream(
         buildContext,
         streamSource,
-        streamsFactories.getConsumedFactory()
+        streamsFactories.getConsumedFactory(),
+        true
+    );
+  }
+
+  @Override
+  public KStreamHolder<GenericKey> visitStreamSource(
+      final StreamSource streamSource,
+      final PlanInfo planInfo,
+      final boolean addToTopology) {
+    return SourceBuilderV1.instance().buildStream(
+        buildContext,
+        streamSource,
+        streamsFactories.getConsumedFactory(),
+        addToTopology
     );
   }
 
@@ -228,6 +271,26 @@ public final class KSPlanBuilder implements PlanBuilder {
     return StreamStreamJoinBuilder.build(
         left,
         right,
+        join,
+        buildContext,
+        streamsFactories.getStreamJoinedFactory()
+    );
+  }
+
+  @Override
+  public <K> KStreamHolder<K> visitStreamStreamSelfJoin(
+      final StreamStreamSelfJoin<K> join,
+      final PlanInfo planInfo) {
+
+    final KStreamHolder<K> left = join.getLeftSource().build(this, planInfo, true);
+    final KStreamHolder<K> right = join.getRightSource().build(this, planInfo, false);
+    final KStreamHolder<K> self = new KStreamHolder<>(
+        left.getStream(),
+        right.getSchema(),
+        left.getExecutionKeyFactory());
+    return StreamStreamJoinBuilder.build(
+        left,
+        self,
         join,
         buildContext,
         streamsFactories.getStreamJoinedFactory()

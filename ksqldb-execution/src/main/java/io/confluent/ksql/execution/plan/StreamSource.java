@@ -62,6 +62,12 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
   }
 
   @Override
+  public KStreamHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info,
+                                         final boolean addToTopology) {
+    return builder.visitStreamSource(this, info, addToTopology);
+  }
+
+  @Override
   public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
     return extractor.visitStreamSource(this);
   }

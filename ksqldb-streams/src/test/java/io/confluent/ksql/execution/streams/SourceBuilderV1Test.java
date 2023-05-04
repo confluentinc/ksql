@@ -363,6 +363,65 @@ public class SourceBuilderV1Test {
 
   @Test
   @SuppressWarnings("unchecked")
+  public void shouldBuildStreamWithTransformationDefault() {
+    // Given:
+    givenUnwindowedSourceStream();
+
+    // When:
+    final KStreamHolder<GenericKey> builtKStream = streamSource.build(planBuilder, planInfo);
+
+    // Then:
+    assertThat(builtKStream.getStream(), is(kStream));
+    final InOrder validator = inOrder(streamsBuilder, kStream);
+    validator.verify(streamsBuilder).stream(eq(TOPIC_NAME), eq(consumed));
+    validator.verify(kStream).transformValues(any(ValueTransformerWithKeySupplier.class));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+  }
+
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildStreamWithTransformation() {
+    // Given:
+    givenUnwindowedSourceStream();
+
+    // When:
+    final KStreamHolder<GenericKey> builtKStream = streamSource.build(planBuilder, planInfo, true);
+
+    // Then:
+    assertThat(builtKStream.getStream(), is(kStream));
+    final InOrder validator = inOrder(streamsBuilder, kStream);
+    validator.verify(streamsBuilder).stream(eq(TOPIC_NAME), eq(consumed));
+    validator.verify(kStream).transformValues(any(ValueTransformerWithKeySupplier.class));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildStreamWithoutTransformation() {
+    // Given:
+    givenUnwindowedSourceStream();
+
+    // When:
+    final KStreamHolder<GenericKey> builtKStream = streamSource.build(planBuilder, planInfo, false);
+
+    // Then:
+    assertThat(builtKStream.getStream(), is(kStream));
+    final InOrder validator = inOrder(streamsBuilder, kStream);
+    validator.verify(streamsBuilder).stream(eq(TOPIC_NAME), eq(consumed));
+    validator.verify(kStream, never()).transformValues(any(ValueTransformerWithKeySupplier.class));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+  }
+
+
+  @Test
+  @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToSourceTable() {
     // Given:
     givenUnwindowedSourceTableV1(true, LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);

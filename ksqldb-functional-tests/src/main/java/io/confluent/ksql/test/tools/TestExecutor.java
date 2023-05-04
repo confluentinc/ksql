@@ -447,6 +447,7 @@ public class TestExecutor implements Closeable {
       final Collection<ProducerRecord<?, ?>> actual,
       final boolean ranWithInsertStatements
   ) {
+    System.out.println("---> Actual records: " + actual);
     if (actual.size() != expected.size()) {
       throw new KsqlException("Topic " + topicName + ". Expected <" + expected.size()
           + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));

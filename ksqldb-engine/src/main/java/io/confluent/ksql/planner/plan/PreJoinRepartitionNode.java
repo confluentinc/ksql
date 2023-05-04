@@ -117,6 +117,10 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
         );
   }
 
+  public Expression getPartitionBy() {
+    return partitionBy;
+  }
+
   private boolean requiresRepartition() {
     return Repartitioning.repartitionNeeded(getSource().getSchema(), ImmutableList.of(partitionBy));
   }

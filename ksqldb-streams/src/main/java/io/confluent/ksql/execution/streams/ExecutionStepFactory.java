@@ -34,11 +34,13 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.execution.plan.StreamNoOpPreJoinSelect;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
+import io.confluent.ksql.execution.plan.StreamStreamSelfJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -240,6 +242,25 @@ public final class ExecutionStepFactory {
     );
   }
 
+  public static <K> StreamNoOpPreJoinSelect<K> streamNoOpSelect(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KStreamHolder<K>> source,
+      final List<ColumnName> keyColumnNames,
+      final Optional<List<ColumnName>> selectedKeys,
+      final List<SelectExpression> selectExpressions
+  ) {
+    final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
+        stacker.getQueryContext()
+    );
+    return new StreamNoOpPreJoinSelect<>(
+        properties,
+        source,
+        keyColumnNames,
+        selectedKeys,
+        selectExpressions
+    );
+  }
+
   public static <K> StreamTableJoin<K> streamTableJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
@@ -272,6 +293,32 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamStreamJoin<>(
+        new ExecutionStepPropertiesV1(queryContext),
+        joinType,
+        keyColName,
+        leftFormats,
+        rightFormats,
+        left,
+        right,
+        Duration.ofMillis(joinWindows.beforeMs),
+        Duration.ofMillis(joinWindows.afterMs),
+        gracePeriod.map(grace -> Duration.ofMillis(grace.toDuration().toMillis()))
+    );
+  }
+
+  public static <K> StreamStreamSelfJoin<K> streamStreamSelfJoin(
+      final QueryContext.Stacker stacker,
+      final JoinType joinType,
+      final ColumnName keyColName,
+      final Formats leftFormats,
+      final Formats rightFormats,
+      final ExecutionStep<KStreamHolder<K>> left,
+      final ExecutionStep<KStreamHolder<K>> right,
+      final JoinWindows joinWindows,
+      final Optional<WindowTimeClause> gracePeriod
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new StreamStreamSelfJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
         keyColName,

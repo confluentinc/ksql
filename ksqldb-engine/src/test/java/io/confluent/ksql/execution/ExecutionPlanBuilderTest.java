@@ -73,6 +73,10 @@ public class ExecutionPlanBuilderTest {
       + "(ID2 BIGINT KEY, COL0 VARCHAR, COL1 BIGINT) "
       + " WITH (KAFKA_TOPIC = 'test2', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
 
+  private static final String CREATE_STREAM_TEST2_2 = "CREATE STREAM TEST2_2 "
+      + "(ID2 BIGINT KEY, COL0 VARCHAR, COL1 BIGINT) "
+      + " WITH (KAFKA_TOPIC = 'test2', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
+
   private static final String CREATE_STREAM_TEST3 = "CREATE STREAM TEST3 "
       + "(ID3 BIGINT KEY, COL0 BIGINT, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test3', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
@@ -353,6 +357,94 @@ public class ExecutionPlanBuilderTest {
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST5")),
         hasValueSerdeFeatures(not(hasItem(SerdeFeature.UNWRAP_SINGLES))));
+  }
+
+  @Test
+  public void shouldMarkStreamStreamJoinAsSelfJoinTwoStreams() {
+    // Given:
+    givenKafkaTopicsExist("test2");
+    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST2_2);
+
+    // When:
+    final QueryMetadata result = execute(
+        "CREATE STREAM s1 AS "
+            + "SELECT * FROM test2 l JOIN test2_2 r WITHIN 1 SECOND "
+            + "ON l.id2 = r.id2;")
+        .get(0);
+
+    // Then:
+    final String planText = result.getExecutionPlan();
+    final String[] lines = planText.split("\n");
+    assertThat(lines.length, equalTo(7));
+    assertThat(lines[2], containsString("> [ SELF_JOIN ]"));
+    assertThat(lines[3], containsString("> [ NO_OP_PROJECT ]"));
+    assertThat(lines[5], containsString("> [ NO_OP_PROJECT ]"));
+  }
+
+  @Test
+  public void shouldMarkStreamStreamJoinAsSelfJoinOneStream() {
+    // Given:
+    givenKafkaTopicsExist("test2");
+    execute(CREATE_STREAM_TEST2);
+
+    // When:
+    final QueryMetadata result = execute(
+        "CREATE STREAM s1 AS "
+            + "SELECT * FROM test2 l JOIN test2 r WITHIN 1 SECOND "
+            + "ON l.id2 = r.id2;")
+        .get(0);
+
+    // Then:
+    final String planText = result.getExecutionPlan();
+    final String[] lines = planText.split("\n");
+    assertThat(lines.length, equalTo(7));
+    assertThat(lines[2], containsString("> [ SELF_JOIN ]"));
+    assertThat(lines[3], containsString("> [ NO_OP_PROJECT ]"));
+    assertThat(lines[5], containsString("> [ NO_OP_PROJECT ]"));
+  }
+
+  @Test
+  public void shouldMarkStreamStreamJoinAsSelfJoinNWay() {
+    // Given:
+    givenKafkaTopicsExist("test2");
+    execute(CREATE_STREAM_TEST2);
+
+    // When:
+    final QueryMetadata result = execute(
+        "CREATE STREAM s1 AS "
+            + "SELECT * FROM test2 t1 JOIN test2 t2 WITHIN 1 SECOND ON t1.id2 = t2.id2 "
+            + " JOIN test2 t3 WITHIN 1 SECOND ON t1.id2 = t3.id2;")
+        .get(0);
+
+    // Then:
+    final String planText = result.getExecutionPlan();
+    final String[] lines = planText.split("\n");
+    assertThat(lines.length, equalTo(10));
+    assertThat(lines[2], containsString("> [ JOIN ]"));
+    assertThat(lines[3], containsString("> [ SELF_JOIN ]"));
+    assertThat(lines[4], containsString("> [ NO_OP_PROJECT ]"));
+    assertThat(lines[6], containsString("> [ NO_OP_PROJECT ]"));
+  }
+
+  @Test
+  public void shouldNotMarkStreamStreamJoinAsSelfJoinRepartitionLeft() {
+    // Given:
+    givenKafkaTopicsExist("test2");
+    execute(CREATE_STREAM_TEST2);
+
+    // When:
+    final QueryMetadata result = execute(
+        "CREATE STREAM s1 AS "
+            + "SELECT * FROM test2 t1 JOIN test2 t2 WITHIN 1 SECOND ON t1.id2+1 = t2.id2 ;")
+        .get(0);
+
+    // Then:
+    final String planText = result.getExecutionPlan();
+    final String[] lines = planText.split("\n");
+    assertThat(lines.length, equalTo(8));
+    assertThat(lines[2], containsString("> [ JOIN ]"));
+    assertThat(lines[3], containsString("> [ PROJECT ]"));
+    assertThat(lines[6], containsString("> [ PROJECT ]"));
   }
 
   @SuppressWarnings("SameParameterValue")

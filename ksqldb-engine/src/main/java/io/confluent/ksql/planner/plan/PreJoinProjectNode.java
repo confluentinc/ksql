@@ -26,10 +26,13 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.planner.RequiredColumns.Builder;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +50,7 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
   private final ImmutableBiMap<ColumnName, ColumnName> aliases;
   private final LogicalSchema schema;
   private final Optional<JoiningNode> joiningSource;
+  private boolean isSelfJoin;
 
   public PreJoinProjectNode(
       final PlanNodeId id,
@@ -101,6 +105,14 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
     joiningSource.ifPresent(source -> source.setKeyFormat(format));
   }
 
+  public boolean isSelfJoin() {
+    return isSelfJoin;
+  }
+
+  public void setSelfJoin(final boolean selfJoin) {
+    isSelfJoin = selfJoin;
+  }
+
   @Override
   public Stream<ColumnName> resolveSelectStar(
       final Optional<SourceName> sourceName
@@ -127,6 +139,32 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
     });
 
     return super.validateColumns(builder.build());
+  }
+
+  @Override
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final SchemaKStream<?> stream = getSource().buildStream(buildContext);
+
+    final List<ColumnName> keyColumnNames = getSchema().key().stream()
+        .map(Column::name)
+        .collect(Collectors.toList());
+    if (stream instanceof SchemaKTable || !isSelfJoin) {
+      return stream.select(
+          keyColumnNames,
+          getSelectExpressions(),
+          buildContext.buildNodeContext(getId().toString()),
+          buildContext,
+          getFormatInfo()
+      );
+    } else {
+      return stream.noOpSelect(
+          keyColumnNames,
+          getSelectExpressions(),
+          buildContext.buildNodeContext(getId().toString()),
+          buildContext,
+          getFormatInfo()
+      );
+    }
   }
 
   private static ImmutableBiMap<ColumnName, ColumnName> buildAliasMapping(

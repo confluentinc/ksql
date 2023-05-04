@@ -35,12 +35,14 @@ import javax.annotation.Nonnull;
     @Type(value = StreamGroupBy.class, name = "streamGroupByV2"),
     @Type(value = StreamGroupByKey.class, name = "streamGroupByKeyV1"),
     @Type(value = StreamSelect.class, name = "streamSelectV1"),
+    @Type(value = StreamNoOpPreJoinSelect.class, name = "streamNoOpPreJoinSelectV1"),
     @Type(value = StreamSelectKeyV1.class, name = "streamSelectKeyV1"),
     @Type(value = StreamSelectKey.class, name = "streamSelectKeyV2"),
     @Type(value = StreamSink.class, name = "streamSinkV1"),
     @Type(value = StreamSource.class, name = "streamSourceV1"),
     @Type(value = WindowedStreamSource.class, name = "windowedStreamSourceV1"),
     @Type(value = StreamStreamJoin.class, name = "streamStreamJoinV1"),
+    @Type(value = StreamStreamSelfJoin.class, name = "streamStreamSelfJoinV1"),
     @Type(value = StreamTableJoin.class, name = "streamTableJoinV1"),
     @Type(value = StreamWindowedAggregate.class, name = "streamWindowedAggregateV1"),
     @Type(value = TableSourceV1.class, name = "tableSourceV1"),
@@ -65,6 +67,10 @@ public interface ExecutionStep<S> {
   List<ExecutionStep<?>> getSources();
 
   default S build(PlanBuilder planBuilder) {
+    return build(planBuilder, extractPlanInfo(new PlanInfoExtractor()));
+  }
+
+  default S build(PlanBuilder planBuilder, PlanInfo planInfo, boolean addToTopology) {
     return build(planBuilder, extractPlanInfo(new PlanInfoExtractor()));
   }
 

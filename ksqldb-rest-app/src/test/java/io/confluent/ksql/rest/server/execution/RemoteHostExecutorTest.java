@@ -55,8 +55,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RemoteHostExecutorTest {
-//  @Mock
-//  public final KsqlEngine executionContext = mock(KsqlEngine.class);
   private final Set<HostInfo> hosts = Stream.of("otherhost:1234", "anotherhost:444")
       .map(HostInfo::buildFromEndpoint)
       .collect(Collectors.toSet());
@@ -79,8 +77,6 @@ public class RemoteHostExecutorTest {
   public void setup() throws MalformedURLException {
     when(sessionProperties.getInternalRequest()).thenReturn(false);
     when(sessionProperties.getLocalUrl()).thenReturn(new URL("https://address"));
-//    when(executionContext.getKsqlConfig()).thenReturn(ksqlConfig);
-//    when(ksqlConfig.getLong(anyString())).thenReturn(KsqlConfig.KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT);
 
     augmenter = RemoteHostExecutor.create(
         (ConfiguredStatement<DescribeStreams>) engine.configure("describe streams;"),

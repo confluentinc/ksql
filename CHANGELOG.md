@@ -37,6 +37,7 @@
 * avoid race in PullQueryWriteStream ([#9537](https://github.com/confluentinc/ksql/pull/9537)) ([34fbf87](https://github.com/confluentinc/ksql/commit/34fbf87))
 * don't block event loop in PullQueryQueue ([#9409](https://github.com/confluentinc/ksql/pull/9409)) ([9300b46](https://github.com/confluentinc/ksql/commit/9300b46))
 * allow assert values command to check partial columns ([#9463](https://github.com/confluentinc/ksql/pull/9463)) ([81a138c](https://github.com/confluentinc/ksql/commit/81a138c))
+* Fix VALUE_SCHEMA_ID to work with Avro optional fields [#8919](https://github.com/confluentinc/ksql/issues/8919) ([54acc05](https://github.com/confluentinc/ksql/commit/54acc05))
 * Ignore schema id while creating internal schemas [#9163](https://github.com/confluentinc/ksql/issues/9163) ([1b327c6](https://github.com/confluentinc/ksql/commit/1b327c6))
 * throw an exception if schema not found from SR during INSERT ([#9457](https://github.com/confluentinc/ksql/pull/9457)) ([49bb8d4](https://github.com/confluentinc/ksql/commit/49bb8d4))
 * Avoid new schema version registration on INSERT VALUES ([#9238](https://github.com/confluentinc/ksql/pull/9238)) ([018ad3a](https://github.com/confluentinc/ksql/commit/018ad3a))

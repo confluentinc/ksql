@@ -92,7 +92,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
           getQueryId(metric),
           getTopic(metric)
       );
-    }finally {
+    } finally {
       lock.unlock();
     }
   }
@@ -105,7 +105,6 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     final MetricName throughputTotalMetricName =
           getThroughputTotalMetricName(queryId, topic, metric.metricName());
     LOGGER.debug("Adding metric {}", throughputTotalMetricName);
-
     metrics.putIfAbsent(queryId, new HashMap<>());
     metrics.get(queryId).putIfAbsent(topic, new HashMap<>());
 

@@ -102,29 +102,28 @@ public class ThroughputMetricsReporter implements MetricsReporter {
       final String queryId,
       final String topic
   ) {
+    final MetricName throughputTotalMetricName =
+        getThroughputTotalMetricName(queryId, topic, metric.metricName());
+    LOGGER.debug("Adding metric {}", throughputTotalMetricName);
 
-      final MetricName throughputTotalMetricName =
-          getThroughputTotalMetricName(queryId, topic, metric.metricName());
-      LOGGER.debug("Adding metric {}", throughputTotalMetricName);
+    metrics.putIfAbsent(queryId, new HashMap<>());
+    metrics.get(queryId).putIfAbsent(topic, new HashMap<>());
 
-      metrics.putIfAbsent(queryId, new HashMap<>());
-      metrics.get(queryId).putIfAbsent(topic, new HashMap<>());
+    final ThroughputTotalMetric existingThroughputMetric =
+        metrics.get(queryId).get(topic).get(throughputTotalMetricName);
 
-      final ThroughputTotalMetric existingThroughputMetric =
-          metrics.get(queryId).get(topic).get(throughputTotalMetricName);
+    if (existingThroughputMetric == null) {
+      final ThroughputTotalMetric newThroughputMetric = new ThroughputTotalMetric(metric);
 
-      if (existingThroughputMetric == null) {
-        final ThroughputTotalMetric newThroughputMetric = new ThroughputTotalMetric(metric);
-
-        metrics.get(queryId).get(topic)
-            .put(throughputTotalMetricName, newThroughputMetric);
-        metricRegistry.addMetric(
-            throughputTotalMetricName,
-            newThroughputMetric
-        );
-      } else {
-        existingThroughputMetric.add(metric);
-      }
+      metrics.get(queryId).get(topic)
+          .put(throughputTotalMetricName, newThroughputMetric);
+      metricRegistry.addMetric(
+          throughputTotalMetricName,
+          newThroughputMetric
+      );
+    } else {
+      existingThroughputMetric.add(metric);
+    }
   }
 
   @Override

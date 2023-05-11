@@ -295,7 +295,7 @@ per zip code per hour in an `orders` stream, you might run a query like
 this:
 
 ```sql
-SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+SELECT order_zipcode, TOPK(order_total, 5) FROM orders
   WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY order_zipcode
   EMIT CHANGES;
 ```
@@ -401,7 +401,7 @@ For example, to allow events to be accepted for up to two hours after the window
 you might run a query like:
 
 ```sql
-SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+SELECT order_zipcode, TOPK(order_total, 5) FROM orders
   WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
   GROUP BY order_zipcode
   EMIT CHANGES;
@@ -437,7 +437,7 @@ five-minute tumbling window. Also, the output has fields that show the start
 and end time for each window.
 
 ```sql
-SELECT orderzip_code, 
+SELECT order_zipcode, 
   from_unixtime(WINDOWSTART) as Window_Start,
   from_unixtime(WINDOWEND) as Window_End,
   from_unixtime(max(ROWTIME)) as Window_Emit,

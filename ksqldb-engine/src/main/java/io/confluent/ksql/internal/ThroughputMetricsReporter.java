@@ -97,12 +97,9 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     final MetricName throughputTotalMetricName =
           getThroughputTotalMetricName(queryId, topic, metric.metricName());
     LOGGER.debug("Adding metric {}", throughputTotalMetricName);
-    if (!metrics.containsKey(queryId)) {
-      metrics.put(queryId, new HashMap<>());
-    }
-    if (!metrics.get(queryId).containsKey(topic)) {
-      metrics.get(queryId).put(topic, new HashMap<>());
-    }
+
+    metrics.putIfAbsent(queryId, new HashMap<>());
+    metrics.get(queryId).putIfAbsent(topic, new HashMap<>());
 
     final ThroughputTotalMetric existingThroughputMetric =
           metrics.get(queryId).get(topic).get(throughputTotalMetricName);

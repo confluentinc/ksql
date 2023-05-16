@@ -1389,6 +1389,17 @@ MASK_RIGHT("My Test $123", 4) => "My Test -nnn"
 
 ---
 
+### **`MD5`**
+
+```sql title="Since: 0.29.0"
+MD5('hash me')
+MD5(col1)
+```
+
+Returns the hex-encoded MD5 hash of the given `STRING`.
+
+---
+
 ### **`REPLACE`**
 
 ```sql title="Since: 0.6.0"

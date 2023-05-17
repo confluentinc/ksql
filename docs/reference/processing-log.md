@@ -51,6 +51,11 @@ Execution plan
 Internally, the log uses Log4J to write entries, so you can configure it
 just like you configure the normal ksqlDB log.
 
+!!! important
+    ksqlDB logs only error messages and doesn't use the log level from the
+    log4.properties file, which means that you can't change the log level of
+    the processing log.
+
 - For local deployments, edit the
 [log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
 config file to assign Log4J properties.

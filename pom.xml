@@ -144,6 +144,7 @@
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>0.28.2</io.confluent.ksql.version>
+        <io.confluent.schema-registry.version>7.3.0-cc-docker-ksql.119-678</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -291,25 +292,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
-                <version>7.3.0-cc-docker-ksql.119-678-rc2</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>7.3.0-cc-docker-ksql.119-678-rc2</version>
+                <version>${io.confluent.schema-registry.version}}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
-                <version>7.3.0-cc-docker-ksql.119-678-rc2</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
-                <version>7.3.0-cc-docker-ksql.119-678-rc2</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
@@ -333,25 +334,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
-                <version>7.3.0-cc-docker-ksql.119-678-rc2</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
-                <version>7.3.0-cc-docker-ksql.119-678-rc2</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
-                <version>7.3.0-cc-docker-ksql.119-678-rc2</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
-                <version>7.3.0-cc-docker-ksql.119-678-rc2</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <!-- End Confluent dependencies -->

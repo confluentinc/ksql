@@ -221,6 +221,23 @@ is used.
 In join queries, the `REPLICAS` value is taken from the left-most stream or
 table.
 
+### RETENTION_MS
+
+!!! note
+    Available starting in version `0.28.3-RC7`.
+
+The retention specified in milliseconds in the backing topic.
+
+If `RETENTION_MS` isn't set, the retention of the input stream is
+used.
+
+In join queries, the `RETENTION_MS` value is taken from the left-most stream or
+table.
+
+You can't change the retention on an existing stream. To change the
+retention, you must drop the stream and create it again.
+
+
 ### TIMESTAMP
 
 Sets a column within the stream's schema to be used as the default source of

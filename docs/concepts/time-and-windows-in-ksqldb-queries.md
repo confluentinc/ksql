@@ -170,26 +170,6 @@ producer:
 
 In all three cases, the time semantics are considered to be event-time.
 
-### Timestamp extractors
-
-When ksqlDB imports a topic to create a stream, it gets the timestamp from
-the topic's messages by using a *timestamp extractor* class. Timestamp
-extractors implement the
-[TimestampExtractor](https://docs.confluent.io/current/streams/javadocs/org/apache/kafka/streams/processor/TimestampExtractor.html)
-interface.
-
-Concrete implementations of timestamp extractors may retrieve or compute
-timestamps based on the actual contents of data records, like an
-embedded timestamp field, to provide event-time or ingestion-time
-semantics, or they may use any other approach, like returning the
-current wall-clock time at the time of processing to implement
-processing-time semantics.
-
-By creating a custom timestamp extractor class, you can enforce
-different notions or semantics of time, depending on the requirements of
-your business logic. For more information see
-[default.timestamp.extractor](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#default-timestamp-extractor).
-
 Windows in SQL queries
 ----------------------
 

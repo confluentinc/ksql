@@ -42,6 +42,22 @@ the API responds with a single response.
 -   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses).
 -   `LIMIT` clause supports non-negative integers.
 
+!!! important
+    ksqlDB may experience a deadlock if you run multiple pull queries concurrently.
+
+    If you experience hanging pull queries, the following mitigations may help.
+
+    - Rewrite your persistent queries or add a new persistent query to enable
+      efficient pull queries, ideally key lookups, but at least short-range scans,
+      or decrease state store size.
+    - Rewrite your table scans as individual key lookups.
+    - Continue issuing table scans, but issue fewer of them at once.
+    - Adjust your pull query load to avoid sharp spikes in the pull query
+      request rate all at once.
+    - Implement timeouts from your client so that if pull queries take too
+      long to run, your client terminates the connection to free up resources
+      and unblock other queries.
+
 ## `WHERE` Clause Guidelines
 
 By default, only key lookups are enabled. They have the following requirements:

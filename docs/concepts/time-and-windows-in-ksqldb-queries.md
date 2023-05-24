@@ -594,6 +594,8 @@ CREATE TABLE pageviews_per_region AS
 Note that the specified retention period should be larger than the sum of window size and any grace
 period.
 
+The default retention period is 1 day.
+
 ### Window final results
 
 In ksqlDB, windowed aggregations update their results continuously. As new data

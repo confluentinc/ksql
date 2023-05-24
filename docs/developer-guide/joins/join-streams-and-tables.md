@@ -268,6 +268,11 @@ To maximise join predictability, ensure historic table data is available in the
 source topic, the query is running, and ksqlDB has had enough time to process 
 the table data _before_ starting to produce to your stream.
 
+!!! tip
+    If no records are showing for a stream-table join, you may need to set the
+    `max.task.idle.ms` config to make stream records wait for table records
+    before being processed so they can be joined. 
+
 Table-Table Joins
 -----------------
 

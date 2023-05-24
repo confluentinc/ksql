@@ -151,8 +151,9 @@ You can't use the `FORMAT` property with the `KEY_FORMAT` or
 
 The name of the {{ site.ak }} topic that backs the table.
 
-If `KAFKA_TOPIC` isn't set, the name of the table in upper case is used
-as the topic name. 
+If `KAFKA_TOPIC` isn't set, the topic name is set to the `ksql.service.id`
+server setting concatenated with the table name, with all characters
+capitalized. In {{ site.ccloud }}, the service ID is the ksqlDB cluster ID.
 
 ### KEY_FORMAT
 

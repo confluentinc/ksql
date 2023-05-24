@@ -172,8 +172,9 @@ You can't use the `FORMAT` property with the `KEY_FORMAT` or
 
 The name of the {{ site.ak }} topic that backs the stream.
 
-If `KAFKA_TOPIC` isn't set, the name of the stream in upper case is used
-as the topic name. 
+If `KAFKA_TOPIC` isn't set, the topic name is set to the `ksql.service.id`
+server setting concatenated with the stream name, with all characters
+capitalized. In {{ site.ccloud }}, the service ID is the ksqlDB cluster ID.
 
 ### KEY_FORMAT
 

@@ -49,7 +49,7 @@ the API responds with a single response.
 
     - Rewrite your persistent queries or add a new persistent query to enable
       efficient pull queries, ideally key lookups, but at least short-range scans,
-      or to decrease state store size.
+      or decrease state store size.
     - Rewrite your table scans as individual key lookups.
     - Continue issuing table scans, but issue fewer of them at once.
     - Adjust your pull query load to avoid sharp spikes in the pull query

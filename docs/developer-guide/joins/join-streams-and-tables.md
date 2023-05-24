@@ -173,7 +173,7 @@ ignored and don't trigger the join.
     If you don't specify a grace period, left/outer join results are emitted eagerly,
     and the observed result might differ from the result shown below.
 
-| Timestamp | Left Stream | Right Stream | INNER JOIN                     | LEFT JOIN                      | RIGHT JOIN                     | OUTER JOIN                     |
+| Timestamp | Left Stream | Right Stream | INNER JOIN                     | LEFT JOIN                      | FULL JOIN                      | OUTER JOIN                     |
 |-----------|-------------|--------------|--------------------------------|--------------------------------|--------------------------------|--------------------------------|
 | 1         | null        |              |                                |                                |                                |                                |
 | 2         |             | null         |                                |                                |                                |                                |

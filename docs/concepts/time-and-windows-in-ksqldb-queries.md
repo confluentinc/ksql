@@ -408,6 +408,11 @@ emitted:
   You can use ROWTIME in the aggregate, for example, using the MAX function,
   to know when the window was updated.
 
+!!! important
+    WINDOWSTART and WINDOWEND comparisons must use either an INT/BIGINT
+    (Unix epoch time) or a string formatted to the ISO 8601 format
+    (`'yyyy-mm-ddThh:mm:ss'`).
+
 For example, the following SELECT statement counts the number of orders in each
 five-minute tumbling window. Also, the output has fields that show the start
 and end time for each window.

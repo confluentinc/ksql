@@ -1589,6 +1589,21 @@ The following list shows the supported encoding types.
 - `ascii`
 - `base64`
 
+The following example query shows how to convert a MongoDB ID in column 0
+from hexadecimal to a BIGINT to a datetime string.
+
+```sql
+select from_unixtime(cast(int_from_bytes(to_bytes(substring('628b30f00000000000000000', 0, 8),'hex')) as bigint) * 1000) from s1;
+```
+
+The output resembles:
+
+```json
+{
+  "KSQL_COL_0": "2022-05-23T07:00:00.000"
+}
+```
+
 ---
 
 ### **`TRIM`**

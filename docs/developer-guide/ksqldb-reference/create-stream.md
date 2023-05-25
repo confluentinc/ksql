@@ -216,6 +216,14 @@ The number of replicas in the backing topic. If this property isn't set, but
 `PARTITIONS` is set, the default {{ site.ak }} cluster configuration for replicas
 is used for creating a new topic.
 
+### RETENTION_MS
+The retention specified in milliseconds in the backing topic. You must set this
+property if you create a stream without an existing topic, and the statement
+fails if the topic doesn't exist.
+
+You can't change the retention on an existing stream. To change the
+retention, you must drop the stream and create it again.
+
 ### TIMESTAMP
 
 By default, the `ROWTIME` pseudo column is the timestamp of the message in the

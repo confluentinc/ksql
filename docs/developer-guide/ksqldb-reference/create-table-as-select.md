@@ -197,6 +197,34 @@ is used.
 In join queries, the `REPLICAS` value is taken from the left-most stream or
 table.
 
+### RETENTION_MS
+
+The retention specified in milliseconds in the backing topic.
+
+If `RETENTION_MS` isn't set, the retention of the input stream is
+used.
+
+In join queries, the `RETENTION_MS` value is taken from the left-most stream or
+table.
+
+You can't change the retention on an existing windowed table. To change the
+retention, you must drop the stream and create it again.
+
+This setting is only accepted while creating windowed tables.
+Additionally, the larger of `RETENTION_MS` and `RETENTION` is used while
+creating the backing topic if it doesn't exist.
+
+For example, to retain the computed windowed aggregation results for a week,
+you might run the following query with `retention_ms` = 604800000 and `retention` = 2 days:
+
+```sql
+CREATE TABLE pageviews_per_region 
+WITH (kafka_topic='pageviews-per-region', format='avro', partitions=3, retention_ms=604800000)
+AS SELECT regionid, count(*) FROM s1 
+WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 2 DAYS)
+GROUP BY regionid;
+```
+
 ### TIMESTAMP
 
 Sets a column within the tables's schema to be used as the default source of

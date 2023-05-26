@@ -234,14 +234,24 @@ table.
 
 The retention specified in milliseconds in the backing topic.
 
-If `RETENTION_MS` isn't set, the retention of the input stream is
-used.
+If `RETENTION_MS` isn't set, the retention of the input stream is used.
+But in the case of inheritance, the CREATE STREAM declaration is not the source
+of the RETENTION_MS value.
 
 In join queries, the `RETENTION_MS` value is taken from the left-most stream or
 table.
 
 You can't change the retention on an existing stream. To change the
-retention, you must drop the stream and create it again.
+retention, you have these options:
+
+- Drop the stream and the topic it's registered on with the DROP STREAM and
+  DELETE TOPIC statements, and create them again.
+- Drop the stream with the DROP STREAM statement, update the topic with
+  `retention.ms=<new-value>` and register the stream again with
+  `CREATE STREAM WITH (RETENTION_MS=<new-value>)`.
+- For a stream that was created with `CREATE STREAM WITH (RETENTION_MS=<old-value>)`,
+  update the topic with `retention.ms=<new-value>`, and update the stream with the
+  `CREATE OR REPLACE STREAM WITH (RETENTION_MS=<new-value>)` statement.
 
 ### TIMESTAMP
 

@@ -605,6 +605,12 @@ details, and instructions on how to create suitable trust stores, please
 refer to the
 [Security Guide](https://docs.confluent.io/current/security/index.html).
 
+!!! note
+    The `security.protocol` config isn't required for HTTPS connections.
+    Only the `ssl.*` properties are required. Setting `security.protocol`
+    doesn't apply to the client connection, but instead to the ksqlDB Server
+    to {{ site.ak }} connection.
+
 To use separate trust stores for encrypted communication with {{ site.ak }}
 and external communication with ksqlDB clients, prefix the SSL truststore configs
 with `ksql.streams.`:

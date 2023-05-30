@@ -222,7 +222,16 @@ property if you create a stream without an existing topic, and the statement
 fails if the topic doesn't exist.
 
 You can't change the retention on an existing stream. To change the
-retention, you must drop the stream and create it again.
+retention, you have these options:
+
+- Drop the stream and the topic it's registered on with the DROP STREAM and
+  DELETE TOPIC statements, and create them again.
+- Drop the stream with the DROP STREAM statement, update the topic with
+  `retention.ms=<new-value>` and register the stream again with
+  `CREATE STREAM WITH (RETENTION_MS=<new-value>)`.
+- For a stream that was created with `CREATE STREAM WITH (RETENTION_MS=<old-value>)`,
+  update the topic with `retention.ms=<new-value>`, and update the stream with the
+  `CREATE OR REPLACE STREAM WITH (RETENTION_MS=<new-value>)` statement.
 
 ### TIMESTAMP
 

@@ -217,9 +217,6 @@ used.
 In join queries, the `RETENTION_MS` value is taken from the left-most stream or
 table.
 
-You can't change the retention on an existing windowed table. To change the
-retention, you must drop the stream and create it again.
-
 This setting is only accepted while creating windowed tables.
 Additionally, the larger of `RETENTION_MS` and `RETENTION` is used while
 creating the backing topic if it doesn't exist.
@@ -233,6 +230,18 @@ AS SELECT regionid, count(*) FROM s1
 WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 2 DAYS)
 GROUP BY regionid;
 ```
+
+You can't change the retention on an existing table. To change the
+retention, you have these options:
+
+- Drop the table and the topic it's registered on with the DROP TABLE and
+  DELETE TOPIC statements, and create them again.
+- Drop the table with the DROP TABLE statement, update the topic with
+  `retention.ms=<new-value>` and register the table again with
+  `CREATE TABLE WITH (RETENTION_MS=<new-value>)`.
+- For a table that was created with `CREATE TABLE WITH (RETENTION_MS=<old-value>)`,
+  update the topic with `retention.ms=<new-value>`, and update the table with the
+  `CREATE OR REPLACE TABLE WITH (RETENTION_MS=<new-value>)` statement.
 
 ### TIMESTAMP
 

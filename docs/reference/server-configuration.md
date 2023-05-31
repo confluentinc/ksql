@@ -566,6 +566,31 @@ Specifies the server properties that ksqlDB clients and users can't override.
     ------------------------------------------------------------
     ```
 
+## `ksql.query.push.v2.enabled`
+
+**Per query:** yes
+
+Enables v2 push queries, which support larger scale use cases. With this config
+set, your push queries have these characteristics:
+
+- Up to 1,000 concurrent subscriptions, per ksqlDB server instance, across
+  numerous clients, depending on the rate of data production.
+- Lightweight, on-the-fly matching using the query ``WHERE`` clause.
+- Easy subscription lifetime management lasting for the lifetime of a query.
+- Best effort message delivery.
+
+These queries are suitable for applications with shorter lifespans. They consume
+data which has already been processed and is shared between many requests, so
+there’s little overhead.
+
+To utilize the scaling improvements, the following limitations are placed on
+your query:
+
+- No `GROUP BY`, `PARTITION BY`, or windowing expressions.
+- Must read newly arriving data only, `SET 'auto.offset.reset' = 'latest'`,
+  which means that your query can't read historical data.
+- Must have a single upstream persistent query only.
+
 ## `ksql.schema.registry.url`
 
 **Per query:** no

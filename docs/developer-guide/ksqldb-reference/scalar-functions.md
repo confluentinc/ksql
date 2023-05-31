@@ -1445,7 +1445,7 @@ You can specify a capturing group number to return that specific group. If a
 number isn't specified, the entire substring is returned by default.
 
 ```sql title="Example"
-REGEXP_EXTRACT("(\\w+) (\\w+)", "hello there nice day", 2) => ["there", "day"]
+REGEXP_EXTRACT_ALL("(\\w+) (\\w+)", "hello there nice day", 2) => ["there", "day"]
 ```
 
 ---

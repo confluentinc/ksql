@@ -537,6 +537,12 @@ statements.
     the default value you set, the format ignores the setting. For information on which formats
     support wrapping and unwrapping, see the [serialization docs](/reference/serialization).
 
+## `ksql.plugins.rocksdb.cache.limit.strict`
+
+**Per query:** no
+
+Sets a hard boundary on cache size (memory usage) to avoid out-of-memory
+exceptions when RocksDB reaches memory usage above configured properties.
 
 ## `ksql.properties.overrides.denylist`
 

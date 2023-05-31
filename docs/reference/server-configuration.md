@@ -219,6 +219,12 @@ other, to aid in faster failure detection for improved pull query routing.
 Also enables the [`/clusterStatus` endpoint](../developer-guide/ksqldb-rest-api/cluster-status-endpoint.md).
 The default is `false`.
 
+When heartbeating is enabled with the default (recommended) send interval of
+100ms, it can generate a lot of noise in the ksqlDB server log. You can reduce
+log noise with heartbeating enabled by setting either the
+`ksql.endpoint.logging.ignored.paths.regex` or `ksql.logging.server.rate.limited.request.paths`
+configurations.
+
 !!! important
     Be careful when you change heartbeat configuration values, because
     the stability and availability of ksqlDB applications depend sensitively on them.

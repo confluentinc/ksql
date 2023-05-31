@@ -15,17 +15,13 @@ In this case, configurations are applied when the cluster starts.
 
 A subset of these configuration parameters can be applied on a running cluster,
 either for individual queries (using the `SET` command or the Confluent Cloud
-Console) or for the entire cluster (using the `ALTER SYSTEM` command or the
-Confluent Cloud Console). When this is the case for a parameter, it is called
+Console) or for the entire cluster. When this is the case for a parameter, it is called
 out in the parameter description's **Per query** block. Currently, you can edit
 parameters in this subset only in {{ site.ccloud }}.
 
 You can assign the value of some parameters on a per-persistent query basis
 by using the `SET` statement. This is indicated in the following parameter
-sections with the **Per query** block. For ksqlDB in {{ site.ccloud }}, some 
-parameters can be set only by using the `ALTER SYSTEM` statement and are applied
-to all queries running on the current cluster, as indicated in the corresponding
-**Per query** block.
+sections with the **Per query** block.
 
 !!! note
     You can change per-query configs by using the `SET` statement, but you must
@@ -681,7 +677,7 @@ and
 
 ## `ksql.streams.commit.interval.ms`
 
-**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
+**Per query:** no
 
 The frequency to save the position of the processor. The default value
 in ksqlDB is `2000`. Here is an example to change the value to `5000` by
@@ -713,7 +709,7 @@ For more information, see
 
 ## `ksql.streams.num.standby.replicas`
 
-**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
+**Per query:** no
 
 Sets the number of hot-standby replicas of internal state to maintain. If a
 server fails and a standby replica is present, the standby will be able to take
@@ -740,7 +736,7 @@ information about the {{ site.kstreams }} threading model, see
 
 ## `ksql.streams.processing.guarantee`
 
-**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
+**Per query:** no
 
 The processing semantics to use for persistent queries. The default is 
 `at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
@@ -749,7 +745,7 @@ For more information, see [Processing Guarantees](/operate-and-deploy/exactly-on
 
 ## `ksql.streams.producer.compression.type`
 
-**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
+**Per query:** yes
 
 The type of compression used by streams producers for topics created by INSERT INTO, 
 CREATE TABLE AS SELECT, and CREATE STREAM AS SELECT statements. The default is `snappy`.

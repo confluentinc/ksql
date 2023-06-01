@@ -58,6 +58,8 @@ For more information on setting properties, see
 
 ## `authentication.skip.paths`
 
+**Per query:** no
+
 Sets endpoints on the ksqlDB server that can be accessed without authentication.
 The setting is a comma-separated list of paths, for example, `/lag,/heartbeat`.
 

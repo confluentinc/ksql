@@ -232,7 +232,6 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
         "Invalid value FOO for configuration ksql.plugins.rocksdb.compression.type: "
             + "String must be one of: "
             + "NO_COMPRESSION, SNAPPY_COMPRESSION, ZLIB_COMPRESSION, BZLIB2_COMPRESSION, "
-            + "LZ4_COMPRESSION, LZ4HC_COMPRESSION, XPRESS_COMPRESSION, ZSTD_COMPRESSION, "
-            + "DISABLE_COMPRESSION_OPTION, null"));
+            + "LZ4_COMPRESSION, LZ4HC_COMPRESSION, XPRESS_COMPRESSION, ZSTD_COMPRESSION"));
   }
 }

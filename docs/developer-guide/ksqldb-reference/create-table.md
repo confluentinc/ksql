@@ -47,6 +47,10 @@ A ksqlDB table works much like tables in other SQL systems. A table has zero or
 more rows. Each row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY`
 can't be `NULL`.
 
+Tables with multiple primary keys can have nulls written into the primary key
+fields, because the key becomes a struct concatenation of the individual
+fields, resulting in the actual key never being null.
+
 !!! important
     You must declare a PRIMARY KEY when you create a table on a {{ site.ak }}
     topic.

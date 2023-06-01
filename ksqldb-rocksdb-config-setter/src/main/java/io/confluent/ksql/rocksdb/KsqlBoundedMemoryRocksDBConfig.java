@@ -76,7 +76,9 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
   public static final String COMPACTION_TRIVIAL_MOVE =
       CONFIG_PREFIX + "compaction.trivial.move";
   private static final String COMPACTION_TRIVIAL_MOVE_DOC =
-      "The RocksDB instance will enable trivial move if this flag is true";
+      "The RocksDB instance will enable trivial move if this flag is true. This feature is always "
+          + "enabled for LEVELED compaction. Therefore, this is only relevant if the compaction "
+          + "style is set to UNIVERSAL.";
 
 
 
@@ -142,7 +144,6 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
       ).define(
           COMPACTION_TRIVIAL_MOVE,
           Type.BOOLEAN,
-          false,
           Importance.LOW,
           COMPACTION_TRIVIAL_MOVE_DOC
       );

@@ -27,10 +27,12 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetter.LruCacheFactory;
 import io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetter.WriteBufferManagerFactory;
 import java.util.Collections;
@@ -198,6 +200,25 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
     verify(tableConfig).setCacheIndexAndFilterBlocks(true);
     verify(tableConfig).setCacheIndexAndFilterBlocksWithHighPriority(true);
     verify(tableConfig).setPinTopLevelIndexAndFilter(true);
+  }
+
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED")
+  @Test
+  public void shouldNotSetTrivialMoveForLevelCompaction() {
+    // Given, When:
+    final Map<String, Object> CONFIG_PROPS = new HashMap<>(
+        ImmutableMap.<String, Object> builder()
+            .put("ksql.plugins.rocksdb.cache.size", CACHE_SIZE)
+            .put("ksql.plugins.rocksdb.compaction.style", CompactionStyle.LEVEL.name())
+            .put("ksql.plugins.rocksdb.compaction.trivial.move", ALLOW_TRIVIAL_MOVE)
+            .build()
+    );
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(
+        CONFIG_PROPS, rocksOptions, cacheFactory, bufferManagerFactory);
+    rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
+
+    // Then:
+    verify(rocksOptions, never()).compactionOptionsUniversal();
   }
 
   @Test

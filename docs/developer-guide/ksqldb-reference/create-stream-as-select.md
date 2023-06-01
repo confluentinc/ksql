@@ -199,6 +199,12 @@ The schema will be used to serialize keys for the stream created by this `CREATE
 For more details, see the corresponding section in the
 [Serialization Formats](/reference/serialization#protobuf) documentation.
 
+### KEY_SCHEMA_FULL_NAME
+
+The full name of the key schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
 ### KEY_SCHEMA_ID
 
 The schema ID of the key schema in {{ site.sr }}.
@@ -294,6 +300,12 @@ with successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
 
 For more information, see [Timestamp formats](/reference/sql/time/#timestamp-formats).
 
+### VALUE_AVRO_SCHEMA_FULL_NAME
+
+The full name of the value AVRO schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
 ### VALUE_DELIMITER
 
 Set the delimiter string to use when `VALUE_FORMAT` is set to `DELIMITED`.
@@ -326,10 +338,19 @@ The schema will be used to serialize values for the stream created by this `CREA
 For more details, see the corresponding section in the
 [Serialization Formats](/reference/serialization#protobuf) documentation.
 
+### VALUE_SCHEMA_FULL_NAME
+
+The full name of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
 ### VALUE_SCHEMA_ID
 
-The schema ID of the value schema in {{ site.sr }}. The schema is used for
-schema inference and data serialization. For more information, see
+The schema ID of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
+For more information, see
 [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id).
 
 ### WRAP_SINGLE_VALUE

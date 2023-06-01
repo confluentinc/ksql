@@ -56,6 +56,13 @@ For more information on setting properties, see
     `ksql.streams.consumer.xxx` to pass the property through. For example,
     `ksql.streams.producer.compression.type` sets the compression type on the producer.
 
+## `authentication.skip.paths`
+
+**Per query:** no
+
+Sets endpoints on the ksqlDB server that can be accessed without authentication.
+The setting is a comma-separated list of paths, for example, `/lag,/heartbeat`.
+
 ## `compression.type`
 
 **Per query:** no

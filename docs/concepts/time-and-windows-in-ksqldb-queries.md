@@ -292,6 +292,17 @@ The tumbling window's start time is inclusive, but the end time is
 exclusive. This is important for non-overlapping windows, in which each
 record must be contained in exactly one window.
 
+Tumbling time windows are aligned to the epoch, with the lower interval bound
+being inclusive and the upper bound being exclusive. Aligning to the epoch means
+that the first window starts at timestamp zero.
+
+For example, tumbling windows with a size of 5000 ms have predictable window
+boundaries:
+
+- `[0;5000)`, `[5000;10000)`, ... 
+- not `[1000;6000)`, `[6000;11000)`, ...
+- or something arbitrary, like `[1452;6452)`, `[6452;11452)`, ...
+
 #### Session window
 
 A session window aggregates records into a session, which represents a

@@ -313,6 +313,14 @@ The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
 [Processing Log](/reference/processing-log).
 
+## `ksql.json_sr.converter.deserializer.enabled`
+
+**Per query:** no
+
+Enables using `JsonSchemaConverter` for schema deserialization, which supports
+`anyOf` types. If not enabled, ksqlDB uses plain JSON serdes. The default is
+`true`.
+
 ## `ksql.lag.reporting.enable`
 
 **Per query:** no

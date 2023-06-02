@@ -48,9 +48,11 @@ queries against materialized views are highly efficient.
 
 In ksqlDB, a table can be materialized into a view or not. If a table is
 created directly on top of a {{ site.ak }} topic, it's not materialized.
-Non-materialized tables can't be queried, because they would be highly
-inefficient. On the other hand, if a table is derived from another collection,
-ksqlDB materializes its results, and you can make queries against it.
+Non-materialized tables can't be queried with pull queries (key-based state
+lookups), because they would be highly inefficient. On the other hand, if a
+table is derived from another collection, ksqlDB materializes its results,
+and you can make pull queries against it. This limitation doesn't apply to
+push queries (continuous queries).
 
 ksqlDB leverages the idea of stream/table duality by storing both components
 of each table. The current state of a table is stored locally and ephemerally

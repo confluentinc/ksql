@@ -155,7 +155,7 @@ run this command.
 
 !!! note
 
-    You must run the ksql-migrations tool in the directory that contains the
+    You must run the `ksql-migrations` tool in the directory that contains the
     config file. 
 
 ```

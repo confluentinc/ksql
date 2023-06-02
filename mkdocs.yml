@@ -156,8 +156,6 @@ nav:
     - Clients:
       - Synopsis: developer-guide/ksqldb-clients/index.md
       - Java Client: developer-guide/ksqldb-clients/java-client.md
-      - Python Client: developer-guide/ksqldb-clients/python-client.md
-      - .NET Client: developer-guide/ksqldb-clients/dotnet-client.md
       - Contribute a new client: developer-guide/ksqldb-clients/contributing.md
     - Processing log: reference/processing-log.md
     - Serialization: reference/serialization.md

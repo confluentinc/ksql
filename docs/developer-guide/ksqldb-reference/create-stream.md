@@ -227,6 +227,9 @@ is used for creating a new topic.
 
 ### RETENTION_MS
 
+!!! note
+    Available starting in version `0.28.3-RC7`.
+
 The retention specified in milliseconds in the backing topic. You must set this
 property if you create a stream without an existing topic, and the statement
 fails if the topic doesn't exist.

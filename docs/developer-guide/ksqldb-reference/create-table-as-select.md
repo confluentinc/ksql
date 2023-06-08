@@ -208,13 +208,13 @@ table.
 
 ### RETENTION_MS
 
+!!! note
+    Available starting in version `0.28.3-RC7`.
+
 The retention specified in milliseconds in the backing topic.
 
 If `RETENTION_MS` isn't set, the retention of the input stream is
 used.
-
-In join queries, the `RETENTION_MS` value is taken from the left-most stream or
-table.
 
 This setting is only accepted while creating windowed tables.
 Additionally, the larger of `RETENTION_MS` and `RETENTION` is used while

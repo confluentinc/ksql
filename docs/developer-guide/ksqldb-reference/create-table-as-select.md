@@ -215,6 +215,9 @@ table.
 
 ### RETENTION_MS
 
+!!! note
+    Available starting in version `0.28.3-RC7`.
+
 The retention specified in milliseconds in the backing topic.
 
 If `RETENTION_MS` isn't set, the retention of the input stream is

@@ -246,9 +246,9 @@ The retention specified in milliseconds in the backing topic.
 
 If `RETENTION_MS` isn't set, the retention of the input stream is used.
 But in the case of inheritance, the CREATE STREAM declaration is not the source
-of the RETENTION_MS value.
+of the `RETENTION_MS` value.
 
-In join queries, the RETENTION_MS value is taken from the left-most stream.
+In join queries, the `RETENTION_MS` value is taken from the left-most stream.
 
 You can't change the retention on an existing stream. To change the
 retention, you have these options:

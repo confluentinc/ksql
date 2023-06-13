@@ -228,8 +228,7 @@ This setting is only accepted while creating windowed tables.
 Additionally, the larger of `RETENTION_MS` and `RETENTION` is used while
 creating the backing topic if it doesn't exist.
 
-In join queries, the `RETENTION_MS` value is taken from the left-most stream
-or table.
+In join queries, the `RETENTION_MS` value is taken from the left-most stream.
 
 For example, to retain the computed windowed aggregation results for a week,
 you might run the following query with `retention_ms` = 604800000 and `retention` = 2 days:

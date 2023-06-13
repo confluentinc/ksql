@@ -205,11 +205,14 @@ table.
 The retention specified in milliseconds in the backing topic.
 
 If `RETENTION_MS` isn't set, the retention of the input stream is
-used.
+used. But in the case of inheritance, the CREATE TABLE declaration is not
+the source of the `RETENTION_MS` value.
 
 This setting is only accepted while creating windowed tables.
 Additionally, the larger of `RETENTION_MS` and `RETENTION` is used while
 creating the backing topic if it doesn't exist.
+
+In join queries, the `RETENTION_MS` value is taken from the left-most stream.
 
 For example, to retain the computed windowed aggregation results for a week,
 you might run the following query with `retention_ms` = 604800000 and `retention` = 2 days:

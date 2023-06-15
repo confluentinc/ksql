@@ -43,6 +43,7 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-schema-registry-client</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>
@@ -54,31 +55,37 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-avro-converter</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-protobuf-provider</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-json-schema-provider</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-protobuf-converter</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-json-schema-converter</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-avro-serializer</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <!-- Required for running tests -->

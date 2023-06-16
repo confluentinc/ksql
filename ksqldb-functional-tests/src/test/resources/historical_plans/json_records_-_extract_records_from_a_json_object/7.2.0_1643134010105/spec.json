@@ -1,0 +1,181 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1643134010105,
+  "path" : "query-validation-tests/json_records.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `COLORS_OBJ` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `COLORS` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "extract records from a json object",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "colors_obj" : "{\"Red\": 3, \"Green\": 5}"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "colors_obj" : "{\"Black\": 2}"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "colors_obj" : "{\"Pink\": 1, \"Yellow\": 3}"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "colors_obj" : "{\"White\": 7, \"Pink\": 8}"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "colors_obj" : "{}"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "colors_obj" : null,
+        "timestamp" : 0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "colors_obj" : "",
+        "timestamp" : 0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "COLORS" : {
+          "Red" : "3",
+          "Green" : "5"
+        }
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "COLORS" : {
+          "Black" : "2"
+        }
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "COLORS" : {
+          "Pink" : "1",
+          "Yellow" : "3"
+        }
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "COLORS" : {
+          "White" : "7",
+          "Pink" : "8"
+        }
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "COLORS" : { }
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (K STRING KEY, colors_obj STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, JSON_RECORDS(colors_obj) AS COLORS FROM test WHERE JSON_RECORDS(colors_obj) IS NOT NULL;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `COLORS` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `COLORS_OBJ` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

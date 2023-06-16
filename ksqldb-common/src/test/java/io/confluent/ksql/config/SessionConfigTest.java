@@ -127,4 +127,20 @@ public class SessionConfigTest {
         is(ImmutableMap.of("key1", 1, "key2", "value2", "key3", Arrays.asList(1, 2, 3))));
     assertThat(newConfig.getConfig(false), is(config.getConfig(false)));
   }
+
+  @Test
+  public void shouldCreateWithNewConfig() {
+    // Given:
+    final SessionConfig config = SessionConfig.of(systemConfig,
+        ImmutableMap.of("key1", 1, "key2", "value2"));
+
+    // When:
+    final SessionConfig newConfig = config.withNewOverrides(
+        ImmutableMap.of("key3", Arrays.asList(1, 2, 3)));
+
+    // Then:
+    assertThat(newConfig.getOverrides(),
+        is(ImmutableMap.of("key3", Arrays.asList(1, 2, 3))));
+    assertThat(newConfig.getConfig(false), is(config.getConfig(false)));
+  }
 }

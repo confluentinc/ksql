@@ -168,6 +168,10 @@ public class NewMigrationCommand extends BaseCommand {
       MigrationConfig.KSQL_BASIC_AUTH_PASSWORD
   );
 
+  private static final List<String> MIGRATIONS_STRUCTURE_CONFIGS = ImmutableList.of(
+      MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE
+  );
+
   private static String createInitialConfig(final String ksqlServerUrl) {
     final StringBuilder builder = new StringBuilder();
 
@@ -176,6 +180,7 @@ public class NewMigrationCommand extends BaseCommand {
     appendConfigs(builder, "Migrations metadata configs", METADATA_CONFIGS);
     appendConfigs(builder, "TLS configs", TLS_CONFIGS);
     appendConfigs(builder, "ksqlDB server authentication configs", SERVER_AUTH_CONFIGS);
+    appendConfigs(builder, "Migrations directory configs", MIGRATIONS_STRUCTURE_CONFIGS);
 
     return builder.toString();
   }

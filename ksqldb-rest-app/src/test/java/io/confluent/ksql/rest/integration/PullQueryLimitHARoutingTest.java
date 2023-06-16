@@ -79,6 +79,7 @@ public class PullQueryLimitHARoutingTest {
     private static final int TOTAL_RECORDS = USER_PROVIDER.getNumRecords();
     private static final int HEADER = 1;
     private static final int LIMIT_REACHED_MESSAGE = 1;
+    private static final int COMPLETE_MESSAGE = 1;
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
     private static final int BASE_TIME = 1_000_000;
@@ -314,7 +315,7 @@ public class PullQueryLimitHARoutingTest {
                 sqlStreamPull, null, USER_CREDS);
 
         //check that we got back all the rows
-        assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS));
+        assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS + COMPLETE_MESSAGE));
 
         //issue pull query on stream with limit
         final List<StreamedRow> rows_1 = makePullQueryRequest(TEST_APP_0.getApp(),
@@ -343,7 +344,7 @@ public class PullQueryLimitHARoutingTest {
                 sqlStreamPull, null, USER_CREDS);
 
         // check that we get all rows back
-        assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS));
+        assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS + COMPLETE_MESSAGE));
         assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
 
         // issue pull query with limit after partitioning an app

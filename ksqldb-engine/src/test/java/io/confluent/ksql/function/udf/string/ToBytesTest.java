@@ -76,6 +76,11 @@ public class ToBytesTest {
     }
 
     @Test
+    public void shouldReturnNullOnNullEncoding() {
+        assertThat(udf.toBytes("IQ==", null), nullValue());
+    }
+
+    @Test
     public void shouldThrowOnUnknownEncodingType() {
         final Exception e = assertThrows(IllegalArgumentException.class,
             () -> udf.toBytes("AAEC", "base5000"));

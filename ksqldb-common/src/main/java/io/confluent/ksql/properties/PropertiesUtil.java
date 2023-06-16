@@ -18,11 +18,14 @@ package io.confluent.ksql.properties;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -33,6 +36,7 @@ import java.util.stream.Collectors;
  * Utility class for working with property files and system properties.
  */
 public final class PropertiesUtil {
+  private static final PropertyParser PROPERTY_PARSER = new LocalPropertyParser();
 
   private static final Set<Predicate<String>> BLACK_LIST = ImmutableSet
       .<Predicate<String>>builder()
@@ -158,5 +162,53 @@ public final class PropertiesUtil {
     final Builder<String, String> builder = ImmutableMap.builder();
     props.stringPropertyNames().forEach(key -> builder.put(key, props.getProperty(key)));
     return builder.build();
+  }
+
+  public static Map<String, Object> coerceTypes(
+      final Map<String, Object> streamsProperties,
+      final boolean ignoreUnresolved
+  ) {
+    if (streamsProperties == null) {
+      return Collections.emptyMap();
+    }
+
+    final Map<String, Object> validated = new HashMap<>(streamsProperties.size());
+    for (final Map.Entry<String, Object> e : streamsProperties.entrySet()) {
+      try {
+        validated.put(e.getKey(), coerceType(e.getKey(), e.getValue()));
+      } catch (final PropertyNotFoundException p) {
+        if (ignoreUnresolved) {
+          validated.put(e.getKey(), e.getValue());
+        } else {
+          throw p;
+        }
+      }
+    }
+    return validated;
+  }
+
+  private static Object coerceType(final String key, final Object value) {
+    try {
+      final String stringValue = value == null
+          ? null
+          : value instanceof List
+              ? listToString((List<?>) value)
+              : String.valueOf(value);
+
+      return PROPERTY_PARSER.parse(key, stringValue);
+    } catch (final PropertyNotFoundException e) {
+      throw e;
+    } catch (final Exception e) {
+      throw new KsqlException(
+          "Failed to coerce type of value '" + value + "' for key '" + key + "'",
+          e
+      );
+    }
+  }
+
+  private static String listToString(final List<?> value) {
+    return value.stream()
+        .map(e -> e == null ? null : e.toString())
+        .collect(Collectors.joining(","));
   }
 }

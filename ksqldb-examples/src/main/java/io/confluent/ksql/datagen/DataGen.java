@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
@@ -364,14 +363,20 @@ public final class DataGen {
           timestampColumnName = Optional.ofNullable(timestampColumnName).orElse(null);
         }
 
-        try {
-          Objects.requireNonNull(schemaFile, "Schema file not provided");
-          Objects.requireNonNull(keyFormat, "Message key format not provided");
-          Objects.requireNonNull(valueFormat, "Message value format not provided");
-          Objects.requireNonNull(topicName, "Kafka topic name not provided");
-          Objects.requireNonNull(keyName, "Name of key column not provided");
-        } catch (final NullPointerException exception) {
-          throw new ArgumentParseException(exception.getMessage());
+        if (schemaFile == null) {
+          throw new ArgumentParseException("Schema file not provided");
+        }
+        if (keyFormat == null) {
+          throw new ArgumentParseException("Message key format not provided");
+        }
+        if (valueFormat == null) {
+          throw new ArgumentParseException("Message value format not provided");
+        }
+        if (topicName == null) {
+          throw new ArgumentParseException("Kafka topic name not provided");
+        }
+        if (keyName == null) {
+          throw new ArgumentParseException("Name of key column not provided");
         }
         return new Arguments(
             help,

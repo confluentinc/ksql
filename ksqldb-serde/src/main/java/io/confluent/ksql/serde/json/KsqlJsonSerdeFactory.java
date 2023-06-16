@@ -72,7 +72,7 @@ class KsqlJsonSerdeFactory {
     final Optional<Schema> physicalSchema;
     if (useSchemaRegistryFormat) {
       physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
-          SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
+          SerdeUtils.getAndTranslateSchemaById(srFactory, properties.getSchemaId()
               .get(), new JsonSchemaTranslator())) : Optional.empty();
     } else {
       physicalSchema = Optional.empty();

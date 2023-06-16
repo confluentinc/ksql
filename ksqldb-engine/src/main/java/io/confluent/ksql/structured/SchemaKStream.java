@@ -169,25 +169,12 @@ public class SchemaKStream<K> {
       final FormatInfo leftValueFormat,
       final Stacker contextStacker
   ) {
-    throwOnJoinKeyFormatsMismatch(schemaKTable);
-
-    final Formats fmts = InternalFormats.of(keyFormat, leftValueFormat);
-
-    final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
-        contextStacker,
-        JoinType.LEFT,
-        keyColName,
-        fmts,
-        sourceStep,
-        schemaKTable.getSourceTableStep()
-    );
-
-    return new SchemaKStream<>(
-        step,
-        resolveSchema(step, schemaKTable),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
+    return join(
+      schemaKTable,
+      keyColName,
+      leftValueFormat,
+      contextStacker,
+      JoinType.LEFT
     );
   }
 
@@ -199,26 +186,33 @@ public class SchemaKStream<K> {
       final FormatInfo rightFormat,
       final Stacker contextStacker
   ) {
-    throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
-
-    final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
-        contextStacker,
-        JoinType.LEFT,
+    return join(
+        otherSchemaKStream,
         keyColName,
-        InternalFormats.of(keyFormat, leftFormat),
-        InternalFormats.of(keyFormat, rightFormat),
-        sourceStep,
-        otherSchemaKStream.sourceStep,
-        withinExpression.joinWindow(),
-        withinExpression.getGrace()
+        withinExpression,
+        leftFormat,
+        rightFormat,
+        contextStacker,
+        JoinType.LEFT
     );
+  }
 
-    return new SchemaKStream<>(
-        step,
-        resolveSchema(step, otherSchemaKStream),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
+  public SchemaKStream<K> rightJoin(
+      final SchemaKStream<K> otherSchemaKStream,
+      final ColumnName keyColName,
+      final WithinExpression withinExpression,
+      final FormatInfo leftFormat,
+      final FormatInfo rightFormat,
+      final Stacker contextStacker
+  ) {
+    return join(
+        otherSchemaKStream,
+        keyColName,
+        withinExpression,
+        leftFormat,
+        rightFormat,
+        contextStacker,
+        JoinType.RIGHT
     );
   }
 
@@ -228,23 +222,12 @@ public class SchemaKStream<K> {
       final FormatInfo leftValueFormat,
       final Stacker contextStacker
   ) {
-    throwOnJoinKeyFormatsMismatch(schemaKTable);
-
-    final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
-        contextStacker,
-        JoinType.INNER,
-        keyColName,
-        InternalFormats.of(keyFormat, leftValueFormat),
-        sourceStep,
-        schemaKTable.getSourceTableStep()
-    );
-
-    return new SchemaKStream<>(
-        step,
-        resolveSchema(step, schemaKTable),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
+    return join(
+      schemaKTable,
+      keyColName,
+      leftValueFormat,
+      contextStacker,
+      JoinType.INNER
     );
   }
 
@@ -256,26 +239,14 @@ public class SchemaKStream<K> {
       final FormatInfo rightFormat,
       final Stacker contextStacker
   ) {
-    throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
-
-    final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
-        contextStacker,
-        JoinType.INNER,
+    return join(
+        otherSchemaKStream,
         keyColName,
-        InternalFormats.of(keyFormat, leftFormat),
-        InternalFormats.of(keyFormat, rightFormat),
-        sourceStep,
-        otherSchemaKStream.sourceStep,
-        withinExpression.joinWindow(),
-        withinExpression.getGrace()
-    );
-
-    return new SchemaKStream<>(
-        step,
-        resolveSchema(step, otherSchemaKStream),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
+        withinExpression,
+        leftFormat,
+        rightFormat,
+        contextStacker,
+        JoinType.INNER
     );
   }
 
@@ -287,11 +258,31 @@ public class SchemaKStream<K> {
       final FormatInfo rightFormat,
       final Stacker contextStacker
   ) {
+    return join(
+        otherSchemaKStream,
+        keyColName,
+        withinExpression,
+        leftFormat,
+        rightFormat,
+        contextStacker,
+        JoinType.OUTER
+    );
+  }
+
+  private SchemaKStream<K> join(
+      final SchemaKStream<K> otherSchemaKStream,
+      final ColumnName keyColName,
+      final WithinExpression withinExpression,
+      final FormatInfo leftFormat,
+      final FormatInfo rightFormat,
+      final Stacker contextStacker,
+      final JoinType joinType
+  ) {
     throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
 
     final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
-        JoinType.OUTER,
+        joinType,
         keyColName,
         InternalFormats.of(keyFormat, leftFormat),
         InternalFormats.of(keyFormat, rightFormat),
@@ -304,6 +295,33 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         step,
         resolveSchema(step, otherSchemaKStream),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  private SchemaKStream<K> join(
+      final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
+      final FormatInfo leftValueFormat,
+      final Stacker contextStacker,
+      final JoinType joinType
+  ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
+    final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
+        contextStacker,
+        joinType,
+        keyColName,
+        InternalFormats.of(keyFormat, leftValueFormat),
+        sourceStep,
+        schemaKTable.getSourceTableStep()
+    );
+
+    return new SchemaKStream<>(
+        step,
+        resolveSchema(step, schemaKTable),
         keyFormat,
         ksqlConfig,
         functionRegistry

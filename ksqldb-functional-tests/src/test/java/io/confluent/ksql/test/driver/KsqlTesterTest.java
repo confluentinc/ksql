@@ -70,6 +70,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -93,9 +94,12 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class KsqlTesterTest {
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlTesterTest.class);
 
   private static final String TEST_DIR = "/sql-tests";
 
@@ -294,11 +298,23 @@ public class KsqlTesterTest {
     final File stateDir = tmpFolder.getRoot().toPath().resolve(appId).toFile();
     final File tmp = tmpFolder.getRoot().toPath().resolve("tmp_" + appId).toFile();
 
-    try {
-      if (!deleteState && stateDir.exists()) {
+    if (!deleteState && stateDir.exists()) {
+      try {
         FileUtils.copyDirectory(stateDir, tmp);
+      } catch (final IOException e) {
+        if (!(e instanceof NoSuchFileException)) {
+          throw new KsqlException(e);
+        } else {
+          // Log a warning instead of throwing an exception when the state directory does not
+          // exist. The file could've been deleted manually by external factors.
+          LOG.warn("The state or temp directory '{}' do not exist. "
+                  + "The test will continue closing the driver.",
+              ((NoSuchFileException) e).getFile());
+        }
       }
+    }
 
+    try {
       driver.close();
 
       if (tmp.exists()) {

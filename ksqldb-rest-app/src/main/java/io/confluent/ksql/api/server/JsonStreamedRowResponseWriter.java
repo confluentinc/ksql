@@ -17,27 +17,72 @@ package io.confluent.ksql.api.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.streaming.TombstoneFactory;
+import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.KsqlHostInfo;
+import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.util.List;
+import java.util.Optional;
 
 public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter {
 
+  private static final int FLUSH_SIZE_BYTES = 50 * 1024;
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
+  static final long MAX_FLUSH_MS = 200;
 
   private final HttpServerResponse response;
+  private final Optional<TombstoneFactory> tombstoneFactory;
+  private final Optional<String> completionMessage;
+  private final Optional<String> limitMessage;
+  private final Clock clock;
+  // If set, we buffer not only the output response, but also the last row, so that we don't have to
+  // output a final message.
+  private final boolean bufferOutput;
+  private final Context context;
+  private final WriterState writerState;
+  private StreamedRow lastRow;
+  private long timerId = -1;
+
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public JsonStreamedRowResponseWriter(final HttpServerResponse response) {
+  public JsonStreamedRowResponseWriter(
+      final HttpServerResponse response,
+      final QueryPublisher queryPublisher,
+      final Optional<String> completionMessage,
+      final Optional<String> limitMessage,
+      final Clock clock,
+      final boolean bufferOutput,
+      final Context context
+  ) {
     this.response = response;
+    this.tombstoneFactory = queryPublisher.getResultType().map(
+        resultType -> TombstoneFactory.create(queryPublisher.geLogicalSchema(), resultType));
+    this.completionMessage = completionMessage;
+    this.limitMessage = limitMessage;
+    this.writerState = new WriterState(clock);
+    this.clock = clock;
+    this.bufferOutput = bufferOutput;
+    this.context = context;
+    Preconditions.checkState(bufferOutput || limitMessage.isPresent()
+            || completionMessage.isPresent(),
+        "If buffering isn't used, a limit/completion message must be set");
   }
 
   @Override
@@ -45,16 +90,38 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     final StreamedRow streamedRow
         = StreamedRow.header(new QueryId(metaData.queryId), metaData.schema);
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
-    buff.appendBuffer(serializeObject(streamedRow));
-    buff.appendString(",\n");
-    response.write(buff);
+    if (bufferOutput) {
+      writeBuffer(buff, true);
+      maybeCacheRowAndWriteLast(streamedRow);
+    } else {
+      // Avoid writing separate chunks for the '[' if we're just going to write it immediately
+      // anyway.
+      buff.appendBuffer(serializeObject(streamedRow));
+      writeBuffer(buff, false);
+    }
     return this;
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(final GenericRow row) {
-    final StreamedRow streamedRow = StreamedRow.pushRow(row);
-    writeBuffer(serializeObject(streamedRow));
+  public QueryStreamResponseWriter writeRow(
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata
+  ) {
+    final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+    final StreamedRow streamedRow;
+    if (keyValue.value() == null) {
+      Preconditions.checkState(tombstoneFactory.isPresent(),
+          "Should only have null values for query types that support them");
+      streamedRow = StreamedRow.tombstone(tombstoneFactory.get().createRow(keyValue));
+    } else if (keyValueMetadata.getRowMetadata().isPresent()
+        && keyValueMetadata.getRowMetadata().get().getSourceNode().isPresent()) {
+      streamedRow = StreamedRow.pullRow(keyValue.value(),
+          toKsqlHostInfoEntity(keyValueMetadata.getRowMetadata().get().getSourceNode()));
+    } else {
+      // Technically, this codepath is for both push and pull, but where there's no additional
+      // metadata, as there sometimes is with a pull query.
+      streamedRow = StreamedRow.pushRow(keyValue.value());
+    }
+    maybeCacheRowAndWriteLast(streamedRow);
     return this;
   }
 
@@ -62,54 +129,128 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   public QueryStreamResponseWriter writeContinuationToken(
       final PushContinuationToken pushContinuationToken) {
     final StreamedRow streamedRow = StreamedRow.continuationToken(pushContinuationToken);
-    writeBuffer(serializeObject(streamedRow));
+    maybeCacheRowAndWriteLast(streamedRow);
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
     final StreamedRow streamedRow = StreamedRow.error(error);
-    writeBuffer(serializeObject(streamedRow));
+    maybeCacheRowAndWriteLast(streamedRow);
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeConsistencyToken(final ConsistencyToken consistencyToken) {
     final StreamedRow streamedRow = StreamedRow.consistencyToken(consistencyToken);
-    writeBuffer(serializeObject(streamedRow));
+    maybeCacheRowAndWriteLast(streamedRow);
     return this;
   }
 
   @Override
-  public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
-    final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage);
-    writeBuffer(serializeObject(streamedRow), true);
+  public QueryStreamResponseWriter writeCompletionMessage() {
+    if (completionMessage.isPresent()) {
+      writeLastRow(false);
+      final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage.get());
+      writeBuffer(serializeObject(streamedRow), true);
+    }
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeLimitMessage() {
-    final StreamedRow streamedRow = StreamedRow.finalMessage("Limit Reached");
-    writeBuffer(serializeObject(streamedRow), true);
+    if (limitMessage.isPresent()) {
+      writeLastRow(false);
+      final StreamedRow streamedRow = StreamedRow.finalMessage(limitMessage.get());
+      writeBuffer(serializeObject(streamedRow), true);
+    }
     return this;
   }
 
   @Override
   public void end() {
-    response.write("]").end();
-  }
-
-  private void writeBuffer(final Buffer buffer) {
-    writeBuffer(buffer, false);
-  }
-
-  private void writeBuffer(final Buffer buffer, final boolean isLast) {
-    final Buffer buff = Buffer.buffer();
-    buff.appendBuffer(buffer);
-    if (!isLast) {
-      buff.appendString(",\n");
+    cancelTimer();
+    writeLastRow(true);
+    writeBuffer(Buffer.buffer("]"), true);
+    if (writerState.length() > 0) {
+      response.write(writerState.getStringToFlush());
     }
-    response.write(buff);
+    response.end();
+  }
+
+  // This does the writing of the rows and possibly caches the current row, writing the last cached
+  // value.
+  private void maybeCacheRowAndWriteLast(final StreamedRow streamedRow) {
+    // If buffering is enabled, we buffer a row and don't require a completion or limit message. If
+    // it isn't enabled, we require them in order to make sure we write proper json and don't
+    // leave a trailing comma before the end.
+    final StreamedRow outputRow;
+    if (bufferOutput) {
+      outputRow = this.lastRow;
+      this.lastRow = streamedRow;
+    } else {
+      outputRow = streamedRow;
+    }
+    if (outputRow != null) {
+      writeBuffer(serializeObject(outputRow), false);
+      maybeFlushBuffer();
+    }
+  }
+
+  private void writeLastRow(final boolean isLast) {
+    final StreamedRow lastRow = this.lastRow;
+    this.lastRow = null;
+    if (lastRow != null) {
+      writeBuffer(serializeObject(lastRow), isLast);
+    }
+  }
+
+  private void writeBuffer(final Buffer buffer, final boolean isLastOrFirst) {
+    if (bufferOutput) {
+      writerState.append(buffer.toString(StandardCharsets.UTF_8));
+      if (!isLastOrFirst) {
+        writerState.append(",\n");
+      }
+    } else {
+      final Buffer buff = Buffer.buffer();
+      buff.appendBuffer(buffer);
+      if (!isLastOrFirst) {
+        buff.appendString(",\n");
+      }
+      response.write(buff);
+    }
+  }
+
+  private void maybeFlushBuffer() {
+    if (writerState.length() > 0) {
+      if (writerState.length() >= FLUSH_SIZE_BYTES
+          || clock.millis() - writerState.getLastFlushMs() >= MAX_FLUSH_MS
+      ) {
+        cancelTimer();
+        response.write(writerState.getStringToFlush());
+      } else {
+        maybeScheduleFlush();
+      }
+    }
+  }
+
+  private void maybeScheduleFlush() {
+    if (timerId >= 0) {
+      return;
+    }
+    final long sinceLastFlushMs = clock.millis() - writerState.getLastFlushMs();
+    final long waitTimeMs = Math.min(Math.max(0, MAX_FLUSH_MS - sinceLastFlushMs), MAX_FLUSH_MS);
+    this.timerId = context.owner().setTimer(waitTimeMs, timerId -> {
+      this.timerId = -1;
+      maybeFlushBuffer();
+    });
+  }
+
+  private void cancelTimer() {
+    if (timerId >= 0) {
+      context.owner().cancelTimer(timerId);
+      timerId = - 1;
+    }
   }
 
   public static <T> Buffer serializeObject(final T t) {
@@ -118,6 +259,49 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
       return Buffer.buffer(bytes);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize buffer", e);
+    }
+  }
+
+  /**
+   * Converts the KsqlHostInfo to KsqlHostInfoEntity
+   */
+  private static Optional<KsqlHostInfoEntity> toKsqlHostInfoEntity(
+      final Optional<KsqlHostInfo> ksqlNode
+  ) {
+    return ksqlNode.map(
+        node -> new KsqlHostInfoEntity(node.host(), node.port()));
+  }
+
+  private static class WriterState {
+    private final Clock clock;
+    // The buffer of JSON that we're always flushing as we hit either time or size thresholds.
+    private StringBuilder sb = new StringBuilder();
+    // Last flush timestamp in millis
+    private long lastFlushMs = 0;
+
+    WriterState(final Clock clock) {
+      this.clock = clock;
+      this.lastFlushMs = clock.millis();
+    }
+
+    public WriterState append(final String str) {
+      sb.append(str);
+      return this;
+    }
+
+    public int length() {
+      return sb.length();
+    }
+
+    public long getLastFlushMs() {
+      return lastFlushMs;
+    }
+
+    public String getStringToFlush() {
+      final String str = sb.toString();
+      sb = new StringBuilder();
+      lastFlushMs = clock.millis();
+      return str;
     }
   }
 }

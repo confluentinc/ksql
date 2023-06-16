@@ -34,6 +34,11 @@ public class KeyValueMetadata<K, V> {
     this.rowMetadata = Optional.empty();
   }
 
+  public KeyValueMetadata(final KeyValue<K, V> keyValue, final Optional<RowMetadata> rowMetadata) {
+    this.keyValue = Optional.of(keyValue);
+    this.rowMetadata = rowMetadata;
+  }
+
   public KeyValueMetadata(final RowMetadata rowMetadata) {
     this.keyValue = Optional.empty();
     this.rowMetadata = Optional.of(rowMetadata);

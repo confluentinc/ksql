@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.io.File;
 import java.io.IOException;
@@ -46,6 +48,32 @@ public final class MigrationsDirectoryUtil {
   private MigrationsDirectoryUtil() {
   }
 
+  /**
+   * Returns the migrations directory path based on the provided config and
+   * config file path. This method does not perform validation on the provided
+   * directory location; that responsibility is left to downstream methods.
+   */
+  public static String getMigrationsDir(
+      final String configFilePath,
+      final MigrationConfig config
+  ) {
+    final String migrationsDir = config.getString(MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE);
+    if (migrationsDir != null && !migrationsDir.isEmpty()) {
+      return migrationsDir;
+    } else {
+      return getMigrationsDirFromConfigFile(configFilePath);
+    }
+  }
+
+  /**
+   * Returns the migrations directory path assuming the default file structure
+   * (as created by the 'ksql-migrations new-project' command). This method should
+   * NOT be called directly outside of testing; prefer
+   * {@link MigrationsDirectoryUtil#getMigrationsDir(String, MigrationConfig)}
+   * instead as users can override the default location returned by this method
+   * in their migrations config if they wish.
+   */
+  @VisibleForTesting
   public static String getMigrationsDirFromConfigFile(final String configFilePath) {
     final Path parentDir = Paths.get(configFilePath).getParent();
     if (parentDir == null) {

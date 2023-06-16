@@ -54,7 +54,7 @@ CREATE TABLE AS SELECT or CREATE STREAM AS SELECT statement.
 ![Illustration of a pull query](/img/ksqldb-pull-query.svg)
 
 A pull query is a form of query issued by a client that retrieves a result as
-of "now", like a query against a traditional RDBS. 
+of "now", like a query against a traditional RDBMS. 
 
 As a dual to the [push query](/developer-guide/ksqldb-reference/select-push-query/) example, a pull query for a geographic
 location would ask for the current map coordinates of a particular user.

@@ -25,12 +25,14 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,7 +88,8 @@ public class StreamedQueryResultImplTest {
       return null;
     }).when(subscriber).onError(any());
 
-    queryResult = new StreamedQueryResultImpl(context, "queryId", Collections.emptyList(), Collections.emptyList());
+    queryResult = new StreamedQueryResultImpl(context, "queryId", Collections.emptyList(),
+        Collections.emptyList(), new AtomicReference<>(""), null, null, null);
   }
 
   @Test
@@ -169,6 +172,18 @@ public class StreamedQueryResultImplTest {
 
     // Then
     assertThat(receivedRow, is(row));
+  }
+
+  @Test
+  public void shouldThrowOnContinueIfNoContinuationToken() {
+    // When
+    final Exception e = assertThrows(
+        KsqlClientException.class,
+        () -> queryResult.continueFromLastContinuationToken().get()
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString("Can only continue queries that have saved a continuation token."));
   }
 
   @Test

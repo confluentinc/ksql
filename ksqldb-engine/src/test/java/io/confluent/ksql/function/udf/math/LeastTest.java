@@ -34,6 +34,15 @@ public class LeastTest {
     assertThat(udf.least((BigDecimal) null, null, null), is(nullValue()));
     assertThat(udf.least((String) null, null, null), is(nullValue()));
   }
+  
+  @Test
+  public void shouldHandleNullArrays(){
+    assertThat(udf.least((Integer) null, null), is(nullValue()));
+    assertThat(udf.least((Double) null, null), is(nullValue()));
+    assertThat(udf.least((Long) null, null), is(nullValue()));
+    assertThat(udf.least((BigDecimal) null, null), is(nullValue()));
+    assertThat(udf.least((String) null, null), is(nullValue()));
+  }
 
   @Test
   public void shouldHandleSomeNullColumns() {

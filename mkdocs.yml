@@ -81,6 +81,7 @@ nav:
       - Logging: operate-and-deploy/logging.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
+      - High availability: operate-and-deploy/high-availability.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
       - Schema Inference With ID: operate-and-deploy/schema-inference-with-id.md
       - High availability for pull queries: operate-and-deploy/high-availability-pull-queries.md
@@ -258,12 +259,10 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 3.1
-        ksqldbversion: 0.24.0
-        kstreamsbetatag: 7.1.0-beta210918170926
-        kstreamsbetabuild: 1
-        cprelease: 7.1.0
-        releasepostbranch: 7.1.0-post
+        kafkaversion: 3.2
+        ksqldbversion: 0.26.0
+        cprelease: 7.2.0
+        releasepostbranch: 7.2.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

@@ -140,12 +140,16 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
 
   @Override
   public void close() {
+    // Push queries can be closed by both terminate commands and the client ending the request, so
+    // we ensure that there's no race and that close is called just once.
+    if (!this.isRunning.compareAndSet(true, false)) {
+      return;
+    }
     // To avoid deadlock, close the queue first to ensure producer side isn't blocked trying to
     // write to the blocking queue, otherwise super.close call can deadlock:
     rowQueue.close();
 
     // Now safe to close:
     super.close();
-    this.isRunning.set(false);
   }
 }

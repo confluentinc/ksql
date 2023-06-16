@@ -32,9 +32,6 @@ public class TopkKudaf<T extends Comparable<? super T>>
     extends BaseAggregateFunction<T, List<T>, List<T>> {
 
   private final int topKSize;
-  private final Class<T> clazz;
-  private final SqlType outputSchema;
-  private final List<ParamType> argumentTypes;
 
   TopkKudaf(
       final String functionName,
@@ -57,9 +54,7 @@ public class TopkKudaf<T extends Comparable<? super T>>
         "Calculates the TopK value for a column, per key."
     );
     this.topKSize = topKSize;
-    this.outputSchema = Objects.requireNonNull(outputSchema);
-    this.argumentTypes = argumentTypes;
-    this.clazz = clazz;
+    Objects.requireNonNull(outputSchema);
   }
 
   @Override

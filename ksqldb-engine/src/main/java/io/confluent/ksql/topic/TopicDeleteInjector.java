@@ -114,7 +114,7 @@ public class TopicDeleteInjector implements Injector {
       } catch (final Exception e) {
         throw new KsqlException(e);
       }
-    } else if (dropStatement.getIfExists()) {
+    } else if (!dropStatement.getIfExists()) {
       throw new KsqlException("Could not find source to delete topic for: " + statement);
     }
 

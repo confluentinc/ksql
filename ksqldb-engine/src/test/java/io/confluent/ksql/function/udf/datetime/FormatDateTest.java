@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -44,6 +45,25 @@ public class FormatDateTest {
     // Then:
     assertThat(result, is("2014-11-09"));
   }
+
+  @Test
+  public void shouldReturnNullOnNullDate() {
+    // When:
+    final String result = udf.formatDate(null, "yyyy-MM-dd");
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnNullOnNullFormat() {
+    // When:
+    final String result = udf.formatDate(Date.valueOf("2014-11-09"), null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
 
   @Test
   public void shouldThrowOnUnsupportedFields() {

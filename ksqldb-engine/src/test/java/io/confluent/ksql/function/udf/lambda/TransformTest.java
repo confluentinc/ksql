@@ -48,6 +48,18 @@ public class TransformTest {
   }
 
   @Test
+  public void shouldReturnNullForNullFunctions() {
+    Function<Integer, Integer> nullFunction = null;
+    BiFunction<Integer, Integer, Integer> nullBiFunction = null;
+    final Map<Integer, Integer> map1 = new HashMap<>();
+    map1.put(3, 100);
+    map1.put(1, -2);
+
+    assertThat(udf.transformArray(Arrays.asList(-5, -2, 0), nullFunction), is(nullValue()));
+    assertThat(udf.transformMap(map1, nullBiFunction, nullBiFunction), is(nullValue()));
+  }
+
+  @Test
   public void shouldReturnTransformedArray() {
     assertThat(udf.transformArray(Collections.emptyList(), function1()), is(Collections.emptyList()));
     assertThat(udf.transformArray(Arrays.asList(-5, -2, 0), function1()), is(Arrays.asList(0, 3, 5)));

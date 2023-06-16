@@ -1,15 +1,18 @@
 package io.confluent.ksql.engine;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -17,6 +20,7 @@ import java.util.HashSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -44,12 +48,14 @@ public class RuntimeAssignorTest {
     );
     when(queryMetadata.getQueryApplicationId()).thenReturn(firstRuntime);
     when(queryMetadata.getQueryId()).thenReturn(query1);
-    when(queryMetadata.getSourceNames()).thenReturn(new HashSet<>(sources1));
+    when(queryMetadata.getSourceNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
   }
 
   @Test
   public void shouldCreateSandboxAndDroppingAQueryWillNotChangeReal() {
     final RuntimeAssignor sandbox = runtimeAssignor.createSandbox();
+    sandbox.rebuildAssignment(Collections.singleton(queryMetadata));
+
     sandbox.dropQuery(queryMetadata);
     assertThat("Was changed by sandbox.", runtimeAssignor.getIdToRuntime().containsKey(query1));
     assertThat("The query was not removed.", !sandbox.getIdToRuntime().containsKey(query1));
@@ -135,6 +141,18 @@ public class RuntimeAssignorTest {
   }
 
   @Test
+  public void shouldDropQueryAndCleanUpRuntime() {
+    runtimeAssignor.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sources1,
+        KSQL_CONFIG
+    );
+    assertThat(runtimeAssignor.getRuntimesToSources().size(), equalTo(2));
+    runtimeAssignor.dropQuery(queryMetadata);
+    assertThat(runtimeAssignor.getRuntimesToSources().size(), equalTo(1));
+  }
+
+  @Test
   public void shouldRebuildAssignmentFromListOfQueries() {
     final RuntimeAssignor rebuilt = new RuntimeAssignor(KSQL_CONFIG);
     rebuilt.rebuildAssignment(Collections.singleton(queryMetadata));
@@ -144,5 +162,40 @@ public class RuntimeAssignorTest {
         KSQL_CONFIG
     );
     assertThat(runtime, not(equalTo(firstRuntime)));
+  }
+
+  @Test
+  public void shouldRebuildAssignmentFromLongListOfQueries() {
+    //Given:
+    final RuntimeAssignor rebuilt = new RuntimeAssignor(KSQL_CONFIG);
+    rebuilt.rebuildAssignment(getListOfQueries());
+
+    //When:
+    final String runtime = rebuilt.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sources1,
+        KSQL_CONFIG
+    );
+
+    //Then:
+    assertThat(runtime, not(equalTo(firstRuntime)));
+  }
+
+  private Collection<PersistentQueryMetadata> getListOfQueries() {
+    final Collection<PersistentQueryMetadata> queries = new ArrayList<>();
+    queries.add(queryMetadata);
+    for (int i = 0; i < KSQL_CONFIG.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT) + 1; i++) {
+      final BinPackedPersistentQueryMetadataImpl query = mock(BinPackedPersistentQueryMetadataImpl.class);
+      when(query.getQueryApplicationId()).thenReturn(
+          runtimeAssignor.getRuntimeAndMaybeAddRuntime(
+          new QueryId(i + "_"),
+          sources1,
+          KSQL_CONFIG
+      ));
+      when(query.getQueryId()).thenReturn(query1);
+      when(query.getSourceNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
+      queries.add(query);
+    }
+    return queries;
   }
 }

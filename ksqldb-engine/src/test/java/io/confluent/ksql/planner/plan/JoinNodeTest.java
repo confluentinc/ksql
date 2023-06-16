@@ -19,6 +19,7 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.INNER;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.LEFT;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.OUTER;
+import static io.confluent.ksql.planner.plan.JoinNode.JoinType.RIGHT;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE_FORCE_CHANGELOG;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static java.util.Optional.empty;
@@ -26,7 +27,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,7 +37,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -91,7 +90,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 
-@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent", "unchecked", "rawtypes"})
+@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent", "unchecked", "rawtypes",
+    "checkstyle:ClassDataAbstractionCoupling"})
 @RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
@@ -319,6 +319,53 @@ public class JoinNodeTest {
 
     // Then:
     verify(leftSchemaKStream).leftJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamRightJoin() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, RIGHT, joinKey, true, left, right, WITHIN_EXPRESSION, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).rightJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamRightJoinWithGracePeriod() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, RIGHT, joinKey, true, left, right,
+            WITHIN_EXPRESSION_WITH_GRACE, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).rightJoin(
         rightSchemaKStream,
         SYNTH_KEY,
         WITHIN_EXPRESSION_WITH_GRACE.get(),

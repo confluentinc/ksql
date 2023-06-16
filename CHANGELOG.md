@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.24.0](https://github.com/confluentinc/ksql/releases/tag/v0.24.0-ksqldb) (2022-02-11)
+## [0.24.0](https://github.com/confluentinc/ksql/releases/tag/v0.24.0) (2022-02-11)
 
 ### Features
 
@@ -26,6 +26,7 @@
 - Validate connector config before creating it ([#8445](https://github.com/confluentinc/ksql/pull/8445)) ([62c8021](https://github.com/confluentinc/ksql/commit/62c8021d7df10cbe4f8ca22d55b0429edb3de981))
 - pull query LIMIT clause ([#8333](https://github.com/confluentinc/ksql/pull/8333)) ([5c9be20](https://github.com/confluentinc/ksql/commit/5c9be20917f1f88b0587310134cc3b48b396e345))
 - expose Kafka headers to ksqlDB ([#8350](https://github.com/confluentinc/ksql/pull/8350),[#8366](https://github.com/confluentinc/ksql/pull/8366),[#8416](https://github.com/confluentinc/ksql/pull/8416),[#8417](https://github.com/confluentinc/ksql/pull/8417),[#8475](https://github.com/confluentinc/ksql/pull/8475),[#8496](https://github.com/confluentinc/ksql/pull/8496),[#8516](https://github.com/confluentinc/ksql/pull/8516)) ([db76b3e](https://github.com/confluentinc/ksql/commit/db76b3ec11c97edf7ba870a073e5805c340b9ec6),[12dbdad](https://github.com/confluentinc/ksql/commit/12dbdad94816659b781f0d7b1ddc345a98b30c36),[e030f10](https://github.com/confluentinc/ksql/commit/e030f106b76338d13675d68169936ce891e87594),[0239a95](https://github.com/confluentinc/ksql/commit/0239a95e96c4f08d33dac4924eeefbdbd25d86b6),[065de82](https://github.com/confluentinc/ksql/commit/065de82707197155ea12acdff3560eccee801773),[bd452aa](https://github.com/confluentinc/ksql/commit/bd452aa029942b7d6d2dc234f992dba3d560e8c3),[b18fb09](https://github.com/confluentinc/ksql/commit/b18fb090de721fff2b63979cb559cf0a8312ad1b))
+- Allow schema id in source creation ([#8441](https://github.com/confluentinc/ksql/pull/8441),[#8421](https://github.com/confluentinc/ksql/pull/8421),[#8411](https://github.com/confluentinc/ksql/pull/8411),[#8401](https://github.com/confluentinc/ksql/pull/8401),[#8185](https://github.com/confluentinc/ksql/pull/8185),[#8572](https://github.com/confluentinc/ksql/pull/8572),[a60bb21](https://github.com/confluentinc/ksql/commit/a60bb21ac2daae78788143ab7c42185ece2292c2),[b490204](https://github.com/confluentinc/ksql/commit/b490204eefcdbf3fbdf8ae34a16beaa9c229ec1b),[8a11ac2](https://github.com/confluentinc/ksql/commit/8a11ac218923ab7617ec7853385c52034a4662e4),[8aa55b1](https://github.com/confluentinc/ksql/commit/8aa55b175d891fee06ad40d43f038c58b02285f9),[7adc5cb](https://github.com/confluentinc/ksql/commit/7adc5cb85f24b3d3f90c6ab548266d6021c665e0))
 
 ### Bug Fixes
 

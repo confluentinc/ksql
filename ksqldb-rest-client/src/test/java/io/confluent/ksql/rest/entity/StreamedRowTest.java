@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -49,7 +48,7 @@ public class StreamedRowTest {
       .valueColumn(ColumnName.of("VAL"), SqlTypes.STRING)
       .build();
 
-  private static final ConsistencyOffsetVector CONSISTENCY_TOKEN = new ConsistencyOffsetVector();
+  private static final ConsistencyOffsetVector CONSISTENCY_TOKEN = ConsistencyOffsetVector.emptyVector();
 
   @Test
   public void shouldRoundTripPullHeader() throws Exception {
@@ -178,7 +177,7 @@ public class StreamedRowTest {
 
   @Test
   public void shouldRoundTripConsistencyVectorRow() throws Exception {
-    CONSISTENCY_TOKEN.addTopicOffsets("table1", ImmutableMap.of(1, 1L, 2, 2L));
+    CONSISTENCY_TOKEN.withComponent("table1", 1, 1L).withComponent("table1", 2, 2L);
     final StreamedRow row =
         StreamedRow.consistencyToken(new ConsistencyToken(CONSISTENCY_TOKEN.serialize()));
 

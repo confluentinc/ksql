@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
@@ -179,7 +180,7 @@ public class TestExecutor implements Closeable {
               listener
           );
 
-      writeInputIntoTopics(testCase.getInputRecords(), kafka);
+      writeInputIntoTopics(testCase, kafka);
       final Set<String> inputTopics = testCase.getInputRecords()
           .stream()
           .map(Record::getTopicName)
@@ -307,7 +308,7 @@ public class TestExecutor implements Closeable {
       final List<ProducerRecord<?, ?>> actualRecords = actualByTopic
           .getOrDefault(kafkaTopic, ImmutableList.of())
           .stream()
-          .map(rec -> deserialize(rec, topicInfo))
+          .map(rec -> deserialize(rec, topicInfo, testCase.properties()))
           .collect(Collectors.toList());
 
       if (validateResults) {
@@ -323,13 +324,14 @@ public class TestExecutor implements Closeable {
 
   private ProducerRecord<?, ?> deserialize(
       final ProducerRecord<byte[], byte[]> rec,
-      final TopicInfo topicInfo
+      final TopicInfo topicInfo,
+      final Map<String, Object> properties
   ) {
     final Object key;
     final Object value;
 
     try {
-      key = topicInfo.getKeyDeserializer().deserialize(rec.topic(), rec.key());
+      key = topicInfo.getKeyDeserializer(properties).deserialize(rec.topic(), rec.key());
     } catch (final Exception e) {
       throw new AssertionError("Failed to deserialize key: " + e.getMessage()
           + System.lineSeparator()
@@ -339,7 +341,7 @@ public class TestExecutor implements Closeable {
     }
 
     try {
-      value = topicInfo.getValueDeserializer().deserialize(rec.topic(), rec.value());
+      value = topicInfo.getValueDeserializer(properties).deserialize(rec.topic(), rec.value());
     } catch (final Exception e) {
       throw new AssertionError("Failed to deserialize value: " + e.getMessage()
           + System.lineSeparator()
@@ -359,7 +361,7 @@ public class TestExecutor implements Closeable {
   }
 
   private ProducerRecord<byte[], byte[]> serialize(
-      final ProducerRecord<?, ?> rec
+      final Map<String, Object> properties, final ProducerRecord<?, ?> rec
   ) {
     final TopicInfo topicInfo = topicInfoCache.get(rec.topic())
         .orElseThrow(() -> new KsqlException("No information found for topic: " + rec.topic()));
@@ -368,7 +370,7 @@ public class TestExecutor implements Closeable {
     final byte[] value;
 
     try {
-      key = topicInfo.getKeySerializer().serialize(rec.topic(), rec.key());
+      key = topicInfo.getKeySerializer(properties).serialize(rec.topic(), rec.key());
     } catch (final Exception e) {
       throw new AssertionError("Failed to serialize key: " + e.getMessage()
           + System.lineSeparator()
@@ -378,7 +380,7 @@ public class TestExecutor implements Closeable {
     }
 
     try {
-      value = topicInfo.getValueSerializer().serialize(rec.topic(), rec.value());
+      value = topicInfo.getValueSerializer(properties).serialize(rec.topic(), rec.value());
     } catch (final Exception e) {
       throw new AssertionError("Failed to serialize value: " + e.getMessage()
           + System.lineSeparator()
@@ -495,7 +497,7 @@ public class TestExecutor implements Closeable {
     for (final Record record : testCase.getInputRecords()) {
       if (testDriver.getSourceTopicNames().contains(record.getTopicName())) {
         processSingleRecord(
-            serialize(record.asProducerRecord()),
+            serialize(testCase.properties(), record.asProducerRecord()),
             testDriver,
             ImmutableSet.copyOf(kafka.getAllTopics())
         );
@@ -576,7 +578,8 @@ public class TestExecutor implements Closeable {
             Optional.empty(),
             Collections.emptyMap(),
             Optional.empty(),
-            false),
+            false,
+            CONNECT_REQUEST_TIMEOUT_DEFAULT),
         DisabledKsqlClient::instance,
         new StubKafkaConsumerGroupClient()
     );
@@ -620,12 +623,12 @@ public class TestExecutor implements Closeable {
   }
 
   private void writeInputIntoTopics(
-      final List<Record> inputRecords,
+      final TestCase testCase,
       final StubKafkaService kafka
   ) {
-    inputRecords.stream()
+    testCase.getInputRecords().stream()
         .map(Record::asProducerRecord)
-        .map(this::serialize)
+        .map(rec -> serialize(testCase.properties(), rec))
         .forEach(kafka::writeRecord);
   }
 

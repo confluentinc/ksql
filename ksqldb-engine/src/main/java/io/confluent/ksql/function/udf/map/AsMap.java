@@ -36,7 +36,10 @@ public class AsMap {
   public final <T> Map<String, T> asMap(
       @UdfParameter final List<String> keys,
       @UdfParameter final List<T> values) {
-    final Map<String, T> map = new HashMap<>();
+    if (keys == null || values == null) {
+      return null;
+    }
+    final Map<String, T> map = new HashMap<>(keys.size());
     for (int i = 0; i < keys.size(); i++) {
       final String key = keys.get(i);
       final T value = i >= values.size() ? null : values.get(i);

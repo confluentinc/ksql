@@ -49,7 +49,7 @@ public class TestOptions {
   @Once
   @Option(
       name = {"--extension-dir", "-e"},
-      description = "A directory containting extensions.")
+      description = "A directory containing extensions.")
   private String extensionDir;
 
   public static TestOptions parse(final String... args) throws IOException {

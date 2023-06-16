@@ -6,6 +6,24 @@ description: Lists changes to the ksqlDB codebase
 keywords: ksqldb, changelog
 ---
 
+Version 0.26.0
+--------------
+
+- [Announcing ksqlDB 0.26.0](https://www.confluent.io/blog/announcing-ksqldb-0-26/)
+- [ksqlDB v0.26.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0260-2022-04-28)
+
+Version 0.25.1
+--------------
+
+- [Announcing ksqlDB 0.25.1](https://www.confluent.io/blog/announcing-ksqldb-0-25-1/)
+- [ksqlDB v0.25.1 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0251-2022-04-07)
+
+Version 0.24.0
+--------------
+
+- [Announcing ksqlDB 0.24.0](https://www.confluent.io/blog/announcing-ksqldb-0-24-0/)
+- [ksqlDB v0.24.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0240-2022-02-11)
+
 Version 0.23.1
 --------------
 
@@ -76,7 +94,7 @@ Version 0.12.0
 --------------
 
 - [ksqlDB 0.12.0 Introduces Real-Time Query Upgrades and Automatic Query Restarts](https://www.confluent.io/blog/ksqldb-0-12-0-features-updates/)
-- [ksqlDB v0.12.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0120-2020-08-26)
+- [ksqlDB v0.12.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0120-2020-09-01)
 
 Version 0.11.0
 --------------
@@ -137,7 +155,7 @@ Earlier versions
 ----------------
 
 - [KSQL 5.4.0 changelog](https://github.com/confluentinc/ksql/blob/5.4.0-post/docs/changelog.rst)
-- [KSQL 4.1.0 changelog](https://github.com/confluentinc/ksql/blob/5.4.0-post/CHANGELOG.md)
+- [KSQL 4.1.0 changelog](https://github.com/confluentinc/ksql/blob/4.1.0-post/CHANGELOG.md)
 
 Suggested Resources
 -------------------

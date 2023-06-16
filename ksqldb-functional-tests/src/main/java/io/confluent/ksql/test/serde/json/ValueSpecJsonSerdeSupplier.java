@@ -43,10 +43,18 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
-  private final boolean useSchemas;
+  private static final ObjectMapper FLOAT_MAPPER = new ObjectMapper();
 
-  public ValueSpecJsonSerdeSupplier(final boolean useSchemas) {
+  private final boolean useSchemas;
+  private final ObjectMapper mapper;
+
+  public ValueSpecJsonSerdeSupplier(
+      final boolean useSchemas,
+      final Map<String, Object> properties
+  ) {
     this.useSchemas = useSchemas;
+    mapper = (boolean) (properties.getOrDefault("use.exact.numeric.comparison", true))
+        ? MAPPER : FLOAT_MAPPER;
   }
 
   @Override
@@ -81,7 +89,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       }
       try {
         final Object toSerialize = Converter.toJsonNode(spec);
-        final byte[] bytes = MAPPER.writeValueAsBytes(toSerialize);
+        final byte[] bytes = mapper.writeValueAsBytes(toSerialize);
         if (!useSchemas) {
           return bytes;
         }
@@ -111,8 +119,8 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       }
       try {
         return useSchemas
-            ? JsonSerdeUtils.readJsonSR(data, MAPPER, Object.class)
-            : MAPPER.readValue(data, Object.class);
+            ? JsonSerdeUtils.readJsonSR(data, mapper, Object.class)
+            : mapper.readValue(data, Object.class);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }

@@ -226,6 +226,7 @@ ksql-migrations {-c | --config-file} <config-file> apply
                 [ {-u | --until} <untilVersion> ] 
                 [ {-v | --version} <version> ]
                 [ {-d | --define} <variableName>=<variableValue> ]
+                [ --headers <headersFile> ]
                 [ --dry-run ] 
 ```
 
@@ -241,14 +242,15 @@ to apply:
 In addition to selecting a mode for `ksql-migrations apply`, you must also provide
 the path to the config file of your migrations project as part of the command.
 
-If both your ksqlDB server and migration tool are version 0.18 and newer, you can define variables by passing the `--define` flag followed by a string of the form
+If both your ksqlDB server and migration tool are version 0.18 and newer, you can 
+define variables by passing the `--define` flag followed by a string of the form
 `name=value` any number of times. For example, the following command
 
 ```bash
 $ ksql-migrations --config-file /my/migrations/project/ksql-migrations.properties apply --next -d foo=bar -d car=3
 ```
 
-is equivalent to having the following lines at the begining of each migration file:
+is equivalent to having the following lines at the beginning of each migration file:
 
 ```
 DEFINE foo='bar';
@@ -306,6 +308,26 @@ The `apply` command does not apply migration files atomically. If a migration fi
 containing multiple ksqlDB statements fails during the migration, it's possible that 
 some of the statements will have been run on the ksqlDB server while later statements 
 have not.
+
+You can optionally pass custom request headers to be sent with all ksqlDB requests 
+made as part of the `apply` command by passing the location of a
+file containing the custom request headers with the `--headers` flag:
+
+```
+$ ksql-migrations --config-file /my/migrations/project/ksql-migrations.properties apply --next --headers /my/migrations/project/request_headers.txt
+```
+
+Format your headers file with one header name and value pair on each line, 
+separated either with a colon or an equals sign. Both of the following are valid:
+```
+X-My-Custom-Header: abcdefg
+X-My-Other-Custom-Header: asdfgh
+``` 
+or
+```
+X-My-Custom-Header=abcdefg
+X-My-Other-Custom-Header=asdfgh
+```
 
 View Current Migration Status
 -----------------------------
@@ -406,7 +428,7 @@ Your output should resemble:
 
 ```
 Cleaning migrations metadata stream and table from ksqlDB server
-Found 1 query writing to metadata table. Query ID: CTAS_MIGRATION_SCHEMA_VERSIONS_3
+Found 1 query writing to the metadata table. Query ID: CTAS_MIGRATION_SCHEMA_VERSIONS_3
 Terminating query with ID: CTAS_MIGRATION_SCHEMA_VERSIONS_3
 Dropping migrations metadata table: MIGRATION_SCHEMA_VERSIONS
 Dropping migrations metadata stream: MIGRATION_EVENTS
@@ -512,7 +534,7 @@ INSERT INTO <MIGRATIONS_STREAM_NAME> (
 );
 ```
 
-For example, if validation fails because of the latest migration version has
+For example, if validation fails because the latest migration version has
 status `RUNNING`, you can manually transition the migration status to
 `ERROR` in order to repair the migrations metadata.
 

@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -144,5 +145,22 @@ public class ParseDateTest {
         });
   }
 
+  @Test
+  public void shouldHandleNullDate() {
+    // When:
+    final Date result = udf.parseDate(null, "dd-MMM-yyyy");
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldHandleNullDateFormat() {
+    // When:
+    final Date result = udf.parseDate("2021-12-01", null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
 
 }

@@ -22,6 +22,8 @@ import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -40,6 +42,7 @@ public final class RestServiceContextFactory {
         Supplier<SchemaRegistryClient> srClientFactory,
         ConnectClientFactory connectClientFactory,
         KsqlClient sharedClient,
+        List<Entry<String, String>> requestHeaders,
         Optional<KsqlPrincipal> userPrincipal
     );
   }
@@ -53,6 +56,7 @@ public final class RestServiceContextFactory {
         Supplier<SchemaRegistryClient> srClientFactory,
         ConnectClientFactory connectClientFactory,
         KsqlClient sharedClient,
+        List<Entry<String, String>> requestHeaders,
         Optional<KsqlPrincipal> userPrincipal
     );
   }
@@ -63,6 +67,7 @@ public final class RestServiceContextFactory {
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ConnectClientFactory connectClientFactory,
       final KsqlClient sharedClient,
+      final List<Entry<String, String>> requestHeaders,
       final Optional<KsqlPrincipal> userPrincipal
   ) {
     return create(
@@ -72,6 +77,7 @@ public final class RestServiceContextFactory {
         schemaRegistryClientFactory,
         connectClientFactory,
         sharedClient,
+        requestHeaders,
         userPrincipal
     );
   }
@@ -83,13 +89,14 @@ public final class RestServiceContextFactory {
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClientFactory connectClientFactory,
       final KsqlClient sharedClient,
+      final List<Entry<String, String>> requestHeaders,
       final Optional<KsqlPrincipal> userPrincipal
   ) {
     return ServiceContextFactory.create(
         ksqlConfig,
         kafkaClientSupplier,
         srClientFactory,
-        () -> connectClientFactory.get(authHeader, userPrincipal),
+        () -> connectClientFactory.get(authHeader, requestHeaders, userPrincipal),
         () -> new DefaultKsqlClient(authHeader, sharedClient)
     );
   }

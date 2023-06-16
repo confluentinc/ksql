@@ -18,7 +18,7 @@ package io.confluent.ksql.internal;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.execution.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;

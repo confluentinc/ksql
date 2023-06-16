@@ -325,6 +325,8 @@ to the join result table, if the corresponding join result exists in the result 
 | 13        |                  | null (tombstone) |                  |                  |                  |                  |
 | 14        |                  | d                |                  |                  | [null, d]        | [null, d]        |
 | 15        | D                |                  | [D, d]           | [D, d]           | [D, d]           | [D, d]           |
+| 16        |                  |                  |                  |                  |                  |                  |
+| 17        |                  | d                | [D, d]           | [D, d]           | [D, d]           | [D, d]           |
 
 ### Semantics of Foreign-Key Table-Table Joins
 

@@ -138,7 +138,7 @@
         <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <!-- Only used to provide login module implementation for tests -->
-        <jetty.version>9.4.44.v20210927</jetty.version>
+        <jetty.version>9.4.51.v20230217</jetty.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.2.6-0</io.confluent.ksql.version>

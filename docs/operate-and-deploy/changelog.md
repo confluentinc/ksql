@@ -9,7 +9,7 @@ keywords: ksqldb, changelog
 Version 0.29.0
 --------------
 
-- [ksqlDB v0.29.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0290-2023-04-24)
+- [ksqlDB v0.29.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0290-2023-06-21)
 
 Version 0.28.2
 --------------

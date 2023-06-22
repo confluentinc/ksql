@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.29.0](https://github.com/confluentinc/ksql/releases/tag/v0.29.0) (2023-06-21)
+## [0.29.0](https://github.com/confluentinc/ksql/releases/tag/v0.29.0) (2023-06-22)
 
 ### Features
 

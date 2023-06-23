@@ -20,8 +20,12 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
+
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -65,6 +69,14 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
 
   @Override
   public int register(final String s, final ParsedSchema parsedSchema, final int i, final int i1) {
+    throw configException;
+  }
+
+  @Override
+  public RegisterSchemaResponse registerWithResponse(
+    final String subject,
+    final ParsedSchema schema,
+    final boolean normalize) throws IOException, RestClientException {
     throw configException;
   }
 

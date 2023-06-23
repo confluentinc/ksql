@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
+import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import java.io.IOException;
 import java.util.Collection;
@@ -94,6 +95,14 @@ final class SandboxedSchemaRegistryClient {
         final int version,
         final int id) {
       return -1; // swallow
+    }
+
+    @Override
+    public RegisterSchemaResponse registerWithResponse(
+        final String subject,
+        final ParsedSchema schema,
+        final boolean normalize) throws IOException, RestClientException {
+      return sandboxCacheClient.registerWithResponse(subject, schema, normalize);
     }
 
     @Deprecated

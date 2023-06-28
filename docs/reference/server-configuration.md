@@ -91,11 +91,11 @@ For more information, see [Configuring Listeners of a ksqlDB Cluster](/operate-a
 
 ## `ksql.assert.schema.default.timeout.ms`
 
-The amount of time an `ASSERT SCHEMA` statement will wait for the assertion to succeed if no timeout is specified.
+The amount of time an `ASSERT SCHEMA` statement will wait for the assertion to succeed if no timeout is specified. The default is `1000`.
 
 ## `ksql.assert.topic.default.timeout.ms`
 
-The amount of time an `ASSERT TOPIC` assertion will wait for the assertion to succeed if no timeout is specified.
+The amount of time an `ASSERT TOPIC` assertion will wait for the assertion to succeed if no timeout is specified. The default is `1000`.
 
 ## `ksql.connect.url`
 
@@ -106,13 +106,17 @@ The {{ site.kconnect }} cluster URL to integrate with. If the
 use `localhost` and the configuration port specified in the
 {{ site.kconnect }} configuration file.
 
+The default for {{ site.cp }} is `http://connect:8083`. The default for
+{{ site.ccloud }} depends on the environment.
+
+
 ## `ksql.connect.worker.config`
 
 **Per query:** no
 
 The connect worker configuration file, if spinning up {{ site.kconnect }}
 alongside the ksqlDB server. Don't set this property if you're using
-an external `ksql.connect.url`.
+an external `ksql.connect.url`. The default is an empty string.
 
 ## `ksql.extension.dir`
 
@@ -304,6 +308,20 @@ The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
 [Processing Log](/reference/processing-log).
 
+The default for {{ site.cp }} is `1`. The default for
+{{ site.ccloud }} is `3`.
+
+## `ksql.json_sr.converter.deserializer.enabled`
+
+**Per query:** no
+
+Enables using `JsonSchemaConverter` for schema deserialization, which supports
+`anyOf` types. If not enabled, ksqlDB uses plain JSON serdes. The default is
+`true`.
+
+The default for {{ site.cp }} is `true`. The default for
+{{ site.ccloud }} is `false`.
+
 ## `ksql.lag.reporting.enable`
 
 **Per query:** no
@@ -424,6 +442,9 @@ A list of tags to be included with emitted
 a string of `key:value` pairs separated by commas. For example,
 `key1:value1,key2:value2`.
 
+The default for {{ site.cp }} is an empty string. The default for
+{{ site.ccloud }} is `logical_cluster_id:lksqlc-<id>`.
+
 ## `ksql.output.topic.name.prefix`
 
 **Per query:** no
@@ -435,6 +456,9 @@ created output topics. For example, you might use "ksql-interactive-"
 to name output topics in a ksqlDB Server cluster that's deployed in
 interactive mode. For more information, see
 [Interactive ksqlDB clusters](/operate-and-deploy/installation/server-config/security#interactive-ksqldb-clusters).
+
+The default for {{ site.cp }} is an empty string. The default for
+{{ site.ccloud }} is `<physical-ksqldb-cluster-id>`.
 
 ## `ksql.persistence.default.format.key`
 
@@ -467,6 +491,8 @@ not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/crea
 or [CREATE STREAM](/developer-guide/ksqldb-reference/create-stream)
 statements.
 
+The default is `null`.
+
 If not set and no explicit value format is provided in the statement, via either the `VALUE_FORMAT` or the
 `FORMAT` property, the statement will be rejected as invalid.
 
@@ -482,6 +508,8 @@ not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/crea
 [CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select) or
 [CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select)
 statements.
+
+The default is `null`.
 
 If not set and no explicit value is provided in the statement, the value format's default wrapping 
 is used.
@@ -542,6 +570,10 @@ statements.
 
 Specifies the server properties that ksqlDB clients and users can't override.
 
+The default for {{ site.cp }} is an empty string. The default for
+{{ site.ccloud }} is
+`ksql.streams.num.stream.threads,ksql.suppress.buffer.size,ksql.suppress.enabled`.
+
 !!! important
     Validation of a dynamic property assignment doesn't happen until a DDL or
     query statement executes, so an attempt to set a property that's on the
@@ -570,6 +602,33 @@ Specifies the server properties that ksqlDB clients and users can't override.
     ------------------------------------------------------------
     ```
 
+## `ksql.query.push.v2.enabled`
+
+**Per query:** yes
+
+Enables v2 push queries, which support larger scale use cases. With this config
+set, your push queries have these characteristics:
+
+- Up to 1,000 concurrent subscriptions, per ksqlDB server instance, across
+  numerous clients, depending on the rate of data production.
+- Lightweight, on-the-fly matching using the query ``WHERE`` clause.
+- Easy subscription lifetime management lasting for the lifetime of a query.
+- Best effort message delivery.
+
+The default is `false`.
+
+These queries are suitable for applications with shorter lifespans. They consume
+data which has already been processed and is shared between many requests, so
+there’s little overhead.
+
+To utilize the scaling improvements, the following limitations are placed on
+your query:
+
+- No `GROUP BY`, `PARTITION BY`, or windowing expressions.
+- Must read newly arriving data only, `SET 'auto.offset.reset' = 'latest'`,
+  which means that your query can't read historical data.
+- Must have a single upstream persistent query only.
+
 ## `ksql.schema.registry.url`
 
 **Per query:** no
@@ -577,6 +636,9 @@ Specifies the server properties that ksqlDB clients and users can't override.
 The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr }}
 over a secure connection, see
 [Configure ksqlDB for Secured {{ site.srlong }}](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-secured-confluent-schema-registry).
+
+The default for {{ site.cp }} is `http://schema-registry:8081`. The default for
+{{ site.ccloud }} depends on the environment.
 
 ## `ksql.service.id`
 
@@ -593,11 +655,13 @@ cluster membership of a ksqlDB Server instance.
   *don't* have the same `ksql.service.id`, they each get a different command
   topic and form separate ksqlDB clusters, by `ksql.service.id`.  
 
-By default, the service ID of ksqlDB servers is `default_`. The service ID
-is also used as the prefix for the internal topics created by ksqlDB.
-Using the default value `ksql.service.id`, the ksqlDB internal topics will
-be prefixed as `_confluent-ksql-default_`. For example, `_command_topic`
-becomes `_confluent-ksql-default__command_topic`).
+By default, the service ID of ksqlDB servers is `default_`. The default for
+{{ site.ccloud }} is `<physical-ksqldb-cluster-id>`.
+
+The service ID is also used as the prefix for the internal topics created by
+ksqlDB. Using the default value `ksql.service.id`, the ksqlDB internal topics
+will be prefixed as `_confluent-ksql-default_`. For example, `_command_topic`
+becomes `_confluent-ksql-default__command_topic`.
 
 !!! important
     By convention, the `ksql.service.id` property should end with a
@@ -613,6 +677,8 @@ clause when you create a table, you can execute pull queries against the table.
 For more information, see
 [SOURCE Tables](/developer-guide/ksqldb-reference/create-table/#source-tables).
 
+The default is `true`.
+
 ## `ksql.headers.columns.enabled`
 
 **Per query:** no
@@ -622,6 +688,8 @@ columns is allowed. If you specify a `HEADERS` or `HEADER('<key>')` column when
 you create a stream or table and `ksql.headers.columns.enabled` is set to false,
 then the statement is rejected. Existing sources with `HEADER`columns can be
 queried though.
+
+The default is `true`.
 
 ## `ksql.streams.auto.offset.reset`
 
@@ -647,7 +715,9 @@ For more information, see [Kafka Consumer](https://docs.confluent.io/current/cli
 A list of host and port pairs that is used for establishing the initial
 connection to the Kafka cluster. This list should be in the form
 `host1:port1,host2:port2,...` The default value in ksqlDB is
-`localhost:9092`. For example, to change it to `9095` by using the ksqlDB CLI:
+`localhost:9092`. The default for {{ site.ccloud }} depends on the environment.
+
+For example, to change it to `9095` by using the ksqlDB CLI:
 
 ```sql
 SET 'bootstrap.servers'='localhost:9095';
@@ -674,6 +744,9 @@ example to change the value to `20000000` by using the ksqlDB CLI:
 SET 'cache.max.bytes.buffering'='20000000';
 ```
 
+The default for {{ site.cp }} is `0`. The default for
+{{ site.ccloud }} is `10485760`.
+
 For more information, see the
 [Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
@@ -684,8 +757,9 @@ and
 **Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
 
 The frequency to save the position of the processor. The default value
-in ksqlDB is `2000`. Here is an example to change the value to `5000` by
-using the ksqlDB CLI:
+in ksqlDB is `2000`. The default for {{ site.ccloud }} is `3000`.
+
+Here is an example to change the value to `5000` by using the ksqlDB CLI:
 
 ```sql
 SET 'commit.interval.ms'='5000';
@@ -719,6 +793,8 @@ Sets the number of hot-standby replicas of internal state to maintain. If a
 server fails and a standby replica is present, the standby will be able to take
 over active processing immediately for any of the failed server's tasks.
 
+The default is `0`.
+
 Additionally, if [High Availability](/operate-and-deploy/high-availability)
 is enabled, and a server is offline, pull queries for its tasks can fail over
 to the standby replicas.
@@ -734,8 +810,12 @@ and a standby replica, for example.
 **Per query:** no
 
 This number of stream threads in an instance of the {{ site.kstreams }}
-application. The stream processing code runs in these threads. For more
-information about the {{ site.kstreams }} threading model, see
+application. The stream processing code runs in these threads.
+
+The default for {{ site.cp }} is `4`. The default for
+{{ site.ccloud }} is `1`.
+
+For more information about the {{ site.kstreams }} threading model, see
 [Threading Model](https://docs.confluent.io/current/streams/architecture.html#threading-model).
 
 ## `ksql.streams.processing.guarantee`
@@ -743,7 +823,7 @@ information about the {{ site.kstreams }} threading model, see
 **Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
 
 The processing semantics to use for persistent queries. The default is 
-`at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
+`at_least_once`. To enable exactly-once semantics, use `exactly_once_v2`. 
 
 For more information, see [Processing Guarantees](/operate-and-deploy/exactly-once-semantics).
 
@@ -797,6 +877,9 @@ commands that try to start additional persistent queries will be
 rejected. Users may terminate existing queries before attempting to
 start new ones to avoid hitting the limit. The default is no limit.
 
+The default for {{ site.cp }} is `2147483647`. The default for
+{{ site.ccloud }} is `20`.
+
 When setting up ksqlDB servers, it may be desirable to configure this
 limit to prevent users from overloading the server with too many
 queries, since throughput suffers as more queries are run
@@ -815,6 +898,9 @@ Turning on this configuration, effectively sacrifices consistency for higher ava
 Setting to `true` guarantees high availability for pull queries. If set to `false`, pull queries will fail when the active is dead and 
 until a new active is elected. Default value is `false`. 
 
+The default for {{ site.cp }} is `false`. The default for
+{{ site.ccloud }} is `true`.
+
 For using this functionality, the server must be configured with `ksql.streams.num.standby.replicas` >= `1`, so standbys are actually enabled for the 
 underlying Kafka Streams topologies. We also recommend `ksql.heartbeat.enable=true`, to ensure pull queries quickly route around dead/failed servers, 
 without wastefully attempting to open connections to it (which can be slow & resource in-efficient). 
@@ -827,6 +913,8 @@ Config to control the maximum lag tolerated by a pull query against a table, exp
 changelog topic. This is applied to all servers, both active and standbys included. This can be overridden per query, from the CLI (using `SET` command) or 
 the pull query REST endpoint (by including it in the request e.g: `"streamsProperties": {"ksql.query.pull.max.allowed.offset.lag": "100"}`). 
 
+The default is `9223372036854775807`.
+
 By default, any amount of lag is allowed. For using this functionality, the server must be configured with `ksql.heartbeat.enable=true` and 
 `ksql.lag.reporting.enable=true`, so the servers can exchange lag information between themselves ahead of time, to validate pull queries against the allowed lag.
 
@@ -834,8 +922,9 @@ By default, any amount of lag is allowed. For using this functionality, the serv
 
 **Per query:** yes
 
-Config to control whether table scans are permitted when executing pull queries. Without this enabled, only key lookups are used. Enabling table scans
-removes various restrictions on what types of queries are allowed. In particular, these pull query types are now permitted:
+Config to control whether table scans are permitted when executing pull queries. Without this enabled, only key lookups are used. The default is `true`.
+
+Enabling table scans removes various restrictions on what types of queries are allowed. In particular, these pull query types are now permitted:
 
 - No WHERE clause
 - Range queries on keys
@@ -858,8 +947,11 @@ request can be useful when throwing an error is preferable to doing the potentia
 **Per query:** yes
 
 Controls whether pull queries use the interpreter or the code compiler as their expression
-evaluator. The interpreter is the default. The code compiler is used
-for persistent and push queries, which are naturally longer-lived than pull queries. The overhead of compilation slows down pull queries significantly, so using an
+evaluator. The interpreter is the default.
+
+The default is `true`.
+
+The code compiler is used for persistent and push queries, which are naturally longer-lived than pull queries. The overhead of compilation slows down pull queries significantly, so using an
 interpreter gives significant performance gains. This can be disabled per query if the code compiler
 is preferred.
 
@@ -868,6 +960,10 @@ is preferred.
 **Per query:** no
 
 Sets a rate limit for pull queries, in queries per second. This limit is enforced per host, not per cluster.
+
+The default for {{ site.cp }} is `2147483647`. The default for
+{{ site.ccloud }} is `1000000`.
+
 After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
 
@@ -875,9 +971,9 @@ at the limit.
 
 **Per query:** no
 
-Sets the maximum number of concurrent pull queries. This limit is enforced per host, not per cluster.
-After hitting the limit, the host will fail pull query requests until it determines that it's no longer
-at the limit.
+Sets the maximum number of concurrent pull queries. The default is `2147483647`.
+
+This limit is enforced per host, not per cluster. After hitting the limit, the host fails pull query requests until it determines that it's no longer at the limit.
 
 ## `ksql.suppress.enabled`
 
@@ -902,7 +998,7 @@ Increasing this timeout makes the server more tolerant of low-data volume use ca
 
 **Per query:** no
 
-Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.
+Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements. The default is `true`.
 
 ## `listeners`
 

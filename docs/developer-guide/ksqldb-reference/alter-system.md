@@ -20,11 +20,16 @@ Description
 -----------
 
 Sets and modifies the value of system-level configs. These
-are properties that are applied to all queries in the cluster. Using `ALTER SYSTEM` 
-results in the new value being applied immediately across the cluster.
+are properties that are applied to all queries in the cluster.
+Using `ALTER SYSTEM` results in the new value being applied
+immediately across the cluster and restarts the shared runtime
+to take effect for existing queries.
 
-`ALTER SYSTEM` is only available from the ksql command line and only when connected to a
-ksqlDB cluster in {{ site.ccloud }}.
+To use the `ALTER SYSTEM` statement, the `ksql.runtime.feature.shared.enabled`
+configuration setting must be `true`.
+
+`ALTER SYSTEM` is available only from the `ksql` command line and only when
+connected to a ksqlDB cluster in {{ site.ccloud }}.
 
 Example
 -------

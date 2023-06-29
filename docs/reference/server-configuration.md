@@ -629,6 +629,17 @@ your query:
   which means that your query can't read historical data.
 - Must have a single upstream persistent query only.
 
+## `ksql.runtime.feature.shared.enabled`
+
+**Per query:** no
+
+Feature flag for sharing {{ site.kstreams }} runtimes.
+
+If set to `true`, new queries may share {{ site.kstreams }} instances.
+If set to `false`, persistent queries use separate runtimes.
+
+The default is `false`. 
+
 ## `ksql.schema.registry.url`
 
 **Per query:** no

@@ -99,7 +99,7 @@ final class SandboxedSchemaRegistryClient {
 
     @Override
     public RegisterSchemaResponse registerWithResponse(
-        String subject, ParsedSchema schema, boolean normalize)
+        final String subject, final ParsedSchema schema, final boolean normalize)
         throws IOException, RestClientException {
       return sandboxCacheClient.registerWithResponse(subject, schema, normalize);
     }

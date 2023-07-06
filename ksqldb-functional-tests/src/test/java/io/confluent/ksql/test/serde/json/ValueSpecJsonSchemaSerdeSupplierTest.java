@@ -2,11 +2,15 @@ package io.confluent.ksql.test.serde.json;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import java.io.IOException;
@@ -33,6 +37,8 @@ public class ValueSpecJsonSchemaSerdeSupplierTest {
 
     when(srClient.getLatestSchemaMetadata("t-value"))
         .thenReturn(new SchemaMetadata(0, 1, ""));
+    when(srClient.registerWithResponse(anyString(), any(), anyBoolean()))
+        .thenReturn(new RegisterSchemaResponse(0));
     when(srClient.getSchemaBySubjectAndId("t-value", 0))
         .thenReturn(new JsonSchema("{\n" +
             "  \"properties\": {\n" +

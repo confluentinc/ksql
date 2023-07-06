@@ -1,0 +1,239 @@
+io.confluent.ksql:ksqldb-api-client:jar:7.3.3-0
++- io.confluent.ksql:ksqldb-rest-model:jar:7.3.3-0:compile
++- io.confluent.ksql:ksqldb-common:jar:7.3.3-0:compile
++- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:jar:2.14.2:compile
+|  +- com.fasterxml.jackson.core:jackson-core:jar:2.14.2:compile
+|  \- com.fasterxml.jackson.core:jackson-databind:jar:2.14.2:compile
++- io.vertx:vertx-core:jar:4.3.7:compile
+|  +- io.netty:netty-common:jar:4.1.86.Final:compile
+|  +- io.netty:netty-buffer:jar:4.1.86.Final:compile
+|  +- io.netty:netty-transport:jar:4.1.86.Final:compile
+|  +- io.netty:netty-handler:jar:4.1.86.Final:compile
+|  |  +- io.netty:netty-transport-native-unix-common:jar:4.1.86.Final:compile
+|  |  \- io.netty:netty-codec:jar:4.1.86.Final:compile
+|  +- io.netty:netty-handler-proxy:jar:4.1.86.Final:compile
+|  |  \- io.netty:netty-codec-socks:jar:4.1.86.Final:compile
+|  +- io.netty:netty-codec-http:jar:4.1.86.Final:compile
+|  +- io.netty:netty-codec-http2:jar:4.1.86.Final:compile
+|  +- io.netty:netty-resolver:jar:4.1.86.Final:compile
+|  \- io.netty:netty-resolver-dns:jar:4.1.86.Final:compile
+|     \- io.netty:netty-codec-dns:jar:4.1.86.Final:compile
++- io.vertx:vertx-codegen:jar:4.3.7:compile
++- org.reactivestreams:reactive-streams:jar:1.0.3:compile
++- com.google.guava:guava:jar:30.1.1-jre:compile
+|  +- com.google.guava:failureaccess:jar:1.0.1:compile
+|  +- com.google.guava:listenablefuture:jar:9999.0-empty-to-avoid-conflict-with-guava:compile
+|  +- com.google.code.findbugs:jsr305:jar:3.0.2:compile
+|  +- org.checkerframework:checker-qual:jar:3.8.0:compile
+|  +- com.google.errorprone:error_prone_annotations:jar:2.5.1:compile
+|  \- com.google.j2objc:j2objc-annotations:jar:1.3:compile
++- com.github.spotbugs:spotbugs-annotations:jar:4.7.1:compile
++- io.confluent:common-utils:jar:7.3.3-13:test
+|  \- org.slf4j:slf4j-api:jar:1.7.36:compile
++- io.confluent.ksql:ksqldb-rest-app:jar:7.3.3-0:test
+|  +- io.confluent.ksql:ksqldb-rest-client:jar:7.3.3-0:test
+|  +- io.confluent.ksql:ksqldb-engine:jar:7.3.3-0:test
+|  +- io.confluent.ksql:ksqldb-version-metrics-client:jar:7.3.3-0:test
+|  |  \- org.apache.httpcomponents.client5:httpclient5:jar:5.0.3:test
+|  |     +- org.apache.httpcomponents.core5:httpcore5:jar:5.0.2:test
+|  |     +- org.apache.httpcomponents.core5:httpcore5-h2:jar:5.0.2:test
+|  |     \- commons-codec:commons-codec:jar:1.13:test
+|  +- io.confluent:kafka-json-serializer:jar:7.3.3-25:test
+|  |  +- io.confluent:common-config:jar:7.3.3-13:test
+|  |  +- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:jar:2.14.2:test
+|  |  \- com.fasterxml.jackson.module:jackson-module-parameter-names:jar:2.14.2:test
+|  +- com.github.rvesse:airline:jar:2.6.0:test
+|  |  +- com.github.rvesse:airline-io:jar:2.6.0:test
+|  |  +- javax.inject:javax.inject:jar:1:test
+|  |  \- org.apache.commons:commons-collections4:jar:4.2:test
+|  +- org.apache.kafka:connect-json:jar:7.3.3-10-ccs:test
+|  +- org.apache.kafka:kafka-log4j-appender:jar:7.3.3-10-ccs:test
+|  +- io.confluent:confluent-log4j-extensions:jar:7.3.3-13:test
+|  |  \- io.confluent:common-logging:jar:7.3.3-13:test
+|  +- io.vertx:vertx-web:jar:4.3.7:test
+|  |  +- io.vertx:vertx-web-common:jar:4.3.7:test
+|  |  +- io.vertx:vertx-auth-common:jar:4.3.7:test
+|  |  \- io.vertx:vertx-bridge-common:jar:4.3.7:test
+|  +- io.vertx:vertx-dropwizard-metrics:jar:4.3.7:test
+|  |  \- io.dropwizard.metrics:metrics-core:jar:4.2.0:test
+|  +- io.vertx:vertx-web-client:jar:4.3.7:test
+|  |  \- io.vertx:vertx-uri-template:jar:4.3.7:test
+|  \- io.netty:netty-tcnative-boringssl-static:jar:2.0.54.Final:test
+|     +- io.netty:netty-tcnative-classes:jar:2.0.54.Final:test
+|     +- io.netty:netty-tcnative-boringssl-static:jar:linux-x86_64:2.0.54.Final:test
+|     +- io.netty:netty-tcnative-boringssl-static:jar:linux-aarch_64:2.0.54.Final:test
+|     +- io.netty:netty-tcnative-boringssl-static:jar:osx-x86_64:2.0.54.Final:test
+|     +- io.netty:netty-tcnative-boringssl-static:jar:osx-aarch_64:2.0.54.Final:test
+|     \- io.netty:netty-tcnative-boringssl-static:jar:windows-x86_64:2.0.54.Final:test
++- io.confluent.ksql:ksqldb-rest-app:test-jar:tests:7.3.3-0:test
++- io.confluent.ksql:ksqldb-test-util:jar:7.3.3-0:test
+|  +- org.apache.curator:curator-test:jar:5.2.0:test
+|  |  +- org.apache.zookeeper:zookeeper:jar:3.6.3:test
+|  |  |  +- org.apache.zookeeper:zookeeper-jute:jar:3.6.3:test
+|  |  |  \- org.apache.yetus:audience-annotations:jar:0.5.0:test
+|  |  +- org.xerial.snappy:snappy-java:jar:1.1.7:test
+|  |  \- org.junit.jupiter:junit-jupiter-api:jar:5.8.2:test
+|  |     +- org.opentest4j:opentest4j:jar:1.2.0:test
+|  |     +- org.junit.platform:junit-platform-commons:jar:1.8.2:test
+|  |     \- org.apiguardian:apiguardian-api:jar:1.1.2:test
+|  +- org.apache.kafka:kafka_2.13:jar:7.3.3-10-ccs:test
+|  |  +- org.scala-lang:scala-library:jar:2.13.10:test
+|  |  +- org.apache.kafka:kafka-server-common:jar:7.3.3-10-ccs:test
+|  |  +- org.apache.kafka:kafka-metadata:jar:7.3.3-10-ccs:test
+|  |  +- org.apache.kafka:kafka-raft:jar:7.3.3-10-ccs:test
+|  |  +- org.apache.kafka:kafka-storage:jar:7.3.3-10-ccs:test
+|  |  |  \- org.apache.kafka:kafka-storage-api:jar:7.3.3-10-ccs:test
+|  |  +- net.sourceforge.argparse4j:argparse4j:jar:0.7.0:test
+|  |  +- com.fasterxml.jackson.module:jackson-module-scala_2.13:jar:2.14.2:test
+|  |  |  \- com.thoughtworks.paranamer:paranamer:jar:2.8:test
+|  |  +- com.fasterxml.jackson.dataformat:jackson-dataformat-csv:jar:2.14.2:test
+|  |  +- net.sf.jopt-simple:jopt-simple:jar:5.0.4:test
+|  |  +- org.bitbucket.b_c:jose4j:jar:0.7.9:test
+|  |  +- com.yammer.metrics:metrics-core:jar:2.2.0:test
+|  |  +- org.scala-lang.modules:scala-collection-compat_2.13:jar:2.6.0:test
+|  |  +- org.scala-lang.modules:scala-java8-compat_2.13:jar:1.0.2:test
+|  |  +- org.scala-lang:scala-reflect:jar:2.13.10:test
+|  |  +- com.typesafe.scala-logging:scala-logging_2.13:jar:3.9.4:test
+|  |  \- commons-cli:commons-cli:jar:1.4:test
+|  +- org.apache.kafka:kafka_2.13:jar:test:7.3.3-10-ccs:test
+|  +- org.apache.kafka:kafka-clients:jar:7.3.3-10-ccs:test
+|  |  +- com.github.luben:zstd-jni:jar:1.5.2-1:test
+|  |  \- org.lz4:lz4-java:jar:1.8.0:test
+|  +- org.apache.kafka:kafka-clients:jar:test:7.3.3-10-ccs:test
+|  +- junit:junit:jar:4.13.2:test
+|  +- org.hamcrest:hamcrest-all:jar:1.3:test
+|  +- org.easymock:easymock:jar:4.3:test
+|  |  \- org.objenesis:objenesis:jar:3.2:test
+|  +- org.mockito:mockito-inline:jar:4.6.1:test
+|  +- org.mockito:mockito-core:jar:4.6.1:test
+|  |  +- net.bytebuddy:byte-buddy:jar:1.12.10:test
+|  |  \- net.bytebuddy:byte-buddy-agent:jar:1.12.10:test
+|  \- com.google.guava:guava-testlib:jar:30.1.1-jre:test
++- io.confluent.ksql:ksqldb-engine:test-jar:tests:7.3.3-0:test
+|  +- io.confluent.ksql:ksqldb-execution:jar:7.3.3-0:test
+|  |  +- io.confluent.ksql:ksqldb-engine-common:jar:7.3.3-0:test
+|  |  \- com.ibm.icu:icu4j:jar:67.1:test
+|  +- io.confluent.ksql:ksqldb-streams:jar:7.3.3-0:test
+|  +- io.confluent.ksql:ksqldb-serde:jar:7.3.3-0:test
+|  |  +- io.confluent:kafka-schema-registry-client:jar:7.3.3-25:test
+|  |  |  \- org.yaml:snakeyaml:jar:2.0:test
+|  |  +- io.confluent:kafka-connect-avro-converter:jar:7.3.3-25:test
+|  |  |  \- io.confluent:kafka-connect-avro-data:jar:7.3.3-25:test
+|  |  +- io.confluent:kafka-protobuf-provider:jar:7.3.3-25:test
+|  |  |  +- com.squareup.wire:wire-schema-jvm:jar:4.4.3:test
+|  |  |  |  +- org.jetbrains.kotlin:kotlin-stdlib-common:jar:1.6.10:test
+|  |  |  |  +- com.squareup.okio:okio:jar:3.0.0:test
+|  |  |  |  +- com.squareup:kotlinpoet:jar:1.12.0:test
+|  |  |  |  |  \- org.jetbrains.kotlin:kotlin-reflect:jar:1.7.0:test
+|  |  |  |  \- org.jetbrains.kotlin:kotlin-stdlib-jdk8:jar:1.6.10:test
+|  |  |  |     \- org.jetbrains.kotlin:kotlin-stdlib-jdk7:jar:1.6.10:test
+|  |  |  +- com.squareup.wire:wire-runtime-jvm:jar:4.4.3:test
+|  |  |  +- com.squareup.okio:okio-jvm:jar:3.0.0:test
+|  |  |  +- org.jetbrains.kotlin:kotlin-stdlib:jar:1.6.0:test
+|  |  |  |  \- org.jetbrains:annotations:jar:13.0:test
+|  |  |  +- com.google.protobuf:protobuf-java:jar:3.19.6:test
+|  |  |  +- com.google.protobuf:protobuf-java-util:jar:3.19.6:test
+|  |  |  |  \- com.google.code.gson:gson:jar:2.9.0:test
+|  |  |  +- com.google.api.grpc:proto-google-common-protos:jar:2.5.1:test
+|  |  |  \- io.confluent:kafka-protobuf-types:jar:7.3.3-25:test
+|  |  +- io.confluent:kafka-json-schema-provider:jar:7.3.3-25:test
+|  |  |  +- com.github.erosb:everit-json-schema:jar:1.14.1:test
+|  |  |  |  +- org.json:json:jar:20220320:test
+|  |  |  |  +- commons-validator:commons-validator:jar:1.7:test
+|  |  |  |  |  +- commons-digester:commons-digester:jar:2.1:test
+|  |  |  |  |  +- commons-logging:commons-logging:jar:1.2:test
+|  |  |  |  |  \- commons-collections:commons-collections:jar:3.2.2:test
+|  |  |  |  \- com.damnhandy:handy-uri-templates:jar:2.1.8:test
+|  |  |  +- com.fasterxml.jackson.datatype:jackson-datatype-guava:jar:2.14.2:test
+|  |  |  +- com.fasterxml.jackson.datatype:jackson-datatype-joda:jar:2.14.2:test
+|  |  |  |  \- joda-time:joda-time:jar:2.10.8:test
+|  |  |  +- com.kjetland:mbknor-jackson-jsonschema_2.13:jar:1.0.39:test
+|  |  |  |  \- javax.validation:validation-api:jar:2.0.1.Final:test
+|  |  |  +- org.jetbrains.kotlin:kotlin-scripting-jvm:jar:1.6.0:test
+|  |  |  |  +- org.jetbrains.kotlin:kotlin-script-runtime:jar:1.6.0:test
+|  |  |  |  \- org.jetbrains.kotlin:kotlin-scripting-common:jar:1.6.0:test
+|  |  |  \- org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:jar:1.6.0:test
+|  |  |     \- org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:jar:1.6.0:test
+|  |  +- io.confluent:kafka-connect-protobuf-converter:jar:7.3.3-25:test
+|  |  |  +- io.confluent:kafka-protobuf-serializer:jar:7.3.3-25:test
+|  |  |  +- io.confluent:kafka-schema-converter:jar:7.3.3-25:test
+|  |  |  \- io.confluent:kafka-schema-serializer:jar:7.3.3-25:test
+|  |  +- io.confluent:kafka-connect-json-schema-converter:jar:7.3.3-25:test
+|  |  |  \- io.confluent:kafka-json-schema-serializer:jar:7.3.3-25:test
+|  |  \- io.confluent:kafka-avro-serializer:jar:7.3.3-25:test
+|  +- io.confluent.ksql:ksqldb-parser:jar:7.3.3-0:test
+|  |  +- org.antlr:antlr4-runtime:jar:4.9.2:test
+|  |  +- org.apache.commons:commons-lang3:jar:3.5:test
+|  |  +- org.apache.commons:commons-text:jar:1.10.0:test
+|  |  \- com.approvaltests:approvaltests:jar:9.5.0:test
+|  |     \- com.approvaltests:approvaltests-util:jar:9.5.0:test
+|  |        \- com.sun.mail:javax.mail:jar:1.6.2:test
+|  +- io.confluent.ksql:ksqldb-metastore:jar:7.3.3-0:test
+|  +- io.confluent.ksql:ksqldb-udf:jar:7.3.3-0:test
+|  +- com.github.rholder:guava-retrying:jar:2.0.0:test
+|  +- io.airlift:slice:jar:0.29:test
+|  |  \- org.openjdk.jol:jol-core:jar:0.2:test
+|  +- org.apache.avro:avro:jar:1.11.0:test
+|  |  \- org.apache.commons:commons-compress:jar:1.21:test
+|  +- org.apache.commons:commons-csv:jar:1.4:test
+|  +- org.apache.httpcomponents.client5:httpclient5-fluent:jar:5.0.3:test
+|  +- org.apache.kafka:connect-api:jar:7.3.3-10-ccs:test
+|  |  \- javax.ws.rs:javax.ws.rs-api:jar:2.1.1:test
+|  +- org.apache.kafka:connect-runtime:jar:7.3.3-10-ccs:test
+|  |  +- org.apache.kafka:connect-transforms:jar:7.3.3-10-ccs:test
+|  |  +- org.apache.kafka:kafka-tools:jar:7.3.3-10-ccs:test
+|  |  +- com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:jar:2.14.2:test
+|  |  |  +- com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:jar:2.14.2:test
+|  |  |  \- com.fasterxml.jackson.module:jackson-module-jaxb-annotations:jar:2.14.2:test
+|  |  |     +- jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3:test
+|  |  |     \- jakarta.activation:jakarta.activation-api:jar:1.2.2:test
+|  |  +- org.glassfish.jersey.containers:jersey-container-servlet:jar:2.34:test
+|  |  |  +- org.glassfish.jersey.containers:jersey-container-servlet-core:jar:2.34:test
+|  |  |  |  \- org.glassfish.hk2.external:jakarta.inject:jar:2.6.1:test
+|  |  |  +- org.glassfish.jersey.core:jersey-common:jar:2.34:test
+|  |  |  |  +- jakarta.annotation:jakarta.annotation-api:jar:1.3.5:test
+|  |  |  |  \- org.glassfish.hk2:osgi-resource-locator:jar:1.0.3:test
+|  |  |  +- org.glassfish.jersey.core:jersey-server:jar:2.34:test
+|  |  |  |  +- org.glassfish.jersey.core:jersey-client:jar:2.34:test
+|  |  |  |  \- jakarta.validation:jakarta.validation-api:jar:2.0.2:test
+|  |  |  \- jakarta.ws.rs:jakarta.ws.rs-api:jar:2.1.6:test
+|  |  +- org.glassfish.jersey.inject:jersey-hk2:jar:2.34:test
+|  |  |  +- org.glassfish.hk2:hk2-locator:jar:2.6.1:test
+|  |  |  |  +- org.glassfish.hk2.external:aopalliance-repackaged:jar:2.6.1:test
+|  |  |  |  +- org.glassfish.hk2:hk2-api:jar:2.6.1:test
+|  |  |  |  \- org.glassfish.hk2:hk2-utils:jar:2.6.1:test
+|  |  |  \- org.javassist:javassist:jar:3.25.0-GA:test
+|  |  +- javax.xml.bind:jaxb-api:jar:2.3.0:test
+|  |  +- javax.activation:activation:jar:1.1.1:test
+|  |  +- org.eclipse.jetty:jetty-server:jar:9.4.48.v20220622:test
+|  |  |  +- javax.servlet:javax.servlet-api:jar:3.1.0:test
+|  |  |  +- org.eclipse.jetty:jetty-http:jar:9.4.48.v20220622:test
+|  |  |  \- org.eclipse.jetty:jetty-io:jar:9.4.48.v20220622:test
+|  |  +- org.eclipse.jetty:jetty-servlet:jar:9.4.48.v20220622:test
+|  |  |  \- org.eclipse.jetty:jetty-util-ajax:jar:9.4.48.v20220622:test
+|  |  +- org.eclipse.jetty:jetty-servlets:jar:9.4.48.v20220622:test
+|  |  |  +- org.eclipse.jetty:jetty-continuation:jar:9.4.48.v20220622:test
+|  |  |  \- org.eclipse.jetty:jetty-util:jar:9.4.48.v20220622:test
+|  |  +- org.eclipse.jetty:jetty-client:jar:9.4.48.v20220622:test
+|  |  +- org.reflections:reflections:jar:0.9.12:test
+|  |  +- org.apache.maven:maven-artifact:jar:3.8.4:test
+|  |  |  \- org.codehaus.plexus:plexus-utils:jar:3.3.0:test
+|  |  \- io.swagger.core.v3:swagger-annotations:jar:2.2.0:test
+|  +- org.codehaus.janino:janino:jar:3.0.7:test
+|  |  \- org.codehaus.janino:commons-compiler:jar:3.0.7:test
+|  +- io.github.classgraph:classgraph:jar:4.8.59:test
+|  +- com.squareup:javapoet:jar:1.9.0:test
+|  \- com.clearspring.analytics:stream:jar:2.9.5:test
+|     \- it.unimi.dsi:fastutil:jar:7.0.6:test
++- org.apache.kafka:kafka-streams:jar:7.3.3-10-ccs:test
+|  +- org.rocksdb:rocksdbjni:jar:7.1.2:test
+|  \- com.fasterxml.jackson.core:jackson-annotations:jar:2.14.2:compile
++- org.eclipse.jetty:jetty-jaas:jar:9.4.44.v20210927:test
+|  \- org.eclipse.jetty:jetty-security:jar:9.4.44.v20210927:test
++- org.slf4j:slf4j-reload4j:jar:1.7.36:compile
+|  \- ch.qos.reload4j:reload4j:jar:1.2.19:compile
++- io.confluent:logredactor:jar:1.0.11:compile
+|  +- com.google.re2j:re2j:jar:1.6:compile
+|  +- io.confluent:logredactor-metrics:jar:1.0.11:compile
+|  \- com.eclipsesource.minimal-json:minimal-json:jar:0.9.5:compile
+\- io.confluent:assembly-plugin-boilerplate:zip:resources:7.3.3-13:provided

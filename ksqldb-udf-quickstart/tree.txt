@@ -1,0 +1,11 @@
+io.confluent.ksql:ksqldb-udf-quickstart:maven-archetype:7.3.3-0
++- junit:junit:jar:4.13.2:test
++- org.slf4j:slf4j-reload4j:jar:1.7.36:compile
+|  +- org.slf4j:slf4j-api:jar:1.7.36:compile
+|  \- ch.qos.reload4j:reload4j:jar:1.2.19:compile
++- io.confluent:logredactor:jar:1.0.11:compile
+|  +- com.google.re2j:re2j:jar:1.6:compile
+|  +- io.confluent:logredactor-metrics:jar:1.0.11:compile
+|  \- com.eclipsesource.minimal-json:minimal-json:jar:0.9.5:compile
++- io.confluent:common-utils:jar:7.3.3-13:compile
+\- io.confluent:assembly-plugin-boilerplate:zip:resources:7.3.3-13:provided

@@ -17,6 +17,7 @@ package io.confluent.ksql.services;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -29,6 +30,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
@@ -185,6 +187,17 @@ public final class SandboxedSchemaRegistryClientTest {
 
       // Then:
       assertThat(version, is(6));
+    }
+
+    @Test
+    public void shouldRegisterWithResponse() throws Exception {
+      // When:
+      final RegisterSchemaResponse response = sandboxedClient
+          .registerWithResponse("some subject", schema, false);
+
+      // Then:
+      assertThat(response, is(notNullValue()));
+      assertThat(response.getId(), is(1));
     }
 
     @Test

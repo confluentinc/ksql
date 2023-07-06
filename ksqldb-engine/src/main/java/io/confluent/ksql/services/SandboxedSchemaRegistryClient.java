@@ -69,6 +69,11 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
+    public String tenant() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Optional<ParsedSchema> parseSchema(
         final String schemaType,
         final String schemaString,

@@ -85,16 +85,6 @@
       }
     },
     {
-      "name": "unsupported key format - create source",
-      "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='PROTOBUF');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'PROTOBUF' is not currently supported."
-      }
-    },
-    {
       "name": "invalid key format - create source",
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='FOO');"
@@ -197,16 +187,6 @@
       }
     },
     {
-      "name": "unsupported format - create source",
-      "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', format='PROTOBUF');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'PROTOBUF' is not currently supported."
-      }
-    },
-    {
       "name": "invalid format - create source",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', format='FOO');"
@@ -270,28 +250,6 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Unknown format: FOO"
-      }
-    },
-    {
-      "name": "unsupported key format - create as select",
-      "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
-        "CREATE STREAM COPY WITH (key_format='AVRO') AS SELECT * FROM TEST EMIT CHANGES;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'AVRO' is not currently supported"
-      }
-    },
-    {
-      "name": "unsupported format - create as select",
-      "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
-        "CREATE STREAM COPY WITH (format='AVRO') AS SELECT * FROM TEST EMIT CHANGES;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'AVRO' is not currently supported"
       }
     },
     {

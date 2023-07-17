@@ -23,7 +23,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.WriteStream;
-import java.util.Arrays;
 import java.util.List;
 
 public class RunnerUtils {
@@ -32,8 +31,10 @@ public class RunnerUtils {
       .of("name", "age", "male");
   protected static final List<String> DEFAULT_COLUMN_TYPES = ImmutableList
       .of("STRING", "INT", "BOOLEAN");
-  protected static final GenericRow DEFAULT_ROW = GenericRow
-      .fromList(Arrays.asList("tim", 105, true));
+
+  protected static final List<?> DEFAULT_KEY = ImmutableList.of("tim");
+
+  protected static final GenericRow DEFAULT_ROW = GenericRow.genericRow("tim", 105, true);
 
   public static class ReceiveStream implements WriteStream<Buffer> {
 

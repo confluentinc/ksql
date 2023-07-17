@@ -450,7 +450,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The projection contains the key column more than once: `ID` and `ID2`."
+        "message": "The projection contains a key column (`ID`) more than once, aliased as: ID and ID2."
       }
     },
     {
@@ -462,6 +462,17 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+      }
+    },
+    {
+      "name": "projection with missing multi-key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, ID2 INT KEY, NAME STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, NAME FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the key columns ID and ID2 in its projection."
       }
     },
     {

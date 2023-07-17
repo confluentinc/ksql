@@ -20,13 +20,15 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Struct;
+
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
@@ -67,7 +69,7 @@ public class DecimalMaxKudafTest {
   @Test
   public void shouldFindCorrectMaxForMerge() {
     final DecimalMaxKudaf doubleMaxKudaf = getDecimalMaxKudaf(3);
-    final Merger<Struct, BigDecimal> merger = doubleMaxKudaf.getMerger();
+    final Merger<GenericKey, BigDecimal> merger = doubleMaxKudaf.getMerger();
     final BigDecimal mergeResult1 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(12.0));
     assertThat(mergeResult1, equalTo(new BigDecimal(12.0, new MathContext(3))));
     final BigDecimal mergeResult2 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(-12.0));
@@ -79,7 +81,7 @@ public class DecimalMaxKudafTest {
 
   private DecimalMaxKudaf getDecimalMaxKudaf(final int precision) {
     final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlDecimal.of(precision, 1))
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1)))
             , AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(DecimalMaxKudaf.class));
     return  (DecimalMaxKudaf) aggregateFunction;

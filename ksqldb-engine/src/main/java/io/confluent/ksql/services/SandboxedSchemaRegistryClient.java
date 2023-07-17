@@ -45,6 +45,7 @@ final class SandboxedSchemaRegistryClient {
         .forward("testCompatibility",
             methodParams(String.class, ParsedSchema.class), delegate)
         .swallow("deleteSubject", methodParams(String.class), Collections.emptyList())
+        .forward("getVersion", methodParams(String.class, ParsedSchema.class), delegate)
         .build();
   }
 

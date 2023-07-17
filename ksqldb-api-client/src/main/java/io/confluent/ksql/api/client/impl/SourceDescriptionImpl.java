@@ -35,6 +35,7 @@ public final class SourceDescriptionImpl implements SourceDescription {
   private final Optional<String> timestampColumn;
   private final Optional<String> windowType;
   private final String sqlStatement;
+  private final List<String> sourceConstraints;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   SourceDescriptionImpl(
@@ -48,7 +49,8 @@ public final class SourceDescriptionImpl implements SourceDescription {
       final List<QueryInfo> writeQueries,
       final Optional<String> timestampColumn,
       final Optional<String> windowType,
-      final String sqlStatement
+      final String sqlStatement,
+      final List<String> sourceConstraints
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
@@ -62,6 +64,7 @@ public final class SourceDescriptionImpl implements SourceDescription {
     this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
     this.sqlStatement = Objects.requireNonNull(sqlStatement, "sqlStatement");
+    this.sourceConstraints = Objects.requireNonNull(sourceConstraints, "sourceConstraints");
   }
 
   @Override
@@ -117,6 +120,11 @@ public final class SourceDescriptionImpl implements SourceDescription {
   @Override
   public String sqlStatement() {
     return sqlStatement;
+  }
+
+  @Override
+  public List<String> getSourceConstraints() {
+    return sourceConstraints;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

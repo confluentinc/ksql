@@ -50,11 +50,15 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @EffectivelyImmutable
 public class KsqlConfig extends AbstractConfig {
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlConfig.class);
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
@@ -134,11 +138,6 @@ public class KsqlConfig extends AbstractConfig {
       "An upper limit on the number of active, persistent queries that may be running at a time, "
       + "in interactive mode. Once this limit is reached, any further persistent queries will not "
       + "be accepted.";
-
-  public static final String KSQL_KEY_FORMAT_ENABLED = "ksql.key.format.enabled";
-  public static final Boolean KSQL_KEY_FORMAT_ENABLED_DEFAULT = false;
-  public static final String KSQL_KEY_FORMAT_ENABLED_DOC =
-      "Feature flag for non-Kafka key formats";
 
   public static final String KSQL_DEFAULT_KEY_FORMAT_CONFIG = "ksql.persistence.default.format.key";
   private static final String KSQL_DEFAULT_KEY_FORMAT_DEFAULT = "KAFKA";
@@ -242,13 +241,34 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_CONFIG = "ksql.query.pull.max.qps";
   public static final Integer KSQL_QUERY_PULL_MAX_QPS_DEFAULT = Integer.MAX_VALUE;
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
-      + "queries. Once the limit is hit, queries will fail immediately";
+      + "queries on this host. Once the limit is hit, queries will fail immediately";
+
+  public static final String KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG
+      = "ksql.query.pull.max.concurrent.requests";
+  public static final Integer KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC =
+      "The maximum number of concurrent requests allowed for pull "
+      + "queries on this host. Once the limit is hit, queries will fail immediately";
 
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
   public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
       "Size of thread pool used for sending/executing pull queries";
+
+  public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED
+      = "ksql.query.pull.table.scan.enabled";
+  public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC =
+      "Config to enable full table scans for pull queries";
+  public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED
+      = "ksql.query.pull.interpreter.enabled";
+  public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC =
+      "Enables whether we use the interpreter for expression evaluation for pull queries, or the"
+          + "default code generator. They should produce the same results, but the interpreter is"
+          + " much faster for short-lived queries.";
+  public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -336,6 +356,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
+  public static final String KSQL_LAMBDAS_ENABLED = "ksql.lambdas.enabled";
+  public static final Boolean KSQL_LAMBDAS_ENABLED_DEFAULT = true;
+  public static final String KSQL_LAMBDAS_ENABLED_DOC =
+      "Feature flag for lambdas. Default is true. If true, lambdas are processed normally, "
+          + "if false, new lambda queries won't be processed but any existing lambda "
+          + "queries are unaffected.";
+
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
@@ -370,6 +397,17 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.properties.overrides.denylist";
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
       + "properties that KSQL users cannot override.";
+
+  public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
+      "ksql.query.persistent.max.bytes.buffering.total";
+  public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT = -1;
+  public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DOC = "Limit on the total bytes "
+      + "used by Kafka Streams cache across all persistent queries";
+  public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT =
+      "ksql.query.transient.max.bytes.buffering.total";
+  public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT = -1;
+  public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC = "Limit on the "
+      + "total bytes used by Kafka Streams cache across all transient queries";
 
   public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE
       = "ksql.variable.substitution.enable";
@@ -510,6 +548,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final ConfigDef CURRENT_DEF = buildConfigDef(ConfigGeneration.CURRENT);
   public static final ConfigDef LEGACY_DEF = buildConfigDef(ConfigGeneration.LEGACY);
   public static final Set<String> SSL_CONFIG_NAMES = sslConfigNames();
+  public static final Set<String> STREAM_TOPIC_CONFIG_NAMES = streamTopicConfigNames();
+
+  public static KsqlConfig empty() {
+    return new KsqlConfig(ImmutableMap.of());
+  }
 
   private static ConfigDef configDef(final ConfigGeneration generation) {
     return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;
@@ -626,12 +669,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
-        ).define(
-            KSQL_KEY_FORMAT_ENABLED,
-            Type.BOOLEAN,
-            KSQL_KEY_FORMAT_ENABLED_DEFAULT,
-            ConfigDef.Importance.LOW,
-            KSQL_KEY_FORMAT_ENABLED_DOC
         ).define(
             KSQL_DEFAULT_KEY_FORMAT_CONFIG,
             Type.STRING,
@@ -766,7 +803,7 @@ public class KsqlConfig extends AbstractConfig {
         .define(
             KSQL_QUERY_PULL_METRICS_ENABLED,
             Type.BOOLEAN,
-            false,
+            true,
             Importance.LOW,
             KSQL_QUERY_PULL_METRICS_ENABLED_DOC
         )
@@ -778,11 +815,32 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_QPS_DOC
         )
         .define(
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC
+        )
+        .define(
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,
             Type.INT,
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_TABLE_SCAN_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
@@ -862,6 +920,25 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
         )
         .define(
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING,
+            Type.LONG,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT,
+            Importance.LOW,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DOC
+        )
+        .define(
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT,
+            Type.LONG,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT,
+            Importance.LOW,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC
+        ).define(
+            KSQL_LAMBDAS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_LAMBDAS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_LAMBDAS_ENABLED_DOC
+        ).define(
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
             Type.LONG,
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
@@ -971,6 +1048,25 @@ public class KsqlConfig extends AbstractConfig {
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+  }
+
+  private static Set<String> streamTopicConfigNames() {
+    final ImmutableSet.Builder<String> configs = ImmutableSet.builder();
+
+    Arrays.stream(TopicConfig.class.getDeclaredFields())
+        .filter(f -> f.getType() == String.class)
+        .filter(f -> f.getName().endsWith("_CONFIG"))
+        .forEach(f -> {
+          try {
+            configs.add((String) f.get(null));
+          } catch (final IllegalAccessException e) {
+            LOG.warn("Could not get the '{}' config from TopicConfig.class. Setting and listing "
+                + "properties with 'ksql.streams.topics.*' from clients will be disabled.",
+                f.getName());
+          }
+        });
+
+    return configs.build();
   }
 
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {
@@ -1089,6 +1185,24 @@ public class KsqlConfig extends AbstractConfig {
             configValue -> props.put(
                 configValue.key,
                 configValue.convertToObfuscatedString()));
+
+    props.putAll(getKsqlStreamTopicConfigProps());
+    return Collections.unmodifiableMap(props);
+  }
+
+  private Map<String, String> getKsqlStreamTopicConfigProps() {
+    final Map<String, String> props = new HashMap<>();
+
+    // Configs with `topic.` prefixes do not appear in the ksqlStreamConfigProps
+    // properties, but are considered a streams configuration, i.e.
+    // `ksql.streams.topic.min.insync.replicas` (see https://github.com/confluentinc/ksql/pull/3691)
+    originalsWithPrefix(KSQL_STREAMS_PREFIX, true).entrySet().stream()
+        .filter(e -> e.getKey().startsWith(StreamsConfig.TOPIC_PREFIX))
+        .filter(e -> STREAM_TOPIC_CONFIG_NAMES.contains(
+            e.getKey().substring(StreamsConfig.TOPIC_PREFIX.length())
+        ))
+        .forEach(e -> props.put(e.getKey(), e.getValue().toString()));
+
     return Collections.unmodifiableMap(props);
   }
 
@@ -1134,6 +1248,10 @@ public class KsqlConfig extends AbstractConfig {
 
   public Map<String, String> getStringAsMap(final String key) {
     final String value = getString(key).trim();
+    return parseStringAsMap(key, value);
+  }
+
+  public static Map<String, String> parseStringAsMap(final String key, final String value) {
     try {
       return value.equals("")
           ? Collections.emptyMap()

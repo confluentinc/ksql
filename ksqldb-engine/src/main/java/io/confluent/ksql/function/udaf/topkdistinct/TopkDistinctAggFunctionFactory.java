@@ -22,6 +22,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -49,13 +50,13 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   @SuppressWarnings("unchecked")
   @Override
   public KsqlAggregateFunction createAggregateFunction(
-      final List<SqlType> argTypeList,
+      final List<SqlArgument> argTypeList,
       final AggregateFunctionInitArguments initArgs) {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
     final int tkValFromArg = (Integer)(initArgs.arg(0));
-    final SqlType argSchema = argTypeList.get(0);
+    final SqlType argSchema = argTypeList.get(0).getSqlTypeOrThrow();
     switch (argSchema.baseType()) {
       case INTEGER:
       case BIGINT:

@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.test.util.ClassFinder;
+import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -32,7 +33,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class EntityTest {
   private static final Set<Class<?>> BLACK_LIST = ImmutableSet.<Class<?>>builder()
-      .add(Versions.class)
+      .add(KsqlMediaType.class)
       .build();
 
   private final Class<?> entityClass;
@@ -41,6 +42,7 @@ public class EntityTest {
   public static Collection<Class<?>> data() {
     return ClassFinder.getClasses(FunctionInfo.class.getPackage().getName()).stream()
         .filter(type -> !type.isEnum())
+        .filter(type -> !Modifier.isAbstract(type.getModifiers()))
         .filter(type -> !BLACK_LIST.contains(type))
         .collect(Collectors.toList());
   }

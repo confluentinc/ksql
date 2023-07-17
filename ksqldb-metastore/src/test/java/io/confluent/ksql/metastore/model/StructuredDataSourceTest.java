@@ -265,6 +265,95 @@ public class StructuredDataSourceTest {
     assertThat(s.get(), containsString("The following columns are changed, missing or reordered: [`f0` BIGINT]"));
   }
 
+  @Test
+  public void shouldEnforceNoReordering() {
+    // Given:
+    final LogicalSchema someSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
+        .build();
+
+    final LogicalSchema otherSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final Optional<String> s = StructuredDataSource.checkSchemas(someSchema, otherSchema);
+
+    // Then:
+    assertThat(s.isPresent(), is(true));
+    assertThat(s.get(), containsString("The following columns are changed, missing or reordered: [`f0` BIGINT, `f1` STRING]"));
+  }
+
+  @Test
+  public void shouldEnforceNoRemovedKeyColumns() {
+    // Given:
+    final LogicalSchema someSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    final LogicalSchema otherSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final Optional<String> s = StructuredDataSource.checkSchemas(someSchema, otherSchema);
+
+    // Then:
+    assertThat(s.isPresent(), is(true));
+    assertThat(s.get(), containsString("The following key columns are changed, missing or reordered: [`k1` INTEGER KEY]"));
+  }
+
+  @Test
+  public void shouldEnforceNoTypeChangeKey() {
+    // Given:
+    final LogicalSchema someSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    final LogicalSchema otherSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final Optional<String> s = StructuredDataSource.checkSchemas(someSchema, otherSchema);
+
+    // Then:
+    assertThat(s.isPresent(), is(true));
+    assertThat(s.get(), containsString("The following key columns are changed, missing or reordered: [`k0` INTEGER KEY]"));
+  }
+
+  @Test
+  public void shouldEnforceNoReorderingKey() {
+    // Given:
+    final LogicalSchema someSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
+        .build();
+
+    final LogicalSchema otherSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k1"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
+        .build();
+
+    // When:
+    final Optional<String> s = StructuredDataSource.checkSchemas(someSchema, otherSchema);
+
+    // Then:
+    assertThat(s.isPresent(), is(true));
+    assertThat(s.get(), containsString("The following key columns are changed, missing or reordered: [`k0` INTEGER KEY, `k1` BIGINT KEY]"));
+  }
+
   /**
    * Test class to allow the abstract base class to be instantiated.
    */

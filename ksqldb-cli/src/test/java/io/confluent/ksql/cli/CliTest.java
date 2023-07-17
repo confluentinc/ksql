@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_ACCEPTABLE;
@@ -28,6 +29,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -42,6 +44,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console;
@@ -55,6 +58,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
+import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -63,6 +67,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -70,6 +75,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -83,6 +89,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +98,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -200,9 +206,6 @@ public class CliTest {
 
   @Before
   public void setUp() {
-    REST_APP.closePersistentQueries();
-    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.sourceName());
-
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     terminal = new TestTerminal(lineSupplier);
@@ -266,7 +269,7 @@ public class CliTest {
   private void testCreateStreamAsSelect(
       final String selectQuery,
       final PhysicalSchema resultSchema,
-      final Map<Struct, GenericRow> expectedResults
+      final Map<GenericKey, GenericRow> expectedResults
   ) {
     final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
@@ -389,11 +392,14 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(ORDER_DATA_PROVIDER.sourceName(), ORDER_DATA_PROVIDER.topicName(), "KAFKA", "JSON", "false")
+        hasRow(
+            equalTo(ORDER_DATA_PROVIDER.sourceName()),
+            equalTo(ORDER_DATA_PROVIDER.topicName()),
+            equalTo("KAFKA"),
+            equalTo("JSON"),
+            equalTo("false")
+        )
     );
-
-    assertRunListCommand("tables", is(EMPTY_RESULT));
-    assertRunListCommand("queries", is(EMPTY_RESULT));
   }
 
   @Test
@@ -445,7 +451,7 @@ public class CliTest {
     assertThatEventually(() -> terminal.getOutputString(),
         containsString("Failed to Describe Kafka Topic(s): [${topicName}]"));
     assertThatEventually(() -> terminal.getOutputString(),
-        containsString("Caused by: This server does not host this topic-partition."));
+        containsString("Caused by: The request attempted to perform an operation on an invalid topic."));
   }
 
   @Test
@@ -483,6 +489,20 @@ public class CliTest {
         row(
             "var3",
             "3"
+        )
+    ));
+  }
+
+  @Test
+  public void testAddVariablesToCli() {
+    // Given
+    localCli.addSessionVariables(ImmutableMap.of("env", "qa"));
+
+    // Then
+    assertRunListCommand("variables", hasRows(
+        row(
+            "env",
+            "qa"
         )
     ));
   }
@@ -566,29 +586,29 @@ public class CliTest {
 
   @Test
   public void testSelectProject() {
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap
-        .<Struct, GenericRow>builder()
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_1"), genericRow(
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap
+        .<GenericKey, GenericRow>builder()
+        .put(genericKey("ORDER_1"), genericRow(
             "ITEM_1",
             10.0,
             ImmutableList.of(100.0, 110.99, 90.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_2"), genericRow(
+        .put(genericKey("ORDER_2"), genericRow(
             "ITEM_2",
             20.0,
             ImmutableList.of(10.0, 10.99, 9.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_3"), genericRow(
+        .put(genericKey("ORDER_3"), genericRow(
             "ITEM_3",
             30.0,
             ImmutableList.of(10.0, 10.99, 91.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_4"), genericRow(
+        .put(genericKey("ORDER_4"), genericRow(
             "ITEM_4",
             40.0,
             ImmutableList.of(10.0, 140.99, 94.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_5"), genericRow(
+        .put(genericKey("ORDER_5"), genericRow(
             "ITEM_5",
             50.0,
             ImmutableList.of(160.0, 160.99, 98.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_6"), genericRow(
+        .put(genericKey("ORDER_6"), genericRow(
             "ITEM_8",
             80.0,
             ImmutableList.of(1100.0, 1110.99, 970.0)))
@@ -615,8 +635,8 @@ public class CliTest {
 
   @Test
   public void testSelectFilter() {
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        ORDER_DATA_PROVIDER.keyFrom("ORDER_6"),
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ORDER_6"),
         genericRow(
             8L,
             "ITEM_8",
@@ -637,10 +657,10 @@ public class CliTest {
 
   @Test
   public void testTransientSelect() {
-    final Multimap<Struct, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_1")), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_2")), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
+    final Multimap<GenericKey, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(genericKey("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(genericKey("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(genericKey("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
         "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES",
@@ -655,7 +675,7 @@ public class CliTest {
   @Test
   public void shouldHandlePullQuery() {
     // Given:
-    run("CREATE TABLE X AS SELECT ITEMID, COUNT(1) AS COUNT "
+    run("CREATE TABLE " + tableName + " AS SELECT ITEMID, COUNT(1) AS COUNT "
             + "FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " GROUP BY ITEMID;",
         localCli
@@ -664,16 +684,16 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
-      run("SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';", localCli);
+      run("SELECT ITEMID, COUNT FROM " + tableName + " WHERE ITEMID='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 
     // Wait for warm store:
     assertThatEventually(runner, containsString("|ITEM_1"));
     assertRunCommand(
-        "SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';",
+        "SELECT ITEMID, COUNT FROM " + tableName + " WHERE ITEMID='ITEM_1';",
         containsRows(
-            row("ITEM_1", "1")
+            row(equalTo("ITEM_1"), any(String.class))
         )
     );
   }
@@ -700,10 +720,10 @@ public class CliTest {
 
   @Test
   public void testTransientContinuousSelectStar() {
-    final Multimap<Struct, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_1")), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_2")), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
+    final Multimap<GenericKey, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(genericKey("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(genericKey("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(genericKey("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
         "SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES",
@@ -757,8 +777,8 @@ public class CliTest {
         SerdeFeatures.of()
     );
 
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        ORDER_DATA_PROVIDER.keyFrom("ORDER_6"),
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ORDER_6"),
         genericRow("ITEM_8", 800.0, 1110.0, 12.0, true)
     );
 
@@ -777,6 +797,25 @@ public class CliTest {
             isRow(containsString("Created query with ID CTAS_" + tableName.toUpperCase())),
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
+    assertRunListCommand("tables",
+        hasRow(
+            equalTo(tableName),
+            equalTo(tableName.toUpperCase(Locale.ROOT)),
+            equalTo("KAFKA"),
+            equalTo("JSON"),
+            equalTo("false")
+    ));
+
+    assertRunListCommand("queries",
+        hasRow(
+            containsString("CTAS_" + tableName),
+            equalTo("PERSISTENT"),
+            equalTo("RUNNING:1"),
+            equalTo(tableName),
+            equalTo(tableName),
+            containsString("CREATE TABLE " + tableName)
+        )
+    );
 
     dropTable(tableName);
   }
@@ -871,6 +910,79 @@ public class CliTest {
   }
 
   @Test
+  public void shouldFailOnUnsupportedCpServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("5.5.0-0");
+
+    assertThrows(
+        KsqlUnsupportedServerException.class,
+        () -> new Cli(1L, 1L, mockRestClient, console)
+            .runInteractively()
+    );
+  }
+
+  @Test
+  public void shouldFailOnUnsupportedStandaloneServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("0.9.0-0");
+
+    assertThrows(
+        KsqlUnsupportedServerException.class,
+        () -> new Cli(1L, 1L, mockRestClient, console)
+            .runInteractively()
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnDifferentCpServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("6.0.0-0");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: CLI and server version don't match."
+            + " This may lead to unexpected errors.")
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnDifferentStandaloneServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("0.10.0-0");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: CLI and server version don't match."
+            + " This may lead to unexpected errors.")
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnUnknownServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("bad-version");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: Could not identify server version.")
+    );
+  }
+
+  @Test
   public void shouldListFunctions() {
     assertRunListCommand("functions", hasRows(
         row("TIMESTAMPTOSTRING", "DATE / TIME"),
@@ -884,9 +996,11 @@ public class CliTest {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n"
             + "Author      : Confluent\n"
-            + "Overview    : Converts a BIGINT millisecond timestamp value into the string"
-            + " representation of the \n"
-            + "              timestamp in the given format.\n"
+            + "Overview    : Converts a number of milliseconds since 1970-01-01 00:00:00 UTC/GMT "
+            + "into the string \n"
+            + "              representation of the timestamp in the given format. The system "
+            + "default time zone is \n"
+            + "              used when no time zone is explicitly provided.\n"
             + "Type        : SCALAR\n"
             + "Jar         : internal\n"
             + "Variations  :";
@@ -899,16 +1013,17 @@ public class CliTest {
     final String expectedVariation =
         "\tVariation   : TIMESTAMPTOSTRING(epochMilli BIGINT, formatPattern VARCHAR)\n" +
                 "\tReturns     : VARCHAR\n" +
-                "\tDescription : Converts a BIGINT millisecond timestamp value into the string" +
-                " representation of the \n" +
-                "                timestamp in the given format. Single quotes in the timestamp" +
-                " format can be escaped \n" +
-                "                with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX' The system" +
-                " default time zone is \n" +
-                "                used when no time zone is explicitly provided. The format" +
-                " pattern should be in the \n" +
-                "                format expected by java.time.format.DateTimeFormatter\n" +
-                "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 GMT.\n" +
+                "\tDescription : Converts a number of milliseconds since 1970-01-01 00:00:00 "
+              + "UTC/GMT into the string \n" +
+                "                representation of the timestamp in the given format. Single "
+              + "quotes in the timestamp \n" +
+                "                format can be escaped with '', for example: "
+              + "'yyyy-MM-dd''T''HH:mm:ssX'. The system \n" +
+                "                default time zone is used when no time zone is explicitly "
+              + "provided. The format \n" +
+                "                pattern should be in the format expected by "
+              + "java.time.format.DateTimeFormatter\n" +
+                "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 UTC/GMT.\n" +
                 "\tformatPattern: The format pattern should be in the format expected by \n" +
                 "                 java.time.format.DateTimeFormatter.";
 
@@ -1055,7 +1170,7 @@ public class CliTest {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
+        + "CREATE STREAM " + streamName + " AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
     when(lineSupplier.get())
@@ -1067,7 +1182,7 @@ public class CliTest {
 
     // Then:
     assertThat(terminal.getOutputString(),
-        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
+        containsString("Created query with ID CSAS_" + streamName));
   }
 
   @Test
@@ -1231,11 +1346,15 @@ public class CliTest {
   }
 
   private KsqlRestClient givenMockRestClient() throws Exception {
+    return givenMockRestClient("100.0.0-0");
+  }
+
+  private KsqlRestClient givenMockRestClient(final String serverVersion) throws Exception {
     final KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
 
     when(mockRestClient.getServerInfo()).thenReturn(RestResponse.successful(
         OK.code(),
-        new ServerInfo("1.x", "testClusterId", "testServiceId", "status")
+        new ServerInfo(serverVersion, "testClusterId", "testServiceId", "status")
     ));
 
     when(mockRestClient.getServerAddress()).thenReturn(new URI("http://someserver:8008"));
@@ -1285,7 +1404,7 @@ public class CliTest {
     verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings("unchecked")
   private static Matcher<String>[] prependWithKey(final String key, final List<?> values) {
 
     final Matcher<String>[] allMatchers = new Matcher[values.size() + 1];
@@ -1306,12 +1425,6 @@ public class CliTest {
   @SuppressWarnings("varargs")
   private static Matcher<Iterable<? extends String>> row(final Matcher<String>... expected) {
     return Matchers.contains(expected);
-  }
-
-  private static Matcher<Iterable<? extends Iterable<? extends String>>> isRow(
-      final String... expected
-  ) {
-    return Matchers.contains(row(expected));
   }
 
   @SafeVarargs
@@ -1362,8 +1475,8 @@ public class CliTest {
     }
 
     @Override
-    public void addRow(final GenericRow row) {
-      addRow(row.values());
+    public void addRow(final DataRow row) {
+      addRow(row.getColumns());
     }
 
     private void addRow(final List<?> row) {

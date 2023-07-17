@@ -95,11 +95,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
     if (windowed && schema.key().isEmpty()) {
       throw new KsqlException("Windowed sources require a key column.");
     }
-
-    if (schema.key().size() > 1) {
-      throw new UnsupportedOperationException("Only single key columns supported. "
-          + "Got: " + schema.key() + " (" + schema.key().size() + ")");
-    }
   }
 
   @Override

@@ -22,8 +22,11 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -31,6 +34,7 @@ import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
@@ -69,6 +73,14 @@ public class UserRepartitionNodeTest {
   private Expression rewrittenPartitionBy;
   @Mock
   private Projection projection;
+  @Mock
+  private DataSourceNode sourceNode;
+  @Mock
+  private DataSource source;
+  @Mock
+  private KsqlTopic topic;
+  @Mock
+  private ValueFormat valueFormat;
 
   private UserRepartitionNode repartitionNode;
 
@@ -76,9 +88,18 @@ public class UserRepartitionNodeTest {
   public void setUp() {
     when(parent.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(parent.getSourceName()).thenReturn(Optional.of(SOURCE_NAME));
+    when(parent.getSourceNodes()).thenReturn(Stream.of(sourceNode));
+    when(sourceNode.getDataSource()).thenReturn(source);
+    when(source.getKsqlTopic()).thenReturn(topic);
+    when(topic.getValueFormat()).thenReturn(valueFormat);
 
-    repartitionNode =
-        new UserRepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy, rewrittenPartitionBy);
+    repartitionNode = new UserRepartitionNode(
+        PLAN_ID,
+        parent,
+        SCHEMA,
+        ImmutableList.of(originalPartitionBy),
+        ImmutableList.of(rewrittenPartitionBy)
+    );
   }
 
   @Test

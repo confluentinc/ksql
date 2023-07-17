@@ -22,6 +22,7 @@ import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
@@ -98,6 +99,20 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
+  public boolean isPresent(final FunctionName functionName) {
+    if (udfs.containsKey(functionName.text().toUpperCase())) {
+      return true;
+    }
+    if (udafs.containsKey(functionName.text().toUpperCase())) {
+      return true;
+    }
+    if (udtfs.containsKey(functionName.text().toUpperCase())) {
+      return true;
+    }
+    return false;
+  }
+
+  @Override
   public synchronized KsqlAggregateFunction getAggregateFunction(
       final FunctionName functionName,
       final SqlType argumentType,
@@ -108,7 +123,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
     return udafFactory.createAggregateFunction(
-        Collections.singletonList(argumentType),
+        Collections.singletonList(SqlArgument.of(argumentType)),
         initArgs
     );
   }
@@ -116,7 +131,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   @Override
   public synchronized KsqlTableFunction getTableFunction(
       final FunctionName functionName,
-      final List<SqlType> argumentTypes
+      final List<SqlArgument> argumentTypes
   ) {
     final TableFunctionFactory udtfFactory = udtfs.get(functionName.text().toUpperCase());
     if (udtfFactory == null) {

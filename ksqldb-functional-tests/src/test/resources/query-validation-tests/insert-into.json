@@ -183,6 +183,32 @@
       "outputs": [
         {"topic": "target", "value": {"C1": 1.00, "C2": 2.00}}
       ]
+    },
+    {
+      "name": "join mismatch (fewer columns than expected)",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
+        "CREATE STREAM SOURCE2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT K, DATA AS DATA_1, DATA AS DATA_2 FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT S1.K AS K, S1.DATA AS DATA_1 FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON S1.K = S2.K;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Result schema is `K` STRING KEY, `DATA_1` STRING\nSink schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING"
+      }
+    },
+    {
+      "name": "join mismatch (more columns than expected)",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
+        "CREATE STREAM SOURCE2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT K, DATA AS DATA_1, DATA AS DATA_2 FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT S1.K AS K, S1.DATA AS DATA_1, S2.DATA AS DATA_2, S2.DATA AS DATA_3 FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON S1.K = S2.K;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Result schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING, `DATA_3` STRING\nSink schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING"
+      }
     }
   ]
 }

@@ -23,15 +23,19 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,24 +47,31 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
+  private final Optional<LocalCommands> localCommands;
   private final ListeningScheduledExecutorService exec;
 
   PushQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query
+      final ConfiguredStatement<Query> query,
+      final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.exec = requireNonNull(exec, "exec");
     this.query = requireNonNull(query, "query");
+    this.localCommands = requireNonNull(localCommands, "localCommands");
   }
 
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final TransientQueryMetadata queryMetadata = ksqlEngine.executeQuery(serviceContext, query);
-    final PushQuerySubscription subscription = new PushQuerySubscription(subscriber, queryMetadata);
+    final TransientQueryMetadata queryMetadata = ksqlEngine
+        .executeQuery(serviceContext, query, true);
+    final PushQuerySubscription subscription =
+        new PushQuerySubscription(exec, subscriber, queryMetadata);
+
+    localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
     log.info("Running query {}", queryMetadata.getQueryApplicationId());
     queryMetadata.start();
@@ -68,12 +79,13 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     subscriber.onSubscribe(subscription);
   }
 
-  class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {
+  static class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {
 
     private final TransientQueryMetadata queryMetadata;
     private boolean closed = false;
 
     PushQuerySubscription(
+        final ListeningScheduledExecutorService exec,
         final Subscriber<Collection<StreamedRow>> subscriber,
         final TransientQueryMetadata queryMetadata
     ) {
@@ -82,19 +94,22 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
       queryMetadata.setLimitHandler(this::setDone);
       queryMetadata.setUncaughtExceptionHandler(
-          (thread, e) -> setError(e)
+          e -> {
+            setError(e);
+            return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_CLIENT;
+          }
       );
     }
 
     @Override
     public Collection<StreamedRow> poll() {
-      final List<GenericRow> rows = Lists.newLinkedList();
+      final List<KeyValue<List<?>, GenericRow>> rows = Lists.newLinkedList();
       queryMetadata.getRowQueue().drainTo(rows);
       if (rows.isEmpty()) {
         return null;
       } else {
         return rows.stream()
-            .map(StreamedRow::row)
+            .map(kv -> StreamedRow.pushRow(kv.value()))
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

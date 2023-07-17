@@ -38,7 +38,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   private long demand;
   private boolean cancelled;
   private boolean sentComplete;
-  private volatile Exception failure;
+  private volatile Throwable failure;
 
   public BasePublisher(final Context ctx) {
     this.ctx = Objects.requireNonNull(ctx);
@@ -75,7 +75,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     VertxUtils.checkContext(ctx);
   }
 
-  protected final void sendError(final Exception e) {
+  protected final void sendError(final Throwable e) {
     checkContext();
     try {
       if (subscriber != null) {

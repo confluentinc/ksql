@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
+import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import org.junit.Test;
 
 public class CommandTest {
@@ -66,7 +66,7 @@ public class CommandTest {
         ValueInstantiationException.class,
         () -> mapper.readValue(commandStr, Command.class)
     );
-    assertTrue(thrown.getCause() instanceof IncomaptibleKsqlCommandVersionException);
+    assertTrue(thrown.getCause() instanceof IncompatibleKsqlCommandVersionException);
   }
 
   @Test

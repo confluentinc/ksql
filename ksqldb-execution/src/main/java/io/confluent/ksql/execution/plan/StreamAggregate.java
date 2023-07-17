@@ -22,16 +22,16 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nonnull;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
+public class StreamAggregate implements ExecutionStep<KTableHolder<GenericKey>> {
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
@@ -99,8 +99,13 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(final PlanBuilder builder) {
-    return builder.visitStreamAggregate(this);
+  public KTableHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamAggregate(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamAggregate(this);
   }
 
   @Override

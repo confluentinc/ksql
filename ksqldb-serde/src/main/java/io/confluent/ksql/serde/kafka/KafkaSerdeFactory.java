@@ -47,6 +47,10 @@ public final class KafkaSerdeFactory {
   private KafkaSerdeFactory() {
   }
 
+  public static boolean containsSerde(final Class<?> javaType) {
+    return SERDE.containsKey(javaType);
+  }
+
   static Serde<List<?>> createSerde(final PersistenceSchema schema) {
     final List<SimpleColumn> columns = schema.columns();
     if (columns.isEmpty()) {

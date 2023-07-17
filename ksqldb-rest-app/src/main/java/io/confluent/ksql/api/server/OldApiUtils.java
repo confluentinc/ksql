@@ -26,7 +26,6 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
@@ -57,7 +56,7 @@ public final class OldApiUtils {
       final Server server,
       final RoutingContext routingContext,
       final Class<T> requestClass,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<MetricsCallbackHolder> metricsCallbackHolder,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
     final T requestObject;
@@ -75,20 +74,17 @@ public final class OldApiUtils {
     } else {
       requestObject = null;
     }
-    pullQueryMetrics
-        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordRequestSize(
-            routingContext.request().bytesRead()));
     final CompletableFuture<EndpointResponse> completableFuture = requestor
-        .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
+        .apply(requestObject, DefaultApiSecurityContext.create(routingContext, server));
     completableFuture.thenAccept(endpointResponse -> {
       handleOldApiResponse(
-          server, routingContext, endpointResponse, pullQueryMetrics, startTimeNanos);
+          server, routingContext, endpointResponse, metricsCallbackHolder, startTimeNanos);
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
       handleOldApiResponse(
-          server, routingContext, mapException(t), pullQueryMetrics, startTimeNanos);
+          server, routingContext, mapException(t), metricsCallbackHolder, startTimeNanos);
       return null;
     });
   }
@@ -96,7 +92,7 @@ public final class OldApiUtils {
   static void handleOldApiResponse(
       final Server server, final RoutingContext routingContext,
       final EndpointResponse endpointResponse,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<MetricsCallbackHolder> metricsCallbackHolder,
       final long startTimeNanos
   ) {
     final HttpServerResponse response = routingContext.response();
@@ -117,7 +113,8 @@ public final class OldApiUtils {
         return;
       }
       response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
-      streamEndpointResponse(server, routingContext, streamingOutput);
+      streamEndpointResponse(server, routingContext, streamingOutput, metricsCallbackHolder,
+          startTimeNanos);
     } else {
       if (endpointResponse.getEntity() == null) {
         response.end();
@@ -130,22 +127,20 @@ public final class OldApiUtils {
         }
         response.end(responseBody);
       }
+      reportMetrics(routingContext, metricsCallbackHolder, startTimeNanos);
     }
-    pullQueryMetrics
-        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordResponseSize(
-            routingContext.response().bytesWritten()));
-    pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
-        .recordLatency(startTimeNanos));
-
   }
 
   private static void streamEndpointResponse(final Server server,
       final RoutingContext routingContext,
-      final StreamingOutput streamingOutput) {
+      final StreamingOutput streamingOutput,
+      final Optional<MetricsCallbackHolder> metricsCallbackHolder,
+      final long startTimeNanos) {
     final WorkerExecutor workerExecutor = server.getWorkerExecutor();
     final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(promise -> {
-      final OutputStream ros = new ResponseOutputStream(routingContext.response());
+      final OutputStream ros = new ResponseOutputStream(routingContext.response(),
+          streamingOutput.getWriteTimeoutMs());
       routingContext.request().connection().closeHandler(v -> {
         // Close the OutputStream on close of the HTTP connection
         try {
@@ -167,6 +162,21 @@ public final class OldApiUtils {
         }
       }
     }, vcf);
+    vcf.handle((v, throwable) -> {
+      reportMetrics(routingContext, metricsCallbackHolder, startTimeNanos);
+      return null;
+    });
+  }
+
+  private static void reportMetrics(
+      final RoutingContext routingContext,
+      final Optional<MetricsCallbackHolder> metricsCallbackHolder,
+      final long startTimeNanos
+  ) {
+    metricsCallbackHolder.ifPresent(mc -> mc.reportMetrics(
+        routingContext.request().bytesRead(),
+        routingContext.response().bytesWritten(),
+        startTimeNanos));
   }
 
   public static EndpointResponse mapException(final Throwable exception) {

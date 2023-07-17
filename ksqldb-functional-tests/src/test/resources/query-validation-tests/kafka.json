@@ -130,9 +130,6 @@
     },
     {
       "name": "ARRAY - C* - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<INT> KEY, foo INT) WITH (kafka_topic='input_topic', format='KAFKA');"
       ],
@@ -143,9 +140,6 @@
     },
     {
       "name": "ARRAY - C*AS - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (v INT) WITH (kafka_topic='input_topic', format='KAFKA');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY ARRAY[v];"
@@ -157,36 +151,27 @@
     },
     {
       "name": "MAP - C* - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='KAFKA');"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The 'KAFKA' format does not support type 'MAP'"
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: MAP<INTEGER, DOUBLE>. See https://github.com/confluentinc/ksql/issues/6621 for more."
       }
     },
     {
       "name": "MAP - C*AS - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='KAFKA');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The 'KAFKA' format does not support type 'MAP'"
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `KSQL_COL_0`. Column type: MAP<STRING, STRING>. See https://github.com/confluentinc/ksql/issues/6621 for more."
       }
     },
     {
       "name": "STRUCT - C* - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K STRUCT<F1 DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='KAFKA');"
       ],
@@ -197,9 +182,6 @@
     },
     {
       "name": "STRUCT - C*AS - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (v DOUBLE) WITH (kafka_topic='input_topic', format='KAFKA');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(k := v);"

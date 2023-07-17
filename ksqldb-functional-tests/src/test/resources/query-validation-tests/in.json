@@ -1,0 +1,668 @@
+{
+  "tests": [
+    {
+      "name": "empty",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN ( );"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 2:59: mismatched input ')' expecting"
+      }
+    },
+    {
+      "name": "expressions",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (VAL, VAL * 2);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {"VAL": 10}},
+        {"topic": "input_topic", "key": 12, "value": {"VAL": 20}},
+        {"topic": "input_topic", "key": 11, "value": {"VAL": 110}},
+        {"topic": "input_topic", "key": 38, "value": {"VAL": 19}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": 10}},
+        {"topic": "OUTPUT", "key": 38, "value": {"VAL": 19}}
+      ]
+    },
+    {
+      "name": "nulls",
+      "comment": "Null is not equivalent to null, i.e. it never matches",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (11,NULL,VAL);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": null, "value": {"VAL":10}},
+        {"topic": "input_topic", "key": null, "value": {"VAL":null}},
+        {"topic": "input_topic", "key": 11, "value": {"VAL":10}},
+        {"topic": "input_topic", "key": 19, "value": {"VAL":10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"VAL": 10}}
+      ]
+    },
+    {
+      "name": "inverted",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID NOT IN (11,20,10);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {}},
+        {"topic": "input_topic", "key": 12, "value": {}},
+        {"topic": "input_topic", "key": 11, "value": {}},
+        {"topic": "input_topic", "key": 19, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 12, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 19, "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "boolean - valid",
+      "statements": [
+        "CREATE STREAM INPUT (ID BOOLEAN KEY, VAL BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (true, 'TrUe', 'tr', 'Y', VAL);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": true, "value": {"VAL": false}},
+        {"topic": "input_topic", "key": true, "value": {"VAL": true}},
+        {"topic": "input_topic", "key": false, "value": {"VAL": false}},
+        {"topic": "input_topic", "key": false, "value": {"VAL": true}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"VAL": false}},
+        {"topic": "OUTPUT", "key": true, "value": {"VAL": true}},
+        {"topic": "OUTPUT", "key": false, "value": {"VAL": false}}
+      ]
+    },
+    {
+      "name": "boolean - invalid: non-boolean string literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID BOOLEAN KEY, VAL BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (true, 'Not a boolean');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: invalid input syntax for type BOOLEAN: \"Not a boolean\"."
+      }
+    },
+    {
+      "name": "boolean - invalid: other literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID BOOLEAN KEY, VAL BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (true, 10);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: BOOLEAN = INTEGER (10)\nHint: You might need to add explicit type casts."
+      }
+    },
+    {
+      "name": "boolean - invalid: non-literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID BOOLEAN KEY, VAL STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (true, VAL);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: BOOLEAN = STRING (VAL)\nHint: You might need to add explicit type casts."
+      }
+    },
+    {
+      "name": "int - valid",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 INT, VAL1 BIGINT, VAL2 DOUBLE, VAL3 DECIMAL(4, 2)) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT VAL0 AS X, VAL0 IN (VAL0) AS VAL0, VAL0 IN (VAL1) AS VAL1, VAL0 IN (VAL2) AS VAL2, VAL0 IN (VAL3) AS VAL3 FROM INPUT WHERE VAL0 IN (1, 2.0, 3.00, '4.000', 5.10, VAl1, VAL2, VAL3);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": 1, "VAL1": 0, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 2, "VAL1": 0, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 3, "VAL1": 0, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 4, "VAL1": 0, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 5, "VAL1": 0, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 10, "VAL1": 10, "VAL2": 10.0, "VAL3": 10.00}},
+        {"topic": "input_topic", "value": {"VAL0": 11, "VAL1": 11, "VAL2": 11.01, "VAL3": 11.01}},
+        {"topic": "input_topic", "value": {"VAL0": -2147483648, "VAL1": 2147483648, "VAL2": 10.0, "VAL3": 10.00}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"X": 1, "VAL0": true, "VAL1": false, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 2, "VAL0": true, "VAL1": false, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 3, "VAL0": true, "VAL1": false, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 4, "VAL0": true, "VAL1": false, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 10, "VAL0": true, "VAL1": true, "VAL2": true, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 11, "VAL0": true, "VAL1": true, "VAL2": false, "VAL3": false}}
+      ]
+    },
+    {
+      "name": "int - valid long literal",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (1, '2147483648');"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": 1}},
+        {"topic": "input_topic", "value": {"VAL0": -2147483648}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": 1}}
+      ]
+    },
+    {
+      "name": "int - invalid: non-numeric string literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, '10 - not a number');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: invalid input syntax for type INTEGER: \"10 - not a number\"."
+      }
+    },
+    {
+      "name": "int - invalid: other literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, true);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: INTEGER = BOOLEAN (true)"
+      }
+    },
+    {
+      "name": "int - invalid: non-numeric expression",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT, VAL0 STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, VAL0);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: INTEGER = STRING (VAL0)"
+      }
+    },
+    {
+      "name": "bigint - valid",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 INT, VAL1 BIGINT, VAL2 DOUBLE, VAL3 DECIMAL(4, 2)) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT VAL1 AS X, VAL1 IN (VAL0) AS VAL0, VAL1 IN (VAL1) AS VAL1, VAL1 IN (VAL2) AS VAL2, VAL1 IN (VAL3) AS VAL3 FROM INPUT WHERE VAL1 IN (1, 2.0, 3.00, '4.000', 5.10, VAl0, VAL2, VAL3);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 1, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 2, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 3, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 4, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 5, "VAL2": 0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 10, "VAL1": 10, "VAL2": 10.0, "VAL3": 10.00}},
+        {"topic": "input_topic", "value": {"VAL0": 11, "VAL1": 11, "VAL2": 11.01, "VAL3": 11.01}},
+        {"topic": "input_topic", "value": {"VAL0": -2147483648, "VAL1": 2147483648, "VAL2": 2147483648, "VAL3": 10.00}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"X": 1, "VAL0": false, "VAL1": true, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 2, "VAL0": false, "VAL1": true, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 3, "VAL0": false, "VAL1": true, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 4, "VAL0": false, "VAL1": true, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 10, "VAL0": true, "VAL1": true, "VAL2": true, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 11, "VAL0": true, "VAL1": true, "VAL2": false, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 2147483648, "VAL0": false, "VAL1": true, "VAL2": true, "VAL3": false}}
+      ]
+    },
+    {
+      "name": "bigint - invalid: non-numeric string literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, '10 - not a number');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: invalid input syntax for type BIGINT: \"10 - not a number\"."
+      }
+    },
+    {
+      "name": "bigint - invalid: other literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, true);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: BIGINT = BOOLEAN (true)"
+      }
+    },
+    {
+      "name": "bigint - invalid: non-numeric expression",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT, VAL0 STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, VAL0);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: BIGINT = STRING (VAL0)"
+      }
+    },
+    {
+      "name": "double - valid",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 INT, VAL1 BIGINT, VAL2 DOUBLE, VAL3 DECIMAL(4, 2)) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT VAL2 AS X, VAL2 IN (VAL0) AS VAL0, VAL2 IN (VAL1) AS VAL1, VAL2 IN (VAL2) AS VAL2, VAL2 IN (VAL3) AS VAL3 FROM INPUT WHERE VAL2 IN (1, 2.0, 3.00, '4.000', 5.10, VAl0, VAL1, VAL3);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 1.0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 2.0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 3.0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 4.0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 5.0, "VAL3": 0}},
+        {"topic": "input_topic", "value": {"VAL0": 10, "VAL1": 10, "VAL2": 10.0, "VAL3": 10.00}},
+        {"topic": "input_topic", "value": {"VAL0": 11, "VAL1": 11, "VAL2": 11.01, "VAL3": 11.01}},
+        {"topic": "input_topic", "value": {"VAL0": -2147483648, "VAL1": 2147483648, "VAL2": 2147483648, "VAL3": 10.00}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"X": 1.0, "VAL0": false, "VAL1": false, "VAL2": true, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 2.0, "VAL0": false, "VAL1": false, "VAL2": true, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 3.0, "VAL0": false, "VAL1": false, "VAL2": true, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 4.0, "VAL0": false, "VAL1": false, "VAL2": true, "VAL3": false}},
+        {"topic": "OUTPUT", "value": {"X": 10.0, "VAL0": true, "VAL1": true, "VAL2": true, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 11.01, "VAL0": false, "VAL1": false, "VAL2": true, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 2147483648, "VAL0": false, "VAL1": true, "VAL2": true, "VAL3": false}}
+      ]
+    },
+    {
+      "name": "double - invalid: non-numeric string literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID DOUBLE) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10.0, '10.0 - not a number');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: invalid input syntax for type DOUBLE: \"10.0 - not a number\"."
+      }
+    },
+    {
+      "name": "double - invalid: other literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID DOUBLE) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, true);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: DOUBLE = BOOLEAN (true)"
+      }
+    },
+    {
+      "name": "double - invalid: non-numeric expression",
+      "statements": [
+        "CREATE STREAM INPUT (ID DOUBLE, VAL0 STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, VAL0);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: DOUBLE = STRING (VAL0)"
+      }
+    },
+    {
+      "name": "decimal - valid",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 INT, VAL1 BIGINT, VAL2 DOUBLE, VAL3 DECIMAL(12, 2)) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT VAL3 AS X, VAL3 IN (VAL0) AS VAL0, VAL3 IN (VAL1) AS VAL1, VAL3 IN (VAL2) AS VAL2, VAL3 IN (VAL3) AS VAL3 FROM INPUT WHERE VAL3 IN (1, 2.0, 3.00, '4.000', 5.10, VAl0, VAL1, VAL2);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 0, "VAL3": 1.0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 0, "VAL3": 2.0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 0, "VAL3": 3.0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 0, "VAL3": 4.0}},
+        {"topic": "input_topic", "value": {"VAL0": 0, "VAL1": 0, "VAL2": 0, "VAL3": 5.0}},
+        {"topic": "input_topic", "value": {"VAL0": 10, "VAL1": 10, "VAL2": 10.0, "VAL3": 10.00}},
+        {"topic": "input_topic", "value": {"VAL0": 11, "VAL1": 11, "VAL2": 11.01, "VAL3": 11.01}},
+        {"topic": "input_topic", "value": {"VAL0": -2147483648, "VAL1": 2147483648, "VAL2": 2147483648, "VAL3": 2147483648}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"X": 1.00, "VAL0": false, "VAL1": false, "VAL2": false, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 2.00, "VAL0": false, "VAL1": false, "VAL2": false, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 3.00, "VAL0": false, "VAL1": false, "VAL2": false, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 4.00, "VAL0": false, "VAL1": false, "VAL2": false, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 10.00, "VAL0": true, "VAL1": true, "VAL2": true, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 11.01, "VAL0": false, "VAL1": false, "VAL2": true, "VAL3": true}},
+        {"topic": "OUTPUT", "value": {"X": 2147483648.00, "VAL0": false, "VAL1": true, "VAL2": true, "VAL3": true}}
+      ]
+    },
+    {
+      "name": "decimal - invalid: non-numeric string literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID DECIMAL(4,2)) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10.0, '10.0 - not a number');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: invalid input syntax for type DECIMAL: \"10.0 - not a number\"."
+      }
+    },
+    {
+      "name": "decimal - invalid: other literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID DECIMAL(4,2)) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, true);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: DECIMAL(12, 2) = BOOLEAN (true)"
+      }
+    },
+    {
+      "name": "decimal - invalid: non-numeric expression",
+      "statements": [
+        "CREATE STREAM INPUT (ID DECIMAL(4,2), VAL0 STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, VAL0);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: DECIMAL(12, 2) = STRING (VAL0)"
+      }
+    },
+    {
+      "name": "string - valid",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 STRING, VAL1 STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (true, 10, '10.1', 10.30, VAL1);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": "true"}},
+        {"topic": "input_topic", "value": {"VAL0": "10"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.1"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.3"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.30"}},
+        {"topic": "input_topic", "value": {"VAL0": "hello", "VAL1": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": "true", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10.1", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10.30", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "hello", "VAL1": "hello"}}
+      ]
+    },
+    {
+      "name": "string - invalid: unsupported expression",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING, VAL0 DOUBLE) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, VAL0);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: STRING = DOUBLE (VAL0)"
+      }
+    },
+    {
+      "name": "array - valid",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 ARRAY<BIGINT>, VAL1 ARRAY<BIGINT>, VAL2 ARRAY<INT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT VAL0 FROM INPUT WHERE VAL0 IN (ARRAY[1,2],ARRAY[5,123456789000],ARRAY['3',null], VAL1, VAL2);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": [1,2]}},
+        {"topic": "input_topic", "value": {"VAL0": [1]}},
+        {"topic": "input_topic", "value": {"VAL0": [1,2,3]}},
+        {"topic": "input_topic", "value": {"VAL0": [3,4]}},
+        {"topic": "input_topic", "value": {"VAL0": [4,5], "VAL1": [4,5]}},
+        {"topic": "input_topic", "value": {"VAL0": [5,123456789000]}},
+        {"topic": "input_topic", "value": {"VAL0": [3,null]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": [1,2]}},
+        {"topic": "OUTPUT", "value": {"VAL0": [4,5]}},
+        {"topic": "OUTPUT", "value": {"VAL0": [5,123456789000]}},
+        {"topic": "OUTPUT", "value": {"VAL0": [3,null]}}
+      ]
+    },
+    {
+      "name": "array - valid expression with wider element type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 ARRAY<BIGINT>, VAL1 ARRAY<INT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (VAL1);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": [1,2], "VAL1": [1,2]}},
+        {"topic": "input_topic", "value": {"VAL0": [2147483648], "VAL1": [-2147483648]}},
+        {"topic": "input_topic", "value": {"VAL0": null, "VAL1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": [1,2], "VAL1": [1,2]}}
+      ]
+    },
+    {
+      "name": "array - valid expression with narrower element type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 ARRAY<BIGINT>, VAL1 ARRAY<INT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL1 IN (VAL0);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": [1,2], "VAL1": [1,2]}},
+        {"topic": "input_topic", "value": {"VAL0": [2147483648], "VAL1": [-2147483648]}},
+        {"topic": "input_topic", "value": {"VAL0": null, "VAL1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": [1,2], "VAL1": [1,2]}}
+      ]
+    },
+    {
+      "name": "array - invalid: constructor with non-literal of wrong type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 ARRAY<BIGINT>, VAL1 BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (VAL0, ARRAY[VAL1]);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: ARRAY<BIGINT> = ARRAY<BOOLEAN> (ARRAY[VAL1])"
+      }
+    },
+    {
+      "name": "array - invalid: constructor with incompatible string element",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 ARRAY<BIGINT>, VAL1 BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (VAL0, ARRAY['10', 'not 10']);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: invalid input syntax for type BIGINT: \"not 10\""
+      }
+    },
+    {
+      "name": "array - invalid: non-array expression",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 ARRAY<BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (ARRAY[1,2], ARRAY_LENGTH(VAL0));"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: ARRAY<BIGINT> = INTEGER (ARRAY_LENGTH(VAL0))"
+      }
+    },
+    {
+      "name": "map - valid",
+      "statements": [
+        "CREATE STREAM INPUT (ID MAP<STRING, BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (MAP('a':=1), MAP('b':=5,'c':=123456789000), MAP('c':=CAST(null AS BIGINT)));"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"ID": {"a": 1}}},
+        {"topic": "input_topic", "value": {"ID": {"a": 1, "b": 2}}},
+        {"topic": "input_topic", "value": {"ID": {}}},
+        {"topic": "input_topic", "value": {"ID": {"b": 5, "c": 123456789000}}},
+        {"topic": "input_topic", "value": {"ID": {"c": null}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID": {"a": 1}}},
+        {"topic": "OUTPUT", "value": {"ID": {"b": 5, "c": 123456789000}}},
+        {"topic": "OUTPUT", "value": {"ID": {"c": null}}}
+      ]
+    },
+    {
+      "name": "map - valid: valid expression with wider types",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 MAP<STRING, BIGINT>, VAL1 MAP<STRING, INT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL1 IN (VAL0);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": {"a": 1}, "VAL1": {"a": 1}}},
+        {"topic": "input_topic", "value": {"VAL0": {"a": 2147483648}, "VAL1": {"a": -2147483648}}},
+        {"topic": "input_topic", "value": {"VAL0": null, "VAL1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": {"a": 1}, "VAL1": {"a": 1}}}
+      ]
+    },
+    {
+      "name": "map - valid: valid expression with narrower types",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 MAP<STRING, BIGINT>, VAL1 MAP<STRING, INT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (VAL1);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": {"a": 1}, "VAL1": {"a": 1}}},
+        {"topic": "input_topic", "value": {"VAL0": {"a": 2147483648}, "VAL1": {"a": -2147483648}}},
+        {"topic": "input_topic", "value": {"VAL0": null, "VAL1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": {"a": 1}, "VAL1": {"a": 1}}}
+      ]
+    },
+    {
+      "name": "map - invalid: constructor with non-literal of wrong value type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 MAP<STRING, BIGINT>, VAL1 BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (VAL0, MAP('a' := VAL1));"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: MAP<STRING, BIGINT> = MAP<STRING, BOOLEAN> (MAP('a':=VAL1))"
+      }
+    },
+    {
+      "name": "map - invalid: constructor with incompatible string value",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 MAP<STRING, BIGINT>, VAL1 BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (VAL0, MAP('10' := 'not 10'));"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: invalid input syntax for type BIGINT: \"not 10\""
+      }
+    },
+    {
+      "name": "map - invalid: non-map expression",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 MAP<STRING, BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (10);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: MAP<STRING, BIGINT> = INTEGER (10)"
+      }
+    },
+    {
+      "name": "struct - valid",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 STRUCT<A BIGINT, B BIGINT>, VAL1 STRUCT<A BIGINT, B BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (STRUCT(A:=1,B:=2),STRUCT(A:=3,B:=2,C:=4),STRUCT(B:=2,A:=4),STRUCT(A:=5),STRUCT(A:=6,B:=CAST(null AS BIGINT)),STRUCT(A:='7',B:=2),VAL1);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": {"A": 1, "B": 2}}},
+        {"topic": "input_topic", "value": {"VAL0": {"A": 2, "B": 2}}},
+        {"topic": "input_topic", "value": {"VAL0": {"A": 3, "B": 2}}},
+        {"topic": "input_topic", "value": {"VAL0": {"A": 4, "B": 2}}},
+        {"topic": "input_topic", "value": {"VAL0": {"A": 5}}},
+        {"topic": "input_topic", "value": {"VAL0": {"A": 6}}},
+        {"topic": "input_topic", "value": {"VAL0": {"A": 7, "B": 2}}},
+        {"topic": "input_topic", "value": {"VAL0": {"A": 8, "B": 2}, "VAL1": {"A": 8, "B": 2}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": {"A": 1, "B": 2}, "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": {"A": 4, "B": 2}, "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": {"A": 5, "B": null}, "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": {"A": 6, "B": null}, "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": {"A": 7, "B": 2}, "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": {"A": 8, "B": 2}, "VAL1": {"A": 8, "B": 2}}}
+      ]
+    },
+    {
+      "name": "struct - valid expression with wider type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 STRUCT<F0 BIGINT>, VAL1 STRUCT<F0 INT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (VAL1);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": {"F0": 2}, "VAL1": {"F0": 2}}},
+        {"topic": "input_topic", "value": {"VAL0": {"F0": 2147483648}, "VAL1": {"F0": -2147483648}}},
+        {"topic": "input_topic", "value": {"VAL0": null, "VAL1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": {"F0": 2}, "VAL1": {"F0": 2}}}
+      ]
+    },
+    {
+      "name": "struct - valid expression with narrower type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 STRUCT<F0 BIGINT>, VAL1 STRUCT<F0 INT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL1 IN (VAL0);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": {"F0": 2}, "VAL1": {"F0": 2}}},
+        {"topic": "input_topic", "value": {"VAL0": {"F0": 2147483648}, "VAL1": {"F0": -2147483648}}},
+        {"topic": "input_topic", "value": {"VAL0": null, "VAL1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": {"F0": 2}, "VAL1": {"F0": 2}}}
+      ]
+    },
+    {
+      "name": "struct - invalid: constructor with non-literal of wrong type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 STRUCT<F0 BIGINT>, VAL1 BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (VAL0, STRUCT(F0 := VAL1));"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: STRUCT<`F0` BIGINT> = STRUCT<`F0` BOOLEAN> (STRUCT(F0:=VAL1))"
+      }
+    },
+    {
+      "name": "struct - invalid: constructor with incompatible string element",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 STRUCT<F0 BIGINT>, VAL1 BOOLEAN) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (STRUCT(F0 := 'not 10'));"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: invalid input syntax for type BIGINT: \"not 10\""
+      }
+    },
+    {
+      "name": "struct - invalid: non-struct expression",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 STRUCT<F0 BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (STRUCT(F0 := 10), ARRAY[10]);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Predicate: operator does not exist: STRUCT<`F0` BIGINT> = ARRAY<INTEGER> (ARRAY[10])"
+      }
+    },
+    {
+      "name": "struct - field names are case sensitive",
+      "statements": [
+        "CREATE STREAM INPUT (VAL0 STRUCT<F0 BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (STRUCT(F0 := 10), STRUCT(`f0` := 20));"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"VAL0": {"F0": 10}}},
+        {"topic": "input_topic", "value": {"VAL0": {"F0": 20}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"VAL0": {"F0": 10}}}
+      ]
+    }
+  ]
+}

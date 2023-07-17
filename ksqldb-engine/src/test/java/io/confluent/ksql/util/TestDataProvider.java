@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -24,20 +25,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 
 public class TestDataProvider {
 
   private final String topicName;
   private final PhysicalSchema schema;
-  private final Multimap<Struct, GenericRow> data;
+  private final Multimap<GenericKey, GenericRow> data;
   private final String sourceName;
 
   public TestDataProvider(
       final String namePrefix,
       final PhysicalSchema schema,
-      final Multimap<Struct, GenericRow> data
+      final Multimap<GenericKey, GenericRow> data
   ) {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
     this.sourceName = namePrefix + "_KSTREAM";
@@ -63,11 +63,11 @@ public class TestDataProvider {
     return schema;
   }
 
-  public Multimap<Struct, GenericRow> data() {
+  public Multimap<GenericKey, GenericRow> data() {
     return data;
   }
 
-  public Map<Struct, GenericRow> finalData() {
+  public Map<GenericKey, GenericRow> finalData() {
     return data.entries().stream()
         .collect(Collectors.toMap(
             Entry::getKey,

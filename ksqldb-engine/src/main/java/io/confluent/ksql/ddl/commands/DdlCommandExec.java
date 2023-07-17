@@ -39,6 +39,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.DuplicateColumnException;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Execute DDL Commands
@@ -48,7 +49,7 @@ public class DdlCommandExec {
   private final MutableMetaStore metaStore;
 
   public DdlCommandExec(final MutableMetaStore metaStore) {
-    this.metaStore = metaStore;
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
   /**
@@ -57,21 +58,40 @@ public class DdlCommandExec {
   public DdlCommandResult execute(
       final String sql,
       final DdlCommand ddlCommand,
-      final boolean withQuery) {
-    return new Executor(sql, withQuery).execute(ddlCommand);
+      final boolean withQuery,
+      final Set<SourceName> withQuerySources
+  ) {
+    return new Executor(sql, withQuery, withQuerySources).execute(ddlCommand);
   }
 
   private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
     private final String sql;
     private final boolean withQuery;
+    private final Set<SourceName> withQuerySources;
 
-    private Executor(final String sql, final boolean withQuery) {
+    private Executor(
+        final String sql,
+        final boolean withQuery,
+        final Set<SourceName> withQuerySources
+    ) {
       this.sql = Objects.requireNonNull(sql, "sql");
       this.withQuery = withQuery;
+      this.withQuerySources = Objects.requireNonNull(withQuerySources, "withQuerySources");
     }
 
     @Override
     public DdlCommandResult executeCreateStream(final CreateStreamCommand createStream) {
+      final SourceName sourceName = createStream.getSourceName();
+      final DataSource dataSource = metaStore.getSource(sourceName);
+
+      if (dataSource != null && !createStream.isOrReplace()) {
+        final String sourceType = dataSource.getDataSourceType().getKsqlType();
+        return new DdlCommandResult(true,
+            String.format("Cannot add stream %s: A %s with the same name "
+                    + "already exists.",
+                sourceName, sourceType.toLowerCase()));
+      }
+
       final KsqlStream<?> ksqlStream = new KsqlStream<>(
           sql,
           createStream.getSourceName(),
@@ -80,12 +100,24 @@ public class DdlCommandExec {
           withQuery,
           getKsqlTopic(createStream)
       );
+
       metaStore.putSource(ksqlStream, createStream.isOrReplace());
+      metaStore.addSourceReferences(ksqlStream.getName(), withQuerySources);
       return new DdlCommandResult(true, "Stream created");
     }
 
     @Override
     public DdlCommandResult executeCreateTable(final CreateTableCommand createTable) {
+      final SourceName sourceName = createTable.getSourceName();
+      final DataSource dataSource = metaStore.getSource(sourceName);
+
+      if (dataSource != null && !createTable.isOrReplace()) {
+        final String sourceType = dataSource.getDataSourceType().getKsqlType();
+        return new DdlCommandResult(true,
+            String.format("Cannot add table %s: A %s with the same name "
+                    + "already exists.",
+                sourceName, sourceType.toLowerCase()));
+      }
       final KsqlTable<?> ksqlTable = new KsqlTable<>(
           sql,
           createTable.getSourceName(),
@@ -95,6 +127,7 @@ public class DdlCommandExec {
           getKsqlTopic(createTable)
       );
       metaStore.putSource(ksqlTable, createTable.isOrReplace());
+      metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);
       return new DdlCommandResult(true, "Table created");
     }
 

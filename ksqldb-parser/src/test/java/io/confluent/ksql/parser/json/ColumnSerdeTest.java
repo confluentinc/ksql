@@ -4,11 +4,9 @@ import static io.confluent.ksql.parser.json.ColumnTestCase.COLUMN;
 import static io.confluent.ksql.parser.json.ColumnTestCase.COLUMN_STRING;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import org.junit.Test;
 

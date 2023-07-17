@@ -26,10 +26,13 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -167,14 +170,18 @@ class Analyzer {
           .getDataSource()
           .getKsqlTopic();
 
-      final FormatInfo keyFmtInfo = buildKeyFormatInfo(
+      final String keyFormatName = keyFormatName(
           props.getKeyFormat(),
-          props.getKeyFormatProperties(),
+          srcTopic.getKeyFormat().getFormatInfo()
+      );
+      final FormatInfo keyFmtInfo = buildFormatInfo(
+          keyFormatName,
+          props.getKeyFormatProperties(sink.getName().text(), keyFormatName),
           srcTopic.getKeyFormat().getFormatInfo()
       );
 
       final FormatInfo valueFmtInfo = buildFormatInfo(
-          props.getValueFormat(),
+          formatName(props.getValueFormat(), srcTopic.getValueFormat().getFormatInfo()),
           props.getValueFormatProperties(),
           srcTopic.getValueFormat().getFormatInfo()
       );
@@ -189,17 +196,17 @@ class Analyzer {
 
       analysis
           .setInto(Into.newSink(sink.getName(), topicName, windowInfo, keyFmtInfo, valueFmtInfo));
+
+      analysis.setOrReplace(sink.shouldReplace());
     }
 
-    private FormatInfo buildKeyFormatInfo(
+    private String keyFormatName(
         final Optional<String> explicitFormat,
-        final Map<String, String> formatProperties,
         final FormatInfo sourceFormat
     ) {
       final boolean partitioningByNull = analysis.getPartitionBy()
-          .map(pb -> pb.getExpression() instanceof NullLiteral)
+          .map(pb -> PartitionByParamsFactory.isPartitionByNull(pb.getExpressions()))
           .orElse(false);
-
       if (partitioningByNull) {
         final boolean nonNoneExplicitFormat = explicitFormat
             .map(fmt -> !fmt.equalsIgnoreCase(NoneFormat.NAME))
@@ -209,18 +216,24 @@ class Analyzer {
           throw new KsqlException("Key format specified for stream without key columns.");
         }
 
-        return FormatInfo.of(NoneFormat.NAME);
+        return NoneFormat.NAME;
       }
 
-      return buildFormatInfo(explicitFormat, formatProperties, sourceFormat);
+      return formatName(explicitFormat, sourceFormat);
+    }
+
+    private String formatName(
+        final Optional<String> explicitFormat,
+        final FormatInfo sourceFormat
+    ) {
+      return explicitFormat.orElse(sourceFormat.getFormat());
     }
 
     private FormatInfo buildFormatInfo(
-        final Optional<String> explicitFormat,
+        final String formatName,
         final Map<String, String> formatProperties,
         final FormatInfo sourceFormat
     ) {
-      final String formatName = explicitFormat.orElse(sourceFormat.getFormat());
       final Format format = FormatFactory.fromName(formatName);
 
       final Map<String, String> props = new HashMap<>();
@@ -278,8 +291,9 @@ class Analyzer {
           .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
 
       analysis.getPartitionBy()
-          .map(PartitionBy::getExpression)
-          .ifPresent(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
+          .map(PartitionBy::getExpressions)
+          .orElseGet(ImmutableList::of)
+          .forEach(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
 
       analysis.getHavingExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));
@@ -312,10 +326,21 @@ class Analyzer {
       final JoinNode.JoinType joinType = getJoinType(node);
 
       final JoinOn joinOn = (JoinOn) node.getCriteria();
-      final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
-          .getExpression();
+      final Expression joinExp = joinOn.getExpression();
+      if (!(joinExp instanceof ComparisonExpression)) {
+        // add in a special check for multi-column joins so that we can throw
+        // an even more useful error message
+        if (joinExp instanceof LogicalBinaryExpression
+            && isEqualityJoin(((LogicalBinaryExpression) joinExp).getLeft())
+            && isEqualityJoin(((LogicalBinaryExpression) joinExp).getRight())) {
+          throw new KsqlException("JOINs on multiple conditions are not yet supported: " + joinExp);
+        }
 
-      if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
+        throw new KsqlException("Unsupported join expression: " + joinExp);
+      }
+      final ComparisonExpression comparisonExpression = (ComparisonExpression) joinExp;
+
+      if (!(isEqualityJoin(joinExp))) {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
@@ -359,6 +384,11 @@ class Analyzer {
       analysis.addJoin(flipped ? joinInfo.flip() : joinInfo);
 
       return null;
+    }
+
+    private boolean isEqualityJoin(final Expression exp) {
+      return exp instanceof ComparisonExpression
+          && ((ComparisonExpression) exp).getType() == Type.EQUAL;
     }
 
     private void throwOnJoinWithoutSource(

@@ -20,8 +20,11 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -30,8 +33,12 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -150,6 +157,22 @@ public class UdfUtilTest {
   }
 
   @Test
+  public void shouldGetTimestampSchemaForTimestampClass() {
+    assertThat(
+        UdfUtil.getSchemaFromType(Timestamp.class),
+        is(ParamTypes.TIMESTAMP)
+    );
+  }
+
+  @Test
+  public void shouldGetIntervalUnitTypeForTimeUnitClass() {
+    assertThat(
+        UdfUtil.getSchemaFromType(TimeUnit.class),
+        is(ParamTypes.INTERVALUNIT)
+    );
+  }
+
+  @Test
   public void shouldGetMapSchemaFromMapClass() throws NoSuchMethodException {
     final Type type = getClass().getDeclaredMethod("mapType", Map.class)
         .getGenericParameterTypes()[0];
@@ -224,6 +247,108 @@ public class UdfUtilTest {
     assertThat(returnType, is(MapType.of(ParamTypes.LONG, GenericType.of("V"))));
   }
 
+  @Test
+  public void shouldGetFunction() throws NoSuchMethodException {
+    final Type type = getClass().getDeclaredMethod("functionType", Function.class)
+        .getGenericParameterTypes()[0];
+    final ParamType schema = UdfUtil.getSchemaFromType(type);
+    assertThat(schema, instanceOf(LambdaType.class));
+    assertThat(((LambdaType) schema).inputTypes(), equalTo(ImmutableList.of(ParamTypes.LONG)));
+    assertThat(((LambdaType) schema).returnType(), equalTo(ParamTypes.INTEGER));
+  }
+
+  @Test
+  public void shouldGetPartialGenericFunction() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("partialGenericFunctionType").getGenericReturnType();
+
+    // When:
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(LambdaType.of(ImmutableList.of(ParamTypes.LONG), GenericType.of("U"))));
+  }
+
+  @Test
+  public void shouldGetGenericFunction() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("genericFunctionType").getGenericReturnType();
+
+    // When:
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(LambdaType.of(ImmutableList.of(GenericType.of("T")), GenericType.of("U"))));
+  }
+
+  @Test
+  public void shouldGetBiFunction() throws NoSuchMethodException {
+    final Type type = getClass().getDeclaredMethod("biFunctionType", BiFunction.class)
+        .getGenericParameterTypes()[0];
+    final ParamType schema = UdfUtil.getSchemaFromType(type);
+    assertThat(schema, instanceOf(LambdaType.class));
+    assertThat(((LambdaType) schema).inputTypes(), equalTo(ImmutableList.of(ParamTypes.LONG, ParamTypes.INTEGER)));
+    assertThat(((LambdaType) schema).returnType(), equalTo(ParamTypes.BOOLEAN));
+  }
+
+  @Test
+  public void shouldGetPartialGenericBiFunction() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("partialGenericBiFunctionType").getGenericReturnType();
+
+    // When:
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(LambdaType.of(ImmutableList.of(GenericType.of("T"), ParamTypes.BOOLEAN), GenericType.of("U"))));
+  }
+
+  @Test
+  public void shouldGetGenericBiFunction() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("partialGenericBiFunctionType").getGenericReturnType();
+
+    // When:
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(LambdaType.of(ImmutableList.of(GenericType.of("T"), ParamTypes.BOOLEAN), GenericType.of("U"))));
+  }
+
+  @Test
+  public void shouldGetTriFunction() throws NoSuchMethodException {
+    final Type type = getClass().getDeclaredMethod("triFunctionType", TriFunction.class)
+        .getGenericParameterTypes()[0];
+    final ParamType schema = UdfUtil.getSchemaFromType(type);
+    assertThat(schema, instanceOf(LambdaType.class));
+    assertThat(((LambdaType) schema).inputTypes(), equalTo(ImmutableList.of(ParamTypes.LONG, ParamTypes.INTEGER, ParamTypes.BOOLEAN)));
+    assertThat(((LambdaType) schema).returnType(), equalTo(ParamTypes.BOOLEAN));
+  }
+
+  @Test
+  public void shouldGetPartialGenericTriFunction() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("partialGenericTriFunctionType").getGenericReturnType();
+
+    // When:
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(LambdaType.of(ImmutableList.of(GenericType.of("T"), ParamTypes.BOOLEAN, GenericType.of("U")), ParamTypes.INTEGER)));
+  }
+
+  @Test
+  public void shouldGetGenericTriFunction() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("genericTriFunctionType").getGenericReturnType();
+
+    // When:
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(LambdaType.of(ImmutableList.of(GenericType.of("T"), GenericType.of("U"), GenericType.of("V")), GenericType.of("W"))));
+  }
+
   // following methods not invoked but used to test conversion from type -> schema
   @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
   public <T> T genericType() {
@@ -251,5 +376,47 @@ public class UdfUtilTest {
 
   @SuppressWarnings("unused")
   private void listType(final List<Double> list) {
+  }
+
+  @SuppressWarnings("unused")
+  private void functionType(final Function<Long, Integer> function) {
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
+  public <U> Function<Long, U> partialGenericFunctionType() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
+  public <T, U> Function<T, U> genericFunctionType() {
+    return null;
+  }
+
+  @SuppressWarnings("unused")
+  private void biFunctionType(final BiFunction<Long, Integer, Boolean> biFunction) {
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
+  public <T, U> BiFunction<T, Boolean, U> partialGenericBiFunctionType() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
+  public <T, U, V> BiFunction<T, U, V> genericBiFunctionType() {
+    return null;
+  }
+
+  @SuppressWarnings("unused")
+  private void triFunctionType(final TriFunction<Long, Integer, Boolean, Boolean> triFunction) {
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
+  public <T, U> TriFunction<T, Boolean, U, Integer> partialGenericTriFunctionType() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
+  public <T, U, V, W> TriFunction<T, U, V, W> genericTriFunctionType() {
+    return null;
   }
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -29,4 +30,12 @@ public interface SqlPredicateFactory {
       KsqlConfig ksqlConfig,
       FunctionRegistry functionRegistry
   );
+
+  default SqlPredicate create(
+      Expression filterExpression,
+      ExpressionEvaluator expressionEvaluator
+  ) {
+    return new SqlPredicate(filterExpression, expressionEvaluator);
+  }
+
 }

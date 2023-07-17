@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -76,6 +77,10 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
+import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
+import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,14 +92,11 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
-import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
-import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
@@ -348,6 +350,57 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldExecuteInsertIntoWithCustomQueryId() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "insert into bar with (query_id='my_insert_id') select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    assertThat(queries, hasSize(1));
+    assertThat(queries.get(0).getQueryId(), is(new QueryId("MY_INSERT_ID")));
+  }
+
+  @Test
+  public void shouldThrowInsertIntoIfCustomQueryIdAlreadyExists() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from orders;"
+            + "insert into bar with (query_id='my_insert_id') select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final Exception e = assertThrows(Exception.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "insert into bar with (query_id='my_insert_id') select * from orders;",
+            KSQL_CONFIG,
+            Collections.emptyMap())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Query ID 'MY_INSERT_ID' already exists."));
+  }
+
+  @Test
   public void shouldExecuteInsertIntoStream() {
     // Given:
     KsqlEngineTestUtil.execute(
@@ -411,30 +464,13 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldUpdateReferentialIntegrityTableCorrectly() {
-    KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create table bar as select * from test2;"
-            + "create table foo as select * from test2;",
-        KSQL_CONFIG,
-        Collections.emptyMap()
-    );
-
-    assertThat(metaStore.getQueriesWithSource(SourceName.of("TEST2")),
-        equalTo(Utils.mkSet("CTAS_BAR_0", "CTAS_FOO_1")));
-    assertThat(metaStore.getQueriesWithSink(SourceName.of("BAR")), equalTo(Utils.mkSet("CTAS_BAR_0")));
-    assertThat(metaStore.getQueriesWithSink(SourceName.of("FOO")), equalTo(Utils.mkSet("CTAS_FOO_1")));
-  }
-
-  @Test
-  public void shouldFailIfReferentialIntegrityIsViolated() {
+  public void shouldFailDropTableWhenAnotherTableIsReadingTheTable() {
     // Given:
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create table bar as select * from test2;"
-            + "create table foo as select * from test2;",
+            + "create table foo as select * from bar;",
         KSQL_CONFIG,
         Collections.emptyMap()
     );
@@ -445,7 +481,7 @@ public class KsqlEngineTest {
         () -> KsqlEngineTestUtil.execute(
             serviceContext,
             ksqlEngine,
-            "drop table foo;",
+            "drop table bar;",
             KSQL_CONFIG,
             Collections.emptyMap()
         )
@@ -453,11 +489,223 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(e, rawMessage(is(
-        "Cannot drop FOO.\n"
+        "Cannot drop BAR.\n"
+            + "The following streams and/or tables read from this source: [FOO].\n"
+            + "You need to drop them before dropping BAR.")));
+    assertThat(e, statementText(is("drop table bar;")));
+  }
+
+  @Test
+  public void shouldFailDropStreamWhenAnotherStreamIsReadingTheTable() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;"
+            + "create stream foo as select * from bar;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream bar;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Cannot drop BAR.\n"
+            + "The following streams and/or tables read from this source: [FOO].\n"
+            + "You need to drop them before dropping BAR.")));
+    assertThat(e, statementText(is("drop stream bar;")));
+  }
+
+  @Test
+  public void shouldFailDropStreamWhenAnInsertQueryIsWritingTheStream() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;"
+            + "insert into bar select * from test1;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream bar;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Cannot drop BAR.\n"
             + "The following queries read from this source: [].\n"
-            + "The following queries write into this source: [CTAS_FOO_1].\n"
-            + "You need to terminate them before dropping FOO.")));
-    assertThat(e, statementText(is("drop table foo;")));
+            + "The following queries write into this source: [INSERTQUERY_1].\n"
+            + "You need to terminate them before dropping BAR.")));
+    assertThat(e, statementText(is("drop stream bar;")));
+  }
+
+  @Test
+  public void shouldFailDropStreamWhenAnInsertQueryIsReadingTheStream() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;"
+            + "create stream foo as select * from test1;"
+            + "insert into foo select * from bar;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream bar;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Cannot drop BAR.\n"
+            + "The following queries read from this source: [INSERTQUERY_2].\n"
+            + "The following queries write into this source: [].\n"
+            + "You need to terminate them before dropping BAR.")));
+    assertThat(e, statementText(is("drop stream bar;")));
+  }
+
+  @Test
+  public void shouldDropTableAndTerminateQuery() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table foo as select * from test2;"
+            + "create table bar as select * from foo;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "drop table bar;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    assertThat(metaStore.getSource(SourceName.of("bar")), nullValue());
+
+    // Only CTAS_FOO_0 query must be running
+    assertThat(ksqlEngine.getPersistentQueries().size(), is(1));
+    assertThat(ksqlEngine.getPersistentQuery(new QueryId("CTAS_FOO_0")).get(), not(nullValue()));
+  }
+
+  @Test
+  public void shouldDropStreamAndTerminateQuery() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream foo as select * from test1;"
+            + "create stream bar as select * from foo;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "drop stream bar;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    assertThat(metaStore.getSource(SourceName.of("bar")), nullValue());
+
+    // Only CSAS_FOO_0 query must be running
+    assertThat(ksqlEngine.getPersistentQueries().size(), is(1));
+    assertThat(ksqlEngine.getPersistentQuery(new QueryId("CSAS_FOO_0")).get(), not(nullValue()));
+  }
+
+  @Test
+  public void shouldDropStreamIfQueryWasTerminatedManually() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream foo as select * from test1;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    ksqlEngine.getPersistentQuery(new QueryId("CSAS_FOO_0")).get().close();
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+                "drop stream foo;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    assertThat(metaStore.getSource(SourceName.of("foo")), nullValue());
+
+    // Only CSAS_FOO_0 query must be running
+    assertThat(ksqlEngine.getPersistentQueries().size(), is(0));
+  }
+
+  @Test
+  public void shouldDropTableIfQueryWasTerminatedManually() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table foo as select * from test2;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    ksqlEngine.getPersistentQuery(new QueryId("CTAS_FOO_0")).get().close();
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "drop table foo;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    assertThat(metaStore.getSource(SourceName.of("foo")), nullValue());
+
+    // Only CSAS_FOO_0 query must be running
+    assertThat(ksqlEngine.getPersistentQueries().size(), is(0));
   }
 
   @Test
@@ -699,6 +947,43 @@ public class KsqlEngineTest {
 
     // Then:
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldCreateSandboxWithSandboxedQueryMetadata() {
+    // Given:
+    final QueryMetadata transientQ = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        "select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    final QueryMetadata persistentQ = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream banana as select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
+
+    // When:
+    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(serviceContext);
+
+    // Then:
+    assertThat(sandbox.getAllLiveQueries().size(), is(2));
+    assertSandboxHasQuery(sandbox, transientQ);
+    assertSandboxHasQuery(sandbox, persistentQ);
+  }
+
+  private void assertSandboxHasQuery(final KsqlExecutionContext sandbox, final QueryMetadata q) {
+    for (final QueryMetadata sq : sandbox.getAllLiveQueries()) {
+      if (sq.getQueryId().equals(q.getQueryId())) {
+        if (q instanceof TransientQueryMetadata) {
+          assertTrue(sq instanceof SandboxedTransientQueryMetadata);
+        } else {
+          assertTrue(sq instanceof SandboxedPersistentQueryMetadata);
+        }
+      }
+    }
   }
 
   @Test
@@ -1023,6 +1308,29 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotThrowWhenExecutingDuplicateTableWithIfNotExists() {
+    // Given:
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2; "
+            + "CREATE TABLE IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
+
+    givenStatementAlreadyExecuted(parsed.get(0));
+
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+
+    // When:
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    );
+
+    // Then:
+    assertThat(executeResult.getQuery(), is(Optional.empty()));
+    assertThat(executeResult.getCommandResult(),
+        is(Optional.of("Cannot add table `FOO`: A table with the same name already exists.")));
+  }
+
+  @Test
   public void shouldThrowWhenExecutingDuplicateTable() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
@@ -1082,10 +1390,33 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotThrowWhenExecutingDuplicateStreamWithIfNotExists() {
+    // Given:
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
+            + "CREATE STREAM IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
+
+    givenStatementAlreadyExecuted(parsed.get(0));
+
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+
+    // When:
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    );
+
+    // Then:
+    assertThat(executeResult.getQuery(), is(Optional.empty()));
+    assertThat(executeResult.getCommandResult(),
+        is(Optional.of("Cannot add stream `FOO`: A stream with the same name already exists.")));
+  }
+
+  @Test
   public void shouldThrowWhenExecutingDuplicateStream() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
-        "CREATE STREAM FOO AS SELECT * FROM ORDERS; "
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
             + "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
 
     givenStatementAlreadyExecuted(parsed.get(0));
@@ -1103,12 +1434,10 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(e, rawMessage(
-        is(
-            "Cannot add stream 'FOO': A stream with the same name already exists")));
-    assertThat(e, statementText(
-        is(
-            "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
+    assertThat(e, rawMessage(is(
+        "Cannot add stream 'FOO': A stream with the same name already exists")));
+    assertThat(e, statementText(is(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
   }
 
   @Test
@@ -1223,44 +1552,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldThrowOnUnsupportedKeyFormatForCreateSource() {
-    // Given:
-    givenTopicsExist("foo");
-    final PreparedStatement<?> prepared =
-        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='avro');").get(0));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> sandbox.execute(
-            sandboxServiceContext,
-            ConfiguredStatement.of(prepared, SessionConfig.of(KSQL_CONFIG, Collections.emptyMap()))
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("The key format 'AVRO' is not currently supported."));
-  }
-
-  @Test
-  public void shouldThrowOnUnsupportedKeyFormatForCSAS() {
-    // When:
-    final KsqlStatementException e = assertThrows(
-        KsqlStatementException.class,
-        () -> KsqlEngineTestUtil.execute(
-            serviceContext,
-            ksqlEngine,
-            "CREATE STREAM FOO WITH (KEY_FORMAT='AVRO') AS SELECT * FROM ORDERS;",
-            KSQL_CONFIG,
-            Collections.emptyMap()
-        )
-    );
-
-    // Then:
-    assertThat(e, rawMessage(containsString("The key format 'AVRO' is not currently supported.")));
-  }
-
-  @Test
   public void shouldThrowOnNoneExecutableDdlStatement() {
     // When:
     final KsqlStatementException e = assertThrows(
@@ -1303,7 +1594,6 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(metaStore.getSource(SourceName.of("TEST3")), is(notNullValue()));
-    assertThat(metaStore.getQueriesWithSource(SourceName.of("TEST2")), is(empty()));
     assertThat(metaStore.getSource(SourceName.of("BAR")), is(nullValue()));
     assertThat(metaStore.getSource(SourceName.of("FOO")), is(nullValue()));
     assertThat("live", ksqlEngine.numberOfLiveQueries(), is(numberOfLiveQueries));

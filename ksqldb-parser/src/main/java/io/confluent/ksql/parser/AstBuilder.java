@@ -40,8 +40,11 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -53,7 +56,7 @@ import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
-import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
@@ -94,6 +97,7 @@ import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.WindowUnitContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
@@ -111,6 +115,8 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -216,12 +222,14 @@ public class AstBuilder {
 
     private final Optional<Set<SourceName>> sources;
     private final SqlTypeParser typeParser;
+    private final Set<String> lambdaArgs;
 
     private boolean buildingPersistentQuery = false;
 
     Visitor(final Optional<Set<SourceName>> sources, final TypeRegistry typeRegistry) {
       this.sources = Objects.requireNonNull(sources, "sources").map(ImmutableSet::copyOf);
       this.typeParser = SqlTypeParser.create(typeRegistry);
+      this.lambdaArgs = new HashSet<>();
     }
 
     @Override
@@ -352,10 +360,13 @@ public class AstBuilder {
     public Node visitInsertInto(final SqlBaseParser.InsertIntoContext context) {
       final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
       return new InsertInto(
           getLocation(context),
           targetName,
-          query);
+          query,
+          InsertIntoProperties.from(properties));
     }
 
     @Override
@@ -446,9 +457,6 @@ public class AstBuilder {
 
       final OptionalInt limit = getLimit(context.limitClause());
 
-      final Optional<PartitionBy> partitionBy =
-          visitIfPresent(context.partitionBy, Expression.class)
-              .map(e -> new PartitionBy(getLocation(context.PARTITION()), e));
       return new Query(
           getLocation(context),
           select,
@@ -456,7 +464,7 @@ public class AstBuilder {
           visitIfPresent(context.windowExpression(), WindowExpression.class),
           visitIfPresent(context.where, Expression.class),
           visitIfPresent(context.groupBy(), GroupBy.class),
-          partitionBy,
+          visitIfPresent(context.partitionBy(), PartitionBy.class),
           visitIfPresent(context.having, Expression.class),
           refinementInfo,
           pullQuery,
@@ -606,6 +614,13 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitPartitionBy(final SqlBaseParser.PartitionByContext ctx) {
+      final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
+
+      return new PartitionBy(getLocation(ctx), expressions);
+    }
+
+    @Override
     public Node visitSelectAll(final SqlBaseParser.SelectAllContext context) {
       final Optional<SourceName> prefix = Optional.ofNullable(context.identifier())
           .map(ParserUtil::getIdentifierText)
@@ -628,6 +643,20 @@ public class AstBuilder {
       } else {
         return new SingleColumn(getLocation(context), selectItem, Optional.empty());
       }
+    }
+
+    @Override
+    public Node visitLambda(final SqlBaseParser.LambdaContext context) {
+      final List<String> arguments = context.identifier().stream()
+          .map(ParserUtil::getIdentifierText)
+          .collect(toList());
+
+      final Set<String> previousLambdaArgs = new HashSet<>(lambdaArgs);
+      lambdaArgs.addAll(arguments);
+      final Expression body = (Expression) visit(context.expression());
+      lambdaArgs.clear();
+      lambdaArgs.addAll(previousLambdaArgs);
+      return new LambdaFunctionCall(getLocation(context), arguments, body);
     }
 
     @Override
@@ -721,6 +750,12 @@ public class AstBuilder {
 
     @Override
     public Node visitShowColumns(final SqlBaseParser.ShowColumnsContext context) {
+      // Special check to allow `DESCRIBE TABLES` while still allowing
+      // users to maintain statements that used TABLES as a column name
+      if (context.sourceName().identifier() instanceof SqlBaseParser.UnquotedIdentifierContext
+          && context.sourceName().getText().toUpperCase().equals("TABLES")) {
+        return new DescribeTables(getLocation(context), context.EXTENDED() != null);
+      }
       return new ShowColumns(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -1125,7 +1160,11 @@ public class AstBuilder {
 
     @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
-      return ColumnReferenceParser.resolve(context);
+      final UnqualifiedColumnReferenceExp column = ColumnReferenceParser.resolve(context);
+      if (lambdaArgs.contains(column.toString())) {
+        return new LambdaVariable(column.toString());
+      }
+      return column;
     }
 
     @Override
@@ -1166,11 +1205,27 @@ public class AstBuilder {
 
     @Override
     public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
+      final List<Expression> expressionList = visit(context.functionArgument(), Expression.class);
+      expressionList.addAll(visit(context.lambdaFunction(), Expression.class));
       return new FunctionCall(
           getLocation(context),
           FunctionName.of(ParserUtil.getIdentifierText(context.identifier())),
-          visit(context.expression(), Expression.class)
+          expressionList
       );
+    }
+
+    @Override
+    public Node visitFunctionArgument(final SqlBaseParser.FunctionArgumentContext context) {
+      if (context.windowUnit() != null) {
+        return visitWindowUnit(context.windowUnit());
+      } else {
+        return visit(context.expression());
+      }
+    }
+
+    @Override
+    public Node visitWindowUnit(final SqlBaseParser.WindowUnitContext context) {
+      return new IntervalUnit(WindowExpression.getWindowUnit(context.getText().toUpperCase()));
     }
 
     @Override
@@ -1206,9 +1261,6 @@ public class AstBuilder {
 
       if (type.equals("TIME")) {
         return new TimeLiteral(location, value);
-      }
-      if (type.equals("TIMESTAMP")) {
-        return new TimestampLiteral(location, value);
       }
       if (type.equals("DECIMAL")) {
         return new DecimalLiteral(location, new BigDecimal(value));
@@ -1260,6 +1312,12 @@ public class AstBuilder {
           getLocation(ctx),
           ParserUtil.getIdentifierText(ctx.identifier())
       );
+    }
+
+    @Override
+    public Node visitDescribeStreams(final SqlBaseParser.DescribeStreamsContext context) {
+      return new DescribeStreams(
+          getLocation(context), context.EXTENDED() != null);
     }
 
     @Override
@@ -1470,9 +1528,14 @@ public class AstBuilder {
   }
 
   private static Set<SourceName> getSources(final ParseTree parseTree) {
-    final SourceAccumulator accumulator = new SourceAccumulator();
-    accumulator.visit(parseTree);
-    return accumulator.getSources();
+    try {
+      final SourceAccumulator accumulator = new SourceAccumulator();
+      accumulator.visit(parseTree);
+      return accumulator.getSources();
+    } catch (final StackOverflowError e) {
+      throw new KsqlException("Error processing statement: Statement is too large to parse. "
+          + "This may be caused by having too many nested expressions in the statement.");
+    }
   }
 
   private static class SourceAccumulator extends SqlBaseBaseVisitor<Void> {

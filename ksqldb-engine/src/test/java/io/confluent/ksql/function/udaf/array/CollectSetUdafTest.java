@@ -21,8 +21,10 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.udaf.Udaf;
 import java.util.List;
+import org.apache.kafka.common.Configurable;
 import org.junit.Test;
 
 public class CollectSetUdafTest {
@@ -63,6 +65,7 @@ public class CollectSetUdafTest {
   @Test
   public void shouldRespectSizeLimit() {
     final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    ((Configurable) udaf).configure(ImmutableMap.of(CollectSetUdaf.LIMIT_CONFIG, 1000));
     List<Integer> runningList = udaf.initialize();
     for (int i = 1; i < 2500; i++) {
       runningList = udaf.aggregate(i, runningList);
@@ -71,6 +74,33 @@ public class CollectSetUdafTest {
     assertThat(runningList, hasItem(1));
     assertThat(runningList, hasItem(1000));
     assertThat(runningList, not(hasItem(1001)));
+  }
+
+  @Test
+  public void shouldRespectSizeLimitString() {
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    ((Configurable) udaf).configure(ImmutableMap.of(CollectSetUdaf.LIMIT_CONFIG, "1000"));
+    List<Integer> runningList = udaf.initialize();
+    for (int i = 1; i < 2500; i++) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    assertThat(runningList, hasSize(1000));
+    assertThat(runningList, hasItem(1));
+    assertThat(runningList, hasItem(1000));
+    assertThat(runningList, not(hasItem(1001)));
+  }
+
+  @Test
+  public void shouldIgnoreNegativeLimit() {
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    ((Configurable) udaf).configure(ImmutableMap.of(CollectSetUdaf.LIMIT_CONFIG, -1));
+
+    List<Integer> runningList = udaf.initialize();
+    for (int i = 1; i <= 25; i++) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+
+    assertThat(runningList, hasSize(25));
   }
 
 }

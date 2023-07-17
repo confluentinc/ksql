@@ -18,7 +18,6 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -28,9 +27,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
 
 public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFunction<I, A, O> {
-
-  private static final ConnectToSqlTypeConverter CONNECT_TO_SQL_CONVERTER
-      = SchemaConverters.connectToSqlConverter();
 
   /** An index of the function argument in the row that is used for computing the aggregate.
    * For instance, in the example SELECT key, SUM(ROWTIME), aggregation will be done on a row

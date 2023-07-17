@@ -287,14 +287,11 @@ public final class PostConditionsNode {
 
     @Override
     public String toString() {
-      return "Topic{"
-          + "name='" + name + '\''
-          + ", keyFormat=" + keyFormat
-          + ", valueFormat=" + valueFormat
-          + ", partitions=" + partitions
-          + ", keySchema=" + keySchema
-          + ", valueSchema=" + valueSchema
-          + '}';
+      try {
+        return TestJsonMapper.INSTANCE.get().writeValueAsString(this);
+      } catch (JsonProcessingException e) {
+        throw new IllegalStateException(e);
+      }
     }
   }
 }

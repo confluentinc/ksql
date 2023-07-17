@@ -31,18 +31,19 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Range;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
+import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcherRange;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -63,8 +64,7 @@ public class KsMaterializedSessionTableTest {
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("x");
+  private static final GenericKey A_KEY = GenericKey.genericKey("x");
   private static final GenericRow A_VALUE = GenericRow.genericRow("c0l");
   private static final int PARTITION = 0;
 
@@ -84,21 +84,25 @@ public class KsMaterializedSessionTableTest {
   @Mock
   private KsStateStore stateStore;
   @Mock
-  private ReadOnlySessionStore<Struct, GenericRow> sessionStore;
+  private ReadOnlySessionStore<GenericKey, GenericRow> sessionStore;
   @Mock
-  private KeyValueIterator<Windowed<Struct>, GenericRow> fetchIterator;
+  private KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchIterator;
+  @Mock
+  private SessionStoreCacheBypassFetcher cacheBypassFetcher;
+  @Mock
+  private SessionStoreCacheBypassFetcherRange cacheBypassFetcherRange;
   private KsMaterializedSessionTable table;
-  private final List<KeyValue<Windowed<Struct>, GenericRow>> sessions = new ArrayList<>();
+  private final List<KeyValue<Windowed<GenericKey>, GenericRow>> sessions = new ArrayList<>();
   private int sessionIdx;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedSessionTable(stateStore);
+    table = new KsMaterializedSessionTable(stateStore, cacheBypassFetcher, cacheBypassFetcherRange);
 
     when(stateStore.store(any(), anyInt())).thenReturn(sessionStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
 
-    when(sessionStore.fetch(any())).thenReturn(fetchIterator);
+    when(cacheBypassFetcher.fetch(any(), any())).thenReturn(fetchIterator);
 
     sessions.clear();
     sessionIdx = 0;
@@ -135,7 +139,8 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldThrowIfStoreFetchFails() {
     // Given:
-    when(sessionStore.fetch(any())).thenThrow(new MaterializationTimeOutException("Boom"));
+    when(cacheBypassFetcher.fetch(any(), any()))
+        .thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
     final Exception e = assertThrows(
@@ -165,7 +170,7 @@ public class KsMaterializedSessionTableTest {
     table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
-    verify(sessionStore).fetch(A_KEY);
+    verify(cacheBypassFetcher).fetch(sessionStore, A_KEY);
   }
 
   @Test
@@ -458,7 +463,7 @@ public class KsMaterializedSessionTableTest {
     sessions.add(new KeyValue<>(sessionKey(start, end), A_VALUE));
   }
 
-  private static Windowed<Struct> sessionKey(
+  private static Windowed<GenericKey> sessionKey(
       final Instant sessionStart,
       final Instant sessionEnd
   ) {

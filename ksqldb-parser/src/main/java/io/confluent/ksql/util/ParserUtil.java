@@ -56,8 +56,6 @@ public final class ParserUtil {
    * @see org.apache.kafka.streams.state.StoreBuilder#name
    */
   private static final Pattern VALID_SOURCE_NAMES = Pattern.compile("[a-zA-Z0-9_-]*");
-  public static final Pattern EXTRANEOUS_INPUT_PATTERN = Pattern.compile(
-          "extraneous input.*expecting.*");
 
   private static final LookupTranslator ESCAPE_SYMBOLS = new LookupTranslator(
       new String[][]{

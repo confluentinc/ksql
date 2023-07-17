@@ -15,28 +15,35 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
+import io.confluent.ksql.execution.streams.PartitionByParams.Mapper;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
+import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import org.apache.kafka.connect.data.Struct;
+import io.confluent.ksql.util.KsqlException;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.streams.KeyValue;
 
 /**
@@ -69,139 +76,231 @@ public final class PartitionByParamsFactory {
   private PartitionByParamsFactory() {
   }
 
-  public static PartitionByParams build(
+  public static <K> PartitionByParams<K> build(
       final LogicalSchema sourceSchema,
-      final Expression partitionBy,
+      final ExecutionKeyFactory<K> serdeFactory,
+      final List<Expression> partitionBys,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final ProcessingLogger logger
   ) {
-    final Optional<ColumnName> partitionByCol = getPartitionByColumnName(sourceSchema, partitionBy);
+    final List<PartitionByColumn> partitionByCols =
+        getPartitionByColumnName(sourceSchema, partitionBys);
 
     final LogicalSchema resultSchema =
-        buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCol);
+        buildSchema(sourceSchema, partitionBys, functionRegistry, partitionByCols);
 
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper;
-    if (partitionBy instanceof NullLiteral) {
+    final Mapper<K> mapper;
+    if (isPartitionByNull(partitionBys)) {
       // In case of PARTITION BY NULL, it is sufficient to set the new key to null as the old key
       // is already present in the current value
       mapper = (k, v) -> new KeyValue<>(null, v);
     } else {
-      final Function<GenericRow, Object> evaluator = buildExpressionEvaluator(
-          sourceSchema,
-          partitionBy,
-          ksqlConfig,
-          functionRegistry,
-          logger
-      );
-      mapper = buildMapper(resultSchema, partitionByCol, evaluator);
+      final List<PartitionByExpressionEvaluator> evaluators = partitionBys.stream()
+          .map(pby -> {
+            final Set<? extends ColumnReferenceExp> sourceColsInPartitionBy =
+                ColumnExtractor.extractColumns(pby);
+            final boolean partitionByInvolvesKeyColsOnly = sourceColsInPartitionBy.stream()
+                .map(ColumnReferenceExp::getColumnName)
+                .allMatch(sourceSchema::isKeyColumn);
+
+            return buildExpressionEvaluator(
+                sourceSchema,
+                pby,
+                ksqlConfig,
+                functionRegistry,
+                logger,
+                partitionByInvolvesKeyColsOnly
+            );
+          }).collect(Collectors.toList());
+      mapper = buildMapper(partitionByCols, evaluators, serdeFactory);
     }
 
-    return new PartitionByParams(resultSchema, mapper);
+    return new PartitionByParams<>(resultSchema, mapper);
   }
 
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final Expression partitionBy,
+      final List<Expression> partitionBys,
       final FunctionRegistry functionRegistry
   ) {
-    final Optional<ColumnName> partitionByCol =
-        getPartitionByColumnName(sourceSchema, partitionBy);
+    final List<PartitionByColumn> partitionByCols =
+        getPartitionByColumnName(sourceSchema, partitionBys);
 
-    return buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCol);
+    return buildSchema(sourceSchema, partitionBys, functionRegistry, partitionByCols);
   }
 
   private static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final Expression partitionBy,
+      final List<Expression> partitionBys,
       final FunctionRegistry functionRegistry,
-      final Optional<ColumnName> partitionByCol
+      final List<PartitionByColumn> partitionByCols
   ) {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(sourceSchema, functionRegistry);
 
-    final SqlType keyType = expressionTypeManager
-        .getExpressionSqlType(partitionBy);
+    final List<SqlType> keyTypes = partitionBys.stream()
+        .map(expressionTypeManager::getExpressionSqlType)
+        .collect(Collectors.toList());
 
-    final ColumnName newKeyName = partitionByCol
-        .orElseGet(() -> ColumnNames.uniqueAliasFor(partitionBy, sourceSchema));
-
-    final Builder builder = LogicalSchema.builder();
-    if (keyType != null) {
-      builder.keyColumn(newKeyName, keyType);
-    }
-    builder.valueColumns(sourceSchema.value());
-
-    if (keyType != null && !partitionByCol.isPresent()) {
-      // New key column added, copy in to value schema:
-      builder.valueColumn(newKeyName, keyType);
-    }
-
-    return builder.build();
-  }
-
-  private static Optional<ColumnName> getPartitionByColumnName(
-      final LogicalSchema sourceSchema,
-      final Expression partitionBy
-  ) {
-    if (partitionBy instanceof ColumnReferenceExp) {
-      // PARTITION BY column:
-      final ColumnName columnName = ((ColumnReferenceExp) partitionBy).getColumnName();
-
-      final Column column = sourceSchema
-          .findValueColumn(columnName)
-          .orElseThrow(() ->
-              new IllegalStateException("Unknown partition by column: " + columnName));
-
-      return Optional.of(column.name());
-    }
-
-    return Optional.empty();
-  }
-
-  private static BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> buildMapper(
-      final LogicalSchema resultSchema,
-      final Optional<ColumnName> partitionByCol,
-      final Function<GenericRow, Object> evaluator
-  ) {
-    // If partitioning by something other than an existing column, then a new key will have
-    // been synthesized. This new key must be appended to the value to make it available for
-    // stream processing, in the same way SourceBuilder appends the key and rowtime to the value:
-    final boolean appendNewKey = !partitionByCol.isPresent();
-
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(resultSchema);
-
-    return (k, v) -> {
-      final Object newKey = evaluator.apply(v);
-      final Struct structKey = keyBuilder.build(newKey);
-
-      if (v != null && appendNewKey) {
-        v.append(newKey);
+    if (isPartitionByNull(partitionBys)) {
+      final Builder builder = LogicalSchema.builder();
+      builder.valueColumns(sourceSchema.value());
+      return builder.build();
+    } else {
+      final Builder builder = LogicalSchema.builder();
+      for (int i = 0; i < partitionBys.size(); i++) {
+        builder.keyColumn(partitionByCols.get(i).name, keyTypes.get(i));
       }
 
-      return new KeyValue<>(structKey, v);
+      builder.valueColumns(sourceSchema.value());
+      for (int i = 0; i < partitionBys.size(); i++) {
+        if (partitionByCols.get(i).shouldAppend) {
+          // New key column added, copy in to value schema:
+          builder.valueColumn(partitionByCols.get(i).name, keyTypes.get(i));
+        }
+      }
+
+      return builder.build();
+    }
+  }
+
+  public static boolean isPartitionByNull(final List<Expression> partitionBys) {
+    final boolean nullExpressionPresent = partitionBys.stream()
+        .anyMatch(pb -> pb instanceof NullLiteral);
+
+    if (!nullExpressionPresent) {
+      return false;
+    }
+
+    if (partitionBys.size() > 1) {
+      throw new KsqlException("Cannot PARTITION BY multiple columns including NULL");
+    }
+
+    return true;
+  }
+
+  private static List<PartitionByColumn> getPartitionByColumnName(
+      final LogicalSchema sourceSchema,
+      final List<Expression> partitionByExpressions
+  ) {
+    final ColumnAliasGenerator columnAliasGenerator =
+        ColumnNames.columnAliasGenerator(Stream.of(sourceSchema));
+    return partitionByExpressions.stream()
+        .map(partitionBy -> {
+          if (partitionBy instanceof ColumnReferenceExp) {
+            final ColumnName columnName = ((ColumnReferenceExp) partitionBy).getColumnName();
+
+            final Column column = sourceSchema
+                .findValueColumn(columnName)
+                .orElseThrow(() ->
+                    new IllegalStateException("Unknown partition by column: " + columnName));
+
+            return new PartitionByColumn(column.name(), false);
+          } else {
+            return new PartitionByColumn(columnAliasGenerator.uniqueAliasFor(partitionBy), true);
+          }
+        })
+        .collect(Collectors.toList());
+  }
+
+  private static <K> Mapper<K> buildMapper(
+      final List<PartitionByColumn> partitionByCols,
+      final List<PartitionByExpressionEvaluator> evaluators,
+      final ExecutionKeyFactory<K> executionKeyFactory
+  ) {
+    return (oldK, row) -> {
+      final List<Object> newKeyComponents = evaluators.stream()
+          .map(evaluator -> evaluator.evaluate(oldK, row))
+          .collect(Collectors.toList());
+
+      final K key =
+          executionKeyFactory.constructNewKey(oldK, GenericKey.fromList(newKeyComponents));
+
+      if (row != null) {
+        for (int i = 0; i < partitionByCols.size(); i++) {
+          if (partitionByCols.get(i).shouldAppend) {
+            // If partitioning by something other than an existing column, then a new key will have
+            // been synthesized. This new key must be appended to the value to make it available for
+            // stream processing, in the same way SourceBuilder appends the key and rowtime to the
+            // value:
+            row.append(newKeyComponents.get(i));
+          }
+        }
+      }
+
+      return new KeyValue<>(key, row);
     };
   }
 
-  private static Function<GenericRow, Object> buildExpressionEvaluator(
+  private static PartitionByExpressionEvaluator buildExpressionEvaluator(
       final LogicalSchema schema,
       final Expression partitionBy,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final ProcessingLogger logger
+      final ProcessingLogger logger,
+      final boolean partitionByInvolvesKeyColsOnly
   ) {
     final CodeGenRunner codeGen = new CodeGenRunner(
-        schema,
+        partitionByInvolvesKeyColsOnly ? schema.withKeyColsOnly() : schema,
         ksqlConfig,
         functionRegistry
     );
 
-    final ExpressionMetadata expressionMetadata = codeGen
+    final CompiledExpression compiledExpression = codeGen
         .buildCodeGenFromParseTree(partitionBy, "SelectKey");
 
     final String errorMsg = "Error computing new key from expression "
-        + expressionMetadata.getExpression();
+        + compiledExpression.getExpression();
 
-    return row -> expressionMetadata.evaluate(row, null, logger, () -> errorMsg);
+    return new PartitionByExpressionEvaluator(
+        compiledExpression,
+        logger,
+        () -> errorMsg,
+        partitionByInvolvesKeyColsOnly
+    );
+  }
+
+  private static class PartitionByExpressionEvaluator {
+
+    private final CompiledExpression compiledExpression;
+    private final ProcessingLogger logger;
+    private final Supplier<String> errorMsg;
+    private final boolean evaluateOnKeyOnly;
+
+    PartitionByExpressionEvaluator(
+        final CompiledExpression compiledExpression,
+        final ProcessingLogger logger,
+        final Supplier<String> errorMsg,
+        final boolean evaluateOnKeyOnly
+    ) {
+      this.compiledExpression = Objects.requireNonNull(compiledExpression, "compiledExpression");
+      this.logger = Objects.requireNonNull(logger, "logger");
+      this.errorMsg = Objects.requireNonNull(errorMsg, "errorMsg");
+      this.evaluateOnKeyOnly = evaluateOnKeyOnly;
+    }
+
+    Object evaluate(final Object key, final GenericRow value) {
+      final GenericRow row = evaluateOnKeyOnly
+          ? GenericRow.fromList(KeyUtil.asList(key))
+          : value;
+      return compiledExpression.evaluate(row, null, logger, errorMsg);
+    }
+  }
+
+  private static class PartitionByColumn {
+
+    final ColumnName name;
+    /**
+     * If partitioning by something other than an existing column, then a new key will have
+     * been synthesized. This new key must be appended to the value to make it available for
+     * stream processing dowmsteam in the topology.
+     */
+    final boolean shouldAppend;
+
+    PartitionByColumn(final ColumnName name, final boolean shouldAppend) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.shouldAppend = shouldAppend;
+    }
   }
 }

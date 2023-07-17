@@ -19,29 +19,35 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.BackupReplayFile;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
+import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -49,13 +55,20 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.apache.kafka.streams.processor.internals.StateDirectory;
+import org.json.JSONObject;
 
 /**
  * Main command to restore the KSQL command topic.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlRestoreCommandTopic {
   private static final Serializer<byte[]> BYTES_SERIALIZER = new ByteArraySerializer();
   private static final int COMMAND_TOPIC_PARTITION = 0;
@@ -65,17 +78,42 @@ public class KsqlRestoreCommandTopic {
     return new KsqlConfig(serverProps);
   }
 
-  public static List<Pair<byte[], byte[]>> loadBackup(final File file) throws IOException {
+  public static List<Pair<byte[], byte[]>> loadBackup(
+      final File file,
+      final RestoreOptions restoreOptions,
+      final KsqlConfig ksqlConfig
+  ) throws IOException {
     final BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file);
+    List<Pair<byte[], byte[]>> records = commandTopicBackupFile.readRecords();
 
-    final List<Pair<byte[], byte[]>> records = commandTopicBackupFile.readRecords();
-    throwOnInvalidRecords(records);
+    records = checkValidCommands(
+        records,
+        restoreOptions.isSkipIncompatibleCommands(),
+        ksqlConfig);
 
     return records;
   }
 
-  private static void throwOnInvalidRecords(final List<Pair<byte[], byte[]>> records) {
+  /**
+   * Checks all CommandId and Command pairs to see if they're compatible with the current
+   * server version. If skipIncompatibleCommands is true, skip the command and try to clean up 
+   * streams state stores and internal topics if the command being skipped is a query.
+   * If false, throw an exception when an incomptaible command is detected.
+   *
+   * @param records a list of CommandId and Command pairs
+   * @param skipIncompatibleCommands whether or not to throw an exception on incompatible commands
+   * @param ksqlConfig the {@link KsqlConfig} used by the program
+   * @return a list of compatible CommandId and Command pairs
+   */
+  private static List<Pair<byte[], byte[]>> checkValidCommands(
+      final List<Pair<byte[], byte[]>> records,
+      final boolean skipIncompatibleCommands,
+      final KsqlConfig ksqlConfig
+  ) {
     int n = 0;
+    int numFilteredCommands = 0;
+    final List<Pair<byte[], byte[]>> filteredRecords = new ArrayList<>();
+    final List<byte[]> incompatibleCommands = new ArrayList<>();
 
     for (final Pair<byte[], byte[]> record : records) {
       n++;
@@ -85,21 +123,42 @@ public class KsqlRestoreCommandTopic {
             .deserialize(null, record.getLeft());
       } catch (final Exception e) {
         throw new KsqlException(String.format(
-            "Invalid CommandId string (line %d): %s",
-            n, new String(record.getLeft(), StandardCharsets.UTF_8), e
+            "Invalid CommandId string (line %d): %s (%s)",
+            n, new String(record.getLeft(), StandardCharsets.UTF_8), e.getMessage()
         ));
       }
 
       try {
         InternalTopicSerdes.deserializer(Command.class)
             .deserialize(null, record.getRight());
+      } catch (final SerializationException | IncompatibleKsqlCommandVersionException e) {
+        if (skipIncompatibleCommands) {
+          incompatibleCommands.add(record.getRight());
+          numFilteredCommands++;
+          continue;
+        } else {
+          throw new KsqlException(String.format(
+              "Incompatible Command string (line %d): %s (%s)",
+              n, new String(record.getLeft(), StandardCharsets.UTF_8), e.getMessage()
+          ));
+        }
       } catch (final Exception e) {
         throw new KsqlException(String.format(
-            "Invalid Command string (line %d): %s",
-            n, new String(record.getRight(), StandardCharsets.UTF_8), e
+            "Invalid Command string (line %d): %s (%s)",
+            n, new String(record.getRight(), StandardCharsets.UTF_8), e.getMessage()
         ));
       }
+      filteredRecords.add(record);
     }
+
+    if (skipIncompatibleCommands) {
+      System.out.println(
+          String.format(
+              "%s incompatible command(s) skipped from backup file.",
+              numFilteredCommands));
+      incompatibleCommands.forEach(command -> maybeCleanUpQuery(command, ksqlConfig));
+    }
+    return filteredRecords;
   }
 
   private static void checkFileExists(final File file) throws Exception {
@@ -133,12 +192,7 @@ public class KsqlRestoreCommandTopic {
     final Console console = System.console();
     final String decision = console.readLine();
 
-    switch (decision.toLowerCase()) {
-      case "yes":
-        return true;
-      default:
-        return false;
-    }
+    return "yes".equals(decision.toLowerCase());
   }
 
   /**
@@ -174,7 +228,7 @@ public class KsqlRestoreCommandTopic {
 
     List<Pair<byte[], byte[]>> backupCommands = null;
     try {
-      backupCommands = loadBackup(backupFile);
+      backupCommands = loadBackup(backupFile, restoreOptions, serverConfig);
     } catch (final Exception e) {
       System.err.println(String.format(
           "Failed loading backup file.%nError = %s", e.getMessage()));
@@ -334,5 +388,49 @@ public class KsqlRestoreCommandTopic {
     } catch (final Exception e) {
       throw new KsqlException("Failed to initialize topic transactions.", e);
     }
+  }
+
+  private static void maybeCleanUpQuery(final byte[] command, final KsqlConfig ksqlConfig) {
+    boolean queryIdFound = false;
+    final Map<String, Object> streamsProperties =
+        new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+    final JSONObject jsonObject = new JSONObject(new String(command, StandardCharsets.UTF_8));
+    if (hasKey(jsonObject, "plan")) {
+      final JSONObject plan = jsonObject.getJSONObject("plan");
+      if (hasKey(plan, "queryPlan")) {
+        final JSONObject queryPlan = plan.getJSONObject("queryPlan");
+        final String queryId = queryPlan.getString("queryId");
+        streamsProperties.put(
+            StreamsConfig.APPLICATION_ID_CONFIG,
+            QueryApplicationId.build(ksqlConfig, true, new QueryId(queryId)));
+
+        queryIdFound = true;
+      }
+    }
+
+    // the command contains a query, clean up it's internal state store and also the internal topics
+    if (queryIdFound) {
+      final StreamsConfig streamsConfig = new StreamsConfig(streamsProperties);
+      final String applicationId =
+          streamsConfig.getString(StreamsConfig.APPLICATION_ID_CONFIG);
+      try {
+        final Admin admin = new DefaultKafkaClientSupplier()
+            .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps());
+        final KafkaTopicClient topicClient = new KafkaTopicClientImpl(() -> admin);
+        topicClient.deleteInternalTopics(applicationId);
+
+        new StateDirectory(streamsConfig, Time.SYSTEM, true).clean();
+        System.out.println(
+            String.format(
+                "Cleaned up internal state store and internal topics for query %s",
+                applicationId));
+      } catch (final Exception e) {
+        System.out.println(String.format("Failed to clean up query %s ", applicationId));
+      }
+    }
+  }
+
+  private static boolean hasKey(final JSONObject jsonObject, final String key) {
+    return jsonObject != null && jsonObject.has(key);
   }
 }

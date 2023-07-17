@@ -15,16 +15,14 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.newCapture;
-import static org.easymock.EasyMock.niceMock;
-import static org.easymock.EasyMock.replay;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItems;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -32,12 +30,14 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -46,21 +46,20 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
-import org.easymock.Capture;
-import org.easymock.EasyMockRunner;
-import org.easymock.IAnswer;
-import org.easymock.Mock;
-import org.easymock.MockType;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 @SuppressWarnings("unchecked")
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class QueryStreamWriterTest {
 
   @Rule
@@ -69,13 +68,14 @@ public class QueryStreamWriterTest {
       .withLookingForStuckThread(true)
       .build();
 
-  @Mock(MockType.NICE)
+  @Mock
   private TransientQueryMetadata queryMetadata;
-  @Mock(MockType.NICE)
+  @Mock
   private BlockingRowQueue rowQueue;
-  private Capture<Thread.UncaughtExceptionHandler> ehCapture;
-  private Capture<Collection<GenericRow>> drainCapture;
-  private Capture<LimitHandler> limitHandlerCapture;
+  @Captor
+  private ArgumentCaptor<StreamsUncaughtExceptionHandler> ehCapture;
+  @Captor
+  private ArgumentCaptor<LimitHandler> limitHandlerCapture;
   private QueryStreamWriter writer;
   private ByteArrayOutputStream out;
   private LimitHandler limitHandler;
@@ -86,39 +86,23 @@ public class QueryStreamWriterTest {
 
     objectMapper = ApiJsonMapper.INSTANCE.get();
 
-    ehCapture = newCapture();
-    drainCapture = newCapture();
-    limitHandlerCapture = newCapture();
-
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("keyCol"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
         .build();
 
-    final KafkaStreams kStreams = niceMock(KafkaStreams.class);
-
-    kStreams.setStateListener(anyObject());
-    expectLastCall();
-    expect(kStreams.state()).andReturn(State.RUNNING);
-
-    expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
-    expect(queryMetadata.getLogicalSchema()).andReturn(schema).anyTimes();
-
-    queryMetadata.setLimitHandler(capture(limitHandlerCapture));
-    expectLastCall().once();
-
-    queryMetadata.setUncaughtExceptionHandler(capture(ehCapture));
-    expectLastCall();
-
-    replay(kStreams);
+    when(queryMetadata.getQueryId()).thenReturn(new QueryId("id"));
+    when(queryMetadata.getRowQueue()).thenReturn(rowQueue);
+    when(queryMetadata.getLogicalSchema()).thenReturn(schema);
+    when(queryMetadata.isRunning()).thenReturn(true);
+    when(queryMetadata.getResultType()).thenReturn(ResultType.STREAM);
   }
 
   @Test
   public void shouldWriteAnyPendingRowsBeforeReportingException() {
     // Given:
-    expect(queryMetadata.isRunning()).andReturn(true).anyTimes();
-    rowQueue.drainTo(capture(drainCapture));
-    expectLastCall().andAnswer(rows("Row1", "Row2", "Row3"));
+    doAnswer(streamRows("Row1", "Row2", "Row3"))
+        .when(rowQueue).drainTo(any());
 
     createWriter();
 
@@ -129,18 +113,21 @@ public class QueryStreamWriterTest {
 
     // Then:
     final List<String> lines = getOutput(out);
-    assertThat(lines, hasItems(
+    assertThat(lines, contains(
+        containsString("header"),
         containsString("Row1"),
         containsString("Row2"),
-        containsString("Row3")));
+        containsString("Row3"),
+        containsString("Server went Boom")
+    ));
   }
 
   @Test
   public void shouldExitAndDrainIfQueryStopsRunning() {
     // Given:
-    expect(queryMetadata.isRunning()).andReturn(true).andReturn(false);
-    rowQueue.drainTo(capture(drainCapture));
-    expectLastCall().andAnswer(rows("Row1", "Row2", "Row3"));
+    when(queryMetadata.isRunning()).thenReturn(false);
+    doAnswer(streamRows("Row1", "Row2", "Row3"))
+        .when(rowQueue).drainTo(any());
 
     createWriter();
 
@@ -149,7 +136,8 @@ public class QueryStreamWriterTest {
 
     // Then:
     final List<String> lines = getOutput(out);
-    assertThat(lines, hasItems(
+    assertThat(lines, contains(
+        containsString("header"),
         containsString("Row1"),
         containsString("Row2"),
         containsString("Row3")));
@@ -158,9 +146,8 @@ public class QueryStreamWriterTest {
   @Test
   public void shouldExitAndDrainIfLimitReached() {
     // Given:
-    expect(queryMetadata.isRunning()).andReturn(true).anyTimes();
-    rowQueue.drainTo(capture(drainCapture));
-    expectLastCall().andAnswer(rows("Row1", "Row2", "Row3"));
+    doAnswer(streamRows("Row1", "Row2", "Row3"))
+        .when(rowQueue).drainTo(any());
 
     createWriter();
 
@@ -177,34 +164,119 @@ public class QueryStreamWriterTest {
         containsString("Row3")));
   }
 
-  private void createWriter() {
-    replay(queryMetadata, rowQueue);
+  @Test
+  public void shouldHandleTableRows() {
+    // Given:
+    when(queryMetadata.getResultType()).thenReturn(ResultType.TABLE);
 
-    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper, new CompletableFuture<>());
+    doAnswer(tableRows("key1", "Row1", "key2", null, "key3", "Row3"))
+        .when(rowQueue).drainTo(any());
+
+    createWriter();
+
+    forceWriterToNotBlock();
+
+    // When:
+    writer.write(out);
+
+    // Then:
+    final List<String> lines = getOutput(out);
+    assertThat(lines, hasItems(
+        containsString("{\"row\":{\"columns\":[\"Row1\"]}}"),
+        containsString("{\"row\":{\"columns\":[null],\"tombstone\":true}}"),
+        containsString("{\"row\":{\"columns\":[\"Row3\"]}}")
+    ));
+  }
+
+  @Test
+  public void shouldHandleWindowedTableRows() {
+    // Given:
+    when(queryMetadata.getResultType()).thenReturn(ResultType.WINDOWED_TABLE);
+
+    doAnswer(windowedTableRows("key1", "Row1", "key2", null, "key3", "Row3"))
+        .when(rowQueue).drainTo(any());
+
+    createWriter();
+
+    forceWriterToNotBlock();
+
+    // When:
+    writer.write(out);
+
+    // Then:
+    final List<String> lines = getOutput(out);
+    assertThat(lines, hasItems(
+        containsString("{\"header\":{\"queryId\":\"id\",\"schema\":\"`col1` STRING\"}}"),
+        containsString("{\"row\":{\"columns\":[\"Row1\"]}}"),
+        containsString("{\"row\":{\"columns\":[null],\"tombstone\":true}}"),
+        containsString("{\"row\":{\"columns\":[\"Row3\"]}}")
+    ));
+  }
+
+  private void forceWriterToNotBlock() {
+    limitHandler.limitReached();
+  }
+
+  private void createWriter() {
+    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper, new CompletableFuture<>()
+    );
 
     out = new ByteArrayOutputStream();
+
+    verify(queryMetadata).setLimitHandler(limitHandlerCapture.capture());
     limitHandler = limitHandlerCapture.getValue();
   }
 
   private void givenUncaughtException(final KsqlException e) {
-    ehCapture.getValue().uncaughtException(new Thread(), e);
+    verify(queryMetadata).setUncaughtExceptionHandler(ehCapture.capture());
+    ehCapture.getValue().handle(e);
   }
 
-  private IAnswer<Integer> rows(final Object... rows) {
-    return () -> {
-      final Collection<GenericRow> output = drainCapture.getValue();
+  private static Answer<Void> streamRows(final Object... rows) {
+    return inv -> {
+      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
 
       Arrays.stream(rows)
-          .map(ImmutableList::of)
-          .map(QueryStreamWriterTest::genericRow)
+          .map(GenericRow::genericRow)
+          .map(value -> KeyValue.keyValue((List<Object>) null, value))
           .forEach(output::add);
 
-      return rows.length;
+      return null;
     };
   }
 
-  private static GenericRow genericRow(final List<Object> values) {
-    return new GenericRow().appendAll(values);
+  private static Answer<Void> tableRows(final Object... rows) {
+    return inv -> {
+      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
+
+      for (int i = 0; i < rows.length; i = i + 2) {
+        final List<Object> key = ImmutableList.of(rows[i]);
+        final GenericRow value = rows[i + 1] == null
+            ? null
+            : GenericRow.genericRow(rows[i + 1]);
+
+        output.add(KeyValue.keyValue(key, value));
+      }
+
+      return null;
+    };
+  }
+
+  private static Answer<Void> windowedTableRows(final Object... rows) {
+    return inv -> {
+      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
+
+      for (int i = 0; i < rows.length; i = i + 2) {
+        final List<Object> key = ImmutableList.of(rows[i], 1000, 2000);
+        final GenericRow value = rows[i + 1] == null
+            ? null
+            : GenericRow.genericRow(rows[i + 1]);
+
+        output.add(KeyValue.keyValue(key, value));
+      }
+
+      return null;
+    };
   }
 
   private static List<String> getOutput(final ByteArrayOutputStream out) {

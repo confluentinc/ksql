@@ -59,8 +59,13 @@ public class StreamFilter<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
-    return builder.visitStreamFilter(this);
+  public KStreamHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamFilter(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamFilter(this);
   }
 
   @Override

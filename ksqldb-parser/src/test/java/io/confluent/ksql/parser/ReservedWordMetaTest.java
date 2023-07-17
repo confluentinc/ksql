@@ -55,7 +55,7 @@ public class ReservedWordMetaTest {
       "FLOATING_POINT_VALUE", "IDENTIFIER", "DIGIT_IDENTIFIER", "QUOTED_IDENTIFIER",
       "BACKQUOTED_IDENTIFIER", "TIME_WITH_TIME_ZONE", "TIMESTAMP_WITH_TIME_ZONE",
       "SIMPLE_COMMENT", "BRACKETED_COMMENT", "WS", "UNRECOGNIZED", "VARIABLE",
-      "DIRECTIVE_COMMENT"};
+      "DIRECTIVE_COMMENT", "LAMBDA_EXPRESSION"};
   private static final Set<String> RESERVED_SET = ImmutableSet.copyOf(RESERVED);
 
   /**
@@ -117,7 +117,7 @@ public class ReservedWordMetaTest {
     final CommonTokenStream tokenStream = new CommonTokenStream(lexer);
     final SqlBaseParser parser = new SqlBaseParser(tokenStream);
     parser.removeErrorListeners();
-    parser.addErrorListener(DefaultKsqlParser.ERROR_LISTENER);
+    parser.addErrorListener(DefaultKsqlParser.ERROR_VALIDATOR);
     parser.getInterpreter().setPredictionMode(PredictionMode.LL);
 
     return parser;

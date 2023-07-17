@@ -42,27 +42,6 @@ public class CreateSourceCommandTest {
   private static final ColumnName K1 = ColumnName.of("k1");
 
 
-  @Test(expected = UnsupportedOperationException.class)
-  public void shouldThrowOnMultipleKeyColumns() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-        .keyColumn(K0, SqlTypes.STRING)
-        .keyColumn(K1, SqlTypes.STRING)
-        .valueColumn(ColumnName.of("V0"), SqlTypes.STRING)
-        .build();
-
-    // When:
-    new TestCommand(
-        SOURCE_NAME,
-        schema,
-        Optional.empty(),
-        TOPIC_NAME,
-        FORAMTS,
-        Optional.empty()
-    );
-  }
-
   @Test
   public void shouldThrowOnWindowedWithoutKeyColumn() {
     // Given:

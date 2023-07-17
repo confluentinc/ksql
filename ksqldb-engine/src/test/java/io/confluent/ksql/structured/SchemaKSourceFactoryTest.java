@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -66,7 +66,7 @@ public class SchemaKSourceFactoryTest {
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
   @Mock
-  private KsqlQueryBuilder builder;
+  private PlanBuildContext buildContext;
   @Mock
   private DataSource dataSource;
   @Mock
@@ -99,8 +99,8 @@ public class SchemaKSourceFactoryTest {
 
     when(contextStacker.getQueryContext()).thenReturn(queryContext);
 
-    when(builder.getKsqlConfig()).thenReturn(CONFIG);
-    when(builder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getKsqlConfig()).thenReturn(CONFIG);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
 
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
@@ -117,7 +117,7 @@ public class SchemaKSourceFactoryTest {
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        builder,
+        buildContext,
         dataSource,
         contextStacker
     );
@@ -139,7 +139,7 @@ public class SchemaKSourceFactoryTest {
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        builder,
+        buildContext,
         dataSource,
         contextStacker
     );
@@ -161,7 +161,7 @@ public class SchemaKSourceFactoryTest {
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        builder,
+        buildContext,
         dataSource,
         contextStacker
     );
@@ -183,7 +183,7 @@ public class SchemaKSourceFactoryTest {
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        builder,
+        buildContext,
         dataSource,
         contextStacker
     );

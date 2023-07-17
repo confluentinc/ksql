@@ -20,15 +20,17 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
+import com.google.common.collect.Streams;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * {@link Materialization} implementation responsible for handling HAVING and SELECT clauses.
@@ -134,11 +136,21 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public Optional<Row> get(final Struct key, final int partition) {
+    public Optional<Row> get(final GenericKey key, final int partition) {
       return table.get(key, partition)
-          .flatMap(row -> filterAndTransform(key, row.value(), row.rowTime())
+          .flatMap(row -> filterAndTransform(key, getIntermediateRow(row), row.rowTime())
               .map(v -> row.withValue(v, schema()))
           );
+    }
+
+    @Override
+    public Iterator<Row> get(final int partition) {
+      return Streams.stream(table.get(partition))
+          .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
+              .map(v -> row.withValue(v, schema())))
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .iterator();
     }
   }
 
@@ -152,7 +164,7 @@ class KsqlMaterialization implements Materialization {
 
     @Override
     public List<WindowedRow> get(
-        final Struct key,
+        final GenericKey key,
         final int partition,
         final Range<Instant> windowStart,
         final Range<Instant> windowEnd
@@ -162,12 +174,54 @@ class KsqlMaterialization implements Materialization {
       final Builder<WindowedRow> builder = ImmutableList.builder();
 
       for (final WindowedRow row : result) {
-        filterAndTransform(row.windowedKey(), row.value(), row.rowTime())
+        filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())
             .ifPresent(v -> builder.add(row.withValue(v, schema())));
       }
 
       return builder.build();
     }
+
+    @Override
+    public Iterator<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
+        final Range<Instant> windowEndBounds) {
+      final Iterator<WindowedRow> result = table.get(partition, windowStartBounds, windowEndBounds);
+      return Streams.stream(result)
+          .map(row ->  {
+            return filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())
+                .map(v -> row.withValue(v, schema()));
+          })
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .iterator();
+    }
+  }
+
+  /*
+  Today, we are unconditionally adding the extra fields to windowed rows.
+   We should decide if we need these additional fields for the
+   Windowed Rows case and remove them if possible.
+   */
+  public static GenericRow getIntermediateRow(final TableRow row) {
+    final GenericKey key = row.key();
+    final GenericRow value = row.value();
+
+    final List<?> keyFields = key.values();
+
+    value.ensureAdditionalCapacity(
+            1 // ROWTIME
+                    + keyFields.size() //all the keys
+                    + row.window().map(w -> 2).orElse(0) //windows
+    );
+
+    value.append(row.rowTime());
+    value.appendAll(keyFields);
+
+    row.window().ifPresent(window -> {
+      value.append(window.start().toEpochMilli());
+      value.append(window.end().toEpochMilli());
+    });
+
+    return value;
   }
 }
 

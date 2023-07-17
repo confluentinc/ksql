@@ -37,8 +37,11 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -466,6 +469,18 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
+    public Expression visitLambdaExpression(final LambdaFunctionCall node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
+      }
+
+      final Expression expression = rewriter.apply(node.getBody(), context);
+      return new LambdaFunctionCall(node.getLocation(), node.getArguments(), expression);
+    }
+
+    @Override
     public Expression visitBooleanLiteral(final BooleanLiteral node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
@@ -482,6 +497,16 @@ public final class ExpressionTreeRewriter<C> {
 
     @Override
     public Expression visitLongLiteral(final LongLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitLambdaVariable(final LambdaVariable node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitIntervalUnit(final IntervalUnit node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 

@@ -17,10 +17,11 @@ package io.confluent.ksql.engine.rewrite;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
-import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
@@ -41,9 +42,12 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.AmbiguousColumnException;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 /**
  * Validate and clean ASTs generated from externally supplied statements
@@ -55,13 +59,25 @@ import java.util.function.BiFunction;
  *   <li>No unqualified column references are ambiguous</li>
  *   <li>All single column select items have an alias set
  *   that ensures they are unique across all sources</li>
+ *   <li>Lambda arguments don't overlap with column references</li>
  * </ol>
  */
 public final class AstSanitizer {
   private AstSanitizer() {
   }
 
-  public static Statement sanitize(final Statement node, final MetaStore metaStore) {
+
+  public static Statement sanitize(
+      final Statement node,
+      final MetaStore metaStore) {
+    return sanitize(node, metaStore, true);
+  }
+
+  public static Statement sanitize(
+      final Statement node,
+      final MetaStore metaStore,
+      final Boolean lambdaEnabled
+  ) {
     final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
     dataSourceExtractor.extractDataSources(node);
 
@@ -69,26 +85,23 @@ public final class AstSanitizer {
         new RewriterPlugin(metaStore, dataSourceExtractor);
 
     final ExpressionRewriterPlugin expressionRewriterPlugin =
-        new ExpressionRewriterPlugin(dataSourceExtractor);
+        new ExpressionRewriterPlugin(dataSourceExtractor, lambdaEnabled);
 
-    final BiFunction<Expression, Void, Expression> expressionRewriter =
-        (e, v) -> ExpressionTreeRewriter.rewriteWith(expressionRewriterPlugin::process, e, v);
+    final BiFunction<Expression, SanitizerContext, Expression> expressionRewriter =
+        (e,v) -> ExpressionTreeRewriter.rewriteWith(expressionRewriterPlugin::process, e, v);
 
     return (Statement) new StatementRewriter<>(expressionRewriter, rewriterPlugin::process)
-        .rewrite(node, null);
+        .rewrite(node, new SanitizerContext());
   }
 
   private static final class RewriterPlugin extends
-      AstVisitor<Optional<AstNode>, StatementRewriter.Context<Void>> {
+      AstVisitor<Optional<AstNode>, StatementRewriter.Context<SanitizerContext>> {
 
     private final MetaStore metaStore;
     private final DataSourceExtractor dataSourceExtractor;
     private final ColumnAliasGenerator aliasGenerator;
 
-    RewriterPlugin(
-        final MetaStore metaStore,
-        final DataSourceExtractor dataSourceExtractor
-    ) {
+    RewriterPlugin(final MetaStore metaStore, final DataSourceExtractor dataSourceExtractor) {
       super(Optional.empty());
       this.metaStore = requireNonNull(metaStore, "metaStore");
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
@@ -102,7 +115,7 @@ public final class AstSanitizer {
     @Override
     protected Optional<AstNode> visitInsertInto(
         final InsertInto node,
-        final StatementRewriter.Context<Void> ctx
+        final StatementRewriter.Context<SanitizerContext> ctx
     ) {
       final DataSource target = metaStore.getSource(node.getTarget());
       if (target == null) {
@@ -129,7 +142,7 @@ public final class AstSanitizer {
     @Override
     protected Optional<AstNode> visitSingleColumn(
         final SingleColumn singleColumn,
-        final StatementRewriter.Context<Void> ctx
+        final StatementRewriter.Context<SanitizerContext> ctx
     ) {
       if (singleColumn.getAlias().isPresent()) {
         return Optional.empty();
@@ -157,19 +170,25 @@ public final class AstSanitizer {
   }
 
   private static final class ExpressionRewriterPlugin extends
-      VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+      VisitParentExpressionVisitor<Optional<Expression>,
+      ExpressionTreeRewriter.Context<SanitizerContext>> {
 
     private final DataSourceExtractor dataSourceExtractor;
+    private final Boolean lambdaEnabled;
 
-    ExpressionRewriterPlugin(final DataSourceExtractor dataSourceExtractor) {
+    ExpressionRewriterPlugin(
+        final DataSourceExtractor dataSourceExtractor,
+        final Boolean lambdaEnabled
+    ) {
       super(Optional.empty());
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
+      this.lambdaEnabled = lambdaEnabled;
     }
 
     @Override
     public Optional<Expression> visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp expression,
-        final Context<Void> ctx
+        final ExpressionTreeRewriter.Context<SanitizerContext> ctx
     ) {
       final ColumnName columnName = expression.getColumnName();
 
@@ -191,6 +210,57 @@ public final class AstSanitizer {
               columnName
           )
       );
+    }
+
+    @Override
+    public Optional<Expression> visitLambdaExpression(
+        final LambdaFunctionCall expression,
+        final ExpressionTreeRewriter.Context<SanitizerContext> ctx
+    ) {
+      if (!lambdaEnabled) {
+        throw new UnsupportedOperationException("Lambdas are not enabled at this time.");
+      }
+      dataSourceExtractor.getAllSources().forEach(aliasedDataSource -> {
+        for (String argument : expression.getArguments()) {
+          if (aliasedDataSource.getDataSource().getSchema().columns().stream()
+              .map(column -> column.name().text()).collect(Collectors.toList())
+              .contains(argument)) {
+            throw new KsqlException(
+                String.format(
+                    "Lambda function argument can't be a column name: %s", argument));
+          }
+        }
+      });
+
+      final Set<String> previousLambdaArgs = new HashSet<>(ctx.getContext().getLambdaArgs());
+      ctx.getContext().addLambdaArgs(new HashSet<>(expression.getArguments()));
+      ctx.process(expression.getBody());
+      ctx.getContext().removeLambdaArgs();
+      ctx.getContext().addLambdaArgs(previousLambdaArgs);
+
+      return visitExpression(expression, ctx);
+    }
+  }
+
+  private static class SanitizerContext {
+    final Set<String> lambdaArgs = new HashSet<>();
+
+    private void addLambdaArgs(final Set<String> newArguments) {
+      final int previousLambdaArgumentsLength = lambdaArgs.size();
+      lambdaArgs.addAll(newArguments);
+      if (new HashSet<>(lambdaArgs).size()
+          < previousLambdaArgumentsLength + newArguments.size()) {
+        throw new KsqlException(
+            "Reusing lambda arguments in nested lambda is not allowed");
+      }
+    }
+
+    private void removeLambdaArgs() {
+      lambdaArgs.clear();
+    }
+
+    private Set<String> getLambdaArgs() {
+      return ImmutableSet.copyOf(lambdaArgs);
     }
   }
 }

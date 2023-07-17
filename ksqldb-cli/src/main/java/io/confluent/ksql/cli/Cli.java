@@ -38,6 +38,7 @@ import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
+import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -53,6 +54,8 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlVersion;
+import io.confluent.ksql.util.KsqlVersion.VersionType;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
@@ -81,11 +84,14 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class Cli implements KsqlRequestExecutor, Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
   private static final int MAX_RETRIES = 10;
+  private static final String UNKNOWN_VERSION = "<unknown>";
+  private static final String NO_WARNING = "";
 
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
@@ -148,6 +154,10 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         remoteServerState::reset,
         remoteServerState::getRequestPipelining,
         remoteServerState::setRequestPipelining);
+  }
+
+  public void addSessionVariables(final Map<String, String> vars) {
+    sessionVariables.putAll(vars);
   }
 
   @Override
@@ -278,12 +288,14 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       final ServerInfo serverInfo = restClient.getServerInfo().getResponse();
       serverVersion = serverInfo.getVersion();
       serverStatus = serverInfo.getServerStatus() == null
-          ? "<unknown>" : serverInfo.getServerStatus();
+          ? UNKNOWN_VERSION : serverInfo.getServerStatus();
     } catch (final Exception exception) {
-      serverVersion = "<unknown>";
-      serverStatus = "<unknown>";
+      serverVersion = UNKNOWN_VERSION;
+      serverStatus = UNKNOWN_VERSION;
     }
     final String cliVersion = AppInfo.getVersion();
+
+    final String versionMismatchWarning = checkServerCompatibility(cliVersion, serverVersion);
 
     final String helpReminderMessage =
         "Having trouble? "
@@ -301,16 +313,53 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     WelcomeMsgUtils.displayWelcomeMessage(consoleWidth, writer);
 
     writer.printf(
-        "CLI v%s, Server v%s located at %s%n",
+        "CLI v%s, Server v%s located at %s%n%s",
         cliVersion,
         serverVersion,
-        restClient.getServerAddress()
+        restClient.getServerAddress(),
+        versionMismatchWarning
     );
     writer.println("Server Status: " + serverStatus);
     writer.println();
     writer.println(helpReminderMessage);
     writer.println();
     terminal.flush();
+  }
+
+  private static String checkServerCompatibility(
+      final String cliVersionNumber,
+      final String serverVersionNumber) {
+
+    final KsqlVersion cliVersion;
+    try {
+      cliVersion = new KsqlVersion(cliVersionNumber);
+    } catch (final IllegalArgumentException exception) {
+      return "\nWARNING: Could not identify CLI version.\n"
+          + "         Non-matching CLI and server versions may lead to unexpected errors.\n\n";
+    }
+
+    final KsqlVersion serverVersion;
+    try {
+      serverVersion = new KsqlVersion(serverVersionNumber);
+    } catch (final IllegalArgumentException exception) {
+      return "\nWARNING: Could not identify server version.\n"
+          + "         Non-matching CLI and server versions may lead to unexpected errors.\n\n";
+    }
+
+    if (!serverVersion.isAtLeast(new KsqlVersion("6.0."))) {
+      throw new KsqlUnsupportedServerException(
+          serverVersion.type() == VersionType.CONFLUENT_PLATFORM ? "6.0.0" : "0.10.0",
+          cliVersionNumber,
+          serverVersionNumber
+      );
+    }
+
+    if (!cliVersion.same(serverVersion)) {
+      return "\nWARNING: CLI and server version don't match. This may lead to unexpected errors.\n"
+          + "         It is recommended to use a CLI that matches the server version.\n\n";
+    }
+
+    return NO_WARNING;
   }
 
   @Override
@@ -360,7 +409,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     final Object substitutionEnabled
         = restClient.getProperty(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
 
-    if (substitutionEnabled != null && substitutionEnabled instanceof Boolean) {
+    if (substitutionEnabled instanceof Boolean) {
       return (boolean) substitutionEnabled;
     }
 
@@ -517,7 +566,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   private void setProperty(final String property, final String value) {
     final Object priorValue = restClient.setProperty(property, value);
-
     terminal.writer().printf(
         "Successfully changed local property '%s'%s to '%s'.%s%n",
         property,

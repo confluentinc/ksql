@@ -18,8 +18,6 @@ package io.confluent.ksql.schema.ksql.types;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.JavaToSqlTypeConverter;
-import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.utils.SchemaException;
 import java.util.Objects;
@@ -38,6 +36,7 @@ public final class SqlPrimitiveType extends SqlType {
           .put(SqlBaseType.BIGINT, new SqlPrimitiveType(SqlBaseType.BIGINT))
           .put(SqlBaseType.DOUBLE, new SqlPrimitiveType(SqlBaseType.DOUBLE))
           .put(SqlBaseType.STRING, new SqlPrimitiveType(SqlBaseType.STRING))
+          .put(SqlBaseType.TIMESTAMP, new SqlPrimitiveType(SqlBaseType.TIMESTAMP))
           .build();
 
   private static final ImmutableSet<String> PRIMITIVE_TYPE_NAMES = ImmutableSet.<String>builder()
@@ -76,20 +75,6 @@ public final class SqlPrimitiveType extends SqlType {
 
   private SqlPrimitiveType(final SqlBaseType baseType) {
     super(baseType);
-  }
-
-  @Override
-  public void validateValue(final Object value) {
-    if (value == null) {
-      return;
-    }
-
-    final SqlBaseType actualType = JavaToSqlTypeConverter.instance()
-        .toSqlType(value.getClass());
-
-    if (!baseType().equals(actualType)) {
-      throw new DataException("Expected " + baseType() + ", got " + actualType);
-    }
   }
 
   @Override

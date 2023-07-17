@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to query structured data 
+tagline: Query structs, maps, and arrays by using ksqlDB
+description: Read the inner contents of structs, maps, and arrays in ksqlDB queries 
+keywords: query, structured data, struct, array, map
+---
+
 # How to query structured data
 
 ## Context

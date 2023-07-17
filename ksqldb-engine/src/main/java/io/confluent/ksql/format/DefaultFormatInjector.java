@@ -18,13 +18,10 @@ package io.confluent.ksql.format;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormatUtils;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
@@ -72,8 +69,6 @@ public class DefaultFormatInjector implements Injector {
       final ConfiguredStatement<CreateSource> injected =
           injectForCreateStatement(statement).orElse(statement);
 
-      throwOnUnsupportedKeyFormat(injected);
-
       // Safe to cast as we know `T` is `CreateSource`
       return (ConfiguredStatement<T>) injected;
     } catch (final KsqlStatementException e) {
@@ -93,7 +88,7 @@ public class DefaultFormatInjector implements Injector {
     final CreateSource statement = original.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
 
-    final Optional<FormatInfo> keyFormat = properties.getKeyFormat();
+    final Optional<FormatInfo> keyFormat = properties.getKeyFormat(statement.getName());
     final Optional<FormatInfo> valueFormat = properties.getValueFormat();
 
     if (keyFormat.isPresent() && valueFormat.isPresent()) {
@@ -154,15 +149,4 @@ public class DefaultFormatInjector implements Injector {
     return PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);
   }
 
-  private static void throwOnUnsupportedKeyFormat(
-      final ConfiguredStatement<CreateSource> configured
-  ) {
-    final FormatInfo keyFormat =
-        SourcePropertiesUtil.getKeyFormat(configured.getStatement().getProperties());
-    final KsqlConfig config = configured.getSessionConfig().getConfig(true);
-    if (!KeyFormatUtils.isSupportedKeyFormat(config, FormatFactory.of(keyFormat))) {
-      throw new KsqlException(
-          "The key format '" + keyFormat.getFormat() + "' is not currently supported.");
-    }
-  }
 }

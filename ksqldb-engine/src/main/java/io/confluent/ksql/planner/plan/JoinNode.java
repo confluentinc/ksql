@@ -25,7 +25,6 @@ import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -45,6 +44,7 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -112,58 +112,28 @@ public class JoinNode extends PlanNode implements JoiningNode {
   /**
    * Determines the key format of the join.
    *
-   * <p>Avoids repartitioning tables for now. Instead choosing to repartition the stream side.
-   * This is different to what is proposed in KLIP-33. Issue #6229 will look to implement
-   * repartitioning tables.
-   *
-   * <p>For now, the left key format is the preferred join key format unless either:
-   * <ul>
-   *   <li>The right source is not already being repartitioned and the left source is.</li>
-   *   <li>The right source is a table.</li>
-   * </ul>
-   * In which case, the right key format it used.
-   *
-   * <p>An exception is currently thrown if both sides are tables and their key formats differ.
+   * <p>For now, the left key format is the preferred join key format unless the
+   * right source is not already being repartitioned and the left source is.
    *
    * @see <a href="https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-33-key-format.md">KLIP-33</a>
-   * @see <a href="https://github.com/confluentinc/ksql/issues/6229">Issue #6229</a>
    */
   public void resolveKeyFormats() {
-    final FormatInfo joinKeyFormat = getRequiredKeyFormat()
-        .map(RequiredFormat::format)
-        .orElseGet(() -> getPreferredKeyFormat()
-            .orElseGet(this::getDefaultSourceKeyFormat));
+    final KeyFormat joinKeyFormat = getPreferredKeyFormat()
+        .orElseGet(this::getDefaultSourceKeyFormat);
 
     setKeyFormat(joinKeyFormat);
   }
 
   @Override
-  public Optional<RequiredFormat> getRequiredKeyFormat() {
-    final Optional<RequiredFormat> leftRequired = leftJoining.getRequiredKeyFormat();
-    final Optional<RequiredFormat> rightRequired = rightJoining.getRequiredKeyFormat();
-
-    if (!leftRequired.isPresent() && !rightRequired.isPresent()) {
-      return Optional.empty();
-    }
-
-    // At least one table:
-    final RequiredFormat requiredFormat = leftRequired.isPresent() && rightRequired.isPresent()
-        ? leftRequired.get().merge(rightRequired.get())
-        : leftRequired.orElseGet(rightRequired::get);
-
-    return Optional.of(requiredFormat);
-  }
-
-  @Override
-  public Optional<FormatInfo> getPreferredKeyFormat() {
-    final Optional<FormatInfo> leftPreferred = leftJoining.getPreferredKeyFormat();
+  public Optional<KeyFormat> getPreferredKeyFormat() {
+    final Optional<KeyFormat> leftPreferred = leftJoining.getPreferredKeyFormat();
     return leftPreferred.isPresent()
         ? leftPreferred
         : rightJoining.getPreferredKeyFormat();
   }
 
   @Override
-  public void setKeyFormat(final FormatInfo format) {
+  public void setKeyFormat(final KeyFormat format) {
     leftJoining.setKeyFormat(format);
     rightJoining.setKeyFormat(format);
   }
@@ -187,14 +157,14 @@ public class JoinNode extends PlanNode implements JoiningNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
 
-    ensureMatchingPartitionCounts(builder.getServiceContext().getTopicClient());
+    ensureMatchingPartitionCounts(buildContext.getServiceContext().getTopicClient());
 
     final JoinerFactory joinerFactory = new JoinerFactory(
-        builder,
+        buildContext,
         this,
-        builder.buildNodeContext(getId().toString()));
+        buildContext.buildNodeContext(getId().toString()));
 
     return joinerFactory.getJoiner(left.getNodeOutputType(), right.getNodeOutputType()).join();
   }
@@ -218,6 +188,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
       return names;
     }
 
+    // if we use a synthetic key, we know there's only a single key element
     final Column syntheticKey = getOnlyElement(getSchema().key());
 
     return Streams.concat(Stream.of(syntheticKey.name()), names);
@@ -246,8 +217,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
     final RequiredColumns updated = noSyntheticKey
         ? requiredColumns
         : requiredColumns.asBuilder()
-            .remove(new UnqualifiedColumnReferenceExp(getOnlyElement(schema.key()).name()))
-            .build();
+          .remove(new UnqualifiedColumnReferenceExp(getOnlyElement(schema.key()).name()))
+          .build();
 
     final Set<ColumnReferenceExp> leftUnknown = left.validateColumns(updated);
     final Set<ColumnReferenceExp> rightUnknown = right.validateColumns(updated);
@@ -256,6 +227,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
   }
 
   private ColumnName getKeyColumnName() {
+    if (getSchema().key().size() > 1) {
+      throw new KsqlException("JOINs are not supported with multiple key columns: "
+          + getSchema().key());
+    }
+
     return getOnlyElement(getSchema().key()).name();
   }
 
@@ -278,28 +254,21 @@ public class JoinNode extends PlanNode implements JoiningNode {
             + "number of partitions match.");
   }
 
-  private FormatInfo getDefaultSourceKeyFormat() {
+  private KeyFormat getDefaultSourceKeyFormat() {
     return Stream.of(left, right)
         .flatMap(PlanNode::getSourceNodes)
         .map(DataSourceNode::getDataSource)
         .map(DataSource::getKsqlTopic)
         .map(KsqlTopic::getKeyFormat)
-        .map(KeyFormat::getFormatInfo)
-        .filter(format -> !format.getFormat().equals(NoneFormat.NAME))
+        .filter(format -> !format.getFormatInfo().getFormat().equals(NoneFormat.NAME))
         .findFirst()
-        .orElse(FormatInfo.of(defaultKeyFormat));
+        // if none exist, assume non-Windowed since that would mean that both sources
+        // were of NONE format, which doesn't support windowed operations
+        .orElse(KeyFormat.nonWindowed(FormatInfo.of(defaultKeyFormat), SerdeFeatures.of()));
   }
 
   private static SourceName getSourceName(final PlanNode node) {
     return node.getLeftmostSourceNode().getAlias();
-  }
-
-  private static FormatInfo getValueFormatForSource(final PlanNode sourceNode) {
-    return sourceNode.getLeftmostSourceNode()
-        .getDataSource()
-        .getKsqlTopic()
-        .getValueFormat()
-        .getFormatInfo();
   }
 
   private static class JoinerFactory {
@@ -309,17 +278,17 @@ public class JoinNode extends PlanNode implements JoiningNode {
         Supplier<Joiner<?>>> joinerMap;
 
     JoinerFactory(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSourceType.KSTREAM, DataSourceType.KSTREAM),
-          () -> new StreamToStreamJoiner<>(builder, joinNode, contextStacker),
+          () -> new StreamToStreamJoiner<>(buildContext, joinNode, contextStacker),
           new Pair<>(DataSourceType.KSTREAM, DataSourceType.KTABLE),
-          () -> new StreamToTableJoiner<>(builder, joinNode, contextStacker),
+          () -> new StreamToTableJoiner<>(buildContext, joinNode, contextStacker),
           new Pair<>(DataSourceType.KTABLE, DataSourceType.KTABLE),
-          () -> new TableToTableJoiner<>(builder, joinNode, contextStacker)
+          () -> new TableToTableJoiner<>(buildContext, joinNode, contextStacker)
       );
     }
 
@@ -336,16 +305,16 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   private abstract static class Joiner<K> {
 
-    final KsqlQueryBuilder builder;
+    final PlanBuildContext buildContext;
     final JoinNode joinNode;
     final QueryContext.Stacker contextStacker;
 
     Joiner(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      this.builder = requireNonNull(builder, "builder");
+      this.buildContext = requireNonNull(buildContext, "buildContext");
       this.joinNode = requireNonNull(joinNode, "joinNode");
       this.contextStacker = requireNonNull(contextStacker, "contextStacker");
     }
@@ -354,13 +323,13 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
     @SuppressWarnings("unchecked")
     SchemaKStream<K> buildStream(final PlanNode node) {
-      return (SchemaKStream<K>) node.buildStream(builder);
+      return (SchemaKStream<K>) node.buildStream(buildContext);
     }
 
     @SuppressWarnings("unchecked")
     SchemaKTable<K> buildTable(final PlanNode node) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
-          builder.withKsqlConfig(builder.getKsqlConfig()
+          buildContext.withKsqlConfig(buildContext.getKsqlConfig()
               .cloneWithPropertyOverwrite(Collections.singletonMap(
                   ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
       );
@@ -375,11 +344,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   private static final class StreamToStreamJoiner<K> extends Joiner<K> {
     private StreamToStreamJoiner(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builder, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override
@@ -401,8 +370,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getValueFormatForSource(joinNode.left),
-              getValueFormatForSource(joinNode.right),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+              JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
           );
         case OUTER:
@@ -410,8 +379,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getValueFormatForSource(joinNode.left),
-              getValueFormatForSource(joinNode.right),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+              JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
           );
         case INNER:
@@ -419,8 +388,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getValueFormatForSource(joinNode.left),
-              getValueFormatForSource(joinNode.right),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+              JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
           );
         default:
@@ -432,11 +401,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private static final class StreamToTableJoiner<K> extends Joiner<K> {
 
     private StreamToTableJoiner(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builder, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override
@@ -455,7 +424,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
           return leftStream.leftJoin(
               rightTable,
               joinNode.getKeyColumnName(),
-              getValueFormatForSource(joinNode.left),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               contextStacker
           );
 
@@ -463,7 +432,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
           return leftStream.join(
               rightTable,
               joinNode.getKeyColumnName(),
-              getValueFormatForSource(joinNode.left),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               contextStacker
           );
         case OUTER:
@@ -478,11 +447,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private static final class TableToTableJoiner<K> extends Joiner<K> {
 
     TableToTableJoiner(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builder, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override

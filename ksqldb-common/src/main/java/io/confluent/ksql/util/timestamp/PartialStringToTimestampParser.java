@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.KsqlConstants.TIME_PATTERN;
 
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Timestamp;
 import java.time.ZoneId;
 
 /**
@@ -31,11 +32,15 @@ public class PartialStringToTimestampParser {
   private static final String HELP_MESSAGE = System.lineSeparator()
       + "Required format is: \"" + KsqlConstants.DATE_TIME_PATTERN + "\", "
       + "with an optional numeric 4-digit timezone, for example: "
-      + "'2020-05-26T23.59.58.000' or with tz: '2020-05-26T23.59.58.000+0200'. "
+      + "'2020-05-26T23:59:58.000' or with tz: '2020-05-26T23:59:58.000+0200'. "
       + "Partials are also supported, for example \"2020-05-26\"";
 
   private static final StringToTimestampParser PARSER =
       new StringToTimestampParser(KsqlConstants.DATE_TIME_PATTERN);
+
+  public Timestamp parseToTimestamp(final String text) {
+    return new Timestamp(parse(text));
+  }
 
   @SuppressWarnings("MethodMayBeStatic") // Non-static to support DI.
   public long parse(final String text) {

@@ -18,7 +18,6 @@ package io.confluent.ksql.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +26,7 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -84,7 +84,10 @@ public class TransientQueryMetadataTest {
         overrides,
         closeCallback,
         CLOSE_TIMEOUT,
-        10
+        10,
+        ResultType.STREAM,
+        0L,
+        0L
     );
   }
 

@@ -18,37 +18,41 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class UserRepartitionNode extends SingleSourcePlanNode {
 
-  private final Expression partitionBy;
+  private final List<Expression> partitionBys;
   private final LogicalSchema schema;
-  private final Expression originalPartitionBy;
+  private final List<Expression> originalPartitionBys;
+  private final ValueFormat valueFormat;
 
   public UserRepartitionNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Expression originalPartitionBy,
-      final Expression partitionBy
+      final List<Expression> originalPartitionBys,
+      final List<Expression> partitionBys
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
     this.schema = requireNonNull(schema, "schema");
-    this.partitionBy = requireNonNull(partitionBy, "partitionBy");
-    this.originalPartitionBy = requireNonNull(originalPartitionBy, "originalPartitionBy");
+    this.partitionBys = requireNonNull(partitionBys, "partitionBys");
+    this.originalPartitionBys = requireNonNull(originalPartitionBys, "originalPartitionBys");
+    this.valueFormat = getLeftmostSourceNode()
+        .getDataSource()
+        .getKsqlTopic()
+        .getValueFormat();
   }
 
   @Override
@@ -57,25 +61,31 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    return getSource().buildStream(builder)
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    return getSource().buildStream(buildContext)
         .selectKey(
-            partitionBy,
+            valueFormat.getFormatInfo(),
+            partitionBys,
             Optional.empty(),
-            builder.buildNodeContext(getId().toString())
+            buildContext.buildNodeContext(getId().toString()),
+            false
         );
   }
 
   @VisibleForTesting
-  public Expression getPartitionBy() {
-    return partitionBy;
+  public List<Expression> getPartitionBys() {
+    return partitionBys;
   }
 
   @Override
   public Expression resolveSelect(final int idx, final Expression expression) {
-    return partitionBy.equals(expression)
-        ? new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(getSchema().key()).name())
-        : expression;
+    for (int i = 0; i < partitionBys.size(); i++) {
+      if (partitionBys.get(i).equals(expression)) {
+        return new UnqualifiedColumnReferenceExp(getSchema().key().get(i).name());
+      }
+    }
+
+    return expression;
   }
 
   @Override
@@ -93,9 +103,16 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
 
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
-    if (!(partitionBy instanceof NullLiteral) && !projection.containsExpression(partitionBy)) {
-      final ImmutableList<Expression> keys = ImmutableList.of(originalPartitionBy);
-      throwKeysNotIncludedError(sinkName, "partitioning expression", keys);
+    if (!PartitionByParamsFactory.isPartitionByNull(partitionBys)
+        && !containsExpressions(projection, partitionBys)) {
+      throwKeysNotIncludedError(sinkName, "partitioning expression", originalPartitionBys);
     }
+  }
+
+  private static boolean containsExpressions(
+      final Projection projection,
+      final List<Expression> expressions
+  ) {
+    return expressions.stream().allMatch(projection::containsExpression);
   }
 }

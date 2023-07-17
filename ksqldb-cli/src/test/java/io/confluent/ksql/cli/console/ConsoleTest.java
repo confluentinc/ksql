@@ -124,7 +124,7 @@ public class ConsoleTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
-      .build();
+      .build().withPseudoAndKeyColsInValue(false);
 
   private final TestTerminal terminal;
   private final Console console;
@@ -147,6 +147,7 @@ public class ConsoleTest {
       2,
       1,
       "statement",
+      Collections.emptyList(),
       Collections.emptyList());
 
   @Mock
@@ -187,17 +188,35 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintGenericStreamedRow() {
+  public void testPrintDataRow() {
     // Given:
-    final StreamedRow row = StreamedRow.row(genericRow("col_1", "col_2"));
+    final StreamedRow row = StreamedRow.pushRow(genericRow("col_1", "col_2"));
 
     // When:
     console.printStreamedRow(row);
 
     // Then:
+    assertThat(terminal.getOutputString(), containsString("col_1"));
+    assertThat(terminal.getOutputString(), containsString("col_2"));
+  }
+
+  @Test
+  public void testPrintTableTombstone() {
+    // Given:
+    console.printStreamedRow(StreamedRow.header(new QueryId("id"), SCHEMA));
+
+    final StreamedRow row = StreamedRow.tombstone(genericRow(null, "v_0", null));
+
+    // When:
+    console.printStreamedRow(row);
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString("v_0"));
+
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
-      assertThat(terminal.getOutputString(), containsString("col_1"));
-      assertThat(terminal.getOutputString(), containsString("col_2"));
+      assertThat(terminal.getOutputString(), containsString("<TOMBSTONE>"));
+    } else {
+      assertThat(terminal.getOutputString(), containsString("\"tombstone\" : true"));
     }
   }
 
@@ -529,6 +548,7 @@ public class ConsoleTest {
                 1,
                 1,
                 "sql statement",
+                Collections.emptyList(),
                 Collections.emptyList()),
             Collections.emptyList()
         )
@@ -661,7 +681,8 @@ public class ConsoleTest {
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -680,7 +701,7 @@ public class ConsoleTest {
           + " f_6    | MAP<STRING, BIGINT>            " + NEWLINE
           + " f_7    | STRUCT<a DOUBLE>               " + NEWLINE
           + "-----------------------------------------" + NEWLINE
-          + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;"
+          + "For runtime statistics and query details run: DESCRIBE <Stream,Table> EXTENDED;"
           + NEWLINE));
     }
   }
@@ -800,7 +821,8 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"statement\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ ]" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -979,7 +1001,13 @@ public class ConsoleTest {
                 SqlBaseType.STRUCT,
                 ImmutableList.of(
                     new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())),
-                null)
+                null),
+            "typeC", new SchemaInfo(
+                    SqlBaseType.DECIMAL,
+                    null,
+                    null,
+                    ImmutableMap.of("precision", 10, "scale", 9)
+                )
         ))
     ));
 
@@ -1013,6 +1041,15 @@ public class ConsoleTest {
           + "        }" + NEWLINE
           + "      } ]," + NEWLINE
           + "      \"memberSchema\" : null" + NEWLINE
+          + "    }," + NEWLINE
+          + "    \"typeC\" : {" + NEWLINE
+          + "      \"type\" : \"DECIMAL\"," + NEWLINE
+          + "      \"fields\" : null," + NEWLINE
+          + "      \"memberSchema\" : null," + NEWLINE
+          + "      \"parameters\" : {" + NEWLINE
+          + "        \"precision\" : 10," + NEWLINE
+          + "        \"scale\" : 9" + NEWLINE
+          + "      }" + NEWLINE
           + "    }" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -1023,6 +1060,7 @@ public class ConsoleTest {
           + "----------------------------------------" + NEWLINE
           + " typeA     | STRUCT<f1 VARCHAR(STRING)> " + NEWLINE
           + " typeB     | ARRAY<VARCHAR(STRING)>     " + NEWLINE
+          + " typeC     | DECIMAL(10, 9)             " + NEWLINE
           + "----------------------------------------" + NEWLINE));
     }
   }
@@ -1104,7 +1142,8 @@ public class ConsoleTest {
                     new QueryOffsetSummary(
                         "consumer2",
                         ImmutableList.of())
-                )),
+                ),
+                ImmutableList.of("S1", "S2")),
             Collections.emptyList()
         ))
     );
@@ -1204,7 +1243,8 @@ public class ConsoleTest {
           + "    }, {" + NEWLINE
           + "      \"groupId\" : \"consumer2\"," + NEWLINE
           + "      \"topicSummaries\" : [ ]" + NEWLINE
-          + "    } ]" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ \"S1\", \"S2\" ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -1223,6 +1263,11 @@ public class ConsoleTest {
           + " ROWKEY | VARCHAR(STRING)  (primary key) " + NEWLINE
           + " f_0    | VARCHAR(STRING)                " + NEWLINE
           + "-----------------------------------------" + NEWLINE
+          + "" + NEWLINE
+          + "Sources that have a DROP constraint on this source" + NEWLINE
+          + "--------------------------------------------------" + NEWLINE
+          + "S1" + NEWLINE
+          + "S2" + NEWLINE
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE

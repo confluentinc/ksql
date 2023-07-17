@@ -22,14 +22,14 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker;
-import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -51,21 +51,21 @@ public final class EntityUtil {
   }
 
   public static SchemaInfo schemaInfo(final SqlType type) {
-    return SqlTypeWalker.visit(type, new Converter(Optional.empty()));
+    return SqlTypeWalker.visit(type, new Converter());
   }
 
   private static FieldInfo toFieldInfo(final Column column) {
-    return SqlTypeWalker.visit(
-        Field.of(column.name().text(), column.type()), new Converter(Optional.of(column)));
+    return new FieldInfo(column.name().text(), schemaInfo(column.type()), fieldType(column));
   }
 
+  private static Optional<FieldType> fieldType(final Column column) {
+    return column.namespace() == Namespace.KEY
+        ? Optional.of(FieldType.KEY)
+        : Optional.empty();
+  }
+
+
   private static final class Converter implements SqlTypeWalker.Visitor<SchemaInfo, FieldInfo> {
-
-    private final Optional<Column> column;
-
-    Converter(final Optional<Column> column) {
-      this.column = Objects.requireNonNull(column, "column");
-    }
 
     public SchemaInfo visitType(final SqlType schema) {
       return new SchemaInfo(schema.baseType(), null, null);
@@ -84,17 +84,16 @@ public final class EntityUtil {
     }
 
     public FieldInfo visitField(final Field field, final SchemaInfo type) {
-      final Optional<FieldType> fieldType = column
-          .filter(col -> field.name().equals(col.name().text()))
-          .flatMap(col -> toFieldType(col.namespace()));
-
-      return new FieldInfo(field.name(), type, fieldType);
+      return new FieldInfo(field.name(), type, Optional.empty());
     }
 
-    private static Optional<FieldType> toFieldType(final Column.Namespace ns) {
-      return ns == Namespace.KEY
-          ? Optional.of(FieldType.KEY)
-          : Optional.empty();
+    public SchemaInfo visitDecimal(final SqlDecimal type) {
+      return new SchemaInfo(
+              SqlBaseType.DECIMAL,
+              null,
+              null,
+              type.toParametersMap()
+      );
     }
   }
 }

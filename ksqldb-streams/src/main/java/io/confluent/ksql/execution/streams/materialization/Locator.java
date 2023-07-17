@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Type used to locate on which KSQL node materialized data is stored.
@@ -37,11 +37,12 @@ public interface Locator {
    * <p>Implementations are free to return {@link Optional#empty()} if the location is not known at
    * this time.
    *
-   * @param keys the required keys.
+   * @param keys the keys to locate. If none are provided, it's assumed that we should locate all
+   *             partitions for the given state store.
    * @return the list of nodes, that can potentially serve the key.
    */
   List<KsqlPartitionLocation> locate(
-      List<Struct> keys,
+      List<KsqlKey> keys,
       RoutingOptions routingOptions,
       RoutingFilterFactory routingFilterFactory
   );
@@ -75,6 +76,17 @@ public interface Locator {
      * @return the keys associated with the data we want to access, if any. Keys may not be present
      *     for queries which don't enumerate them up front, such as range queries.
      */
-    Optional<Set<Struct>> getKeys();
+    Optional<Set<KsqlKey>> getKeys();
+  }
+
+  /**
+   * Wrapper around a GenericKey
+   */
+  interface KsqlKey {
+
+    /**
+     * Gets the key associated with this KsqlKey
+     */
+    GenericKey getKey();
   }
 }

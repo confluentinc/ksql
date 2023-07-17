@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -79,11 +78,11 @@ public class FlatMapNode extends SingleSourcePlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
 
-    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
+    final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
 
-    return getSource().buildStream(builder).flatMap(
+    return getSource().buildStream(buildContext).flatMap(
         tableFunctions,
         contextStacker
     );
@@ -96,7 +95,7 @@ public class FlatMapNode extends SingleSourcePlanNode {
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
         new TableFunctionExpressionRewriter(functionRegistry);
 
-    final ImmutableMap.Builder<Integer, Expression> builder = ImmutableMap
+    final ImmutableMap.Builder<Integer, Expression> buildContext = ImmutableMap
         .builder();
 
     for (int idx = 0; idx < analysis.getSelectItems().size(); idx++) {
@@ -110,11 +109,11 @@ public class FlatMapNode extends SingleSourcePlanNode {
           tableFunctionExpressionRewriter::process, singleColumn.getExpression());
 
       if (!rewritten.equals(singleColumn.getExpression())) {
-        builder.put(idx, rewritten);
+        buildContext.put(idx, rewritten);
       }
     }
 
-    return builder.build();
+    return buildContext.build();
   }
 
   private static class TableFunctionExpressionRewriter

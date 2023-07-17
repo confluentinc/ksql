@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.ParameterInfo;
 import io.confluent.ksql.function.types.ParamType;
@@ -26,7 +27,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class TopkDistinctKudaf<T extends Comparable<? super T>>
@@ -86,7 +86,7 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
   }
 
   @Override
-  public Merger<Struct, List<T>> getMerger() {
+  public Merger<GenericKey, List<T>> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
       final List<T> merged = new ArrayList<>(Math.min(tkVal, aggOne.size() + aggTwo.size()));
 

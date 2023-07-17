@@ -23,13 +23,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.streams.TableSuppressBuilder.PhysicalSchemaFactory;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -54,7 +54,7 @@ import org.mockito.junit.MockitoRule;
 public class TableSuppressBuilderTest {
 
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -70,7 +70,7 @@ public class TableSuppressBuilderTest {
   @Mock
   private Formats internalFormats;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private  PhysicalSchema physicalSchema;
   @Mock
@@ -108,9 +108,9 @@ public class TableSuppressBuilderTest {
     when(physicalSchemaFactory.create(any(), any(), any())).thenReturn(physicalSchema);
     materializedFactory = (a,b) -> materialized;
 
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlConfig.getLong(any())).thenReturn(maxBytes);
 
     when(tableHolder.getTable()).thenReturn(sourceKTable);
@@ -126,7 +126,7 @@ public class TableSuppressBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldSuppressSourceTable() {
     // When:
-    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, queryBuilder, keySerdeFactory, physicalSchemaFactory, materializedFactory);
+    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, buildContext, executionKeyFactory, physicalSchemaFactory, materializedFactory);
 
     // Then:
     assertThat(result, is(suppressedtable));

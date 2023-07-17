@@ -27,6 +27,11 @@ public final class DurationParser {
   private DurationParser() {
   }
 
+  public static Duration buildDuration(final long size, final String timeUnitName) {
+    final TimeUnit timeUnit = parseTimeUnit(timeUnitName.toUpperCase());
+    return Duration.ofNanos(timeUnit.toNanos(size));
+  }
+
   public static Duration parse(final String text) {
     try {
       final String[] parts = text.split("\\s");
@@ -35,9 +40,7 @@ public final class DurationParser {
       }
 
       final long size = parseNumeric(parts[0]);
-      final TimeUnit timeUnit = parseTimeUnit(parts[1].toUpperCase());
-
-      return Duration.ofNanos(timeUnit.toNanos(size));
+      return buildDuration(size, parts[1]);
     } catch (final Exception e) {
       throw new IllegalArgumentException("Invalid duration: '" + text + "'. " + e.getMessage(), e);
     }

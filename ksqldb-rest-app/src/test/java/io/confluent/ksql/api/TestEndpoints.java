@@ -18,6 +18,7 @@ package io.confluent.ksql.api;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
@@ -26,6 +27,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.ServerClusterId;
@@ -64,7 +66,8 @@ public class TestEndpoints implements Endpoints {
   @Override
   public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
       final JsonObject properties, final Context context, final WorkerExecutor workerExecutor,
-      final ApiSecurityContext apiSecurityContext) {
+      final ApiSecurityContext apiSecurityContext,
+      final MetricsCallbackHolder metricsCallbackHolder) {
     CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
     if (createQueryPublisherException != null) {
       createQueryPublisherException.fillInStackTrace();
@@ -141,7 +144,8 @@ public class TestEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
       WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-      ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest) {
+      ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
+      KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
     return null;
   }
 

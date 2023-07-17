@@ -278,9 +278,6 @@
     },
     {
       "name": "ARRAY - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -325,22 +322,46 @@
       ]
     },
     {
-      "name": "MAP - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
+      "name": "MAP - key - C*",
       "statements": [
-        "CREATE STREAM INPUT (K MAP<STRING, DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+        "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON');"
       ],
-      "inputs": [
-        {"topic": "input_topic", "key": {"a": 45.67}, "value": {"V": 10}},
-        {"topic": "input_topic", "key": null, "value": {"V": 10}}
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: MAP<INTEGER, DOUBLE>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
+      "name": "nested MAP type - key - C*",
+      "statements": [
+        "CREATE STREAM INPUT (K ARRAY<MAP<INT, DOUBLE>> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON');"
       ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"a": 45.67}, "value": {"V": 10}},
-        {"topic": "OUTPUT", "key": null, "value": {"V": 10}}
-      ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: ARRAY<MAP<INTEGER, DOUBLE>>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
+      "name": "MAP - key - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `KSQL_COL_0`. Column type: MAP<STRING, STRING>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
+      "name": "nested MAP type - key - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(f := MAP(k:=v));"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `KSQL_COL_0`. Column type: STRUCT<`F` MAP<STRING, STRING>>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
     },
     {
       "name": "MAP - value - anonymous - deserialize",
@@ -374,9 +395,6 @@
     },
     {
       "name": "STRUCT - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K STRUCT<F DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -505,7 +523,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
         ]
       }
     },
@@ -529,7 +547,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
         ]
       }
     },

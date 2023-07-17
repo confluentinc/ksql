@@ -18,16 +18,16 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nonnull;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public final class TableSource extends SourceStep<KTableHolder<Struct>> {
+public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
 
   private final Boolean forceChangelog;
 
@@ -58,8 +58,13 @@ public final class TableSource extends SourceStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(final PlanBuilder builder) {
-    return builder.visitTableSource(this);
+  public KTableHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableSource(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableSource(this);
   }
 
   @Override

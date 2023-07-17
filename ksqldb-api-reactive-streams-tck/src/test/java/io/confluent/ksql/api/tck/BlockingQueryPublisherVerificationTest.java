@@ -17,20 +17,22 @@ package io.confluent.ksql.api.tck;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.impl.BlockingQueryPublisher;
-import io.confluent.ksql.api.server.PushQueryHandle;
+import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.TransientQueryQueue;
+import io.confluent.ksql.util.KeyValue;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
 
-public class BlockingQueryPublisherVerificationTest extends PublisherVerification<GenericRow> {
+public class BlockingQueryPublisherVerificationTest extends PublisherVerification<KeyValue<List<?>, GenericRow>> {
 
   private final Vertx vertx;
   private final WorkerExecutor workerExecutor;
@@ -44,21 +46,21 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
   }
 
   @Override
-  public Publisher<GenericRow> createPublisher(long elements) {
+  public Publisher<KeyValue<List<?>, GenericRow>> createPublisher(long elements) {
     final Context context = vertx.getOrCreateContext();
     BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
     final TestQueryHandle queryHandle = new TestQueryHandle(elements);
-    publisher.setQueryHandle(queryHandle);
+    publisher.setQueryHandle(queryHandle, false);
     if (elements < Integer.MAX_VALUE) {
       for (long l = 0; l < elements; l++) {
-        queryHandle.queue.acceptRow(generateRow(l));
+        queryHandle.queue.acceptRow(null, generateRow(l));
       }
     }
     return publisher;
   }
 
   @Override
-  public Publisher<GenericRow> createFailedPublisher() {
+  public Publisher<KeyValue<List<?>, GenericRow>> createFailedPublisher() {
     return null;
   }
 
@@ -70,7 +72,7 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     return GenericRow.fromList(l);
   }
 
-  private static class TestQueryHandle implements PushQueryHandle {
+  private static class TestQueryHandle implements QueryHandle {
 
     private final TransientQueryQueue queue;
 
@@ -103,6 +105,10 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     @Override
     public BlockingRowQueue getQueue() {
       return queue;
+    }
+
+    @Override
+    public void onException(Consumer<Throwable> onException) {
     }
   }
 }

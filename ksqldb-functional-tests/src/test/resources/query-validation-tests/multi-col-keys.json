@@ -1,0 +1,350 @@
+{
+  "tests": [
+    {
+      "name": "select * from stream",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 0}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, K2 INT KEY, V INT"}
+        ]
+      }
+    },
+    {
+      "name": "select * from stream - with key inference",
+      "statements": [
+        "CREATE STREAM INPUT (V INT) WITH (kafka_topic='input_topic', key_format='AVRO', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "record", "name": "most_recent_key_schema_at_SR", "fields": [{"name": "K", "type": ["null", "int"]}, {"name": "K2", "type": ["null", "int"]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 0}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRUCT<K INT, K2 INT> KEY, V INT"}
+        ]
+      }
+    },
+    {
+      "name": "select * from table",
+      "statements": [
+        "CREATE TABLE INPUT (K INT PRIMARY KEY, K2 INT PRIMARY KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": null, "K2": 2}, "value": null},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": {"K": null, "K2": 2}, "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "K INT PRIMARY KEY, K2 INT PRIMARY KEY, V INT"}
+        ]
+      }
+    },
+    {
+      "name": "select * with WHERE on single key",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K = 1;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": 2, "K2": 1}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, K2 INT KEY, V INT"}
+        ]
+      }
+    },
+    {
+      "name": "select * with WHERE on both key",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K = 1 AND K2 = 2;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": 1, "K2": 1}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, K2 INT KEY, V INT"}
+        ]
+      }
+    },
+    {
+      "name": "select * from stream partition by single key col",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY K;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"K2": 2, "V": 0}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, V INT, K2 INT"}
+        ]
+      }
+    },
+    {
+      "name": "select * from stream partition by struct representing the key",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(K:=K, K2:=K2);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0, "K": 1, "K2": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 STRUCT<K INT, K2 INT> KEY, V INT, K INT, K2 INT"}
+        ]
+      }
+    },
+    {
+      "name": "group by one col",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) as COUNT FROM INPUT GROUP BY K;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"COUNT": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "K INTEGER KEY, COUNT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "group by two cols",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT K, K2, COUNT(*) as COUNT FROM INPUT GROUP BY K, K2;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"COUNT": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "K INTEGER KEY, K2 INTEGER KEY, COUNT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "group by one col table with tombstones",
+      "statements": [
+        "CREATE TABLE INPUT (K INT PRIMARY KEY, K2 INT PRIMARY KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) as COUNT FROM INPUT GROUP BY K;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COUNT": 0}}
+      ]
+    },
+    {
+      "name": "group by two cols table with tombstones",
+      "statements": [
+        "CREATE TABLE INPUT (K INT PRIMARY KEY, K2 INT PRIMARY KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT K, K2, COUNT(*) as COUNT FROM INPUT GROUP BY K, K2;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"COUNT": 0}}
+      ]
+    },
+    {
+      "name": "group by two cols with AS_VALUE copies",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT K, K2, AS_VALUE(K) as kv, AS_VALUE(K2) as kv2, COUNT(*) as COUNT FROM INPUT GROUP BY K, K2;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"KV": 1, "KV2": 2, "COUNT": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "K INTEGER KEY, K2 INTEGER KEY, KV INT, KV2 INT, COUNT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "windowed group by one col",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}, "timestamp": 0},
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}, "timestamp": 0},
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}, "timestamp": 1001}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"COUNT": 1}, "window": {"start": 0, "end": 1000, "type": "time"}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COUNT": 2}, "window": {"start": 0, "end": 1000, "type": "time"}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COUNT": 1}, "window": {"start": 1000, "end": 2000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "K INTEGER KEY, COUNT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "join with repartition on single key",
+      "statements": [
+        "CREATE STREAM S1 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s1', format='JSON');",
+        "CREATE STREAM S2 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s2', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 DAY on S1.K = S2.K;"
+      ],
+      "inputs": [
+        {"topic": "s1", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "s2", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"S1_K2": 2, "S1_V": 0, "S2_K": 1, "S2_K2": 2, "S2_V": 0}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "S1_K INTEGER KEY, S1_K2 INTEGER, S1_V INTEGER, S2_K INTEGER, S2_K2 INTEGER, S2_V INTEGER"}
+        ]
+      }
+    },
+    {
+      "name": "join with repartition on single value",
+      "statements": [
+        "CREATE STREAM S1 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s1', format='JSON');",
+        "CREATE STREAM S2 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s2', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 DAY on S1.v = S2.V;"
+      ],
+      "inputs": [
+        {"topic": "s1", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "s2", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_K": 1, "S1_K2": 2, "S2_K": 1, "S2_K2": 2, "S2_V": 0}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "S1_V INTEGER KEY, S1_K INTEGER, S1_K2 INTEGER, S2_K INTEGER, S2_K2 INTEGER, S2_V INTEGER"}
+        ]
+      }
+    },
+    {
+      "name": "struct as column in multi-column key",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 STRUCT<F1 INT> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"K": 1, "K2": {"F1": 2}}, "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": {"F1": 2}}, "value": {"V": 0}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K INT KEY, K2 STRUCT<F1 INT> KEY, V INT"}
+        ]
+      }
+    },
+    {
+      "name": "select only single key col",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, V FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The query used to build `OUTPUT` must include the key columns K and K2 in its projection."
+      }
+    },
+    {
+      "name": "join on multi-column key",
+      "statements": [
+        "CREATE STREAM S1 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s1', format='JSON');",
+        "CREATE STREAM S2 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s2', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 DAY on S1.K = S2.K AND S1.K2 = S2.K2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "JOINs on multiple conditions are not yet supported: ((S1.K = S2.K) AND (S1.K2 = S2.K2))"
+      }
+    },
+    {
+      "name": "join to multi-column table",
+      "statements": [
+        "CREATE STREAM S (K STRING KEY, ID VARCHAR) WITH (kafka_topic='S', format='JSON');",
+        "CREATE TABLE NO_KEY (K STRING PRIMARY KEY, K2 STRING PRIMARY KEY, NAME string) WITH (kafka_topic='NO_KEY', format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s.k, name FROM S JOIN NO_KEY t ON s.k = t.k;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Cannot repartition a TABLE source. If this is a join, joins on tables with multiple columns is not yet supported."
+      }
+    }
+  ]
+}

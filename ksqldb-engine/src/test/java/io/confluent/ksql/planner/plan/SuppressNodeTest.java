@@ -23,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
@@ -50,7 +49,7 @@ public class SuppressNodeTest {
   @Mock
   private SchemaKTable schemaKTable;
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext planBuildContext;
   @Mock
   private Stacker stacker;
   @Mock
@@ -71,7 +70,7 @@ public class SuppressNodeTest {
 
   @Before
   public void setUp() {
-    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
+    when(planBuildContext.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
     when(sourceNode.getLeftmostSourceNode()).thenReturn(dataSourceNode);
     when(dataSourceNode.getDataSource()).thenReturn(dataSource);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
@@ -90,7 +89,7 @@ public class SuppressNodeTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> node.buildStream(ksqlStreamBuilder)
+        () -> node.buildStream(planBuildContext)
     );
 
     // Then
@@ -107,7 +106,7 @@ public class SuppressNodeTest {
     node = new SuppressNode(NODE_ID, sourceNode, refinementInfo);
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(planBuildContext);
 
     // Then
     verify(schemaKTable).suppress(refinementInfo, valueFormat.getFormatInfo(), stacker);

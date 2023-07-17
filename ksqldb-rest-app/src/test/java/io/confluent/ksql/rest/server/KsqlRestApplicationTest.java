@@ -32,15 +32,17 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.QueryMonitor;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -50,9 +52,9 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -127,20 +129,23 @@ public class KsqlRestApplicationTest {
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
-  private PullQueryExecutor pullQueryExecutor;
-  @Mock
   private HeartbeatAgent heartbeatAgent;
   @Mock
   private LagReportingAgent lagReportingAgent;
   @Mock
   private EndpointResponse response;
   @Mock
-  private QueryMonitor queryMonitor;
-  @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
-
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+  @Mock
+  private RoutingFilterFactory routingFilterFactory;
+  @Mock
+  private RateLimiter rateLimiter;
+  @Mock
+  private ConcurrencyLimiter concurrencyLimiter;
+  @Mock
+  private HARouting haRouting;
 
   @Mock
   private Vertx vertx;
@@ -221,15 +226,6 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
-  }
-
-  @Test
-  public void shouldCloseQueryMonitorOnClose() {
-    // When:
-    app.shutdown();
-
-    // then:
-    verify(queryMonitor).close();
   }
 
   @Test
@@ -316,15 +312,6 @@ public class KsqlRestApplicationTest {
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
-  }
-
-  @Test
-  public void shouldStartQueryMonitor() {
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    verify(queryMonitor).start();
   }
 
   @Test
@@ -494,12 +481,15 @@ public class KsqlRestApplicationTest {
         ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlResource, streamedQueryResource),
         rocksDBConfigSetterHandler,
-        pullQueryExecutor,
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),
         vertx,
-        queryMonitor,
         denyListPropertyValidator,
+        Optional.empty(),
+        routingFilterFactory,
+        rateLimiter,
+        concurrencyLimiter,
+        haRouting,
         Optional.empty()
     );
   }

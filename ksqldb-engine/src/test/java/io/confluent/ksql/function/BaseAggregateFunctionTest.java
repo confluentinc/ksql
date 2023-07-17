@@ -18,13 +18,13 @@ package io.confluent.ksql.function;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,7 +73,7 @@ public class BaseAggregateFunctionTest {
     }
 
     @Override
-    public Merger<Struct, Integer> getMerger() {
+    public Merger<GenericKey, Integer> getMerger() {
       return null;
     }
 

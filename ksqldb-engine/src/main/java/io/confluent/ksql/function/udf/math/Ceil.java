@@ -20,6 +20,7 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
@@ -62,8 +63,8 @@ public class Ceil {
   }
 
   @UdfSchemaProvider
-  public SqlType ceilDecimalProvider(final List<SqlType> params) {
-    final SqlType s = params.get(0);
+  public SqlType ceilDecimalProvider(final List<SqlArgument> params) {
+    final SqlType s = params.get(0).getSqlTypeOrThrow();
     if (s.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for Ceil expects a BigDecimal parameter"
           + "type");

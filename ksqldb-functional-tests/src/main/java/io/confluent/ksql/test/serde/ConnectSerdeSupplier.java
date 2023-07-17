@@ -125,10 +125,11 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
         case INT32:
           return Integer.valueOf(spec.toString());
         case INT64:
+          final Long longVal = Long.valueOf(spec.toString());
           if (Timestamp.LOGICAL_NAME.equals(schema.name())) {
-            return Timestamp.toLogical(schema, (Long) spec);
+            return new java.sql.Timestamp(longVal);
           }
-          return Long.valueOf(spec.toString());
+          return longVal;
         case FLOAT32:
           return Float.valueOf(spec.toString());
         case FLOAT64:

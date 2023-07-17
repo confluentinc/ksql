@@ -18,13 +18,13 @@ package io.confluent.ksql.execution.function.udaf;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import java.util.List;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 
-public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, GenericRow> {
+public class KudafUndoAggregator implements Aggregator<GenericKey, GenericRow, GenericRow> {
 
   private final int nonAggColumnCount;
   private final List<TableAggregationFunction<?, ?, ?>> aggregateFunctions;
@@ -50,7 +50,11 @@ public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, Gener
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Override
-  public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
+  public GenericRow apply(
+      final GenericKey k,
+      final GenericRow rowValue,
+      final GenericRow aggRowValue
+  ) {
     final GenericRow result = GenericRow.fromList(aggRowValue.values());
 
     for (int idx = 0; idx < nonAggColumnCount; idx++) {

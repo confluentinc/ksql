@@ -19,7 +19,9 @@ import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -29,6 +31,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -52,10 +55,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -220,25 +227,35 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public void closePersistentQueries() {
-    try (final KsqlRestClient client = buildKsqlClient()) {
+    closePersistentQueries(Optional.empty());
+  }
+
+  public void closePersistentQueries(final Optional<BasicCredentials> credentials) {
+    try (final KsqlRestClient client = buildKsqlClient(credentials)) {
       terminateQueries(getPersistentQueries(client), client);
     }
   }
 
-  public void dropSourcesExcept(final String... blackList) {
-    try (final KsqlRestClient client = buildKsqlClient()) {
+  public void dropSourcesExcept(final String... exceptSources) {
+    dropSourcesExcept(Optional.empty(), exceptSources);
+  }
 
-      final Set<String> except = Arrays.stream(blackList)
+  public void dropSourcesExcept(
+      final Optional<BasicCredentials> credential,
+      final String... exceptSources
+  ) {
+    try (final KsqlRestClient client = buildKsqlClient(credential)) {
+
+      final Set<String> except = Arrays.stream(exceptSources)
           .map(String::toUpperCase)
           .collect(Collectors.toSet());
 
       final Set<String> streams = getStreams(client);
       streams.removeAll(except);
-      dropStreams(streams, client);
-
       final Set<String> tables = getTables(client);
       tables.removeAll(except);
-      dropTables(tables, client);
+
+      dropSources(streams, tables, client);
     }
   }
 
@@ -300,7 +317,7 @@ public class TestKsqlRestApp extends ExternalResource {
           () -> serviceContext.get().getSchemaRegistryClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
-              KsqlRestApplication.toClientProps(ksqlRestConfig.originals()),
+              PropertiesUtil.toMapStrings(ksqlRestConfig.originals()),
               SocketAddress::inetSocketAddress,
               vertx));
 
@@ -410,28 +427,92 @@ public class TestKsqlRestApp extends ExternalResource {
         .collect(Collectors.toSet());
   }
 
-  private void dropStreams(final Set<String> streams, final KsqlRestClient client) {
-    for (final String stream : streams) {
-      final RestResponse<KsqlEntityList> res =
-          makeKsqlRequest(client, "DROP STREAM `" + stream + "`;");
+  private void dropSources(
+      final Set<String> streams,
+      final Set<String> tables,
+      final KsqlRestClient client
+  ) {
+    final Set<String> sourcesDropped = new HashSet<>(streams.size() + tables.size());
 
-      if (res.isErroneous()) {
-        throw new AssertionError("Failed to drop stream " + stream + "."
-            + " msg:" + res.getErrorMessage());
+    Iterables.concat(streams, tables).forEach(source -> {
+      if (!sourcesDropped.contains(source)) {
+        final Iterator<String> dropInOrder = getOrderedSourcesToDrop(source, client);
+        dropInOrder.forEachRemaining(s -> {
+          if (streams.contains(s)) {
+            dropStream(s, client);
+          } else {
+            dropTable(s, client);
+          }
+          sourcesDropped.add(s);
+        });
       }
+    });
+  }
+
+  private void dropStream(final String stream, final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res =
+        makeKsqlRequest(client, "DROP STREAM `" + stream + "`;");
+
+    if (res.isErroneous()) {
+      throw new AssertionError("Failed to drop stream " + stream + "."
+          + " msg:" + res.getErrorMessage());
     }
   }
 
-  private void dropTables(final Set<String> tables, final KsqlRestClient client) {
-    for (final String table : tables) {
-      final RestResponse<KsqlEntityList> res =
-          makeKsqlRequest(client, "DROP TABLE `" + table + "`;");
+  private void dropTable(final String table, final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res =
+        makeKsqlRequest(client, "DROP TABLE `" + table + "`;");
 
-      if (res.isErroneous()) {
-        throw new AssertionError("Failed to drop table " + table + "."
-            + " msg:" + res.getErrorMessage());
+    if (res.isErroneous()) {
+      throw new AssertionError("Failed to drop table " + table + "."
+          + " msg:" + res.getErrorMessage());
+    }
+  }
+
+  /**
+   * Returns an ordered list of sources to drop. Sources may have referenced sources that havea a
+   * DROP constraint against this source. If that's the case, this method walks through the each
+   * linked source and builds a list of sources that must be dropped in order.
+   *
+   * Example:
+   * - CREATE STREAM 'a';
+   * - CREATE STREAM 'b' AS SELECT FROM 'a';
+   * - CREATE STREAM 'c' AS SELECT FROM 'b';
+   *
+   * In the above example. the source 'a' has a drop constraint reference from 'b', and 'b' has
+   * a drop constraint reference from 'c'. Source 'a' cannot be dropped until all the child sources
+   * are dropped. This method will return a list with ['c', 'b', 'a'], which tells the caller to
+   * drop 'c' first, 'b' second, and 'a' third.
+   */
+  private Iterator<String> getOrderedSourcesToDrop(
+      final String source,
+      final KsqlRestClient client
+  ) {
+    final Set<String> visited = new LinkedHashSet<>();
+    final Stack<String> stack = new Stack<>();
+
+    stack.push(source);
+    while (!stack.isEmpty()) {
+      String s = stack.pop();
+      if (!visited.contains(s)) {
+        visited.add(s);
+
+        final RestResponse<KsqlEntityList> res =
+            makeKsqlRequest(client, "DESCRIBE `" + s + "` EXTENDED;");
+
+        if (res.isErroneous()) {
+          throw new AssertionError("Failed to describe stream " + s + "."
+              + " msg:" + res.getErrorMessage());
+        }
+
+        final List<String> sourceConstraints = ((SourceDescriptionEntity)(res.getResponse().get(0)))
+            .getSourceDescription().getSourceConstraints();
+
+        sourceConstraints.forEach(name -> stack.push(name));
       }
     }
+
+    return visited.stream().collect(Collectors.toCollection(LinkedList::new)).descendingIterator();
   }
 
   private RestResponse<KsqlEntityList> makeKsqlRequest(

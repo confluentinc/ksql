@@ -28,6 +28,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -68,7 +69,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
 
@@ -196,7 +196,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param valueFormat the format values should be produced as.
    * @return the map of produced rows
    */
-  public Multimap<Struct, RecordMetadata> produceRows(
+  public Multimap<GenericKey, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider dataProvider,
       final Format keyFormat,
@@ -220,7 +220,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param timestampSupplier supplier of timestamps.
    * @return the map of produced rows
    */
-  public Multimap<Struct, RecordMetadata> produceRows(
+  public Multimap<GenericKey, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider dataProvider,
       final Format keyFormat,
@@ -245,9 +245,9 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param valueFormat the format values should be produced as.
    * @return the map of produced rows
    */
-  public Multimap<Struct, RecordMetadata> produceRows(
+  public Multimap<GenericKey, RecordMetadata> produceRows(
       final String topic,
-      final Collection<Entry<Struct, GenericRow>> rowsToPublish,
+      final Collection<Entry<GenericKey, GenericRow>> rowsToPublish,
       final PhysicalSchema schema,
       final Format keyFormat,
       final Format valueFormat
@@ -271,10 +271,10 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param timestampSupplier supplier of timestamps.
    * @return the map of produced rows, with an iteration order that matches produce order.
    */
-  public Multimap<Struct, RecordMetadata> produceRows(
+  public Multimap<GenericKey, RecordMetadata> produceRows(
       final String topic,
-      final Collection<Entry<Struct, GenericRow>> recordsToPublish,
-      final Serializer<Struct> keySerializer,
+      final Collection<Entry<GenericKey, GenericRow>> recordsToPublish,
+      final Serializer<GenericKey> keySerializer,
       final Serializer<GenericRow> valueSerializer,
       final Supplier<Long> timestampSupplier
   ) {
@@ -329,7 +329,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public List<ConsumerRecord<Struct, GenericRow>> verifyAvailableRows(
+  public List<ConsumerRecord<GenericKey, GenericRow>> verifyAvailableRows(
       final String topic,
       final int expectedCount,
       final Format keyFormat,
@@ -348,14 +348,14 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public List<ConsumerRecord<Struct, GenericRow>> verifyAvailableRows(
+  public List<ConsumerRecord<GenericKey, GenericRow>> verifyAvailableRows(
       final String topic,
-      final Matcher<? super List<ConsumerRecord<Struct, GenericRow>>> expected,
+      final Matcher<? super List<ConsumerRecord<GenericKey, GenericRow>>> expected,
       final Format keyFormat,
       final Format valueFormat,
       final PhysicalSchema schema
   ) {
-    final Deserializer<Struct> keyDeserializer = getKeyDeserializer(keyFormat, schema);
+    final Deserializer<GenericKey> keyDeserializer = getKeyDeserializer(keyFormat, schema);
     return verifyAvailableRows(topic, expected, valueFormat, schema, keyDeserializer);
   }
 
@@ -422,7 +422,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public Map<Struct, GenericRow> verifyAvailableUniqueRows(
+  public Map<GenericKey, GenericRow> verifyAvailableUniqueRows(
       final String topic,
       final int expectedCount,
       final Format keyFormat,
@@ -441,14 +441,14 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public Map<Struct, GenericRow> verifyAvailableNumUniqueRows(
+  public Map<GenericKey, GenericRow> verifyAvailableNumUniqueRows(
       final String topic,
       final Matcher<Integer> expectedCount,
       final Format keyFormat,
       final Format valueFormat,
       final PhysicalSchema schema
   ) {
-    final Deserializer<Struct> keyDeserializer = getKeyDeserializer(keyFormat, schema);
+    final Deserializer<GenericKey> keyDeserializer = getKeyDeserializer(keyFormat, schema);
     final Deserializer<GenericRow> valueDeserializer = getValueDeserializer(valueFormat, schema);
 
     return verifyAvailableUniqueRows(
@@ -468,14 +468,14 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param schema the schema of the value.
    * @return the list of consumed records.
    */
-  public Map<Struct, GenericRow> verifyAvailableUniqueRows(
+  public Map<GenericKey, GenericRow> verifyAvailableUniqueRows(
       final String topic,
-      final Matcher<Map<? extends Struct, ? extends GenericRow>> expected,
+      final Matcher<Map<? extends GenericKey, ? extends GenericRow>> expected,
       final Format keyFormat,
       final Format valueFormat,
       final PhysicalSchema schema
   ) {
-    final Deserializer<Struct> keyDeserializer = getKeyDeserializer(keyFormat, schema);
+    final Deserializer<GenericKey> keyDeserializer = getKeyDeserializer(keyFormat, schema);
     final Deserializer<GenericRow> valueDeserializer = getValueDeserializer(valueFormat, schema);
 
     return verifyAvailableUniqueRows(
@@ -654,7 +654,7 @@ public final class IntegrationTestHarness extends ExternalResource {
     kafkaCluster.stop();
   }
 
-  private Serde<Struct> getKeySerde(
+  private Serde<GenericKey> getKeySerde(
       final Format format,
       final PhysicalSchema schema,
       final String loggerNamePrefix
@@ -670,14 +670,14 @@ public final class IntegrationTestHarness extends ExternalResource {
     );
   }
 
-  private Serializer<Struct> getKeySerializer(
+  private Serializer<GenericKey> getKeySerializer(
       final Format format,
       final PhysicalSchema schema
   ) {
     return getKeySerde(format, schema, "producer").serializer();
   }
 
-  private Deserializer<Struct> getKeyDeserializer(
+  private Deserializer<GenericKey> getKeyDeserializer(
       final Format format,
       final PhysicalSchema schema
   ) {

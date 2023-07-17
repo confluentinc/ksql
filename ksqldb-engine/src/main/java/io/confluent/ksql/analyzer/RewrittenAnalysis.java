@@ -188,7 +188,7 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getPartitionBy()
         .map(partitionBy -> new PartitionBy(
             partitionBy.getLocation(),
-            rewrite(partitionBy.getExpression())
+            rewriteList(partitionBy.getExpressions())
         ));
   }
 
@@ -243,6 +243,11 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   private <T extends Expression> Optional<T> rewriteOptional(final Optional<T> expression) {
     return expression.map(this::rewrite);
+  }
+
+  @Override
+  public boolean getOrReplace() {
+    return original.getOrReplace();
   }
 
   private <T extends Expression> List<T> rewriteList(final List<T> expressions) {

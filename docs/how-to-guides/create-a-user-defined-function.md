@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to create a user-defined function 
+tagline: Create a custom ksqlDB function
+description: Extend ksqlDB to apply custom logic in your queries
+keywords: function, scalar, tabular, aggregation
+---
+
 # How to create a user-defined function
 
 ## Context
@@ -201,7 +209,7 @@ Some important points to notice:
   populated later in the guide.
 
 !!! warning
-    External parameters aren't yet supported for tabular or aggregation functions.
+    External parameters aren't yet supported for tabular functions.
 
 Either continue following this guide by implementing more functions or
 skip ahead to [compiling the

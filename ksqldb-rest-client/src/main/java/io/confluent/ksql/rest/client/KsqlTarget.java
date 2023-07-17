@@ -49,13 +49,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("WeakerAccess") // Public API
+@SuppressWarnings({"WeakerAccess", "checkstyle:ClassDataAbstractionCoupling"}) // Public API
 public final class KsqlTarget {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlTarget.class);
@@ -171,6 +174,25 @@ public final class KsqlTarget {
     );
   }
 
+  public RestResponse<Integer> postQueryRequest(
+      final String ksql,
+      final Map<String, ?> requestProperties,
+      final Optional<Long> previousCommandSeqNum,
+      final Consumer<List<StreamedRow>> rowConsumer
+  ) {
+    final AtomicInteger rowCount = new AtomicInteger(0);
+    return post(
+        QUERY_PATH,
+        createKsqlRequest(ksql, requestProperties, previousCommandSeqNum),
+        rowCount::get,
+        rows -> {
+          final List<StreamedRow> streamedRows = toRows(rows);
+          rowCount.addAndGet(streamedRows.size());
+          return streamedRows;
+        },
+        rowConsumer);
+  }
+
   public RestResponse<List<StreamedRow>> postQueryRequest(
       final String ksql,
       final Map<String, ?> requestProperties,
@@ -179,8 +201,7 @@ public final class KsqlTarget {
     return post(
         QUERY_PATH,
         createKsqlRequest(ksql, requestProperties, previousCommandSeqNum),
-        KsqlTarget::toRows
-    );
+        KsqlTarget::toRows);
   }
 
   public RestResponse<StreamPublisher<StreamedRow>> postQueryRequestStreamed(
@@ -223,6 +244,17 @@ public final class KsqlTarget {
     return executeRequestSync(HttpMethod.POST, path, jsonEntity, mapper);
   }
 
+  private <R, T> RestResponse<R> post(
+      final String path,
+      final Object jsonEntity,
+      final Supplier<R> responseSupplier,
+      final Function<Buffer, T> mapper,
+      final Consumer<T> chunkHandler
+  ) {
+    return executeRequestSync(HttpMethod.POST, path, jsonEntity, responseSupplier, mapper,
+        chunkHandler);
+  }
+
   private <T> CompletableFuture<RestResponse<T>> executeRequestAsync(
       final HttpMethod httpMethod,
       final String path,
@@ -243,6 +275,36 @@ public final class KsqlTarget {
     return executeSync(httpMethod, path, requestBody, mapper, (resp, vcf) -> {
       resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
     });
+  }
+
+  private <R, T> RestResponse<R> executeRequestSync(
+      final HttpMethod httpMethod,
+      final String path,
+      final Object requestBody,
+      final Supplier<R> responseSupplier,
+      final Function<Buffer, T> chunkMapper,
+      final Consumer<T> chunkHandler
+  ) {
+    return executeSync(httpMethod, path, requestBody, resp -> responseSupplier.get(),
+        (resp, vcf) -> {
+        resp.handler(buff -> {
+          try {
+            chunkHandler.accept(chunkMapper.apply(buff));
+          } catch (Throwable t) {
+            log.error("Error while handling chunk", t);
+            vcf.completeExceptionally(t);
+          }
+        });
+        resp.endHandler(v -> {
+          try {
+            chunkHandler.accept(null);
+            vcf.complete(new ResponseWithBody(resp, Buffer.buffer()));
+          } catch (Throwable t) {
+            log.error("Error while handling end", t);
+            vcf.completeExceptionally(t);
+          }
+        });
+      });
   }
 
   private <T> RestResponse<StreamPublisher<T>> executeQueryRequestWithStreamResponse(
@@ -324,9 +386,13 @@ public final class KsqlTarget {
   }
 
   private static List<StreamedRow> toRows(final ResponseWithBody resp) {
+    return toRows(resp.getBody());
+  }
+
+  // This is meant to parse partial chunk responses as well as full pull query responses.
+  private static List<StreamedRow> toRows(final Buffer buff) {
 
     final List<StreamedRow> rows = new ArrayList<>();
-    final Buffer buff = resp.getBody();
     int begin = 0;
 
     for (int i = 0; i <= buff.length(); i++) {

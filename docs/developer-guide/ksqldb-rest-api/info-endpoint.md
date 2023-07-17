@@ -19,7 +19,7 @@ Your output should resemble:
 ```json
 {
   "KsqlServerInfo": {
-    "version": "{{ site.release }}",
+    "version": "{{ site.ksqldbversion }}",
     "kafkaClusterId": "j3tOi6E_RtO_TMH3gBmK7A",
     "ksqlServiceId": "default_"
   }

@@ -50,6 +50,9 @@ public class TlsTest extends ApiTest {
         .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
     String keyStorePassword = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+    String keyPassword = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
+    String keyAlias = SERVER_KEY_STORE.getKeyAlias();
     String trustStorePath = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
     String trustStorePassword = SERVER_KEY_STORE.keyStoreProps()
@@ -60,6 +63,8 @@ public class TlsTest extends ApiTest {
     config.put(SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG, "TLSv1.2");
     config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath);
     config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword);
+    config.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPassword);
+    config.put(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG, keyAlias);
     config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath);
     config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword);
     config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);

@@ -17,19 +17,34 @@ package io.confluent.ksql.function.udf.datetime;
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
+import java.sql.Timestamp;
 
 @UdfDescription(
     name = "unix_timestamp",
     category = FunctionCategory.DATE_TIME,
-    description = "Gets the Unix timestamp in milliseconds, represented as a BIGINT.",
+    description = "Returns the current number of milliseconds for the system since "
+        + "1970-01-01 00:00:00 UTC/GMT.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class UnixTimestamp {
 
-  @Udf(description = "Gets a BIGINT millisecond from the Unix timestamp.")
+  @Udf(description = "Returns the current number of milliseconds for the system since "
+      + "1970-01-01 00:00:00 UTC/GMT.")
   public long unixTimestamp() {
     return System.currentTimeMillis();
   }
 
+  @Udf(description = "Returns the number of milliseconds "
+      + "since 1970-01-01 00:00:00 UTC/GMT represented by the given timestamp.")
+  public Long unixTimestamp(
+      @UdfParameter(
+          description = "the TIMESTAMP value.") final Timestamp timestamp
+  ) {
+    if (timestamp == null) {
+      return null;
+    }
+    return timestamp.getTime();
+  }
 }

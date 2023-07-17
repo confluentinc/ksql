@@ -16,6 +16,8 @@
 package io.confluent.ksql.engine.generic;
 
 import com.google.common.collect.Streams;
+import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.GenericKey.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -26,7 +28,6 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
@@ -35,8 +36,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Builds {@link KsqlGenericRecord} from lists of expressions/column names,
@@ -106,7 +105,7 @@ public class GenericRecordFactory {
 
     final long ts = (long) values.getOrDefault(SystemColumns.ROWTIME_NAME, clock.getAsLong());
 
-    final Struct key = buildKey(schema, values);
+    final GenericKey key = buildKey(schema, values);
     final GenericRow value = buildValue(schema, values);
 
     return KsqlGenericRecord.of(key, value, ts);
@@ -145,10 +144,10 @@ public class GenericRecordFactory {
       final Object value = new GenericExpressionResolver(
           columnType,
           column,
-          schema,
           functionRegistry,
-          config
-      ).resolve(valueExp);
+          config,
+          "insert value",
+          false).resolve(valueExp);
 
       values.put(column, value);
     }
@@ -162,19 +161,18 @@ public class GenericRecordFactory {
         .orElseThrow(IllegalStateException::new);
   }
 
-  private static Struct buildKey(
+  private static GenericKey buildKey(
       final LogicalSchema schema,
       final Map<ColumnName, Object> values
   ) {
-    final ConnectSchema keySchema = ConnectSchemas.columnsToConnectSchema(schema.key());
-    final Struct key = new Struct(keySchema);
+    final Builder builder = GenericKey.builder(schema);
 
-    for (final org.apache.kafka.connect.data.Field field : key.schema().fields()) {
-      final Object value = values.get(ColumnName.of(field.name()));
-      key.put(field, value);
-    }
+    schema.key().stream()
+        .map(Column::name)
+        .map(values::get)
+        .forEach(builder::append);
 
-    return key;
+    return builder.build();
   }
 
   private static GenericRow buildValue(

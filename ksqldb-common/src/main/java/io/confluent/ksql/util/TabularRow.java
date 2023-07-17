@@ -18,7 +18,6 @@ package io.confluent.ksql.util;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import java.util.ArrayList;
@@ -58,13 +57,13 @@ public final class TabularRow {
 
   public static TabularRow createRow(
       final int width,
-      final GenericRow value,
+      final List<?> values,
       final boolean shouldWrap,
       final int configuredCellWidth
   ) {
     return new TabularRow(
         width,
-        value.values().stream().map(Objects::toString).collect(Collectors.toList()),
+        values.stream().map(Objects::toString).collect(Collectors.toList()),
         false,
         shouldWrap,
         configuredCellWidth

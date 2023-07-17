@@ -42,7 +42,7 @@ CREATE STREAM pageviews_enriched AS
 
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
-units, see [Time Units](../syntax-reference.md#time-units).
+units, see [Time Units](/reference/sql/time/#time-units).
 
 Here's an example stream-stream-stream join that combines `orders`, `payments` and `shipments` 
 streams. The resulting ``shipped_orders`` stream contains all orders paid within 1 hour of when

@@ -17,6 +17,7 @@ package io.confluent.ksql.test.driver;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -27,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.TopologyTestDriver;
@@ -70,10 +70,10 @@ public class TestDriverPipeline {
   // ----------------------------------------------------------------------------------
   private static final class Input {
 
-    private final TestInputTopic<Struct, GenericRow> topic;
+    private final TestInputTopic<GenericKey, GenericRow> topic;
     private final List<Output> receivers;
 
-    private Input(final TestInputTopic<Struct, GenericRow> topic) {
+    private Input(final TestInputTopic<GenericKey, GenericRow> topic) {
       this.topic = topic;
       this.receivers = new ArrayList<>();
     }
@@ -82,9 +82,9 @@ public class TestDriverPipeline {
   private static final class Output {
 
     private final String name;
-    private final TestOutputTopic<Struct, GenericRow> topic;
+    private final TestOutputTopic<GenericKey, GenericRow> topic;
 
-    private Output(final String name, final TestOutputTopic<Struct, GenericRow> topic) {
+    private Output(final String name, final TestOutputTopic<GenericKey, GenericRow> topic) {
       this.name = name;
       this.topic = topic;
     }
@@ -92,12 +92,12 @@ public class TestDriverPipeline {
 
   public static final class TopicInfo {
     final String name;
-    final Serde<Struct> keySerde;
+    final Serde<GenericKey> keySerde;
     final Serde<GenericRow> valueSerde;
 
     public TopicInfo(
         final String name,
-        final Serde<Struct> keySerde,
+        final Serde<GenericKey> keySerde,
         final Serde<GenericRow> valueSerde
     ) {
       this.name = name;
@@ -110,7 +110,7 @@ public class TestDriverPipeline {
 
   private final ListMultimap<String, Input> inputs;
   private final ListMultimap<String, Output> outputs;
-  private final ListMultimap<String, TestRecord<Struct, GenericRow>> outputCache;
+  private final ListMultimap<String, TestRecord<GenericKey, GenericRow>> outputCache;
 
   // this map indexes into the outputCache to track which records we've already
   // read - we don't need to worry about concurrent modification while iterating
@@ -159,7 +159,7 @@ public class TestDriverPipeline {
 
   public void pipeInput(
       final String topic,
-      final Struct key,
+      final GenericKey key,
       final GenericRow value,
       final long timestampMs
   ) {
@@ -168,7 +168,7 @@ public class TestDriverPipeline {
 
   private void pipeInput(
       final String topic,
-      final Struct key,
+      final GenericKey key,
       final GenericRow value,
       final long timestampMs,
       final Set<String> loopDetection,
@@ -189,7 +189,7 @@ public class TestDriverPipeline {
 
       // handle the fallout of piping in a record (propagation)
       for (final Output receiver : input.receivers) {
-        for (final TestRecord<Struct, GenericRow> record : receiver.topic.readRecordsToList()) {
+        for (final TestRecord<GenericKey, GenericRow> record : receiver.topic.readRecordsToList()) {
           outputCache.put(receiver.name, record);
 
           if (this.inputs.containsKey(receiver.name)) {
@@ -207,12 +207,12 @@ public class TestDriverPipeline {
     }
   }
 
-  public List<TestRecord<Struct, GenericRow>> getAllRecordsForTopic(final String topic) {
+  public List<TestRecord<GenericKey, GenericRow>> getAllRecordsForTopic(final String topic) {
     return outputCache.get(topic);
   }
 
-  public Iterator<TestRecord<Struct, GenericRow>> getRecordsForTopic(final String topic) {
-    return new Iterator<TestRecord<Struct, GenericRow>>() {
+  public Iterator<TestRecord<GenericKey, GenericRow>> getRecordsForTopic(final String topic) {
+    return new Iterator<TestRecord<GenericKey, GenericRow>>() {
       @Override
       public boolean hasNext() {
         final int idx = assertPositions.getOrDefault(topic, 0);
@@ -220,7 +220,7 @@ public class TestDriverPipeline {
       }
 
       @Override
-      public TestRecord<Struct, GenericRow> next() {
+      public TestRecord<GenericKey, GenericRow> next() {
         final int idx = assertPositions.getOrDefault(topic, 0);
         assertPositions.put(topic, idx + 1);
         return outputCache.get(topic).get(idx);

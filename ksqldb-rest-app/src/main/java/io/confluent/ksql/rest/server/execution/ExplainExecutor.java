@@ -111,8 +111,8 @@ public final class ExplainExecutor {
     if (preparedStatement.getStatement() instanceof Query) {
       metadata = sandbox.executeQuery(
           serviceContext,
-          ConfiguredStatement.of(preparedStatement, explain.getSessionConfig()).cast()
-      );
+          ConfiguredStatement.of(preparedStatement, explain.getSessionConfig()).cast(),
+          false);
     } else {
       metadata = sandbox
           .execute(

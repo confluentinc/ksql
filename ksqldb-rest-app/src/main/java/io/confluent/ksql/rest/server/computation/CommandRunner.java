@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
-import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
+import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
@@ -377,7 +377,7 @@ public class CommandRunner implements Closeable {
         incompatibleCommandChecker.accept(command);
         compatibleCommands.add(command);
       }
-    } catch (final SerializationException | IncomaptibleKsqlCommandVersionException e) {
+    } catch (final SerializationException | IncompatibleKsqlCommandVersionException e) {
       LOG.info("Incompatible command record detected when processing command topic", e);
       incompatibleCommandDetected = true;
     }

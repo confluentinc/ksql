@@ -19,7 +19,7 @@ What are the technical requirements of ksqlDB?
 
 ksqlDB requires only:
 
-1.  A Java runtime environment
+1.  A Java runtime environment.
 2.  Access to a {{ site.ak }} cluster for reading and writing data in
     real-time. The cluster can be on-premises or in the cloud. ksqlDB
     works with clusters running vanilla {{ site.ak }} as well as with
@@ -28,7 +28,7 @@ ksqlDB requires only:
 We recommend using [Confluent
 Platform](https://www.confluent.io/product/confluent-platform/) or
 [Confluent Cloud](https://www.confluent.io/confluent-cloud/) to run
-{{ site.ak }}.
+{{ site.ak }}. ksqlDB supports Java 8 and 11.
 
 Is ksqlDB owned by the Apache Software Foundation?
 --------------------------------------------------
@@ -100,7 +100,7 @@ ksqlDB supports the following formats:
     standard `LongSerializer`).
 
 For more information, see
-[Serialization Formats](developer-guide/serialization.md#serialization-formats).
+[Serialization Formats](/reference/serialization#serialization-formats).
 
 Is ksqlDB fully compliant with ANSI SQL?
 ----------------------------------------
@@ -294,7 +294,7 @@ ps -aux | grep ksql
 Your output should resemble:
 
 ```
-jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-{{ site.release }}/share/java/monitoring-interceptors/* ...
+jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-{{ site.ksqldbversion }}/share/java/monitoring-interceptors/* ...
 ```
 
 If the process status of the JVM isn't `Sl` or `Ssl`, the ksqlDB Server
@@ -307,7 +307,7 @@ the container by running `docker logs <ksql-server-container-id>`.
 
 Check runtime stats for the ksqlDB server that you're connected to.
 
-- Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE EXTENDED <stream|table>`.
+- Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE <stream|table> EXTENDED`.
 - Run SHOW QUERIES, then run `EXPLAIN <query>`.
 
 The ksqlDB REST API supports a "server info" request (for example,

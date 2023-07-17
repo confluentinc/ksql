@@ -16,11 +16,11 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import org.apache.kafka.common.serialization.Serde;
@@ -39,7 +39,7 @@ public final class StreamStreamJoinBuilder {
       final KStreamHolder<K> left,
       final KStreamHolder<K> right,
       final StreamStreamJoin<K> join,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final StreamJoinedFactory streamJoinedFactory) {
     final Formats leftFormats = join.getLeftInternalFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
@@ -51,7 +51,7 @@ public final class StreamStreamJoinBuilder {
         leftFormats.getValueFeatures()
     );
 
-    final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> leftSerde = buildContext.buildValueSerde(
         leftFormats.getValueFormat(),
         leftPhysicalSchema,
         stacker.push(LEFT_SERDE_CTX).getQueryContext()
@@ -64,12 +64,12 @@ public final class StreamStreamJoinBuilder {
         rightFormats.getValueFeatures()
     );
 
-    final Serde<GenericRow> rightSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> rightSerde = buildContext.buildValueSerde(
         rightFormats.getValueFormat(),
         rightPhysicalSchema,
         stacker.push(RIGHT_SERDE_CTX).getQueryContext()
     );
-    final Serde<K> keySerde = left.getKeySerdeFactory().buildKeySerde(
+    final Serde<K> keySerde = left.getExecutionKeyFactory().buildKeySerde(
         leftFormats.getKeyFormat(),
         leftPhysicalSchema,
         queryContext

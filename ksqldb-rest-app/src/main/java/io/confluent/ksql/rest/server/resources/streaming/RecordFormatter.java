@@ -79,7 +79,7 @@ public final class RecordFormatter {
 
   // Use a default window size of 1ms for time windows to avoid warnings on deserialization.
   // The window size, or the end time computed from it, is not shown to the user.
-  private static final int DEFAULT_WINDOW_SIZE = 1;
+  private static final long DEFAULT_WINDOW_SIZE = 1L;
 
   private final Deserializers keyDeserializers;
   private final Deserializers valueDeserializers;
@@ -109,11 +109,15 @@ public final class RecordFormatter {
 
     final List<String> formatted = formatRecords(records);
 
-    final boolean sameKeyFormatChanged = activeKeyFormat
-        .equals(keyDeserializers.getPossibleFormats().get(0));
+    final boolean sameKeyFormatChanged = keyDeserializers
+        .getPossibleFormats()
+        .stream()
+        .anyMatch(activeKeyFormat::equals);
 
-    final boolean sameValueFormatChanged = activeValueFormat
-        .equals(valueDeserializers.getPossibleFormats().get(0));
+    final boolean sameValueFormatChanged = valueDeserializers
+        .getPossibleFormats()
+        .stream()
+        .anyMatch(activeValueFormat::equals);
 
     if (sameKeyFormatChanged && sameValueFormatChanged) {
       return formatted;
@@ -157,7 +161,8 @@ public final class RecordFormatter {
   private String formatRecord(final ConsumerRecord<Bytes, Bytes> record) {
     return "rowtime: " + formatRowTime(record.timestamp())
         + ", " + "key: " + keyDeserializers.format(record.key())
-        + ", value: " + valueDeserializers.format(record.value());
+        + ", value: " + valueDeserializers.format(record.value())
+        + ", partition: " + record.partition();
   }
 
   private static String formatRowTime(final long timestamp) {

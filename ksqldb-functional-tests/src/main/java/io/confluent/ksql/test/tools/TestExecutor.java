@@ -34,7 +34,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -161,7 +161,7 @@ public class TestExecutor implements Closeable {
     final KsqlConfig ksqlConfig = testCase.applyPersistedProperties(new KsqlConfig(config));
 
     try {
-      System.setProperty(KsqlQueryBuilder.KSQL_TEST_TRACK_SERDE_TOPICS, "true");
+      System.setProperty(RuntimeBuildContext.KSQL_TEST_TRACK_SERDE_TOPICS, "true");
 
       final List<TopologyTestDriverContainer> topologyTestDrivers = topologyBuilder
           .buildStreamsTopologyTestDrivers(
@@ -259,7 +259,7 @@ public class TestExecutor implements Closeable {
 
       assertThat(e, isThrowable(expectedExceptionMatcher.get()));
     } finally {
-      System.clearProperty(KsqlQueryBuilder.KSQL_TEST_TRACK_SERDE_TOPICS);
+      System.clearProperty(RuntimeBuildContext.KSQL_TEST_TRACK_SERDE_TOPICS);
     }
   }
 
@@ -362,7 +362,7 @@ public class TestExecutor implements Closeable {
     try {
       key = topicInfo.getKeySerializer().serialize(rec.topic(), rec.key());
     } catch (final Exception e) {
-      throw new AssertionError("Failed to serialize value: " + e.getMessage()
+      throw new AssertionError("Failed to serialize key: " + e.getMessage()
           + System.lineSeparator()
           + "rec: " + rec,
           e
@@ -592,7 +592,8 @@ public class TestExecutor implements Closeable {
             engine,
             Collections.emptyMap(),
             Optional.empty()),
-        new SequentialQueryIdGenerator()
+        new SequentialQueryIdGenerator(),
+        KsqlConfig.empty()
     );
   }
 

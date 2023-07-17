@@ -42,7 +42,7 @@ public class GenericRow {
     return new GenericRow().appendAll(Arrays.asList(columns));
   }
 
-  public static GenericRow fromList(final List<Object> columns) {
+  public static GenericRow fromList(final List<?> columns) {
     return new GenericRow().appendAll(columns);
   }
 
@@ -111,7 +111,7 @@ public class GenericRow {
     return Objects.hash(values);
   }
 
-  private static String formatValue(final Object value) {
+  static String formatValue(final Object value) {
     if (value == null) {
       return "null";
     }

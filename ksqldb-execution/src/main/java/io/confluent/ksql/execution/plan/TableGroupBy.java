@@ -72,8 +72,13 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   }
 
   @Override
-  public KGroupedTableHolder build(final PlanBuilder builder) {
-    return builder.visitTableGroupBy(this);
+  public KGroupedTableHolder build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableGroupBy(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableGroupBy(this);
   }
 
   @Override

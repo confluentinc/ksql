@@ -23,7 +23,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
@@ -32,10 +31,12 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector;
+import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -46,6 +47,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -53,6 +55,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -73,6 +76,7 @@ import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class QueryExecutor {
+
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
 
@@ -146,16 +150,22 @@ public final class QueryExecutor {
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
       final LogicalSchema schema,
-      final OptionalInt limit
+      final OptionalInt limit,
+      final Optional<WindowInfo> windowInfo,
+      final boolean excludeTombstones
   ) {
-    final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
-
     final KsqlConfig ksqlConfig = config.getConfig(true);
-
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
+    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
+    final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
+    final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
+
+    final TransientQueryMetadata.ResultType resultType = buildResult instanceof KTableHolder
+        ? windowInfo.isPresent() ? ResultType.WINDOWED_TABLE : ResultType.TABLE
+        : ResultType.STREAM;
 
     return new TransientQueryMetadata(
         statementText,
@@ -170,7 +180,10 @@ public final class QueryExecutor {
         config.getOverrides(),
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+        resultType,
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS)
     );
   }
 
@@ -189,21 +202,20 @@ public final class QueryExecutor {
       final ExecutionStep<?> physicalPlan,
       final String planSummary
   ) {
-    final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
-    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
-    final Object result = physicalPlan.build(planBuilder);
-
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
-    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final PhysicalSchema querySchema = PhysicalSchema.from(
         sinkDataSource.getSchema(),
         sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
         sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
+
+    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
+    final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
+    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
         materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -215,10 +227,11 @@ public final class QueryExecutor {
                 applicationId
             ));
 
-    final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(applicationId);
+    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
+        .and(new AuthorizationClassifier(applicationId));
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
-        .map(topicClassifier::and)
-        .orElse(topicClassifier);
+        .map(userErrorClassifiers::and)
+        .orElse(userErrorClassifiers);
 
     return new PersistentQueryMetadata(
         statementText,
@@ -231,7 +244,7 @@ public final class QueryExecutor {
         applicationId,
         topology,
         kafkaStreamsBuilder,
-        ksqlQueryBuilder.getSchemas(),
+        runtimeBuildContext.getSchemas(),
         streamsProperties,
         config.getOverrides(),
         queryCloseCallback,
@@ -239,7 +252,9 @@ public final class QueryExecutor {
         classifier,
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        getUncaughtExceptionProcessingLogger(queryId)
+        getUncaughtExceptionProcessingLogger(queryId),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS)
     );
   }
 
@@ -248,38 +263,56 @@ public final class QueryExecutor {
         .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
 
     return processingLogContext.getLoggerFactory().getLogger(
-            QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
+        QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
   }
 
-  private TransientQueryQueue buildTransientQueryQueue(
-      final QueryId queryId,
-      final ExecutionStep<?> physicalPlan,
-      final OptionalInt limit
+  private static TransientQueryQueue buildTransientQueryQueue(
+      final Object buildResult,
+      final OptionalInt limit,
+      final boolean excludeTombstones
   ) {
-    final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
-    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
-    final Object buildResult = physicalPlan.build(planBuilder);
-    final KStream<?, GenericRow> kstream;
+    final TransientQueryQueue queue = new TransientQueryQueue(limit);
+
     if (buildResult instanceof KStreamHolder<?>) {
-      kstream = ((KStreamHolder<?>) buildResult).getStream();
+      final KStream<?, GenericRow> kstream = ((KStreamHolder<?>) buildResult).getStream();
+
+      kstream
+          // Null value for a stream is invalid:
+          .filter((k, v) -> v != null)
+          .foreach((k, v) -> queue.acceptRow(null, v));
+
     } else if (buildResult instanceof KTableHolder<?>) {
       final KTable<?, GenericRow> ktable = ((KTableHolder<?>) buildResult).getTable();
-      kstream = ktable.toStream();
+      final KStream<?, GenericRow> stream = ktable.toStream();
+
+      final KStream<?, GenericRow> filtered = excludeTombstones
+          ? stream.filter((k, v) -> v != null)
+          : stream;
+
+      filtered.foreach((k, v) -> queue.acceptRow(KeyUtil.asList(k), v));
     } else {
-      throw new IllegalStateException("Unexpected type built from exection plan");
+      throw new IllegalStateException("Unexpected type built from execution plan");
     }
-    final TransientQueryQueue queue = new TransientQueryQueue(limit);
-    kstream.foreach((k, v) -> queue.acceptRow(v));
+
     return queue;
   }
 
-  private KsqlQueryBuilder queryBuilder(final QueryId queryId) {
-    return KsqlQueryBuilder.of(
+  private static Object buildQueryImplementation(
+      final ExecutionStep<?> physicalPlan,
+      final RuntimeBuildContext runtimeBuildContext
+  ) {
+    final PlanBuilder planBuilder = new KSPlanBuilder(runtimeBuildContext);
+    return physicalPlan.build(planBuilder);
+  }
+
+  private RuntimeBuildContext buildContext(final String applicationId, final QueryId queryId) {
+    return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),
         serviceContext,
         processingLogContext,
         functionRegistry,
+        applicationId,
         queryId
     );
   }

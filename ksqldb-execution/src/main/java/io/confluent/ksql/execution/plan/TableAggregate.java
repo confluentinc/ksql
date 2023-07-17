@@ -22,15 +22,15 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
+public class TableAggregate implements ExecutionStep<KTableHolder<GenericKey>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedTableHolder> source;
   private final Formats internalFormats;
@@ -88,8 +88,13 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(final PlanBuilder builder) {
-    return builder.visitTableAggregate(this);
+  public KTableHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableAggregate(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableAggregate(this);
   }
 
   @Override

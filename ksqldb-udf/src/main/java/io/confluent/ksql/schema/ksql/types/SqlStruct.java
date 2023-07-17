@@ -17,13 +17,12 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.JavaToSqlTypeConverter;
 import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.types.KsqlStruct;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,25 +57,6 @@ public final class SqlStruct extends SqlType {
 
   public Optional<Field> field(final String name) {
     return Optional.ofNullable(byName.get(name));
-  }
-
-  @Override
-  public void validateValue(final Object value) {
-    if (value == null) {
-      return;
-    }
-
-    if (!(value instanceof KsqlStruct)) {
-      final SqlBaseType sqlBaseType = JavaToSqlTypeConverter.instance()
-          .toSqlType(value.getClass());
-
-      throw new DataException("Expected STRUCT, got " + sqlBaseType);
-    }
-
-    final KsqlStruct struct = (KsqlStruct)value;
-    if (!struct.schema().equals(this)) {
-      throw new DataException("Expected " + this + ", got " + struct.schema());
-    }
   }
 
   @Override
@@ -118,16 +98,18 @@ public final class SqlStruct extends SqlType {
     private final Map<String, Field> byName = new HashMap<>();
 
     public Builder field(final String fieldName, final SqlType fieldType) {
-      return field(Field.of(fieldName, fieldType));
-    }
-
-    public Builder field(final Field field) {
+      final Field field = new Field(fieldName, fieldType, fields.size());
       if (byName.putIfAbsent(field.name(), field) != null) {
         throw new DataException("Duplicate field names found in STRUCT: "
             + "'" + byName.get(field.name()) + "' and '" + field + "'");
       }
 
       fields.add(field);
+      return this;
+    }
+
+    public Builder field(final Field field) {
+      field(field.name(), field.type());
       return this;
     }
 
@@ -138,6 +120,76 @@ public final class SqlStruct extends SqlType {
 
     public SqlStruct build() {
       return new SqlStruct(fields, byName);
+    }
+  }
+
+  @Immutable
+  public static final class Field {
+
+    private final String name;
+    private final SqlType type;
+    private final int index;
+
+    @VisibleForTesting
+    Field(final String name, final SqlType type, final int index) {
+      this.name = requireNonNull(name, "name");
+      this.type = requireNonNull(type, "type");
+      this.index = index;
+
+      if (!name.trim().equals(name)) {
+        throw new IllegalArgumentException("name is not trimmed: '" + name + "'");
+      }
+
+      if (name.isEmpty()) {
+        throw new IllegalArgumentException("name is empty");
+      }
+
+      if (index < 0) {
+        throw new IllegalArgumentException("negative index: " + index);
+      }
+    }
+
+    public SqlType type() {
+      return type;
+    }
+
+    public String name() {
+      return name;
+    }
+
+    /**
+     * @return The index of the field within its parent struct.
+     */
+    public int index() {
+      return index;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final Field that = (Field) o;
+      return index == that.index
+          && Objects.equals(name, that.name)
+          && Objects.equals(type, that.type);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(index, name, type);
+    }
+
+    @Override
+    public String toString() {
+      return toString(FormatOptions.none());
+    }
+
+    public String toString(final FormatOptions formatOptions) {
+      return formatOptions.escape(name) + " " + type.toString(formatOptions);
     }
   }
 }

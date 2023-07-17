@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
@@ -25,15 +25,18 @@ import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class SchemaKGroupedStream {
 
@@ -67,7 +70,7 @@ public class SchemaKGroupedStream {
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final FormatInfo valueFormat,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     final ExecutionStep<? extends KTableHolder<?>> step;
     final KeyFormat keyFormat;
@@ -77,17 +80,21 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamWindowedAggregate(
           contextStacker,
           sourceStep,
-          InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
+          InternalFormats.of(keyFormat, valueFormat),
           nonAggregateColumns,
           aggregations,
           windowExpression.get().getKsqlWindowExpression()
       );
     } else {
-      keyFormat = this.keyFormat;
+      keyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
+          this.keyFormat,
+          toSqlTypes(schema.key()),
+          false
+      );
       step = ExecutionStepFactory.streamAggregate(
           contextStacker,
           sourceStep,
-          InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
+          InternalFormats.of(keyFormat, valueFormat),
           nonAggregateColumns,
           aggregations
       );
@@ -103,11 +110,18 @@ public class SchemaKGroupedStream {
   }
 
   private KeyFormat getKeyFormat(final WindowExpression windowExpression) {
-    return KeyFormat.windowed(
-        keyFormat.getFormatInfo(),
-        SerdeFeatures.of(),
-        windowExpression.getKsqlWindowExpression().getWindowInfo()
+    return SerdeFeaturesFactory.sanitizeKeyFormat(
+        KeyFormat.windowed(
+            keyFormat.getFormatInfo(),
+            keyFormat.getFeatures(),
+            windowExpression.getKsqlWindowExpression().getWindowInfo()),
+        toSqlTypes(schema.key()),
+        false
     );
+  }
+
+  protected List<SqlType> toSqlTypes(final List<Column> columns) {
+    return columns.stream().map(Column::type).collect(Collectors.toList());
   }
 
   LogicalSchema resolveSchema(final ExecutionStep<?> step) {

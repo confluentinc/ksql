@@ -40,6 +40,8 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Join;
@@ -806,6 +808,18 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatDescribeTables() {
+    // Given:
+    final DescribeTables describeTables = new DescribeTables(Optional.empty(), false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(describeTables);
+
+    // Then:
+    assertThat(formatted, is("DESCRIBE TABLES"));
+  }
+
+  @Test
   public void shouldFormatShowVariables() {
     // Given:
     final ListVariables listVariables = new ListVariables(Optional.empty());
@@ -839,6 +853,18 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(formatted, is("SHOW STREAMS EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatDescribeStreams() {
+    // Given:
+    final DescribeStreams describeStreams = new DescribeStreams(Optional.empty(), false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(describeStreams);
+
+    // Then:
+    assertThat(formatted, is("DESCRIBE STREAMS"));
   }
 
   @Test

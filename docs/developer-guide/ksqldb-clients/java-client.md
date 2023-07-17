@@ -54,7 +54,7 @@ Start by creating a `pom.xml` for your Java application:
     <properties>
         <!-- Keep versions as properties to allow easy modification -->
         <java.version>8</java.version>
-        <ksqldb.version>{{ site.release }}</ksqldb.version>
+        <ksqldb.version>{{ site.ksqldbversion }}</ksqldb.version>
         <!-- Maven properties for compilation -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -69,7 +69,7 @@ Start by creating a `pom.xml` for your Java application:
         <repository>
             <id>confluent</id>
             <name>Confluent</name>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/1/maven/</url>
+            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
         </repository>
     </repositories>
 
@@ -80,7 +80,7 @@ Start by creating a `pom.xml` for your Java application:
         </pluginRepository>
         <pluginRepository>
             <id>confluent</id>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/1/maven/</url>
+            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -115,7 +115,7 @@ Start by creating a `pom.xml` for your Java application:
       If you’re using ksqlDB for Confluent Platform (CP), use the CP-specific modules
       from [http://packages.confluent.io/maven/](http://packages.confluent.io/maven/)
       by replacing the repositories in the example POM above with a repository with this
-      URL instead. Also update `ksqldb.version` to be a CP version, such as `6.0.0`, instead.
+      URL instead. Also update `ksqldb.version` to be a CP version, such as `{{ site.cprelease }}`, instead.
 
 Create your example app at `src/main/java/my/ksqldb/app/ExampleApp.java`:
 
@@ -146,17 +146,34 @@ public class ExampleApp {
 
 For additional client options, see the [API reference](api/io/confluent/ksql/api/client/ClientOptions.html).
 
+You can use the `ClientOptions` class to connect your Java client to
+{{ site.ccloud }}. For more information, see
+[Connect to a {{ site.ccloud }} ksqlDB cluster](#connect-to-cloud).
+
 Receive query results one row at a time (streamQuery())<a name="stream-query"></a>
 ----------------------------------------------------------------------------------
 
 The `streamQuery()` method enables client apps to receive query results one row at a time,
 either asynchronously via a Reactive Streams subscriber or synchronously in a polling fashion.
 
+You can use this method to issue both push and pull queries, but the usage pattern is better for push queries.
+For pull queries, consider using the [`executeQuery()`](#execute-query)
+method instead.
+
+Query properties can be passed as an optional second argument. For more information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#streamQuery(java.lang.String,java.util.Map)).
+
+By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
+set the `auto.offset.reset` property to `earliest`.
+
 ```java
 public interface Client {
 
   /**
    * Executes a query (push or pull) and returns the results one row at a time.
+   * 
+   * <p>This method may be used to issue both push and pull queries, but the usage 
+   * pattern is better for push queries. For pull queries, consider using the 
+   * {@link Client#executeQuery(String)} method instead.
    *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
@@ -171,15 +188,6 @@ public interface Client {
   
 }
 ```
-
-You can use this method to issue both push and pull queries, but the usage pattern is better for push queries.
-For pull queries, consider using the [`executeQuery()`](#execute-query)
-method instead.
-
-Query properties can be passed as an optional second argument. For more information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#streamQuery(java.lang.String,java.util.Map)).
-
-By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
-set the `auto.offset.reset` property to `earliest`.
 
 ### Asynchronous Usage ###
 
@@ -270,12 +278,26 @@ Receive query results in a single batch (executeQuery())<a name="execute-query">
 The `executeQuery()` method enables client apps to receive query results as a single batch
 that's returned when the query completes.
 
+This method is suitable for both pull queries and for terminating push queries,
+for example, queries that have a `LIMIT` clause. For non-terminating push queries,
+use the [`streamQuery()`](#stream-query) method instead.
+
+Query properties can be passed as an optional second argument. For more
+information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String,java.util.Map)).
+
+By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
+set the `auto.offset.reset` property to `earliest`.
+
 ```java
 public interface Client {
 
   /**
    * Executes a query (push or pull) and returns all result rows in a single batch, once the query
    * has completed.
+   * 
+   * <p>This method is suitable for both pull queries and for terminating push queries,
+   * for example, queries that have a {@code LIMIT} clause. For non-terminating push queries,
+   * use the {@link Client#streamQuery(String)} method instead.
    *
    * @param sql statement of query to execute
    * @return query result
@@ -286,17 +308,6 @@ public interface Client {
   
 }
 ```
-
-This method is suitable for both pull queries and for terminating push queries,
-for example, queries that have a `LIMIT` clause). For non-terminating push queries,
-use the [`streamQuery()`](#stream-query)
-method instead.
-
-Query properties can be passed as an optional second argument. For more
-information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String,java.util.Map)).
-
-By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
-set the `auto.offset.reset` property to `earliest`.
 
 ### Example Usage ###
 
@@ -857,3 +868,29 @@ client.executeQuery(sql1).thenCombine(
       return null;
     });
 ```
+
+Connect to a {{ site.ccloud }} ksqlDB cluster <a name="connect-to-cloud"></a>
+-----------------------------------------------------------------------------
+
+Use the following code snippet to connect your Java client to a hosted ksqlDB
+cluster in {{ site.ccloud }}.
+
+```java
+ClientOptions options = ClientOptions.create()
+ .setBasicAuthCredentials("<ksqlDB-API-key>", "<ksqlDB-API-secret>")
+ .setHost("<ksqlDB-endpoint>")
+ .setPort(443)
+ .setUseTls(true)
+ .setUseAlpn(true);
+```
+
+Get the API key and endpoint URL from your {{ site.ccloud }} cluster.
+
+- For the the API key, see 
+  [Create an API key for Confluent Cloud ksqlDB](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#create-an-api-key-for-ccloud-ksql-cloud-through-the-ccloud-cli).
+- For the endpoint, run the `ccloud ksql app list` command. For more information,
+  see [Access a ksqlDB application in Confluent Cloud with an API key](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#access-a-ksql-cloud-application-in-ccloud-with-an-api-key).
+
+## Suggested Reading
+
+- [ksqlDB Meets Java: An IoT-Inspired Demo of the Java Client for ksqlDB](https://www.confluent.io/blog/ksqldb-java-client-iot-inspired-demo/)

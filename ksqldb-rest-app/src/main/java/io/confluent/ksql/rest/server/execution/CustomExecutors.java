@@ -22,6 +22,8 @@ import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
@@ -61,6 +63,8 @@ public enum CustomExecutors {
   LIST_TOPICS(ListTopics.class, ListTopicsExecutor::execute),
   LIST_STREAMS(ListStreams.class, ListSourceExecutor::streams),
   LIST_TABLES(ListTables.class, ListSourceExecutor::tables),
+  DESCRIBE_STREAMS(DescribeStreams.class, ListSourceExecutor::describeStreams),
+  DESCRIBE_TABLES(DescribeTables.class, ListSourceExecutor::describeTables),
   LIST_FUNCTIONS(ListFunctions.class, ListFunctionsExecutor::execute),
   LIST_QUERIES(ListQueries.class, ListQueriesExecutor::execute),
   LIST_PROPERTIES(ListProperties.class, ListPropertiesExecutor::execute),

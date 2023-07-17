@@ -15,15 +15,15 @@
 
 package io.confluent.ksql.util;
 
-import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyString;
 
-import io.confluent.ksql.GenericRow;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,7 +84,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingEnabled();
 
-    final GenericRow value = genericRow("foo", "bar");
+    final List<?> value = ImmutableList.of("foo", "bar");
 
     // When:
     final String formatted = TabularRow.createRow(20, value, shouldWrap, width).toString();
@@ -98,7 +98,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingEnabled();
 
-    final GenericRow value = genericRow("foo", "bar is a long string");
+    final List<?> value = ImmutableList.of("foo", "bar is a long string");
 
     // When:
     final String formatted = TabularRow.createRow(20, value, shouldWrap, width).toString();
@@ -115,7 +115,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = genericRow("foo", "bar is a long string");
+    final List<?> value = ImmutableList.of("foo", "bar is a long string");
 
     // When:
     final String formatted = TabularRow.createRow(20, value, shouldWrap, width).toString();
@@ -130,7 +130,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = genericRow(
+    final List<?> value = ImmutableList.of(
         "foo",
         "bar                                                                               foo"
     );
@@ -148,7 +148,7 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = genericRow(
+    final List<?> value = ImmutableList.of(
         "foo",
         "bar                                                                                  "
     );

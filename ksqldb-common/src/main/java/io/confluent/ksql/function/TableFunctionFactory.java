@@ -17,7 +17,7 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -46,7 +46,7 @@ public class TableFunctionFactory {
     udtfIndex.values().forEach(consumer);
   }
 
-  public synchronized KsqlTableFunction createTableFunction(final List<SqlType> argTypes) {
+  public synchronized KsqlTableFunction createTableFunction(final List<SqlArgument> argTypes) {
     return udtfIndex.getFunction(argTypes);
   }
 

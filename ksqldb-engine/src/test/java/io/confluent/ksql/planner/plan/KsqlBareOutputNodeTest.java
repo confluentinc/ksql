@@ -26,7 +26,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -44,7 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
@@ -69,11 +69,13 @@ public class KsqlBareOutputNodeTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext planBuildContext;
+  @Mock
+  private RuntimeBuildContext executeContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private ProcessingLogger processingLogger;
 
@@ -81,20 +83,22 @@ public class KsqlBareOutputNodeTest {
   public void before() {
     builder = new StreamsBuilder();
 
-    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
-    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
-    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
-    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+    when(planBuildContext.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
+    when(planBuildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(planBuildContext.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
-    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(executeContext.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
+    when(executeContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(executeContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(executeContext.getStreamsBuilder()).thenReturn(builder);
+    when(executeContext.getProcessingLogger(any())).thenReturn(processingLogger);
 
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
         .buildLogicalPlan(ksqlConfig, SIMPLE_SELECT_WITH_FILTER, metaStore);
 
-    stream = planNode.buildStream(ksqlStreamBuilder);
-    stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    stream = planNode.buildStream(planBuildContext);
+    stream.getSourceStep().build(new KSPlanBuilder(executeContext));
   }
 
   @Test

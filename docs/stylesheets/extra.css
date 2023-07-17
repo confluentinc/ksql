@@ -90,6 +90,11 @@ select.version::-ms-expand {
     margin: 5px;
 }
 
+.card > a {
+    color: inherit;
+    text-decoration: underline;
+}
+
 ul.card-items {
     margin-left: 0;
     list-style-type: none;
@@ -108,33 +113,45 @@ ul.card-items li {
     align-self: flex-start;
 }
 
-.tutorial-begin {
-    display: flex;
-    flex-flow: row nowrap;
-}
-
-.tutorial-begin a {
-    align-self: center;
-    margin: auto;
-    transform: translateX(-20px);
-}
-
 .card.tutorial {
-    background-color: #faf7ff;
+    border-top: 3.5px solid #C3C5DD;
 }
 
 .card.how-to-guide {
-    background-color: #f7f8ff;
+    border-top: 3.5px solid #42cceb;
 }
 
 .card.how-to-guide.contribute {
     background: repeating-linear-gradient(
       45deg,
-      #f7f8ff,
-      #f7f8ff 10px,
+      #f6f8f8,
+      #f6f8f8 10px,
       #ffffff 10px,
       #ffffff 20px
     );
 
     border: 2px dashed #eee;
+    border-top: 3.5px solid #42cceb;
+}
+
+.card.getting-started {
+    border-top: 3.5px solid #ef5762;
+}
+
+.card.how-to-videos > ul {
+    columns: 2;
+    -webkit-columns: 2;
+    -moz-columns: 2;
+}
+
+.card.concepts {
+    border-top: 3.5px solid #252839;
+}
+
+.card.operations {
+    background-color: #F8F6F6;
+}
+
+.card.reference {
+    border-top: 3.5px solid #66CC69;
 }

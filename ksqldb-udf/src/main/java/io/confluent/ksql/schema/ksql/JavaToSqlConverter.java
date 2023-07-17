@@ -21,6 +21,7 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.utils.SchemaException;
 import io.confluent.ksql.types.KsqlStruct;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,6 +42,7 @@ class JavaToSqlConverter implements JavaToSqlTypeConverter {
       .put(List.class, SqlBaseType.ARRAY)
       .put(Map.class, SqlBaseType.MAP)
       .put(KsqlStruct.class, SqlBaseType.STRUCT)
+      .put(Timestamp.class, SqlBaseType.TIMESTAMP)
       .build();
 
   @Override

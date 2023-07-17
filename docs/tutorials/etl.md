@@ -1,5 +1,14 @@
-What is it?
------------
+---
+layout: page
+title: Streaming ETL pipeline 
+tagline: Learn how to create a streaming ETL pipeline by using ksqlDB
+description: Use ksqlDB to create a streaming ETL pipeline that ingests and joins events together to create a cohesive view of orders that shipped
+keywords: etl, streaming data pipeline, join
+---
+
+# Streaming ETL pipeline
+
+## What is it?
 
 A streaming ETL pipeline, sometimes called a “streaming data pipeline”, is a set of software services that ingests events, transforms them, and loads them into destination storage systems. It’s often the case that you have data in one place and want to move it to another as soon as you receive it, but you need to make some changes to the data as you transfer it.
 
@@ -11,8 +20,7 @@ A streaming ETL pipeline enables streaming events between arbitrary sources and 
 
 One way you might do this is to capture the changelogs of upstream Postgres and MongoDB databases using the [Debezium](https://debezium.io) {{ site.ak }} connectors. The changelog can be stored in {{ site.ak }}, where a series of deployed programs transforms, aggregates, and joins the data together. The processed data can be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
 
-Why ksqlDB?
------------
+## Why ksqlDB?
 
 Gluing all of the above services together is certainly a challenge. Along with your original databases and target analytical data store, you end up managing clusters for {{ site.ak }}, connectors, and your stream processors. It's challenging to operate the entire stack as one.
 
@@ -22,8 +30,7 @@ ksqlDB helps streamline how you write and deploy streaming data pipelines by boi
 
 Using ksqlDB, you can run any {{ site.kconnectlong }} connector by embedding it in ksqlDB's servers. You can transform, join, and aggregate all of your streams together by using a coherent, powerful SQL language. This gives you a slender architecture for managing the end-to-end flow of your data pipeline.
 
-Implement it
-------------
+## Implement it
 
 Suppose you work at a retail company that sells and ships orders to online customers. You want to analyze the shipment activity of orders as they happen in real-time. Because the company is somewhat large, the data for customers, orders, and shipments are spread across different databases and tables.
 
@@ -124,7 +131,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
+    image: confluentinc/cp-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -155,7 +162,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:{{ site.release }}
+    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -175,19 +182,17 @@ services:
       KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
       KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
       KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
-      KSQL_CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
       KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
-      KSQL_CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "ksql-connect-configs"
-      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "ksql-connect-offsets"
-      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "ksql-connect-statuses"
+      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "_ksql-connect-configs"
+      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "_ksql-connect-offsets"
+      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "_ksql-connect-statuses"
       KSQL_CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:{{ site.release }}
+    image: confluentinc/ksqldb-cli:{{ site.ksqldbversion }}
     container_name: ksqldb-cli
     depends_on:
       - broker
@@ -623,8 +628,7 @@ When you're done, tear down the stack by running:
 docker-compose down
 ```
 
-Next steps
-----------
+## Next steps
 
 Want to learn more? Try another use case tutorial:
 

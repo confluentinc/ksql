@@ -25,7 +25,7 @@ fi
 : "${JAVA_HOME:=""}"
 
 # Development jars. `mvn package` should collect all the required dependency jars here
-for project in ksqldb-engine ksqldb-examples ksqldb-rest-app ksqldb-cli ksqldb-functional-tests; do
+for project in ksqldb-engine ksqldb-examples ksqldb-rest-app ksqldb-cli ksqldb-functional-tests ksqldb-tools; do
     for dir in "$base_dir/$project/target/$project"-*-development; do
       KSQL_DIR="$dir/share/java/$project"
       if [ -d "$KSQL_DIR" ]; then
@@ -35,7 +35,7 @@ for project in ksqldb-engine ksqldb-examples ksqldb-rest-app ksqldb-cli ksqldb-f
 done
 
 # Production jars - each one is prepended so they will appear in reverse order.  KSQL jars take precedence over other stuff passed in via CLASSPATH env var
-for library in "confluent-common" "confluent-telemetry" "ksqldb-examples" "rest-utils" "ksqldb-engine" "ksqldb-rest-app" "ksqldb-cli" "ksqldb-functional-tests" "ksqldb" "monitoring-interceptors" "confluent-security/ksql"; do
+for library in "confluent-common" "confluent-telemetry" "ksqldb-examples" "rest-utils" "ksqldb-engine" "ksqldb-rest-app" "ksqldb-cli" "ksqldb-functional-tests" "ksqldb" "monitoring-interceptors" "confluent-security/ksql" "ksqldb-tools"; do
   DIR="$base_dir/share/java/$library"
   if [ -d "$DIR" ]; then
     KSQL_CLASSPATH="$DIR/*:$KSQL_CLASSPATH"

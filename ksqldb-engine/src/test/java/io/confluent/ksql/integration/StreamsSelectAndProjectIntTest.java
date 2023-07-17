@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
@@ -26,6 +27,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -44,7 +46,6 @@ import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -77,8 +78,8 @@ public class StreamsSelectAndProjectIntTest {
   private String avroTopicName;
   private String intermediateStream;
   private String resultStream;
-  private Multimap<Struct, RecordMetadata> producedAvroRecords;
-  private Multimap<Struct, RecordMetadata> producedJsonRecords;
+  private Multimap<GenericKey, RecordMetadata> producedAvroRecords;
+  private Multimap<GenericKey, RecordMetadata> producedJsonRecords;
 
   @Before
   public void before() {
@@ -199,7 +200,7 @@ public class StreamsSelectAndProjectIntTest {
   private void testTimestampColumnSelection(
       final String inputStreamName,
       final Format valueFormat,
-      final Multimap<Struct, RecordMetadata> recordMetadataMap
+      final Multimap<GenericKey, RecordMetadata> recordMetadataMap
   ) {
     final String query1String =
         String.format("CREATE STREAM %s WITH (timestamp='RTIME') AS SELECT ORDERTIME, "
@@ -215,7 +216,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(query1String);
 
     final Map<Long, GenericRow> expectedResults = new HashMap<>();
-    final RecordMetadata order_6 = Iterables.getLast(recordMetadataMap.get(DATA_PROVIDER.keyFrom("ORDER_6")));
+    final RecordMetadata order_6 = Iterables.getLast(recordMetadataMap.get(genericKey("ORDER_6")));
     expectedResults.put(8L,
         genericRow(
             null,
@@ -240,13 +241,13 @@ public class StreamsSelectAndProjectIntTest {
   private void testSelectProjectKeyTimestamp(
       final String inputStreamName,
       final Format valueFormat,
-      final Multimap<Struct, RecordMetadata> recordMetadataMap
+      final Multimap<GenericKey, RecordMetadata> recordMetadataMap
   ) {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ORDERID, ORDERTIME, ROWTIME AS RTIME, ITEMID "
         + "FROM %s WHERE ORDERUNITS > 20 AND ITEMID = "
         + "'ITEM_8';", resultStream, inputStreamName));
 
-    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<GenericKey, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         1,
         KAFKA,
@@ -254,11 +255,11 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema()
     );
 
-    assertThat(results.get(0).key(), is(DATA_PROVIDER.keyFrom("ORDER_6")));
+    assertThat(results.get(0).key(), is(genericKey("ORDER_6")));
     assertThat(results.get(0).value(),
         is(genericRow(
             8L,
-            Iterables.getLast(recordMetadataMap.get(DATA_PROVIDER.keyFrom("ORDER_6"))).timestamp(),
+            Iterables.getLast(recordMetadataMap.get(genericKey("ORDER_6"))).timestamp(),
             "ITEM_8")
         )
     );
@@ -271,7 +272,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ORDERID, ORDERTIME, ITEMID, ORDERUNITS, "
                                   + "PRICEARRAY FROM %s;", resultStream, inputStreamName));
 
-    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<GenericKey, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         KAFKA,
@@ -293,7 +294,7 @@ public class StreamsSelectAndProjectIntTest {
                                   + "ORDERUNITS, "
         + "PRICEARRAY FROM %s;", resultStream, AVRO_STREAM_NAME));
 
-    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<GenericKey, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         KAFKA,
@@ -343,7 +344,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql("INSERT INTO " + resultStream +
         " SELECT ORDERID, ORDERTIME, ITEMID, ORDERUNITS, PRICEARRAY FROM " + JSON_STREAM_NAME + ";");
 
-    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<GenericKey, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         KAFKA,
@@ -362,7 +363,7 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql("INSERT INTO " + resultStream + " "
         + "SELECT ORDERID, ORDERTIME, ITEMID, ORDERUNITS, PRICEARRAY FROM " + AVRO_STREAM_NAME + ";");
 
-    final List<ConsumerRecord<Struct, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
+    final List<ConsumerRecord<GenericKey, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         KAFKA,

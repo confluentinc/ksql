@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -46,10 +45,10 @@ public class FilterNode extends SingleSourcePlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final Stacker contextStacker = builder.buildNodeContext(getId().toString());
+  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+    final Stacker contextStacker = builderContext.buildNodeContext(getId().toString());
 
-    return getSource().buildStream(builder)
+    return getSource().buildStream(builderContext)
         .filter(
             getPredicate(),
             contextStacker

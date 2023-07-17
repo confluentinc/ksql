@@ -51,7 +51,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -87,6 +86,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -180,11 +180,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -197,13 +197,14 @@ import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+
+import javax.xml.transform.Source;
 
 @SuppressWarnings({"unchecked", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
@@ -521,11 +522,84 @@ public class KsqlResourceTest {
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
+            Collections.emptyList(),
             Collections.emptyList()),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
+            Collections.emptyList()))
+    );
+  }
+
+  @Test
+  public void shouldDescribeStreams() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
+        .build();
+
+    givenSource(
+        DataSourceType.KSTREAM, "new_stream", "new_topic",
+        schema);
+
+    // When:
+    final SourceDescriptionList descriptionList = makeSingleRequest(
+        "DESCRIBE STREAMS;", SourceDescriptionList.class);
+
+    // Then:
+    assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
+            false,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
+            Collections.emptyList(),
+            Collections.emptyList()),
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
+            false,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
+            Collections.emptyList())));
+  }
+
+  @Test
+  public void shouldDescribeStreamsExtended() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
+        .build();
+
+    givenSource(
+        DataSourceType.KSTREAM, "new_stream", "new_topic",
+        schema);
+
+    // When:
+    final SourceDescriptionList descriptionList = makeSingleRequest(
+        "DESCRIBE STREAMS EXTENDED;", SourceDescriptionList.class);
+
+    // Then:
+    assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
+            true, Collections.emptyList(), Collections.emptyList(),
+            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
+            Collections.emptyList(),
+            Collections.emptyList()),
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
+            true, Collections.emptyList(), Collections.emptyList(),
+            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
             Collections.emptyList()))
     );
   }
@@ -541,7 +615,7 @@ public class KsqlResourceTest {
 
     givenSource(
         DataSourceType.KTABLE, "new_table", "new_topic",
-        schema);
+        schema, ImmutableSet.of(SourceName.of("TEST_TABLE")));
 
     // When:
     final SourceDescriptionList descriptionList = makeSingleRequest(
@@ -553,11 +627,85 @@ public class KsqlResourceTest {
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
-            Collections.emptyList()),
+            Collections.emptyList(),
+            ImmutableList.of("new_table")),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
+            Collections.emptyList()))
+    );
+  }
+
+  @Test
+  public void shouldDescribeTables() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
+        .build();
+
+    givenSource(
+        DataSourceType.KTABLE, "new_table", "new_topic",
+        schema, ImmutableSet.of(SourceName.of("TEST_TABLE")));
+
+    // When:
+    final SourceDescriptionList descriptionList = makeSingleRequest(
+        "DESCRIBE TABLES;", SourceDescriptionList.class);
+
+    // Then:
+    assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
+            false,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
+            Collections.emptyList(),
+            ImmutableList.of("new_table")),
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
+            false,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
+            Collections.emptyList()))
+    );
+  }
+
+  @Test
+  public void shouldDescribeTablesExtended() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
+        .build();
+
+    givenSource(
+        DataSourceType.KTABLE, "new_table", "new_topic",
+        schema, ImmutableSet.of(SourceName.of("TEST_TABLE")));
+
+    // When:
+    final SourceDescriptionList descriptionList = makeSingleRequest(
+        "DESCRIBE TABLES EXTENDED;", SourceDescriptionList.class);
+
+    // Then:
+    assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
+            true, Collections.emptyList(), Collections.emptyList(),
+            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
+            Collections.emptyList(),
+            ImmutableList.of("new_table")),
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
+            true, Collections.emptyList(), Collections.emptyList(),
+            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
             Collections.emptyList()))
     );
   }
@@ -628,6 +776,7 @@ public class KsqlResourceTest {
         Collections.singletonList(queries.get(1)),
         Collections.singletonList(queries.get(0)),
         Optional.empty(),
+        Collections.emptyList(),
         Collections.emptyList());
 
     assertThat(description.getSourceDescription(), is(expectedDescription));
@@ -1847,6 +1996,24 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldReturnErrorMessageIfStackOverflowErrorWhenParsingStatement() {
+    givenKafkaTopicExists("topic");
+    final String firstStatement = "CREATE STREAM FIRST (ITEM_ID VARCHAR, ITEM BIGINT) WITH (KAFKA_TOPIC='topic', KEY_FORMAT='KAFKA', PARTITIONS=2, VALUE_FORMAT='JSON');";
+    final String secondStatement = "CREATE STREAM SECOND AS SELECT ITM.ITEM_ID FROM FIRST ITM WHERE ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((ITM.ITEM_ID = '13003') OR (ITM.ITEM_ID = '21817')) OR (ITM.ITEM_ID = '31119')) OR (ITM.ITEM_ID = '31816')) OR (ITM.ITEM_ID = '41025')) OR (ITM.ITEM_ID = '45750')) OR (ITM.ITEM_ID = '46000')) OR (ITM.ITEM_ID = '50305')) OR (ITM.ITEM_ID = '50307')) OR (ITM.ITEM_ID = '50403')) OR (ITM.ITEM_ID = '50404')) OR (ITM.ITEM_ID = '53017')) OR (ITM.ITEM_ID = '53317')) OR (ITM.ITEM_ID = '57285')) OR (ITM.ITEM_ID = '58589')) OR (ITM.ITEM_ID = '58590')) OR (ITM.ITEM_ID = '58865')) OR (ITM.ITEM_ID = '60423')) OR (ITM.ITEM_ID = '61155')) OR (ITM.ITEM_ID = '61158')) OR (ITM.ITEM_ID = '61305')) OR (ITM.ITEM_ID = '61307')) OR (ITM.ITEM_ID = '62337')) OR (ITM.ITEM_ID = '62357')) OR (ITM.ITEM_ID = '62519')) OR (ITM.ITEM_ID = '62564')) OR (ITM.ITEM_ID = '63079')) OR (ITM.ITEM_ID = '63086')) OR (ITM.ITEM_ID = '63128')) OR (ITM.ITEM_ID = '63130')) OR (ITM.ITEM_ID = '63131')) OR (ITM.ITEM_ID = '63132')) OR (ITM.ITEM_ID = '63163')) OR (ITM.ITEM_ID = '63164')) OR (ITM.ITEM_ID = '63230')) OR (ITM.ITEM_ID = '63231')) OR (ITM.ITEM_ID = '63233')) OR (ITM.ITEM_ID = '63234')) OR (ITM.ITEM_ID = '63235')) OR (ITM.ITEM_ID = '63237')) OR (ITM.ITEM_ID = '63238')) OR (ITM.ITEM_ID = '63247')) OR (ITM.ITEM_ID = '63258')) OR (ITM.ITEM_ID = '63267')) OR (ITM.ITEM_ID = '63280')) OR (ITM.ITEM_ID = '63283')) OR (ITM.ITEM_ID = '63328')) OR (ITM.ITEM_ID = '0128562')) OR (ITM.ITEM_ID = '0129495')) OR (ITM.ITEM_ID = '0135810')) OR (ITM.ITEM_ID = '0135823')) OR (ITM.ITEM_ID = '0136162')) OR (ITM.ITEM_ID = '0136184')) OR (ITM.ITEM_ID = '0136213')) OR (ITM.ITEM_ID = '0139833')) OR (ITM.ITEM_ID = '0150225')) OR (ITM.ITEM_ID = '0150942')) OR (ITM.ITEM_ID = '0151017')) OR (ITM.ITEM_ID = '0158901')) OR (ITM.ITEM_ID = '0159638')) OR (ITM.ITEM_ID = '0159640')) OR (ITM.ITEM_ID = '0160298')) OR (ITM.ITEM_ID = '0175925')) OR (ITM.ITEM_ID = '0200067')) OR (ITM.ITEM_ID = '0200092')) OR (ITM.ITEM_ID = '0200213')) OR (ITM.ITEM_ID = '0200216')) OR (ITM.ITEM_ID = '0200218')) OR (ITM.ITEM_ID = '0200424')) OR (ITM.ITEM_ID = '0200660')) OR (ITM.ITEM_ID = '0200661')) OR (ITM.ITEM_ID = '0201625')) OR (ITM.ITEM_ID = '0202287')) OR (ITM.ITEM_ID = '0203486')) OR (ITM.ITEM_ID = '0204792')) OR (ITM.ITEM_ID = '0205164')) OR (ITM.ITEM_ID = '0205316')) OR (ITM.ITEM_ID = '0205478')) OR (ITM.ITEM_ID = '0205479')) OR (ITM.ITEM_ID = '0205481')) OR (ITM.ITEM_ID = '0206884')) OR (ITM.ITEM_ID = '0209250')) OR (ITM.ITEM_ID = '0209257')) OR (ITM.ITEM_ID = '0210025')) OR (ITM.ITEM_ID = '0210563')) OR (ITM.ITEM_ID = '0211480')) OR (ITM.ITEM_ID = '0211808')) OR (ITM.ITEM_ID = '0211828')) OR (ITM.ITEM_ID = '0211842')) OR (ITM.ITEM_ID = '0211848')) OR (ITM.ITEM_ID = '0211969')) OR (ITM.ITEM_ID = '0212719')) OR (ITM.ITEM_ID = '0212723')) OR (ITM.ITEM_ID = '0215006')) OR (ITM.ITEM_ID = '0215007')) OR (ITM.ITEM_ID = '0215009')) OR (ITM.ITEM_ID = '0218173')) OR (ITM.ITEM_ID = '0222954')) OR (ITM.ITEM_ID = '0222957')) OR (ITM.ITEM_ID = '0222959')) OR (ITM.ITEM_ID = '0222960')) OR (ITM.ITEM_ID = '0222961')) OR (ITM.ITEM_ID = '0222965')) OR (ITM.ITEM_ID = '0224181')) OR (ITM.ITEM_ID = '0224184')) OR (ITM.ITEM_ID = '0224185')) OR (ITM.ITEM_ID = '0224188')) OR (ITM.ITEM_ID = '0224190')) OR (ITM.ITEM_ID = '0224203')) OR (ITM.ITEM_ID = '0224301')) OR (ITM.ITEM_ID = '0224302')) OR (ITM.ITEM_ID = '0224608')) OR (ITM.ITEM_ID = '0224997')) OR (ITM.ITEM_ID = '0225008')) OR (ITM.ITEM_ID = '0225012')) OR (ITM.ITEM_ID = '0226209')) OR (ITM.ITEM_ID = '0226376')) OR (ITM.ITEM_ID = '0226386')) OR (ITM.ITEM_ID = '0226424')) OR (ITM.ITEM_ID = '0227499')) OR (ITM.ITEM_ID = '0227550')) OR (ITM.ITEM_ID = '0229834')) OR (ITM.ITEM_ID = '0233620')) OR (ITM.ITEM_ID = '0233649')) OR (ITM.ITEM_ID = '0233659')) OR (ITM.ITEM_ID = '0235458')) OR (ITM.ITEM_ID = '0237289')) OR (ITM.ITEM_ID = '0237807')) OR (ITM.ITEM_ID = '0237808')) OR (ITM.ITEM_ID = '0238675')) OR (ITM.ITEM_ID = '0239021')) OR (ITM.ITEM_ID = '0239022')) OR (ITM.ITEM_ID = '0239023')) OR (ITM.ITEM_ID = '0239024')) OR (ITM.ITEM_ID = '0239025')) OR (ITM.ITEM_ID = '0244876')) OR (ITM.ITEM_ID = '0248015')) OR (ITM.ITEM_ID = '0248995')) OR (ITM.ITEM_ID = '0249702')) OR (ITM.ITEM_ID = '0249707')) OR (ITM.ITEM_ID = '0250131')) OR (ITM.ITEM_ID = '0250136')) OR (ITM.ITEM_ID = '0250837')) OR (ITM.ITEM_ID = '0251459')) OR (ITM.ITEM_ID = '0253778')) OR (ITM.ITEM_ID = '0254028')) OR (ITM.ITEM_ID = '0256796')) OR (ITM.ITEM_ID = '0257759')) OR (ITM.ITEM_ID = '0258263')) OR (ITM.ITEM_ID = '0259170')) OR (ITM.ITEM_ID = '0259260')) OR (ITM.ITEM_ID = '0259261')) OR (ITM.ITEM_ID = '0259262')) OR (ITM.ITEM_ID = '0259268')) OR (ITM.ITEM_ID = '0260047')) OR (ITM.ITEM_ID = '0262093')) OR (ITM.ITEM_ID = '0267128')) OR (ITM.ITEM_ID = '0267641')) OR (ITM.ITEM_ID = '0267643')) OR (ITM.ITEM_ID = '0281154')) OR (ITM.ITEM_ID = '0281156')) OR (ITM.ITEM_ID = '0281159')) OR (ITM.ITEM_ID = '0281227')) OR (ITM.ITEM_ID = '0294508')) OR (ITM.ITEM_ID = '0297232')) OR (ITM.ITEM_ID = '0297461')) OR (ITM.ITEM_ID = '0301742')) OR (ITM.ITEM_ID = '0310596')) OR (ITM.ITEM_ID = '0326662')) OR (ITM.ITEM_ID = '0326664')) OR (ITM.ITEM_ID = '0326666')) OR (ITM.ITEM_ID = '0326668')) OR (ITM.ITEM_ID = '0326670')) OR (ITM.ITEM_ID = '0326672')) OR (ITM.ITEM_ID = '0326676')) OR (ITM.ITEM_ID = '0326745')) OR (ITM.ITEM_ID = '0326828')) OR (ITM.ITEM_ID = '0326829')) OR (ITM.ITEM_ID = '0326831')) OR (ITM.ITEM_ID = '0326833')) OR (ITM.ITEM_ID = '0326836')) OR (ITM.ITEM_ID = '0326838')) OR (ITM.ITEM_ID = '0326839')) OR (ITM.ITEM_ID = '0326933')) OR (ITM.ITEM_ID = '0345841')) OR (ITM.ITEM_ID = '0345845')) OR (ITM.ITEM_ID = '0345847')) OR (ITM.ITEM_ID = '0345989')) OR (ITM.ITEM_ID = '0345998')) OR (ITM.ITEM_ID = '0409876')) OR (ITM.ITEM_ID = '0409877')) OR (ITM.ITEM_ID = '0424946')) OR (ITM.ITEM_ID = '430004 ')) OR (ITM.ITEM_ID = '430086 ')) OR (ITM.ITEM_ID = '430126 ')) OR (ITM.ITEM_ID = '0529668')) OR (ITM.ITEM_ID = '0529714')) OR (ITM.ITEM_ID = '0529800')) OR (ITM.ITEM_ID = '0529822')) OR (ITM.ITEM_ID = '0530096')) OR (ITM.ITEM_ID = '0530097')) OR (ITM.ITEM_ID = '0530106')) OR (ITM.ITEM_ID = '0530107')) OR (ITM.ITEM_ID = '0530114')) OR (ITM.ITEM_ID = '0530116')) OR (ITM.ITEM_ID = '0530117')) OR (ITM.ITEM_ID = '0530323')) OR (ITM.ITEM_ID = '0530487')) OR (ITM.ITEM_ID = '0530714')) OR (ITM.ITEM_ID = '580110 ')) OR (ITM.ITEM_ID = '580112 ')) OR (ITM.ITEM_ID = '584004 ')) OR (ITM.ITEM_ID = '0584008')) OR (ITM.ITEM_ID = '0584056')) OR (ITM.ITEM_ID = '0600000')) OR (ITM.ITEM_ID = '0600064')) OR (ITM.ITEM_ID = '0600071')) OR (ITM.ITEM_ID = '0600078')) OR (ITM.ITEM_ID = '0600125')) OR (ITM.ITEM_ID = '0600372')) OR (ITM.ITEM_ID = '0600405')) OR (ITM.ITEM_ID = '0600537')) OR (ITM.ITEM_ID = '0600750')) OR (ITM.ITEM_ID = '0600857')) OR (ITM.ITEM_ID = '0600905')) OR (ITM.ITEM_ID = '0600908')) OR (ITM.ITEM_ID = '0600966')) OR (ITM.ITEM_ID = '0600967')) OR (ITM.ITEM_ID = '0601171')) OR (ITM.ITEM_ID = '0601293')) OR (ITM.ITEM_ID = '0601414')) OR (ITM.ITEM_ID = '0601473')) OR (ITM.ITEM_ID = '0601475')) OR (ITM.ITEM_ID = '0601480')) OR (ITM.ITEM_ID = '0601482')) OR (ITM.ITEM_ID = '0601702')) OR (ITM.ITEM_ID = '0601762')) OR (ITM.ITEM_ID = '0601840')) OR (ITM.ITEM_ID = '0601843')) OR (ITM.ITEM_ID = '0601845')) OR (ITM.ITEM_ID = '0601847')) OR (ITM.ITEM_ID = '0601849')) OR (ITM.ITEM_ID = '0602090')) OR (ITM.ITEM_ID = '0602095')) OR (ITM.ITEM_ID = '0602099')) OR (ITM.ITEM_ID = '0602141')) OR (ITM.ITEM_ID = '0602223')) OR (ITM.ITEM_ID = '0602464')) OR (ITM.ITEM_ID = '0602937')) OR (ITM.ITEM_ID = '0603963')) OR (ITM.ITEM_ID = '0604021')) OR (ITM.ITEM_ID = '0604344')) OR (ITM.ITEM_ID = '0604424')) OR (ITM.ITEM_ID = '0604770')) OR (ITM.ITEM_ID = '0604771')) OR (ITM.ITEM_ID = '0604782')) OR (ITM.ITEM_ID = '0604848')) OR (ITM.ITEM_ID = '0604870')) OR (ITM.ITEM_ID = '0604937')) OR (ITM.ITEM_ID = '0604938')) OR (ITM.ITEM_ID = '0604940')) OR (ITM.ITEM_ID = '0604941')) OR (ITM.ITEM_ID = '0606188')) OR (ITM.ITEM_ID = '0606222')) OR (ITM.ITEM_ID = '0606229')) OR (ITM.ITEM_ID = '0606404')) OR (ITM.ITEM_ID = '0606407')) OR (ITM.ITEM_ID = '0606408')) OR (ITM.ITEM_ID = '0606599')) OR (ITM.ITEM_ID = '0608306')) OR (ITM.ITEM_ID = '0608449')) OR (ITM.ITEM_ID = '0608614')) OR (ITM.ITEM_ID = '0608640')) OR (ITM.ITEM_ID = '0609059')) OR (ITM.ITEM_ID = '0609522')) OR (ITM.ITEM_ID = '0609574')) OR (ITM.ITEM_ID = '0611196')) OR (ITM.ITEM_ID = '0611788')) OR (ITM.ITEM_ID = '0611979')) OR (ITM.ITEM_ID = '0612187')) OR (ITM.ITEM_ID = '0613000')) OR (ITM.ITEM_ID = '0613001')) OR (ITM.ITEM_ID = '0613290')) OR (ITM.ITEM_ID = '0613293')) OR (ITM.ITEM_ID = '0613296')) OR (ITM.ITEM_ID = '0614163')) OR (ITM.ITEM_ID = '0614184')) OR (ITM.ITEM_ID = '0616075')) OR (ITM.ITEM_ID = '0616097')) OR (ITM.ITEM_ID = '0616822')) OR (ITM.ITEM_ID = '0616823')) OR (ITM.ITEM_ID = '0616826')) OR (ITM.ITEM_ID = '0616827')) OR (ITM.ITEM_ID = '0616828')) OR (ITM.ITEM_ID = '0617068')) OR (ITM.ITEM_ID = '0617087')) OR (ITM.ITEM_ID = '0617265')) OR (ITM.ITEM_ID = '0617284')) OR (ITM.ITEM_ID = '0617399')) OR (ITM.ITEM_ID = '0617401')) OR (ITM.ITEM_ID = '0617406')) OR (ITM.ITEM_ID = '0617928')) OR (ITM.ITEM_ID = '0618236')) OR (ITM.ITEM_ID = '0618700')) OR (ITM.ITEM_ID = '0618703')) OR (ITM.ITEM_ID = '0618964')) OR (ITM.ITEM_ID = '0619463')) OR (ITM.ITEM_ID = '0619754')) OR (ITM.ITEM_ID = '0619869')) OR (ITM.ITEM_ID = '0619873')) OR (ITM.ITEM_ID = '0620315')) OR (ITM.ITEM_ID = '0620316')) OR (ITM.ITEM_ID = '0620320')) OR (ITM.ITEM_ID = '650113 ')) OR (ITM.ITEM_ID = '650143 ')) OR (ITM.ITEM_ID = '0660001')) OR (ITM.ITEM_ID = '0682337')) OR (ITM.ITEM_ID = '0682901')) OR (ITM.ITEM_ID = '0690870')) OR (ITM.ITEM_ID = '0690871')) OR (ITM.ITEM_ID = '0690872')) OR (ITM.ITEM_ID = '0690873')) OR (ITM.ITEM_ID = '0690890')) OR (ITM.ITEM_ID = '0690891')) OR (ITM.ITEM_ID = '0701504')) OR (ITM.ITEM_ID = '0709067')) OR (ITM.ITEM_ID = '0710590')) OR (ITM.ITEM_ID = '0710591')) OR (ITM.ITEM_ID = '0712315')) OR (ITM.ITEM_ID = '0713600')) OR (ITM.ITEM_ID = '0713636')) OR (ITM.ITEM_ID = '0713637')) OR (ITM.ITEM_ID = '0713638')) OR (ITM.ITEM_ID = '0713640')) OR (ITM.ITEM_ID = '0715845')) OR (ITM.ITEM_ID = '0717493')) OR (ITM.ITEM_ID = '0717531')) OR (ITM.ITEM_ID = '0719814')) OR (ITM.ITEM_ID = '0719817')) OR (ITM.ITEM_ID = '0719818')) OR (ITM.ITEM_ID = '0719859')) OR (ITM.ITEM_ID = '0720316')) OR (ITM.ITEM_ID = '0727268')) OR (ITM.ITEM_ID = '0727836')) OR (ITM.ITEM_ID = '0747384')) OR (ITM.ITEM_ID = '0747403')) OR (ITM.ITEM_ID = '0775462')) OR (ITM.ITEM_ID = '0800019')) OR (ITM.ITEM_ID = '0800205')) OR (ITM.ITEM_ID = '0800280')) OR (ITM.ITEM_ID = '0800500')) OR (ITM.ITEM_ID = '0800503')) OR (ITM.ITEM_ID = '0800540')) OR (ITM.ITEM_ID = '0805017')) OR (ITM.ITEM_ID = '0805598')) OR (ITM.ITEM_ID = '0806789')) OR (ITM.ITEM_ID = '0806940')) OR (ITM.ITEM_ID = '0806941')) OR (ITM.ITEM_ID = '0806942')) OR (ITM.ITEM_ID = '0806943')) OR (ITM.ITEM_ID = '0807119')) OR (ITM.ITEM_ID = '0808300')) OR (ITM.ITEM_ID = '0808302')) OR (ITM.ITEM_ID = '0808372')) OR (ITM.ITEM_ID = '0808483')) OR (ITM.ITEM_ID = '0811065')) OR (ITM.ITEM_ID = '0812264')) OR (ITM.ITEM_ID = '0812355')) OR (ITM.ITEM_ID = '0812357')) OR (ITM.ITEM_ID = '0812661')) OR (ITM.ITEM_ID = '0812687')) OR (ITM.ITEM_ID = '0812765')) OR (ITM.ITEM_ID = '0812847')) OR (ITM.ITEM_ID = '0814625')) OR (ITM.ITEM_ID = '0814626')) OR (ITM.ITEM_ID = '0814661')) OR (ITM.ITEM_ID = '0815012')) OR (ITM.ITEM_ID = '0815056')) OR (ITM.ITEM_ID = '0815528')) OR (ITM.ITEM_ID = '0815610')) OR (ITM.ITEM_ID = '0815944')) OR (ITM.ITEM_ID = '0815954')) OR (ITM.ITEM_ID = '0816052')) OR (ITM.ITEM_ID = '0816731')) OR (ITM.ITEM_ID = '0817748')) OR (ITM.ITEM_ID = '0819766')) OR (ITM.ITEM_ID = '0821221')) OR (ITM.ITEM_ID = '0822601')) OR (ITM.ITEM_ID = '0822602')) OR (ITM.ITEM_ID = '0822603')) OR (ITM.ITEM_ID = '0822704')) OR (ITM.ITEM_ID = '0824064')) OR (ITM.ITEM_ID = '0824747')) OR (ITM.ITEM_ID = '0826362')) OR (ITM.ITEM_ID = '0826632')) OR (ITM.ITEM_ID = '0826920')) OR (ITM.ITEM_ID = '0826922')) OR (ITM.ITEM_ID = '0831227')) OR (ITM.ITEM_ID = '0835709')) OR (ITM.ITEM_ID = '0836490')) OR (ITM.ITEM_ID = '0838471')) OR (ITM.ITEM_ID = '0838641')) OR (ITM.ITEM_ID = '0838642')) OR (ITM.ITEM_ID = '0838646')) OR (ITM.ITEM_ID = '0838653')) OR (ITM.ITEM_ID = '0840082')) OR (ITM.ITEM_ID = '0840464')) OR (ITM.ITEM_ID = '0844211')) OR (ITM.ITEM_ID = '0844216')) OR (ITM.ITEM_ID = '0851670')) OR (ITM.ITEM_ID = '0852582')) OR (ITM.ITEM_ID = '0853934')) OR (ITM.ITEM_ID = '0853967')) OR (ITM.ITEM_ID = '0853975')) OR (ITM.ITEM_ID = '0853984')) OR (ITM.ITEM_ID = '0854006')) OR (ITM.ITEM_ID = '0854165')) OR (ITM.ITEM_ID = '0858092')) OR (ITM.ITEM_ID = '0861562')) OR (ITM.ITEM_ID = '0867630')) OR (ITM.ITEM_ID = '0868457')) OR (ITM.ITEM_ID = '0877504')) OR (ITM.ITEM_ID = '0877515')) OR (ITM.ITEM_ID = '0878374')) OR (ITM.ITEM_ID = '0878384')) OR (ITM.ITEM_ID = '0878448')) OR (ITM.ITEM_ID = '0878495')) OR (ITM.ITEM_ID = '0878570')) OR (ITM.ITEM_ID = '0879488')) OR (ITM.ITEM_ID = '0879504')) OR (ITM.ITEM_ID = '0894002')) OR (ITM.ITEM_ID = '0894005')) OR (ITM.ITEM_ID = '0894021')) OR (ITM.ITEM_ID = '0894028')) OR (ITM.ITEM_ID = '1000407')) OR (ITM.ITEM_ID = '1000723')) OR (ITM.ITEM_ID = '1000844')) OR (ITM.ITEM_ID = '1000845')) OR (ITM.ITEM_ID = '1001866')) OR (ITM.ITEM_ID = '1001873')) OR (ITM.ITEM_ID = '1001889')) OR (ITM.ITEM_ID = '1001894')) OR (ITM.ITEM_ID = '1001895')) OR (ITM.ITEM_ID = '1001897')) OR (ITM.ITEM_ID = '1001898')) OR (ITM.ITEM_ID = '1001944')) OR (ITM.ITEM_ID = '1002043')) OR (ITM.ITEM_ID = '1002650')) OR (ITM.ITEM_ID = '1002864')) OR (ITM.ITEM_ID = '1003388')) OR (ITM.ITEM_ID = '1003389')) OR (ITM.ITEM_ID = '1005280')) OR (ITM.ITEM_ID = '1006189')) OR (ITM.ITEM_ID = '1006191')) OR (ITM.ITEM_ID = '1006223')) OR (ITM.ITEM_ID = '1006309')) OR (ITM.ITEM_ID = '1006668')) OR (ITM.ITEM_ID = '1006755')) OR (ITM.ITEM_ID = '1007002')) OR (ITM.ITEM_ID = '1007003')) OR (ITM.ITEM_ID = '1007005')) OR (ITM.ITEM_ID = '1007076')) OR (ITM.ITEM_ID = '1007251')) OR (ITM.ITEM_ID = '1007930')) OR (ITM.ITEM_ID = '1008338')) OR (ITM.ITEM_ID = '1008341')) OR (ITM.ITEM_ID = '1008541')) OR (ITM.ITEM_ID = '1008542')) OR (ITM.ITEM_ID = '1009005')) OR (ITM.ITEM_ID = '1010010')) OR (ITM.ITEM_ID = '1010356')) OR (ITM.ITEM_ID = '1010413')) OR (ITM.ITEM_ID = '1010414')) OR (ITM.ITEM_ID = '1011196')) OR (ITM.ITEM_ID = '1011197')) OR (ITM.ITEM_ID = '1011540')) OR (ITM.ITEM_ID = '1011971')) OR (ITM.ITEM_ID = '1012197')) OR (ITM.ITEM_ID = '1012345')) OR (ITM.ITEM_ID = '1013502')) OR (ITM.ITEM_ID = '1013680')) OR (ITM.ITEM_ID = '1014251')) OR (ITM.ITEM_ID = '1014346')) OR (ITM.ITEM_ID = '1014348')) OR (ITM.ITEM_ID = '1014352')) OR (ITM.ITEM_ID = '1014358')) OR (ITM.ITEM_ID = '1014413')) OR (ITM.ITEM_ID = '1014522')) OR (ITM.ITEM_ID = '1014523')) OR (ITM.ITEM_ID = '1016040')) OR (ITM.ITEM_ID = '1016913')) OR (ITM.ITEM_ID = '1017215')) OR (ITM.ITEM_ID = '1017222')) OR (ITM.ITEM_ID = '1017223')) OR (ITM.ITEM_ID = '1017224')) OR (ITM.ITEM_ID = '1017225')) OR (ITM.ITEM_ID = '1017249')) OR (ITM.ITEM_ID = '1017351')) OR (ITM.ITEM_ID = '1017966')) OR (ITM.ITEM_ID = '1019543')) OR (ITM.ITEM_ID = '1023045')) OR (ITM.ITEM_ID = '1024282')) OR (ITM.ITEM_ID = '1024344')) OR (ITM.ITEM_ID = '1024431')) OR (ITM.ITEM_ID = '1024701')) OR (ITM.ITEM_ID = '1024702')) OR (ITM.ITEM_ID = '1024704')) OR (ITM.ITEM_ID = '1024793')) OR (ITM.ITEM_ID = '1024818')) OR (ITM.ITEM_ID = '1024820')) OR (ITM.ITEM_ID = '1025723')) OR (ITM.ITEM_ID = '1025724')) OR (ITM.ITEM_ID = '1025725')) OR (ITM.ITEM_ID = '1025731')) OR (ITM.ITEM_ID = '1025732')) OR (ITM.ITEM_ID = '1025733')) OR (ITM.ITEM_ID = '1027415')) OR (ITM.ITEM_ID = '1028541')) OR (ITM.ITEM_ID = '1029616')) OR (ITM.ITEM_ID = '1029618')) OR (ITM.ITEM_ID = '1033393')) OR (ITM.ITEM_ID = '1043180')) OR (ITM.ITEM_ID = '1046232')) OR (ITM.ITEM_ID = '1046233')) OR (ITM.ITEM_ID = '1046234')) OR (ITM.ITEM_ID = '1046405')) OR (ITM.ITEM_ID = '1047364')) OR (ITM.ITEM_ID = '1047366')) OR (ITM.ITEM_ID = '1047369')) OR (ITM.ITEM_ID = '1047370')) OR (ITM.ITEM_ID = '1047965')) OR (ITM.ITEM_ID = '1048965')) OR (ITM.ITEM_ID = '1049336')) OR (ITM.ITEM_ID = '1049936')) OR (ITM.ITEM_ID = '1050017')) OR (ITM.ITEM_ID = '1050020')) OR (ITM.ITEM_ID = '1050021')) OR (ITM.ITEM_ID = '1050022')) OR (ITM.ITEM_ID = '1050024')) OR (ITM.ITEM_ID = '1050025')) OR (ITM.ITEM_ID = '1050041')) OR (ITM.ITEM_ID = '1050042')) OR (ITM.ITEM_ID = '1050044')) OR (ITM.ITEM_ID = '1050045')) OR (ITM.ITEM_ID = '1050046')) OR (ITM.ITEM_ID = '1050047')) OR (ITM.ITEM_ID = '1050069')) OR (ITM.ITEM_ID = '1050072')) OR (ITM.ITEM_ID = '1050078')) OR (ITM.ITEM_ID = '1050079')) OR (ITM.ITEM_ID = '1050123')) OR (ITM.ITEM_ID = '1050142')) OR (ITM.ITEM_ID = '1050145')) OR (ITM.ITEM_ID = '1050159')) OR (ITM.ITEM_ID = '1050161')) OR (ITM.ITEM_ID = '1050162')) OR (ITM.ITEM_ID = '1050163')) OR (ITM.ITEM_ID = '1050560')) OR (ITM.ITEM_ID = '1051217')) OR (ITM.ITEM_ID = '1051241')) OR (ITM.ITEM_ID = '1051302')) OR (ITM.ITEM_ID = '1051303')) OR (ITM.ITEM_ID = '1051304')) OR (ITM.ITEM_ID = '1051305')) OR (ITM.ITEM_ID = '1053007')) OR (ITM.ITEM_ID = '1053192')) OR (ITM.ITEM_ID = '1054100')) OR (ITM.ITEM_ID = '1054257')) OR (ITM.ITEM_ID = '1054259')) OR (ITM.ITEM_ID = '1054260')) OR (ITM.ITEM_ID = '1054434')) OR (ITM.ITEM_ID = '1056239')) OR (ITM.ITEM_ID = '1056429')) OR (ITM.ITEM_ID = '1056431')) OR (ITM.ITEM_ID = '1056439')) OR (ITM.ITEM_ID = '1056623')) OR (ITM.ITEM_ID = '1068102')) OR (ITM.ITEM_ID = '1089000')) OR (ITM.ITEM_ID = '1089020')) OR (ITM.ITEM_ID = '1089060')) OR (ITM.ITEM_ID = '1090608')) OR (ITM.ITEM_ID = '1130825')) OR (ITM.ITEM_ID = '1131951')) OR (ITM.ITEM_ID = '1136106')) OR (ITM.ITEM_ID = '1136110')) OR (ITM.ITEM_ID = '1136114')) OR (ITM.ITEM_ID = '1137965')) OR (ITM.ITEM_ID = '1153017')) OR (ITM.ITEM_ID = '1153021')) OR (ITM.ITEM_ID = '1153025')) OR (ITM.ITEM_ID = '1153033')) OR (ITM.ITEM_ID = '1301645')) OR (ITM.ITEM_ID = '1301646')) OR (ITM.ITEM_ID = '1301647')) OR (ITM.ITEM_ID = '1301648')) OR (ITM.ITEM_ID = '1307446')) OR (ITM.ITEM_ID = '1307447')) OR (ITM.ITEM_ID = '1307448')) OR (ITM.ITEM_ID = '1307449')) OR (ITM.ITEM_ID = '1323390')) OR (ITM.ITEM_ID = '1327172')) OR (ITM.ITEM_ID = '1327173')) OR (ITM.ITEM_ID = '1327174')) OR (ITM.ITEM_ID = '1327175')) OR (ITM.ITEM_ID = '1327176')) OR (ITM.ITEM_ID = '1327280')) OR (ITM.ITEM_ID = '1329833')) OR (ITM.ITEM_ID = '1330199')) OR (ITM.ITEM_ID = '1333624')) OR (ITM.ITEM_ID = '1333625')) OR (ITM.ITEM_ID = '1333626')) OR (ITM.ITEM_ID = '1333627')) OR (ITM.ITEM_ID = '1334808')) OR (ITM.ITEM_ID = '1334809')) OR (ITM.ITEM_ID = '1334810')) OR (ITM.ITEM_ID = '1334811')) OR (ITM.ITEM_ID = '1334813')) OR (ITM.ITEM_ID = '1334814')) OR (ITM.ITEM_ID = '1334815')) OR (ITM.ITEM_ID = '1334818')) OR (ITM.ITEM_ID = '1334819')) OR (ITM.ITEM_ID = '1334820')) OR (ITM.ITEM_ID = '1335593')) OR (ITM.ITEM_ID = '1602152')) OR (ITM.ITEM_ID = '1602179')) OR (ITM.ITEM_ID = '1614539')) OR (ITM.ITEM_ID = '1614554')) OR (ITM.ITEM_ID = '1614562')) OR (ITM.ITEM_ID = '1614564')) OR (ITM.ITEM_ID = '1614595')) OR (ITM.ITEM_ID = '1615241')) OR (ITM.ITEM_ID = '1615242')) OR (ITM.ITEM_ID = '1615243')) OR (ITM.ITEM_ID = '1615252')) OR (ITM.ITEM_ID = '1615259')) OR (ITM.ITEM_ID = '1615260')) OR (ITM.ITEM_ID = '1615261')) OR (ITM.ITEM_ID = '1615267')) OR (ITM.ITEM_ID = '1615270')) OR (ITM.ITEM_ID = '1615271')) OR (ITM.ITEM_ID = '1615274')) OR (ITM.ITEM_ID = '1615275')) OR (ITM.ITEM_ID = '1615277')) OR (ITM.ITEM_ID = '1615283')) OR (ITM.ITEM_ID = '1615459')) OR (ITM.ITEM_ID = '1615461')) OR (ITM.ITEM_ID = '1615462')) OR (ITM.ITEM_ID = '1615480')) OR (ITM.ITEM_ID = '1616523')) OR (ITM.ITEM_ID = '1616524')) OR (ITM.ITEM_ID = '1616525')) OR (ITM.ITEM_ID = '1616526')) OR (ITM.ITEM_ID = '1616527')) OR (ITM.ITEM_ID = '1616640')) OR (ITM.ITEM_ID = '1616646')) OR (ITM.ITEM_ID = '1617312')) OR (ITM.ITEM_ID = '1617567')) OR (ITM.ITEM_ID = '1617568')) OR (ITM.ITEM_ID = '1617575')) OR (ITM.ITEM_ID = '1617578')) OR (ITM.ITEM_ID = '1619451')) OR (ITM.ITEM_ID = '1619882')) OR (ITM.ITEM_ID = '2105085')) OR (ITM.ITEM_ID = '2105204')) OR (ITM.ITEM_ID = '2105209')) OR (ITM.ITEM_ID = '2105210')) OR (ITM.ITEM_ID = '2105211')) OR (ITM.ITEM_ID = '2105212')) OR (ITM.ITEM_ID = '2105215')) OR (ITM.ITEM_ID = '2105217')) OR (ITM.ITEM_ID = '2105218')) OR (ITM.ITEM_ID = '2105219')) OR (ITM.ITEM_ID = '2105221')) OR (ITM.ITEM_ID = '2112074')) OR (ITM.ITEM_ID = '2112077')) OR (ITM.ITEM_ID = '2112078')) OR (ITM.ITEM_ID = '2112080')) OR (ITM.ITEM_ID = '2112081')) OR (ITM.ITEM_ID = '2112082')) OR (ITM.ITEM_ID = '2112083')) OR (ITM.ITEM_ID = '2112085')) OR (ITM.ITEM_ID = '2112086')) OR (ITM.ITEM_ID = '2112087')) OR (ITM.ITEM_ID = '2112088')) OR (ITM.ITEM_ID = '2112115')) OR (ITM.ITEM_ID = '2112118')) OR (ITM.ITEM_ID = '2112119')) OR (ITM.ITEM_ID = '2112121')) OR (ITM.ITEM_ID = '2112122')) OR (ITM.ITEM_ID = '2112151')) OR (ITM.ITEM_ID = '2112152')) OR (ITM.ITEM_ID = '2112153')) OR (ITM.ITEM_ID = '2112421')) OR (ITM.ITEM_ID = '2115714')) OR (ITM.ITEM_ID = '2115715')) OR (ITM.ITEM_ID = '2116834')) OR (ITM.ITEM_ID = '2119983')) OR (ITM.ITEM_ID = '2119986')) OR (ITM.ITEM_ID = '2119987')) OR (ITM.ITEM_ID = '2119988')) OR (ITM.ITEM_ID = '2121694')) OR (ITM.ITEM_ID = '2127257')) OR (ITM.ITEM_ID = '2127263')) OR (ITM.ITEM_ID = '2127269')) OR (ITM.ITEM_ID = '2127279')) OR (ITM.ITEM_ID = '2127286')) OR (ITM.ITEM_ID = '2127292')) OR (ITM.ITEM_ID = '2127335')) OR (ITM.ITEM_ID = '2127336')) OR (ITM.ITEM_ID = '2127339')) OR (ITM.ITEM_ID = '2127341')) OR (ITM.ITEM_ID = '2127343')) OR (ITM.ITEM_ID = '2127344')) OR (ITM.ITEM_ID = '2127346')) OR (ITM.ITEM_ID = '2135936')) OR (ITM.ITEM_ID = '2135940')) OR (ITM.ITEM_ID = '2140180')) OR (ITM.ITEM_ID = '2140183')) OR (ITM.ITEM_ID = '2140528')) OR (ITM.ITEM_ID = '2141781')) OR (ITM.ITEM_ID = '2161704')) OR (ITM.ITEM_ID = '2161727')) OR (ITM.ITEM_ID = '2163055')) OR (ITM.ITEM_ID = '2163056')) OR (ITM.ITEM_ID = '2169054')) OR (ITM.ITEM_ID = '3163183')) OR (ITM.ITEM_ID = '3238252')) OR (ITM.ITEM_ID = '3238253')) OR (ITM.ITEM_ID = '3276231')) OR (ITM.ITEM_ID = '4134674')) OR (ITM.ITEM_ID = '4203593')) OR (ITM.ITEM_ID = '4203599')) OR (ITM.ITEM_ID = '5100008')) OR (ITM.ITEM_ID = '5100148')) OR (ITM.ITEM_ID = '5100297')) OR (ITM.ITEM_ID = '5100316')) OR (ITM.ITEM_ID = '5100638')) OR (ITM.ITEM_ID = '5100651')) OR (ITM.ITEM_ID = '5126656')) OR (ITM.ITEM_ID = '7000023')) OR (ITM.ITEM_ID = '7000078')) OR (ITM.ITEM_ID = '7003449')) OR (ITM.ITEM_ID = '7005120')) OR (ITM.ITEM_ID = '7011669')) OR (ITM.ITEM_ID = '11562825')) OR (ITM.ITEM_ID = '11562826')) OR (ITM.ITEM_ID = '11562827')) OR (ITM.ITEM_ID = '11620748')) OR (ITM.ITEM_ID = '91000498')) OR (ITM.ITEM_ID = '91096878')) OR (ITM.ITEM_ID = '91129889')) OR (ITM.ITEM_ID = '91182449')) OR (ITM.ITEM_ID = '99110239')) OR (ITM.ITEM_ID = '99110275')) OR (ITM.ITEM_ID = '99110975')) OR (ITM.ITEM_ID = '99249806')) OR (ITM.ITEM_ID = '99331762')) OR (ITM.ITEM_ID = '99331764')) OR (ITM.ITEM_ID = '99331765')) OR (ITM.ITEM_ID = '99332898')) OR (ITM.ITEM_ID = '99332908')) OR (ITM.ITEM_ID = '99332924')) OR (ITM.ITEM_ID = '99381747')) OR (ITM.ITEM_ID = '99393236')) OR (ITM.ITEM_ID = '99448475')) OR (ITM.ITEM_ID = '99448682')) OR (ITM.ITEM_ID = '99474912')) OR (ITM.ITEM_ID = '99474913')) OR (ITM.ITEM_ID = '99475900')) OR (ITM.ITEM_ID = '99475902')) OR (ITM.ITEM_ID = '99490046')) OR (ITM.ITEM_ID = '99492156')) OR (ITM.ITEM_ID = '99499106')) OR (ITM.ITEM_ID = '99499449')) OR (ITM.ITEM_ID = '99529348')) OR (ITM.ITEM_ID = '99541174')) OR (ITM.ITEM_ID = '99541177')) OR (ITM.ITEM_ID = '99569139')) OR (ITM.ITEM_ID = '99592286')) OR (ITM.ITEM_ID = '99595195')) OR (ITM.ITEM_ID = '99869602')) OR (ITM.ITEM_ID = '99874945')) OR (ITM.ITEM_ID = '99875894')) OR (ITM.ITEM_ID = '99887729')) OR (ITM.ITEM_ID = '110120306')) OR (ITM.ITEM_ID = '110142394')) OR (ITM.ITEM_ID = '110345838')) OR (ITM.ITEM_ID = '110345841')) OR (ITM.ITEM_ID = '110345843')) OR (ITM.ITEM_ID = '110345845')) OR (ITM.ITEM_ID = '110345847')) OR (ITM.ITEM_ID = '110345849')) OR (ITM.ITEM_ID = '110345850')) OR (ITM.ITEM_ID = '110345857')) OR (ITM.ITEM_ID = '110600273')) OR (ITM.ITEM_ID = '110600274')) OR (ITM.ITEM_ID = '110600275')) OR (ITM.ITEM_ID = '111000815')) OR (ITM.ITEM_ID = '111001990')) OR (ITM.ITEM_ID = '111002661')) OR (ITM.ITEM_ID = '111002820')) OR (ITM.ITEM_ID = '111002821')) OR (ITM.ITEM_ID = '111002823')) OR (ITM.ITEM_ID = '111005627')) OR (ITM.ITEM_ID = '111017247')) OR (ITM.ITEM_ID = '111024774')) OR (ITM.ITEM_ID = '111024775')) OR (ITM.ITEM_ID = '111024776')) OR (ITM.ITEM_ID = '111024789')) OR (ITM.ITEM_ID = '111024792')) OR (ITM.ITEM_ID = '111024793')) OR (ITM.ITEM_ID = '111024794')) OR (ITM.ITEM_ID = '111024795')) OR (ITM.ITEM_ID = '111024796')) OR (ITM.ITEM_ID = '111024799')) OR (ITM.ITEM_ID = '111024800')) OR (ITM.ITEM_ID = '111024807')) OR (ITM.ITEM_ID = '111024813')) OR (ITM.ITEM_ID = '111024818')) OR (ITM.ITEM_ID = '111024819')) OR (ITM.ITEM_ID = '111024820')) OR (ITM.ITEM_ID = '111050163')) OR (ITM.ITEM_ID = '113238680')) OR (ITM.ITEM_ID = '113239069')) OR (ITM.ITEM_ID = '113239070')) OR (ITM.ITEM_ID = '113239072')) OR (ITM.ITEM_ID = '113239074')) OR (ITM.ITEM_ID = '113239076')) OR (ITM.ITEM_ID = '113239080')) OR (ITM.ITEM_ID = '113239084')) OR (ITM.ITEM_ID = '113239088')) OR (ITM.ITEM_ID = '113239096')) OR (ITM.ITEM_ID = '121001940')) OR (ITM.ITEM_ID = '121049936')) OR (ITM.ITEM_ID = '150812645')) OR (ITM.ITEM_ID = '150812646')) OR (ITM.ITEM_ID = '920092794')) OR (ITM.ITEM_ID = '02558230067')) OR (ITM.ITEM_ID = '02558230127')) OR (ITM.ITEM_ID = '02558230167')) OR (ITM.ITEM_ID = '03854821003')) OR (ITM.ITEM_ID = '0202901V01'));";
+
+    // When:
+    makeRequest(firstStatement);
+    final KsqlErrorMessage result =
+        makeFailingRequest(secondStatement, BAD_REQUEST.code());
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(result.getMessage(),
+        containsString("Statement is too large to parse. "
+            + "This may be caused by having too many nested expressions in the statement."));
+  }
+
+  @Test
   public void shouldUpdateTheLastRequestTime() {
     // When:
     ksqlResource.handleKsqlStatements(securityContext, VALID_EXECUTABLE_REQUEST);
@@ -2375,6 +2542,16 @@ public class KsqlResourceTest {
       final String topicName,
       final LogicalSchema schema
   ) {
+    givenSource(type, sourceName, topicName, schema, Collections.emptySet());
+  }
+
+  private void givenSource(
+      final DataSourceType type,
+      final String sourceName,
+      final String topicName,
+      final LogicalSchema schema,
+      final Set<SourceName> sourceReferences
+  ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
@@ -2382,28 +2559,34 @@ public class KsqlResourceTest {
     );
 
     givenKafkaTopicExists(topicName);
-    if (type == DataSourceType.KSTREAM) {
-      metaStore.putSource(
-          new KsqlStream<>(
-              "statementText",
-              SourceName.of(sourceName),
-              schema,
-              Optional.empty(),
-              false,
-              ksqlTopic
-          ), false);
+    final DataSource source;
+    switch (type) {
+      case KSTREAM:
+        source = new KsqlStream<>(
+            "statementText",
+            SourceName.of(sourceName),
+            schema,
+            Optional.empty(),
+            false,
+            ksqlTopic
+        );
+        break;
+      case KTABLE:
+        source = new KsqlTable<>(
+            "statementText",
+            SourceName.of(sourceName),
+            schema,
+            Optional.empty(),
+            false,
+            ksqlTopic
+        );
+        break;
+      default:
+        throw new IllegalArgumentException(type.toString());
     }
-    if (type == DataSourceType.KTABLE) {
-      metaStore.putSource(
-          new KsqlTable<>(
-              "statementText",
-              SourceName.of(sourceName),
-              schema,
-              Optional.empty(),
-              false,
-              ksqlTopic
-          ), false);
-    }
+
+    metaStore.putSource(source, false);
+    metaStore.addSourceReferences(source.getName(), sourceReferences);
   }
 
   private static Properties getDefaultKsqlConfig() {

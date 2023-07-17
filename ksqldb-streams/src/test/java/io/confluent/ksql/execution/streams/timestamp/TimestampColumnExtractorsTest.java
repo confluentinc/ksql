@@ -19,12 +19,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,23 +33,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TimestampColumnExtractorsTest {
 
-  protected static final Schema K_SCHEMA = SchemaBuilder.struct()
-      .field("K", Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
-
   @Mock
   private Column column;
   @Mock
-  private Struct key;
+  private GenericKey key;
   @Mock
-  private Windowed<Struct> windowedKey;
+  private Windowed<GenericKey> windowedKey;
   @Mock
   private GenericRow value;
 
   @Before
   public void setUp() {
     when(windowedKey.key()).thenReturn(key);
-    when(key.schema()).thenReturn(K_SCHEMA);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -69,7 +62,7 @@ public class TimestampColumnExtractorsTest {
     when(column.namespace()).thenReturn(Namespace.KEY);
     when(column.index()).thenReturn(0);
 
-    when(key.get(K_SCHEMA.fields().get(0))).thenReturn("some value");
+    when(key.get(0)).thenReturn("some value");
 
     final ColumnExtractor extractor = TimestampColumnExtractors.create(column);
 
@@ -86,7 +79,7 @@ public class TimestampColumnExtractorsTest {
     when(column.namespace()).thenReturn(Namespace.KEY);
     when(column.index()).thenReturn(0);
 
-    when(key.get(K_SCHEMA.fields().get(0))).thenReturn("some value");
+    when(key.get(0)).thenReturn("some value");
 
     final ColumnExtractor extractor = TimestampColumnExtractors.create(column);
 

@@ -39,6 +39,8 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DefineVariable;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -321,6 +323,16 @@ public final class SqlFormatter {
       builder.append("INSERT INTO ");
       builder.append(escapedName(node.getTarget()));
       builder.append(" ");
+
+      final String insertProps = node.getProperties().toString();
+      if (!insertProps.isEmpty()) {
+        builder
+            .append(" WITH (")
+            .append(insertProps)
+            .append(")");
+        builder.append(" ");
+      }
+
       process(node.getQuery(), indent);
       return null;
     }
@@ -427,6 +439,24 @@ public final class SqlFormatter {
     }
 
     @Override
+    protected Void visitDescribeStreams(final DescribeStreams node, final Integer context) {
+      builder.append("DESCRIBE STREAMS");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitDescribeTables(final DescribeTables node, final Integer context) {
+      builder.append("DESCRIBE TABLES");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
     protected Void visitUnsetProperty(final UnsetProperty node, final Integer context) {
       builder.append("UNSET '");
       builder.append(node.getPropertyName());
@@ -504,9 +534,11 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitPartitionBy(final PartitionBy node, final Integer indent) {
-      final String expression = formatExpression(node.getExpression());
+      final String expressions = node.getExpressions().stream()
+          .map(SqlFormatter::formatExpression)
+          .collect(Collectors.joining(", "));
 
-      append(indent, "PARTITION BY " + expression)
+      append(indent, "PARTITION BY " + expressions)
           .append('\n');
 
       return null;

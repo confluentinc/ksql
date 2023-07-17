@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -169,7 +169,9 @@ public class JoinNodeTest {
   @Mock
   private SchemaKTable<String> rightSchemaKTable;
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext planBuildContext;
+  @Mock
+  private RuntimeBuildContext executeContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -193,14 +195,17 @@ public class JoinNodeTest {
     when(serviceContext.getTopicClient())
         .thenReturn(mockKafkaTopicClient);
 
-    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
-    when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
-    when(ksqlStreamBuilder.withKsqlConfig(any())).thenReturn(ksqlStreamBuilder);
-    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+    when(planBuildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(planBuildContext.getServiceContext()).thenReturn(serviceContext);
+    when(planBuildContext.withKsqlConfig(any())).thenReturn(planBuildContext);
+    when(planBuildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(planBuildContext.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
+    when(executeContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(executeContext.getStreamsBuilder()).thenReturn(builder);
+    when(executeContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(executeContext.getProcessingLogger(any())).thenReturn(processLogger);
 
     when(left.getSchema()).thenReturn(LEFT_NODE_SCHEMA);
     when(right.getSchema()).thenReturn(RIGHT_NODE_SCHEMA);
@@ -214,7 +219,6 @@ public class JoinNodeTest {
 
     when(joinKey.resolveKeyName(any(), any())).thenReturn(SYNTH_KEY);
 
-    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);
 
     setUpSource(left, VALUE_FORMAT, leftSourceNode, leftSource);
     setUpSource(right, OTHER_FORMAT, rightSourceNode, rightSource);
@@ -275,7 +279,7 @@ public class JoinNodeTest {
         new JoinNode(nodeId, LEFT, joinKey, true, left, right, WITHIN_EXPRESSION, "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKStream).leftJoin(
@@ -298,7 +302,7 @@ public class JoinNodeTest {
         new JoinNode(nodeId, INNER, joinKey, true, left, right, WITHIN_EXPRESSION, "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKStream).join(
@@ -321,7 +325,7 @@ public class JoinNodeTest {
         new JoinNode(nodeId, OUTER, joinKey, true, left, right, WITHIN_EXPRESSION, "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKStream).outerJoin(
@@ -346,7 +350,7 @@ public class JoinNodeTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> joinNode.buildStream(ksqlStreamBuilder)
+        () -> joinNode.buildStream(planBuildContext)
     );
 
     // Then:
@@ -364,7 +368,7 @@ public class JoinNodeTest {
         "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKStream).leftJoin(
@@ -385,7 +389,7 @@ public class JoinNodeTest {
         "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKStream).leftJoin(
@@ -406,7 +410,7 @@ public class JoinNodeTest {
         "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKStream).join(
@@ -429,7 +433,7 @@ public class JoinNodeTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> joinNode.buildStream(ksqlStreamBuilder)
+        () -> joinNode.buildStream(planBuildContext)
     );
 
     // Then:
@@ -452,7 +456,7 @@ public class JoinNodeTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> joinNode.buildStream(ksqlStreamBuilder)
+        () -> joinNode.buildStream(planBuildContext)
     );
 
     // Then:
@@ -470,7 +474,7 @@ public class JoinNodeTest {
         "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKTable).join(
@@ -490,7 +494,7 @@ public class JoinNodeTest {
         "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKTable).leftJoin(
@@ -510,7 +514,7 @@ public class JoinNodeTest {
         "KAFKA");
 
     // When:
-    joinNode.buildStream(ksqlStreamBuilder);
+    joinNode.buildStream(planBuildContext);
 
     // Then:
     verify(leftSchemaKTable).outerJoin(
@@ -535,7 +539,7 @@ public class JoinNodeTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> joinNode.buildStream(ksqlStreamBuilder)
+        () -> joinNode.buildStream(planBuildContext)
     );
 
     // Then:
@@ -787,7 +791,7 @@ public class JoinNodeTest {
       final PlanNode node,
       final SchemaKTable<?> table
   ) {
-    when(node.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKTable) table);
+    when(node.buildStream(planBuildContext)).thenReturn((SchemaKTable) table);
     when(node.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
   }
 
@@ -796,7 +800,7 @@ public class JoinNodeTest {
       final PlanNode node,
       final SchemaKStream stream
   ) {
-    when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
+    when(node.buildStream(planBuildContext)).thenReturn(stream);
     when(node.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
   }
 
@@ -810,12 +814,12 @@ public class JoinNodeTest {
 
   private void buildJoin(final String queryString) {
     buildJoinNode(queryString);
-    final SchemaKStream<?> stream = joinNode.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> stream = joinNode.buildStream(planBuildContext);
     if (stream instanceof SchemaKTable) {
       final SchemaKTable<?> table = (SchemaKTable<?>) stream;
-      table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      table.getSourceTableStep().build(new KSPlanBuilder(executeContext));
     } else {
-      stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      stream.getSourceStep().build(new KSPlanBuilder(executeContext));
     }
   }
 

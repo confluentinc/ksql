@@ -24,7 +24,6 @@ features of the other services it communicates with, like {{ site.aktm }} and
         - [Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-and-external-for-http-basic-authentication)
     - [Securing headless deployments](#securing-headless-deployments)
   * [Securing communication with other services](#securing-communication-with-other-services)
-    - [Configure ksqlDB for Confluent Control Center](#configure-ksqldb-for-confluent-control-center)
     - [Configure ksqlDB for Secured Confluent Schema Registry](#configure-ksqldb-for-secured-confluent-schema-registry)
     - [Configure ksqlDB for Secured Apache Kafka clusters](#configure-ksqldb-for-secured-apache-kafka-clusters)
         * [Configuring Kafka Encrypted Communication](#configuring-kafka-encrypted-communication)
@@ -130,6 +129,8 @@ Use the following settings to configure the ksqlDB server to use HTTPS:
 
 ```properties
 listeners=https://hostname:port
+ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+ssl.truststore.password=zzzz
 ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
 ssl.keystore.password=xxxx
 ssl.key.password=yyyy
@@ -138,12 +139,10 @@ ssl.key.password=yyyy
 Note the use of the HTTPS protocol in the `listeners` config.
 
 To enable the server to authenticate clients (2-way authentication), use
-the following additional settings:
+the following additional setting:
 
 ```properties
 ssl.client.auth=true
-ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
-ssl.truststore.password=zzzz
 ```
 
 ### Additional server configuration options for HTTPS
@@ -183,6 +182,9 @@ authentication), use the following additional settings:
 ssl.keystore.location=/var/private/ssl/ksql.client.keystore.jks
 ssl.keystore.password=xxxx
 ssl.key.password=<another-secure-password>
+
+# Used to find the key store entry with the given alias in the keystore
+ssl.keystore.alias=<key-store-entry-alias>
 ```
 
 Settings for the CLI can be stored in a suitable file and passed to the
@@ -524,22 +526,12 @@ This section covers how to secure communications of ksqlDB with other services.
 
 The section is split into:
 
-[Configure ksqlDB for Confluent Control Center](#configure-ksqldb-for-confluent-control-center):
-Covers how to secure communication with Confluent Control Center.
-
 [Configure ksqlDB for Secured Confluent Schema Registry](#configure-ksqldb-for-secured-confluent-schema-registry):
 Covers how to secure communication with schema registry.
 
 [Configure ksqlDB for Secured Apache Kafka clusters](#configure-ksqldb-for-secured-apache-kafka-clusters):
 Covers how to secure communication with Kafka.
 
-
-Configure ksqlDB for Confluent Control Center
--------------------------------------------
-
-You can use ksqlDB with a Kafka cluster in {{ site.c3 }}. For more
-information, see
-[Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md).
 
 Configure ksqlDB for Secured Confluent Schema Registry
 ------------------------------------------------------
@@ -841,7 +833,7 @@ bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --
 
 #### Interactive ksqlDB clusters
 
-[Interactive ksqlDB clusters](../../../concepts/ksqldb-architecture.md#interactive-deployment)
+[Interactive ksqlDB clusters](/operate-and-deploy/how-it-works#interactive-deployment)
 accept SQL statements from users and hence may require access to a wide
 variety of input and output topics. Add ACLs to appropriate literal and
 prefixed resource patterns to allow ksqlDB access to the input and output
@@ -997,7 +989,7 @@ user.
 
 #### Interactive ksqlDB clusters pre Kafka 2.0
 
-[Interactive ksqlDB clusters](../../../concepts/ksqldb-architecture.md#interactive-deployment),
+[Interactive ksqlDB clusters](/operate-and-deploy/how-it-works#interactive-deployment),
 (which is the default configuration), require that the authenticated
 ksqlDB user has open access to create, read, write, delete topics, and use
 any consumer group:
@@ -1092,7 +1084,7 @@ Change-log and repartition topics
     All changelog and repartition topics are prefixed with
     `_confluent-ksql-<ksql.service.id>` where `ksql.service.id` defaults
     to `default_`, (for more information, see
-    [ksql.service.id](config-reference.md#ksqlserviceid)), and postfixed with
+    [ksql.service.id](/reference/server-configuration#ksqlserviceid)), and postfixed with
     either `-changelog` or `-repartition`, respectively.
 
 Consumer groups

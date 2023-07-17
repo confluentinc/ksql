@@ -72,4 +72,6 @@ public interface ImmutableAnalysis {
   SourceSchemas getFromSourceSchemas(boolean postAggregate);
 
   AliasedDataSource getFrom();
+
+  boolean getOrReplace();
 }

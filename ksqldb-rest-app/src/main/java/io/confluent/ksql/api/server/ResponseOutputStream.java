@@ -34,15 +34,15 @@ An OutputStream that writes to a HttpServerResponse.
 This is only used by legacy streaming endpoints from the old API which work with output streams.
  */
 public class ResponseOutputStream extends OutputStream {
-
-  private static final int WRITE_TIMEOUT_MS = 10 * 60000;
   private static final int BLOCK_TIME_MS = 100;
 
   private final HttpServerResponse response;
+  private final int writeTimeoutMs;
   private volatile boolean closed;
 
-  public ResponseOutputStream(final HttpServerResponse response) {
+  public ResponseOutputStream(final HttpServerResponse response, final int writeTimeoutMs) {
     this.response = response;
+    this.writeTimeoutMs = writeTimeoutMs;
   }
 
   @Override
@@ -107,7 +107,7 @@ public class ResponseOutputStream extends OutputStream {
       } catch (Exception e) {
         throw new KsqlException(e);
       }
-    } while (System.currentTimeMillis() - start < WRITE_TIMEOUT_MS);
+    } while (System.currentTimeMillis() - start < writeTimeoutMs);
     throw new KsqlException("Timed out waiting to write to client");
   }
 

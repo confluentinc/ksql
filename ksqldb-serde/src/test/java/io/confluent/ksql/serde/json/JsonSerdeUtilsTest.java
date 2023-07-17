@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import java.io.IOException;
+import java.sql.Timestamp;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -140,6 +141,28 @@ public class JsonSerdeUtilsTest {
   public void shouldConvertStringToDoubleCorrectly() {
     final Double d = JsonSerdeUtils.toDouble(JsonNodeFactory.instance.textNode("1.0"));
     assertThat(d, equalTo(1.0));
+  }
+
+  @Test
+  public void shouldConvertLongToTimestampCorrectly() {
+    final Timestamp d = JsonSerdeUtils.toTimestamp(JsonNodeFactory.instance.numberNode(100));
+    assertThat(d.getTime(), equalTo(100L));
+  }
+
+  @Test
+  public void shouldConvertStringToTimestampCorrectly() {
+    final Timestamp d = JsonSerdeUtils.toTimestamp(JsonNodeFactory.instance.textNode("100"));
+    assertThat(d.getTime(), equalTo(100L));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldNotConvertIncorrectStringToTimestamp() {
+    JsonSerdeUtils.toTimestamp(JsonNodeFactory.instance.textNode("ha"));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldFailWhenConvertingIncompatibleTimestamp() {
+    JsonSerdeUtils.toTimestamp(JsonNodeFactory.instance.booleanNode(false));
   }
 
   @Test(expected = IllegalArgumentException.class)

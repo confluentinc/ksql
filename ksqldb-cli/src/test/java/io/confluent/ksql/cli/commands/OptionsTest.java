@@ -17,6 +17,7 @@ package io.confluent.ksql.cli.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThrows;
@@ -141,6 +142,18 @@ public class OptionsTest {
     // Then:
     assertThat(options.getUserNameAndPassword().map(BasicCredentials::password),
         is(Optional.of("  ")));
+  }
+
+  @Test
+  public void shouldDefineVariables() {
+    // When:
+    final Options options = parse("-d", "env=qa", "-d", "size=1", "--define", "prod=true");
+
+    // Then:
+    assertThat(options.getVariables().size(), is(3));
+    assertThat(options.getVariables(), hasEntry("env", "qa"));
+    assertThat(options.getVariables(), hasEntry("size", "1"));
+    assertThat(options.getVariables(), hasEntry("prod", "true"));
   }
 
   private static Options parse(final String... args) {

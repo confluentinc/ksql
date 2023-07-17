@@ -28,9 +28,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class UdafFactoryInvoker implements FunctionSignature {
+
+  private static final Logger LOG = LoggerFactory.getLogger(UdafFactoryInvoker.class);
 
   private final FunctionName functionName;
   private final ParamType aggregateArgType;
@@ -78,6 +83,11 @@ class UdafFactoryInvoker implements FunctionSignature {
     final Object[] factoryArgs = initArgs.args().toArray();
     try {
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
+
+      if (udaf instanceof Configurable) {
+        ((Configurable) udaf).configure(initArgs.config());
+      }
+
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
         function = new UdafTableAggregateFunction(
@@ -104,6 +114,7 @@ class UdafFactoryInvoker implements FunctionSignature {
       }
       return function;
     } catch (final Exception e) {
+      LOG.error("Failed to invoke UDAF factory method", e);
       throw new KsqlException("Failed to invoke UDAF factory method", e);
     }
   }

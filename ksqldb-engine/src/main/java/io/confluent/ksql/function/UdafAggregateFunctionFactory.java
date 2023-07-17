@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -51,15 +52,16 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
 
   @Override
   public synchronized KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
-      final List<SqlType> argTypeList,
+      final List<SqlArgument> argTypeList,
       final AggregateFunctionInitArguments initArgs
   ) {
-    final List<SqlType> allParams = buildAllParams(argTypeList, initArgs);
+    final List<SqlArgument> allParams = buildAllParams(argTypeList, initArgs);
     final UdafFactoryInvoker creator = udfIndex.getFunction(allParams);
     if (creator == null) {
       throw new KsqlException("There is no aggregate function with name='" + getName()
           + "' that has arguments of type="
           + allParams.stream()
+          .map(SqlArgument::getSqlTypeOrThrow)
           .map(SqlType::baseType)
           .map(Objects::toString)
           .collect(Collectors.joining(",")));
@@ -75,15 +77,16 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
         .collect(Collectors.toList());
   }
 
-  private List<SqlType> buildAllParams(
-      final List<SqlType> argTypeList,
+  private List<SqlArgument> buildAllParams(
+      final List<SqlArgument> argTypeList,
       final AggregateFunctionInitArguments initArgs
   ) {
     if (initArgs.args().isEmpty()) {
       return argTypeList;
     }
 
-    final List<SqlType> allParams = new ArrayList<>(argTypeList.size() + initArgs.args().size());
+    final List<SqlArgument> allParams =
+        new ArrayList<>(argTypeList.size() + initArgs.args().size());
     allParams.addAll(argTypeList);
 
     for (final Object arg : initArgs.args()) {
@@ -97,10 +100,10 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
       try {
         // Only primitive types currently supported:
         final SqlPrimitiveType primitiveType = SqlPrimitiveType.of(baseType);
-        allParams.add(primitiveType);
+        allParams.add(SqlArgument.of(primitiveType));
       } catch (final Exception e) {
         throw new KsqlFunctionException("Only primitive init arguments are supported by UDAF "
-            + getName() + ", but got " + arg);
+            + getName() + ", but got " + arg, e);
       }
     }
 

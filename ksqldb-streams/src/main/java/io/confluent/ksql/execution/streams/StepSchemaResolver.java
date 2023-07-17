@@ -16,7 +16,7 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.execution.plan.StreamGroupByV1;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
@@ -37,7 +38,9 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
+import io.confluent.ksql.execution.plan.TableGroupByV1;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -72,18 +75,21 @@ public final class StepSchemaResolver {
       .put(StreamWindowedAggregate.class, StepSchemaResolver::handleStreamWindowedAggregate)
       .put(StreamFilter.class, StepSchemaResolver::sameSchema)
       .put(StreamFlatMap.class, StepSchemaResolver::handleStreamFlatMap)
+      .put(StreamGroupByV1.class, StepSchemaResolver::handleStreamGroupByV1)
       .put(StreamGroupBy.class, StepSchemaResolver::handleStreamGroupBy)
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
-      .put(StreamSelectKeyV1.class, StepSchemaResolver::handleSelectKeyV1)
-      .put(StreamSelectKey.class, StepSchemaResolver::handleSelectKey)
+      .put(StreamSelectKeyV1.class, StepSchemaResolver::handleStreamSelectKeyV1)
+      .put(StreamSelectKey.class, StepSchemaResolver::handleStreamSelectKey)
       .put(StreamSink.class, StepSchemaResolver::sameSchema)
       .put(StreamSource.class, StepSchemaResolver::handleSource)
       .put(WindowedStreamSource.class, StepSchemaResolver::handleWindowedSource)
       .put(TableAggregate.class, StepSchemaResolver::handleTableAggregate)
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
+      .put(TableGroupByV1.class, StepSchemaResolver::handleTableGroupByV1)
       .put(TableGroupBy.class, StepSchemaResolver::handleTableGroupBy)
       .put(TableSelect.class, StepSchemaResolver::handleTableSelect)
+      .put(TableSelectKey.class, StepSchemaResolver::handleTableSelectKey)
       .put(TableSuppress.class, StepSchemaResolver::sameSchema)
       .put(TableSink.class, StepSchemaResolver::sameSchema)
       .put(TableSource.class, StepSchemaResolver::handleSource)
@@ -174,11 +180,11 @@ public final class StepSchemaResolver {
     );
   }
 
-  private LogicalSchema handleStreamGroupBy(
+  private LogicalSchema handleStreamGroupByV1(
       final LogicalSchema sourceSchema,
-      final StreamGroupBy<?> streamGroupBy
+      final StreamGroupByV1<?> streamGroupBy
   ) {
-    final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
+    final List<CompiledExpression> compiledGroupBy = CodeGenRunner.compileExpressions(
         streamGroupBy.getGroupByExpressions().stream(),
         "Group By",
         sourceSchema,
@@ -186,15 +192,29 @@ public final class StepSchemaResolver {
         functionRegistry
     );
 
-    return GroupByParamsFactory
-        .buildSchema(sourceSchema, compiledGroupBy);
+    return GroupByParamsV1Factory.buildSchema(sourceSchema, compiledGroupBy);
   }
 
-  private LogicalSchema handleTableGroupBy(
+  private LogicalSchema handleStreamGroupBy(
       final LogicalSchema sourceSchema,
-      final TableGroupBy<?> tableGroupBy
+      final StreamGroupBy<?> streamGroupBy
   ) {
-    final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
+    final List<CompiledExpression> compiledGroupBy = CodeGenRunner.compileExpressions(
+        streamGroupBy.getGroupByExpressions().stream(),
+        "Group By",
+        sourceSchema,
+        ksqlConfig,
+        functionRegistry
+    );
+
+    return GroupByParamsFactory.buildSchema(sourceSchema, compiledGroupBy);
+  }
+
+  private LogicalSchema handleTableGroupByV1(
+      final LogicalSchema sourceSchema,
+      final TableGroupByV1<?> tableGroupBy
+  ) {
+    final List<CompiledExpression> compiledGroupBy = CodeGenRunner.compileExpressions(
         tableGroupBy.getGroupByExpressions().stream(),
         "Group By",
         sourceSchema,
@@ -202,8 +222,22 @@ public final class StepSchemaResolver {
         functionRegistry
     );
 
-    return GroupByParamsFactory
-        .buildSchema(sourceSchema, compiledGroupBy);
+    return GroupByParamsV1Factory.buildSchema(sourceSchema, compiledGroupBy);
+  }
+
+  private LogicalSchema handleTableGroupBy(
+      final LogicalSchema sourceSchema,
+      final TableGroupBy<?> tableGroupBy
+  ) {
+    final List<CompiledExpression> compiledGroupBy = CodeGenRunner.compileExpressions(
+        tableGroupBy.getGroupByExpressions().stream(),
+        "Group By",
+        sourceSchema,
+        ksqlConfig,
+        functionRegistry
+    );
+
+    return GroupByParamsFactory.buildSchema(sourceSchema, compiledGroupBy);
   }
 
   private LogicalSchema handleStreamSelect(
@@ -213,7 +247,7 @@ public final class StepSchemaResolver {
     return buildSelectSchema(schema, step.getKeyColumnNames(), step.getSelectExpressions());
   }
 
-  private LogicalSchema handleSelectKeyV1(
+  private LogicalSchema handleStreamSelectKeyV1(
       final LogicalSchema sourceSchema,
       final StreamSelectKeyV1 step
   ) {
@@ -229,13 +263,13 @@ public final class StepSchemaResolver {
         .build();
   }
 
-  private LogicalSchema handleSelectKey(
+  private LogicalSchema handleStreamSelectKey(
       final LogicalSchema sourceSchema,
-      final StreamSelectKey step
+      final StreamSelectKey<?> step
   ) {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
-        step.getKeyExpression(),
+        step.getKeyExpressions(),
         functionRegistry
     );
   }
@@ -295,6 +329,17 @@ public final class StepSchemaResolver {
     return buildSelectSchema(schema, step.getKeyColumnNames(), step.getSelectExpressions());
   }
 
+  private LogicalSchema handleTableSelectKey(
+      final LogicalSchema sourceSchema,
+      final TableSelectKey<?> step
+  ) {
+    return PartitionByParamsFactory.buildSchema(
+        sourceSchema,
+        step.getKeyExpressions(),
+        functionRegistry
+    );
+  }
+
   private LogicalSchema sameSchema(final LogicalSchema schema, final ExecutionStep<?> step) {
     return schema;
   }
@@ -332,7 +377,8 @@ public final class StepSchemaResolver {
         nonAggregateColumns,
         functionRegistry,
         aggregationFunctions,
-        windowedAggregation
+        windowedAggregation,
+        ksqlConfig
     ).getSchema();
   }
 

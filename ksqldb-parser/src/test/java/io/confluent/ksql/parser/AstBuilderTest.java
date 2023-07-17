@@ -26,14 +26,22 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Explain;
@@ -43,10 +51,12 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -275,6 +285,146 @@ public class AstBuilderTest {
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
         new SingleColumn(
             column("COL0"), Optional.of(ColumnName.of("FOO")))
+    ))));
+  }
+
+  @Test
+  public void shouldBuildLambdaFunction() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TRANSFORM_ARRAY(Col4, X => X + 5) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column("COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("X"),
+                            new IntegerLiteral(5))
+                  )
+                )
+            ),
+            Optional.empty())
+    ))));
+  }
+
+  @Test
+  public void shouldBuildLambdaFunctionWithMultipleLambdas() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TRANSFORM_ARRAY(Col4, X => X + 5, (X,Y) => X + Y) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column("COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("X"),
+                            new IntegerLiteral(5))
+                    ),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("X"),
+                            new LambdaVariable("Y")
+                        )
+                    )
+                )
+            ),
+            Optional.empty())
+    ))));
+  }
+
+  @Test
+  public void shouldBuildNestedLambdaFunction() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TRANSFORM_ARRAY(Col4, (X,Y) => TRANSFORM_ARRAY(Col4, X => 5)) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column("COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new FunctionCall(
+                            FunctionName.of("TRANSFORM_ARRAY"),
+                            ImmutableList.of(
+                                column("COL4"),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("X"),
+                                    new IntegerLiteral(5)
+                                )
+                            )
+                        )
+                    )
+                )
+            ),
+            Optional.empty())
+    ))));
+  }
+
+  @Test
+  public void shouldNotBuildLambdaFunctionNotLastArguments() {
+    // Given:
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> givenQuery("SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;")
+    );
+
+    // Then:
+    assertThat(
+        e.getUnloggedMessage(),
+        containsString("line 1:26: mismatched input '=>' expecting {',', ')'}\n" +
+            "Statement: SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;"));
+    assertThat(
+        e.getMessage(),
+        containsString("line 1:26: Syntax error at line 1:26")
+    );
+  }
+
+  @Test
+  public void shouldBuildIntervalUnit() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMPADD(MINUTES, 5, Col4) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TIMESTAMPADD"),
+                ImmutableList.of(
+                    new IntervalUnit(TimeUnit.MINUTES),
+                    new IntegerLiteral(5),
+                    column("COL4")
+                )
+            ),
+            Optional.empty())
     ))));
   }
 

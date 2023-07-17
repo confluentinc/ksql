@@ -31,7 +31,8 @@ import javax.annotation.Nonnull;
     @Type(value = StreamAggregate.class, name = "streamAggregateV1"),
     @Type(value = StreamFilter.class, name = "streamFilterV1"),
     @Type(value = StreamFlatMap.class, name = "streamFlatMapV1"),
-    @Type(value = StreamGroupBy.class, name = "streamGroupByV1"),
+    @Type(value = StreamGroupByV1.class, name = "streamGroupByV1"),
+    @Type(value = StreamGroupBy.class, name = "streamGroupByV2"),
     @Type(value = StreamGroupByKey.class, name = "streamGroupByKeyV1"),
     @Type(value = StreamSelect.class, name = "streamSelectV1"),
     @Type(value = StreamSelectKeyV1.class, name = "streamSelectKeyV1"),
@@ -46,8 +47,10 @@ import javax.annotation.Nonnull;
     @Type(value = WindowedTableSource.class, name = "windowedTableSourceV1"),
     @Type(value = TableAggregate.class, name = "tableAggregateV1"),
     @Type(value = TableFilter.class, name = "tableFilterV1"),
-    @Type(value = TableGroupBy.class, name = "tableGroupByV1"),
+    @Type(value = TableGroupByV1.class, name = "tableGroupByV1"),
+    @Type(value = TableGroupBy.class, name = "tableGroupByV2"),
     @Type(value = TableSelect.class, name = "tableSelectV1"),
+    @Type(value = TableSelectKey.class, name = "tableSelectKeyV1"),
     @Type(value = TableSink.class, name = "tableSinkV1"),
     @Type(value = TableSuppress.class, name = "tableSuppressV1"),
     @Type(value = TableTableJoin.class, name = "tableTableJoinV1")
@@ -59,7 +62,13 @@ public interface ExecutionStep<S> {
   @JsonIgnore
   List<ExecutionStep<?>> getSources();
 
-  S build(PlanBuilder planBuilder);
+  default S build(PlanBuilder planBuilder) {
+    return build(planBuilder, extractPlanInfo(new PlanInfoExtractor()));
+  }
+
+  S build(PlanBuilder planBuilder, PlanInfo planInfo);
+
+  PlanInfo extractPlanInfo(PlanInfoExtractor planInfoExtractor);
 
   /**
    * Checks whether or not this execution step can be safely replaced

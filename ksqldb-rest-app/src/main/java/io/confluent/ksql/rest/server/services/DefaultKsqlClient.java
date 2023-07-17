@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final boolean ownSharedClient;
 
   @VisibleForTesting
-  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps,
+  DefaultKsqlClient(final Optional<String> authHeader,
+      final Map<String, Object> clientProps,
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
     this(
         authHeader,
@@ -83,7 +85,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    return getTarget(target, authHeader)
+    return getTarget(target)
         .postKsqlRequest(sql, requestProperties, Optional.empty());
   }
 
@@ -94,12 +96,35 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {
+
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
         .properties(configOverrides);
 
-    final RestResponse<List<StreamedRow>> resp = getTarget(target, authHeader)
+    final RestResponse<List<StreamedRow>> resp = getTarget(target)
         .postQueryRequest(sql, requestProperties, Optional.empty());
+
+    if (resp.isErroneous()) {
+      return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
+    }
+
+    return RestResponse.successful(resp.getStatusCode(), resp.getResponse());
+  }
+
+  @Override
+  public RestResponse<Integer> makeQueryRequest(
+      final URI serverEndPoint,
+      final String sql,
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties,
+      final Consumer<List<StreamedRow>> rowConsumer
+  ) {
+    final KsqlTarget target = sharedClient
+        .target(serverEndPoint)
+        .properties(configOverrides);
+
+    final RestResponse<Integer> resp = getTarget(target)
+        .postQueryRequest(sql, requestProperties, Optional.empty(), rowConsumer);
 
     if (resp.isErroneous()) {
       return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
@@ -116,7 +141,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    getTarget(target, authHeader)
+    getTarget(target)
         .postAsyncHeartbeatRequest(new KsqlHostInfoEntity(host.host(), host.port()), timestamp)
         .exceptionally(t -> {
           // We send heartbeat requests quite frequently and to nodes that might be down.  We don't
@@ -131,7 +156,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    return getTarget(target, authHeader).getClusterStatus();
+    return getTarget(target).getClusterStatus();
   }
 
   @Override
@@ -142,7 +167,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint);
 
-    getTarget(target, authHeader).postAsyncLagReportingRequest(lagReportingMessage)
+    getTarget(target).postAsyncLagReportingRequest(lagReportingMessage)
         .exceptionally(t -> {
           LOG.debug("Exception in async lag reporting request", t);
           return null;
@@ -156,7 +181,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     }
   }
 
-  private KsqlTarget getTarget(final KsqlTarget target, final Optional<String> authHeader) {
+  private KsqlTarget getTarget(final KsqlTarget target) {
     return authHeader
         .map(target::authorizationHeader)
         .orElse(target);

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory.LocatorFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory.MaterializationFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory.StateStoreFactory;
@@ -38,9 +39,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,7 +63,9 @@ public class KsMaterializationFactoryTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
-  private Serializer<Struct> keySerializer;
+  private Topology topology;
+  @Mock
+  private Serializer<GenericKey> keySerializer;
 
   @Mock
   private LocatorFactory locatorFactory;
@@ -89,7 +92,7 @@ public class KsMaterializationFactoryTest {
         materializationFactory
     );
 
-    when(locatorFactory.create(any(), any(), any(), any(), any())).thenReturn(locator);
+    when(locatorFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(locator);
     when(storeFactory.create(any(), any(), any(), any())).thenReturn(stateStore);
     when(materializationFactory.create(any(), any(), any())).thenReturn(materialization);
 
@@ -113,8 +116,8 @@ public class KsMaterializationFactoryTest {
 
     // When:
     final Optional<KsMaterialization> result = factory
-        .create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-            ksqlConfig, APPLICATION_ID);
+        .create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, Optional.empty(),
+            streamsProperties, ksqlConfig, APPLICATION_ID);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -123,13 +126,14 @@ public class KsMaterializationFactoryTest {
   @Test
   public void shouldBuildLocatorWithCorrectParams() {
     // When:
-    factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-        ksqlConfig, APPLICATION_ID);
+    factory.create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, Optional.empty(),
+        streamsProperties, ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(locatorFactory).create(
         STORE_NAME,
         kafkaStreams,
+        topology,
         keySerializer,
         DEFAULT_APP_SERVER,
         APPLICATION_ID
@@ -139,8 +143,8 @@ public class KsMaterializationFactoryTest {
   @Test
   public void shouldBuildStateStoreWithCorrectParams() {
     // When:
-    factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-        ksqlConfig, APPLICATION_ID);
+    factory.create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, Optional.empty(),
+        streamsProperties, ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(storeFactory).create(
@@ -158,8 +162,8 @@ public class KsMaterializationFactoryTest {
         Optional.of(WindowInfo.of(WindowType.SESSION, Optional.empty()));
 
     // When:
-    factory.create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, windowInfo, streamsProperties,
-        ksqlConfig, APPLICATION_ID);
+    factory.create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, windowInfo,
+        streamsProperties, ksqlConfig, APPLICATION_ID);
 
     // Then:
     verify(materializationFactory).create(
@@ -173,8 +177,8 @@ public class KsMaterializationFactoryTest {
   public void shouldReturnMaterialization() {
     // When:
     final Optional<KsMaterialization> result = factory
-        .create(STORE_NAME, kafkaStreams, SCHEMA, keySerializer, Optional.empty(), streamsProperties,
-            ksqlConfig, APPLICATION_ID);
+        .create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, Optional.empty(),
+            streamsProperties, ksqlConfig, APPLICATION_ID);
 
     // Then:
     assertThat(result,  is(Optional.of(materialization)));

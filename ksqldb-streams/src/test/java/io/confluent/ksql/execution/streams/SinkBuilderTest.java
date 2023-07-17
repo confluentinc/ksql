@@ -27,10 +27,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -79,9 +79,9 @@ public class SinkBuilderTest {
       .from(SCHEMA.withoutPseudoAndKeyColsInValue(), SerdeFeatures.of(), SerdeFeatures.of());
 
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private KStream<Struct, GenericRow> kStream;
   @Mock
@@ -103,10 +103,10 @@ public class SinkBuilderTest {
 
   @Before
   public void setup() {
-    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(queryContext.getContext()).thenReturn(ImmutableList.of(QUERY_CONTEXT_NAME));
   }
 
@@ -116,7 +116,7 @@ public class SinkBuilderTest {
     buildDefaultSinkBuilder();
 
     // Then:
-    verify(keySerdeFactory).buildKeySerde(KEY_FORMAT, PHYSICAL_SCHEMA, queryContext);
+    verify(executionKeyFactory).buildKeySerde(KEY_FORMAT, PHYSICAL_SCHEMA, queryContext);
   }
 
   @Test
@@ -125,7 +125,7 @@ public class SinkBuilderTest {
     buildDefaultSinkBuilder();
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         VALUE_FORMAT,
         PHYSICAL_SCHEMA,
         queryContext
@@ -159,9 +159,9 @@ public class SinkBuilderTest {
         Optional.of(new TimestampColumn(ColumnName.of("BLUE"), Optional.empty())),
         TOPIC,
         kStream,
-        keySerdeFactory,
+        executionKeyFactory,
         queryContext,
-        queryBuilder
+        buildContext
     );
 
     // Then
@@ -283,9 +283,9 @@ public class SinkBuilderTest {
         Optional.empty(),
         TOPIC,
         kStream,
-        keySerdeFactory,
+        executionKeyFactory,
         queryContext,
-        queryBuilder
+        buildContext
     );
   }
 

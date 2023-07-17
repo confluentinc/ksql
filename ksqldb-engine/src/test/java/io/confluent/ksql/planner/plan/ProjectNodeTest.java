@@ -21,7 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -74,7 +73,7 @@ public class ProjectNodeTest {
   @Mock
   private SchemaKStream<?> stream;
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext planBuildContext;
   @Mock
   private Stacker stacker;
 
@@ -85,7 +84,7 @@ public class ProjectNodeTest {
   public void init() {
     when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
+    when(planBuildContext.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
     when(stream.select(any(), any(), any(), any())).thenReturn((SchemaKStream) stream);
 
     projectNode = new TestProjectNode(
@@ -99,23 +98,23 @@ public class ProjectNodeTest {
   @Test
   public void shouldBuildSourceOnceWhenBeingBuilt() {
     // When:
-    projectNode.buildStream(ksqlStreamBuilder);
+    projectNode.buildStream(planBuildContext);
 
     // Then:
-    verify(source, times(1)).buildStream(ksqlStreamBuilder);
+    verify(source, times(1)).buildStream(planBuildContext);
   }
 
   @Test
   public void shouldSelectProjection() {
     // When:
-    projectNode.buildStream(ksqlStreamBuilder);
+    projectNode.buildStream(planBuildContext);
 
     // Then:
     verify(stream).select(
         ImmutableList.of(K),
         SELECTS,
         stacker,
-        ksqlStreamBuilder
+        planBuildContext
     );
   }
 

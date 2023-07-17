@@ -22,6 +22,8 @@ import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
@@ -41,6 +43,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
@@ -48,8 +51,8 @@ import io.confluent.ksql.rest.server.execution.ExplainExecutor;
 import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
 import io.confluent.ksql.rest.server.execution.ListVariablesExecutor;
 import io.confluent.ksql.rest.server.execution.PropertyExecutor;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.VariableExecutor;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -66,12 +69,16 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomValidators {
-  QUERY_ENDPOINT(Query.class, PullQueryExecutor::validate),
+  QUERY_ENDPOINT(Query.class, (statement, sessionProperties, executionContext, serviceContext) -> {
+    throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
+  }),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
 
   LIST_TOPICS(ListTopics.class, StatementValidator.NO_VALIDATION),
   LIST_STREAMS(ListStreams.class, StatementValidator.NO_VALIDATION),
   LIST_TABLES(ListTables.class, StatementValidator.NO_VALIDATION),
+  DESCRIBE_STREAMS(DescribeStreams.class, StatementValidator.NO_VALIDATION),
+  DESCRIBE_TABLES(DescribeTables.class, StatementValidator.NO_VALIDATION),
   LIST_FUNCTIONS(ListFunctions.class, StatementValidator.NO_VALIDATION),
   LIST_QUERIES(ListQueries.class, StatementValidator.NO_VALIDATION),
   LIST_PROPERTIES(ListProperties.class, StatementValidator.NO_VALIDATION),

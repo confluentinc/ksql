@@ -16,15 +16,11 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.SchemaException;
-import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import org.hamcrest.MatcherAssert;
@@ -76,69 +72,6 @@ public class SqlDecimalTest {
   @Test
   public void shouldImplementToString() {
     assertThat(SqlDecimal.of(10, 2).toString(), is("DECIMAL(10, 2)"));
-  }
-
-  @Test
-  public void shouldThrowIfValueNotDecimal() {
-    // Given:
-    final SqlDecimal schema = SqlTypes.decimal(4, 1);
-
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> schema.validateValue(10L)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Expected DECIMAL, got BIGINT"));
-  }
-
-  @Test
-  public void shouldThrowIfValueHasWrongPrecision() {
-    // Given:
-    final SqlDecimal schema = SqlTypes.decimal(4, 1);
-
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> schema.validateValue(new BigDecimal("1234.5"))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Expected DECIMAL(4, 1), got precision 5"));
-  }
-
-  @Test
-  public void shouldThrowIfValueHasWrongScale() {
-    // Given:
-    final SqlDecimal schema = SqlTypes.decimal(4, 1);
-
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> schema.validateValue(new BigDecimal("12.50"))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Expected DECIMAL(4, 1), got scale 2"));
-  }
-
-  @Test
-  public void shouldNotThrowWhenValidatingNullValue() {
-    // Given:
-    final SqlDecimal schema = SqlTypes.decimal(4, 1);
-
-    // When:
-    schema.validateValue(null);
-  }
-
-  @Test
-  public void shouldValidateValue() {
-    // Given:
-    final SqlDecimal schema = SqlTypes.decimal(4, 1);
-
-    // When:
-    schema.validateValue(new BigDecimal("123.0"));
   }
 
   @Test

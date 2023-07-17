@@ -1,0 +1,100 @@
+{
+  "comments": [
+    "Tests covering the filter lambda."
+  ],
+  "tests": [
+    {
+      "name": "apply lambda filter to int array",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, numbers ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, filter(numbers, x => x > 5) AS c FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"numbers": [3, 6, 2, 10]}},
+        {"topic": "test_topic", "key": "two", "value": {"numbers": [5, null]}},
+        {"topic": "test_topic", "key": "three", "value": {"numbers": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "one", "value": {"C":[6, 10]}},
+        {"topic": "OUTPUT", "key": "two", "value": {"C":[]}},
+        {"topic": "OUTPUT", "key": "three", "value": {"C":null}}
+      ]
+    },
+    {
+      "name": "apply lambda filter with udf to array",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<DECIMAL(4,2)>) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT ID, filter(VALUE, x => round(x) >= 10) AS LAMBDA FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": [9.22, 9.56, 10.63, 7.32]}},
+        {"topic": "test_topic", "key": 1, "value": {"VALUE": [10.55, null, 10.45]}},
+        {"topic": "test_topic", "key": 2, "value": {"VALUE": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0,"value": {"LAMBDA": [9.56, 10.63]}},
+        {"topic": "OUTPUT", "key": 1,"value": {"LAMBDA": [10.55, 10.45]}},
+        {"topic": "OUTPUT", "key": 2,"value": {"LAMBDA": null}}
+      ]
+    },
+    {
+      "name": "apply lambda filter to string array",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT ID, filter(VALUE, x => instr(x, 'ya') > 0) as LAMBDA from TEST emit changes;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 4,"value": {"value": ["suuure", "ya i see it", null]}},
+        {"topic": "test_topic", "key": 5,"value": {"value": ["whatever ya want", "nothing here"]}},
+        {"topic": "test_topic", "key": 6,"value": {"value": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 4,"value": {"LAMBDA": ["ya i see it"]}},
+        {"topic": "OUTPUT", "key": 5,"value": {"LAMBDA": ["whatever ya want"]}},
+        {"topic": "OUTPUT", "key": 6,"value": {"LAMBDA": null}}
+      ]
+    },
+    {
+      "name": "filter a nested map",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE MAP<STRING, ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT ID, filter(VALUE, (x,y) => instr(x, 'e') > 0 AND ARRAY_MIN(y) < 12) as LAMBDA from TEST emit changes;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 7,"value": {"value":  {"yes": [2,14,25], "no": [-4,35]}}},
+        {"topic": "test_topic", "key": 8,"value": {"value":  {"sure": [234, 245, 23], "leah": [-4,35]}}},
+        {"topic": "test_topic", "key": 9,"value": {"value":  {"nope": [-45,14,25], "stvn": [-4,35]}}},
+        {"topic": "test_topic", "key": 10,"value": {"value":  {"okey": []}}},
+        {"topic": "test_topic", "key": 11,"value": {"value":  null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 7,"value": {"LAMBDA": {"yes": [2,14,25]}}},
+        {"topic": "OUTPUT", "key": 8,"value": {"LAMBDA": {"leah": [-4,35]}}},
+        {"topic": "OUTPUT", "key": 9,"value": {"LAMBDA": {"nope": [-45,14,25]}}},
+        {"topic": "OUTPUT", "key": 10,"value": {"LAMBDA": {}}},
+        {"topic": "OUTPUT", "key": 11,"value": {"LAMBDA": null}}
+      ]
+    },
+    {
+      "name": "apply filter lambda function to int map",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT ID, filter(map, (x,y) => len(x) * 5 > 15 AND y % 5 = 0) AS lambda FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "four", "value": {"map": {"a": 15, "abc": 7}}},
+        {"topic": "test_topic", "key": "five", "value": {"map": {"ab": 6, "abcd": 15}}},
+        {"topic": "test_topic", "key": "six", "value": {"map": {"abcd": null, "abcde": 25}}},
+        {"topic": "test_topic", "key": "seven", "value": {"map": {"null": 15, "abcde": 25}}},
+        {"topic": "test_topic", "key": "eight", "value": {"map": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "four", "value": {"LAMBDA": {}}},
+        {"topic": "OUTPUT", "key": "five", "value": {"LAMBDA": {"abcd": 15}}},
+        {"topic": "OUTPUT", "key": "six", "value": {"LAMBDA": null}},
+        {"topic": "OUTPUT", "key": "seven", "value": {"LAMBDA": {"null": 15, "abcde":25}}},
+        {"topic": "OUTPUT", "key": "eight", "value": {"LAMBDA": null}}
+      ]
+    }
+  ]
+}

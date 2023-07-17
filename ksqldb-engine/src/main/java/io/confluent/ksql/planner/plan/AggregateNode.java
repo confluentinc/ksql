@@ -25,7 +25,6 @@ import io.confluent.ksql.analyzer.AggregateExpressionRewriter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -48,6 +47,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,6 +79,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   private final ImmutableList<SelectExpression> finalSelectExpressions;
   private final ValueFormat valueFormat;
   private final LogicalSchema schema;
+  private final KsqlConfig ksqlConfig;
 
   public AggregateNode(
       final PlanNodeId id,
@@ -89,13 +90,15 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final ImmutableAnalysis analysis,
       final AggregateAnalysisResult rewrittenAggregateAnalysis,
       final List<SelectExpression> projectionExpressions,
-      final boolean persistentQuery
+      final boolean persistentQuery,
+      final KsqlConfig ksqlConfig
   ) {
     super(id, DataSourceType.KTABLE, Optional.empty(), source);
 
     this.schema = requireNonNull(schema, "schema");
     this.groupBy = requireNonNull(groupBy, "groupBy");
     this.windowExpression = requireNonNull(analysis, "analysis").getWindowExpression();
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
 
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(functionRegistry);
@@ -143,15 +146,15 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
-    final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builder);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
+    final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(buildContext);
 
     final InternalSchema internalSchema =
         new InternalSchema(requiredColumns, aggregateFunctionArguments);
 
-    final SchemaKStream<?> preSelected =
-        selectRequiredInputColumns(sourceSchemaKStream, internalSchema, contextStacker, builder);
+    final SchemaKStream<?> preSelected = selectRequiredInputColumns(
+        sourceSchemaKStream, internalSchema, contextStacker, buildContext);
 
     final SchemaKGroupedStream grouped = groupBy(contextStacker, preSelected);
 
@@ -159,7 +162,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
 
     aggregated = applyHavingFilter(aggregated, contextStacker);
 
-    return selectRequiredOutputColumns(aggregated, contextStacker, builder);
+    return selectRequiredOutputColumns(aggregated, contextStacker, buildContext);
   }
 
   @Override
@@ -179,7 +182,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final SchemaKStream<?> sourceSchemaKStream,
       final InternalSchema internalSchema,
       final Stacker contextStacker,
-      final KsqlQueryBuilder builder
+      final PlanBuildContext buildContext
   ) {
     final List<ColumnName> keyColumnNames = getSource().getSchema().key().stream()
         .map(Column::name)
@@ -189,7 +192,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         keyColumnNames,
         internalSchema.getAggArgExpansionList(),
         contextStacker.push(PREPARE_OP_NAME),
-        builder
+        buildContext
     );
   }
 
@@ -228,7 +231,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   private SchemaKStream<?> selectRequiredOutputColumns(
       final SchemaKTable<?> aggregated,
       final Stacker contextStacker,
-      final KsqlQueryBuilder builder
+      final PlanBuildContext buildContext
   ) {
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)
@@ -238,7 +241,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         keyColumnNames,
         finalSelectExpressions,
         contextStacker.push(PROJECT_OP_NAME),
-        builder
+        buildContext
     );
   }
 

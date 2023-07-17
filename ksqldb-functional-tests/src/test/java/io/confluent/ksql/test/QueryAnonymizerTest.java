@@ -18,6 +18,7 @@ import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.test.QueryTranslationTest.QttTestFile;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.util.GrammarTokenExporter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -30,8 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.GrammarTokenExporter;
 import org.approvaltests.Approvals;
 import org.junit.Assert;
 import org.junit.Before;

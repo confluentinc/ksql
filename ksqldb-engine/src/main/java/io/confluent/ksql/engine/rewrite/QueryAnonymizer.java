@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.SqlBaseParser.CreateTableContext;
 import io.confluent.ksql.parser.SqlBaseParser.DefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeFunctionContext;
+import io.confluent.ksql.parser.SqlBaseParser.DescribeStreamsContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTableContext;
@@ -59,6 +60,7 @@ import io.confluent.ksql.parser.SqlBaseParser.ListVariablesContext;
 import io.confluent.ksql.parser.SqlBaseParser.LogicalBinaryContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumericLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.OuterJoinContext;
+import io.confluent.ksql.parser.SqlBaseParser.PartitionByContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.QueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
@@ -235,6 +237,11 @@ public class QueryAnonymizer {
       final String streamName = ParserUtil.getIdentifierText(context.sourceName().identifier());
       stringBuilder.append(getAnonStreamName(streamName));
 
+      // anonymize properties
+      if (context.tableProperties() != null) {
+        stringBuilder.append(visit(context.tableProperties()));
+      }
+
       // anonymize with query
       if (context.query() != null) {
         stringBuilder.append(String.format(" %s", visit(context.query())));
@@ -392,6 +399,18 @@ public class QueryAnonymizer {
       return "TERMINATE query";
     }
 
+
+    @Override
+    public String visitDescribeStreams(final DescribeStreamsContext context) {
+      final StringBuilder stringBuilder = new StringBuilder("DESCRIBE STREAMS ");
+
+      if (context.EXTENDED() != null) {
+        stringBuilder.append("EXTENDED");
+      }
+
+      return stringBuilder.toString();
+    }
+
     @Override
     public String visitShowColumns(final ShowColumnsContext context) {
       final StringBuilder stringBuilder = new StringBuilder("DESCRIBE ");
@@ -482,6 +501,12 @@ public class QueryAnonymizer {
     public String visitLogicalBinary(final LogicalBinaryContext context) {
       return String.format("%1$s %2$s %3$s",
           visit(context.left), context.operator.getText(), visit(context.right));
+    }
+
+    @Override
+    public String visitPartitionBy(final PartitionByContext context) {
+      final String columnName = context.getText();
+      return getAnonColumnName(columnName);
     }
 
     @Override
@@ -764,6 +789,11 @@ public class QueryAnonymizer {
       // visit where statement
       if (context.where != null) {
         stringBuilder.append(String.format(" WHERE %s", visit(context.where)));
+      }
+
+      // visit partition by
+      if (context.partitionBy() != null) {
+        stringBuilder.append(String.format(" PARTITION BY %s", visit(context.partitionBy())));
       }
 
       // visit group by

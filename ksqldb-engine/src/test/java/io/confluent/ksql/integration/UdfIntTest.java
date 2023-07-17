@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
@@ -31,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -46,10 +48,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -72,8 +72,8 @@ public class UdfIntTest {
   private static final String DELIMITED_TOPIC_NAME = "delimitedTopic";
   private static final String DELIMITED_STREAM_NAME = "items_delimited";
 
-  private static Multimap<Struct, RecordMetadata> jsonRecordMetadataMap;
-  private static Multimap<Struct, RecordMetadata> avroRecordMetadataMap;
+  private static Multimap<GenericKey, RecordMetadata> jsonRecordMetadataMap;
+  private static Multimap<GenericKey, RecordMetadata> avroRecordMetadataMap;
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -116,15 +116,16 @@ public class UdfIntTest {
     switch (format.name()) {
       case AvroFormat.NAME:
         this.testData =
-            new TestData(format, AVRO_TOPIC_NAME, AVRO_STREAM_NAME, avroRecordMetadataMap, OrderDataProvider::buildKey);
+            new TestData(format, AVRO_TOPIC_NAME, AVRO_STREAM_NAME, avroRecordMetadataMap);
         break;
       case JsonFormat.NAME:
         this.testData =
-            new TestData(format, JSON_TOPIC_NAME, JSON_STREAM_NAME, jsonRecordMetadataMap, OrderDataProvider::buildKey);
+            new TestData(format, JSON_TOPIC_NAME, JSON_STREAM_NAME, jsonRecordMetadataMap);
         break;
       default:
         this.testData =
-            new TestData(format, DELIMITED_TOPIC_NAME, DELIMITED_STREAM_NAME, ImmutableListMultimap.of(), ItemDataProvider::buildKey);
+            new TestData(format, DELIMITED_TOPIC_NAME, DELIMITED_STREAM_NAME,
+                ImmutableListMultimap.of());
         break;
     }
   }
@@ -159,9 +160,9 @@ public class UdfIntTest {
     ksqlContext.sql(queryString);
 
     // Then:
-    final Map<Struct, GenericRow> results = consumeOutputMessages();
+    final Map<GenericKey, GenericRow> results = consumeOutputMessages();
 
-    assertThat(results, is(ImmutableMap.of(testData.keySupplier.apply("ORDER_6"),
+    assertThat(results, is(ImmutableMap.of(genericKey("ORDER_6"),
         genericRow("ITEM_8", 800.0, 1110.0, 12.0, true))));
   }
 
@@ -186,9 +187,9 @@ public class UdfIntTest {
     ksqlContext.sql(queryString);
 
     // Then:
-    final Map<Struct, GenericRow> results = consumeOutputMessages();
+    final Map<GenericKey, GenericRow> results = consumeOutputMessages();
 
-    assertThat(results, is(ImmutableMap.of(testData.keySupplier.apply("ORDER_6"),
+    assertThat(results, is(ImmutableMap.of(genericKey("ORDER_6"),
         genericRow(80, "true", 8.0, "80.0"))));
   }
 
@@ -211,11 +212,11 @@ public class UdfIntTest {
     ksqlContext.sql(queryString);
 
     // Then:
-    final Map<Struct, GenericRow> results = consumeOutputMessages();
+    final Map<GenericKey, GenericRow> results = consumeOutputMessages();
 
     final long ts = testData.getLast("ORDER_6").timestamp();
 
-    assertThat(results, equalTo(ImmutableMap.of(testData.keySupplier.apply("ORDER_6"),
+    assertThat(results, equalTo(ImmutableMap.of(genericKey("ORDER_6"),
         genericRow(ts, ts + 10000, ts + 100, "ITEM_8"))));
   }
 
@@ -233,9 +234,9 @@ public class UdfIntTest {
     ksqlContext.sql(queryString);
 
     // Then:
-    final Map<Struct, GenericRow> results = consumeOutputMessages();
+    final Map<GenericKey, GenericRow> results = consumeOutputMessages();
 
-    assertThat(results, equalTo(Collections.singletonMap(testData.keySupplier.apply("ITEM_1"),
+    assertThat(results, equalTo(Collections.singletonMap(genericKey("ITEM_1"),
         genericRow("home cinema"))));
   }
 
@@ -260,7 +261,7 @@ public class UdfIntTest {
     }
   }
 
-  private Map<Struct, GenericRow> consumeOutputMessages() {
+  private Map<GenericKey, GenericRow> consumeOutputMessages() {
 
     final DataSource source = ksqlContext
         .getMetaStore()
@@ -285,24 +286,22 @@ public class UdfIntTest {
     private final Format format;
     private final String sourceStreamName;
     private final String sourceTopicName;
-    private final Multimap<Struct, RecordMetadata> recordMetadata;
-    private final Function<String, Struct> keySupplier;
+    private final Multimap<GenericKey, RecordMetadata> recordMetadata;
 
     private TestData(
         final Format format,
         final String sourceTopicName,
         final String sourceStreamName,
-        final Multimap<Struct, RecordMetadata> recordMetadata,
-        final Function<String, Struct> keySupplier) {
+        final Multimap<GenericKey, RecordMetadata> recordMetadata
+    ) {
       this.format = format;
       this.sourceStreamName = sourceStreamName;
       this.sourceTopicName = sourceTopicName;
       this.recordMetadata = recordMetadata;
-      this.keySupplier = keySupplier;
     }
 
     RecordMetadata getLast(final String key) {
-      return Iterables.getLast(recordMetadata.get(keySupplier.apply(key)));
+      return Iterables.getLast(recordMetadata.get(genericKey(key)));
     }
   }
 }

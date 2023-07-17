@@ -24,9 +24,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,7 +39,7 @@ public class KudafUndoAggregatorTest {
   @Mock
   private TableAggregationFunction<Long, String, String> func1;
   @Mock
-  private Struct key;
+  private GenericKey key;
   private KudafUndoAggregator aggregator;
 
   @Before

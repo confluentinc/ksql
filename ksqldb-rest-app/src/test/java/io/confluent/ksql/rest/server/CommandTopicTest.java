@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
-import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Arrays;
@@ -91,6 +91,7 @@ public class CommandTopicTest {
     consumerRecords =
         new ConsumerRecords<>(Collections.singletonMap(topicPartition, ImmutableList.of(record1, record2, record3)));
     commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, commandTopicBackup);
+    when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 0L));
   }
 
   @Test
@@ -104,10 +105,10 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldGetCommandsThatDoNotCorruptBackup() {
+  public void shouldNotGetCommandsWhenCommandTopicCorruptionWhenBackingUp() {
     // Given:
     when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
-    doNothing().doThrow(new KsqlServerException("error")).when(commandTopicBackup).writeRecord(any());
+    doNothing().doThrow(new CommandTopicCorruptionException("error")).when(commandTopicBackup).writeRecord(any());
 
     // When:
     final Iterable<ConsumerRecord<byte[], byte[]>> newCommands = commandTopic
@@ -121,16 +122,17 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldGetCommandsThatDoNotCorruptBackupInRestore() {
+  public void shouldNotGetCommandsWhenCommandTopicCorruptionIhBackupInRestore() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(
             record1,
             record2))
         .thenReturn(someConsumerRecords(
-            record3))
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
-    doNothing().doThrow(new KsqlServerException("error")).when(commandTopicBackup).writeRecord(any());
+            record3));
+    when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 3L));
+    when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L);
+    doNothing().doThrow(new CommandTopicCorruptionException("error")).when(commandTopicBackup).writeRecord(any());
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
@@ -153,8 +155,9 @@ public class CommandTopicTest {
             record1,
             record2))
         .thenReturn(someConsumerRecords(
-            record3))
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+            record3));
+    when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 3L));
+    when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 2L, 3L);
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
@@ -178,8 +181,9 @@ public class CommandTopicTest {
             new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
             new ConsumerRecord<>("topic", 0, 1, commandId2, command2)))
         .thenReturn(someConsumerRecords(
-            new ConsumerRecord<>("topic", 0, 2, commandId3, command3)))
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+            new ConsumerRecord<>("topic", 0, 2, commandId3, command3)));
+    when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 3L));
+    when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 2L, 3L);
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
@@ -196,6 +200,27 @@ public class CommandTopicTest {
   }
 
   @Test
+  public void shouldGetRestoreCommandsCorrectlyOnPollTimeout() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(ConsumerRecords.empty())
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+            new ConsumerRecord<>("topic", 0, 1, commandId2, command2)));
+    when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 2L));
+    when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 0L, 2L);
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic
+        .getRestoreCommands(Duration.ofMillis(1));
+
+    // Then:
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(), 1L))));
+  }
+
+  @Test
   public void shouldGetRestoreCommandsCorrectlyWithDuplicateKeys() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
@@ -204,8 +229,9 @@ public class CommandTopicTest {
             new ConsumerRecord<>("topic", 0, 1, commandId2, command2)))
         .thenReturn(someConsumerRecords(
             new ConsumerRecord<>("topic", 0, 2, commandId2, command3),
-            new ConsumerRecord<>("topic", 0, 3, commandId3, command3)))
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+            new ConsumerRecord<>("topic", 0, 3, commandId3, command3)));
+    when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 4L));
+    when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 2L, 4L);
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
@@ -227,8 +253,10 @@ public class CommandTopicTest {
             record1,
             record2,
             new ConsumerRecord<>("topic", 0, 2, commandId2, null)
-        ))
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+        ));
+    when(commandConsumer.endOffsets(any()))
+        .thenReturn(Collections.singletonMap(TOPIC_PARTITION, 2L));
+    when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 2L);
 
     // When:
     final List<QueuedCommand> recordList = commandTopic
@@ -262,10 +290,9 @@ public class CommandTopicTest {
   public void shouldHaveAllCreateCommandsInOrder() {
     // Given:
     final ConsumerRecords<byte[], byte[]> records = someConsumerRecords(record1, record2, record3);
-
-    when(commandTopic.getNewCommands(any()))
-        .thenReturn(records)
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    when(commandTopic.getNewCommands(any())).thenReturn(records);
+    when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 3L));
+    when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 3L);
 
     // When:
     final List<QueuedCommand> commands = commandTopic.getRestoreCommands(Duration.ofMillis(10));
@@ -300,9 +327,9 @@ public class CommandTopicTest {
   public void shouldBackupRestoreCommands() {
     // Given
     when(commandConsumer.poll(any(Duration.class)))
-        .thenReturn(someConsumerRecords(record1, record2))
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
-    commandTopic.start();
+        .thenReturn(someConsumerRecords(record1, record2));
+    when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 2L));
+    when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 2L);
 
     // When
     commandTopic.getRestoreCommands(Duration.ofHours(1));

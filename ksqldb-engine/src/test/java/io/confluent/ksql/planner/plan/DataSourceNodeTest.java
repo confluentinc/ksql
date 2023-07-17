@@ -35,9 +35,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -91,6 +92,7 @@ public class DataSourceNodeTest {
   private StreamsBuilder realBuilder;
 
   private static final ColumnName K0 = ColumnName.of("k0");
+  private static final ColumnName K1 = ColumnName.of("k1");
   private static final ColumnName FIELD1 = ColumnName.of("field1");
   private static final ColumnName FIELD2 = ColumnName.of("field2");
   private static final ColumnName FIELD3 = ColumnName.of("field3");
@@ -99,6 +101,7 @@ public class DataSourceNodeTest {
 
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.INTEGER)
+      .keyColumn(K1, SqlTypes.INTEGER)
       .valueColumn(FIELD1, SqlTypes.INTEGER)
       .valueColumn(FIELD2, SqlTypes.STRING)
       .valueColumn(FIELD3, SqlTypes.STRING)
@@ -134,7 +137,9 @@ public class DataSourceNodeTest {
   @Mock
   private Serde<String> keySerde;
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext buildContext;
+  @Mock
+  private RuntimeBuildContext executeContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -159,17 +164,18 @@ public class DataSourceNodeTest {
   public void before() {
     realBuilder = new StreamsBuilder();
 
-    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
-    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
-    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
-    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+    when(buildContext.getKsqlConfig()).thenReturn(realConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
 
-    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any()))
+    when(executeContext.getKsqlConfig()).thenReturn(realConfig);
+    when(executeContext.getStreamsBuilder()).thenReturn(realBuilder);
+    when(executeContext.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(executeContext.buildKeySerde(any(), any(), any()))
         .thenReturn((Serde)keySerde);
-    when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
-    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(executeContext.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
 
     when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
@@ -188,7 +194,8 @@ public class DataSourceNodeTest {
     node = new DataSourceNode(
         PLAN_NODE_ID,
         SOME_SOURCE,
-        SOME_SOURCE.getName()
+        SOME_SOURCE.getName(),
+        false
     );
   }
 
@@ -243,7 +250,8 @@ public class DataSourceNodeTest {
     node = new DataSourceNode(
         PLAN_NODE_ID,
         table,
-        table.getName()
+        table.getName(),
+        false
     );
 
     // When:
@@ -281,7 +289,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(buildContext);
 
     // Then:
     verify(schemaKStreamFactory).create(any(), any(), any());
@@ -295,7 +303,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(buildContext);
 
     // Then:
     verify(schemaKStreamFactory).create(any(), any(), any());
@@ -308,12 +316,12 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> returned = node.buildStream(buildContext);
 
     // Then:
     assertThat(returned, is(stream));
     verify(schemaKStreamFactory).create(
-        same(ksqlStreamBuilder),
+        same(buildContext),
         same(dataSource),
         stackerCaptor.capture()
     );
@@ -329,11 +337,11 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(buildContext);
 
     // Then:
     verify(schemaKStreamFactory).create(
-        same(ksqlStreamBuilder),
+        same(buildContext),
         same(dataSource),
         stackerCaptor.capture()
     );
@@ -349,7 +357,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> returned = node.buildStream(buildContext);
 
     // Then:
     assertThat(returned, is(table));
@@ -375,7 +383,7 @@ public class DataSourceNodeTest {
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
-    assertThat(columns, contains(K0, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
+    assertThat(columns, contains(K0, K1, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
   }
 
   @Test
@@ -391,7 +399,7 @@ public class DataSourceNodeTest {
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(
         columns,
-        contains(K0, WINDOWSTART_NAME, WINDOWEND_NAME, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY)
+        contains(K0, K1, WINDOWSTART_NAME, WINDOWEND_NAME, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY)
     );
   }
 
@@ -418,8 +426,24 @@ public class DataSourceNodeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("The query used to build `datasource` "
-        + "must include the key column k0 in its projection."));
+    assertThat(e.getMessage(), containsString("The query used to build `datasource` must include "
+        + "the key columns k0 and k1 in its projection."));
+  }
+
+  @Test
+  public void shouldThrowIfProjectionDoesNotContainAllKeyColumns() {
+    // Given:
+    when(projection.containsExpression(new UnqualifiedColumnReferenceExp(K0))).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> node.validateKeyPresent(SOURCE_NAME, projection)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The query used to build `datasource` must include " +
+        "the key columns k0 and k1 in its projection."));
   }
 
   private void givenNodeWithMockSource() {
@@ -428,17 +452,18 @@ public class DataSourceNodeTest {
         PLAN_NODE_ID,
         dataSource,
         SOURCE_NAME,
-        schemaKStreamFactory
+        schemaKStreamFactory,
+        false
     );
   }
 
   private SchemaKStream<?> buildStream(final DataSourceNode node) {
-    final SchemaKStream<?> stream = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> stream = node.buildStream(buildContext);
     if (stream instanceof SchemaKTable) {
       final SchemaKTable<?> table = (SchemaKTable<?>) stream;
-      table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      table.getSourceTableStep().build(new KSPlanBuilder(executeContext));
     } else {
-      stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      stream.getSourceStep().build(new KSPlanBuilder(executeContext));
     }
     return stream;
   }

@@ -542,6 +542,27 @@ public class LogicalSchemaTest {
   }
 
   @Test
+  public void shouldRemoveAllButKeyCols() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build()
+        .withPseudoAndKeyColsInValue(false);
+
+    // When
+    final LogicalSchema result = schema.withKeyColsOnly();
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(K0, INTEGER)
+        .build()
+    ));
+  }
+
+  @Test
   public void shouldMatchMetaColumnName() {
     assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME), is(true));
     assertThat(SOME_SCHEMA.isKeyColumn(ROWTIME_NAME), is(false));

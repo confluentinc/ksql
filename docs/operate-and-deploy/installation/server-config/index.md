@@ -6,9 +6,8 @@ description: Learn about the configuration settings you can use to set up ksqlDB
 ---
 
 - [Configure Security for ksqlDB](security.md)
-- [ksqlDB Configuration Parameter Reference](config-reference.md)
+- [ksqlDB Configuration Parameter Reference](/reference/server-configuration)
 - [Configure ksqlDB for Avro, Protobuf, and JSON schemas](avro-schema.md)
-- [Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md)
 
 ksqlDB configuration parameters can be set for ksqlDB Server and for queries,
 as well as for the underlying {{ site.kstreams }} and {{ site.ak }} Clients
@@ -62,7 +61,7 @@ ksqlDB Server with the configuration file specified.
 <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
 ```
 
-For more information, see [ksqlDB Configuration Parameter Reference](config-reference.md).
+For more information, see [ksqlDB Configuration Parameter Reference](/reference/server-configuration).
 
 ### KSQL_OPTS Environment Variable
 
@@ -182,17 +181,22 @@ these queries in your production environment, you want to lock down
 access to ksqlDB servers, version-control the exact queries, and store
 them in a .sql file. This prevents users from interacting directly with
 the production ksqlDB cluster. For more information, see
-[Headless Deployment](../../../concepts/ksqldb-architecture.md#headless-deployment).
+[Headless Deployment](/operate-and-deploy/how-it-works#headless-deployment).
 
 You can configure servers to exclusively run a predefined script (`.sql`
 file) via the `--queries-file` command line argument, or the
 `ksql.queries.file` setting in the
-[ksqlDB configuration file](config-reference.md). If a
+[ksqlDB configuration file](/reference/server-configuration). If a
 server is running a predefined script, it will automatically disable its
 REST endpoint and interactive use.
 
+!!! note
+    In headless mode, you must start all ksqlDB servers with the same queries
+    file. If the queries files differ across ksqlDB servers, the behavior is
+    undefined.
+
 !!! tip
-	When both the `ksql.queries.file` property and the `--queries-file`
+    When both the `ksql.queries.file` property and the `--queries-file`
     argument are present, the `--queries-file` argument takes
     precedence.
 
@@ -238,7 +242,7 @@ To start the ksqlDB Server in headless, non-interactive configuration via the
 Configure the `ksql-server.properties` file. The
 `bootstrap.servers` and `ksql.queries.file` are required. For
 more information about configuration, see
-[ksqlDB configuration file](config-reference.md).
+[ksqlDB configuration file](/reference/server-configuration).
 
 ```properties
 # Inform the ksqlDB server where the Kafka cluster can be found:

@@ -140,8 +140,13 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
-    return builder.visitStreamStreamJoin(this);
+  public KStreamHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamStreamJoin(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamStreamJoin(this);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

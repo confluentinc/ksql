@@ -3,18 +3,21 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -25,7 +28,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
@@ -42,9 +44,9 @@ public class StreamFilterBuilderTest {
   @Mock
   private SqlPredicate sqlPredicate;
   @Mock
-  private KsqlTransformer<Struct, Optional<GenericRow>> predicate;
+  private KsqlTransformer<GenericKey, Optional<GenericRow>> predicate;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -58,20 +60,22 @@ public class StreamFilterBuilderTest {
   @Mock
   private ExecutionStepPropertiesV1 sourceProperties;
   @Mock
-  private KStream<Struct, GenericRow> sourceKStream;
+  private KStream<GenericKey, GenericRow> sourceKStream;
   @Mock
-  private KStream<Struct, GenericRow> filteredKStream;
+  private KStream<GenericKey, GenericRow> filteredKStream;
   @Mock
   private Expression filterExpression;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<GenericKey> executionKeyFactory;
+  @Mock
+  private PlanInfo planInfo;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
       .getQueryContext();
 
   private PlanBuilder planBuilder;
-  private StreamFilter<Struct> step;
+  private StreamFilter<GenericKey> step;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -79,24 +83,23 @@ public class StreamFilterBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceKStream
         .flatTransformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(filteredKStream);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) predicate);
-    when(sourceStep.build(any())).thenReturn(new KStreamHolder<>(
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(new KStreamHolder<>(
         sourceKStream,
         schema,
-        keySerdeFactory
+        executionKeyFactory
     ));
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         predicateFactory,
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
@@ -107,17 +110,17 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldFilterSourceStream() {
     // When:
-    final KStreamHolder<Struct> result = step.build(planBuilder);
+    final KStreamHolder<GenericKey> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getStream(), is(filteredKStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KStreamHolder<Struct> result = step.build(planBuilder);
+    final KStreamHolder<GenericKey> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(schema));
@@ -126,7 +129,7 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldBuildSqlPredicateCorrectly() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
     verify(predicateFactory).create(
@@ -140,9 +143,9 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldUseCorrectNameForProcessingLogger() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).getProcessingLogger(queryContext);
+    verify(buildContext).getProcessingLogger(queryContext);
   }
 }

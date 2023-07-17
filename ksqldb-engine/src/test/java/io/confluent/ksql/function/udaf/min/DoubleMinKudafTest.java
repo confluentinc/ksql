@@ -19,11 +19,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
@@ -64,7 +65,7 @@ public class DoubleMinKudafTest {
   @Test
   public void shouldFindCorrectMinForMerge() {
     final DoubleMinKudaf doubleMinKudaf = getDoubleMinKudaf();
-    final Merger<Struct, Double> merger = doubleMinKudaf.getMerger();
+    final Merger<GenericKey, Double> merger = doubleMinKudaf.getMerger();
     final Double mergeResult1 = merger.apply(null, 10.0, 12.0);
     assertThat(mergeResult1, equalTo(10.0));
     final Double mergeResult2 = merger.apply(null, 10.0, -12.0);
@@ -77,7 +78,7 @@ public class DoubleMinKudafTest {
 
   private DoubleMinKudaf getDoubleMinKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.DOUBLE),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(DoubleMinKudaf.class));
     return  (DoubleMinKudaf) aggregateFunction;

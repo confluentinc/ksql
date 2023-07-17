@@ -30,6 +30,10 @@ public interface Client {
   /**
    * Executes a query (push or pull) and returns the results one row at a time.
    *
+   * <p>This method may be used to issue both push and pull queries, but the usage
+   * pattern is better for push queries. For pull queries, consider using the
+   * {@link Client#executeQuery(String)} method instead.
+   *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
    *
@@ -41,6 +45,10 @@ public interface Client {
 
   /**
    * Executes a query (push or pull) and returns the results one row at a time.
+   *
+   * <p>This method may be used to issue both push and pull queries, but the usage
+   * pattern is better for push queries. For pull queries, consider using the
+   * {@link Client#executeQuery(String, Map)} method instead.
    *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
@@ -56,6 +64,10 @@ public interface Client {
    * Executes a query (push or pull) and returns all result rows in a single batch, once the query
    * has completed.
    *
+   * <p>This method is suitable for both pull queries and for terminating push queries,
+   * for example, queries that have a {@code LIMIT} clause. For non-terminating push queries,
+   * use the {@link Client#streamQuery(String)} method instead.
+   *
    * @param sql statement of query to execute
    * @return query result
    */
@@ -64,6 +76,10 @@ public interface Client {
   /**
    * Executes a query (push or pull) and returns all result rows in a single batch, once the query
    * has completed.
+   *
+   * <p>This method is suitable for both pull queries and for terminating push queries,
+   * for example, queries that have a {@code LIMIT} clause. For non-terminating push queries,
+   * use the {@link Client#streamQuery(String, Map)} method instead.
    *
    * @param sql statement of query to execute
    * @param properties query properties
@@ -207,6 +223,16 @@ public interface Client {
    * @return metadata for stream or table
    */
   CompletableFuture<SourceDescription> describeSource(String sourceName);
+
+  /**
+   * Returns metadata about the ksqlDB server.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return metadata for server
+   */
+  CompletableFuture<ServerInfo> serverInfo();
 
   /**
    * Closes the underlying HTTP client.

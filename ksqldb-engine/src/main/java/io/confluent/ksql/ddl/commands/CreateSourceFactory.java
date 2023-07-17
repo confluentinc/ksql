@@ -25,6 +25,8 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
@@ -32,6 +34,7 @@ import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -57,14 +60,16 @@ public final class CreateSourceFactory {
   private final SerdeFeaturessSupplier valueSerdeFeaturesSupplier;
   private final KeySerdeFactory keySerdeFactory;
   private final ValueSerdeFactory valueSerdeFactory;
+  private final MetaStore metaStore;
 
-  public CreateSourceFactory(final ServiceContext serviceContext) {
+  public CreateSourceFactory(final ServiceContext serviceContext, final MetaStore metaStore) {
     this(
         serviceContext,
         (s, f, e, k) -> SerdeFeaturesFactory.buildKeyFeatures(s, f),
         SerdeFeaturesFactory::buildValueFeatures,
         new GenericKeySerDe(),
-        new GenericRowSerDe()
+        new GenericRowSerDe(),
+        metaStore
     );
   }
 
@@ -74,7 +79,8 @@ public final class CreateSourceFactory {
       final SerdeFeaturessSupplier keySerdeFeaturesSupplier,
       final SerdeFeaturessSupplier valueSerdeFeaturesSupplier,
       final KeySerdeFactory keySerdeFactory,
-      final ValueSerdeFactory valueSerdeFactory
+      final ValueSerdeFactory valueSerdeFactory,
+      final MetaStore metaStore
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.keySerdeFeaturesSupplier =
@@ -83,6 +89,19 @@ public final class CreateSourceFactory {
         requireNonNull(valueSerdeFeaturesSupplier, "valueSerdeFeaturesSupplier");
     this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
     this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
+    this.metaStore = requireNonNull(metaStore);
+  }
+
+  public CreateStreamCommand createStreamCommand(final KsqlStructuredDataOutputNode outputNode) {
+    return new CreateStreamCommand(
+        outputNode.getIntoSourceName(),
+        outputNode.getSchema(),
+        outputNode.getTimestampColumn(),
+        outputNode.getKsqlTopic().getKafkaTopicName(),
+        Formats.from(outputNode.getKsqlTopic()),
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+        Optional.of(outputNode.getOrReplace())
+    );
   }
 
   public CreateStreamCommand createStreamCommand(
@@ -95,15 +114,35 @@ public final class CreateSourceFactory {
     final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<TimestampColumn> timestampColumn =
         buildTimestampColumn(ksqlConfig, props, schema);
+    final DataSource dataSource = metaStore.getSource(sourceName);
+
+    if (dataSource != null && !statement.isOrReplace() && !statement.isNotExists()) {
+      final String sourceType = dataSource.getDataSourceType().getKsqlType();
+      throw new KsqlException(
+          String.format("Cannot add stream '%s': A %s with the same name already exists",
+             sourceName.text(), sourceType.toLowerCase()));
+    }
 
     return new CreateStreamCommand(
         sourceName,
         schema,
         timestampColumn,
         topicName,
-        buildFormats(schema, props, ksqlConfig),
+        buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
         Optional.of(statement.isOrReplace())
+    );
+  }
+
+  public CreateTableCommand createTableCommand(final KsqlStructuredDataOutputNode outputNode) {
+    return new CreateTableCommand(
+        outputNode.getIntoSourceName(),
+        outputNode.getSchema(),
+        outputNode.getTimestampColumn(),
+        outputNode.getKsqlTopic().getKafkaTopicName(),
+        Formats.from(outputNode.getKsqlTopic()),
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+        Optional.of(outputNode.getOrReplace())
     );
   }
 
@@ -115,6 +154,14 @@ public final class CreateSourceFactory {
     final CreateSourceProperties props = statement.getProperties();
     final String topicName = ensureTopicExists(props, serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
+    final DataSource dataSource = metaStore.getSource(sourceName);
+
+    if (dataSource != null && !statement.isOrReplace() && !statement.isNotExists()) {
+      final String sourceType = dataSource.getDataSourceType().getKsqlType();
+      throw new KsqlException(
+          String.format("Cannot add table '%s': A %s with the same name already exists",
+              sourceName.text(), sourceType.toLowerCase()));
+    }
     if (schema.key().isEmpty()) {
       final boolean usingSchemaInference = props.getValueSchemaId().isPresent();
 
@@ -139,18 +186,19 @@ public final class CreateSourceFactory {
         schema,
         timestampColumn,
         topicName,
-        buildFormats(schema, props, ksqlConfig),
+        buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
         Optional.of(statement.isOrReplace())
     );
   }
 
   private Formats buildFormats(
+      final SourceName name,
       final LogicalSchema schema,
       final CreateSourceProperties props,
       final KsqlConfig ksqlConfig
   ) {
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, name);
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
 
     final SerdeFeatures keyFeatures = keySerdeFeaturesSupplier.build(

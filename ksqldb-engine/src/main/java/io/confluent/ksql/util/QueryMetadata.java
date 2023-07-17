@@ -21,6 +21,7 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -381,8 +382,9 @@ public abstract class QueryMetadata {
       return ImmutableList.copyOf(queue);
     }
     
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private void evict() {
-      while (queue.peek() != null) {
+      while (!queue.isEmpty()) {
         if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
           break;
         }

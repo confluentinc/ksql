@@ -97,6 +97,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -910,15 +911,12 @@ public class SqlToJavaVisitor {
         return new Pair<>(expr.getLeft(), sqlType);
       }
 
-      return CASTERS.getOrDefault(sqlType.baseType(), CastVisitor::unsupportedCast)
+      return Optional.ofNullable(
+          CASTERS.get(sqlType.baseType())
+          ).orElseThrow(
+              () -> new KsqlFunctionException("Cast of " + expr.getRight()
+                  + " to " + sqlType + " is not supported"))
           .cast(expr, sqlType);
-    }
-
-    private static Pair<String, SqlType> unsupportedCast(
-        final Pair<String, SqlType> expr, final SqlType returnType
-    ) {
-      throw new KsqlFunctionException("Cast of " + expr.getRight()
-            + " to " + returnType + " is not supported");
     }
 
     private static Pair<String, SqlType> castString(

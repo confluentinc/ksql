@@ -237,10 +237,11 @@ public class JoinNode extends PlanNode {
     Joiner<?> getJoiner(final DataSourceType leftType,
         final DataSourceType rightType) {
 
-      return joinerMap.getOrDefault(new Pair<>(leftType, rightType), () -> {
-        throw new KsqlException("Join between invalid operands requested: left type: "
-            + leftType + ", right type: " + rightType);
-      }).get();
+      return Optional.ofNullable(joinerMap.get(new Pair<>(leftType, rightType)))
+          .orElseThrow(
+              () -> new KsqlException("Join between invalid operands requested: left type: "
+                  + leftType + ", right type: " + rightType))
+          .get();
     }
   }
 

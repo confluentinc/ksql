@@ -18,9 +18,11 @@ package io.confluent.ksql.api.spi;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
@@ -50,7 +52,8 @@ public interface Endpoints {
    * @return A CompletableFuture representing the future result of the operation
    */
   CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties,
-      Context context, WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
+      Context context, WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext,
+      MetricsCallbackHolder metricsCallbackHolder);
 
   /**
    * Create a subscriber which will receive a stream of inserts from the API server and process
@@ -81,7 +84,9 @@ public interface Endpoints {
   CompletableFuture<EndpointResponse> executeQueryRequest(
       KsqlRequest request, WorkerExecutor workerExecutor,
       CompletableFuture<Void> connectionClosedFuture, ApiSecurityContext apiSecurityContext,
-      Optional<Boolean> isInternalRequest);
+      Optional<Boolean> isInternalRequest,
+      KsqlMediaType mediaType,
+      MetricsCallbackHolder metricsCallbackHolder);
 
   CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
 

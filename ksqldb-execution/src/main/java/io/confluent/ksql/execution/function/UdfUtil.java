@@ -16,9 +16,11 @@
 package io.confluent.ksql.execution.function;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -30,8 +32,13 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 
 public final class UdfUtil {
@@ -48,6 +55,8 @@ public final class UdfUtil {
       .put(Double.class, ParamTypes.DOUBLE)
       .put(double.class, ParamTypes.DOUBLE)
       .put(BigDecimal.class, ParamTypes.DECIMAL)
+      .put(Timestamp.class, ParamTypes.TIMESTAMP)
+      .put(TimeUnit.class, ParamTypes.INTERVALUNIT)
       .build();
 
   private UdfUtil() {
@@ -105,13 +114,20 @@ public final class UdfUtil {
     return schema;
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static ParamType handleParameterizedType(final Type type) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
         return handleMapType(parameterizedType);
       } else if (parameterizedType.getRawType() == List.class) {
         return handleListType((ParameterizedType) type);
+      }
+      if (parameterizedType.getRawType() == Function.class
+          || parameterizedType.getRawType() == BiFunction.class
+          || parameterizedType.getRawType() == TriFunction.class) {
+        return handleLambdaType((ParameterizedType) type);
       }
     } else if (type instanceof Class<?> && ((Class<?>) type).isArray()) {
       // handle var args
@@ -126,7 +142,6 @@ public final class UdfUtil {
       // schema annotation if a struct is being used
       return StructType.ANY_STRUCT;
     }
-
     throw new KsqlException("Type inference is not supported for: " + type);
   }
 
@@ -151,5 +166,24 @@ public final class UdfUtil {
         : getSchemaFromType(elementType);
 
     return ArrayType.of(elementParamType);
+  }
+
+  private static ParamType handleLambdaType(final ParameterizedType type) {
+    final List<ParamType> inputParamTypes = new ArrayList<>();
+    for (int i = 0; i < type.getActualTypeArguments().length - 1; i++) {
+      final Type inputType = type.getActualTypeArguments()[i];
+      final ParamType inputParamType = inputType instanceof TypeVariable
+          ? GenericType.of(((TypeVariable<?>) inputType).getName())
+          : getSchemaFromType(inputType);
+      inputParamTypes.add(inputParamType);
+    }
+
+    final Type returnType =
+        type.getActualTypeArguments()[type.getActualTypeArguments().length - 1];
+    final ParamType returnParamType = returnType instanceof TypeVariable
+        ? GenericType.of(((TypeVariable<?>) returnType).getName())
+        : getSchemaFromType(returnType);
+
+    return LambdaType.of(inputParamTypes, returnParamType);
   }
 }

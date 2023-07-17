@@ -23,12 +23,14 @@ import java.time.LocalDate;
 @UdfDescription(
     name = "unix_date",
     category = FunctionCategory.DATE_TIME,
-    description = "Gets an integer representing days since epoch.",
+    description = "Returns the current number of days for the system since "
+        + "1970-01-01 00:00:00 UTC/GMT.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class UnixDate {
 
-  @Udf(description = "Gets an integer representing days since epoch.")
+  @Udf(description = "Returns the current number of days for the system since "
+      + "1970-01-01 00:00:00 UTC/GMT.")
   public int unixDate() {
     return ((int) LocalDate.now().toEpochDay());
   }

@@ -239,6 +239,29 @@ public class AnalyzerFunctionalTest {
   }
 
   @Test
+  public void shouldThrowOnJoinConditionWithMultipleEqualityExpressions() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 AND t1.col0 = t2.col0;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("JOINs on multiple conditions are not yet supported: " +
+        "((T1.COL0 = T2.COL0) AND (T1.COL0 = T2.COL0))"));
+  }
+
+  @Test
   public void shouldThrowOnNwayJoinWithDuplicateSource() {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(

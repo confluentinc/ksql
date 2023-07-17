@@ -52,13 +52,15 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
   private final Context ctx;
   private final Endpoints endpoints;
+  private final Server server;
   private final WorkerExecutor workerExecutor;
 
   public InsertsStreamHandler(final Context ctx, final Endpoints endpoints,
-      final WorkerExecutor workerExecutor) {
+      final Server server) {
     this.ctx = Objects.requireNonNull(ctx);
     this.endpoints = Objects.requireNonNull(endpoints);
-    this.workerExecutor = Objects.requireNonNull(workerExecutor);
+    this.server = Objects.requireNonNull(server);
+    this.workerExecutor = Objects.requireNonNull(server.getWorkerExecutor());
   }
 
   @Override
@@ -137,7 +139,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
       endpoints.createInsertsSubscriber(insertsStreamArgs.get().target,
           insertsStreamArgs.get().properties, acksSubscriber, ctx, workerExecutor,
-          DefaultApiSecurityContext.create(routingContext))
+          DefaultApiSecurityContext.create(routingContext, server))
           .thenAccept(insertsSubscriber -> {
             publisher = new BufferedPublisher<>(ctx);
 

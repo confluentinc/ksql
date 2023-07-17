@@ -16,7 +16,9 @@
 package io.confluent.ksql.query;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KeyValue;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -46,21 +48,21 @@ public interface BlockingRowQueue {
   void setQueuedCallback(Runnable callback);
 
   /**
-   * Poll the queue for a single row, with a timeout.
+   * Poll the queue for a single row's key and value, with a timeout.
    *
    * @return the next row
    * @see BlockingQueue#poll(long, TimeUnit)
    */
-  GenericRow poll(long timeout, TimeUnit unit)
+  KeyValue<List<?>, GenericRow> poll(long timeout, TimeUnit unit)
       throws InterruptedException;
 
   /**
-   * Poll the queue for a single row.
+   * Poll the queue for a single row's key and value.
    *
    * @return the next row
    * @see BlockingQueue#poll()
    */
-  GenericRow poll();
+  KeyValue<List<?>, GenericRow> poll();
 
   /**
    * Drain the queue to the supplied {@code collection}.
@@ -68,7 +70,7 @@ public interface BlockingRowQueue {
    * @param collection the collection to add drained rows to.
    * @see BlockingQueue#drainTo(Collection)
    */
-  void drainTo(Collection<? super GenericRow> collection);
+  void drainTo(Collection<? super KeyValue<List<?>, GenericRow>> collection);
 
   /**
    * The size of the queue.

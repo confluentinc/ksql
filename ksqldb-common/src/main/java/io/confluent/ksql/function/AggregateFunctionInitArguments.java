@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -28,18 +30,41 @@ import java.util.Objects;
  */
 public class AggregateFunctionInitArguments {
 
-  private final int udafIndex;
-  private final List<Object> initArgs;
-
   public static final AggregateFunctionInitArguments EMPTY_ARGS =
       new AggregateFunctionInitArguments();
 
-  public AggregateFunctionInitArguments(final int index, final Object... initArgs) {
-    this(index, Arrays.asList(initArgs));
+  private final int udafIndex;
+  private final List<Object> initArgs;
+  private final Map<String, ?> config;
+
+  /**
+   * This method should only be used for legacy "built-in" UDAF
+   * implementations that implement AggregateFunctionFactory directly
+   * such as TopKAggregateFuncitonFactory. Otherwise, the config will
+   * not be properly passed through to the aggregate function.
+   */
+  public AggregateFunctionInitArguments(
+      final int index,
+      final Object... initArgs
+  ) {
+    this(index, ImmutableMap.of(/* not a configurable function */), Arrays.asList(initArgs));
   }
 
-  public AggregateFunctionInitArguments(final int index, final List<Object> initArgs) {
+  public AggregateFunctionInitArguments(
+      final int index,
+      final Map<String, ?> config,
+      final Object... initArgs
+  ) {
+    this(index, config, Arrays.asList(initArgs));
+  }
+
+  public AggregateFunctionInitArguments(
+      final int index,
+      final Map<String, ?> config,
+      final List<Object> initArgs
+  ) {
     this.udafIndex = index;
+    this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
     this.initArgs = Objects.requireNonNull(initArgs);
 
     if (index < 0) {
@@ -49,6 +74,7 @@ public class AggregateFunctionInitArguments {
 
   private AggregateFunctionInitArguments() {
     this.udafIndex = 0;
+    this.config = ImmutableMap.of();
     this.initArgs = Collections.emptyList();
   }
 
@@ -62,5 +88,9 @@ public class AggregateFunctionInitArguments {
 
   public List<Object> args() {
     return initArgs;
+  }
+
+  public Map<String, ?> config() {
+    return config;
   }
 }

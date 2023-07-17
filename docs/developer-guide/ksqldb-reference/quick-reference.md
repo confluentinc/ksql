@@ -172,7 +172,7 @@ CREATE STREAM stream_name
     [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
     ON join_criteria]* 
   [ WHERE condition ]
-  [PARTITION BY column_name]
+  [PARTITION BY new_key_expr [, ...]]
   EMIT CHANGES;
 ```
 
@@ -277,7 +277,7 @@ DROP TYPE [IF EXISTS] <type_name> AS <type>;
 
 ## EMIT CHANGES
 Specify a push query with a continuous output refinement in a SELECT statement. 
-For more information, see [Push Queries](../../concepts/queries/push).
+For more information, see [Push Queries](/concepts/queries#push).
 
 ```sql
 CREATE STREAM stream_name
@@ -297,7 +297,7 @@ EXPLAIN (sql_expression | query_id);
 ## FULL JOIN
 Select all records when there is a match in the left stream/table _or_ the
 right stream/table records. Equivalent to FULL OUTER JOIN. For more information,
-see [Join streams and tables](../joins/join-streams-and-tables).
+see [Join streams and tables](/developer-guide/joins/join-streams-and-tables).
 
 ```sql hl_lines="3"
 SELECT column_name(s)
@@ -352,7 +352,7 @@ DROP TABLE  [IF EXISTS] table_name  [DELETE TOPIC];
 ## INNER JOIN
 Select records in a stream or table that have matching values in another stream
 or table. For more information, see
-[Join streams and tables](../joins/join-streams-and-tables).
+[Join streams and tables](/developer-guide/joins/join-streams-and-tables).
 
 ```sql hl_lines="3"
 SELECT column_name(s)
@@ -367,13 +367,13 @@ Stream the result of a SELECT query into an existing stream and its underlying
 
 ```sql
 INSERT INTO stream_name
-  SELECT select_expr [., ...]
+  SELECT select_expr [, ...]
   FROM from_stream
   [ LEFT | FULL | INNER ] JOIN [join_table | join_stream]
     [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
     ON join_criteria
   [ WHERE condition ]
-  [ PARTITION BY column_name ]
+  [ PARTITION BY new_key_expr [, ...] ]
   EMIT CHANGES;
 ```
 
@@ -390,7 +390,7 @@ INSERT INTO stream_name|table_name [(column_name [, ...]])]
 ## LEFT JOIN
 Select all records from the left stream/table and the matched records from the
 right stream/table. For more information, see
-[Join streams and tables](../joins/join-streams-and-tables).
+[Join streams and tables](/developer-guide/joins/join-streams-and-tables).
 
 ```sql hl_lines="3"
 SELECT column_name(s)
@@ -403,9 +403,9 @@ SELECT column_name(s)
 Match a string with the specified pattern.
 
 ```sql hl_lines="3"
-  SELECT select_expr [., ...]
+  SELECT select_expr [, ...]
     FROM from_stream | from_table
-    WHERE condition LIKE pattern_string;
+    WHERE exp LIKE pattern_string;
 ```
 
 The LIKE operator is used for prefix or suffix matching. ksqlDB supports
@@ -422,10 +422,10 @@ SELECT user_id
 ```
 
 ## IN
-Specifies multiple `OR` conditions. This is currently only supported for Pull Queries.
+Specifies multiple `OR` conditions.
 
 ```sql hl_lines"3"
-  SELECT select_expr [., ...]
+  SELECT select_expr [, ...]
     FROM from_stream | from_table
     WHERE exp IN (exp0, exp1, exp2);
 ```
@@ -433,22 +433,22 @@ Specifies multiple `OR` conditions. This is currently only supported for Pull Qu
 The above is equivalent to:
 
 ```sql hl_lines"3"
-  SELECT select_expr [., ...]
+  SELECT select_expr [, ...]
     FROM from_stream | from_table
     WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
 ```
 
 ## PARTITION BY
 Repartition a stream. For more information, see
-[Partition Data to Enable Joins](../joins/partition-data).
+[Partition Data to Enable Joins](/developer-guide/joins/partition-data).
 
 ```sql hl_lines="6"
 CREATE STREAM stream_name
   WITH ([...,]
         PARTITIONS=number_of_partitions)
-  AS SELECT select_expr [., ...]
+  AS SELECT select_expr [, ...]
   FROM from_stream
-  PARTITION BY key_field
+  PARTITION BY new_key_expr [, ...]
   EMIT CHANGES;
 ```
 
@@ -486,10 +486,10 @@ information, see [SELECT (Push Query)](../../ksqldb-reference/select-push-query)
 ```sql
 SELECT select_expr [, ...]
   FROM from_item
-  [ LEFT JOIN join_table ON join_criteria ]
+  [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE condition ]
-  [ GROUP BY grouping_expression ]
+  [ GROUP BY grouping_expression [, ...] ]
   [ HAVING having_expression ]
   EMIT CHANGES
   [ LIMIT count ];
@@ -523,7 +523,7 @@ SHOW | LIST FUNCTIONS;
 ```
 
 ## SHOW PROPERTIES
-List the [configuration settings](../../operate-and-deploy/installation/server-config/config-reference.md)
+List the [configuration settings](/reference/server-configuration)
 that are currently in effect. For more information, see [SHOW PROPERTIES](../../ksqldb-reference/show-properties).
 
 ```sql
@@ -580,7 +580,7 @@ SHOW VARIABLES;
 
 ## SIZE
 Specify the duration of a HOPPING or TUMBLING window. For more information,
-see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries).
+see [Time and Windows in ksqlDB](/concepts/time-and-windows-in-ksqldb-queries).
 
 ```sql hl_lines="3"
 SELECT WINDOWSTART, WINDOWEND, aggregate_function
@@ -591,7 +591,7 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 
 ## SPOOL
 Store issued commands and their results in a file. For more information,
-see [SPOOL](../../ksqldb-reference/show-spool).
+see [SPOOL](/developer-guide/ksqldb-reference/spool).
 
 ```sql
 SPOOL <file_name|OFF>

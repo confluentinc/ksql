@@ -148,7 +148,8 @@ public class InteractiveStatementExecutorTest {
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
-        hybridQueryIdGenerator
+        hybridQueryIdGenerator,
+        ksqlConfig
     );
 
     statementParser = new StatementParser(ksqlEngine);
@@ -440,20 +441,26 @@ public class InteractiveStatementExecutorTest {
     // Given:
     shouldCompleteFutureOnSuccess();
 
-    final Command command = commandWithPlan(
-        CREATE_STREAM_FOO_STATEMENT,
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
-    );
+    // Change 'baz varchar' to 'baz bigint' to cause an upgrade error
+    final Command command = commandWithPlan("CREATE OR REPLACE STREAM foo ("
+        + "biz bigint,"
+        + " baz bigint) "
+        + "WITH (kafka_topic = 'foo', "
+        + "key_format = 'kafka', "
+        + "value_format = 'json');",
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandStatusFuture status = mock(CommandStatusFuture.class);
 
     // When:
-    try {
-      handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
-    } catch (final KsqlStatementException e) {
-      // Then:
-      assertThat(e.getMessage(),
-          containsString("Cannot add stream 'FOO': A stream with the same name already exists"));
-    }
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> handleStatement(command, COMMAND_ID, Optional.of(status), 0L)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot upgrade data source: DataSource '`FOO`'"));
+
     final InOrder inOrder = Mockito.inOrder(status);
     final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
     inOrder.verify(status, times(2)).setStatus(argCommandStatus.capture());
@@ -583,6 +590,17 @@ public class InteractiveStatementExecutorTest {
 
     // Terminate the queries using the stream/table
     terminateQueries();
+
+    // Drop user1pv stream, which is linked to the pageview stream.
+    // The user1pv query will be terminated during the drop.
+    final Command dropStreamCommand1 = commandWithPlan(
+        "drop stream user1pv;",
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
+    );
+    final CommandId dropStreamCommandId1 =
+        new CommandId(Type.STREAM, "_user1pv", CommandId.Action.DROP);
+    handleStatement(
+        statementExecutor, dropStreamCommand1, dropStreamCommandId1, Optional.empty(), 4);
 
     // Now drop should be successful
     final Command dropTableCommand2 = commandWithPlan(

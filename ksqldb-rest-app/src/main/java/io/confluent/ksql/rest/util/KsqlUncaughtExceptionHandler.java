@@ -15,23 +15,41 @@
 
 package io.confluent.ksql.rest.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.KsqlServerMain;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import org.apache.kafka.streams.processor.internals.StreamThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 public class KsqlUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
   private final Runnable flusher;
+  private final Optional<CountDownLatch> countDownLatch;
 
   private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
 
   public KsqlUncaughtExceptionHandler(final Runnable flusher) {
+    this(flusher, Optional.empty());
+  }
+
+  @VisibleForTesting
+  public KsqlUncaughtExceptionHandler(
+      final Runnable flusher,
+      final Optional<CountDownLatch> countDownLatch
+  ) {
     this.flusher = flusher;
+    this.countDownLatch = countDownLatch;
   }
 
   @SuppressFBWarnings
   public void uncaughtException(final Thread t, final Throwable e) {
+    if (t instanceof StreamThread) {
+      countDownLatch.ifPresent(CountDownLatch::countDown);
+      return;
+    }
     log.error("Unhandled exception caught in thread {}.", t.getName(), e);
     System.err.println(
         "Unhandled exception caught in thread: " + t.getName() + ". Exception:" + e.getMessage());

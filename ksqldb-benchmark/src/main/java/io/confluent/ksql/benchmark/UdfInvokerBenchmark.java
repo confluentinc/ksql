@@ -39,8 +39,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 4, time = 10)
-@Measurement(iterations = 4, time = 10)
+@Warmup(iterations = 6, time = 10)
+@Measurement(iterations = 3, time = 10)
 @Threads(4)
 @Fork(3)
 public class UdfInvokerBenchmark {

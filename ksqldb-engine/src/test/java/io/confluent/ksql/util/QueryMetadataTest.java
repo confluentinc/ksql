@@ -18,19 +18,23 @@ package io.confluent.ksql.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
@@ -56,6 +60,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryMetadataTest {
 
+  private static long RETRY_BACKOFF_INITIAL_MS = 1;
+  private static long RETRY_BACKOFF_MAX_MS = 10;
   private static final String QUERY_APPLICATION_ID = "Query1";
   private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
@@ -80,6 +86,8 @@ public class QueryMetadataTest {
   private QueryErrorClassifier classifier;
   @Mock
   private QueryStateListener queryStateListener;
+  @Mock
+  private Ticker ticker;
 
   private QueryMetadata query;
 
@@ -102,7 +110,10 @@ public class QueryMetadataTest {
         closeTimeout,
         QUERY_ID,
         classifier,
-        10){
+        10,
+        0L,
+        0L
+    ){
     };
     query.initialize();
   }
@@ -240,7 +251,7 @@ public class QueryMetadataTest {
     when(classifier.classify(any())).thenReturn(Type.USER);
 
     // When:
-    query.uncaughtHandler(Thread.currentThread(), new RuntimeException("oops"));
+    query.uncaughtHandler(new RuntimeException("oops"));
 
     // Then:
     verify(queryStateListener).onError(argThat(q -> q.getType().equals(Type.USER)));
@@ -254,12 +265,8 @@ public class QueryMetadataTest {
     when(classifier.classify(any())).thenThrow(thrown);
 
     // When:
-    try {
-      query.uncaughtHandler(Thread.currentThread(), new RuntimeException("foo"));
-      Assert.fail("uncaught handler should have thrown");
-    } catch (final RuntimeException e) {
-      assertThat(e, equalTo(thrown));
-    }
+    query.uncaughtHandler(new RuntimeException("foo"));
+
 
     // Then:
     verify(queryStateListener).onError(argThat(q -> q.getType().equals(Type.UNKNOWN)));
@@ -269,4 +276,76 @@ public class QueryMetadataTest {
   public void shouldReturnPersistentQueryTypeByDefault() {
     assertThat(query.getQueryType(), is(KsqlQueryType.PERSISTENT));
   }
+
+  @Test
+  public void shouldRetryEventStartWithInitialValues() {
+    // Given:
+    final long now = 20;
+    when(ticker.read()).thenReturn(now);
+
+    // When:
+    final QueryMetadata.RetryEvent retryEvent = new QueryMetadata.RetryEvent(
+            QUERY_ID,
+            RETRY_BACKOFF_INITIAL_MS,
+            RETRY_BACKOFF_MAX_MS,
+            ticker
+    );
+
+    // Then:
+    assertThat(retryEvent.getNumRetries(), is(0));
+    assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS));
+  }
+
+  @Test
+  public void shouldRetryEventRestartAndIncrementBackoffTime() {
+    // Given:
+    final long now = 20;
+    when(ticker.read()).thenReturn(now);
+
+    // When:
+    final QueryMetadata.RetryEvent retryEvent = new QueryMetadata.RetryEvent(
+            QUERY_ID,
+            RETRY_BACKOFF_INITIAL_MS,
+            RETRY_BACKOFF_MAX_MS,
+            ticker
+    );
+
+    retryEvent.backOff();
+
+    // Then:
+    assertThat(retryEvent.getNumRetries(), is(1));
+    assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS * 2));
+  }
+
+  @Test
+  public void shouldRetryEventRestartAndNotExceedBackoffMaxTime() {
+    // Given:
+    final long now = 20;
+    when(ticker.read()).thenReturn(now);
+
+    // When:
+    final QueryMetadata.RetryEvent retryEvent = new QueryMetadata.RetryEvent(
+            QUERY_ID,
+            RETRY_BACKOFF_INITIAL_MS,
+            RETRY_BACKOFF_MAX_MS,
+            ticker
+    );
+    retryEvent.backOff();
+    retryEvent.backOff();
+
+    // Then:
+    assertThat(retryEvent.getNumRetries(), is(2));
+    assertThat(retryEvent.nextRestartTimeMs(), lessThan(now + RETRY_BACKOFF_MAX_MS));
+  }
+
+  @Test
+  public void shouldEvictBasedOnTime() {
+    // Given:
+    final QueryMetadata.TimeBoundedQueue queue = new QueryMetadata.TimeBoundedQueue(Duration.ZERO, 1);
+    queue.add(new QueryError(System.currentTimeMillis(), "test", Type.SYSTEM));
+
+    //Then:
+    assertThat(queue.toImmutableList().size(), is(0));
+  }
+
 }

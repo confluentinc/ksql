@@ -25,7 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
@@ -151,7 +150,7 @@ public class PlanNodeTest {
     }
 
     @Override
-    public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+    public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
       return null;
     }
   }

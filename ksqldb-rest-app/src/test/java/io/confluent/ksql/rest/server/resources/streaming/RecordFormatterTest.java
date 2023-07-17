@@ -208,6 +208,15 @@ public class RecordFormatterTest {
     }
 
     @Test
+    public void shouldFormatPartition() {
+      // When:
+      final String formatted = formatSingle(consumerRecord(null, null));
+
+      // Then:
+      assertThat(formatted, containsString("partition: 1"));
+    }
+
+    @Test
     public void shouldFormatNoRowTime() {
       // Given:
       timestamp = ConsumerRecord.NO_TIMESTAMP;
@@ -1265,7 +1274,8 @@ public class RecordFormatterTest {
       final Iterable<ConsumerRecord<Bytes, Bytes>> records = consumerRecords(
           // Key that is same size as  BIGINT / DOUBLE:
           consumerRecord(Bytes.wrap("Die Hard".getBytes(UTF_8)), null),
-          consumerRecord(Bytes.wrap("Key that's clearly a string".getBytes(UTF_8)), null)
+          consumerRecord(Bytes.wrap("Key that's clearly a string".getBytes(UTF_8)), null),
+          consumerRecord(Bytes.wrap("".getBytes(UTF_8)), null)
       );
 
       // When:
@@ -1273,6 +1283,7 @@ public class RecordFormatterTest {
 
       // Then:
       assertThat(formatted.get(0), containsString("Die Hard"));
+      assertThat(formatted.get(1), containsString("Key that's clearly a string"));
     }
 
     @Test
@@ -1281,7 +1292,8 @@ public class RecordFormatterTest {
       final Iterable<ConsumerRecord<Bytes, Bytes>> records = consumerRecords(
           // Value that is same size as  BIGINT / DOUBLE:
           consumerRecord(null, Bytes.wrap("Die Hard".getBytes(UTF_8))),
-          consumerRecord(null, Bytes.wrap("Key that's clearly a string".getBytes(UTF_8)))
+          consumerRecord(null, Bytes.wrap("Value that's clearly a string".getBytes(UTF_8))),
+          consumerRecord(null, Bytes.wrap("".getBytes(UTF_8)))
       );
 
       // When:
@@ -1289,6 +1301,7 @@ public class RecordFormatterTest {
 
       // Then:
       assertThat(formatted.get(0), containsString("Die Hard"));
+      assertThat(formatted.get(1), containsString("Value that's clearly a string"));
     }
 
 

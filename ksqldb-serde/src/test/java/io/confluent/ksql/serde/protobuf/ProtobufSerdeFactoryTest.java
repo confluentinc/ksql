@@ -15,16 +15,14 @@
 
 package io.confluent.ksql.serde.protobuf;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+
 import java.util.function.Supplier;
+
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -48,21 +46,16 @@ public class ProtobufSerdeFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnDecimal() {
+  public void shouldNotThrowOnDecimal() {
     // Given:
     final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
         .field("f0", SchemaBuilder.array(DecimalUtil.builder(10, 2)))
         .build();
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class)
-    );
+    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
 
-    // Then:
-    assertThat(e.getMessage(), is("The 'PROTOBUF' format does not support type 'DECIMAL'. "
-        + "See https://github.com/confluentinc/ksql/issues/5762."));
+    // Then (did not throw)
   }
 
   @Test
@@ -73,7 +66,7 @@ public class ProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class);
+    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
 
     // Then (did not throw)
   }

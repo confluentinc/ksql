@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.spi;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KeyValue;
 import java.util.List;
 import org.reactivestreams.Publisher;
 
@@ -24,7 +25,7 @@ import org.reactivestreams.Publisher;
  * query that is executed. A subscriber from the API implementation then subscribes to it, then a
  * stream of query results flows from back-end to front-end where they are written to the wire.
  */
-public interface QueryPublisher extends Publisher<GenericRow> {
+public interface QueryPublisher extends Publisher<KeyValue<List<?>, GenericRow>> {
 
   /**
    * @return List of the names of the columns of the query results

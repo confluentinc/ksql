@@ -46,6 +46,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -75,8 +76,10 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,7 +100,7 @@ public class ExpressionTreeRewriterTest {
       new NullLiteral(),
       new DecimalLiteral(BigDecimal.ONE),
       new TimeLiteral("00:00:00"),
-      new TimestampLiteral("00:00:00")
+      new TimestampLiteral(new Timestamp(0))
   );
 
   private MetaStore metaStore;
@@ -176,6 +179,15 @@ public class ExpressionTreeRewriterTest {
   public void shouldRewriteArithmeticBinaryUsingPlugin() {
     // Given:
     final Expression parsed = parseExpression("1 + 2");
+
+    // When/Then:
+    shouldRewriteUsingPlugin(parsed);
+  }
+
+  @Test
+  public void shouldRewriteLambdaFunctionUsingPlugin() {
+    // Given:
+    final Expression parsed = parseExpression("TRANSFORM_ARRAY(Array[1,2], X => X + Col0)");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -734,6 +746,13 @@ public class ExpressionTreeRewriterTest {
   public void shouldRewriteTypeUsingPlugin() {
     final Type type = new Type(SqlPrimitiveType.of("INTEGER"));
     shouldRewriteUsingPlugin(type);
+  }
+
+  @Test
+  public void shouldRewriteIntervalUnitUsingPlugin() {
+    // Given:
+    final IntervalUnit expression = new IntervalUnit(TimeUnit.DAYS);
+    shouldRewriteUsingPlugin(expression);
   }
 
   @SuppressWarnings("unchecked")

@@ -108,13 +108,43 @@
       ]
     },
     {
+      "name": "multi-column key",
+      "statements": [
+        "CREATE STREAM INPUT (K1 STRING KEY, K2 STRING KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "foo,bar", "value": "0"},
+        {"topic": "input_topic", "key": "\"foo\",\"bar\"", "value": "0"},
+        {"topic": "input_topic", "key": null, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K1": "foo", "K2": "bar"}, "value": "0"},
+        {"topic": "OUTPUT", "key": {"K1": "foo", "K2": "bar"}, "value": "0"},
+        {"topic": "OUTPUT", "key": null, "value": "0"}
+      ]
+    },
+    {
+      "name": "multi-column key with different kv delimiters",
+      "statements": [
+        "CREATE STREAM INPUT (K1 STRING KEY, K2 STRING KEY, V INT, V2 INT) WITH (kafka_topic='input_topic', format='DELIMITED', key_delimiter=';', value_delimiter='-');",
+        "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "foo,bar;baz", "value": "0-1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K1": "foo,bar", "K2": "baz"}, "value": "0-1"}
+      ]
+    },
+    {
       "name": "ARRAY - key",
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Unsupported key schema: [`K` ARRAY<DOUBLE> KEY]"
+        "message": "Key format does not support schema.\nformat: DELIMITED\nschema: Persistence{columns=[`K` ARRAY<DOUBLE> KEY], features=[]}\nreason: The 'DELIMITED' format does not support type 'ARRAY', column: `K`"
       }
     },
     {
@@ -124,7 +154,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Unsupported key schema: [`K` MAP<STRING, DOUBLE> KEY]"
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: MAP<STRING, DOUBLE>. See https://github.com/confluentinc/ksql/issues/6621 for more."
       }
     },
     {
@@ -134,14 +164,11 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Unsupported key schema: [`K` STRUCT<`F` DOUBLE> KEY]"
+        "message": "Key format does not support schema.\nformat: DELIMITED\nschema: Persistence{columns=[`K` STRUCT<`F` DOUBLE> KEY], features=[]}\nreason: The 'DELIMITED' format does not support type 'STRUCT', column: `K`"
       }
     },
     {
       "name": "ARRAY - C* - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<INT> KEY, foo INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
       ],
@@ -152,9 +179,6 @@
     },
     {
       "name": "ARRAY - C*AS - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (v INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY ARRAY[v];"
@@ -166,36 +190,27 @@
     },
     {
       "name": "MAP - C* - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The 'DELIMITED' format does not support type 'MAP'"
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: MAP<INTEGER, DOUBLE>. See https://github.com/confluentinc/ksql/issues/6621 for more."
       }
     },
     {
       "name": "MAP - C*AS - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The 'DELIMITED' format does not support type 'MAP'"
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `KSQL_COL_0`. Column type: MAP<STRING, STRING>. See https://github.com/confluentinc/ksql/issues/6621 for more."
       }
     },
     {
       "name": "STRUCT - C* - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K STRUCT<F1 DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='DELIMITED');"
       ],
@@ -206,9 +221,6 @@
     },
     {
       "name": "STRUCT - C*AS - key",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (v DOUBLE) WITH (kafka_topic='input_topic', format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(k := v);"

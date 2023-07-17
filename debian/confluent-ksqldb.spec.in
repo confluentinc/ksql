@@ -11,8 +11,6 @@ Vendor: Confluent, Inc.
 Packager: Confluent Packaging <packages@confluent.io>
 BuildArch: noarch
 
-Requires: confluent-rest-utils
-
 %description
 
 Streaming SQL engine for Apache Kafka.

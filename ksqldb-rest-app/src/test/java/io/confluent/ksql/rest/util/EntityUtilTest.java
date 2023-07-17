@@ -23,6 +23,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
@@ -75,6 +76,27 @@ public class EntityUtilTest {
     assertThat(fields.get(0).getSchema().getMemberSchema().get().getTypeName(),
         equalTo("INTEGER"));
   }
+
+  @Test
+  public void shouldBuildCorrectDecimalField() {
+    // Given:
+    final SqlDecimal decimal  = SqlTypes.decimal(10, 9);
+    final LogicalSchema schema = LogicalSchema.builder()
+            .valueColumn(ColumnName.of("field"), decimal)
+            .build();
+
+    // When:
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
+
+    // Then:
+    assertThat(fields, hasSize(1));
+    assertThat(fields.get(0).getName(), equalTo("field"));
+    assertThat(fields.get(0).getSchema().getTypeName(), equalTo("DECIMAL"));
+    assertThat(fields.get(0).getSchema().getFields(), equalTo(Optional.empty()));
+    assertThat(fields.get(0).getSchema().getParameters().get(SqlDecimal.SCALE), equalTo(decimal.getScale()));
+    assertThat(fields.get(0).getSchema().getParameters().get(SqlDecimal.PRECISION), equalTo(decimal.getPrecision()));
+  }
+
 
   @Test
   public void shouldBuildCorrectArrayField() {

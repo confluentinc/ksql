@@ -24,7 +24,6 @@ import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestCaseBuilder;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
-import io.confluent.ksql.util.KsqlConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,9 +47,7 @@ public final class PlannedTestUtils {
 
   public static boolean isNotExcluded(final TestCase testCase) {
     // Place temporary logic here to exclude test cases based on feature flags, etc.
-    return !(boolean) testCase
-        .properties()
-        .getOrDefault(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, false);
+    return true;
   }
 
   public static boolean isSamePlan(

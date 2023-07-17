@@ -22,14 +22,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[6.1.12-0, 6.1.13-0)</version>
+        <version>[6.2.11-0, 6.2.12-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>6.1.12-0</version>
+    <version>6.2.11-0</version>
 
     <licenses>
         <license>
@@ -133,7 +133,7 @@
         <jetty.version>9.4.51.v20230217</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <apache.io.version>2.7</apache.io.version>
-        <io.confluent.ksql.version>6.1.12-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>6.2.11-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
 
         <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
@@ -269,6 +269,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-api-reactive-streams-tck</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-api-client</artifactId>
                 <version>${io.confluent.ksql.version}</version>
             </dependency>
             <!-- End cross-submodule dependencies -->
@@ -493,11 +499,11 @@
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-reflect</artifactId>
                 <version>${scala.version}</version>
-              </dependency>
+            </dependency>
 
             <!-- Explicitly override all netty artifacts to get the version we want. Doing netty-all
-            doesn't seem to correctly override its individual dependencies, so all are enumerated
-            here -->
+             doesn't seem to correctly override its individual dependencies, so all are enumerated
+             here -->
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-common</artifactId>
@@ -572,11 +578,6 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-tcnative-boringssl-static</artifactId>
                 <version>${netty-tcnative-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.core</groupId>
-                <artifactId>jersey-common</artifactId>
-                <version>${jersey-common}</version>
             </dependency>
 
             <!-- Required for running tests -->

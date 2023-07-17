@@ -1,5 +1,14 @@
-What is it?
------------
+---
+layout: page
+title: Event-driven microservice 
+tagline: Learn how to create an event-driven microservice by using ksqlDB
+description: Use ksqlDB to create an event-driven microservice that identifies suspicious activity and notifies customers
+keywords: microservice
+---
+
+# Event-driven microservice
+
+## What is it?
 
 An event-driven microservice is a pattern in which a piece of code only communicates with the outside world through messages called events. This technique can dramatically simplify an architecture because each microservice only receives and emits information from clearly defined communication channels. Because state is localized within each microservice, complexity is tightly contained.
 
@@ -7,8 +16,7 @@ An event-driven microservice is a pattern in which a piece of code only communic
 
 A common way that you might implement this architecture is to feed event streams into {{ site.ak }}, read them with a stream processing framework, and trigger side-effects whenever something of interest happens — like sending an email with [Twilio SendGrid](https://sendgrid.com/). This works, but it's up to you to blend your stream processing, state, and side-effects logic in a maintainable way. Is there a better approach?
 
-Why ksqlDB?
------------
+## Why ksqlDB?
 
 Scaling stateful services is challenging. Coupling a stateful service with the responsibility of triggering side-effects makes it even harder. It’s up to you to manage both as if they were one, even though they might have completely different needs. If you want to change how side-effects behave, you also need to redeploy your stateful stream processor. ksqlDB helps simplify this by splitting things up: stateful stream processing is managed on a cluster of servers, while side-effects run inside your stateless microservice.
 
@@ -16,8 +24,7 @@ Scaling stateful services is challenging. Coupling a stateful service with the r
 
 Using ksqlDB, you can isolate complex stateful operations within ksqlDB’s runtime. Your app stays simple because it is stateless. It merely reads events from a Kafka topic and executes side-effects as needed.
 
-Implement it
-------------
+## Implement it
 
 Imagine that you work at a financial services company which clears many credit card transactions each day. You want to prevent malicious activity in your customer base. When a high number of transactions occurs in a narrow window of time, you want to notify the cardholder of suspicious activity.
 
@@ -43,7 +50,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
+    image: confluentinc/cp-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -74,7 +81,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:{{ site.release }}
+    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -93,19 +100,17 @@ services:
       KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
       KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
       KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
-      KSQL_CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
       KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
-      KSQL_CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "ksql-connect-configs"
-      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "ksql-connect-offsets"
-      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "ksql-connect-statuses"
+      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "_ksql-connect-configs"
+      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "_ksql-connect-offsets"
+      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "_ksql-connect-statuses"
       KSQL_CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:{{ site.release }}
+    image: confluentinc/ksqldb-cli:{{ site.ksqldbversion }}
     container_name: ksqldb-cli
     depends_on:
       - broker
@@ -626,8 +631,7 @@ When you're done, tear down the stack by running:
 docker-compose down
 ```
 
-Next steps
-----------
+## Next steps
 
 Want to learn more? Try another use case tutorial:
 

@@ -26,6 +26,7 @@ import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,8 +77,12 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       return;
     }
 
+    final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
+    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
-        context, server.getWorkerExecutor(), DefaultApiSecurityContext.create(routingContext))
+        context, server.getWorkerExecutor(),
+            DefaultApiSecurityContext.create(routingContext, server),
+        metricsCallbackHolder)
         .thenAccept(queryPublisher -> {
 
           final QueryResponseMetadata metadata;
@@ -86,6 +91,15 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             metadata = new QueryResponseMetadata(
                 queryPublisher.getColumnNames(),
                 queryPublisher.getColumnTypes());
+
+            // When response is complete, publisher should be closed
+            routingContext.response().endHandler(v -> {
+              queryPublisher.close();
+              metricsCallbackHolder.reportMetrics(
+                  routingContext.request().bytesRead(),
+                  routingContext.response().bytesWritten(),
+                  startTimeNanos);
+            });
           } else {
             final PushQueryHolder query = connectionQueryManager
                 .createApiQuery(queryPublisher, routingContext.request());
@@ -111,5 +125,4 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         .exceptionally(t ->
             ServerUtils.handleEndpointException(t, routingContext, "Failed to execute query"));
   }
-
 }

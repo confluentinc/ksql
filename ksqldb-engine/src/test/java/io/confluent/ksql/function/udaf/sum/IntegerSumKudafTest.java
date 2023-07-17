@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 
@@ -30,7 +31,7 @@ public class IntegerSumKudafTest extends BaseSumKudafTest<Integer, IntegerSumKud
 
   protected IntegerSumKudaf getSumKudaf() {
     final KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.INTEGER),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(IntegerSumKudaf.class));
     return  (IntegerSumKudaf) aggregateFunction;

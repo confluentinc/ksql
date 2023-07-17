@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,7 @@ public class ApiSqlValueCoercerTest {
       .put(SqlBaseType.DECIMAL, SqlTypes.decimal(2, 1))
       .put(SqlBaseType.DOUBLE, SqlTypes.DOUBLE)
       .put(SqlBaseType.STRING, SqlTypes.STRING)
+      .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
       .put(SqlBaseType.ARRAY, SqlTypes.array(SqlTypes.BIGINT))
       .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT))
       .put(SqlBaseType.STRUCT, SqlTypes.struct().field("fred", SqlTypes.INTEGER).build())
@@ -66,6 +68,7 @@ public class ApiSqlValueCoercerTest {
       .put(SqlBaseType.DECIMAL, BigDecimal.ONE)
       .put(SqlBaseType.DOUBLE, 3.0D)
       .put(SqlBaseType.STRING, "4.1")
+      .put(SqlBaseType.TIMESTAMP, new Timestamp(300))
       .put(SqlBaseType.ARRAY, new JsonArray().add(1L).add(2L))
       .put(SqlBaseType.MAP, new JsonObject().put("k", 1L))
       .put(SqlBaseType.STRUCT, new JsonObject().put("fred", 11))
@@ -96,6 +99,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(1L, SqlTypes.BOOLEAN), is(Result.failure()));
     assertThat(coercer.coerce(1.0d, SqlTypes.BOOLEAN), is(Result.failure()));
     assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BOOLEAN), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.BOOLEAN), is(Result.failure()));
   }
 
   @Test
@@ -110,6 +114,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(1.0d, SqlTypes.INTEGER), is(Result.failure()));
     assertThat(coercer.coerce("1", SqlTypes.INTEGER), is(Result.failure()));
     assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.INTEGER), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.INTEGER), is(Result.failure()));
   }
 
   @Test
@@ -124,6 +129,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(1.0d, SqlTypes.BIGINT), is(Result.failure()));
     assertThat(coercer.coerce("1", SqlTypes.BIGINT), is(Result.failure()));
     assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BIGINT), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.BIGINT), is(Result.failure()));
   }
 
   @Test
@@ -143,6 +149,7 @@ public class ApiSqlValueCoercerTest {
     final SqlType decimalType = SqlTypes.decimal(2, 1);
     assertThat(coercer.coerce(true, decimalType), is(Result.failure()));
     assertThat(coercer.coerce(1234L, decimalType), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(3213), decimalType), is(Result.failure()));
   }
 
   @Test
@@ -157,6 +164,7 @@ public class ApiSqlValueCoercerTest {
   public void shouldNotCoerceToDouble() {
     assertThat(coercer.coerce(true, SqlTypes.DOUBLE), is(Result.failure()));
     assertThat(coercer.coerce("1", SqlTypes.DOUBLE), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.DOUBLE), is(Result.failure()));
   }
 
   @Test
@@ -174,6 +182,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(true, arrayType), is(Result.failure()));
     assertThat(coercer.coerce(1L, arrayType), is(Result.failure()));
     assertThat(coercer.coerce("foo", arrayType), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(3213), arrayType), is(Result.failure()));
     assertThat(coercer.coerce(ImmutableMap.of("foo", 1), arrayType), is(Result.failure()));
     assertThat(coercer.coerce(new JsonObject().put("foo", 1), arrayType), is(Result.failure()));
   }
@@ -193,6 +202,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(true, mapType), is(Result.failure()));
     assertThat(coercer.coerce(1L, mapType), is(Result.failure()));
     assertThat(coercer.coerce("foo", mapType), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(3213), mapType), is(Result.failure()));
     assertThat(coercer.coerce(ImmutableList.of("foo"), mapType), is(Result.failure()));
     assertThat(coercer.coerce(new JsonArray().add("foo"), mapType), is(Result.failure()));
   }
@@ -283,6 +293,22 @@ public class ApiSqlValueCoercerTest {
   }
 
   @Test
+  public void shouldCoerceToTimestamp() {
+    assertThat(coercer.coerce("2005-04-18T01:00:00.0", SqlTypes.TIMESTAMP), is(Result.of(new Timestamp(1113786000000L))));
+    assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.TIMESTAMP), is(Result.of(new Timestamp(3213))));
+  }
+
+  @Test
+  public void shouldNotCoerceToTimestamp() {
+    assertThat(coercer.coerce(true, SqlTypes.TIMESTAMP), is(Result.failure()));
+    assertThat(coercer.coerce(1, SqlTypes.TIMESTAMP), is(Result.failure()));
+    assertThat(coercer.coerce(1L, SqlTypes.TIMESTAMP), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.TIMESTAMP), is(Result.failure()));
+    assertThat(coercer.coerce("aaa", SqlTypes.TIMESTAMP), is(Result.failure()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.TIMESTAMP), is(Result.failure()));
+  }
+
+  @Test
   public void shouldCoerceAlmostUsingSameRulesAsBaseTypeUpCastRules() {
     for (final SqlBaseType fromBaseType : supportedTypes()) {
       // Given:
@@ -296,13 +322,13 @@ public class ApiSqlValueCoercerTest {
       // Then:
       shouldUpCast.forEach(toBaseType -> assertThat(
           "should coerce " + fromBaseType + " to " + toBaseType,
-          coercer.coerce(getInstance(fromBaseType), getType(toBaseType)),
+          coercer.coerce(getInstance(fromBaseType, toBaseType), getType(toBaseType)),
           is(not(Result.failure()))
       ));
 
       shouldNotUpCast.forEach(toBaseType -> assertThat(
           "should not coerce " + fromBaseType + " to " + toBaseType,
-          coercer.coerce(getInstance(fromBaseType), getType(toBaseType)),
+          coercer.coerce(getInstance(fromBaseType, toBaseType), getType(toBaseType)),
           is(Result.failure())
       ));
     }
@@ -536,13 +562,16 @@ public class ApiSqlValueCoercerTest {
     return ImmutableList.copyOf(SqlBaseType.values());
   }
 
-  private static Object getInstance(final SqlBaseType baseType) {
+  private static Object getInstance(final SqlBaseType baseType, final SqlBaseType toType) {
     final Object instance = INSTANCES.get(baseType);
     assertThat(
         "invalid test: need instance for base type:" + baseType,
         instance,
         is(notNullValue())
     );
+    if (baseType == SqlBaseType.STRING && toType == SqlBaseType.TIMESTAMP) {
+      return "2005-04-05T12:34:56.789";
+    }
     return instance;
   }
 

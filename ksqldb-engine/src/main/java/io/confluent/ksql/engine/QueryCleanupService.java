@@ -100,6 +100,10 @@ class QueryCleanupService extends AbstractExecutionThreadService {
       this.isTransient = isTransient;
     }
 
+    public String getAppId() {
+      return appId;
+    }
+
     @Override
     public void run() {
       tryRun(

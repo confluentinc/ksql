@@ -16,6 +16,10 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
+import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -47,13 +51,14 @@ public final class RestoreCommandsCompactor {
    */
   static List<QueuedCommand> compact(final List<QueuedCommand> restoreCommands) {
     final Map<QueryId, CompactedNode> latestNodeWithId = new HashMap<>();
+    final Map<SourceName, QueryId> latestCreateAsWithId = new HashMap<>();
     CompactedNode current = null;
 
     for (final QueuedCommand cmd : restoreCommands) {
       // Whenever a new command is processed, we check if a previous command with
       // the same queryID exists - in which case, we mark that command as "shouldSkip"
       // and it will not be included in the output
-      current = CompactedNode.maybeAppend(current, cmd, latestNodeWithId);
+      current = CompactedNode.maybeAppend(current, cmd, latestNodeWithId, latestCreateAsWithId);
     }
 
     final List<QueuedCommand> compacted = new LinkedList<>();
@@ -77,13 +82,16 @@ public final class RestoreCommandsCompactor {
     public static CompactedNode maybeAppend(
         final CompactedNode prev,
         final QueuedCommand queued,
-        final Map<QueryId, CompactedNode> latestNodeWithId
+        final Map<QueryId, CompactedNode> latestNodeWithId,
+        final Map<SourceName, QueryId> latestCreateAsWithId
     ) {
       final Command command = queued.getAndDeserializeCommand(
           InternalTopicSerdes.deserializer(Command.class)
       );
 
       final Optional<KsqlPlan> plan = command.getPlan();
+      final Optional<DdlCommand> ddlCommand = plan.flatMap(p -> p.getDdlCommand());
+
       if (queued.getAndDeserializeCommandId().getType() == Type.TERMINATE) {
         final QueryId queryId = new QueryId(queued.getAndDeserializeCommandId().getEntity());
         if (queryId.toString().equals(TerminateQuery.ALL_QUERIES)) {
@@ -97,16 +105,48 @@ public final class RestoreCommandsCompactor {
         // terminated queries
         return prev;
       } else if (!plan.isPresent() || !plan.get().getQueryPlan().isPresent()) {
+        // drop sources may have a query linked by create_as commands
+        // we mark this query as "shouldSkip" now that drop commands terminate the query too
+        ddlCommand.ifPresent(ddl ->
+            getDropSourceName(ddl).ifPresent(sourceName -> {
+              final QueryId queryId = latestCreateAsWithId.get(sourceName);
+              if (queryId != null) {
+                markShouldSkip(queryId, latestNodeWithId);
+              }
+            }));
+
         // DDL
         return new CompactedNode(prev, queued, command);
       }
 
-      final QueryId queryId = plan.get().getQueryPlan().get().getQueryId();
-      markShouldSkip(queryId, latestNodeWithId);
       final CompactedNode node = new CompactedNode(prev, queued, command);
 
+      final QueryId queryId = plan.get().getQueryPlan().get().getQueryId();
+      markShouldSkip(queryId, latestNodeWithId);
       latestNodeWithId.put(queryId, node);
+
+      // keep track of the latest query ID for the new CREATE_AS source
+      ddlCommand.ifPresent(ddl ->
+          getCreateSourceName(ddl).ifPresent(sourceName ->
+              latestCreateAsWithId.put(sourceName, queryId)));
+
       return node;
+    }
+
+    private static Optional<SourceName> getCreateSourceName(final DdlCommand ddlCommand) {
+      if (ddlCommand instanceof CreateSourceCommand) {
+        return Optional.of(((CreateSourceCommand)ddlCommand).getSourceName());
+      }
+
+      return Optional.empty();
+    }
+
+    private static Optional<SourceName> getDropSourceName(final DdlCommand ddlCommand) {
+      if (ddlCommand instanceof DropSourceCommand) {
+        return Optional.of(((DropSourceCommand)ddlCommand).getSourceName());
+      }
+
+      return Optional.empty();
     }
 
     private static void markShouldSkip(

@@ -1,0 +1,293 @@
+{
+  "comments": ["tests for timestamp functionality"],
+  "tests": [
+    {
+      "name": "DELIMITED in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "10"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "10"}
+      ]
+    },
+    {
+      "name": "AVRO in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": 10}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 10}}
+      ]
+    },
+    {
+      "name": "JSON in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"time": 10}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 10}}
+      ]
+    },
+    {
+      "name": "PROTOBUF in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"time": 10}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 10}}
+      ]
+    },
+    {
+      "name": "equal - timestamp timestamp",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP, b TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a = b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": 10, "B": 10}},
+        {"topic": "test", "value": {"A": 10, "B": 100}},
+        {"topic": "test", "value": {"A": null, "B": 100}},
+        {"topic": "test", "value": {"A": null, "B": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "not equal - timestamp timestamp",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP, b TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a <> b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": 10, "B": 10}},
+        {"topic": "test", "value": {"A": 10, "B": 12}},
+        {"topic": "test", "value": {"A": null, "B": 10}},
+        {"topic": "test", "value": {"A": null, "B": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "is distinct - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP, b TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a IS DISTINCT FROM b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": 10, "B": 10}},
+        {"topic": "test", "value": {"A": 10, "B": 12}},
+        {"topic": "test", "value": {"A": null, "B": 10}},
+        {"topic": "test", "value": {"A": null, "B": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "less than - timestamp timestamp",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP, b TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a < b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": 10, "B": 10}},
+        {"topic": "test", "value": {"A": 10, "B": 12}},
+        {"topic": "test", "value": {"A": null, "B": 10}},
+        {"topic": "test", "value": {"A": null, "B": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "LEQ - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP, b TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a <= b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": 10, "B": 3}},
+        {"topic": "test", "value": {"A": 10, "B": 10}},
+        {"topic": "test", "value": {"A": 10, "B": 12}},
+        {"topic": "test", "value": {"A": null, "B": 10}},
+        {"topic": "test", "value": {"A": null, "B": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "GEQ - timestamp timestamp",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP, b TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a >= b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": 10, "B": 3}},
+        {"topic": "test", "value": {"A": 10, "B": 10}},
+        {"topic": "test", "value": {"A": 10, "B": 12}},
+        {"topic": "test", "value": {"A": null, "B": 10}},
+        {"topic": "test", "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "greater than - timestamp timestamp",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP, b TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a > b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": 10, "B": 3}},
+        {"topic": "test", "value": {"A": 10, "B": 10}},
+        {"topic": "test", "value": {"A": 10, "B": 12}},
+        {"topic": "test", "value": {"A": null, "B": 10}},
+        {"topic": "test", "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "greater than - timestamp string",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, (a > '1970-01-01T00:00:00.010') AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"A": 10}},
+        {"topic": "test", "value": {"A": 11}},
+        {"topic": "test", "value": {"A": 9}},
+        {"topic": "test", "value": {"A": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": true}},
+        {"topic": "TEST2", "value": {"RESULT": false}},
+        {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "casting - timestamp to string",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, TIME TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, CAST(TIME AS STRING) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": 10}},
+        {"topic": "test", "value": {"TIME": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": "1970-01-01T00:00:00.010"}},
+        {"topic": "TEST2", "value": {"RESULT": null}}
+      ]
+    },
+    {
+      "name": "casting - string to timestamp",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, TIME STRING) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, CAST(TIME AS TIMESTAMP) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": "foo"}},
+        {"topic": "test", "value": {"TIME": "1970-01-01T00:00:00.010"}},
+        {"topic": "test", "value": {"TIME": "1970-01-01T00:00:01"}},
+        {"topic": "test", "value": {"TIME": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": null}},
+        {"topic": "TEST2", "value": {"RESULT": 10}},
+        {"topic": "TEST2", "value": {"RESULT": 1000}},
+        {"topic": "TEST2", "value": {"RESULT": null}}
+      ]
+    },
+    {
+      "name": "filter",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, TIME TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST WHERE TIME='1970-01-01T00:00:00.010';"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": 10}},
+        {"topic": "test", "value": {"TIME": 11}},
+        {"topic": "test", "value": {"TIME": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 10}}
+      ]
+    },
+    {
+      "name": "between",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, TIME TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST WHERE TIME BETWEEN '1970-01-01T00:00:00.005' AND '1970-01-01T00:00:00.010';"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": "1"}},
+        {"topic": "test", "value": {"TIME": "6"}},
+        {"topic": "test", "value": {"TIME": "12"}},
+        {"topic": "test", "value": {"TIME": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 6}}
+      ]
+    },
+    {
+      "name": "timestamp in complex types",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, S STRUCT<TIME TIMESTAMP>, A ARRAY<TIMESTAMP>, M MAP<STRING, TIMESTAMP>) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, S -> TIME AS S, A[1] AS A, M['TIME'] AS M FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"S": {"TIME": "1"}, "A":  ["5", "10"], "M":  {"TIME": "4"}}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"S": 1, "A":  5, "M": 4}}
+      ]
+    }
+  ]
+}

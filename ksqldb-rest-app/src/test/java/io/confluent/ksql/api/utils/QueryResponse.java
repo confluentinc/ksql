@@ -52,6 +52,7 @@ public class QueryResponse {
     return "QueryResponse{" +
         "metadata=" + responseObject +
         ", rows=" + rows +
+        ", error=" + error +
         '}';
   }
 }

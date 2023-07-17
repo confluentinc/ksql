@@ -23,13 +23,13 @@ import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.types.StructType;
-import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
@@ -42,6 +42,7 @@ import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Timestamp;
 
 /**
  * Util class for converting between KSQL's different type systems.
@@ -215,7 +216,8 @@ public final class SchemaConverters {
     private static final Map<Schema.Type, Function<Schema, SqlType>> CONNECT_TO_SQL = ImmutableMap
         .<Schema.Type, Function<Schema, SqlType>>builder()
         .put(Schema.Type.INT32, s -> SqlTypes.INTEGER)
-        .put(Schema.Type.INT64, s -> SqlTypes.BIGINT)
+        .put(Schema.Type.INT64, s ->
+            s.name() == Timestamp.LOGICAL_NAME ? SqlTypes.TIMESTAMP : SqlTypes.BIGINT)
         .put(Schema.Type.FLOAT64, s -> SqlTypes.DOUBLE)
         .put(Schema.Type.BOOLEAN, s -> SqlTypes.BOOLEAN)
         .put(Schema.Type.STRING, s -> SqlTypes.STRING)
@@ -275,6 +277,7 @@ public final class SchemaConverters {
             .put(SqlBaseType.ARRAY, t -> ConnectFromSqlConverter.fromSqlArray((SqlArray) t))
             .put(SqlBaseType.MAP, t -> ConnectFromSqlConverter.fromSqlMap((SqlMap) t))
             .put(SqlBaseType.STRUCT, t -> ConnectFromSqlConverter.fromSqlStruct((SqlStruct) t))
+            .put(SqlBaseType.TIMESTAMP, t -> Timestamp.builder().optional())
         .build();
 
     @Override
@@ -339,6 +342,7 @@ public final class SchemaConverters {
         .put(List.class, SqlBaseType.ARRAY)
         .put(Map.class, SqlBaseType.MAP)
         .put(Struct.class, SqlBaseType.STRUCT)
+        .put(java.sql.Timestamp.class, SqlBaseType.TIMESTAMP)
         .build();
 
     @Override
@@ -376,6 +380,7 @@ public final class SchemaConverters {
             .put(ParamTypes.INTEGER, SqlTypes.INTEGER)
             .put(ParamTypes.LONG, SqlTypes.BIGINT)
             .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE)
+            .put(ParamTypes.TIMESTAMP, SqlTypes.TIMESTAMP)
             .build();
 
     @Override
@@ -417,6 +422,7 @@ public final class SchemaConverters {
             .put(ParamTypes.LONG, SqlBaseType.BIGINT)
             .put(ParamTypes.DOUBLE, SqlBaseType.DOUBLE)
             .put(ParamTypes.DECIMAL, SqlBaseType.DECIMAL)
+            .put(ParamTypes.TIMESTAMP, SqlBaseType.TIMESTAMP)
             .build();
 
     @Override

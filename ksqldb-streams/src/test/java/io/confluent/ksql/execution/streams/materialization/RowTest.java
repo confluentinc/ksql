@@ -22,6 +22,7 @@ import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Validator;
 import io.confluent.ksql.name.ColumnName;
@@ -29,7 +30,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -50,9 +50,7 @@ public class RowTest {
       .field("k1", Schema.OPTIONAL_INT32_SCHEMA)
       .build();
 
-  private static final Struct A_KEY = new Struct(KEY_STRUCT_SCHEMA)
-      .put("k0", "key")
-      .put("k1", 11);
+  private static final GenericKey A_KEY = GenericKey.genericKey("key", 11);
 
   private static final GenericRow A_VALUE = GenericRow.genericRow("v0-v", 1.0d);
   private static final long A_ROWTIME = 1283535L;
@@ -65,7 +63,7 @@ public class RowTest {
   public void shouldThrowNPE() {
     new NullPointerTester()
         .setDefault(LogicalSchema.class, SCHEMA)
-        .setDefault(Struct.class, A_KEY)
+        .setDefault(GenericKey.class, A_KEY)
         .setDefault(GenericRow.class, A_VALUE)
         .testStaticMethods(Row.class, Visibility.PROTECTED);
   }
@@ -89,7 +87,7 @@ public class RowTest {
             Row.of(differentSchema, A_KEY, A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
-            Row.of(SCHEMA, new Struct(KEY_STRUCT_SCHEMA), A_VALUE, A_ROWTIME)
+            Row.of(SCHEMA, GenericKey.genericKey("diff", 11), A_VALUE, A_ROWTIME)
         )
         .addEqualityGroup(
             Row.of(SCHEMA, A_KEY, GenericRow.genericRow(null, null), A_ROWTIME)

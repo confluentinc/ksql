@@ -21,6 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
@@ -75,7 +76,7 @@ public class KsqlFunction implements FunctionSignature {
     }
   }
 
-  public SqlType getReturnType(final List<SqlType> arguments) {
+  public SqlType getReturnType(final List<SqlArgument> arguments) {
     return returnSchemaProvider.resolve(parameters(), arguments);
   }
 

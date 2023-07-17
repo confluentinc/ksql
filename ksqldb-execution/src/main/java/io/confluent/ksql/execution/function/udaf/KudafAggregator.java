@@ -18,13 +18,13 @@ package io.confluent.ksql.execution.function.udaf;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.UdafAggregator;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.List;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class KudafAggregator<K> implements UdafAggregator<K> {
@@ -78,7 +78,7 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
   }
 
   @Override
-  public Merger<Struct, GenericRow> getMerger() {
+  public Merger<GenericKey, GenericRow> getMerger() {
 
     return (key, aggRowOne, aggRowTwo) -> {
 

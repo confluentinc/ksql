@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -78,7 +79,7 @@ public class ApiIntegrationTest {
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials NORMAL_USER = VALID_USER2;
-  private static final String AN_AGG_KEY = "FOO";
+  private static final String AN_AGG_KEY = "STRUCT(F1 := ARRAY['a'])";
 
   private static final JsonObject COMPLEX_FIELD_VALUE = new JsonObject()
       .put("DECIMAL", 1.1) // JsonObject does not accept BigDecimal
@@ -104,6 +105,7 @@ public class ApiIntegrationTest {
       .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
       .withProperties(ClientTrustStore.trustStoreProps())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .build();
 
   @ClassRule
@@ -116,12 +118,12 @@ public class ApiIntegrationTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(TEST_TOPIC);
 
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
 
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT STR, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY STR;"
+        + "SELECT K, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY K;"
     );
   }
 
@@ -162,9 +164,9 @@ public class ApiIntegrationTest {
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
-        new JsonArray().add("STR").add("LONG").add("DEC").add("ARRAY").add("MAP").add("STRUCT").add("COMPLEX")));
+        new JsonArray().add("K").add("STR").add("LONG").add("DEC").add("ARRAY").add("MAP").add("STRUCT").add("COMPLEX")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
-        new JsonArray().add("STRING").add("BIGINT").add("DECIMAL(4, 2)").add("ARRAY<STRING>").add("MAP<STRING, STRING>").add("STRUCT<`F1` INTEGER>")
+        new JsonArray().add("STRUCT<`F1` ARRAY<STRING>>").add("STRING").add("BIGINT").add("DECIMAL(4, 2)").add("ARRAY<STRING>").add("MAP<STRING, STRING>").add("STRUCT<`F1` INTEGER>")
             .add("STRUCT<`DECIMAL` DECIMAL(2, 1), `STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, "
                 + "`ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, `ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, "
                 + "`ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, `MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, "
@@ -264,7 +266,7 @@ public class ApiIntegrationTest {
   public void shouldExecutePullQuery() {
 
     // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
 
     // When:
     // Maybe need to retry as populating agg table is async
@@ -278,13 +280,13 @@ public class ApiIntegrationTest {
     QueryResponse response = atomicReference.get();
 
     // Then:
-    JsonArray expectedColumnNames = new JsonArray().add("STR").add("LONG");
-    JsonArray expectedColumnTypes = new JsonArray().add("STRING").add("BIGINT");
+    JsonArray expectedColumnNames = new JsonArray().add("K").add("LONG");
+    JsonArray expectedColumnTypes = new JsonArray().add("STRUCT<`F1` ARRAY<STRING>>").add("BIGINT");
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
     assertThat(response.responseObject.getString("queryId"), is(nullValue()));
-    assertThat(response.rows.get(0).getString(0), is("FOO")); // rowkey
+    assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0), is("a")); // rowkey
     assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }
 
@@ -302,8 +304,8 @@ public class ApiIntegrationTest {
   public void shouldFailPullQueryWithMoreThanOneStatement() {
 
     // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';" +
-        "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
+    String sql = "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";" +
+        "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
 
     // Then:
     shouldFailToExecuteQuery(sql, "Expected exactly one KSQL statement; found 2 instead");
@@ -326,7 +328,7 @@ public class ApiIntegrationTest {
     String sql = "SELECT * from " + AGG_TABLE + " WHERE LONG=12345;";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "WHERE clause on unsupported column: LONG.");
+    shouldFailToExecuteQuery(sql, "WHERE clause missing key column for disjunct: (LONG = 12345).");
   }
 
   @Test
@@ -343,6 +345,7 @@ public class ApiIntegrationTest {
 
     for (int i = 0; i < numRows; i++) {
       JsonObject row = new JsonObject()
+          .put("K", new JsonObject().put("F1", new JsonArray().add("my_key_" + i)))
           .put("STR", "Value_" + i)
           .put("LONG", 1000 + i)
           .put("DEC", i + 0.11) // JsonObject does not accept BigDecimal
@@ -378,6 +381,7 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
+        .put("STR", "HELLO")
         .put("LONG", 1000)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
@@ -387,7 +391,7 @@ public class ApiIntegrationTest {
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
-        "Key field must be specified: STR");
+        "Key field must be specified: K");
   }
 
   @Test
@@ -395,7 +399,8 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
-        .put("STR", true)
+        .put("K", "bad type")
+        .put("STR", "HELLO")
         .put("LONG", 1000)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
@@ -405,7 +410,7 @@ public class ApiIntegrationTest {
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
-        "Can't coerce a field of type class java.lang.Boolean into type STRING");
+        "Can't coerce a field of type class java.lang.String into type STRUCT<`F1` ARRAY<STRING>>");
   }
 
   @Test
@@ -413,6 +418,7 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
+        .put("K", new JsonObject().put("F1", new JsonArray().add("my_key")))
         .put("STR", "HELLO")
         .put("LONG", "not a number")
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
@@ -431,6 +437,7 @@ public class ApiIntegrationTest {
 
     // Given:
     JsonObject row = new JsonObject()
+        .put("K", new JsonObject().put("F1", new JsonArray().add("my_key")))
         .put("STR", "HELLO")
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
@@ -448,6 +455,7 @@ public class ApiIntegrationTest {
     // Given: lowercase fields names and stream name
     String target = TEST_STREAM.toLowerCase();
     JsonObject row = new JsonObject()
+        .put("k", new JsonObject().put("f1", new JsonArray().add("my_key")))
         .put("str", "HELLO")
         .put("dec", 12.21) // JsonObject does not accept BigDecimal
         .put("array", new JsonArray().add("a").add("b"))
@@ -464,6 +472,7 @@ public class ApiIntegrationTest {
     // Given:
     String target = "`" + TEST_STREAM.toLowerCase() + "`";
     JsonObject row = new JsonObject()
+        .put("K", new JsonObject().put("F1", new JsonArray().add("my_key")))
         .put("STR", "HELLO")
         .put("LONG", 1000L)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
@@ -481,6 +490,7 @@ public class ApiIntegrationTest {
     // Given:
     String target = "\"" + TEST_STREAM.toLowerCase() + "\"";
     JsonObject row = new JsonObject()
+        .put("K", new JsonObject().put("F1", new JsonArray().add("my_key")))
         .put("STR", "HELLO")
         .put("LONG", 1000L)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
@@ -497,7 +507,8 @@ public class ApiIntegrationTest {
   public void shouldTreatInsertColumnNamesAsCaseSensitiveIfQuotedWithBackticks() {
     // Given:
     JsonObject row = new JsonObject()
-        .put("`str`", "HELLO")
+        .put("`k`", new JsonObject().put("F1", new JsonArray().add("my_key")))
+        .put("STR", "HELLO")
         .put("LONG", 1000L)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
@@ -506,14 +517,15 @@ public class ApiIntegrationTest {
         .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because column name is incorrect
-    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: STR");
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: K");
   }
 
   @Test
   public void shouldTreatInsertColumnNamesAsCaseSensitiveIfQuotedWithDoubleQuotes() {
     // Given:
     JsonObject row = new JsonObject()
-        .put("\"str\"", "HELLO")
+        .put("\"k\"", new JsonObject().put("F1", new JsonArray().add("my_key")))
+        .put("STR", "HELLO")
         .put("LONG", 1000L)
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
@@ -522,7 +534,7 @@ public class ApiIntegrationTest {
         .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because column name is incorrect
-    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: STR");
+    shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: K");
   }
 
   @Test
@@ -551,6 +563,7 @@ public class ApiIntegrationTest {
 
     // New row to insert
     JsonObject row = new JsonObject()
+        .put("K", new JsonObject().put("F1", new JsonArray().add("my_key_shouldExecutePushQueryFromLatestOffset")))
         .put("STR", "Value_shouldExecutePushQueryFromLatestOffset")
         .put("LONG", 2000L)
         .put("DEC", 12.34) // JsonObject does not accept BigDecimal
@@ -574,13 +587,14 @@ public class ApiIntegrationTest {
     // Verify that the received row is the expected one
     Buffer buff = writeStream.getBody();
     QueryResponse queryResponse = new QueryResponse(buff.toString());
-    assertThat(queryResponse.rows.get(0).getString(0), is("Value_shouldExecutePushQueryFromLatestOffset"));
-    assertThat(queryResponse.rows.get(0).getLong(1), is(2000L));
-    assertThat(queryResponse.rows.get(0).getDouble(2), is(12.34));
-    assertThat(queryResponse.rows.get(0).getJsonArray(3), is(new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset")));
-    assertThat(queryResponse.rows.get(0).getJsonObject(4), is(new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset")));
-    assertThat(queryResponse.rows.get(0).getJsonObject(5), is(new JsonObject().put("F1", 3)));
-    assertThat(queryResponse.rows.get(0).getJsonObject(6), is(COMPLEX_FIELD_VALUE));
+    assertThat(queryResponse.rows.get(0).getJsonObject(0), is(new JsonObject().put("F1", new JsonArray().add("my_key_shouldExecutePushQueryFromLatestOffset"))));
+    assertThat(queryResponse.rows.get(0).getString(1), is("Value_shouldExecutePushQueryFromLatestOffset"));
+    assertThat(queryResponse.rows.get(0).getLong(2), is(2000L));
+    assertThat(queryResponse.rows.get(0).getDouble(3), is(12.34));
+    assertThat(queryResponse.rows.get(0).getJsonArray(4), is(new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset")));
+    assertThat(queryResponse.rows.get(0).getJsonObject(5), is(new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset")));
+    assertThat(queryResponse.rows.get(0).getJsonObject(6), is(new JsonObject().put("F1", 3)));
+    assertThat(queryResponse.rows.get(0).getJsonObject(7), is(COMPLEX_FIELD_VALUE));
 
     // Check that query is cleaned up on the server
     assertThatEventually(engine::numberOfLiveQueries, is(1));

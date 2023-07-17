@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -30,9 +31,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -70,7 +72,6 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -91,13 +92,12 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -139,9 +139,9 @@ public class InsertValuesExecutorTest {
   @Mock
   private KsqlEngine engine;
   @Mock
-  private Serde<Struct> keySerDe;
+  private Serde<GenericKey> keySerDe;
   @Mock
-  private Serializer<Struct> keySerializer;
+  private Serializer<GenericKey> keySerializer;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
@@ -160,6 +160,9 @@ public class InsertValuesExecutorTest {
   private KeySerdeFactory keySerdeFactory;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
+  @Mock
+  private SchemaRegistryClient srClient;
+
   private InsertValuesExecutor executor;
 
   @Before
@@ -177,6 +180,7 @@ public class InsertValuesExecutorTest {
 
     when(serviceContext.getKafkaClientSupplier()).thenReturn(kafkaClientSupplier);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
 
     givenSourceStreamWithSchema(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
@@ -207,7 +211,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("key"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -226,7 +230,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey((String) null));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("new"));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -249,7 +253,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("newKey"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("newKey"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("newCol0"));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -270,7 +274,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -291,7 +295,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey((String) null));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1234L, KEY, VALUE));
   }
@@ -312,7 +316,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -331,7 +335,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -352,7 +356,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("key"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -398,7 +402,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("str"));
     verify(valueSerializer)
         .serialize(TOPIC_NAME, genericRow(
             "str", 0, 2L, 3.0, true, "str", new BigDecimal("1.2", new MathContext(2)))
@@ -424,7 +428,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey((String) null));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", -1L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -744,7 +748,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("key"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -766,7 +770,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("key"));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -787,7 +791,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey((String) null));
     verify(valueSerializer).serialize(TOPIC_NAME, genericRow("str", 2L));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -837,6 +841,69 @@ public class InsertValuesExecutorTest {
         "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables"));
   }
 
+
+  @Test
+  public void shouldSupportInsertIntoWithSchemaInfereceMatch() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE, SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0),
+        ImmutableList.of(
+            new StringLiteral("foo"),
+            new StringLiteral("bar"))
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("foo"));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("bar", null));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldThrowOnSchemaInferenceMismatchForKey() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any())).thenReturn(new SchemaMetadata(1, 1, "schema"));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0),
+        ImmutableList.of(
+            new StringLiteral("foo"),
+            new StringLiteral("bar"))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
+    assertThat(e.getMessage(), containsString("Existing Schema: schema"));
+    assertThat(e.getMessage(), containsString("ksqlDB Generated: {\"type\":"));
+  }
+
   @Test
   public void shouldBuildCorrectSerde() {
     // Given:
@@ -874,12 +941,47 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldThrowWhenNotAuthorizedToWriteKeySchemaToSR() {
+  public void shouldThrowWhenNotAuthorizedToReadKeySchemaToSR() throws Exception {
     // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenThrow(new RestClientException("foo", 401, 1));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false);
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allColumnNames(SCHEMA),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L)
+        )
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Not authorized to read Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
+  }
+
+  @Test
+  public void shouldThrowWhenNotAuthorizedToWriteKeySchemaToSR() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -908,12 +1010,14 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldThrowWhenNotAuthorizedToWriteValSchemaToSR() {
+  public void shouldThrowWhenNotAuthorizedToWriteValSchemaToSR() throws Exception {
     // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -1024,13 +1128,6 @@ public class InsertValuesExecutorTest {
     metaStore.putSource(dataSource, false);
 
     when(engine.getMetaStore()).thenReturn(metaStore);
-  }
-
-  private static Struct keyStruct(final String rowKey) {
-    final ConnectSchema keySchema = ConnectSchemas.columnsToConnectSchema(SCHEMA.key());
-    final Struct key = new Struct(keySchema);
-    key.put(Iterables.getOnlyElement(SCHEMA.key()).name().text(), rowKey);
-    return key;
   }
 
   private static List<ColumnName> valueColumnNames(final LogicalSchema schema) {

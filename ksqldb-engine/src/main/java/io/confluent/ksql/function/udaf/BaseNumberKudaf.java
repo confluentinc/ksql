@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.ParameterInfo;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -23,7 +24,6 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFunction<T, T, T> {
@@ -67,7 +67,7 @@ public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFun
   }
 
   @Override
-  public final Merger<Struct, T> getMerger() {
+  public final Merger<GenericKey, T> getMerger() {
     return (key, a, b) -> aggregate(a, b);
   }
 

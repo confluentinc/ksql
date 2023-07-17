@@ -99,6 +99,22 @@ public interface ClientOptions {
   ClientOptions setKeyStorePassword(String keyStorePassword);
 
   /**
+   * Sets the key password.
+   *
+   * @param keyPassword key password
+   * @return a reference to this
+   */
+  ClientOptions setKeyPassword(String keyPassword);
+
+  /**
+   * Sets the key alias.
+   *
+   * @param keyAlias key alias
+   * @return a reference to this
+   */
+  ClientOptions setKeyAlias(String keyAlias);
+
+  /**
    * Sets the username and password to be used for HTTP basic authentication when connecting to the
    * ksqlDB server. Basic authentication will be used unless both username and password are null
    * (the default).
@@ -187,6 +203,20 @@ public interface ClientOptions {
    * @return key store password
    */
   String getKeyStorePassword();
+
+  /**
+   * Returns the key password.
+   *
+   * @return key password
+   */
+  String getKeyPassword();
+
+  /**
+   * Returns the key alias.
+   *
+   * @return key alias
+   */
+  String getKeyAlias();
 
   /**
    * Returns the username to be used for HTTP basic authentication, if applicable.

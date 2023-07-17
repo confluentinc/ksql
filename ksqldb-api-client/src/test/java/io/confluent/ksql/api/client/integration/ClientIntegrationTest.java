@@ -19,7 +19,6 @@ import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_KEY_FORMAT_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -37,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
@@ -51,6 +51,7 @@ import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
@@ -72,6 +73,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -113,20 +115,22 @@ public class ClientIntegrationTest {
   private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
   private static final List<String> TEST_COLUMN_NAMES =
-      ImmutableList.of("STR", "LONG", "DEC", "ARRAY", "MAP", "STRUCT", "COMPLEX");
+      ImmutableList.of("K", "STR", "LONG", "DEC", "ARRAY", "MAP", "STRUCT", "COMPLEX");
   private static final List<ColumnType> TEST_COLUMN_TYPES =
-      RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP", "STRUCT", "STRUCT"));
-  private static final List<KsqlArray> TEST_EXPECTED_ROWS = convertToClientRows(
-      TEST_DATA_PROVIDER.data(), TEST_DATA_PROVIDER.key());
+      RowUtil.columnTypesFromStrings(ImmutableList.of("STRUCT", "STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP", "STRUCT", "STRUCT"));
+  private static final List<KsqlArray> TEST_EXPECTED_ROWS =
+      convertToClientRows(TEST_DATA_PROVIDER.data());
 
   private static final Format KEY_FORMAT = FormatFactory.JSON;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
 
   private static final String AGG_TABLE = "AGG_TABLE";
-  private static final String AN_AGG_KEY = "FOO";
+  private static final String AN_AGG_KEY = "STRUCT(F1 := ARRAY['a'])";
   private static final PhysicalSchema AGG_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
+          .keyColumn(ColumnName.of("K"), SqlTypes.struct()
+              .field("F1", SqlTypes.array(SqlTypes.STRING))
+              .build())
           .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
           .build(),
       SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
@@ -144,15 +148,17 @@ public class ClientIntegrationTest {
   private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.sourceName();
 
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
-  private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
+  private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
   private static final String PUSH_QUERY_WITH_LIMIT =
       "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";";
 
-  private static final List<String> PULL_QUERY_COLUMN_NAMES = ImmutableList.of("STR", "LONG");
+  private static final List<String> PULL_QUERY_COLUMN_NAMES = ImmutableList.of("K", "LONG");
   private static final List<ColumnType> PULL_QUERY_COLUMN_TYPES =
-      RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT"));
-  private static final KsqlArray PULL_QUERY_EXPECTED_ROW = new KsqlArray(ImmutableList.of("FOO", 1));
+      RowUtil.columnTypesFromStrings(ImmutableList.of("STRUCT", "BIGINT"));
+  private static final KsqlArray PULL_QUERY_EXPECTED_ROW = new KsqlArray()
+      .add(new KsqlObject().put("F1", new KsqlArray().add("a")))
+      .add(1);
 
   private static final KsqlObject COMPLEX_FIELD_VALUE = new KsqlObject()
       .put("DECIMAL", new BigDecimal("1.1"))
@@ -178,7 +184,6 @@ public class ClientIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
-      .withProperty(KSQL_KEY_FORMAT_ENABLED, true)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .build();
 
@@ -197,7 +202,7 @@ public class ClientIntegrationTest {
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER_2);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT STR, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY STR;"
+        + "SELECT K, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY K;"
     );
 
     TEST_HARNESS.verifyAvailableUniqueRows(
@@ -486,6 +491,7 @@ public class ClientIntegrationTest {
   public void shouldInsertInto() throws Exception {
     // Given
     final KsqlObject insertRow = new KsqlObject()
+        .put("k", new KsqlObject().put("F1", new KsqlArray().add("my_key"))) // Column names are case-insensitive
         .put("str", "HELLO") // Column names are case-insensitive
         .put("`LONG`", 100L) // Backticks may be used to preserve case-sensitivity
         .put("\"DEC\"", new BigDecimal("13.31")) // Double quotes may also be used to preserve case-sensitivity
@@ -503,6 +509,7 @@ public class ClientIntegrationTest {
 
     // Verify inserted row is as expected
     assertThat(rows, hasSize(1));
+    assertThat(rows.get(0).getKsqlObject("K"), is(new KsqlObject().put("F1", new KsqlArray().add("my_key"))));
     assertThat(rows.get(0).getString("STR"), is("HELLO"));
     assertThat(rows.get(0).getLong("LONG"), is(100L));
     assertThat(rows.get(0).getDecimal("DEC"), is(new BigDecimal("13.31")));
@@ -516,7 +523,7 @@ public class ClientIntegrationTest {
   public void shouldHandleErrorResponseFromInsertInto() {
     // Given
     final KsqlObject insertRow = new KsqlObject()
-        .put("STR", "BLAH")
+        .put("K", new KsqlObject().put("F1", new KsqlArray().add("my_key")))
         .put("LONG", 11L);
 
     // When
@@ -539,6 +546,7 @@ public class ClientIntegrationTest {
     final String sql = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT 1;";
 
     final KsqlObject insertRow = new KsqlObject()
+        .put("K", new KsqlObject().put("F1", new KsqlArray().add("my_key_shouldStreamQueryWithProperties")))
         .put("STR", "Value_shouldStreamQueryWithProperties")
         .put("LONG", 2000L)
         .put("DEC", new BigDecimal("12.34"))
@@ -561,6 +569,7 @@ public class ClientIntegrationTest {
       return queryResult.poll(Duration.ofMillis(10));
     }, is(notNullValue()));
 
+    assertThat(row.getKsqlObject("K"), is(new KsqlObject().put("F1", new KsqlArray().add("my_key_shouldStreamQueryWithProperties"))));
     assertThat(row.getString("STR"), is("Value_shouldStreamQueryWithProperties"));
     assertThat(row.getLong("LONG"), is(2000L));
     assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
@@ -578,6 +587,7 @@ public class ClientIntegrationTest {
     final String sql = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT 1;";
 
     final KsqlObject insertRow = new KsqlObject()
+        .put("K", new KsqlObject().put("F1", new KsqlArray().add("my_key_shouldExecuteQueryWithProperties")))
         .put("STR", "Value_shouldExecuteQueryWithProperties")
         .put("LONG", 2000L)
         .put("DEC", new BigDecimal("12.34"))
@@ -615,6 +625,7 @@ public class ClientIntegrationTest {
     }, is(notNullValue()));
 
     // Verify received row
+    assertThat(row.getKsqlObject("K"), is(new KsqlObject().put("F1", new KsqlArray().add("my_key_shouldExecuteQueryWithProperties"))));
     assertThat(row.getString("STR"), is("Value_shouldExecuteQueryWithProperties"));
     assertThat(row.getLong("LONG"), is(2000L));
     assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
@@ -639,6 +650,7 @@ public class ClientIntegrationTest {
 
     for (int i = 0; i < numRows; i++) {
       insertsPublisher.accept(new KsqlObject()
+          .put("K", new KsqlObject().put("F1", new KsqlArray().add("my_key_" + i)))
           .put("STR", "TEST_" + i)
           .put("LONG", i)
           .put("DEC", new BigDecimal("13.31"))
@@ -665,6 +677,7 @@ public class ClientIntegrationTest {
     // Verify inserted rows are as expected
     assertThat(rows, hasSize(numRows));
     for (int i = 0; i < numRows; i++) {
+      assertThat(rows.get(i).getKsqlObject("K"), is(new KsqlObject().put("F1", new KsqlArray().add("my_key_" + i))));
       assertThat(rows.get(i).getString("STR"), is("TEST_" + i));
       assertThat(rows.get(i).getLong("LONG"), is(Long.valueOf(i)));
       assertThat(rows.get(i).getDecimal("DEC"), is(new BigDecimal("13.31")));
@@ -878,10 +891,10 @@ public class ClientIntegrationTest {
     assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
     assertThat(queries.get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
-            + "  " + TEST_STREAM + ".STR STR,\n"
+            + "  " + TEST_STREAM + ".K K,\n"
             + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
             + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
-            + "GROUP BY " + TEST_STREAM + ".STR\n"
+            + "GROUP BY " + TEST_STREAM + ".K\n"
             + "EMIT CHANGES;"));
     assertThat(queries.get(0).getSink(), is(Optional.of(AGG_TABLE)));
     assertThat(queries.get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
@@ -910,10 +923,10 @@ public class ClientIntegrationTest {
     assertThat(description.readQueries().get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
     assertThat(description.readQueries().get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
-            + "  " + TEST_STREAM + ".STR STR,\n"
+            + "  " + TEST_STREAM + ".K K,\n"
             + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
             + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
-            + "GROUP BY " + TEST_STREAM + ".STR\n"
+            + "GROUP BY " + TEST_STREAM + ".K\n"
             + "EMIT CHANGES;"));
     assertThat(description.readQueries().get(0).getSink(), is(Optional.of(AGG_TABLE)));
     assertThat(description.readQueries().get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
@@ -921,7 +934,7 @@ public class ClientIntegrationTest {
     assertThat(description.timestampColumn(), is(Optional.empty()));
     assertThat(description.windowType(), is(Optional.empty()));
     assertThat(description.sqlStatement(), is(
-        "CREATE STREAM " + TEST_STREAM + " (STR STRING KEY, LONG BIGINT, DEC DECIMAL(4, 2), "
+        "CREATE STREAM " + TEST_STREAM + " (K STRUCT<F1 ARRAY<STRING>> KEY, STR STRING, LONG BIGINT, DEC DECIMAL(4, 2), "
             + "ARRAY ARRAY<STRING>, MAP MAP<STRING, STRING>, STRUCT STRUCT<F1 INTEGER>, "
             + "COMPLEX STRUCT<`DECIMAL` DECIMAL(2, 1), STRUCT STRUCT<F1 STRING, F2 INTEGER>, "
             + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
@@ -943,6 +956,20 @@ public class ClientIntegrationTest {
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("Could not find STREAM/TABLE 'NONEXISTENT' in the Metastore"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
+  @Test
+  public void shouldGetServerInfo() throws Exception {
+    // Given:
+    final String expectedClusterId = REST_APP.getServiceContext().getAdminClient().describeCluster().clusterId().get();
+
+    // When:
+    final ServerInfo serverInfo = client.serverInfo().get();
+
+    //Then:
+    assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
+    assertThat(serverInfo.getKsqlServiceId(), is("default_"));
+    assertThat(serverInfo.getKafkaClusterId(), is(expectedClusterId));
   }
 
   private Client createClient() {
@@ -1026,22 +1053,24 @@ public class ClientIntegrationTest {
     assertThat(row.columnTypes(), equalTo(TEST_COLUMN_TYPES));
 
     // verify type-based getters
-    assertThat(row.getString("STR"), is(expectedRow.getString(0)));
-    assertThat(row.getLong("LONG"), is(expectedRow.getLong(1)));
-    assertThat(row.getDecimal("DEC"), is(expectedRow.getDecimal(2)));
-    assertThat(row.getKsqlArray("ARRAY"), is(expectedRow.getKsqlArray(3)));
-    assertThat(row.getKsqlObject("MAP"), is(expectedRow.getKsqlObject(4)));
-    assertThat(row.getKsqlObject("STRUCT"), is(expectedRow.getKsqlObject(5)));
-    assertThat(row.getKsqlObject("COMPLEX"), is(expectedRow.getKsqlObject(6)));
+    assertThat(row.getKsqlObject("K"), is(expectedRow.getKsqlObject(0)));
+    assertThat(row.getString("STR"), is(expectedRow.getString(1)));
+    assertThat(row.getLong("LONG"), is(expectedRow.getLong(2)));
+    assertThat(row.getDecimal("DEC"), is(expectedRow.getDecimal(3)));
+    assertThat(row.getKsqlArray("ARRAY"), is(expectedRow.getKsqlArray(4)));
+    assertThat(row.getKsqlObject("MAP"), is(expectedRow.getKsqlObject(5)));
+    assertThat(row.getKsqlObject("STRUCT"), is(expectedRow.getKsqlObject(6)));
+    assertThat(row.getKsqlObject("COMPLEX"), is(expectedRow.getKsqlObject(7)));
 
     // verify index-based getters are 1-indexed
-    assertThat(row.getString(1), is(row.getString("STR")));
-    assertThat(row.getLong(2), is(row.getLong("LONG")));
-    assertThat(row.getDecimal(3), is(row.getDecimal("DEC")));
-    assertThat(row.getKsqlArray(4), is(row.getKsqlArray("ARRAY")));
-    assertThat(row.getKsqlObject(5), is(row.getKsqlObject("MAP")));
-    assertThat(row.getKsqlObject(6), is(row.getKsqlObject("STRUCT")));
-    assertThat(row.getKsqlObject(7), is(row.getKsqlObject("COMPLEX")));
+    assertThat(row.getKsqlObject(1), is(row.getKsqlObject("K")));
+    assertThat(row.getString(2), is(row.getString("STR")));
+    assertThat(row.getLong(3), is(row.getLong("LONG")));
+    assertThat(row.getDecimal(4), is(row.getDecimal("DEC")));
+    assertThat(row.getKsqlArray(5), is(row.getKsqlArray("ARRAY")));
+    assertThat(row.getKsqlObject(6), is(row.getKsqlObject("MAP")));
+    assertThat(row.getKsqlObject(7), is(row.getKsqlObject("STRUCT")));
+    assertThat(row.getKsqlObject(8), is(row.getKsqlObject("COMPLEX")));
 
     // verify isNull() evaluation
     assertThat(row.isNull("STR"), is(false));
@@ -1053,13 +1082,14 @@ public class ClientIntegrationTest {
     final KsqlArray values = row.values();
     assertThat(values.size(), is(TEST_COLUMN_NAMES.size()));
     assertThat(values.isEmpty(), is(false));
-    assertThat(values.getString(0), is(row.getString("STR")));
-    assertThat(values.getLong(1), is(row.getLong("LONG")));
-    assertThat(values.getDecimal(2), is(row.getDecimal("DEC")));
-    assertThat(values.getKsqlArray(3), is(row.getKsqlArray("ARRAY")));
-    assertThat(values.getKsqlObject(4), is(row.getKsqlObject("MAP")));
-    assertThat(values.getKsqlObject(5), is(row.getKsqlObject("STRUCT")));
-    assertThat(values.getKsqlObject(6), is(row.getKsqlObject("COMPLEX")));
+    assertThat(values.getKsqlObject(0), is(row.getKsqlObject("K")));
+    assertThat(values.getString(1), is(row.getString("STR")));
+    assertThat(values.getLong(2), is(row.getLong("LONG")));
+    assertThat(values.getDecimal(3), is(row.getDecimal("DEC")));
+    assertThat(values.getKsqlArray(4), is(row.getKsqlArray("ARRAY")));
+    assertThat(values.getKsqlObject(5), is(row.getKsqlObject("MAP")));
+    assertThat(values.getKsqlObject(6), is(row.getKsqlObject("STRUCT")));
+    assertThat(values.getKsqlObject(7), is(row.getKsqlObject("COMPLEX")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 
@@ -1068,6 +1098,7 @@ public class ClientIntegrationTest {
     assertThat(obj.size(), is(TEST_COLUMN_NAMES.size()));
     assertThat(obj.isEmpty(), is(false));
     assertThat(obj.fieldNames(), contains(TEST_COLUMN_NAMES.toArray()));
+    assertThat(obj.getKsqlObject("K"), is(row.getKsqlObject("K")));
     assertThat(obj.getString("STR"), is(row.getString("STR")));
     assertThat(obj.getLong("LONG"), is(row.getLong("LONG")));
     assertThat(obj.getDecimal("DEC"), is(row.getDecimal("DEC")));
@@ -1102,25 +1133,25 @@ public class ClientIntegrationTest {
     assertThat(row.columnTypes(), equalTo(PULL_QUERY_COLUMN_TYPES));
 
     // verify type-based getters
-    assertThat(row.getString("STR"), is(PULL_QUERY_EXPECTED_ROW.getString(0)));
+    assertThat(row.getKsqlObject("K"), is(PULL_QUERY_EXPECTED_ROW.getKsqlObject(0)));
     assertThat(row.getLong("LONG"), is(PULL_QUERY_EXPECTED_ROW.getLong(1)));
 
     // verify index-based getters are 1-indexed
-    assertThat(row.getString(1), is(row.getString("STR")));
+    assertThat(row.getKsqlObject(1), is(row.getKsqlObject("K")));
     assertThat(row.getLong(2), is(row.getLong("LONG")));
 
     // verify isNull() evaluation
-    assertThat(row.isNull("STR"), is(false));
+    assertThat(row.isNull("K"), is(false));
     assertThat(row.isNull("LONG"), is(false));
 
     // verify exception on invalid cast
-    assertThrows(ClassCastException.class, () -> row.getInteger("STR"));
+    assertThrows(ClassCastException.class, () -> row.getInteger("K"));
 
     // verify KsqlArray methods
     final KsqlArray values = row.values();
     assertThat(values.size(), is(PULL_QUERY_COLUMN_NAMES.size()));
     assertThat(values.isEmpty(), is(false));
-    assertThat(values.getString(0), is(row.getString("STR")));
+    assertThat(values.getKsqlObject(0), is(row.getKsqlObject("K")));
     assertThat(values.getLong(1), is(row.getLong("LONG")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
@@ -1130,7 +1161,7 @@ public class ClientIntegrationTest {
     assertThat(obj.size(), is(PULL_QUERY_COLUMN_NAMES.size()));
     assertThat(obj.isEmpty(), is(false));
     assertThat(obj.fieldNames(), contains(PULL_QUERY_COLUMN_NAMES.toArray()));
-    assertThat(obj.getString("STR"), is(row.getString("STR")));
+    assertThat(obj.getKsqlObject("K"), is(row.getKsqlObject("K")));
     assertThat(obj.getLong("LONG"), is(row.getLong("LONG")));
     assertThat(obj.containsKey("LONG"), is(true));
     assertThat(obj.containsKey("notafield"), is(false));
@@ -1139,27 +1170,32 @@ public class ClientIntegrationTest {
   }
 
   private static List<KsqlArray> convertToClientRows(
-      final Multimap<Struct, GenericRow> data,
-      final String keyField
+      final Multimap<GenericKey, GenericRow> data
   ) {
     final List<KsqlArray> expectedRows = new ArrayList<>();
-    for (final Map.Entry<Struct, GenericRow> entry : data.entries()) {
-      final KsqlArray expectedRow = new KsqlArray()
-          .add(entry.getKey().getString(keyField));
+    for (final Map.Entry<GenericKey, GenericRow> entry : data.entries()) {
+      final KsqlArray expectedRow = new KsqlArray();
+      addObjectToKsqlArray(expectedRow, entry.getKey().get(0));
+
       for (final Object value : entry.getValue().values()) {
-        if (value instanceof Struct) {
-          expectedRow.add(StructuredTypesDataProvider.structToMap((Struct) value));
-        } else if (value instanceof BigDecimal) {
-          // Can't use expectedRow.add((BigDecimal) value) directly since client serializes BigDecimal as string,
-          // whereas this method builds up the expected result (unrelated to serialization)
-          expectedRow.addAll(new KsqlArray(Collections.singletonList(value)));
-        } else {
-          expectedRow.add(value);
-        }
+        addObjectToKsqlArray(expectedRow, value);
       }
+
       expectedRows.add(expectedRow);
     }
     return expectedRows;
+  }
+
+  private static void addObjectToKsqlArray(final KsqlArray array, final Object value) {
+    if (value instanceof Struct) {
+      array.add(StructuredTypesDataProvider.structToMap((Struct) value));
+    } else if (value instanceof BigDecimal) {
+      // Can't use expectedRow.add((BigDecimal) value) directly since client serializes BigDecimal as string,
+      // whereas this method builds up the expected result (unrelated to serialization)
+      array.addAll(new KsqlArray(Collections.singletonList(value)));
+    } else {
+      array.add(value);
+    }
   }
 
   private static Matcher<? super StreamInfo> streamForProvider(
@@ -1207,7 +1243,7 @@ public class ClientIntegrationTest {
       @Override
       public void describeTo(final Description description) {
         description.appendText(String.format(
-            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            "streamName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
             streamName, topicName, keyFormat, valueFormat, isWindowed));
       }
     };

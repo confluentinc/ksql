@@ -45,6 +45,7 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -293,7 +294,7 @@ public class KsqlClientTest {
     List<StreamedRow> expectedResponse = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       GenericRow row = GenericRow.genericRow("foo", 123, true);
-      StreamedRow sr = StreamedRow.row(row);
+      StreamedRow sr = StreamedRow.pushRow(row);
       expectedResponse.add(sr);
     }
     server.setResponseBuffer(createResponseBuffer(expectedResponse));
@@ -329,7 +330,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(response.getResponse(), is(ImmutableList.of(
-        StreamedRow.row(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
+        StreamedRow.pushRow(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
     )));
   }
 
@@ -688,7 +689,7 @@ public class KsqlClientTest {
     List<StreamedRow> expectedResponse = new ArrayList<>();
     for (int i = 0; i < numRows; i++) {
       GenericRow row = GenericRow.genericRow("foo", 123, true);
-      StreamedRow sr = StreamedRow.row(row);
+      StreamedRow sr = StreamedRow.pushRow(row);
       expectedResponse.add(sr);
     }
     if (limitReached) {
@@ -728,13 +729,13 @@ public class KsqlClientTest {
   }
 
   private void startServerWithTls() throws Exception {
+    final Optional<JksOptions> keyStoreOptions = VertxSslOptionsFactory.buildJksKeyStoreOptions(
+    SERVER_KEY_STORE.keyStoreProps(), Optional.ofNullable(SERVER_KEY_STORE.getKeyAlias()));
+
     HttpServerOptions serverOptions = new HttpServerOptions().setPort(0)
         .setHost("localhost")
         .setSsl(true)
-        .setKeyStoreOptions(new JksOptions()
-            .setPath(SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
-            .setPassword(
-                SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
+        .setKeyStoreOptions(keyStoreOptions.get());
 
     startServer(serverOptions);
     serverUri = URI.create("https://localhost:" + server.getPort());

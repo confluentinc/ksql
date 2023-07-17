@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.materialization.ks;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.RetryOnException;
@@ -27,8 +28,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
@@ -49,7 +50,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -71,8 +71,6 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
@@ -180,21 +178,6 @@ public class KsMaterializationFunctionalTest {
   }
 
   @Test
-  public void shouldReturnEmptyIfNotMaterializedTable() {
-    // Given:
-    final PersistentQueryMetadata query = executeQuery(
-        "CREATE TABLE " + output + " AS"
-            + " SELECT * FROM " + USER_TABLE + ";"
-    );
-
-    // When:
-    final Optional<Materialization> result = query.getMaterialization(queryId, contextStacker);
-
-    // Then:
-    assertThat(result, is(Optional.empty()));
-  }
-
-  @Test
   public void shouldReturnEmptyIfNotMaterializedStream() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
@@ -252,7 +235,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedTable table = materialization.nonWindowed();
 
     rows.forEach((rowKey, value) -> {
-      final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
+      final GenericKey key = genericKey(rowKey);
 
       final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
@@ -260,7 +243,7 @@ public class KsMaterializationFunctionalTest {
       assertThat(row.map(Row::value), is(Optional.of(value)));
     });
 
-    final Struct key = asKeyStruct("Won't find me", query.getPhysicalSchema());
+    final GenericKey key = genericKey("Won't find me");
     assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)), is(Optional.empty()));
   }
 
@@ -286,7 +269,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedTable table = materialization.nonWindowed();
 
     rows.forEach((rowKey, value) -> {
-      final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
+      final GenericKey key = genericKey(rowKey);
 
       final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
@@ -294,7 +277,7 @@ public class KsMaterializationFunctionalTest {
       assertThat(row.map(Row::value), is(Optional.of(value)));
     });
 
-    final Struct key = asKeyStruct("Won't find me", query.getPhysicalSchema());
+    final GenericKey key = genericKey("Won't find me");
     assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)), is(Optional.empty()));
   }
 
@@ -323,7 +306,7 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((k, v) -> {
       final Window w = Window.of(k.window().startTime(), k.window().endTime());
-      final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
+      final GenericKey key = genericKey(k.key());
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
@@ -378,7 +361,7 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((k, v) -> {
       final Window w = Window.of(k.window().startTime(), k.window().endTime());
-      final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
+      final GenericKey key = genericKey(k.key());
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
@@ -432,7 +415,7 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((k, v) -> {
       final Window w = Window.of(k.window().startTime(), k.window().endTime());
-      final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
+      final GenericKey key = genericKey(k.key());
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
@@ -496,7 +479,7 @@ public class KsMaterializationFunctionalTest {
         Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
         Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds()))
     ).map(Optional::of).collect(Collectors.toSet());
-    verifyRetainedWindows(rows, table, query, expectedWindows);
+    verifyRetainedWindows(rows, table, expectedWindows);
   }
 
   @Test
@@ -525,7 +508,7 @@ public class KsMaterializationFunctionalTest {
         Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
         Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds()))
     ).map(Optional::of).collect(Collectors.toSet());
-    verifyRetainedWindows(rows, table, query, expectedWindows);
+    verifyRetainedWindows(rows, table, expectedWindows);
   }
 
   @Test
@@ -553,7 +536,7 @@ public class KsMaterializationFunctionalTest {
         Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2)),
         Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3))
     ).map(Optional::of).collect(Collectors.toSet());
-    verifyRetainedWindows(rows, table, query, expectedWindows);
+    verifyRetainedWindows(rows, table, expectedWindows);
   }
 
   @Test
@@ -582,7 +565,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedTable table = materialization.nonWindowed();
 
     rows.forEach((rowKey, value) -> {
-      final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
+      final GenericKey key = genericKey(rowKey);
 
       final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
@@ -616,7 +599,7 @@ public class KsMaterializationFunctionalTest {
     final MaterializedTable table = materialization.nonWindowed();
 
     rows.forEach((rowKey, value) -> {
-      final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
+      final GenericKey key = genericKey(rowKey);
 
       final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
@@ -654,7 +637,7 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       // Rows passing the HAVING clause:
-      final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
+      final GenericKey key = genericKey(rowKey);
 
       final Optional<Row> row = withRetry(() -> table.get(key, PARTITION));
       assertThat(row.map(Row::schema), is(Optional.of(schema)));
@@ -663,7 +646,7 @@ public class KsMaterializationFunctionalTest {
     });
 
     USER_DATA_PROVIDER.data().entries().stream()
-        .filter(e -> !rows.containsKey(e.getKey().getString("USERID")))
+        .filter(e -> !rows.containsKey(e.getKey().get(0)))
         .forEach(e -> {
           // Rows filtered by the HAVING clause:
           final Optional<Row> row = withRetry(() -> table.get(e.getKey(), PARTITION));
@@ -674,11 +657,10 @@ public class KsMaterializationFunctionalTest {
   private static void verifyRetainedWindows(
       final List<ConsumerRecord<Windowed<String>, GenericRow>> rows,
       final MaterializedWindowedTable table,
-      final PersistentQueryMetadata query,
       final Set<Optional<Window>> expectedWindows
   ) {
     rows.forEach(record -> {
-      final Struct key = asKeyStruct(record.key().key(), query.getPhysicalSchema());
+      final GenericKey key = genericKey(record.key().key());
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> table.get(key, PARTITION, Range.all(), Range.all()));
 
@@ -747,16 +729,6 @@ public class KsMaterializationFunctionalTest {
     toClose.add(query);
 
     return query;
-  }
-
-  private static Struct asKeyStruct(final String keyValue, final PhysicalSchema physicalSchema) {
-    final ConnectSchema keySchema = ConnectSchemas
-        .columnsToConnectSchema(physicalSchema.keySchema().columns());
-
-    final String keyName = Iterables.getOnlyElement(keySchema.fields()).name();
-    final Struct key = new Struct(keySchema);
-    key.put(keyName, keyValue);
-    return key;
   }
 
   @SuppressWarnings("SameParameterValue")

@@ -16,13 +16,14 @@
 package io.confluent.ksql.structured;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -82,11 +83,10 @@ public class SchemaKStreamTest {
       .getNewMetaStore(new InternalFunctionRegistry());
   private final KeyFormat keyFormat = KeyFormat
       .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
+  private final KeyFormat windowedKeyFormat = KeyFormat
+      .windowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty()));
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()),
       SerdeFeatures.of());
-  private final ValueFormat rightFormat = ValueFormat
-      .of(FormatInfo.of(FormatFactory.DELIMITED.name()),
-          SerdeFeatures.of());
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
@@ -102,7 +102,7 @@ public class SchemaKStreamTest {
   @Mock
   private ExecutionStep sourceStep;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private PlanBuildContext buildContext;
   @Mock
   private KsqlTopic topic;
 
@@ -133,7 +133,7 @@ public class SchemaKStreamTest {
         ImmutableList.of(ColumnName.of("K")),
         selectExpressions,
         childContextStacker,
-        queryBuilder);
+        buildContext);
 
     // Then:
     assertThat(
@@ -146,31 +146,71 @@ public class SchemaKStreamTest {
   @Test
   public void shouldNotRepartitionIfSameKeyField() {
     // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
+    givenInitialKStreamOf(
         "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;");
-    final UserRepartitionNode repartitionNode = (UserRepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
     final SchemaKStream<?> result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
+        .selectKey(
+            valueFormat.getFormatInfo(),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
+            Optional.empty(),
+            childContextStacker,
+            false
+        );
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
   }
 
   @Test
-  public void shouldNotRepartitionIfRowkey() {
+  public void shouldFailIfForceRepartitionWindowedStream() {
     // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;");
-    final UserRepartitionNode repartitionNode = (UserRepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+    givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;",
+        windowedKeyFormat);
 
     // When:
-    final SchemaKStream<?> result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
+    final KsqlException e = assertThrows(KsqlException.class, () -> initialSchemaKStream
+        .selectKey(
+            valueFormat.getFormatInfo(),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
+            Optional.empty(),
+            childContextStacker,
+            true)
+    );
 
     // Then:
-    assertThat(result, is(initialSchemaKStream));
+    assertThat(e.getMessage(), containsString(
+        "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385."));
+  }
+
+  @Test
+  public void shouldRepartitionIfForced() {
+    // Given:
+    givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;");
+
+    // When:
+    final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
+        Optional.empty(),
+        childContextStacker,
+        true
+    );
+
+    // Then:
+    assertThat(
+        rekeyedSchemaKStream.getSourceStep(),
+        equalTo(
+            ExecutionStepFactory.streamSelectKey(
+                childContextStacker,
+                initialSchemaKStream.getSourceStep(),
+                ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")))
+            )
+        )
+    );
   }
 
   @Test(expected = KsqlException.class)
@@ -181,8 +221,8 @@ public class SchemaKStreamTest {
     final UserRepartitionNode repartitionNode = (UserRepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(),
-        Optional.empty(), childContextStacker
+    initialSchemaKStream.selectKey(valueFormat.getFormatInfo(), repartitionNode.getPartitionBys(),
+        Optional.empty(), childContextStacker, false
     );
   }
 
@@ -195,7 +235,13 @@ public class SchemaKStreamTest {
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
 
     // When:
-    schemaKTable.selectKey(col2, Optional.empty(), childContextStacker);
+    schemaKTable.selectKey(
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(col2),
+        Optional.empty(),
+        childContextStacker,
+        false
+    );
   }
 
   @Test
@@ -259,8 +305,12 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        Optional.empty(), childContextStacker);
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
+        Optional.empty(),
+        childContextStacker,
+        false
+    );
 
     // Then:
     assertThat(
@@ -269,7 +319,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamSelectKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))
+                ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")))
             )
         )
     );
@@ -282,8 +332,12 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        Optional.empty(), childContextStacker);
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
+        Optional.empty(),
+        childContextStacker,
+        false
+    );
 
     // Then:
     assertThat(
@@ -536,6 +590,10 @@ public class SchemaKStreamTest {
   }
 
   private PlanNode givenInitialKStreamOf(final String selectQuery) {
+    return givenInitialKStreamOf(selectQuery, keyFormat);
+  }
+
+  private PlanNode givenInitialKStreamOf(final String selectQuery, final KeyFormat keyFormat) {
     final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
         ksqlConfig,
         selectQuery,

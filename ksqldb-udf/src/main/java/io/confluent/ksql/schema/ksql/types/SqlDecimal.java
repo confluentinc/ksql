@@ -15,12 +15,10 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.JavaToSqlTypeConverter;
-import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.utils.SchemaException;
-import java.math.BigDecimal;
 import java.util.Objects;
 
 @Immutable
@@ -28,6 +26,9 @@ public final class SqlDecimal extends SqlType {
 
   private final int precision;
   private final int scale;
+  public static final String PRECISION = "precision";
+  public static final String SCALE = "scale";
+
 
   public static SqlDecimal of(final int precision, final int scale) {
     return new SqlDecimal(precision, scale);
@@ -60,29 +61,6 @@ public final class SqlDecimal extends SqlType {
   }
 
   @Override
-  public void validateValue(final Object value) {
-    if (value == null) {
-      return;
-    }
-
-    if (!(value instanceof BigDecimal)) {
-      final SqlBaseType sqlBaseType = JavaToSqlTypeConverter.instance()
-          .toSqlType(value.getClass());
-
-      throw new DataException("Expected DECIMAL, got " + sqlBaseType);
-    }
-
-    final BigDecimal decimal = (BigDecimal) value;
-    if (decimal.precision() != precision) {
-      throw new DataException("Expected " + this + ", got precision " + decimal.precision());
-    }
-
-    if (decimal.scale() != scale) {
-      throw new DataException("Expected " + this + ", got scale " + decimal.scale());
-    }
-  }
-
-  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -108,6 +86,10 @@ public final class SqlDecimal extends SqlType {
   @Override
   public String toString(final FormatOptions formatOptions) {
     return toString();
+  }
+
+  public ImmutableMap<String, Object> toParametersMap() {
+    return ImmutableMap.of(SqlDecimal.PRECISION, precision, SqlDecimal.SCALE, scale);
   }
 
   /**

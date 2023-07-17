@@ -373,7 +373,7 @@
       "title" : "streamFlatMapV1",
       "required" : [ "@type", "properties", "source", "tableFunctions" ]
     },
-    "StreamGroupBy" : {
+    "StreamGroupByV1" : {
       "type" : "object",
       "additionalProperties" : false,
       "properties" : {
@@ -399,6 +399,34 @@
         }
       },
       "title" : "streamGroupByV1",
+      "required" : [ "@type", "properties", "source", "internalFormats", "groupByExpressions" ]
+    },
+    "StreamGroupBy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "streamGroupByV2" ],
+          "default" : "streamGroupByV2"
+        },
+        "properties" : {
+          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "internalFormats" : {
+          "$ref" : "#/definitions/Formats"
+        },
+        "groupByExpressions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      },
+      "title" : "streamGroupByV2",
       "required" : [ "@type", "properties", "source", "internalFormats", "groupByExpressions" ]
     },
     "StreamGroupByKey" : {
@@ -492,7 +520,10 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "keyExpression" : {
-          "type" : "string"
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
         }
       },
       "title" : "streamSelectKeyV2",
@@ -813,7 +844,7 @@
       "title" : "tableFilterV1",
       "required" : [ "@type", "properties", "source", "filterExpression" ]
     },
-    "TableGroupBy" : {
+    "TableGroupByV1" : {
       "type" : "object",
       "additionalProperties" : false,
       "properties" : {
@@ -839,6 +870,34 @@
         }
       },
       "title" : "tableGroupByV1",
+      "required" : [ "@type", "properties", "source", "internalFormats", "groupByExpressions" ]
+    },
+    "TableGroupBy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableGroupByV2" ],
+          "default" : "tableGroupByV2"
+        },
+        "properties" : {
+          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "internalFormats" : {
+          "$ref" : "#/definitions/Formats"
+        },
+        "groupByExpressions" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      },
+      "title" : "tableGroupByV2",
       "required" : [ "@type", "properties", "source", "internalFormats", "groupByExpressions" ]
     },
     "TableSelect" : {
@@ -871,6 +930,34 @@
       },
       "title" : "tableSelectV1",
       "required" : [ "@type", "properties", "source", "selectExpressions" ]
+    },
+    "TableSelectKey" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableSelectKeyV1" ],
+          "default" : "tableSelectKeyV1"
+        },
+        "properties" : {
+          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "internalFormats" : {
+          "$ref" : "#/definitions/Formats"
+        },
+        "keyExpression" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      },
+      "title" : "tableSelectKeyV1",
+      "required" : [ "@type", "properties", "source", "internalFormats", "keyExpression" ]
     },
     "TableSink" : {
       "type" : "object",
@@ -973,6 +1060,8 @@
       }, {
         "$ref" : "#/definitions/StreamFlatMap"
       }, {
+        "$ref" : "#/definitions/StreamGroupByV1"
+      }, {
         "$ref" : "#/definitions/StreamGroupBy"
       }, {
         "$ref" : "#/definitions/StreamGroupByKey"
@@ -1003,9 +1092,13 @@
       }, {
         "$ref" : "#/definitions/TableFilter"
       }, {
+        "$ref" : "#/definitions/TableGroupByV1"
+      }, {
         "$ref" : "#/definitions/TableGroupBy"
       }, {
         "$ref" : "#/definitions/TableSelect"
+      }, {
+        "$ref" : "#/definitions/TableSelectKey"
       }, {
         "$ref" : "#/definitions/TableSink"
       }, {

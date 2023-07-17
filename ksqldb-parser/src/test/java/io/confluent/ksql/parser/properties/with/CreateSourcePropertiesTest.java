@@ -26,6 +26,7 @@ import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_SIZE_PROPER
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_TYPE_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +40,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.FormatInfo;
@@ -86,7 +88,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getKeySchemaId(), is(Optional.empty()));
     assertThat(properties.getValueSchemaId(), is(Optional.empty()));
-    assertThat(properties.getKeyFormat(), is(Optional.empty()));
+    assertThat(properties.getKeyFormat(SourceName.of("foo")), is(Optional.empty()));
     assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
@@ -490,8 +492,24 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat().get().getFormat(), is("KAFKA"));
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("KAFKA"));
     assertThat(props.getValueFormat().get().getFormat(), is("AVRO"));
+  }
+
+  @Test
+  public void shouldSetAvroNameOnAvroKeyFormat() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("AVRO"));
+    assertThat(props.getKeyFormat(
+        SourceName.of("foo")).get().getProperties(),
+        hasEntry(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.FooKey"));
   }
 
   @Test

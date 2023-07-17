@@ -64,7 +64,7 @@ public class QueryAnalyzerFunctionalTest {
     loader.load();
 
     // Given:
-    final Query query = givenQuery("SELECT ID, EXPLODE(ARR1) FROM SENSOR_READINGS;");
+    final Query query = givenQuery("SELECT ID, EXPLODE(ARR1) FROM SENSOR_READINGS EMIT CHANGES;");
 
     // When:
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());

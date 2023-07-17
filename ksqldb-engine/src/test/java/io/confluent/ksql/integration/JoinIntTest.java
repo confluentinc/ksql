@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
@@ -25,9 +26,8 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -116,10 +115,9 @@ public class JoinIntTest {
 
     final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(testStreamName));
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        keyBuilder.build("ITEM_1"),
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ITEM_1"),
         genericRow("ORDER_1", 10.0, "home cinema")
     );
 
@@ -144,16 +142,14 @@ public class JoinIntTest {
             + commonSql
             + "WHERE " + ORDER_STREAM_NAME_JSON + ".ITEMID = 'ITEM_1' ;";
 
-
     ksqlContext.sql(csasQueryString);
     ksqlContext.sql(insertQueryString);
 
     final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(testStreamName));
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        keyBuilder.build("ITEM_1"),
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ITEM_1"),
         genericRow("ORDER_1", 10.0, "home cinema")
     );
 
@@ -197,10 +193,9 @@ public class JoinIntTest {
 
     final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of("OUTPUT"));
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        keyBuilder.build("ITEM_1"),
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ITEM_1"),
         genericRow("ORDER_1", "home cinema", 1L)
     );
 
@@ -208,7 +203,7 @@ public class JoinIntTest {
   }
 
   private void assertExpectedResults(
-      final Map<Struct, GenericRow> expectedResults,
+      final Map<GenericKey, GenericRow> expectedResults,
       final DataSource outputSource,
       final String inputTopic,
       final Format inputKeyFormat,
@@ -218,7 +213,7 @@ public class JoinIntTest {
   }
 
   private void assertExpectedResults(
-      final Map<Struct, GenericRow> expectedResults,
+      final Map<GenericKey, GenericRow> expectedResults,
       final DataSource outputSource,
       final String inputTopic,
       final Format inputKeyFormat,
@@ -231,7 +226,7 @@ public class JoinIntTest {
         outputSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    final Map<Struct, GenericRow> results = new HashMap<>();
+    final Map<GenericKey, GenericRow> results = new HashMap<>();
     assertThatEventually("failed to complete join correctly", () -> {
       results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
           outputSource.getKafkaTopicName(),

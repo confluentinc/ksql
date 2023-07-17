@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -34,11 +35,15 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -49,8 +54,6 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.FormatFactory;
@@ -64,10 +67,12 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -95,6 +100,17 @@ public class SchemaRegisterInjectorTest {
           + "\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":"
           + "[{\"name\":\"F1\",\"type\":[\"null\",\"string\"],\"default\":null}],"
           + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
+  private static final ProtobufSchema TIMESTAMP_SCHEMA = new ProtobufSchema(
+      "syntax = \"proto3\"; package google.protobuf;"
+          + "option java_package = \"com.google.protobuf\";"
+          + "option java_outer_classname = \"TimestampProto\";\n"
+          + "option java_multiple_files = true;"
+          + "message Timestamp {int64 seconds = 1; int32 nanos = 2;}");
+  private static final List<SchemaReference> REFERENCE_LIST =
+      Arrays.asList(new SchemaReference("google/protobuf/timestamp.proto", "google/protobuf/timestamp.proto", 0));
+  private static final ProtobufSchema PROTOBUF_SCHEMA_WITH_REFS = new ProtobufSchema(
+      "syntax = \"proto3\"; import \"google/protobuf/timestamp.proto\";"
+          + "message ConnectDefault1 {google.protobuf.Timestamp F1 = 1;}").copy(REFERENCE_LIST);
 
   @Mock
   private ServiceContext serviceContext;
@@ -111,17 +127,15 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private KsqlExecutionContext executionSandbox;
   @Mock
-  private PersistentQueryMetadata queryMetadata;
-  @Mock
-  private PhysicalSchema physicalSchema;
-  @Mock
   private SerdeFeatures keyFeatures;
-  @Mock
-  private PersistenceSchema keySchema;
   @Mock
   private SerdeFeatures valFeatures;
   @Mock
-  private PersistenceSchema valSchema;
+  private KsqlPlan ksqlPlan;
+  @Mock
+  private CreateSourceCommand ddlCommand;
+  @Mock
+  private Formats formats;
 
   private final KsqlParser parser = new DefaultKsqlParser();
 
@@ -146,18 +160,14 @@ public class SchemaRegisterInjectorTest {
 
     when(keyFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
 
-    when(queryMetadata.getLogicalSchema()).thenReturn(SCHEMA);
-    when(queryMetadata.getResultTopic()).thenReturn(new KsqlTopic(
-        "SINK",
-        KeyFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), keyFeatures, Optional.empty()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), valFeatures)
-    ));
-    when(queryMetadata.getPhysicalSchema()).thenReturn(physicalSchema);
+    when(ddlCommand.getSchema()).thenReturn(SCHEMA);
+    when(ddlCommand.getTopicName()).thenReturn("SINK");
+    when(ddlCommand.getFormats()).thenReturn(formats);
 
-    when(physicalSchema.keySchema()).thenReturn(keySchema);
-    when(keySchema.features()).thenReturn(keyFeatures);
-    when(physicalSchema.valueSchema()).thenReturn(valSchema);
-    when(valSchema.features()).thenReturn(valFeatures);
+    when(formats.getKeyFormat()).thenReturn(FormatInfo.of(FormatFactory.AVRO.name()));
+    when(formats.getKeyFeatures()).thenReturn(keyFeatures);
+    when(formats.getValueFormat()).thenReturn(FormatInfo.of(FormatFactory.AVRO.name()));
+    when(formats.getValueFeatures()).thenReturn(valFeatures);
 
     when(schemaRegistryClient.getLatestSchemaMetadata(any())).thenThrow(
         new RestClientException("foo", 404, SchemaRegistryUtil.SUBJECT_NOT_FOUND_ERROR_CODE));
@@ -243,9 +253,8 @@ public class SchemaRegisterInjectorTest {
       throws Exception {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', key_format='AVRO', value_format='AVRO', partitions=1);");
-    doReturn(schemaMetadata).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-key");
     doReturn(schemaMetadata).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
-    when(schemaRegistryClient.testCompatibility(eq("expectedName-value"), any(ParsedSchema.class))).thenReturn(true);
+    doReturn(schemaMetadata).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-key");
 
     // When:
     injector.inject(statement);
@@ -282,10 +291,10 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldPropagateErrorOnFailureToExecuteQuery() {
+  public void shouldPropagateErrorOnFailureToPlanQuery() {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
-    when(executionSandbox.execute(any(), eq(statement))).thenReturn(ExecuteResult.of("fail!"));
+    doThrow(new KsqlException("fail!")).when(executionSandbox).plan(any(), eq(statement));
 
     // When:
     final Exception e = assertThrows(
@@ -295,7 +304,7 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Could not determine output schema for query due to error: Optional[fail!]"));
+        "Could not determine output schema for query due to error: fail!"));
   }
 
   @Test
@@ -318,7 +327,7 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldNotExecuteQueryOnOriginalExecutionContext() {
+  public void shouldNotPlanQueryOnOriginalExecutionContext() {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
 
@@ -326,8 +335,9 @@ public class SchemaRegisterInjectorTest {
     injector.inject(statement);
 
     // Then:
-    verify(executionContext, Mockito.never()).execute(any(), any(ConfiguredStatement.class));
-    verify(executionSandbox, Mockito.times(1)).execute(any(), any(ConfiguredStatement.class));
+    verify(executionContext, Mockito.never()).plan(any(), any(ConfiguredStatement.class));
+    verify(executionSandbox, Mockito.times(1))
+        .plan(any(), any(ConfiguredStatement.class));
   }
 
   @Test
@@ -365,6 +375,25 @@ public class SchemaRegisterInjectorTest {
     verify(schemaRegistryClient).register("SINK-value", AVRO_UNWRAPPED_VALUE_SCHEMA);
   }
 
+  @Test
+  public void shouldRegisterDependanciesForProtobuf() throws Exception {
+    // Given:
+    givenStatement("CREATE STREAM source (f1 TIMESTAMP) "
+        + "WITH ("
+        + "  kafka_topic='expectedName', "
+        + "  key_format='KAFKA', "
+        + "  value_format='PROTOBUF', "
+        + "  partitions=1 "
+        + ");");
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).register("google/protobuf/timestamp.proto", TIMESTAMP_SCHEMA);
+    verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA_WITH_REFS);
+  }
+
   private void givenStatement(final String sql) {
     final PreparedStatement<?> preparedStatement =
         parser.prepare(parser.parse(sql).get(0), metaStore);
@@ -372,7 +401,9 @@ public class SchemaRegisterInjectorTest {
         preparedStatement,
         SessionConfig.of(config, ImmutableMap.of())
     );
-    when(executionSandbox.execute(any(), eq(statement)))
-        .thenReturn(ExecuteResult.of(queryMetadata));
+    when(executionSandbox.plan(any(), eq(statement)))
+        .thenReturn(ksqlPlan);
+    when(ksqlPlan.getDdlCommand())
+        .thenReturn(Optional.of(ddlCommand));
   }
 }

@@ -43,6 +43,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -95,7 +96,7 @@ public class PersistentQueryMetadataTest {
   public void setUp()  {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(physicalSchema.logicalSchema()).thenReturn(mock(LogicalSchema.class));
-    when(materializationProviderBuilder.apply(kafkaStreams))
+    when(materializationProviderBuilder.apply(kafkaStreams, topology))
         .thenReturn(Optional.of(materializationProvider));
 
     query = new PersistentQueryMetadata(
@@ -117,7 +118,9 @@ public class PersistentQueryMetadataTest {
         queryErrorClassifier,
         physicalPlan,
         10,
-        processingLogger
+        processingLogger,
+        0L,
+        0L
     );
 
     query.initialize();
@@ -141,7 +144,7 @@ public class PersistentQueryMetadataTest {
 
     // Given:
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(newKafkaStreams);
-    when(materializationProviderBuilder.apply(newKafkaStreams))
+    when(materializationProviderBuilder.apply(newKafkaStreams, topology))
         .thenReturn(Optional.of(newMaterializationProvider));
 
     // When:
@@ -150,7 +153,8 @@ public class PersistentQueryMetadataTest {
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams, newKafkaStreams);
     inOrder.verify(kafkaStreams).close(any());
-    inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(any());
+    inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(
+        any(StreamsUncaughtExceptionHandler.class));
     inOrder.verify(newKafkaStreams).start();
 
     assertThat(query.getKafkaStreams(), is(newKafkaStreams));
@@ -179,7 +183,7 @@ public class PersistentQueryMetadataTest {
     when(queryErrorClassifier.classify(error)).thenReturn(QueryError.Type.SYSTEM);
 
     // When:
-    query.uncaughtHandler(thread, error);
+    query.uncaughtHandler(error);
 
     // Then:
     verify(processingLogger).error(errorMessageCaptor.capture());

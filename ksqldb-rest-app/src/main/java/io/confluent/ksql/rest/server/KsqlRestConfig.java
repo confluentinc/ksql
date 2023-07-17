@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.configdef.ConfigValidators.mapWithDoubleValue;
+import static io.confluent.ksql.configdef.ConfigValidators.mapWithIntKeyDoubleValue;
 import static io.confluent.ksql.configdef.ConfigValidators.oneOrMore;
 import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
 
@@ -22,6 +24,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.ErrorMessages;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.vertx.core.http.ClientAuth;
@@ -100,6 +103,7 @@ public class KsqlRestConfig extends AbstractConfig {
 
   protected static final String SSL_KEYSTORE_LOCATION_DEFAULT = "";
   protected static final String SSL_KEYSTORE_PASSWORD_DEFAULT = "";
+  protected static final String SSL_KEY_PASSWORD_DEFAULT = "";
 
   public static final String SSL_KEYSTORE_TYPE_CONFIG = "ssl.keystore.type";
   protected static final String SSL_KEYSTORE_TYPE_DOC =
@@ -223,7 +227,7 @@ public class KsqlRestConfig extends AbstractConfig {
       "A class the implementing " + ErrorMessages.class.getSimpleName() + " interface."
       + "This allows the KSQL server to return pluggable error messages.";
 
-  static final String KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER =
+  public static final String KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER =
       KSQL_CONFIG_PREFIX + "server.exception.uncaught.handler.enable";
 
   private static final String KSQL_SERVER_UNCAUGHT_EXCEPTION_HANDLER_DOC =
@@ -330,6 +334,21 @@ public class KsqlRestConfig extends AbstractConfig {
       "The key store certificate alias to be used for internal client requests. If not set, "
           + "the system will fall back on the Vert.x default choice";
 
+  public static final String KSQL_LOGGING_SERVER_RATE_LIMITED_RESPONSE_CODES_CONFIG =
+      KSQL_CONFIG_PREFIX + "logging.server.rate.limited.response.codes";
+  private static final String KSQL_LOGGING_SERVER_RATE_LIMITED_RESPONSE_CODES_DOC =
+      "A list of code:rate_limit pairs, to rate limit the server request logging";
+
+  public static final String KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG =
+      KSQL_CONFIG_PREFIX + "logging.server.rate.limited.request.paths";
+  private static final String KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_DOC =
+      "A list of path:rate_limit pairs, to rate limit the server request logging";
+
+  public static final String KSQL_LOCAL_COMMANDS_LOCATION_CONFIG = "ksql.local.commands.location";
+  public static final String KSQL_LOCAL_COMMANDS_LOCATION_DEFAULT = "";
+  public static final String KSQL_LOCAL_COMMANDS_LOCATION_DOC = "Specify the directory where "
+      + "KSQL tracks local commands, e.g. transient queries";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -395,6 +414,12 @@ public class KsqlRestConfig extends AbstractConfig {
             SSL_KEYSTORE_PASSWORD_DEFAULT,
             Importance.HIGH,
             SslConfigs.SSL_KEYSTORE_PASSWORD_DOC
+        ).define(
+            SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+            Type.PASSWORD,
+            SSL_KEY_PASSWORD_DEFAULT,
+            Importance.HIGH,
+            SslConfigs.SSL_KEY_PASSWORD_DOC
         ).define(
             SSL_KEYSTORE_TYPE_CONFIG,
             Type.STRING,
@@ -626,6 +651,26 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_AUTHENTICATION_PLUGIN_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_AUTHENTICATION_PLUGIN_DOC
+        ).define(
+            KSQL_LOGGING_SERVER_RATE_LIMITED_RESPONSE_CODES_CONFIG,
+            Type.STRING,
+            "",
+            mapWithIntKeyDoubleValue(),
+            ConfigDef.Importance.LOW,
+            KSQL_LOGGING_SERVER_RATE_LIMITED_RESPONSE_CODES_DOC
+        ).define(
+            KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG,
+            Type.STRING,
+            "",
+            mapWithDoubleValue(),
+            ConfigDef.Importance.LOW,
+            KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_DOC
+        ).define(
+            KSQL_LOCAL_COMMANDS_LOCATION_CONFIG,
+            Type.STRING,
+            KSQL_LOCAL_COMMANDS_LOCATION_DEFAULT,
+            Importance.LOW,
+            KSQL_LOCAL_COMMANDS_LOCATION_DOC
         );
   }
 
@@ -656,7 +701,7 @@ public class KsqlRestConfig extends AbstractConfig {
     return getPropertiesWithOverrides(COMMAND_CONSUMER_PREFIX);
   }
 
-  Map<String, Object> getCommandProducerProperties() {
+  public Map<String, Object> getCommandProducerProperties() {
     return getPropertiesWithOverrides(COMMAND_PRODUCER_PREFIX);
   }
 
@@ -924,4 +969,8 @@ public class KsqlRestConfig extends AbstractConfig {
     }
   }
 
+  public Map<String, String> getStringAsMap(final String key) {
+    final String value = getString(key).trim();
+    return KsqlConfig.parseStringAsMap(key, value);
+  }
 }

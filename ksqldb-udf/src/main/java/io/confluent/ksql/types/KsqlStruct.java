@@ -15,54 +15,81 @@
 
 package io.confluent.ksql.types;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.schema.ksql.types.Field;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 /**
  * Instance of {@link io.confluent.ksql.schema.ksql.types.SqlStruct}.
  *
  * <p>Note: this is not yet a released / used feature of ksqlDB.
  */
-@EffectivelyImmutable
+@Immutable
 public final class KsqlStruct {
 
-  private final SqlStruct schema;
+  @EffectivelyImmutable
   private final ImmutableList<Optional<?>> values;
 
   public static Builder builder(final SqlStruct schema) {
     return new Builder(schema);
   }
 
-  private KsqlStruct(
-      final SqlStruct schema,
-      final List<Optional<?>> values
-  ) {
-    this.schema = Objects.requireNonNull(schema, "schema");
+  private KsqlStruct(final List<Optional<?>> values) {
     this.values = ImmutableList.copyOf(Objects.requireNonNull(values, "values"));
   }
 
-  public SqlStruct schema() {
-    return this.schema;
+  /**
+   * Get a field value by index - efficient
+   *
+   * <p>This is the most efficient way to retrieve the value. The field index can be obtained from
+   * {@link SqlStruct.Field#index()}.
+   *
+   * @param index the index of the field within the instance and its schema.
+   * @return the value.
+   */
+  public Optional<?> get(final int index) {
+    validateIndex(index, values);
+    return values.get(index);
   }
 
-  public List<Optional<?>> values() {
-    return values;
+  /**
+   * Get the accessor for this instance, for richer access patterns.
+   *
+   * @param schema the instances schema.
+   * @return the accessor.
+   */
+  public Accessor accessor(final SqlStruct schema) {
+    return new Accessor(schema);
   }
 
-  public void forEach(final BiConsumer<? super Field, ? super Optional<?>> consumer) {
-    for (int idx = 0; idx < values.size(); idx++) {
-      final Field field = schema.fields().get(idx);
-      final Optional<?> value = values.get(idx);
-      consumer.accept(field, value);
+  /**
+   * Convert this immutable struct to a mutable builder with all the values set.
+   *
+   * @param schema the instances schema.
+   * @return the builder.
+   */
+  public Builder asBuilder(final SqlStruct schema) {
+    final Builder builder = builder(schema);
+
+    final ListIterator<Optional<?>> it = values.listIterator();
+    while (it.hasNext()) {
+      final int idx = it.nextIndex();
+      builder.set(idx, it.next());
     }
+
+    return builder;
   }
 
   @Override
@@ -74,34 +101,40 @@ public final class KsqlStruct {
       return false;
     }
     final KsqlStruct that = (KsqlStruct) o;
-    return Objects.equals(schema, that.schema)
-        && Objects.equals(values, that.values);
+    return Objects.equals(values, that.values);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(schema, values);
+    return Objects.hash(values);
   }
 
   @Override
   public String toString() {
-    return "KsqlStruct{"
-        + "values=" + values
-        + ", schema=" + schema
-        + '}';
+    return "Struct("
+        + values.stream()
+        .map(v -> v.orElse(null))
+        .map(Objects::toString)
+        .collect(Collectors.joining(","))
+        + ')';
   }
 
-  private static FieldInfo getField(final String name, final SqlStruct schema) {
-    final List<Field> fields = schema.fields();
-
-    for (int idx = 0; idx < fields.size(); idx++) {
-      final Field field = fields.get(idx);
-      if (field.name().equals(name)) {
-        return new FieldInfo(idx, field);
+  private static int fieldIndex(final String name, final SqlStruct schema) {
+    final ListIterator<Field> it = schema.fields().listIterator();
+    while (it.hasNext()) {
+      final int idx = it.nextIndex();
+      if (it.next().name().equals(name)) {
+        return idx;
       }
     }
 
     throw new DataException("Unknown field: " + name);
+  }
+
+  private static void validateIndex(final int index, final List<?> values) {
+    if (index < 0 || values.size() <= index) {
+      throw new DataException("Invalid field index: " + index);
+    }
   }
 
   public static final class Builder {
@@ -109,36 +142,122 @@ public final class KsqlStruct {
     private final SqlStruct schema;
     private final List<Optional<?>> values;
 
-    public Builder(final SqlStruct schema) {
+    private Builder(final SqlStruct schema) {
       this.schema = Objects.requireNonNull(schema, "schema");
       this.values = new ArrayList<>(schema.fields().size());
       schema.fields().forEach(f -> values.add(Optional.empty()));
     }
 
-    public Builder set(final String field, final Object value) {
-      return set(field, Optional.of(value));
+    /**
+     * Set a field by index - efficient
+     *
+     * <p>The field index can be obtained from {@link SqlStruct.Field#index()}.
+     *
+     * @param fieldIndex the index of the field (it the schema) to set.
+     * @param value the (nullable) value to set.
+     * @return the builder.
+     */
+    public Builder set(final int fieldIndex, final Object value) {
+      return set(fieldIndex, Optional.ofNullable(value));
     }
 
-    public Builder set(final String field, final Optional<?> value) {
-      final FieldInfo info = getField(field, schema);
-      info.field.type().validateValue(value.orElse(null));
-      values.set(info.index, value);
+    /**
+     * Set a field by index - efficient
+     *
+     * <p>The field index can be obtained from {@link SqlStruct.Field#index()}.
+     *
+     * @param fieldIndex the index of the field (it the schema) to set.
+     * @param value the value to set.
+     * @return the builder.
+     */
+    public Builder set(final int fieldIndex, final Optional<?> value) {
+      validateIndex(fieldIndex, values);
+      values.set(fieldIndex, value);
       return this;
     }
 
+    /**
+     * Set a field by name - inefficient
+     *
+     * <p>This is inefficient. It is much more efficient to access it by index. The critical
+     * processing path should bake the indexes that need setting into the code, rather than setting
+     * by name. See {@link #set(int, Object)}.
+     *
+     * @param fieldName the name of the field to set.
+     * @param value the (nullable) value to set.
+     * @return the builder.
+     */
+    public Builder set(final String fieldName, final Object value) {
+      return set(fieldName, Optional.ofNullable(value));
+    }
+
+    /**
+     * Set a field by name - inefficient
+     *
+     * <p>This is inefficient. It is much more efficient to access it by index. The critical
+     * processing path should bake the indexes that need setting into the code, rather than setting
+     * by name. See {@link #set(int, Optional)}.
+     *
+     * @param fieldName the name of the field to set.
+     * @param value the value to set.
+     * @return the builder.
+     */
+    public Builder set(final String fieldName, final Optional<?> value) {
+      return set(fieldIndex(fieldName, schema), value);
+    }
+
     public KsqlStruct build() {
-      return new KsqlStruct(schema, values);
+      return new KsqlStruct(values);
     }
   }
 
-  private static final class FieldInfo {
+  /**
+   * Combine an instance with its schema to allow richer access patterns.
+   */
+  public final class Accessor {
 
-    final int index;
-    final Field field;
+    private final SqlStruct schema;
 
-    private FieldInfo(final int index, final Field field) {
-      this.index = index;
-      this.field = Objects.requireNonNull(field, "field");
+    private Accessor(final SqlStruct schema) {
+      this.schema = Objects.requireNonNull(schema, "schema");
+
+      final int schemaFields = schema.fields().size();
+      final int values = KsqlStruct.this.values.size();
+      Preconditions.checkArgument(
+          schemaFields == values,
+          "schema/value size mismatch: schema:" + schemaFields + ", values:" + values
+      );
+    }
+
+    /**
+     * Access a field value by name - inefficient
+     *
+     * <p>This is inefficient. It is much more efficient to access it by index. The critical
+     * processing path should bake the indexes that need setting into the code, rather than setting
+     * by name. See {@link KsqlStruct#get(int)}.
+     *
+     * @param fieldName the name of the field to access.
+     * @return the value of the field.
+     */
+    public Optional<?> get(final String fieldName) {
+      final int index = fieldIndex(fieldName, schema);
+      return values.get(index);
+    }
+
+    /**
+     * Visit each field and its value in the struct, in the order defined by the schema - efficient.
+     *
+     * @param consumer the consumer that will be called with each field and its value.
+     */
+    public void forEach(final BiConsumer<? super Field, ? super Optional<?>> consumer) {
+      final Iterator<Field> fieldIt = schema.fields().iterator();
+      final Iterator<Optional<?>> valueIt = values.iterator();
+
+      while (fieldIt.hasNext()) {
+        final Field field = fieldIt.next();
+        final Optional<?> value = valueIt.next();
+        consumer.accept(field, value);
+      }
     }
   }
 }

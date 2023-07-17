@@ -15,22 +15,21 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.Map;
-import org.apache.kafka.connect.data.Struct;
 
 public class OrderDataProvider extends TestDataProvider {
 
@@ -47,18 +46,16 @@ public class OrderDataProvider extends TestDataProvider {
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final KeyBuilder KEY_BUILDER = StructKeyUtil.keyBuilder(LOGICAL_SCHEMA);
-
   private static final Map<String, Double> MAP_FIELD = ImmutableMap.of(
       "key1", 1.0,
       "key2", 2.0,
       "key3", 3.0
   );
 
-  private static final Multimap<Struct, GenericRow> ROWS = ImmutableListMultimap
-      .<Struct, GenericRow>builder()
+  private static final Multimap<GenericKey, GenericRow> ROWS = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
       .put(
-          buildKey("ORDER_1"),
+          genericKey("ORDER_1"),
           genericRow(
               1L,
               "ITEM_1",
@@ -68,7 +65,7 @@ public class OrderDataProvider extends TestDataProvider {
               MAP_FIELD
           ))
       .put(
-          buildKey("ORDER_2"),
+          genericKey("ORDER_2"),
           genericRow(
               2L,
               "ITEM_2",
@@ -78,7 +75,7 @@ public class OrderDataProvider extends TestDataProvider {
               MAP_FIELD
           ))
       .put(
-          buildKey("ORDER_3"),
+          genericKey("ORDER_3"),
           genericRow(
               3L,
               "ITEM_3",
@@ -88,7 +85,7 @@ public class OrderDataProvider extends TestDataProvider {
               MAP_FIELD
           ))
       .put(
-          buildKey("ORDER_4"),
+          genericKey("ORDER_4"),
           genericRow(
               4L,
               "ITEM_4",
@@ -98,7 +95,7 @@ public class OrderDataProvider extends TestDataProvider {
               MAP_FIELD
           ))
       .put(
-          buildKey("ORDER_5"),
+          genericKey("ORDER_5"),
           genericRow(
               5L,
               "ITEM_5",
@@ -108,7 +105,7 @@ public class OrderDataProvider extends TestDataProvider {
               MAP_FIELD
           ))
       .put(
-          buildKey("ORDER_6"),
+          genericKey("ORDER_6"),
           genericRow(
               6L,
               "ITEM_6",
@@ -118,7 +115,7 @@ public class OrderDataProvider extends TestDataProvider {
               MAP_FIELD
           ))
       .put(
-          buildKey("ORDER_6"),
+          genericKey("ORDER_6"),
           genericRow(
               7L,
               "ITEM_7",
@@ -128,7 +125,7 @@ public class OrderDataProvider extends TestDataProvider {
               MAP_FIELD
           ))
       .put(
-          buildKey("ORDER_6"),
+          genericKey("ORDER_6"),
           genericRow(
               8L,
               "ITEM_8",
@@ -141,13 +138,5 @@ public class OrderDataProvider extends TestDataProvider {
 
   public OrderDataProvider() {
     super("ORDER", PHYSICAL_SCHEMA, ROWS);
-  }
-
-  public Struct keyFrom(final String key) {
-    return buildKey(key);
-  }
-
-  public static Struct buildKey(final String key) {
-    return KEY_BUILDER.build(key);
   }
 }

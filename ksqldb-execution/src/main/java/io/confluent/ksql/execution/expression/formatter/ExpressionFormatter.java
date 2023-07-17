@@ -38,8 +38,11 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -56,6 +59,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.name.Name;
+import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
@@ -101,6 +105,16 @@ public final class ExpressionFormatter {
     @Override
     public String visitStringLiteral(final StringLiteral node, final Context context) {
       return formatStringLiteral(node.getValue());
+    }
+
+    @Override
+    public String visitLambdaVariable(final LambdaVariable node, final Context context) {
+      return String.valueOf(node.getLambdaCharacter());
+    }
+
+    @Override
+    public String visitIntervalUnit(final IntervalUnit exp, final Context context) {
+      return exp.getUnit().toString();
     }
 
     @Override
@@ -182,7 +196,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitTimestampLiteral(final TimestampLiteral node, final Context context) {
-      return "TIMESTAMP '" + node.getValue() + "'";
+      return SqlTimestamps.formatTimestamp(node.getValue());
     }
 
     @Override
@@ -384,6 +398,18 @@ public final class ExpressionFormatter {
     @Override
     public String visitInListExpression(final InListExpression node, final Context context) {
       return "(" + joinExpressions(node.getValues(), context) + ")";
+    }
+
+    @Override
+    public String visitLambdaExpression(
+        final LambdaFunctionCall node, final Context context) {
+      final StringBuilder builder = new StringBuilder();
+
+      builder.append('(');
+      Joiner.on(", ").appendTo(builder, node.getArguments());
+      builder.append(") => ");
+      builder.append(process(node.getBody(), context));
+      return builder.toString();
     }
 
     private String formatBinaryExpression(

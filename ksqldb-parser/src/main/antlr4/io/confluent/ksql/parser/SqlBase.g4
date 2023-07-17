@@ -54,7 +54,8 @@ statement
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
     | (LIST | SHOW) VARIABLES                                               #listVariables
-    | DESCRIBE EXTENDED? sourceName                                         #showColumns
+    | DESCRIBE sourceName EXTENDED?                                         #showColumns
+    | DESCRIBE STREAMS EXTENDED?                                            #describeStreams
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (identifier| STRING) printClause                                #printTopic
@@ -77,7 +78,7 @@ statement
             (WITH tableProperties)? AS query                                #createTableAs
     | CREATE (SINK | SOURCE) CONNECTOR (IF NOT EXISTS)? identifier
              WITH tableProperties                                           #createConnector
-    | INSERT INTO sourceName query                                          #insertInto
+    | INSERT INTO sourceName (WITH tableProperties)? query                  #insertInto
     | INSERT INTO sourceName (columns)? VALUES values                       #insertValues
     | DROP STREAM (IF EXISTS)? sourceName (DELETE TOPIC)?                   #dropStream
     | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
@@ -105,7 +106,7 @@ query
       (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
-      (PARTITION BY partitionBy=valueExpression)?
+      (PARTITION BY partitionBy)?
       (HAVING having=booleanExpression)?
       (EMIT resultMaterialization)?
       limitClause?
@@ -187,6 +188,11 @@ windowUnit
     ;
 
 groupBy
+    : valueExpression (',' valueExpression)*
+    | '(' (valueExpression (',' valueExpression)*)? ')'
+    ;
+
+partitionBy
     : valueExpression (',' valueExpression)*
     | '(' (valueExpression (',' valueExpression)*)? ')'
     ;
@@ -291,12 +297,17 @@ primaryExpression
     | MAP '(' (expression ASSIGN expression (',' expression ASSIGN expression)*)? ')'     #mapConstructor
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
-    | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall
+    | identifier '(' (functionArgument (',' functionArgument)* (',' lambdaFunction)*)? ')' #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference
     | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                        #dereference
     | '(' expression ')'                                                                  #parenthesizedExpression
+    ;
+
+functionArgument
+    : expression
+    | windowUnit
     ;
 
 timeZoneSpecifier
@@ -341,9 +352,13 @@ identifier
     | DIGIT_IDENTIFIER       #digitIdentifier
     ;
 
+lambdaFunction
+    :  identifier '=>' expression                            #lambda
+    | '(' identifier (',' identifier)*  ')' '=>' expression  #lambda
+    ;
+
 variableName
     : IDENTIFIER
-    | nonReserved
     ;
 
 variableValue
@@ -543,6 +558,8 @@ CONCAT: '||';
 ASSIGN: ':=';
 STRUCT_FIELD_REF: '->';
 
+LAMBDA_EXPRESSION: '=>';
+
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
     ;
@@ -575,14 +592,6 @@ QUOTED_IDENTIFIER
 
 BACKQUOTED_IDENTIFIER
     : '`' ( ~'`' | '``' )* '`'
-    ;
-
-TIME_WITH_TIME_ZONE
-    : 'TIME' WS 'WITH' WS 'TIME' WS 'ZONE'
-    ;
-
-TIMESTAMP_WITH_TIME_ZONE
-    : 'TIMESTAMP' WS 'WITH' WS 'TIME' WS 'ZONE'
     ;
 
 VARIABLE

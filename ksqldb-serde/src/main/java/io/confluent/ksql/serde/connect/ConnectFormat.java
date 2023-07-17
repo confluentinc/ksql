@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
@@ -240,5 +241,10 @@ public abstract class ConnectFormat implements Format {
     public void close() {
       inner.close();
     }
+  }
+
+  @Override
+  public boolean supportsKeyType(final SqlType type) {
+    return true;
   }
 }

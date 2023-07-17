@@ -17,10 +17,11 @@ package io.confluent.ksql.api.impl;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.server.PushQueryHandle;
+import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.reactive.BasePublisher;
+import io.confluent.ksql.util.KeyValue;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
@@ -37,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * this won't prevent the thread from doing useful work elsewhere but it does mean we can't have too
  * many push queries in the server at any one time as we can end up with a lot of threads.
  */
-public class BlockingQueryPublisher extends BasePublisher<GenericRow>
+public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, GenericRow>>
     implements QueryPublisher {
 
   private static final Logger log = LoggerFactory.getLogger(BlockingQueryPublisher.class);
@@ -46,7 +47,8 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
 
   private final WorkerExecutor workerExecutor;
   private BlockingRowQueue queue;
-  private PushQueryHandle queryHandle;
+  private boolean isPullQuery;
+  private QueryHandle queryHandle;
   private List<String> columnNames;
   private List<String> columnTypes;
   private boolean complete;
@@ -58,13 +60,21 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
   }
 
-  public void setQueryHandle(final PushQueryHandle queryHandle) {
+  public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery) {
     this.columnNames = queryHandle.getColumnNames();
     this.columnTypes = queryHandle.getColumnTypes();
     this.queue = queryHandle.getQueue();
+    this.isPullQuery = isPullQuery;
     this.queue.setQueuedCallback(this::maybeSend);
-    this.queue.setLimitHandler(() -> complete = true);
+    this.queue.setLimitHandler(() -> {
+      complete = true;
+      // This allows us to hit the limit without having to queue one last row
+      if (queue.isEmpty()) {
+        ctx.runOnContext(v -> sendComplete());
+      }
+    });
     this.queryHandle = queryHandle;
+    queryHandle.onException(t -> ctx.runOnContext(v -> sendError(t)));
   }
 
   @Override
@@ -89,7 +99,7 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
 
   @Override
   public boolean isPullQuery() {
-    return false;
+    return isPullQuery;
   }
 
   @Override
@@ -121,6 +131,7 @@ public class BlockingQueryPublisher extends BasePublisher<GenericRow>
     while (getDemand() > 0 && !queue.isEmpty()) {
       if (num < SEND_MAX_BATCH_SIZE) {
         doOnNext(queue.poll());
+
         if (complete && queue.isEmpty()) {
           ctx.runOnContext(v -> sendComplete());
         }

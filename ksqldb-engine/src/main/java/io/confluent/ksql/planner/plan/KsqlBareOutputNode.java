@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -26,14 +28,18 @@ import java.util.OptionalInt;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class KsqlBareOutputNode extends OutputNode {
 
+  private final Optional<WindowInfo> windowInfo;
+
   public KsqlBareOutputNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
       final OptionalInt limit,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final Optional<WindowInfo> windowInfo
   ) {
     super(id, source, schema, limit, timestampColumn);
+    this.windowInfo = requireNonNull(windowInfo, "windowInfo");
   }
 
   @Override
@@ -42,7 +48,11 @@ public class KsqlBareOutputNode extends OutputNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    return getSource().buildStream(builder);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    return getSource().buildStream(buildContext);
+  }
+
+  public Optional<WindowInfo> getWindowInfo() {
+    return windowInfo;
   }
 }

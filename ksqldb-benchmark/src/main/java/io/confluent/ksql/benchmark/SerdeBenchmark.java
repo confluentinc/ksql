@@ -20,6 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -47,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -73,8 +73,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 6, time = 30)
-@Measurement(iterations = 3, time = 60)
+@Warmup(iterations = 3, time = 10)
+@Measurement(iterations = 3, time = 10)
 @Threads(4)
 @Fork(3)
 public class SerdeBenchmark {
@@ -153,11 +153,11 @@ public class SerdeBenchmark {
       final RowGenerator generator = getRowGenerator(params.schemaName);
 
       final LogicalSchema schema = generator.schema();
-      final Pair<Struct, GenericRow> row = generator.generateRow();
+      final Pair<GenericKey, GenericRow> row = generator.generateRow();
 
       if (params.schemaName.equals(SINGLE_KEY_SCHEMA)) {
         // Benchmark the key serde:
-        final Serde<Struct> serde = getGenericKeySerde(schema, params.formatName);
+        final Serde<GenericKey> serde = getGenericKeySerde(schema, params.formatName);
 
         serializer = (Serializer) serde.serializer();
         deserializer = (Deserializer) serde.deserializer();
@@ -210,7 +210,7 @@ public class SerdeBenchmark {
       return FormatInfo.of(formatName);
     }
 
-    private static Serde<Struct> getGenericKeySerde(
+    private static Serde<GenericKey> getGenericKeySerde(
         final LogicalSchema schema,
         final String formatName
     ) {

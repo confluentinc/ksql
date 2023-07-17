@@ -16,12 +16,12 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import org.apache.kafka.common.serialization.Serde;
@@ -39,7 +39,7 @@ public final class StreamTableJoinBuilder {
       final KStreamHolder<K> left,
       final KTableHolder<K> right,
       final StreamTableJoin<K> join,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final JoinedFactory joinedFactory
   ) {
     final Formats leftFormats = join.getInternalFormats();
@@ -52,12 +52,12 @@ public final class StreamTableJoinBuilder {
         leftFormats.getValueFeatures()
     );
 
-    final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> leftSerde = buildContext.buildValueSerde(
         leftFormats.getValueFormat(),
         leftPhysicalSchema,
         stacker.push(SERDE_CTX).getQueryContext()
     );
-    final Serde<K> keySerde = left.getKeySerdeFactory().buildKeySerde(
+    final Serde<K> keySerde = left.getExecutionKeyFactory().buildKeySerde(
         leftFormats.getKeyFormat(),
         leftPhysicalSchema,
         queryContext

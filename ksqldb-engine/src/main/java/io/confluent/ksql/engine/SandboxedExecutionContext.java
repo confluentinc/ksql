@@ -17,12 +17,18 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.execution.streams.RoutingOptions;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -34,6 +40,7 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * An execution context that can execute statements without changing the core engine's state
@@ -82,8 +89,13 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
+  public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
+    return engineContext.getQueriesWithSink(sourceName);
+  }
+
+  @Override
   public List<QueryMetadata> getAllLiveQueries() {
-    return ImmutableList.of();
+    return engineContext.getAllLiveQueries();
   }
 
   @Override
@@ -139,12 +151,37 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   @Override
   public TransientQueryMetadata executeQuery(
       final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement
+      final ConfiguredStatement<Query> statement,
+      final boolean excludeTombstones
   ) {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
         statement.getSessionConfig()
-    ).executeQuery(statement);
+    ).executeQuery(statement, excludeTombstones);
+  }
+
+  @Override
+  public PullQueryResult executePullQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final HARouting routing,
+      final RoutingOptions routingOptions,
+      final PullPlannerOptions pullPlannerOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
+  ) {
+    return EngineExecutor.create(
+        engineContext,
+        serviceContext,
+        statement.getSessionConfig()
+    ).executePullQuery(
+        statement,
+        routing,
+        routingOptions,
+        pullPlannerOptions,
+        pullQueryMetrics,
+        startImmediately
+    );
   }
 }

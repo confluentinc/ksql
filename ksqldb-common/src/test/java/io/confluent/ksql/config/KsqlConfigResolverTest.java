@@ -91,7 +91,7 @@ public class KsqlConfigResolverTest {
   public void shouldReturnUnresolvedForTopicPrefixedStreamsConfig() {
     final String prop = StreamsConfig.TOPIC_PREFIX + TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG;
     assertThat(resolver.resolve(
-        KsqlConfig.KSQL_STREAMS_PREFIX + prop, false), is(unresolvedItem(prop)));
+        KsqlConfig.KSQL_STREAMS_PREFIX + prop, true), is(unresolvedItem(prop)));
   }
 
   @Test

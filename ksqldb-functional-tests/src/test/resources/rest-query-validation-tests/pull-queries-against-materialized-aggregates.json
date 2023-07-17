@@ -1,4 +1,4 @@
-{
+  {
   "comments": [
     "Tests covering Pull queries of (materialized) aggregate tables"
   ],
@@ -133,7 +133,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "'10' can not be converted to the type of the key column: ID INTEGER KEY",
+        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to '10' (STRING) with EQUAL.\nStatement: (ID = '10')",
         "status": 400
       }
     },
@@ -258,19 +258,19 @@
       "statements": [
         "CREATE STREAM INPUT (ID DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID=10.1;",
+        "SELECT * FROM AGGREGATE WHERE ID=10.5;",
         "SELECT * FROM AGGREGATE WHERE ID=0;"
       ],
       "inputs": [
-        {"topic": "test_topic", "timestamp": 12346, "key": 11.1, "value": {"val": 1}},
-        {"topic": "test_topic", "timestamp": 12345, "key": 10.1, "value": {"val": 2}}
+        {"topic": "test_topic", "timestamp": 12346, "key": 11.5, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10.5, "value": {"val": 2}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`ID` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
-          {"row":{"columns":[10.1, 12000, 13000, 1]}}
+          {"row":{"columns":[10.5, 12000, 13000, 1]}}
         ]},
         {"query": [
           {"header":{"schema":"`ID` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}}
@@ -286,7 +286,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "'10' can not be converted to the type of the key column: ID INTEGER KEY",
+        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to '10' (STRING) with EQUAL.\nStatement: (ID = '10')",
         "status": 400
       }
     },
@@ -706,18 +706,18 @@
       "statements": [
         "CREATE STREAM INPUT (ID DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT ID, COUNT FROM AGGREGATE WHERE ID=10.1;"
+        "SELECT ID, COUNT FROM AGGREGATE WHERE ID=10.5;"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": 11.2, "value": {}},
-        {"topic": "test_topic", "timestamp": 12346, "key": 10.1, "value": {}}
+        {"topic": "test_topic", "timestamp": 12346, "key": 10.5, "value": {}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`ID` DOUBLE KEY, `COUNT` BIGINT"}},
-          {"row":{"columns":[10.1, 1]}}
+          {"row":{"columns":[10.5, 1]}}
         ]}
       ]
     },
@@ -726,19 +726,19 @@
       "statements": [
         "CREATE STREAM INPUT (ID DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
-        "SELECT COUNT, ID FROM AGGREGATE WHERE ID=10.1 AND WindowStart=12000;"
+        "SELECT COUNT, ID FROM AGGREGATE WHERE ID=10.5 AND WindowStart=12000;"
       ],
       "inputs": [
-        {"topic": "test_topic", "timestamp": 12345, "key": 11.1, "value": {}},
-        {"topic": "test_topic", "timestamp": 11345, "key": 10.1, "value": {}},
-        {"topic": "test_topic", "timestamp": 12345, "key": 10.1, "value": {}}
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.5, "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": 10.5, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10.5, "value": {}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`COUNT` BIGINT, `ID` DOUBLE KEY"}},
-          {"row":{"columns":[1, 10.1]}}
+          {"row":{"columns":[1, 10.5]}}
         ]}
       ]
     },
@@ -1033,28 +1033,18 @@
       }
     },
     {
-      "name": "fail on unsupported query feature: where multiple keys",
-      "statements": [
-        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID='10' OR ID='11';"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Only AND expressions are supported: ((ID = '10') OR (ID = '11'))",
-        "status": 400
-      }
-    },
-    {
-      "name": "fail on unsupported query feature: where key range",
+      "name": "fail on unsupported query feature: where key range string",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
         "SELECT * FROM AGGREGATE WHERE '0'<ID AND ID<'100';"
       ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Multiple bounds on key column",
+        "message": "Bound on key columns '[`ID` STRING KEY]' must currently be '='.",
         "status": 400
       }
     },
@@ -1065,9 +1055,12 @@
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
         "SELECT * FROM AGGREGATE WHERE ID != '100';"
       ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Bound on 'ID' must currently be '='.",
+        "message": "Bound on key columns '[`ID` STRING KEY]' must currently be '='. ",
         "status": 400
       }
     },
@@ -1078,9 +1071,12 @@
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
         "SELECT * FROM AGGREGATE WHERE COUNT = 100;"
       ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "WHERE clause on unsupported column: COUNT",
+        "message": "WHERE clause missing key column for disjunct: (COUNT = 100)",
         "status": 400
       }
     },
@@ -1092,7 +1088,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Can't pull from `X` as it's not a materialized table.",
+        "message": "The `X` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_X AS SELECT * FROM X'. See https://cnfl.io/queries for more info.",
         "status": 400
       }
     },
@@ -1146,18 +1142,18 @@
       "statements": [
         "CREATE STREAM INPUT (ID DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
-        "SELECT ID, TIMESTAMPTOSTRING(WINDOWSTART, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WSTART, TIMESTAMPTOSTRING(WINDOWEND, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID=10.1 AND WINDOWSTART=1580223282000;"
+        "SELECT ID, TIMESTAMPTOSTRING(WINDOWSTART, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WSTART, TIMESTAMPTOSTRING(WINDOWEND, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID=10.5 AND WINDOWSTART=1580223282000;"
       ],
       "inputs": [
-        {"topic": "test_topic", "timestamp": 1580223282123, "key": 11.1, "value": {"val": 1}},
-        {"topic": "test_topic", "timestamp": 1580223282456, "key": 10.1, "value": {"val": 2}}
+        {"topic": "test_topic", "timestamp": 1580223282123, "key": 11.5, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 1580223282456, "key": 10.5, "value": {"val": 2}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`ID` DOUBLE KEY, `WSTART` STRING, `WEND` STRING, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
-          {"row":{"columns":[10.1, "2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 1580223282456, 1]}}
+          {"row":{"columns":[10.5, "2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 1580223282456, 1]}}
         ]}
       ]
     },
@@ -1166,19 +1162,19 @@
       "statements": [
         "CREATE STREAM INPUT (ID DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
-        "SELECT ROWTIME, ID, WINDOWSTART, WINDOWEND FROM AGGREGATE WHERE ID=10.1 AND WindowStart=12000;"
+        "SELECT ROWTIME, ID, WINDOWSTART, WINDOWEND FROM AGGREGATE WHERE ID=10.5 AND WindowStart=12000;"
       ],
       "inputs": [
-        {"topic": "test_topic", "timestamp": 12345, "key": 11.1, "value": {}},
-        {"topic": "test_topic", "timestamp": 11345, "key": 10.1, "value": {}},
-        {"topic": "test_topic", "timestamp": 12345, "key": 10.1, "value": {}}
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.5, "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": 10.5, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10.5, "value": {}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`ROWTIME` BIGINT, `ID` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY"}},
-          {"row":{"columns":[12345, 10.1, 12000, 13000]}}
+          {"row":{"columns":[12345, 10.5, 12000, 13000]}}
         ]}
       ]
     },
@@ -1211,20 +1207,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Primary key columns can not be NULL: (ID = null)",
-        "status": 400
-      }
-    },
-    {
-      "name": "fail on non-literal key",
-      "statements": [
-        "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID=CAST(1 AS INT);"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Ony comparison to literals is currently supported: (ID = CAST(1 AS INTEGER))",
+        "message": "Error in WHERE expression: Comparison with NULL not supported: INTEGER = NULL\nUse 'IS NULL' or 'IS NOT NULL' instead.\nStatement: (ID = null)",
         "status": 400
       }
     },
@@ -1522,9 +1505,6 @@
         "SELECT * FROM AGGREGATE WHERE ID=10;",
         "SELECT * FROM AGGREGATE WHERE ID=123369;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
         {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}
@@ -1813,22 +1793,23 @@
       "statements": [
         "CREATE STREAM INPUT (ID DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID IN (10.1, 8.1);",
+        "SELECT * FROM AGGREGATE WHERE ID IN (10.5, 8.5);",
         "SELECT * FROM AGGREGATE WHERE ID IN (0, 1.0);"
       ],
       "inputs": [
-        {"topic": "test_topic", "timestamp": 12346, "key": 11.1, "value": {"val": 1}},
-        {"topic": "test_topic", "timestamp": 12345, "key": 10.1, "value": {"val": 2}},
-        {"topic": "test_topic", "timestamp": 12366, "key": 9.1, "value": {"val": 3}},
-        {"topic": "test_topic", "timestamp": 12367, "key": 8.1, "value": {"val": 4}},
-        {"topic": "test_topic", "timestamp": 12368, "key": 12.1, "value": {"val": 5}}
+        {"topic": "test_topic", "timestamp": 12346, "key": 11.5, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10.5, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12366, "key": 9.5, "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 12367, "key": 8.5, "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 12368, "key": 12.5, "value": {"val": 5}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`ID` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
-          {"row":{"columns":[10.1, 12000, 13000, 1]}}
+          {"row":{"columns":[10.5, 12000, 13000, 1]}},
+          {"row":{"columns":[8.5, 12000, 13000, 1]}}
         ]},
         {"query": [
           {"header":{"schema":"`ID` DOUBLE KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}}
@@ -1922,22 +1903,1066 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Primary key columns can not be NULL: (ID IN (null))",
+        "message": "Primary key columns can not be NULL: (ID = null)",
         "status": 400
       }
     },
     {
-      "name": "IN: fail on non-literal key",
+      "name": "IN: fail on column reference key",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID IN (CAST(1 AS INTEGER));"
+        "SELECT * FROM AGGREGATE WHERE ID IN (2, COUNT + 1, 3);"
       ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Only comparison to literals is currently supported: (ID IN (CAST(1 AS INTEGER)))",
+        "message": "A comparison must be between a key column and a resolvable expression.",
         "status": 400
       }
+    },
+    {
+      "name": "non-windowed - function in where clause",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE WHERE ID=CONCAT('1','0');"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":["10", 1, 12365]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed - array keys",
+      "statements": [
+        "CREATE STREAM INPUT (ID ARRAY<STRING> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE WHERE ID=ARRAY['1','0'];"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": ["1", "1"], "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": ["1", "0"], "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` ARRAY<STRING> KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":[["1", "0"], 1, 12365]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed - struct keys",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<f1 STRING, f2 STRING> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE WHERE ID=STRUCT(F1:='1',F2:='0');"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"F1": "1", "F2": "1"}, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": {"F1": "1", "F2": "0"}, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRUCT<`F1` STRING, `F2` STRING> KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":[{"F1": "1", "F2": "0"}, 1, 12365]}}
+        ]}
+      ]
+    },
+    {
+      "name": "IN: support non-literal key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID IN (CAST(10 AS INTEGER));"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed - Table Scan - select star and ROWTIME",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE;",
+        "SELECT * FROM AGGREGATE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12365, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":["11", 1, 12345]}},
+          {"row":{"columns":["10", 1, 12365]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 1]}},
+          {"row":{"columns":["10", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed - Table Scan - select star and ROWTIME",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, COUNT, ROWTIME FROM AGGREGATE;",
+        "SELECT * FROM AGGREGATE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 13346, "key": "11", "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 13345, "key": "10", "value": {"val": 4}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":["11", 12000, 13000, 1, 12346]}},
+          {"row":{"columns":["11", 13000, 14000, 1, 13346]}},
+          {"row":{"columns":["10", 12000, 13000, 1, 12345]}},
+          {"row":{"columns":["10", 13000, 14000, 1, 13345]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 12000, 13000, 1]}},
+          {"row":{"columns":["11", 13000, 14000, 1]}},
+          {"row":{"columns":["10", 12000, 13000, 1]}},
+          {"row":{"columns":["10", 13000, 14000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed - Table Scan - missing key, windowed system columns only",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART > 12500;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWEND < 13500;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART > 12500 AND WINDOWEND < 13500;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART > 11500 AND WINDOWEND < 13500;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 13346, "key": 11, "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 10, "value": {"val": 4}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 13000, 14000, 1]}},
+          {"row":{"columns":[11, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed - Table Scan - indirect column reference",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID + 10 = 20;",
+        "SELECT * FROM AGGREGATE WHERE 2 * COUNT > 5;",
+        "SELECT id, floor(exp(ID)) as val  FROM AGGREGATE WHERE floor(exp(ID)) > 30000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12375, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12355, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `VAL` DOUBLE"}},
+          {"row":{"columns":[11, 59874.0]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed - Table Scan - indirect column reference",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID + 10 = 20;",
+        "SELECT * FROM AGGREGATE WHERE ID + 10 = 20 and WINDOWSTART > 12500;",
+        "SELECT id, WINDOWSTART, WINDOWEND, COUNT, FLOOR(SQRT(WINDOWSTART)) as val FROM AGGREGATE WHERE SQRT(WINDOWSTART) > 110.0;",
+        "SELECT id, WINDOWSTART, WINDOWEND, COUNT, floor(exp(ID)) as val  FROM AGGREGATE WHERE floor(exp(ID)) > 30000;",
+        "SELECT id, WINDOWSTART, WINDOWEND, COUNT, floor(exp(ID)) as val  FROM AGGREGATE WHERE floor(exp(ID)) > 30000 AND WINDOWEND < 13500;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 13346, "key": 11, "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 10, "value": {"val": 4}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 1]}},
+          {"row":{"columns":[10, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT, `VAL` DOUBLE"}},
+          {"row":{"columns":[10, 13000, 14000, 1, 114.0]}},
+          {"row":{"columns":[11, 13000, 14000, 1, 114.0]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT, `VAL` DOUBLE"}},
+          {"row":{"columns":[11, 12000, 13000, 1, 59874.0]}},
+          {"row":{"columns":[11, 13000, 14000, 1, 59874.0]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT, `VAL` DOUBLE"}},
+          {"row":{"columns":[11, 12000, 13000, 1, 59874.0]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed - Resolving keys for key lookups",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10 AND WINDOWSTART > 12500 + 10;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10 + 1 AND WINDOWSTART > 12500 + 10;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10 + 1 AND WINDOWEND < 13500 + 10;",
+        "SELECT * FROM AGGREGATE WHERE ID = 11 - 1 AND WINDOWSTART > 11000 + 50 AND WINDOWEND < 13500 + 10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 13346, "key": 11, "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 10, "value": {"val": 4}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 12000, 13000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed - Table Scan - non column ref is unresolvable or there is no column ref",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = 20 - 10;",
+        "SELECT * FROM AGGREGATE WHERE ID < COUNT;",
+        "SELECT * FROM AGGREGATE WHERE ID = COUNT;",
+        "SELECT * FROM AGGREGATE WHERE ID + 1 = COUNT;",
+        "SELECT * FROM AGGREGATE WHERE ID + 1 = COUNT + 1;",
+        "SELECT * FROM AGGREGATE WHERE 2 < 5;",
+        "SELECT * FROM AGGREGATE WHERE 2 > 5;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12365, "key": 2, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 2, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 2, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 3, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 3, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 3, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12375, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12355, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[2, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[3, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[2, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[3, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 2]}},
+          {"row":{"columns":[2, 3]}},
+          {"row":{"columns":[3, 3]}},
+          {"row":{"columns":[11, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "fail on unsupported query feature: No column key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID + 10 = 20;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "A comparison must directly reference a key column.",
+        "status": 400
+      }
+    },
+    {
+      "name": "fail on unsupported query feature: Two columns in comparison",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = COUNT;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "A comparison must be between a key column and a resolvable expression.",
+        "status": 400
+      }
+    },
+    {
+      "name": "fail on unsupported query feature: Non column key is unresolvable",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = COUNT - 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "A comparison must be between a key column and a resolvable expression.",
+        "status": 400
+      }
+    },
+    {
+      "name": "multi-column aggregation",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1='11' AND ID2=10;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id2": 10}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 10, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "multi-column windowed aggregation",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1='11' AND ID2=10 AND WindowStart <= 13000 AND WindowEnd < 17000;",
+        "SELECT * FROM AGGREGATE WHERE ID1='11' AND ID2=10 AND WindowStart >= 13000 AND WindowEnd < 17000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12000, "key": "11", "value": {"id2": 10}},
+        {"topic": "test_topic", "timestamp": 12000, "key": "11", "value": {"id2": 10}},
+        {"topic": "test_topic", "timestamp": 14000, "key": "11", "value": {"id2": 10}},
+        {"topic": "test_topic", "timestamp": 14000, "key": "11", "value": {"id2": 10}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 10, 12000, 13000, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 10, 14000, 15000, 2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed General WHERE - OR lookup",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = '10' OR ID = '8';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12366, "key": "9", "value": {}},
+        {"topic": "test_topic", "timestamp": 12367, "key": "8", "value": {}},
+        {"topic": "test_topic", "timestamp": 12368, "key": "12", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 1]}},
+          {"row":{"columns":["8", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed General WHERE - window range",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND (ID = '10' OR ID = '8' OR ID = '12');",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND WINDOWEND <= 13000 AND (ID = '10' OR ID = '8' OR ID = '12');",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND ID = '10' OR ID = '8' OR WINDOWEND <= 13000 AND ID = '12';",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND WINDOWEND <= 13000 AND ID = '8' OR WINDOWSTART >= 14000 AND WINDOWEND <= 15000 AND ID = '8';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12366, "key": "9", "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 12367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 14367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 15367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 12368, "key": "12", "value": {"val": 5}},
+        {"topic": "test_topic", "timestamp": 13368, "key": "12", "value": {"val": 5}},
+        {"topic": "test_topic", "timestamp": 16369, "key": "13", "value": {"val": 6}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 1]}},
+          {"row":{"columns":["12", 12000, 13000, 1]}},
+          {"row":{"columns":["12", 13000, 14000, 1]}},
+          {"row":{"columns":["8", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 14000, 15000, 1]}},
+          {"row":{"columns":["8", 15000, 16000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 1]}},
+          {"row":{"columns":["12", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 12000, 13000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 1]}},
+          {"row":{"columns":["12", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 14000, 15000, 1]}},
+          {"row":{"columns":["8", 15000, 16000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["8", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 14000, 15000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "fail on unsupported query feature: where key range",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE 0 < ID AND ID < 100;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Bound on key columns '[`ID` INTEGER KEY]' must currently be '='.",
+        "status": 400
+      }
+    },
+    {
+      "name": "Generalized WHERE: key range",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE 10 < ID AND ID < 100;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": -1, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582401512456, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552456, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 75, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[75, 1]}},
+          {"row":{"columns":[50, 1]}},
+          {"row":{"columns":[11, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "Generalized WHERE: key range - windowed",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE 10 < ID AND ID < 100;",
+        "SELECT * FROM AGGREGATE WHERE 10 < ID AND ID < 100 AND WINDOWEND < 14000;",
+        "SELECT * FROM AGGREGATE WHERE 10 < ID AND ID < 100 AND WINDOWSTART > 12000;",
+        "SELECT * FROM AGGREGATE WHERE 10 < ID AND ID < 100 AND WINDOWSTART > 12000 AND WINDOWEND < 15000;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": -1, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 13445, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 75, "value": {}},
+        {"topic": "test_topic", "timestamp": 14345, "key": 75, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[75, 12000, 13000, 1]}},
+          {"row":{"columns":[75, 14000, 15000, 1]}},
+          {"row":{"columns":[50, 12000, 13000, 1]}},
+          {"row":{"columns":[50, 13000, 14000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 2]}},
+          {"row":{"columns":[11, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[75, 12000, 13000, 1]}},
+          {"row":{"columns":[50, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[75, 14000, 15000, 1]}},
+          {"row":{"columns":[50, 13000, 14000, 1]}},
+          {"row":{"columns":[11, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[50, 13000, 14000, 1]}},
+          {"row":{"columns":[11, 13000, 14000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "fail on unsupported query feature: where key multiple times",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10 AND ID IN (1, 2, 3, 10);"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "An equality condition on the key column cannot be combined with other comparisons such as an IN predicate",
+        "status": 400
+      }
+    },
+    {
+      "name": "Generalized WHERE: multiple same key references ",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10 AND ID IN (1, 2, 3, 10);"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": -1, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582401512456, "key": 11, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "Generalized WHERE: multiple same key references - windowed",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE (ID = 10 OR ID = 50) AND ID IN (50, 1, 2, 3, 10);"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": -1, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 13445, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 75, "value": {}},
+        {"topic": "test_topic", "timestamp": 14345, "key": 75, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 2]}},
+          {"row":{"columns":[50, 12000, 13000, 1]}},
+          {"row":{"columns":[50, 13000, 14000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "fail on unsupported query feature: where range on non key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE COUNT > 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "WHERE clause missing key column for disjunct: (COUNT > 1)",
+        "status": 400
+      }
+    },
+    {
+      "name": "Generalized WHERE: non key range",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE COUNT > 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1582501512451, "key": -1, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512452, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582401512453, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582401512454, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512455, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552456, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552457, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552458, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512459, "key": 75, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[101, 3]}},
+          {"row":{"columns":[11, 2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "Generalized WHERE: non key range - windowed",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE COUNT > 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": -1, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 13445, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 75, "value": {}},
+        {"topic": "test_topic", "timestamp": 14345, "key": 75, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 2]}},
+          {"row":{"columns":[11, 12000, 13000, 2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "fail on unsupported query feature: where missing key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "WHERE clause missing key column for disjunct",
+        "status": 400
+      }
+    },
+    {
+      "name": "Generalized WHERE: non key special column reference - windowed",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 13000;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 13000 AND WINDOWEND <= 15000;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12366, "key": "9", "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 12367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 14367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 15367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 12368, "key": "12", "value": {"val": 5}},
+        {"topic": "test_topic", "timestamp": 13368, "key": "12", "value": {"val": 5}},
+        {"topic": "test_topic", "timestamp": 16369, "key": "13", "value": {"val": 6}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["12", 13000, 14000,1]}},
+          {"row":{"columns":["13", 16000, 17000,1]}},
+          {"row":{"columns":["8", 14000, 15000,1]}},
+          {"row":{"columns":["8", 15000, 16000,1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["12", 13000, 14000,1]}},
+          {"row":{"columns":["8", 14000, 15000,1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "fail on unsupported query feature: where missing column from multi-column key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, COL INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COL, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID, COL;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Multi-column sources must specify every key in the WHERE clause",
+        "status": 400
+      }
+    },
+    {
+      "name": "Generalized WHERE: single column from multi-column key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, COL INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COL, COUNT(1) AS COUNT FROM INPUT GROUP BY ID, COL;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 5, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 5, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 10, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 10, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 15, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": 15, "value": {"col": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COL` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 1, 1]}},
+          {"row":{"columns":[10, 2, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "Generalized WHERE: single column from multi-column key - windowed",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, COL INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COL, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID, COL;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10;",
+        "SELECT * FROM AGGREGATE WHERE COL > 1;",
+        "SELECT * FROM AGGREGATE WHERE COL = 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": -1, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 10, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 12545, "key": 10, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 11, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 13445, "key": 11, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 50, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 50, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 101, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 75, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 14345, "key": 75, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 14445, "key": 75, "value": {"col": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COL` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 1, 12000, 13000, 1]}},
+          {"row":{"columns":[10, 2, 12000, 13000, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COL` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[50, 2, 13000, 14000, 1]}},
+          {"row":{"columns":[75, 2, 14000, 15000, 2]}},
+          {"row":{"columns":[10, 2, 12000, 13000, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COL` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 1, 12000, 13000, 1]}},
+          {"row":{"columns":[50, 1, 12000, 13000, 1]}},
+          {"row":{"columns":[75, 1, 12000, 13000, 1]}},
+          {"row":{"columns":[-1, 1, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 1, 12000, 13000, 2]}},
+          {"row":{"columns":[11, 1, 13000, 14000, 1]}},
+          {"row":{"columns":[101, 1, 12000, 13000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "Generalized WHERE: key fetch plus additional filters",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID IN (10, 11, 50, 101, 75) AND COUNT > 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1582501512451, "key": -1, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512452, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582401512453, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582401512454, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512455, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552456, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552457, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552458, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512459, "key": 75, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 2]}},
+          {"row":{"columns":[101, 3]}}
+        ]}
+      ]
+    },
+    {
+      "name": "should give good error message when querying a stream with multiple input queries",
+      "statements": [
+        "CREATE STREAM tweets_01 (id varchar key, contents varchar) with (kafka_topic='tweets', format='json', partitions=1);",
+        "CREATE STREAM tweets_02 (id varchar key, contents varchar) with (kafka_topic='tweets', format='json', partitions=1);",
+        "CREATE STREAM ALL_TWEETS WITH (KAFKA_TOPIC='ALL_TWEETS', PARTITIONS=1, REPLICAS=1) AS SELECT * FROM tweets_01;",
+        "INSERT INTO ALL_TWEETS SELECT * FROM TWEETS_02;",
+        "SELECT * FROM ALL_TWEETS WHERE ID = '10';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Add EMIT CHANGES if you intended to issue a push query.",
+        "status": 400
+      }
+    },
+    {
+      "name": "lambdas - lambda use in SELECT",
+      "statements": [
+        "CREATE STREAM INPUT (ID ARRAY<INTEGER> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT ID, COUNT, REDUCE(ID, 0, (x,y) => x + y) as sum FROM AGGREGATE;",
+        "SELECT ID, COUNT, TRANSFORM(ID, x => 2 * x) as doubled FROM AGGREGATE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": [1, 2], "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": [3, 4], "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` ARRAY<INTEGER> KEY, `COUNT` BIGINT, `SUM` INTEGER"}},
+          {"row":{"columns":[[3, 4], 1, 7]}},
+          {"row":{"columns":[[1, 2], 1, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` ARRAY<INTEGER> KEY, `COUNT` BIGINT, `DOUBLED` ARRAY<INTEGER>"}},
+          {"row":{"columns":[[3, 4], 1, [6, 8]]}},
+          {"row":{"columns":[[1, 2], 1, [2, 4]]}}
+        ]}
+      ]
+    },
+    {
+      "name": "lambdas - lambda use in WHERE",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, VAL INTEGER) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, count(1) as COUNT, COLLECT_LIST(VAL) as VAL_LIST FROM INPUT GROUP BY ID;",
+        "SELECT ID, count, VAL_LIST FROM AGGREGATE WHERE REDUCE(VAL_LIST, 0, (x,y) => x + y) > 4;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 1, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 2, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 3, "value": {"val": 5}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT, `VAL_LIST` ARRAY<INTEGER>"}},
+          {"row":{"columns":[1, 3, [1, 2, 3]]}},
+          {"row":{"columns":[3, 1, [5]]}}
+        ]}
+      ]
     }
   ]
 }

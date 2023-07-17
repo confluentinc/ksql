@@ -51,8 +51,12 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -123,11 +127,11 @@ public class UdfLoaderTest {
     assertThat(function, not(nullValue()));
 
     final Kudf substring1 = function.getFunction(
-        Arrays.asList(SqlTypes.STRING, SqlTypes.INTEGER)).newInstance(ksqlConfig);
+        Arrays.asList(SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.INTEGER))).newInstance(ksqlConfig);
     assertThat(substring1.evaluate("foo", 2), equalTo("oo"));
 
     final Kudf substring2 = function.getFunction(
-        Arrays.asList(SqlTypes.STRING, SqlTypes.INTEGER, SqlTypes.INTEGER)).newInstance(ksqlConfig);
+        Arrays.asList(SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER))).newInstance(ksqlConfig);
     assertThat(substring2.evaluate("foo", 2, 1), equalTo("o"));
   }
 
@@ -180,10 +184,49 @@ public class UdfLoaderTest {
 
     // When:
     final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("floor"))
-        .getFunction(ImmutableList.of(schema));
+        .getFunction(ImmutableList.of(SqlArgument.of(schema)));
 
     // Then:
     assertThat(fun.name().text(), equalToIgnoringCase("floor"));
+  }
+
+  @Test
+  public void shouldLoadLambdaReduceUdfs() {
+    // Given:
+    final SqlLambdaResolved lambda =
+        SqlLambdaResolved.of(
+            ImmutableList.of(SqlTypes.INTEGER, SqlTypes.INTEGER, SqlTypes.INTEGER),
+            SqlTypes.INTEGER);
+
+    // When:
+    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("reduce"))
+        .getFunction(
+            ImmutableList.of(
+                SqlArgument.of(SqlMap.of(SqlTypes.INTEGER, SqlTypes.INTEGER)),
+                SqlArgument.of(SqlTypes.INTEGER),
+                SqlArgument.of(lambda)));
+
+    // Then:
+    assertThat(fun.name().text(), equalToIgnoringCase("reduce"));
+  }
+
+  @Test
+  public void shouldLoadLambdaTransformUdfs() {
+    // Given:
+    final SqlLambdaResolved lambda =
+        SqlLambdaResolved.of(
+            ImmutableList.of(SqlTypes.INTEGER),
+            SqlTypes.INTEGER);
+
+    // When:
+    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("transform"))
+        .getFunction(
+            ImmutableList.of(
+                SqlArgument.of(SqlArray.of(SqlTypes.INTEGER)),
+                SqlArgument.of(lambda)));
+
+    // Then:
+    assertThat(fun.name().text(), equalToIgnoringCase("transform"));
   }
 
   @Test
@@ -200,7 +243,7 @@ public class UdfLoaderTest {
     final UdfFactory toList = FUNC_REG.getUdfFactory(FunctionName.of("tolist"));
 
     // When:
-    final List<SqlType> args = Collections.singletonList(SqlTypes.STRING);
+    final List<SqlArgument> args = Collections.singletonList(SqlArgument.of(SqlTypes.STRING));
     final KsqlScalarFunction function
         = toList.getFunction(args);
 
@@ -215,7 +258,7 @@ public class UdfLoaderTest {
     final UdfFactory toMap = FUNC_REG.getUdfFactory(FunctionName.of("tomap"));
 
     // When:
-    final List<SqlType> args = Collections.singletonList(SqlTypes.STRING);
+    final List<SqlArgument> args = Collections.singletonList(SqlArgument.of(SqlTypes.STRING));
     final KsqlScalarFunction function
         = toMap.getFunction(args);
 
@@ -232,7 +275,7 @@ public class UdfLoaderTest {
     final UdfFactory toStruct = FUNC_REG.getUdfFactory(FunctionName.of("tostruct"));
 
     // When:
-    final List<SqlType> args = Collections.singletonList(SqlTypes.STRING);
+    final List<SqlArgument> args = Collections.singletonList(SqlArgument.of(SqlTypes.STRING));
     final KsqlScalarFunction function
         = toStruct.getFunction(args);
 
@@ -250,7 +293,7 @@ public class UdfLoaderTest {
 
     // When:
     final SqlDecimal decimal = SqlTypes.decimal(2, 1);
-    final List<SqlType> args = Collections.singletonList(decimal);
+    final List<SqlArgument> args = Collections.singletonList(SqlArgument.of(decimal));
     final KsqlScalarFunction function = returnDecimal.getFunction(args);
 
     // Then:
@@ -263,7 +306,7 @@ public class UdfLoaderTest {
     final UdfFactory returnDecimal = FUNC_REG.getUdfFactory(FunctionName.of("KsqlStructUdf"));
 
     // When:
-    final List<SqlType> args = ImmutableList.of();
+    final List<SqlArgument> args = ImmutableList.of();
     final KsqlScalarFunction function = returnDecimal.getFunction(args);
 
     // Then:
@@ -291,7 +334,7 @@ public class UdfLoaderTest {
     final UdfFactory returnIncompatible = FUNC_REG
         .getUdfFactory(of("returnincompatible"));
     final SqlDecimal decimal = decimal(2, 1);
-    final List<SqlType> args = singletonList(decimal);
+    final List<SqlArgument> args = singletonList(SqlArgument.of(decimal));
     final KsqlScalarFunction function = returnIncompatible.getFunction(args);
 
     // When:
@@ -398,11 +441,11 @@ public class UdfLoaderTest {
     final UdfFactory toString = FUNC_REG.getUdfFactory(FunctionName.of("tostring"));
     final UdfFactory multiply = FUNC_REG.getUdfFactory(FunctionName.of("multiply"));
 
-    final Kudf toStringUdf = toString.getFunction(ImmutableList.of(SqlTypes.STRING))
+    final Kudf toStringUdf = toString.getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.STRING)))
         .newInstance(ksqlConfig);
 
     final Kudf multiplyUdf = multiply.getFunction(
-        Arrays.asList(SqlTypes.INTEGER, SqlTypes.INTEGER))
+        Arrays.asList(SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER)))
         .newInstance(ksqlConfig);
 
     final ClassLoader multiplyLoader = getActualUdfClassLoader(multiplyUdf);
@@ -433,11 +476,13 @@ public class UdfLoaderTest {
     final UdfFactory multiply = functionRegistry.getUdfFactory(FunctionName.of("multiply"));
     final UdfFactory multiply2 = functionRegistry.getUdfFactory(FunctionName.of("multiply2"));
 
-    final Kudf multiplyUdf = multiply.getFunction(Arrays.asList(SqlTypes.INTEGER, SqlTypes.INTEGER))
-        .newInstance(ksqlConfig);
+    final Kudf multiplyUdf = multiply.getFunction(Arrays.asList(SqlArgument.of(
+        SqlTypes.INTEGER),
+        SqlArgument.of(SqlTypes.INTEGER))
+    ).newInstance(ksqlConfig);
 
     final Kudf multiply2Udf = multiply2
-        .getFunction(Arrays.asList(SqlTypes.INTEGER, SqlTypes.INTEGER))
+        .getFunction(Arrays.asList(SqlArgument.of(SqlTypes.INTEGER), SqlArgument.of(SqlTypes.INTEGER)))
         .newInstance(ksqlConfig);
 
     assertThat(multiplyUdf.evaluate(2, 2), equalTo(4L));
@@ -464,9 +509,9 @@ public class UdfLoaderTest {
     final UdfFactory substring = FUNC_REG.getUdfFactory(FunctionName.of("somefunction"));
     final KsqlScalarFunction function = substring.getFunction(
         ImmutableList.of(
-            SqlTypes.STRING,
-            SqlTypes.STRING,
-            SqlTypes.STRING));
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.STRING)));
 
     final List<ParameterInfo> arguments = function.parameterInfo();
 
@@ -484,7 +529,7 @@ public class UdfLoaderTest {
   public void shouldPutKsqlFunctionsInParentClassLoader() throws Exception {
     final UdfFactory substring = FUNC_REG.getUdfFactory(FunctionName.of("substring"));
     final Kudf kudf = substring.getFunction(
-        Arrays.asList(SqlTypes.STRING, SqlTypes.INTEGER))
+        Arrays.asList(SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.INTEGER)))
         .newInstance(ksqlConfig);
     assertThat(getActualUdfClassLoader(kudf), equalTo(PARENT_CLASS_LOADER));
   }
@@ -539,10 +584,10 @@ public class UdfLoaderTest {
         SqlTypeParser.create(TypeRegistry.EMPTY),
         true
     );
-    final ImmutableList<SqlType> args = ImmutableList.of(
-        SqlTypes.STRING,
-        SqlTypes.STRING,
-        SqlTypes.STRING);
+    final ImmutableList<SqlArgument> args = ImmutableList.of(
+        SqlArgument.of(SqlTypes.STRING),
+        SqlArgument.of(SqlTypes.STRING),
+        SqlArgument.of(SqlTypes.STRING));
 
     // When:
     udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
@@ -560,7 +605,7 @@ public class UdfLoaderTest {
     // Given:
     final UdfFactory substring = FUNC_REG_WITH_METRICS.getUdfFactory(FunctionName.of("substring"));
     final KsqlScalarFunction function = substring
-        .getFunction(Arrays.asList(SqlTypes.STRING, SqlTypes.INTEGER));
+        .getFunction(Arrays.asList(SqlArgument.of(SqlTypes.STRING), SqlArgument.of(SqlTypes.INTEGER)));
 
     // When:
     final Kudf kudf = function.newInstance(ksqlConfig);
@@ -615,7 +660,7 @@ public class UdfLoaderTest {
     ));
 
     final KsqlScalarFunction udf = FUNC_REG.getUdfFactory(FunctionName.of("ConfigurableUdf"))
-        .getFunction(ImmutableList.of(SqlTypes.INTEGER));
+        .getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.INTEGER)));
 
     // When:
     udf.newInstance(ksqlConfig);
@@ -631,7 +676,7 @@ public class UdfLoaderTest {
 
   @Test
   public void shouldEnsureFunctionReturnTypeIsDeepOptional() {
-    final List<SqlType> args = Collections.singletonList(SqlTypes.STRING);
+    final List<SqlArgument> args = Collections.singletonList(SqlArgument.of(SqlTypes.STRING));
     final KsqlScalarFunction complexFunction = FUNC_REG
         .getUdfFactory(FunctionName.of("ComplexFunction"))
         .getFunction(args);
@@ -771,6 +816,28 @@ public class UdfLoaderTest {
         "");
     assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS),
         not(nullValue()));
+  }
+
+  @Test
+  public void shouldConfigureConfigurableUdaf() throws Exception {
+    // Given:
+    final UdafFactoryInvoker creator
+        = createUdafLoader().createUdafFactoryInvoker(
+        TestUdaf.class.getMethod("createSumInt"),
+        FunctionName.of("test-udf"),
+        "desc",
+        "",
+        "",
+        "");
+    final AggregateFunctionInitArguments initArgs = new AggregateFunctionInitArguments(
+        0, ImmutableMap.of("ksql.functions.test_udaf.init", 100L));
+
+    // When:
+    final KsqlAggregateFunction function = creator.createFunction(initArgs);
+    final Object initvalue = function.getInitialValueSupplier().get();
+
+    // Then:
+    assertThat(initvalue, is(100L));
   }
 
   @Test

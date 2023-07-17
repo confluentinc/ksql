@@ -16,11 +16,10 @@
 package io.confluent.ksql.execution.streams.timestamp;
 
 import com.google.common.base.Preconditions;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -50,17 +49,16 @@ final class TimestampColumnExtractors {
 
     @Override
     public Object extract(final Object key, final GenericRow value) {
-      final Struct struct = getStruct(key);
-      final Field field = struct.schema().fields().get(index);
-      return struct.get(field);
+      final GenericKey genericKey = getGenericKey(key);
+      return genericKey.get(index);
     }
 
-    private static Struct getStruct(final Object key) {
+    private static GenericKey getGenericKey(final Object key) {
       if (key instanceof Windowed) {
         final Windowed<?> windowed = (Windowed<?>) key;
-        return (Struct) windowed.key();
+        return (GenericKey) windowed.key();
       }
-      return (Struct) key;
+      return (GenericKey) key;
     }
   }
 

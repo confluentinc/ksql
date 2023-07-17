@@ -20,8 +20,11 @@ import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import io.confluent.kafka.serializers.protobuf.AbstractKafkaProtobufSerializer;
+import io.confluent.kafka.serializers.subject.DefaultReferenceSubjectNameStrategy;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -44,7 +47,6 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -83,7 +85,8 @@ public class SchemaRegisterInjector implements Injector {
     final CreateSource statement = cs.getStatement();
     final LogicalSchema schema = statement.getElements().toLogicalSchema();
 
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(statement.getProperties());
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(
+        statement.getProperties(), statement.getName());
     final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
         schema,
         FormatFactory.of(keyFormat)
@@ -111,26 +114,37 @@ public class SchemaRegisterInjector implements Injector {
   }
 
   private void registerForCreateAs(final ConfiguredStatement<? extends CreateAsSelect> cas) {
-    final ServiceContext sandboxServiceContext = SandboxedServiceContext.create(serviceContext);
-    final ExecuteResult executeResult = executionContext
-        .createSandbox(sandboxServiceContext)
-        .execute(sandboxServiceContext, cas);
+    final CreateSourceCommand createSourceCommand;
 
-    final PersistentQueryMetadata queryMetadata = (PersistentQueryMetadata) executeResult
-        .getQuery()
-        .orElseThrow(() -> new KsqlStatementException(
+    try {
+      final ServiceContext sandboxServiceContext = SandboxedServiceContext.create(serviceContext);
+      createSourceCommand = (CreateSourceCommand)
+          executionContext.createSandbox(sandboxServiceContext)
+              .plan(sandboxServiceContext, cas)
+              .getDdlCommand()
+              .get();
+    } catch (final Exception e) {
+      if (e instanceof KsqlStatementException) {
+        throw new KsqlStatementException(
+            e.getMessage() == null ? "Server Error" : e.getMessage(),
+            ((KsqlStatementException) e).getUnloggedMessage(),
+            ((KsqlStatementException) e).getSqlStatement(),
+            e
+        );
+      } else {
+        throw new KsqlStatementException(
             "Could not determine output schema for query due to error: "
-                + executeResult.getCommandResult(),
-            cas.getMaskedStatementText()
-        ));
+                + e.getMessage(), cas.getMaskedStatementText(), e);
+      }
+    }
 
     registerSchemas(
-        queryMetadata.getLogicalSchema(),
-        queryMetadata.getResultTopic().getKafkaTopicName(),
-        queryMetadata.getResultTopic().getKeyFormat().getFormatInfo(),
-        queryMetadata.getPhysicalSchema().keySchema().features(),
-        queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
-        queryMetadata.getPhysicalSchema().valueSchema().features(),
+        createSourceCommand.getSchema(),
+        createSourceCommand.getTopicName(),
+        createSourceCommand.getFormats().getKeyFormat(),
+        createSourceCommand.getFormats().getKeyFeatures(),
+        createSourceCommand.getFormats().getValueFormat(),
+        createSourceCommand.getFormats().getValueFeatures(),
         cas.getSessionConfig().getConfig(false),
         cas.getMaskedStatementText(),
         true
@@ -156,7 +170,8 @@ public class SchemaRegisterInjector implements Injector {
         config,
         statementText,
         registerIfSchemaExists,
-        getSRSubject(kafkaTopic, true)
+        getSRSubject(kafkaTopic, true),
+        true
     );
 
     registerSchema(
@@ -167,7 +182,8 @@ public class SchemaRegisterInjector implements Injector {
         config,
         statementText,
         registerIfSchemaExists,
-        getSRSubject(kafkaTopic, false)
+        getSRSubject(kafkaTopic, false),
+        false
     );
   }
 
@@ -179,7 +195,8 @@ public class SchemaRegisterInjector implements Injector {
       final KsqlConfig config,
       final String statementText,
       final boolean registerIfSchemaExists,
-      final String subject
+      final String subject,
+      final boolean isKey
   ) {
     final Format format = FormatFactory.of(formatInfo);
     if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
@@ -203,8 +220,22 @@ public class SchemaRegisterInjector implements Injector {
         final ParsedSchema parsedSchema = translator.toParsedSchema(
             PersistenceSchema.from(schema, serdeFeatures)
         );
-
-        srClient.register(subject, parsedSchema);
+        if (parsedSchema instanceof ProtobufSchema) {
+          final ProtobufSchema resolved = AbstractKafkaProtobufSerializer.resolveDependencies(
+              srClient,
+              true,
+              false,
+              true,
+              null,
+              new DefaultReferenceSubjectNameStrategy(),
+              topic,
+              isKey,
+              (ProtobufSchema) parsedSchema
+          );
+          srClient.register(subject, resolved);
+        } else {
+          srClient.register(subject, parsedSchema);
+        }
       }
     } catch (IOException | RestClientException e) {
       throw new KsqlStatementException(

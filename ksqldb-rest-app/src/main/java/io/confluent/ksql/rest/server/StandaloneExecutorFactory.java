@@ -128,7 +128,8 @@ public final class StandaloneExecutorFactory {
         processingLogContext,
         functionRegistry,
         ServiceInfo.create(ksqlConfig),
-        new SequentialQueryIdGenerator());
+        new SequentialQueryIdGenerator(),
+        ksqlConfig);
 
     final UserFunctionLoader udfLoader =
         UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, installDir);

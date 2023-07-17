@@ -1,0 +1,24 @@
+{
+  "comments": [
+    "Tests covering the use of the FROM_UNIXTIME function."
+  ],
+  "tests": [
+    {
+      "name": "convert milliseconds to timezone",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, millis BIGINT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TS AS select K, from_unixtime(millis) as ts from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "0", "value": "100"},
+        {"topic": "test_topic", "key": "0", "value": "1589234313000"},
+        {"topic": "test_topic", "key": "0", "value": null}
+      ],
+      "outputs": [
+        {"topic": "TS", "key": "0", "value": "100"},
+        {"topic": "TS", "key": "0", "value": "1589234313000"},
+        {"topic": "TS", "key": "0", "value": null}
+      ]
+    }
+  ]
+}

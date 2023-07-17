@@ -19,23 +19,30 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -46,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -63,13 +71,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final String serviceId;
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
+  private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final ServiceInfo serviceInfo,
-      final QueryIdGenerator queryIdGenerator
+      final QueryIdGenerator queryIdGenerator,
+      final KsqlConfig ksqlConfig
   ) {
     this(
         serviceContext,
@@ -82,7 +92,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             serviceInfo.customMetricsTags(),
             serviceInfo.metricsExtension()
         ),
-        queryIdGenerator);
+        queryIdGenerator,
+        ksqlConfig);
   }
 
   public KsqlEngine(
@@ -91,15 +102,18 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final String serviceId,
       final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
-      final QueryIdGenerator queryIdGenerator
+      final QueryIdGenerator queryIdGenerator,
+      final KsqlConfig ksqlConfig
   ) {
     this.cleanupService = new QueryCleanupService();
+    this.orphanedTransientQueryCleaner = new OrphanedTransientQueryCleaner(this.cleanupService);
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
         metaStore,
         queryIdGenerator,
-        cleanupService
+        cleanupService,
+        ksqlConfig
     );
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
@@ -132,6 +146,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
     return ImmutableList.copyOf(primaryContext.getPersistentQueries().values());
+  }
+
+  @Override
+  public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
+    return primaryContext.getQueriesWithSink(sourceName);
   }
 
   @Override
@@ -233,15 +252,16 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public TransientQueryMetadata executeQuery(
       final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement
+      final ConfiguredStatement<Query> statement,
+      final boolean excludeTombstones
   ) {
     try {
       final TransientQueryMetadata query = EngineExecutor
           .create(primaryContext, serviceContext, statement.getSessionConfig())
-          .executeQuery(statement);
+          .executeQuery(statement, excludeTombstones);
 
       registerQuery(query);
-      primaryContext.registerQuery(query);
+      primaryContext.registerQuery(query, false);
       return query;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -250,6 +270,32 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(),
           e.getCause());
     }
+  }
+
+  @Override
+  public PullQueryResult executePullQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final HARouting routing,
+      final RoutingOptions routingOptions,
+      final PullPlannerOptions plannerOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
+  ) {
+    return EngineExecutor
+        .create(
+            primaryContext,
+            serviceContext,
+            statement.getSessionConfig()
+        )
+        .executePullQuery(
+            statement,
+            routing,
+            routingOptions,
+            plannerOptions,
+            pullQueryMetrics,
+            startImmediately
+        );
   }
 
   /**
@@ -275,6 +321,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public void close() {
     close(false);
+  }
+
+  public void cleanupOrphanedInternalTopics(
+      final ServiceContext serviceContext,
+      final Set<String> queryApplicationIds
+  ) {
+    orphanedTransientQueryCleaner
+        .cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
   }
 
   /**

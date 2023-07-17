@@ -3,6 +3,7 @@ layout: page
 title: ksqlDB Testing Tool
 tagline: Test your SQL statements in ksqlDB
 description: Test your SQL statements in ksqlDB without the need for a full Kafka cluster
+keywords: testing, qa, quality assurance, test runner
 ---
 
 # How to test an application
@@ -28,27 +29,34 @@ NAME
         ksql-test-runner - The KSQL testing tool
 
 SYNOPSIS
-        ksql-test-runner {--input-file | -i} <inputFile>
+        ksql-test-runner [ {--extension-dir | -e} <extensionDir> ]
+                [ {--input-file | -i} <inputFile> ]
                 {--output-file | -o} <outputFile>
                 {--sql-file | -s} <statementsFile>
 
 OPTIONS
+        --extension-dir <extensionDir>, -e <extensionDir>
+            A directory containting extensions.
+
+            This option may occur a maximum of 1 times
+
+
         --input-file <inputFile>, -i <inputFile>
             A JSON file containing the input records.
 
-            This option may occur a maximum of 1 time
+            This option may occur a maximum of 1 times
 
 
         --output-file <outputFile>, -o <outputFile>
             A JSON file containing the expected output records.
 
-            This option may occur a maximum of 1 time
+            This option may occur a maximum of 1 times
 
 
         --sql-file <statementsFile>, -s <statementsFile>
             A SQL file containing KSQL statements to be tested.
 
-            This option may occur a maximum of 1 time
+            This option may occur a maximum of 1 times
 ```
 
 ## Test file structure

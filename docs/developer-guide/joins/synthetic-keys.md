@@ -15,15 +15,10 @@ CREATE TABLE OUTPUT AS
 ```
 
 The previous statement seems straightforward enough: create a new table that's the result of
-performing a full outer join of two source tables, joining on their ID columns. You might expect
-that such a join would result in a table with a compound primary key containing both `L.ID` and
-`R.ID`, and that's what will happen once ksqlDB supports
-[structured keys][1].
-
-Unfortunately, until ksqlDB supports structured keys, the join must result in a table with a single
-primary key column. Because the previous is a full-outer join, either `L.ID` or `R.ID` may be 
-missing (`NULL`), or both may have the same value. But, the data produced to {{ site.aktm }}
-always has the message key set to the non-null `ID` column, as shown in the following table:
+performing a full outer join of two source tables, joining on their ID columns. But in a 
+full-outer join, either `L.ID` or `R.ID` may be missing (`NULL`), or both 
+may have the same value. Since the data produced to {{ site.aktm }} should always have a non-null 
+message key, ksql selects the first non-null key to use:
 
 | L.ID  | R.ID | Kafka message key |
 |-------|------|:------------------|
@@ -31,11 +26,11 @@ always has the message key set to the non-null `ID` column, as shown in the foll
 |  null | 7    | 7                 |
 |  8    | 8    | 8                 |
 
-Clearly, the data stored in the {{ site.ak }} message's key does not match either of the source `ID`
+The data stored in the {{ site.ak }} message's key may not match either of the source `ID`
 columns. Instead, it's a new column: a *synthetic* column, which means a column that doesn't belong
 to either source table.
 
-## What joins result in synthetic key columns?
+## Which joins result in synthetic key columns?
 
 Any join where the key column in the result does not match any source column is said to have a 
 synthetic key column.
@@ -68,10 +63,13 @@ already contain a column named `ROWKEY`, the synthetic key column is named `ROWK
 ```sql
 -- given sources:
 CREATE STREAM S1 (ROWKEY INT KEY, V0 STRING) WITH (...);
-CREATE TABLE T1 (ID INT KEY, ROWKEY_1 INT) WITH (...);
+CREATE STREAM S2 (ID INT KEY, ROWKEY_1 INT) WITH (...);
 
 CREATE STREAM OUTPUT AS
-   SELECT * FROM S1 JOIN T1 ON ABS(S1.ROWKEY) = ABS(T1.ID);
+  SELECT * 
+  FROM S1 JOIN S2 
+  WITHIN 30 SECONDS 
+  ON ABS(S1.ROWKEY) = ABS(S2.ID);
 
 -- result in OUTPUT with synthetic key column name: ROWKEY_2
 ```
@@ -93,13 +91,6 @@ system generated names are not guaranteed to remain consistent between versions.
 CREATE STREAM OUTPUT AS
    SELECT ROWKEY AS ID, S1.C0, S2.C1 FROM S1 FULL OUTER JOIN S2 ON S1.ID = S2.ID;
 ```
-
-## Will there always be synthetic keys?
-
-No, as stated above, synthetic key columns will no longer be required once ksqlDB supports 
-[structured keys][1].
-
-[1]: https://github.com/confluentinc/ksql/projects/9
 
 ## Suggested Reading
 

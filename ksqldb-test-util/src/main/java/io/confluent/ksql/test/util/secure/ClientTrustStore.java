@@ -25,23 +25,24 @@ import org.apache.kafka.common.config.SslConfigs;
  * Helper for creating a client trust store to enable SSL in tests.
  */
 public final class ClientTrustStore {
-  private static final String
-      BASE64_ENCODED_STORE =
-      "/u3+7QAAAAIAAAABAAAAAgAGY2Fyb290AAABYgp6gD0ABVguNTA5AAADLDCCAygwggIQAgkAvZW/3jNCgKgwDQYJKoZI"
-      + "hvcNAQELBQAwVTELMAkGA1UEBhMCVUsxDzANBgNVBAgMBkxvbmRvbjEPMA0GA1UEBwwGTG9uZG9uMRUwEwYDVQQKDA"
-      + "xjb25mbHVlbnQuaW8xDTALBgNVBAsMBEtTUUwwIBcNMTgwMzA5MTExNjM1WhgPMjExODAyMTMxMTE2MzVaMFUxCzAJ"
-      + "BgNVBAYTAlVLMQ8wDQYDVQQIDAZMb25kb24xDzANBgNVBAcMBkxvbmRvbjEVMBMGA1UECgwMY29uZmx1ZW50LmlvMQ"
-      + "0wCwYDVQQLDARLU1FMMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr1aITumi00PI6Wne/IXuv98alM/Q"
-      + "3pIwpWr+NZ/mbF3DbF9yDxKPuL2O6pjn1n7Hex1uX/xN8zqaC23bkUWKx0yFGaCk5MZaeNV3kHWanqgwN3O+foIhtQ"
-      + "pN0/UJPDgqPJczm2AY7bqto3p6Kicdqle/waOwRsk69gF+azxx5lpZN+kSbOV5AEyprDd6xYQPz9U8hJMmwWFhNUTp"
-      + "3IHNBpVlE/VLLLUJt/tMNTc67+iVcUG7j+ZrEq46MLcToOcoeFwHpCBTxkwk3Z3696lJLQh5wVKgEqxYCSYOf4thoN"
-      + "gmKmSWH3zcH7IwD53g1g2aqPQQh0GfvNkjoaS6/zoZjQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBYrI+EdXTeL5mA"
-      + "t1Xe0zpttZ+QelCrEsGiVDj7KynNbi1rcleNQ9uG0uAIFCp8qYh8QJVxVoiMMOtq9vBs9kfRPfxqb00T4scvi4W3cT"
-      + "IWd1/m6PNkWM634rZpfyawiOaGQKMaPD+G75hHSZKqCPQmaEWo0rjUJSyGQ34ZNCmx/awMODQVNKRRKQvHIjc2HPh2"
-      + "IbJLvr32wjiVsAwc1xRG9XMHTcmqIJkQzw9AqASNi7uYFd0gwBHEuA2NZ34zznI9hzjeL/b7l/9FCtVCtM64wZA+IF"
-      + "7rKeqVDlpM5lUidfckmrF3TxmS6d1aN/1WSZtDZCnNK8+h6LrrbtSQMsS6tc1Cv5YjJ/7KB+rQmTmGJCdzI5E=";
+  private static final String BASE64_ENCODED_STORE =
+      "/u3+7QAAAAIAAAABAAAAAgAJbG9jYWxob3N0AAABdmd5tvQABVguNTA5AAADfTCCA3kwggJhoAMCAQICBA4/S/IwDQY"
+       + "JKoZIhvcNAQELBQAwbDELMAkGA1UEBhMCVVMxDjAMBgNVBAgTBVRleGFzMQ8wDQYDVQQHEwZBdXN0aW4xEjAQBg"
+       + "NVBAoTCUNvbmZsdWVudDEUMBIGA1UECxMLRW5naW5lZXJpbmcxEjAQBgNVBAMTCWxvY2FsaG9zdDAgFw0yMDEyM"
+       + "TUxNjAxNTBaGA8yMTE5MTEyMjE2MDE1MFowbDELMAkGA1UEBhMCVVMxDjAMBgNVBAgTBVRleGFzMQ8wDQYDVQQH"
+       + "EwZBdXN0aW4xEjAQBgNVBAoTCUNvbmZsdWVudDEUMBIGA1UECxMLRW5naW5lZXJpbmcxEjAQBgNVBAMTCWxvY2F"
+       + "saG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALgeKtCVSFtFY+ZnzY2CnzM44A2OsLpsIxAlPv"
+       + "kLJ+hW1ld9B89Vayu1a5/lWTee0Fc2OZR6MC5zhkZmRaGxBB2Dl4XXFMUKdngJdkVh7+AOQqSNy89LdirnvEMgb"
+       + "n9tk3zNQQR/K81uQt9sMBPjd7zRIj80PGu8pvBGwTfVvVI/GU9z0gGi3B8z8GwFvY3Zzy9KYeUUWk30f9WXx6jU"
+       + "tjtck0g35Bm8CHCGAXgY05vkoGwDVrPgw9CDILlvRIF4PqyDOWzP8t7Sai4caLoU1Aa8rodHZJi5BYnFfFCVh6B"
+       + "5kBstDkBuizgQ8RVaCjt+P3+AvnsatBUKiIlYC8rTFP8CAwEAAaMhMB8wHQYDVR0OBBYEFKUXrnfy9KAyf1ey9S"
+       + "VGslYJoA/6MA0GCSqGSIb3DQEBCwUAA4IBAQAmo0bQpm3H9Yio7fvQUxrhrPd0jWjKG6ZUgqRNjQCknsDtj7RFc"
+       + "JR7VhJHW+qSr3z0mS6QkGiOBnazKk3KEPrbEPJppKxmuBTFJMesC2fPBGCi5yq6iMymjlN+Uicb/gZvbtZ9bJ6C"
+       + "Z+XUD8Xu9nu7z4DvADgHcLoduraFa6WptfTv6vwk+EKJoFTrWMZcUVupoQSh46hdQr2ePhTJtBpmtxhyOdROP/O"
+       + "hYF5z/dTYHoYJdMExBIId8tyyMrnKp35mDsWF7k+vKciTCCwyf6E1zeTJr6tDJFYYsjPx0tB8i//rTyi0Mv2Mtv"
+       + "8MvTNbzUpte61oAUJEXVDEH48OT2ejEgMJi8nTUi+2c+9A03FFiE21jlo=";
 
-  private static final String TRUSTSTORE_PASSWORD = "password";
+  private static final String TRUSTSTORE_PASSWORD = "truststore-password";
   private static final AtomicReference<Path> trustStorePath = new AtomicReference<>();
 
   private ClientTrustStore() {

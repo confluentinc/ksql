@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
@@ -22,13 +23,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
@@ -57,7 +57,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -107,7 +106,8 @@ public class JsonFormatTest {
         ProcessingLogContext.create(),
         functionRegistry,
         ServiceInfo.create(ksqlConfig),
-        new SequentialQueryIdGenerator());
+        new SequentialQueryIdGenerator(),
+        ksqlConfig);
 
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
@@ -131,13 +131,13 @@ public class JsonFormatTest {
         .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();
 
-    final Struct messageKey = StructKeyUtil.keyBuilder(messageSchema).build("1");
+    final GenericKey messageKey = genericKey("1");
     final GenericRow messageRow = genericRow(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
         + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"
     );
 
-    final Map<Struct, GenericRow> records = new HashMap<>();
+    final Map<GenericKey, GenericRow> records = new HashMap<>();
     records.put(messageKey, messageRow);
 
     final PhysicalSchema schema = PhysicalSchema.from(
@@ -183,11 +183,10 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    final Map<Struct, GenericRow> expectedResults = new HashMap<>();
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(ColumnName.of("ROWKEY"), SqlTypes.STRING);
-    expectedResults.put(keyBuilder.build("1"), genericRow("aws"));
+    final Map<GenericKey, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put(genericKey("1"), genericRow("aws"));
 
-    final Map<Struct, GenericRow> results = readNormalResults(streamName, expectedResults.size());
+    final Map<GenericKey, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -201,11 +200,10 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    final Map<Struct, GenericRow> expectedResults = new HashMap<>();
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(ColumnName.of("ROWKEY"), SqlTypes.STRING);
-    expectedResults.put(keyBuilder.build("1"), genericRow("first"));
+    final Map<GenericKey, GenericRow> expectedResults = new HashMap<>();
+    expectedResults.put(genericKey("1"), genericRow("first"));
 
-    final Map<Struct, GenericRow> results = readNormalResults(streamName, expectedResults.size());
+    final Map<GenericKey, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -219,7 +217,7 @@ public class JsonFormatTest {
     queryId = queryMetadata.getQueryId();
   }
 
-  private Map<Struct, GenericRow> readNormalResults(
+  private Map<GenericKey, GenericRow> readNormalResults(
       final String resultTopic,
       final int expectedNumMessages
   ) {

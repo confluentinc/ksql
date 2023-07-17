@@ -25,9 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.SchemaException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -48,6 +48,8 @@ public class SqlPrimitiveTypeTest {
             SqlPrimitiveType.of(SqlBaseType.DOUBLE))
         .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.STRING),
             SqlPrimitiveType.of(SqlBaseType.STRING))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.TIMESTAMP),
+            SqlPrimitiveType.of(SqlBaseType.TIMESTAMP))
         .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.STRING)))
         .testEquals();
   }
@@ -108,13 +110,14 @@ public class SqlPrimitiveTypeTest {
   @Test
   public void shouldSupportSqlPrimitiveTypes() {
     // Given:
-    final java.util.Map<String, SqlBaseType> primitives = ImmutableMap.of(
-        "BooleaN", SqlBaseType.BOOLEAN,
-        "IntegeR", SqlBaseType.INTEGER,
-        "BigInT", SqlBaseType.BIGINT,
-        "DoublE", SqlBaseType.DOUBLE,
-        "StrinG", SqlBaseType.STRING
-    );
+    final java.util.Map<String, SqlBaseType> primitives = new ImmutableMap.Builder<String, SqlBaseType>()
+        .put("BooleaN", SqlBaseType.BOOLEAN)
+        .put("IntegeR", SqlBaseType.INTEGER)
+        .put("BigInT", SqlBaseType.BIGINT)
+        .put("DoublE", SqlBaseType.DOUBLE)
+        .put("StrinG", SqlBaseType.STRING)
+        .put("tImeStamP", SqlBaseType.TIMESTAMP)
+        .build();
 
     primitives.forEach((string, expected) ->
         // Then:
@@ -145,7 +148,8 @@ public class SqlPrimitiveTypeTest {
         "BOOLEAN",
         "BIGINT",
         "DOUBLE",
-        "STRING"
+        "STRING",
+        "TIMESTAMP"
     );
 
     // When:
@@ -174,45 +178,11 @@ public class SqlPrimitiveTypeTest {
         SqlBaseType.INTEGER,
         SqlBaseType.BIGINT,
         SqlBaseType.DOUBLE,
-        SqlBaseType.STRING
+        SqlBaseType.STRING,
+        SqlBaseType.TIMESTAMP
     ).forEach(type -> {
       // Then:
       assertThat(SqlPrimitiveType.of(type).toString(), is(type.toString()));
     });
-  }
-
-  @Test
-  public void shoudlValidatePrimitiveTypes() {
-    SqlPrimitiveType.of(SqlBaseType.BOOLEAN).validateValue(true);
-    SqlPrimitiveType.of(SqlBaseType.INTEGER).validateValue(19);
-    SqlPrimitiveType.of(SqlBaseType.BIGINT).validateValue(33L);
-    SqlPrimitiveType.of(SqlBaseType.DOUBLE).validateValue(45.0D);
-    SqlPrimitiveType.of(SqlBaseType.STRING).validateValue("");
-  }
-
-  @SuppressWarnings("UnnecessaryBoxing")
-  @Test
-  public void shouldValidateBoxedTypes() {
-    SqlPrimitiveType.of(SqlBaseType.BOOLEAN).validateValue(Boolean.FALSE);
-    SqlPrimitiveType.of(SqlBaseType.INTEGER).validateValue(Integer.valueOf(19));
-    SqlPrimitiveType.of(SqlBaseType.BIGINT).validateValue(Long.valueOf(33L));
-    SqlPrimitiveType.of(SqlBaseType.DOUBLE).validateValue(Double.valueOf(45.0D));
-  }
-
-  @Test
-  public void shouldValidateNullValue() {
-    SqlPrimitiveType.of(SqlBaseType.BOOLEAN).validateValue(null);
-  }
-
-  @Test
-  public void shouldFailValidationForWrongType() {
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> SqlPrimitiveType.of(SqlBaseType.BOOLEAN).validateValue(10)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Expected BOOLEAN, got INT"));
   }
 }

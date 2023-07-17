@@ -259,26 +259,6 @@ public class KsqlServerMainTest {
         "Invalid value for config '" + KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG + "': bad"));
   }
 
-  @Test
-  public void shouldFailOnUnsupportedDefaultKeyFormat() {
-    // Given:
-    final KsqlConfig config = configWith(ImmutableMap.of(
-        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "avro"
-    ));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> KsqlServerMain.validateDefaultTopicFormats(config)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Invalid value for config '" + KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG + "': "
-            + "The supplied format is not currently supported as a key format. "
-            + "Format: 'avro'."));
-  }
-
   private static KsqlConfig configWith(final Map<String, Object> additionalConfigs) {
     return KsqlConfigTestUtil.create("unused", additionalConfigs);
   }

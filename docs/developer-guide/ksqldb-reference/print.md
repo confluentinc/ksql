@@ -22,7 +22,7 @@ Description
 Print the contents of {{ site.ak }} topics to the ksqlDB CLI.
 
 The _topicName_ is case sensitive. Quote the name if it contains invalid characters.
-See [Valid Identifiers](../../concepts/schemas.md#valid-identifiers) for more information.
+See [Valid Identifiers](/reference/sql/syntax/lexical-structure#identifiers) for more information.
 
 The PRINT statement supports the following properties:
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.SerdeFeature;
@@ -82,5 +83,12 @@ public final class AvroFormat extends ConnectFormat {
 
     return new KsqlAvroSerdeFactory(schemaFullName)
         .createSerde(connectSchema, config, srFactory, targetType, isKey);
+  }
+
+  public static String getKeySchemaName(final String name) {
+    final String camelName = CaseFormat.UPPER_UNDERSCORE
+        .converterTo(CaseFormat.UPPER_CAMEL)
+        .convert(name);
+    return AvroProperties.AVRO_SCHEMA_NAMESPACE + "." + camelName + "Key";
   }
 }

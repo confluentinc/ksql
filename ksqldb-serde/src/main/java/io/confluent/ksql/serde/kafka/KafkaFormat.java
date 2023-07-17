@@ -18,6 +18,9 @@ package io.confluent.ksql.serde.kafka;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatProperties;
 import io.confluent.ksql.serde.SerdeFeature;
@@ -58,5 +61,12 @@ public class KafkaFormat implements Format {
     SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
 
     return KafkaSerdeFactory.createSerde(schema);
+  }
+
+  @Override
+  public boolean supportsKeyType(final SqlType type) {
+    return type instanceof SqlPrimitiveType
+               && KafkaSerdeFactory.containsSerde(
+        SchemaConverters.sqlToJavaConverter().toJavaType(type.baseType()));
   }
 }

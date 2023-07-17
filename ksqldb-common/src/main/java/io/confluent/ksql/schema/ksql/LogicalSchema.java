@@ -139,6 +139,24 @@ public final class LogicalSchema {
   }
 
   /**
+   * Remove all non-key columns from the value, and copy all key columns into the value.
+   * 
+   * @return the new schema
+   */
+  public LogicalSchema withKeyColsOnly() {
+    final List<Column> key = byNamespace().get(Namespace.KEY);
+
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+    builder.addAll(key);
+    int valueIndex = 0;
+    for (final Column c : key) {
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+    }
+
+    return new LogicalSchema(builder.build());
+  }
+
+  /**
    * @param columnName the column name to check
    * @return {@code true} if the column matches the name of any key column.
    */

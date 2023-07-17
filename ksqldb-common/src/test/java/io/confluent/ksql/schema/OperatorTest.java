@@ -25,6 +25,7 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.BOOLEAN;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -58,6 +59,7 @@ public class OperatorTest {
       .put(SqlBaseType.DECIMAL, SqlTypes.decimal(2, 1))
       .put(SqlBaseType.DOUBLE, DOUBLE)
       .put(SqlBaseType.STRING, STRING)
+      .put(SqlBaseType.TIMESTAMP, TIMESTAMP)
       .put(SqlBaseType.ARRAY, SqlTypes.array(BIGINT))
       .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.STRING, INTEGER))
       .put(SqlBaseType.STRUCT, SqlTypes.struct().field("f", INTEGER).build())

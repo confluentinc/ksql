@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,9 +41,12 @@ public final class UdtfUtil {
 
     final List<Expression> functionArgs = functionCall.getArguments();
 
-    final List<SqlType> argTypes = functionArgs.isEmpty()
-        ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
-        : functionArgs.stream().map(expressionTypeManager::getExpressionSqlType)
+    final List<SqlArgument> argTypes = functionArgs.isEmpty()
+        ? ImmutableList.of(
+            SqlArgument.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA))
+        : functionArgs.stream()
+            .map(expressionTypeManager::getExpressionSqlType)
+            .map(SqlArgument::of)
             .collect(Collectors.toList());
 
     return functionRegistry.getTableFunction(

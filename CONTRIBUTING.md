@@ -79,6 +79,8 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 
     IntelliJ → Preferences → Tools → CheckStyle
 
+    In top left corner select CheckStyle version 8.18 (newer versions fail to parse the provided XML)
+
     - Add a new configurations file using the '+' button:
        Description: Confluent Checks
        URL: https://raw.githubusercontent.com/confluentinc/common/master/build-tools/src/main/resources/checkstyle/checkstyle.xml
@@ -250,3 +252,9 @@ Once enabled, commitlint will reject commits with improperly formatted commit me
    git push origin --force feature-xxx
    ```
 
+### Backporting Commits
+
+There might be times when a certain commit needs to be backported to a previous ksqlDB release (either community
+edition or confluent edition). In these situations, cherry-pick individual commits to the previous
+branches (do _not_ squash multiple commits and move them as one because our changelog generation tool
+does not handle squashed commits properly).

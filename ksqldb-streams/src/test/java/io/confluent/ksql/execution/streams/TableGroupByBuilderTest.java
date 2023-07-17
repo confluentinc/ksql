@@ -1,3 +1,18 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -10,8 +25,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -21,8 +37,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
-import io.confluent.ksql.execution.streams.TableGroupByBuilder.ParamsFactory;
-import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.streams.TableGroupByBuilderBase.ParamsFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -37,7 +52,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
@@ -88,11 +102,10 @@ public class TableGroupByBuilderTest {
       SerdeFeatures.of()
   );
 
-  private static final Struct KEY = StructKeyUtil
-      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING).build("key");
+  private static final GenericKey KEY = GenericKey.genericKey("key");
 
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -100,33 +113,33 @@ public class TableGroupByBuilderTest {
   @Mock
   private GroupedFactory groupedFactory;
   @Mock
-  private ExecutionStep<KTableHolder<Struct>> sourceStep;
+  private ExecutionStep<KTableHolder<GenericKey>> sourceStep;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private Grouped<Struct, GenericRow> grouped;
+  private Grouped<GenericKey, GenericRow> grouped;
   @Mock
-  private KTable<Struct, GenericRow> sourceTable;
+  private KTable<GenericKey, GenericRow> sourceTable;
   @Mock
-  private KTable<Struct, GenericRow> filteredTable;
+  private KTable<GenericKey, GenericRow> filteredTable;
   @Mock
-  private KGroupedTable<Struct, GenericRow> groupedTable;
+  private KGroupedTable<GenericKey, GenericRow> groupedTable;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
   private ParamsFactory paramsFactory;
   @Mock
-  private KTableHolder<Struct> tableHolder;
+  private KTableHolder<GenericKey> tableHolder;
   @Mock
   private GroupByParams groupByParams;
   @Mock
-  private Function<GenericRow, Struct> mapper;
+  private Function<GenericRow, GenericKey> mapper;
   @Captor
-  private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
+  private ArgumentCaptor<Predicate<GenericKey, GenericRow>> predicateCaptor;
 
-  private TableGroupBy<Struct> groupBy;
+  private TableGroupBy<GenericKey> groupBy;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -143,11 +156,11 @@ public class TableGroupByBuilderTest {
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
 
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(groupedFactory.create(any(), any(Serde.class), any())).thenReturn(grouped);
     when(sourceTable.filter(any())).thenReturn(filteredTable);
     when(filteredTable.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
@@ -160,13 +173,13 @@ public class TableGroupByBuilderTest {
         GROUPBY_EXPRESSIONS
     );
 
-    builder = new TableGroupByBuilder(queryBuilder, groupedFactory, paramsFactory);
+    builder = new TableGroupByBuilder(buildContext, groupedFactory, paramsFactory);
   }
 
   @Test
   public void shouldPerformGroupByCorrectly() {
     // When:
-    final KGroupedTableHolder result = builder.build(tableHolder, groupBy);
+    final KGroupedTableHolder result = build(builder, tableHolder, groupBy);
 
     // Then:
     assertThat(result.getGroupedTable(), is(groupedTable));
@@ -178,7 +191,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildGroupByParamsCorrectly() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(paramsFactory).build(
@@ -191,7 +204,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KGroupedTableHolder result = builder.build(tableHolder, groupBy);
+    final KGroupedTableHolder result = build(builder, tableHolder, groupBy);
 
     // Then:
     assertThat(result.getSchema(), is(REKEYED_SCHEMA));
@@ -200,11 +213,11 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldFilterNullRowsBeforeGroupBy() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(sourceTable).filter(predicateCaptor.capture());
-    final Predicate<Struct, GenericRow> predicate = predicateCaptor.getValue();
+    final Predicate<GenericKey, GenericRow> predicate = predicateCaptor.getValue();
     assertThat(predicate.test(KEY, new GenericRow()), is(true));
     assertThat(predicate.test(KEY, null), is(false));
   }
@@ -212,7 +225,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildGroupedCorrectlyForGroupBy() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(groupedFactory).create("foo-groupby", keySerde, valueSerde);
@@ -221,10 +234,10 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectlyForGroupBy() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         FORMATS.getKeyFormat(),
         REKEYED_PHYSICAL_SCHEMA,
         STEP_CONTEXT
@@ -234,13 +247,26 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectlyForGroupBy() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         FORMATS.getValueFormat(),
         REKEYED_PHYSICAL_SCHEMA,
         STEP_CONTEXT
+    );
+  }
+
+  private static <K> KGroupedTableHolder build(
+      final TableGroupByBuilder builder,
+      final KTableHolder<K> table,
+      final TableGroupBy<K> step
+  ) {
+    return builder.build(
+        table,
+        step.getProperties().getQueryContext(),
+        step.getInternalFormats(),
+        step.getGroupByExpressions()
     );
   }
 

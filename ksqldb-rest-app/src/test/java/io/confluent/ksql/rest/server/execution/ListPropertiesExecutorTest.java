@@ -115,6 +115,24 @@ public class ListPropertiesExecutorTest {
   }
 
   @Test
+  public void shouldListUnresolvedStreamsTopicProperties() {
+    // When:
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;")
+            .withConfig(new KsqlConfig(ImmutableMap.of(
+                "ksql.streams.topic.min.insync.replicas", "2"))),
+        mock(SessionProperties.class),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(
+        properties.getProperties(),
+        hasItem(new Property("ksql.streams.topic.min.insync.replicas", "KSQL", "2")));
+  }
+
+  @Test
   public void shouldNotListUnrecognizedConnectProps() throws Exception {
     // Given:
     givenConnectWorkerProperties(

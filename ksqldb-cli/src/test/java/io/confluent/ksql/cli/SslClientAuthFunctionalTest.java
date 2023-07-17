@@ -30,6 +30,7 @@ import com.google.common.net.UrlEscapers;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -69,6 +70,10 @@ public class SslClientAuthFunctionalTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperties(SERVER_KEY_STORE.keyStoreProps())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
       .withProperty(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
           KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0")
@@ -113,7 +118,7 @@ public class SslClientAuthFunctionalTest {
   @Test
   public void shouldBeAbleToUseCliOverHttps() {
     // Given:
-    givenClientConfiguredWithCertificate();
+    givenClientConfiguredWithTls();
 
     // When:
     final int result = canMakeCliRequest();
@@ -137,7 +142,7 @@ public class SslClientAuthFunctionalTest {
   @Test
   public void shouldBeAbleToUseWss() throws Exception {
     // Given:
-    givenClientConfiguredWithCertificate();
+    givenClientConfiguredWithTls();
 
     // When:
     WebsocketUtils.makeWsRequest(JSON_KSQL_REQUEST, clientProps, REST_APP);
@@ -145,18 +150,22 @@ public class SslClientAuthFunctionalTest {
     // Then: did not throw.
   }
 
-  private void givenClientConfiguredWithCertificate() {
+  private void givenClientConfiguredWithTls() {
 
-    String clientCertPath = SERVER_KEY_STORE.keyStoreProps()
-        .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    String clientCertPassword = SERVER_KEY_STORE.keyStoreProps()
-        .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+    String clientKeystorePath = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+    String clientKeystorePassword = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+    String clientKeyPassword = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
 
     // HTTP:
     clientProps = ImmutableMap.<String, String>builder()
         .putAll(ClientTrustStore.trustStoreProps())
-        .put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientCertPath)
-        .put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, clientCertPassword)
+        .put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientKeystorePath)
+        .put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, clientKeystorePassword)
+        .put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, clientKeyPassword)
+        .put(KsqlClient.SSL_KEYSTORE_ALIAS_CONFIG, SERVER_KEY_STORE.getKeyAlias())
         .build();
   }
 

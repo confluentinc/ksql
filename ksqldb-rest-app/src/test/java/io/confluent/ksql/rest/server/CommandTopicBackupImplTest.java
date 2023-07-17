@@ -22,7 +22,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.base.Ticker;
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,12 +47,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CommandTopicBackupImplTest {
   private static final String COMMAND_TOPIC_NAME = "command_topic";
 
-  private ConsumerRecord<byte[], byte[]> command1 = newStreamRecord("stream1");
-  private ConsumerRecord<byte[], byte[]> command2 = newStreamRecord("stream2");
-  private ConsumerRecord<byte[], byte[]> command3 = newStreamRecord("stream3");
+  private final ConsumerRecord<byte[], byte[]> command1 = newStreamRecord("stream1");
+  private final ConsumerRecord<byte[], byte[]> command2 = newStreamRecord("stream2");
+  private final ConsumerRecord<byte[], byte[]> command3 = newStreamRecord("stream3");
 
   @Mock
-  private Ticker ticker;
+  private Supplier<Long> ticker;
 
   @Rule
   public TemporaryFolder backupLocation = new TemporaryFolder();
@@ -69,7 +70,10 @@ public class CommandTopicBackupImplTest {
   }
 
   @SuppressWarnings("unchecked")
-  private ConsumerRecord<byte[], byte[]> newStreamRecord(final String key, final String value) {
+  private static ConsumerRecord<byte[], byte[]> newStreamRecord(
+      final String key,
+      final String value
+  ) {
     final ConsumerRecord<byte[], byte[]> consumerRecord = mock(ConsumerRecord.class);
 
     when(consumerRecord.key()).thenReturn(key.getBytes(StandardCharsets.UTF_8));
@@ -157,6 +161,39 @@ public class CommandTopicBackupImplTest {
     assertThat(Files.exists(dir), is(true));
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldNotFailIfRecordKeyIsNull() throws IOException {
+    // Given
+    commandTopicBackup.initialize();
+    final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
+    when(record.key()).thenReturn(null);
+
+    // When
+    commandTopicBackup.writeRecord(record);
+
+    // Then
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
+    assertThat(commands.size(), is(0));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldNotFailIfRecordValueIsNull() throws IOException {
+    // Given
+    commandTopicBackup.initialize();
+    final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
+    when(record.key()).thenReturn(new byte[]{});
+    when(record.value()).thenReturn(null);
+
+    // When
+    commandTopicBackup.writeRecord(record);
+
+    // Then
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
+    assertThat(commands.size(), is(0));
+  }
+
   @Test
   public void shouldWriteCommandToBackupToReplayFile() throws IOException {
     // Given
@@ -209,7 +246,7 @@ public class CommandTopicBackupImplTest {
     try {
       commandTopicBackup.writeRecord(command2);
       assertThat(true, is(false));
-    } catch (final KsqlServerException e) {
+    } catch (final CommandTopicCorruptionException e) {
       // This is expected so we do nothing
     }
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
@@ -220,7 +257,7 @@ public class CommandTopicBackupImplTest {
     try {
       commandTopicBackup.writeRecord(command2);
       assertThat(true, is(false));
-    } catch (final KsqlServerException e) {
+    } catch (final CommandTopicCorruptionException e) {
       // This is expected so we do nothing
     }
   }
@@ -269,7 +306,7 @@ public class CommandTopicBackupImplTest {
   @Test
   public void shouldCreateNewReplayFileWhenNoBackupFilesExist() {
     // Given:
-    when(ticker.read()).thenReturn(123L);
+    when(ticker.get()).thenReturn(123L);
 
     // When:
     final BackupReplayFile replayFile = commandTopicBackup.openOrCreateReplayFile();

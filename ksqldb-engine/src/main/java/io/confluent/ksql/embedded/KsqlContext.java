@@ -87,7 +87,8 @@ public class KsqlContext implements AutoCloseable {
         processingLogContext,
         functionRegistry,
         serviceInfo,
-        new SequentialQueryIdGenerator());
+        new SequentialQueryIdGenerator(),
+        ksqlConfig);
 
     return new KsqlContext(
         serviceContext,
@@ -230,7 +231,7 @@ public class KsqlContext implements AutoCloseable {
     }),
     QUERY(Query.class, (executionContext, stmt, props) -> {
       return ExecuteResult.of(
-          executionContext.executeQuery(executionContext.getServiceContext(), stmt.cast()));
+          executionContext.executeQuery(executionContext.getServiceContext(), stmt.cast(), false));
     })
     ;
 

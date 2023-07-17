@@ -98,7 +98,7 @@ public final class SerdeUtil {
         return Optional.of(new JsonSchema(schemaString));
       } else if (format.equalsIgnoreCase(ProtobufFormat.NAME)) {
         // since Protobuf schemas are not valid JSON, the schema JsonNode in
-        // this case is just a string
+        // this case is just a string.
         final String schemaString = schema.textValue();
         return Optional.of(new ProtobufSchema(schemaString));
       }

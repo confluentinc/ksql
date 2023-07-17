@@ -27,8 +27,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -43,7 +43,9 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.TableAggregate;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -55,11 +57,11 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -113,13 +115,13 @@ public class TableAggregateBuilderTest {
   private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
 
   @Mock
-  private KGroupedTable<Struct, GenericRow> groupedTable;
+  private KGroupedTable<GenericKey, GenericRow> groupedTable;
   @Mock
-  private KTable<Struct, GenericRow> aggregated;
+  private KTable<GenericKey, GenericRow> aggregated;
   @Mock
-  private KTable<Struct, GenericRow> aggregatedWithResults;
+  private KTable<GenericKey, GenericRow> aggregatedWithResults;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -129,23 +131,25 @@ public class TableAggregateBuilderTest {
   @Mock
   private KudafInitializer initializer;
   @Mock
-  private KudafAggregator<Struct> aggregator;
+  private KudafAggregator<GenericKey> aggregator;
   @Mock
-  private KsqlTransformer<Struct, GenericRow> resultMapper;
+  private KsqlTransformer<GenericKey, GenericRow> resultMapper;
   @Mock
   private KudafUndoAggregator undoAggregator;
   @Mock
   private MaterializedFactory materializedFactory;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
+  private Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
   private ExecutionStep<KGroupedTableHolder> sourceStep;
   @Mock
   private KsqlProcessingContext ctx;
+  @Mock
+  private PlanInfo planInfo;
 
   private PlanBuilder planBuilder;
   private TableAggregate aggregate;
@@ -153,10 +157,11 @@ public class TableAggregateBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.createUndoable(any(), any(), any(), any()))
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getKsqlConfig()).thenReturn(KsqlConfig.empty());
+    when(aggregateParamsFactory.createUndoable(any(), any(), any(), any(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator)aggregator);
     when(aggregateParams.getUndoAggregator()).thenReturn(Optional.of(undoAggregator));
@@ -164,7 +169,7 @@ public class TableAggregateBuilderTest {
     when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(aggregateParams.getSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(aggregator.getResultMapper()).thenReturn(resultMapper);
-    when(materializedFactory.<Struct, KeyValueStore<Bytes, byte[]>>create(any(), any(), any()))
+    when(materializedFactory.<GenericKey, KeyValueStore<Bytes, byte[]>>create(any(), any(), any()))
         .thenReturn(materialized);
     when(groupedTable.aggregate(any(), any(), any(), any(Materialized.class))).thenReturn(
         aggregated);
@@ -177,9 +182,9 @@ public class TableAggregateBuilderTest {
         NON_AGG_COLUMNS,
         FUNCTIONS
     );
-    when(sourceStep.build(any())).thenReturn(KGroupedTableHolder.of(groupedTable, INPUT_SCHEMA));
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(KGroupedTableHolder.of(groupedTable, INPUT_SCHEMA));
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         aggregateParamsFactory,
         new StreamsFactories(
@@ -195,7 +200,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildAggregateCorrectly() {
     // When:
-    final KTableHolder<Struct> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getTable(), is(aggregatedWithResults));
@@ -208,7 +213,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KTableHolder<Struct> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(AGGREGATE_SCHEMA));
@@ -217,7 +222,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildMaterializedWithCorrectSerdesForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(materializedFactory).create(same(keySerde), same(valueSerde), any());
@@ -226,7 +231,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildMaterializedWithCorrectNameForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
@@ -235,19 +240,19 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectlyForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
+    verify(buildContext).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
   }
 
   @Test
   public void shouldBuildValueSerdeCorrectlyForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         VALUE_FORMAT,
         PHYSICAL_AGGREGATE_SCHEMA,
         MATERIALIZE_CTX
@@ -257,21 +262,22 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildAggregatorParamsCorrectlyForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(aggregateParamsFactory).createUndoable(
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
-        FUNCTIONS
+        FUNCTIONS,
+        KsqlConfig.empty()
     );
   }
 
   @Test
   public void shouldBuildMaterializationCorrectlyForAggregate() {
     // When:
-    final KTableHolder<?> result = aggregate.build(planBuilder);
+    final KTableHolder<?> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getMaterializationBuilder().isPresent(), is(true));
@@ -286,7 +292,7 @@ public class TableAggregateBuilderTest {
     final KsqlTransformer<Object, GenericRow> mapper = aggMapInfo.getMapper(name -> null);
 
     // Given:
-    final Struct key = mock(Struct.class);
+    final GenericKey key = mock(GenericKey.class);
     final GenericRow value = mock(GenericRow.class);
 
     // When:

@@ -23,9 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
-import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.name.ColumnName;
@@ -39,54 +37,31 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SelectValueMapperFactoryTest {
 
   @Mock
-  private CodeGenRunner codeGenerator;
-  @Mock
   private SelectExpression select_0;
   @Mock
   private SelectExpression select_1;
   @Mock
-  private Expression exp_0;
+  private CompiledExpression md_0;
   @Mock
-  private Expression exp_1;
-  @Mock
-  private ExpressionMetadata md_0;
-  @Mock
-  private ExpressionMetadata md_1;
-
-  private SelectValueMapperFactory factory;
+  private CompiledExpression md_1;
 
   @Before
   public void setUp() {
-    factory = new SelectValueMapperFactory(codeGenerator);
 
     when(select_0.getAlias()).thenReturn(ColumnName.of("field_0"));
     when(select_1.getAlias()).thenReturn(ColumnName.of("field_1"));
-    when(select_1.getExpression()).thenReturn(exp_1);
-    when(select_0.getExpression()).thenReturn(exp_0);
-    when(select_1.getExpression()).thenReturn(exp_1);
-    when(codeGenerator.buildCodeGenFromParseTree(eq(exp_0), any())).thenReturn(md_0);
-    when(codeGenerator.buildCodeGenFromParseTree(eq(exp_1), any())).thenReturn(md_1);
   }
 
   @Test
   public void shouldBuildSelects() {
     // When:
-    final SelectValueMapper<?> mapper = factory
-        .create(ImmutableList.of(select_0, select_1));
+    final SelectValueMapper<?> mapper = SelectValueMapperFactory.create(
+        ImmutableList.of(select_0, select_1), ImmutableList.of(md_0, md_1));
 
     // Then:
     assertThat(mapper.getSelects(), contains(
        SelectInfo.of(ColumnName.of("field_0"), md_0),
        SelectInfo.of(ColumnName.of("field_1"), md_1)
     ));
-  }
-
-  @Test
-  public void shouldInvokeCodeGenWithCorrectExpressionType() {
-    // When:
-    factory.create(ImmutableList.of(select_0));
-
-    // Then:
-    verify(codeGenerator).buildCodeGenFromParseTree(any(), eq("Select"));
   }
 }

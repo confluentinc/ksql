@@ -3,6 +3,7 @@ layout: page
 title: ksqlDB Variable Substitution
 tagline: Use variables in SQL statements
 description: Learn how to use variables in SQL statements
+keywords: variable, substitution, define
 ---
 
 ## Context

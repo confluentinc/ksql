@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -50,13 +50,13 @@ public class SelectValueMapper<K> {
   public static final class SelectInfo {
 
     final ColumnName fieldName;
-    final ExpressionMetadata evaluator;
+    final ExpressionEvaluator evaluator;
 
-    static SelectInfo of(final ColumnName fieldName, final ExpressionMetadata evaluator) {
+    static SelectInfo of(final ColumnName fieldName, final ExpressionEvaluator evaluator) {
       return new SelectInfo(fieldName, evaluator);
     }
 
-    private SelectInfo(final ColumnName fieldName, final ExpressionMetadata evaluator) {
+    private SelectInfo(final ColumnName fieldName, final ExpressionEvaluator evaluator) {
       this.fieldName = requireNonNull(fieldName, "fieldName");
       this.evaluator = requireNonNull(evaluator, "evaluator");
     }
@@ -65,7 +65,7 @@ public class SelectValueMapper<K> {
       return fieldName;
     }
 
-    ExpressionMetadata getEvaluator() {
+    ExpressionEvaluator getEvaluator() {
       return evaluator;
     }
 

@@ -19,11 +19,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
@@ -63,7 +64,7 @@ public class DoubleMaxKudafTest {
   @Test
   public void shouldFindCorrectMaxForMerge() {
     final DoubleMaxKudaf doubleMaxKudaf = getDoubleMaxKudaf();
-    final Merger<Struct, Double> merger = doubleMaxKudaf.getMerger();
+    final Merger<GenericKey, Double> merger = doubleMaxKudaf.getMerger();
     final Double mergeResult1 = merger.apply(null, 10.0, 12.0);
     assertThat(mergeResult1, equalTo(12.0));
     final Double mergeResult2 = merger.apply(null, 10.0, -12.0);
@@ -75,7 +76,7 @@ public class DoubleMaxKudafTest {
 
   private DoubleMaxKudaf getDoubleMaxKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.DOUBLE),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(DoubleMaxKudaf.class));
     return  (DoubleMaxKudaf) aggregateFunction;

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -51,6 +52,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +71,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       .<Schema.Type, Function<JsonValueContext, Object>>builder()
       .put(Type.BOOLEAN, context -> JsonSerdeUtils.toBoolean(context.val))
       .put(Type.INT32, context -> JsonSerdeUtils.toInteger(context.val))
-      .put(Type.INT64, context -> JsonSerdeUtils.toLong(context.val))
+      .put(Type.INT64, KsqlJsonDeserializer::handleLong)
       .put(Type.FLOAT64, context -> JsonSerdeUtils.toDouble(context.val))
       .put(Type.STRING, KsqlJsonDeserializer::processString)
       .put(Type.ARRAY, KsqlJsonDeserializer::enforceElementTypeForArray)
@@ -125,6 +127,11 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
 
       return SerdeUtils.castToTargetType(coerced, targetType);
     } catch (final Exception e) {
+      // Clear location in order to avoid logging data, for security reasons
+      if (e instanceof JsonParseException) {
+        ((JsonParseException) e).clearLocation();
+      }
+
       throw new SerializationException(
           "Failed to deserialize " + target + " from topic: " + topic + ". " + e.getMessage(), e);
     }
@@ -153,6 +160,14 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       throw new CoercionException(e.getRawMessage(), pathPart + e.getPath(), e);
     } catch (final Exception e) {
       throw new CoercionException(e.getMessage(), pathPart, e);
+    }
+  }
+
+  private static Object handleLong(final JsonValueContext context) {
+    if (context.schema.name() == Timestamp.LOGICAL_NAME) {
+      return JsonSerdeUtils.toTimestamp(context.val);
+    } else {
+      return JsonSerdeUtils.toLong(context.val);
     }
   }
 

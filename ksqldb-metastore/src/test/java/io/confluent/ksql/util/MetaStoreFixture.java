@@ -269,6 +269,31 @@ public final class MetaStoreFixture {
 
     metaStore.putSource(ksqlStreamSensorReadings, false);
 
+    final LogicalSchema testTable5 = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("A"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("B"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("C"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("D"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("E"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("F"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("G"), SqlTypes.BOOLEAN)
+        .build();
+
+    final KsqlTopic ksqlTopic5 = new KsqlTopic(
+        "test5",
+        keyFormat,
+        valueFormat
+    );
+    final KsqlTable<String> ksqlTable5 = new KsqlTable<>(
+        "sqlexpression",
+        SourceName.of("TEST5"),
+        testTable5,
+        Optional.empty(),
+        false,
+        ksqlTopic5
+    );
+    metaStore.putSource(ksqlTable5, false);
+
     return metaStore;
   }
 }

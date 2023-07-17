@@ -15,12 +15,19 @@
 
 package io.confluent.ksql.engine.generic;
 
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRING;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
@@ -40,7 +47,11 @@ import java.util.function.Supplier;
  * Builds a Java object, coerced to the desired type, from an arbitrary SQL
  * expression that does not reference any source data.
  */
-class GenericExpressionResolver {
+public class GenericExpressionResolver {
+
+  // GenericExpressionResolver doesn't accept any column references, so we don't
+  // actually need the schema, but the CodeGenRunner expects on to be passed in
+  private static final LogicalSchema NO_COLUMNS = LogicalSchema.builder().build();
 
   private static final Supplier<String> IGNORED_MSG = () -> "";
   private static final ProcessingLogger THROWING_LOGGER = errorMessage -> {
@@ -49,23 +60,26 @@ class GenericExpressionResolver {
 
   private final SqlType fieldType;
   private final ColumnName fieldName;
-  private final LogicalSchema schema;
-  private final SqlValueCoercer sqlValueCoercer = DefaultSqlValueCoercer.INSTANCE;
+  private final SqlValueCoercer sqlValueCoercer = DefaultSqlValueCoercer.STRICT;
   private final FunctionRegistry functionRegistry;
   private final KsqlConfig config;
+  private final String operation;
+  private final boolean shouldUseInterpreter;
 
-  GenericExpressionResolver(
+  public GenericExpressionResolver(
       final SqlType fieldType,
       final ColumnName fieldName,
-      final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
-      final KsqlConfig config
+      final KsqlConfig config,
+      final String operation,
+      final boolean shouldUseInterpreter
   ) {
     this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
     this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-    this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.config = Objects.requireNonNull(config, "config");
+    this.operation = Objects.requireNonNull(operation, "operation");
+    this.shouldUseInterpreter = shouldUseInterpreter;
   }
 
   public Object resolve(final Expression expression) {
@@ -76,29 +90,34 @@ class GenericExpressionResolver {
 
     @Override
     protected Object visitExpression(final Expression expression, final Void context) {
-      final ExpressionMetadata metadata =
-          CodeGenRunner.compileExpression(
+      new EnsureNoColReferences(expression).process(expression, context);
+      final ExpressionEvaluator evaluator = shouldUseInterpreter
+          ? InterpretedExpressionFactory.create(expression, NO_COLUMNS, functionRegistry, config)
+          : CodeGenRunner.compileExpression(
               expression,
-              "insert value",
-              schema,
+              operation,
+              NO_COLUMNS,
               config,
-              functionRegistry
-          );
+              functionRegistry);
 
       // we expect no column references, so we can pass in an empty generic row
-      final Object value = metadata.evaluate(new GenericRow(), null, THROWING_LOGGER, IGNORED_MSG);
+      final Object value = evaluator.evaluate(new GenericRow(), null, THROWING_LOGGER, IGNORED_MSG);
 
       return sqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(() -> {
             final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
                 .toSqlType(value.getClass());
-
-            return new KsqlException(
-                String.format("Expected type %s for field %s but got %s(%s)",
-                    fieldType,
-                    fieldName,
-                    valueSqlType,
-                    value));
+            final String errorMessage = String.format(
+                "Expected type %s for field %s but got %s(%s)%s",
+                fieldType,
+                fieldName,
+                valueSqlType,
+                value,
+                (fieldType == TIMESTAMP && valueSqlType == STRING)
+                    ? ". Timestamp format must be yyyy-mm-ddThh:mm:ss[.S]" :
+                    ""
+            );
+            return new KsqlException(errorMessage);
           })
           .orElse(null);
     }
@@ -106,6 +125,31 @@ class GenericExpressionResolver {
     @Override
     public Object visitNullLiteral(final NullLiteral node, final Void context) {
       return null;
+    }
+  }
+
+  private class EnsureNoColReferences extends TraversalExpressionVisitor<Void> {
+
+    private final Expression parent;
+
+    EnsureNoColReferences(final Expression parent) {
+      this.parent = Objects.requireNonNull(parent, "parent");
+    }
+
+    @Override
+    public Void visitUnqualifiedColumnReference(
+        final UnqualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      throw new KsqlException("Unsupported column reference in " + operation + ": " + parent);
+    }
+
+    @Override
+    public Void visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      throw new KsqlException("Unsupported column reference in " + operation + ": " + parent);
     }
   }
 

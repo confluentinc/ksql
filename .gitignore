@@ -31,4 +31,4 @@ logs/
 .settings
 .tern-port
 ui/
-/ksql-functional-tests/src/test/resources/**/scratch.json
+/ksqldb-functional-tests/src/test/resources/**/scratch.json

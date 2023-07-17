@@ -15,6 +15,19 @@
       }
     },
     {
+      "name": "array to string",
+      "statements": [
+        "CREATE STREAM TEST (f0 ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT cast(f0 as STRING) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": [1, 3]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": "[1, 3]"}}
+      ]
+    },
+    {
       "name": "array to array with same schema",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, f0 ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -28,15 +41,43 @@
       ]
     },
     {
-      "name": "array to array with different element type",
+      "name": "array<bigint> to array<int>",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, f0 ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as ARRAY<INTEGER>) FROM TEST;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid Select: Cast of ARRAY<BIGINT> to ARRAY<INTEGER> is not supported"
-      }
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": [1, 3, 2147483648]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": [1, 3, -2147483648]}}
+      ]
+    },
+    {
+      "name": "array<bigint> to array<string>",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, f0 ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as ARRAY<STRING>) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": [1, 3, 2147483648]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": ["1", "3", "2147483648"]}}
+      ]
+    },
+   {
+      "name": "array<array<bigint>> to array<array<string>>",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, f0 ARRAY<ARRAY<BIGINT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as ARRAY<ARRAY<STRING>>) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": [[1, 3, 2147483648],[-1,-3,-2147483648]]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": [["1", "3", "2147483648"],["-1", "-3", "-2147483648"]]}}
+      ]
     },
     {
       "name": "non-map to map",
@@ -48,6 +89,19 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid Select: Cast of STRING to MAP<STRING, INTEGER> is not supported"
       }
+    },
+    {
+      "name": "map to string",
+      "statements": [
+        "CREATE STREAM TEST (f0 MAP<VARCHAR, INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT cast(f0 as STRING) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": {"this": 1}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": "{this=1}"}}
+      ]
     },
     {
       "name": "map to map with same schema",
@@ -68,10 +122,25 @@
         "CREATE STREAM TEST (ID STRING KEY, f0 MAP<STRING, BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as MAP<STRING, INTEGER>) FROM TEST;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid Select: Cast of MAP<STRING, BIGINT> to MAP<STRING, INTEGER> is not supported"
-      }
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": {"this": 2147483648}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": {"this": -2147483648}}}
+      ]
+    },
+    {
+      "name": "map<string, map<string, string>> -> map<string, map<string, int>>",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, f0 MAP<STRING, MAP<STRING, STRING>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as MAP<STRING, MAP<STRING, INTEGER>>) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": {"k1": {"k2": "10"}}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": {"k1": {"k2": 10}}}}
+      ]
     },
     {
       "name": "non-struct to struct",
@@ -83,6 +152,19 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid Select: Cast of STRING to STRUCT<`F0` STRING, `F1` INTEGER> is not supported"
       }
+    },
+    {
+      "name": "struct to string",
+      "statements": [
+        "CREATE STREAM TEST (f0 STRUCT<F0 INT, `f1` INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT cast(f0 as STRING) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": {"f0": 1, "f1": 3}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": "Struct{F0=1,f1=3}"}}
+      ]
     },
     {
       "name": "struct to struct with same schema",
@@ -100,13 +182,15 @@
     {
       "name": "struct to struct with different schema",
       "statements": [
-        "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 BIGINT, F1 STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 STRING, F3 STRING>) FROM TEST;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid Select: Cast of STRUCT<`F0` BIGINT> to STRUCT<`F0` INTEGER> is not supported"
-      }
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": {"f0": 1, "f1": 3}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": {"F0": "1", "F3": null}}}
+      ]
     },
     {
       "name": "to null",

@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 public final class SchemaRegistryUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(SchemaRegistryUtil.class);
+
   @VisibleForTesting
   public static final int SUBJECT_NOT_FOUND_ERROR_CODE = 40401;
 
@@ -74,12 +75,14 @@ public final class SchemaRegistryUtil {
     );
   }
 
+
   public static boolean subjectExists(
       final SchemaRegistryClient srClient,
       final String subject
   ) {
     return getLatestSchema(srClient, subject).isPresent();
   }
+
 
   public static Optional<SchemaMetadata> getLatestSchema(
       final SchemaRegistryClient srClient,
@@ -161,5 +164,4 @@ public final class SchemaRegistryUtil {
           + ", subject: " + subjectName, e);
     }
   }
-
 }

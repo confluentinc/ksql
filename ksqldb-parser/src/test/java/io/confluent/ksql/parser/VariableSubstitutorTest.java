@@ -19,6 +19,63 @@ public class VariableSubstitutorTest {
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
   @Test
+  public void shouldNotSubstituteWithEscapedVariables() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("env", "qa");
+    }}.build();
+
+    final List<Pair<String, String>> statements = Arrays.asList(
+        Pair.of("DEFINE topicName = 'topic_$${env}';",
+            "DEFINE topicName = 'topic_${env}';"),
+        Pair.of("DEFINE topicName = 'topic_$${${env}}';",
+            "DEFINE topicName = 'topic_${qa}';")
+    );
+
+    // When/Then
+    assertReplacedStatements(statements, variablesMap);
+  }
+
+  @Test
+  public void shouldSupportRecursiveVariableReplacement() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("env", "qa");
+    }}.build();
+
+    final List<Pair<String, String>> statements = Arrays.asList(
+        // This case only shows that ${env} is replaced when inside a escaped variable reference
+        Pair.of("DEFINE topicName = 'topic_$${${env}}';",
+            "DEFINE topicName = 'topic_${qa}';")
+    );
+
+    // When/Then
+    assertReplacedStatements(statements, variablesMap);
+  }
+
+  @Test
+  public void shouldSubstituteVariableOnDefine() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("env", "qa");
+      put("env_quoted", "\"qa\"");
+      put("env_backQuoted", "`qa`");
+    }}.build();
+
+    final List<Pair<String, String>> statements = Arrays.asList(
+        Pair.of("DEFINE topicName = 'topic_${env}';",
+            "DEFINE topicName = 'topic_qa';"),
+        Pair.of("DEFINE topicName = 'topic_${env_quoted}';",
+            "DEFINE topicName = 'topic_\"qa\"';"),
+        Pair.of("DEFINE topicName = 'topic_${env_backQuoted}';",
+            "DEFINE topicName = 'topic_`qa`';")
+    );
+
+    // When/Then
+    assertReplacedStatements(statements, variablesMap);
+  }
+
+  @Test
   public void shouldSubstituteVariableOnDescribe() {
     // Given
     final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
@@ -34,9 +91,9 @@ public class VariableSubstitutorTest {
         Pair.of("DESCRIBE ${backQuotedIdentifier};", "DESCRIBE `_id_`;"),
 
         // DESCRIBE EXTENDED
-        Pair.of("DESCRIBE EXTENDED ${identifier};", "DESCRIBE EXTENDED _id_;"),
-        Pair.of("DESCRIBE EXTENDED ${quotedIdentifier};", "DESCRIBE EXTENDED \"_id_\";"),
-        Pair.of("DESCRIBE EXTENDED ${backQuotedIdentifier};", "DESCRIBE EXTENDED `_id_`;"),
+        Pair.of("DESCRIBE ${identifier} EXTENDED;", "DESCRIBE _id_ EXTENDED;"),
+        Pair.of("DESCRIBE ${quotedIdentifier} EXTENDED;", "DESCRIBE \"_id_\" EXTENDED;"),
+        Pair.of("DESCRIBE ${backQuotedIdentifier} EXTENDED;", "DESCRIBE `_id_` EXTENDED;"),
 
         // DESCRIBE FUNCTION
         Pair.of("DESCRIBE FUNCTION ${identifier};", "DESCRIBE FUNCTION _id_;"),

@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
@@ -38,7 +39,7 @@ import java.util.Set;
  *
  * <p>Contains an map of 'logger name prefix' to the schema and formats used when creating a serde.
  *
- * <p>If {@link io.confluent.ksql.execution.builder.KsqlQueryBuilder#KSQL_TEST_TRACK_SERDE_TOPICS}
+ * <p>If {@link RuntimeBuildContext#KSQL_TEST_TRACK_SERDE_TOPICS}
  * system property set the class will also track the 'logger name prefix' used when creating a serde
  * to the topic name the serde is asked to handle data for.
  *

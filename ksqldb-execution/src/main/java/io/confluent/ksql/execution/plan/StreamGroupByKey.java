@@ -18,11 +18,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nonnull;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
@@ -34,13 +34,13 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   );
 
   private final ExecutionStepPropertiesV1 properties;
-  private final ExecutionStep<KStreamHolder<Struct>> source;
+  private final ExecutionStep<KStreamHolder<GenericKey>> source;
   private final Formats internalFormats;
 
   public StreamGroupByKey(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final
-      ExecutionStep<KStreamHolder<Struct>> source,
+      ExecutionStep<KStreamHolder<GenericKey>> source,
       @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats) {
     this.properties = Objects.requireNonNull(props, "props");
     this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
@@ -58,7 +58,7 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
     return Collections.singletonList(source);
   }
 
-  public ExecutionStep<KStreamHolder<Struct>> getSource() {
+  public ExecutionStep<KStreamHolder<GenericKey>> getSource() {
     return source;
   }
 
@@ -67,8 +67,13 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public KGroupedStreamHolder build(final PlanBuilder builder) {
-    return builder.visitStreamGroupByKey(this);
+  public KGroupedStreamHolder build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamGroupByKey(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamGroupByKey(this);
   }
 
   @Override

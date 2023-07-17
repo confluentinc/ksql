@@ -64,6 +64,21 @@ final class KudafByOffsetUtils {
     }
   };
 
+  static final Comparator<Struct> INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS =
+      (struct1, struct2) -> {
+        // Ignore nulls: If one of the structs has a null value, then return the other irrespective
+        // of sequence.
+        if (struct1.get(VAL_FIELD) == null && struct2.get(VAL_FIELD) == null) {
+          return 0;
+        } else if (struct1.get(VAL_FIELD) == null) {
+          return -1;
+        } else if (struct2.get(VAL_FIELD) == null) {
+          return 1;
+        }
+
+        return INTERMEDIATE_STRUCT_COMPARATOR.compare(struct1, struct2);
+      };
+
   static <T> Struct createStruct(final Schema schema, final long sequence, final T val) {
     final Struct struct = new Struct(schema);
     struct.put(SEQ_FIELD, sequence);

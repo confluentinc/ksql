@@ -39,6 +39,7 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 import javax.security.auth.Subject;
 import org.eclipse.jetty.jaas.JAASLoginService;
@@ -49,9 +50,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class JaasAuthProviderTest {
@@ -101,9 +100,9 @@ public class JaasAuthProviderTest {
   }
 
   @Test
-  public void shouldAuthenticateWithWildcardAllowedRole() {
+  public void shouldAuthenticateWithWildcardAllowedRole() throws Exception {
     // Given:
-    givenAllowedRoles("*");
+    givenAllowedRoles("**");
     givenUserRoles();
 
     // When:
@@ -114,7 +113,7 @@ public class JaasAuthProviderTest {
   }
 
   @Test
-  public void shouldAuthenticateWithNonWildcardRole() {
+  public void shouldAuthenticateWithNonWildcardRole() throws Exception {
     // Given:
     givenAllowedRoles("user");
     givenUserRoles("user");
@@ -127,7 +126,7 @@ public class JaasAuthProviderTest {
   }
 
   @Test
-  public void shouldAuthenticateWithAdditionalAllowedRoles() {
+  public void shouldAuthenticateWithAdditionalAllowedRoles() throws Exception {
     // Given:
     givenAllowedRoles("user", "other");
     givenUserRoles("user");
@@ -140,7 +139,7 @@ public class JaasAuthProviderTest {
   }
 
   @Test
-  public void shouldAuthenticateWithExtraRoles() {
+  public void shouldAuthenticateWithExtraRoles() throws Exception {
     // Given:
     givenAllowedRoles("user");
     givenUserRoles("user", "other");
@@ -177,7 +176,7 @@ public class JaasAuthProviderTest {
   }
 
   @Test
-  public void shouldFailToAuthenticateWithNoRole() {
+  public void shouldFailToAuthenticateWithNoRole() throws Exception {
     // Given:
     givenAllowedRoles("user");
     givenUserRoles();
@@ -190,7 +189,7 @@ public class JaasAuthProviderTest {
   }
 
   @Test
-  public void shouldFailToAuthenticateWithNonAllowedRole() {
+  public void shouldFailToAuthenticateWithNonAllowedRole() throws Exception {
     // Given:
     givenAllowedRoles("user");
     givenUserRoles("other");
@@ -205,6 +204,8 @@ public class JaasAuthProviderTest {
   private void givenAllowedRoles(final String... roles) {
     when(config.getList(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG))
         .thenReturn(Arrays.asList(roles));
+
+    authProvider = new JaasAuthProvider(server, config, loginContextSupplier);
   }
 
   private void givenUserRoles(final String... roles) {
@@ -215,23 +216,32 @@ public class JaasAuthProviderTest {
     when(subject.getPrincipals()).thenReturn(principals);
   }
 
-  private void verifyAuthorizedSuccessfulLogin() {
+  private void verifyAuthorizedSuccessfulLogin() throws Exception {
     verifyLoginSuccessWithAuthorization(true);
   }
 
-  private void verifyUnauthorizedSuccessfulLogin() {
+  private void verifyUnauthorizedSuccessfulLogin() throws Exception {
     verifyLoginSuccessWithAuthorization(false);
   }
 
-  private void verifyLoginSuccessWithAuthorization(final boolean isAuthorized) {
+  private void verifyLoginSuccessWithAuthorization(final boolean isAuthorized) throws Exception {
     verify(userHandler).handle(userCaptor.capture());
     final AsyncResult<User> result = userCaptor.getValue();
     assertThat(result.succeeded(), is(true));
+
     assertThat(result.result(), instanceOf(JaasUser.class));
     final JaasUser user = (JaasUser) result.result();
+
     assertThat(user.getPrincipal(), instanceOf(JaasPrincipal.class));
     final JaasPrincipal apiPrincipal = (JaasPrincipal) user.getPrincipal();
     assertThat(apiPrincipal.getName(), is(USERNAME));
+
+    final CountDownLatch latch = new CountDownLatch(1);
+    user.doIsPermitted("some permission", ar -> {
+      assertThat(ar.result(), is(isAuthorized));
+      latch.countDown();
+    });
+    latch.await();
   }
 
   private void verifyLoginFailure(final String expectedMsg) {
@@ -249,16 +259,13 @@ public class JaasAuthProviderTest {
 
   private void handleAsyncExecution() {
     when(server.getWorkerExecutor()).thenReturn(worker);
-    doAnswer(new Answer<Void>() {
-      @Override
-      public Void answer(final InvocationOnMock invocation) throws Throwable {
-        final Handler<Promise<User>> blockingCodeHandler = invocation.getArgument(0);
-        final Handler<AsyncResult<User>> resultHandler = invocation.getArgument(1);
-        final Promise<User> promise = Promise.promise();
-        promise.future().onComplete(resultHandler);
-        blockingCodeHandler.handle(promise);
-        return null;
-      }
+    doAnswer(invocation -> {
+      final Handler<Promise<User>> blockingCodeHandler = invocation.getArgument(0);
+      final Handler<AsyncResult<User>> resultHandler = invocation.getArgument(1);
+      final Promise<User> promise = Promise.promise();
+      promise.future().onComplete(resultHandler);
+      blockingCodeHandler.handle(promise);
+      return null;
     }).when(worker).executeBlocking(any(), any());
   }
 }

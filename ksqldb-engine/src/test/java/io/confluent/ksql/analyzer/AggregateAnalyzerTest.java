@@ -34,7 +34,8 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
@@ -84,7 +85,7 @@ public class AggregateAnalyzerTest {
   @Mock
   private ImmutableAnalysis analysis;
 
-  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private final FunctionRegistry functionRegistry = TestFunctionRegistry.INSTANCE.get();
   private AggregateAnalyzer analyzer;
 
   private List<SelectExpression> selects;
@@ -415,6 +416,22 @@ public class AggregateAnalyzerTest {
     // When:
     assertThrows(UnsupportedOperationException.class,
         () -> analyzer.analyze(analysis, selects));
+  }
+
+  @Test
+  public void shouldThrowOnNonExistentFunctionCall() {
+    // Given:
+    givenSelectExpression(new FunctionCall(FunctionName.of("NOT_FOUND"), ImmutableList.of(COL2)));
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(analysis, selects)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Can't find any functions with the name 'NOT_FOUND'"));
   }
 
   private void givenSelectExpression(final Expression expression) {

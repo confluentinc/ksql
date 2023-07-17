@@ -17,12 +17,15 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.testing.EffectivelyImmutable;
+import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,23 +34,37 @@ import java.util.stream.Collectors;
 
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
+
 public class SchemaInfo {
 
   private final SqlBaseType type;
   private final ImmutableList<FieldInfo> fields;
   private final SchemaInfo memberSchema;
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  @EffectivelyImmutable
+  private final ImmutableMap<String, Object> parameters;
 
   @JsonCreator
   public SchemaInfo(
       @JsonProperty("type") final SqlBaseType type,
       @JsonProperty("fields") final List<? extends FieldInfo> fields,
-      @JsonProperty("memberSchema") final SchemaInfo memberSchema) {
+      @JsonProperty("memberSchema") final SchemaInfo memberSchema,
+      @JsonProperty("parameters") final ImmutableMap<String, Object> parameters) {
     Objects.requireNonNull(type);
     this.type = type;
     this.fields = fields == null
         ? null
         : ImmutableList.copyOf(fields);
     this.memberSchema = memberSchema;
+    this.parameters = parameters;
+
+  }
+
+  public SchemaInfo(
+      @JsonProperty("type") final SqlBaseType type,
+      @JsonProperty("fields") final List<? extends FieldInfo> fields,
+      @JsonProperty("memberSchema") final SchemaInfo memberSchema) {
+    this(type, fields, memberSchema, ImmutableMap.of());
   }
 
   public SqlBaseType getType() {
@@ -65,6 +82,10 @@ public class SchemaInfo {
 
   public Optional<SchemaInfo> getMemberSchema() {
     return Optional.ofNullable(memberSchema);
+  }
+
+  public ImmutableMap<String, Object> getParameters() {
+    return parameters;
   }
 
   @Override
@@ -105,6 +126,24 @@ public class SchemaInfo {
                   .stream()
                   .map(f -> f.getName() + " " + f.getSchema().toTypeString())
                   .collect(Collectors.joining(", ", SqlBaseType.STRUCT + "<", ">")))
+          .put(
+              SqlBaseType.DECIMAL,
+              si -> {
+                // Backwards compatibility case when the backend does not return parameters
+                if (si.getParameters().isEmpty()) {
+                  return String.valueOf(SqlBaseType.DECIMAL);
+                }
+
+                final Object precision = si.getParameters().get(SqlDecimal.PRECISION);
+                final Object scale = si.getParameters().get(SqlDecimal.SCALE);
+                final String parameterString = String.format("(%s, %s)", precision, scale);
+                KsqlPreconditions.checkArgument(
+                    (precision != null & scale != null),
+                    "Either one of precision and scale missing: "
+                        + parameterString
+                );
+                return SqlBaseType.DECIMAL + parameterString;
+              })
           .build();
 
   public String toTypeString() {

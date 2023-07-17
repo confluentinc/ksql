@@ -302,7 +302,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Unsupported key schema: [`ID` ARRAY<INTEGER> KEY]"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`ID` ARRAY<INTEGER> KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'ARRAY'"
       }
     },
     {
@@ -313,7 +313,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Unsupported key schema: [`ID` MAP<STRING, INTEGER> KEY]"
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `ID`. Column type: MAP<STRING, INTEGER>. See https://github.com/confluentinc/ksql/issues/6621 for more."
       }
     },
     {

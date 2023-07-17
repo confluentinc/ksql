@@ -24,7 +24,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;

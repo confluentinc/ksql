@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.TableInfo;
@@ -28,7 +29,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class AdminResponseHandlers {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private AdminResponseHandlers() {
   }
@@ -95,6 +98,25 @@ final class AdminResponseHandlers {
     } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + sourceDescriptionEntity));
+    }
+  }
+
+  static void handleServerInfoResponse(
+      final JsonObject serverInfoEntity,
+      final CompletableFuture<ServerInfo> cf
+  ) {
+    final JsonObject source = serverInfoEntity.getJsonObject("KsqlServerInfo");
+
+    try {
+      final ServerInfoImpl serverInfo = new ServerInfoImpl(
+          source.getString("version"),
+          source.getString("kafkaClusterId"),
+          source.getString("ksqlServiceId")
+      );
+      cf.complete(serverInfo);
+    } catch (Exception e) {
+      cf.completeExceptionally(new IllegalStateException(
+          "Unexpected server response format. Response: " + serverInfoEntity));
     }
   }
 
@@ -317,7 +339,10 @@ final class AdminResponseHandlers {
               ? Optional.empty()
               : Optional.of(source.getString("timestamp")),
           Optional.ofNullable(source.getString("windowType")),
-          source.getString("statement")
+          source.getString("statement"),
+          source.getJsonArray("sourceConstraints").stream()
+              .map(o -> (String)o)
+              .collect(Collectors.toList())
       ));
     } catch (Exception e) {
       return Optional.empty();

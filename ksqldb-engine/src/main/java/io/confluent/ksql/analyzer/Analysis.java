@@ -72,6 +72,7 @@ public class Analysis implements ImmutableAnalysis {
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
+  private boolean orReplace = false;
 
   public Analysis(final Optional<RefinementInfo> refinementInfo) {
     this(refinementInfo, SourceSchemas::new);
@@ -217,6 +218,15 @@ public class Analysis implements ImmutableAnalysis {
     // we know that the first data source to be visited in the Analyzer is
     // the "FROM" data source
     return allDataSources.get(0);
+  }
+
+  @Override
+  public boolean getOrReplace() {
+    return orReplace;
+  }
+
+  public void setOrReplace(final boolean orReplace) {
+    this.orReplace = orReplace;
   }
 
   void addDataSource(final SourceName alias, final DataSource dataSource) {

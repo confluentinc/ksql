@@ -16,17 +16,12 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Ticker;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -35,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,18 +42,13 @@ import org.slf4j.LoggerFactory;
  * complete backup of the command_topic is created.
  */
 public class CommandTopicBackupImpl implements CommandTopicBackup {
+
   private static final Logger LOG = LoggerFactory.getLogger(CommandTopicBackupImpl.class);
-  private static final Ticker CURRENT_MILLIS_TICKER = new Ticker() {
-    @Override
-    public long read() {
-      return System.currentTimeMillis();
-    }
-  };
   private static final String PREFIX = "backup_";
 
   private final File backupLocation;
   private final String topicName;
-  private final Ticker ticker;
+  private final Supplier<Long> ticker;
 
   private BackupReplayFile replayFile;
   private List<Pair<byte[], byte[]>> latestReplay;
@@ -66,21 +57,22 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
   public CommandTopicBackupImpl(
       final String location,
-      final String topicName) {
-    this(location, topicName, CURRENT_MILLIS_TICKER);
+      final String topicName
+  ) {
+    this(location, topicName, System::currentTimeMillis);
   }
 
-  public CommandTopicBackupImpl(
+  @VisibleForTesting
+  CommandTopicBackupImpl(
       final String location,
       final String topicName,
-      final Ticker ticker
+      final Supplier<Long> ticker
   ) {
-    final File dir = new File(Objects.requireNonNull(location, "location"));
-    ensureDirectoryExists(dir);
-
-    this.backupLocation = dir;
+    this.backupLocation = new File(Objects.requireNonNull(location, "location"));
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.ticker = Objects.requireNonNull(ticker, "ticker");
+
+    ensureDirectoryExists(backupLocation);
   }
 
   @Override
@@ -133,30 +125,10 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     return false;
   }
 
-  private void throwIfInvalidRecord(final ConsumerRecord<byte[], byte[]> record) {
-    try {
-      InternalTopicSerdes.deserializer(CommandId.class).deserialize(record.topic(), record.key());
-    } catch (final Exception e) {
-      throw new KsqlException(String.format(
-          "Failed to backup record because it cannot deserialize key: %s",
-          new String(record.key(), StandardCharsets.UTF_8), e
-      ));
-    }
-
-    try {
-      InternalTopicSerdes.deserializer(Command.class).deserialize(record.topic(), record.value());
-    } catch (final Exception e) {
-      throw new KsqlException(String.format(
-          "Failed to backup record because it cannot deserialize value: %s",
-          new String(record.value(), StandardCharsets.UTF_8), e
-      ));
-    }
-  }
-
   @Override
   public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
     if (corruptionDetected) {
-      throw new KsqlServerException(
+      throw new CommandTopicCorruptionException(
           "Failed to write record due to out of sync command topic and backup file. "
               + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
     }
@@ -168,15 +140,13 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       return;
     }
 
-    throwIfInvalidRecord(record);
-
     if (isRestoring()) {
       if (isRecordInLatestReplay(record)) {
         // Ignore backup because record was already replayed
         return;
       } else {
         corruptionDetected = true;
-        throw new KsqlServerException(
+        throw new CommandTopicCorruptionException(
             "Failed to write record due to out of sync command topic and backup file. "
                 + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
       }
@@ -202,18 +172,14 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
   @VisibleForTesting
   BackupReplayFile openOrCreateReplayFile() {
-    final Optional<BackupReplayFile> latestFile = latestReplayFile();
-    if (latestFile.isPresent()) {
-      return latestFile.get();
-    }
-
-    return newReplayFile();
+    return latestReplayFile()
+        .orElseGet(this::newReplayFile);
   }
 
   private BackupReplayFile newReplayFile() {
     return BackupReplayFile.writable(Paths.get(
         backupLocation.getAbsolutePath(),
-        String.format("%s%s_%s", PREFIX, topicName, ticker.read())
+        String.format("%s%s_%s", PREFIX, topicName, ticker.get())
     ).toFile());
   }
 
@@ -225,12 +191,11 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     File latestBakFile = null;
     if (files != null) {
       long latestTs = 0;
-      for (int i = 0; i < files.length; i++) {
-        final File bakFile = files[i];
+      for (final File bakFile : files) {
         final String bakTimestamp = bakFile.getName().substring(prefixFilename.length());
 
         try {
-          final Long ts = Long.valueOf(bakTimestamp);
+          final long ts = Long.parseLong(bakTimestamp);
           if (ts > latestTs) {
             latestTs = ts;
             latestBakFile = bakFile;
@@ -239,17 +204,15 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
           LOG.warn(
               "Invalid timestamp '{}' found in backup replay file (file ignored): {}",
               bakTimestamp, bakFile.getName());
-          continue;
         }
       }
     }
 
-    return (latestBakFile != null)
-        ? Optional.of(BackupReplayFile.writable(latestBakFile))
-        : Optional.empty();
+    return Optional.ofNullable(latestBakFile)
+        .map(BackupReplayFile::writable);
   }
 
-  private void ensureDirectoryExists(final File backupsDir) {
+  private static void ensureDirectoryExists(final File backupsDir) {
     if (!backupsDir.exists()) {
       if (!backupsDir.mkdirs()) {
         throw new KsqlServerException("Couldn't create the backups directory: "

@@ -25,6 +25,7 @@ import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.model.WindowType;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -151,5 +152,25 @@ public final class KeyFormat {
         + ", features=" + features
         + ", window=" + window
         + '}';
+  }
+
+  public KeyFormat withSerdeFeatures(final SerdeFeatures additionalFeatures) {
+    final HashSet<SerdeFeature> features = new HashSet<>(this.features.all());
+    features.addAll(additionalFeatures.all());
+    return new KeyFormat(
+        format,
+        SerdeFeatures.from(features),
+        window
+    );
+  }
+
+  public KeyFormat withoutSerdeFeatures(final SerdeFeatures featuresToRemove) {
+    final HashSet<SerdeFeature> features = new HashSet<>(this.features.all());
+    features.removeAll(featuresToRemove.all());
+    return new KeyFormat(
+        format,
+        SerdeFeatures.from(features),
+        window
+    );
   }
 }

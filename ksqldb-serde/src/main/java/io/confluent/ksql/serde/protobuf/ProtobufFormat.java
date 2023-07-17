@@ -64,6 +64,6 @@ public class ProtobufFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    return ProtobufSerdeFactory.createSerde(connectSchema, config, srFactory, targetType);
+    return ProtobufSerdeFactory.createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

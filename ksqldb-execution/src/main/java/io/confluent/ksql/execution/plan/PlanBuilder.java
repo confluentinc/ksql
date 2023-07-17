@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.execution.plan;
 
-import org.apache.kafka.connect.data.Struct;
+import io.confluent.ksql.GenericKey;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -25,52 +25,61 @@ import org.apache.kafka.streams.kstream.Windowed;
  * specified in the step to the stream/table(s) returned by visiting the source steps.
  */
 public interface PlanBuilder {
-  <K> KStreamHolder<K> visitStreamFilter(StreamFilter<K> streamFilter);
 
-  <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupBy<K> streamGroupBy);
+  <K> KStreamHolder<K> visitStreamFilter(StreamFilter<K> streamFilter, PlanInfo planInfo);
 
-  KGroupedStreamHolder visitStreamGroupByKey(StreamGroupByKey streamGroupByKey);
+  <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupByV1<K> streamGroupBy, PlanInfo planInfo);
 
-  KTableHolder<Struct> visitStreamAggregate(StreamAggregate streamAggregate);
+  <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupBy<K> streamGroupBy, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamSelect(StreamSelect<K> streamSelect);
+  KGroupedStreamHolder visitStreamGroupByKey(StreamGroupByKey streamGroupByKey, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitFlatMap(StreamFlatMap<K> streamFlatMap);
+  KTableHolder<GenericKey> visitStreamAggregate(StreamAggregate streamAggregate, PlanInfo planInfo);
 
-  KStreamHolder<Struct> visitStreamSelectKey(StreamSelectKeyV1 streamSelectKey);
+  <K> KStreamHolder<K> visitStreamSelect(StreamSelect<K> streamSelect, PlanInfo planInfo);
 
-  KStreamHolder<Struct> visitStreamSelectKey(StreamSelectKey streamSelectKey);
+  <K> KStreamHolder<K> visitFlatMap(StreamFlatMap<K> streamFlatMap, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamSink(StreamSink<K> streamSink);
+  KStreamHolder<GenericKey> visitStreamSelectKey(
+      StreamSelectKeyV1 streamSelectKey, PlanInfo planInfo);
 
-  KStreamHolder<Struct> visitStreamSource(StreamSource streamSource);
+  <K> KStreamHolder<K> visitStreamSelectKey(StreamSelectKey<K> streamSelectKey, PlanInfo planInfo);
 
-  KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
-      WindowedStreamSource windowedStreamSource);
+  <K> KStreamHolder<K> visitStreamSink(StreamSink<K> streamSink, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamStreamJoin(StreamStreamJoin<K> streamStreamJoin);
+  KStreamHolder<GenericKey> visitStreamSource(StreamSource streamSource, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamTableJoin(StreamTableJoin<K> streamTableJoin);
+  KStreamHolder<Windowed<GenericKey>> visitWindowedStreamSource(
+      WindowedStreamSource windowedStreamSource, PlanInfo planInfo);
 
-  KTableHolder<Struct> visitTableSource(TableSource tableSource);
+  <K> KStreamHolder<K> visitStreamStreamJoin(
+      StreamStreamJoin<K> streamStreamJoin, PlanInfo planInfo);
 
-  KTableHolder<Windowed<Struct>> visitWindowedTableSource(
-      WindowedTableSource windowedTableSource);
+  <K> KStreamHolder<K> visitStreamTableJoin(StreamTableJoin<K> streamTableJoin, PlanInfo planInfo);
 
-  KTableHolder<Windowed<Struct>> visitStreamWindowedAggregate(
-      StreamWindowedAggregate streamWindowedAggregate);
+  KTableHolder<GenericKey> visitTableSource(TableSource tableSource, PlanInfo planInfo);
 
-  KTableHolder<Struct> visitTableAggregate(TableAggregate tableAggregate);
+  KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
+      WindowedTableSource windowedTableSource, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableFilter(TableFilter<K> tableFilter);
+  KTableHolder<Windowed<GenericKey>> visitStreamWindowedAggregate(
+      StreamWindowedAggregate streamWindowedAggregate, PlanInfo planInfo);
 
-  <K> KGroupedTableHolder visitTableGroupBy(TableGroupBy<K> tableGroupBy);
+  KTableHolder<GenericKey> visitTableAggregate(TableAggregate tableAggregate, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableSelect(TableSelect<K> tableSelect);
+  <K> KTableHolder<K> visitTableFilter(TableFilter<K> tableFilter, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink);
+  <K> KGroupedTableHolder visitTableGroupBy(TableGroupByV1<K> tableGroupBy, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableSuppress(TableSuppress<K> tableSuppress);
+  <K> KGroupedTableHolder visitTableGroupBy(TableGroupBy<K> tableGroupBy, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableTableJoin(TableTableJoin<K> tableTableJoin);
+  <K> KTableHolder<K> visitTableSelect(TableSelect<K> tableSelect, PlanInfo planInfo);
+
+  <K> KTableHolder<K> visitTableSelectKey(TableSelectKey<K> tableSelectKey, PlanInfo planInfo);
+
+  <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink, PlanInfo planInfo);
+
+  <K> KTableHolder<K> visitTableSuppress(TableSuppress<K> tableSuppress, PlanInfo planInfo);
+
+  <K> KTableHolder<K> visitTableTableJoin(TableTableJoin<K> tableTableJoin, PlanInfo planInfo);
 }

@@ -16,8 +16,9 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
-import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+import static io.vertx.core.http.HttpMethod.POST;
+import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
@@ -29,6 +30,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -49,10 +51,12 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.http.WebsocketVersion;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.codec.BodyCodec;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -67,6 +71,19 @@ import java.util.stream.Collectors;
 public final class RestIntegrationTestUtil {
 
   private RestIntegrationTestUtil() {
+  }
+
+  public static HealthCheckResponse checkServerHealth(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
+
+      final RestResponse<HealthCheckResponse> res = restClient.getServerHealth();
+
+      if (res.isErroneous()) {
+        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
+      }
+
+      return res.getResponse();
+    }
   }
 
   public static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
@@ -156,7 +173,7 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static List<StreamedRow> makeQueryRequest(
+  public static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
       final Optional<BasicCredentials> userCreds
@@ -205,23 +222,19 @@ public final class RestIntegrationTestUtil {
    *
    * @param restApp the test app instance to issue the request against
    * @param sql the sql payload
-   * @param cmdSeqNum optional sequence number of previous command
+   * @param mediaType the type of media the client can accept
    * @return the response payload
    */
-  static String rawRestQueryRequest(
+  static HttpResponse<Buffer> rawRestQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
-      final Optional<Long> cmdSeqNum
+      final String mediaType
   ) {
+    final KsqlRequest request =
+        new KsqlRequest(sql, ImmutableMap.of(), ImmutableMap.of(), null);
 
-    final KsqlRequest request = new KsqlRequest(
-        sql,
-        ImmutableMap.of(),
-        Collections.emptyMap(),
-        cmdSeqNum.orElse(null)
-    );
-    return rawRestRequest(restApp, HttpVersion.HTTP_1_1, HttpMethod.POST, "/query", request).body()
-        .toString();
+      return rawRestRequest(restApp, HTTP_1_1, POST, "/query", request, mediaType,
+          Optional.empty());
   }
 
   static HttpResponse<Buffer> rawRestRequest(
@@ -231,10 +244,28 @@ public final class RestIntegrationTestUtil {
       final String uri,
       final Object requestBody
   ) {
+      return rawRestRequest(
+          restApp,
+          httpVersion,
+          method,
+          uri,
+          requestBody,
+          "application/json",
+          Optional.empty()
+      );
+  }
 
+  static HttpResponse<Buffer> rawRestRequest(
+      final TestKsqlRestApp restApp,
+      final HttpVersion httpVersion,
+      final HttpMethod method,
+      final String uri,
+      final Object requestBody,
+      final String mediaType,
+      final Optional<WriteStream<Buffer>> writeStream
+  ) {
     Vertx vertx = Vertx.vertx();
     WebClient webClient = null;
-
     try {
       WebClientOptions webClientOptions = new WebClientOptions()
           .setDefaultHost(restApp.getHttpListener().getHost())
@@ -246,25 +277,17 @@ public final class RestIntegrationTestUtil {
       }
 
       webClient = WebClient.create(vertx, webClientOptions);
-
-      byte[] bytes = ApiJsonMapper.INSTANCE.get().writeValueAsBytes(requestBody);
-
-      Buffer bodyBuffer = Buffer.buffer(bytes);
-
-      // When:
-      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-      HttpRequest<Buffer> request = webClient
-          .request(method, uri)
-          .putHeader("content-type", "application/json");
-      if (bodyBuffer != null) {
-        request.sendBuffer(bodyBuffer, requestFuture);
-      } else {
-        request.send(requestFuture);
-      }
-      return requestFuture.get();
-
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+      return rawRestRequest(
+          vertx,
+          webClient,
+          restApp,
+          httpVersion,
+          method,
+          uri,
+          requestBody,
+          mediaType,
+          writeStream
+      );
     } finally {
       if (webClient != null) {
         webClient.close();
@@ -273,8 +296,45 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  public static void createStream(final TestKsqlRestApp restApp,
-      final TestDataProvider dataProvider) {
+  static HttpResponse<Buffer> rawRestRequest(
+      final Vertx vertx,
+      final WebClient webClient,
+      final TestKsqlRestApp restApp,
+      final HttpVersion httpVersion,
+      final HttpMethod method,
+      final String uri,
+      final Object requestBody,
+      final String mediaType,
+      final Optional<WriteStream<Buffer>> writeStream
+  ) {
+    try {
+      byte[] bytes = ApiJsonMapper.INSTANCE.get().writeValueAsBytes(requestBody);
+
+      Buffer bodyBuffer = Buffer.buffer(bytes);
+
+      // When:
+      VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+      HttpRequest<Buffer> request = webClient
+          .request(method, uri)
+          .putHeader(CONTENT_TYPE.toString(), "application/json")
+          .putHeader(ACCEPT.toString(), mediaType);
+      if (bodyBuffer != null) {
+        request.sendBuffer(bodyBuffer, requestFuture);
+      } else {
+        request.send(requestFuture);
+      }
+      writeStream.ifPresent(s -> request.as(BodyCodec.pipe(s)));
+      return requestFuture.get();
+
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void createStream(
+      final TestKsqlRestApp restApp,
+      final TestDataProvider dataProvider
+  ) {
     createStream(restApp, dataProvider, Optional.empty());
   }
 
@@ -283,10 +343,26 @@ public final class RestIntegrationTestUtil {
       final TestDataProvider dataProvider,
       final Optional<BasicCredentials> userCreds
   ) {
+    createSource(restApp, dataProvider, false, userCreds);
+  }
+
+  public static void createTable(
+      final TestKsqlRestApp restApp,
+      final TestDataProvider dataProvider
+  ) {
+    createSource(restApp, dataProvider, true, Optional.empty());
+  }
+
+  public static void createSource(
+      final TestKsqlRestApp restApp,
+      final TestDataProvider dataProvider,
+      final boolean table,
+      final Optional<BasicCredentials> userCreds
+  ) {
     makeKsqlRequest(
         restApp,
-        "CREATE STREAM " + dataProvider.sourceName()
-            + " (" + dataProvider.ksqlSchemaString(false) + ") "
+        "CREATE " + (table ? "TABLE" : "STREAM") + " " + dataProvider.sourceName()
+            + " (" + dataProvider.ksqlSchemaString(table) + ") "
             + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
         userCreds
     );
@@ -355,12 +431,11 @@ public final class RestIntegrationTestUtil {
     try {
       httpClient = vertx.createHttpClient();
 
-      final String uri = baseUri.toString() + "/ws/query?request=" + buildStreamingRequest(sql);
+      final String uri = baseUri.toString() + "/ws/query?request="
+          + buildStreamingRequest(sql)
+          + "&access_token=" + buildBasicAuthHeader(credentials.get());
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-
-      credentials.ifPresent(
-          creds -> headers.add(AUTHORIZATION.toString(), "Basic " + buildBasicAuthHeader(creds)));
 
       mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
       contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));

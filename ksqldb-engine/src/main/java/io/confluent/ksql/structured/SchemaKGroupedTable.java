@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.UdafUtil;
@@ -39,7 +40,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Struct;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
 
@@ -68,19 +68,19 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   }
 
   @Override
-  public SchemaKTable<Struct> aggregate(
+  public SchemaKTable<GenericKey> aggregate(
       final List<ColumnName> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final FormatInfo valueFormat,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     if (windowExpression.isPresent()) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 
     final List<String> unsupportedFunctionNames = aggregations.stream()
-        .map(call -> UdafUtil.resolveAggregateFunction(functionRegistry, call, schema))
+        .map(call -> UdafUtil.resolveAggregateFunction(functionRegistry, call, schema, ksqlConfig))
         .filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::name)
         .map(FunctionName::text)
@@ -98,7 +98,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     final TableAggregate step = ExecutionStepFactory.tableAggregate(
         contextStacker,
         sourceTableStep,
-        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
+        InternalFormats.of(keyFormat, valueFormat),
         nonAggregateColumns,
         aggregations
     );

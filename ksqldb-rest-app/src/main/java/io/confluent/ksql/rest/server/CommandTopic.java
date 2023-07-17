@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -86,7 +87,7 @@ public class CommandTopic {
       for (ConsumerRecord<byte[], byte[]> record : iterable) {
         try {
           backupRecord(record);
-        } catch (final Exception e) {
+        } catch (final CommandTopicCorruptionException e) {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
               + "restored or all backup files are deleted.", e);
@@ -102,18 +103,20 @@ public class CommandTopic {
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
     final List<QueuedCommand> restoreCommands = Lists.newArrayList();
 
+    final long endOffset = getEndOffset();
+
     commandConsumer.seekToBeginning(
         Collections.singletonList(commandTopicPartition));
 
-    log.debug("Reading prior command records");
-    ConsumerRecords<byte[], byte[]> records =
-        commandConsumer.poll(duration);
-    while (!records.isEmpty()) {
-      log.debug("Received {} records from poll", records.count());
+    log.info("Reading prior command records up to offset {}", endOffset);
+
+    while (commandConsumer.position(commandTopicPartition) < endOffset) {
+      final ConsumerRecords<byte[], byte[]> records = commandConsumer.poll(duration);
+      log.info("Received {} records from command topic restore poll", records.count());
       for (final ConsumerRecord<byte[], byte[]> record : records) {
         try {
           backupRecord(record);
-        } catch (final Exception e) {
+        } catch (final CommandTopicCorruptionException e) {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
               + "restored or all backup files are deleted.", e);
@@ -130,7 +133,6 @@ public class CommandTopic {
                 Optional.empty(),
                 record.offset()));
       }
-      records = commandConsumer.poll(duration);
     }
     return restoreCommands;
   }

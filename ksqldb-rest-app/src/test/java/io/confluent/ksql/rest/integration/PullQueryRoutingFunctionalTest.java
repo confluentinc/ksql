@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extrac
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryWsRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
@@ -33,9 +34,13 @@ import static org.hamcrest.Matchers.not;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.api.AuthTest.StringPrincipal;
+import io.confluent.ksql.api.auth.AuthenticationPlugin;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -55,12 +60,19 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.WorkerExecutor;
+import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -122,6 +134,19 @@ public class PullQueryRoutingFunctionalTest {
       SerdeFeatures.of()
   );
 
+  private static final String PROPS_JAAS_REALM = "KsqlServer-Props";
+  private static final String KSQL_RESOURCE = "ksql-user";
+  private static final String USER_WITH_ACCESS = "harry";
+  private static final String USER_WITH_ACCESS_PWD = "changeme";
+  private static final Optional<BasicCredentials> USER_CREDS
+      = Optional.of(BasicCredentials.of(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+
+  @ClassRule
+  public static final TestBasicJaasConfig JAAS_CONFIG = TestBasicJaasConfig
+      .builder(PROPS_JAAS_REALM)
+      .addUser(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, KSQL_RESOURCE)
+      .build();
+
   private static final Map<String, Object> COMMON_CONFIG = ImmutableMap.<String, Object>builder()
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
@@ -133,6 +158,14 @@ public class PullQueryRoutingFunctionalTest {
       .put(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
+      .put(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG, KsqlRestConfig.AUTHENTICATION_METHOD_BASIC)
+      .put(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
+      .put(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_RESOURCE)
+      .put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, "/heartbeat,/lag")
+      // In order to whitelist the above paths for auth, we need to install a noop authentication
+      // plugin.  In practice, these are internal paths so we're not interested in testing auth
+      // for them in these tests.
+      .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, WSAuthPlugin.class)
       .build();
 
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
@@ -192,7 +225,9 @@ public class PullQueryRoutingFunctionalTest {
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(TEST_HARNESS).around(TMP);
+      .around(TEST_HARNESS)
+      .around(JAAS_CONFIG)
+      .around(TMP);
 
   @Rule
   public final Timeout timeout = Timeout.builder()
@@ -228,7 +263,8 @@ public class PullQueryRoutingFunctionalTest {
             + " (" + USER_PROVIDER.ksqlSchemaString(false) + ")"
             + " WITH ("
             + "   kafka_topic='" + topic + "', "
-            + "   value_format='JSON');"
+            + "   value_format='JSON');",
+        USER_CREDS
     );
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
@@ -239,20 +275,21 @@ public class PullQueryRoutingFunctionalTest {
         REST_APP_0,
         "CREATE TABLE " + output + " AS"
             + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
-            + " GROUP BY " + USER_PROVIDER.key() + ";"
+            + " GROUP BY " + USER_PROVIDER.key() + ";",
+        USER_CREDS
     );
     queryId = extractQueryId(res.get(0).toString());
     queryId = queryId.substring(0, queryId.length() - 1);
     waitForTableRows();
 
     waitForStreamsMetadataToInitialize(
-        REST_APP_0, ImmutableList.of(HOST0, HOST1, HOST2), queryId);
+        REST_APP_0, ImmutableList.of(HOST0, HOST1, HOST2), USER_CREDS);
   }
 
   @After
   public void cleanUp() {
-    REST_APP_0.closePersistentQueries();
-    REST_APP_0.dropSourcesExcept();
+    REST_APP_0.closePersistentQueries(USER_CREDS);
+    REST_APP_0.dropSourcesExcept(USER_CREDS);
     APP_SHUTOFFS_0.reset();
     APP_SHUTOFFS_1.reset();
     APP_SHUTOFFS_2.reset();
@@ -262,18 +299,19 @@ public class PullQueryRoutingFunctionalTest {
   public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3);
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
 
     waitForRemoteServerToChangeStatus(
         clusterFormation.standBy.getApp(),
         clusterFormation.active.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsUp);
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
 
     // When:
     List<StreamedRow> rows_0 =
-        makePullQueryRequest(clusterFormation.standBy.getApp(), sql);
+        makePullQueryRequest(clusterFormation.standBy.getApp(), sql, null, USER_CREDS);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
@@ -281,17 +319,47 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
+  @Test
+  public void shouldQueryWS() throws Exception {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.standBy.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+
+    final Credentials credentials =  new Credentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+    // When:
+    List<String> rows_0 =
+        makePullQueryWsRequest(clusterFormation.router.getApp().getWsListener(), sql, "", "", credentials, Optional.empty(), Optional.empty());
+
+    // Then:
+    // websocket pull query returns a header, the value row
+    assertThat(rows_0, hasSize(HEADER + 1));
+  }
 
   @Test
   public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
 
     // Partition off the standby
     clusterFormation.standBy.getShutoffs().shutOffAll();
@@ -299,14 +367,17 @@ public class PullQueryRoutingFunctionalTest {
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.active.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsUp);
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.standBy.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsDown);
+        HighAvailabilityTestUtil::remoteServerIsDown,
+        USER_CREDS);
 
     // When:
-    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(), sql);
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(), sql,
+        null, USER_CREDS);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
@@ -314,16 +385,16 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
   public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
 
     // Partition off the active
     clusterFormation.active.getShutoffs().shutOffAll();
@@ -331,14 +402,17 @@ public class PullQueryRoutingFunctionalTest {
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.standBy.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsUp);
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.active.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsDown);
+        HighAvailabilityTestUtil::remoteServerIsDown,
+        USER_CREDS);
 
     // When:
-    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(), sql);
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(), sql,
+        null, USER_CREDS);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
@@ -346,7 +420,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
   @SuppressWarnings("unchecked")
@@ -355,9 +429,9 @@ public class PullQueryRoutingFunctionalTest {
       throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
 
     // Partition off the active
     clusterFormation.active.getShutoffs().shutOffAll();
@@ -365,15 +439,17 @@ public class PullQueryRoutingFunctionalTest {
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.standBy.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsUp);
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.active.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsDown);
+        HighAvailabilityTestUtil::remoteServerIsDown,
+        USER_CREDS);
 
     // When:
     final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
-        sqlMultipleKeys);
+        sqlMultipleKeys, null, USER_CREDS);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 2));
@@ -384,11 +460,11 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
 
-    List<List<Object>> values = rows_0.stream()
+    List<List<?>> values = rows_0.stream()
         .skip(HEADER)
         .map(sr -> {
           assertThat(sr.getRow(), is(not(Optional.empty())));
-          return sr.getRow().get().values();
+          return sr.getRow().get().getColumns();
         })
         .collect(Collectors.toList());
     assertThat(values, containsInAnyOrder(ImmutableList.of(KEY, 1), ImmutableList.of(KEY1, 1)));
@@ -398,22 +474,23 @@ public class PullQueryRoutingFunctionalTest {
   public void shouldFilterLaggyServers() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.active.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsUp);
+        HighAvailabilityTestUtil::remoteServerIsUp, USER_CREDS);
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.standBy.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsUp);
+        HighAvailabilityTestUtil::remoteServerIsUp, USER_CREDS);
 
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
         HighAvailabilityTestUtil.lagsReported(clusterFormation.standBy.getHost(),
-            Optional.empty(), 5));
+            Optional.empty(), 5),
+        USER_CREDS);
 
     // Cut off standby from Kafka to simulate lag
     clusterFormation.standBy.getShutoffs().setKafkaPauseOffset(0);
@@ -432,7 +509,8 @@ public class PullQueryRoutingFunctionalTest {
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
         HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.empty(),
-            10));
+            10),
+        USER_CREDS);
 
     // Partition active off
     clusterFormation.active.getShutoffs().shutOffAll();
@@ -440,15 +518,17 @@ public class PullQueryRoutingFunctionalTest {
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.standBy.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsUp);
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.active.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsDown);
+        HighAvailabilityTestUtil::remoteServerIsDown,
+        USER_CREDS);
 
     // When:
     final List<StreamedRow> rows_0 = makePullQueryRequest(
-        clusterFormation.router.getApp(), sql, LAG_FILTER_6);
+        clusterFormation.router.getApp(), sql, LAG_FILTER_6, USER_CREDS);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
@@ -457,7 +537,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     // This line ensures that we've not processed the new data
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
 
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
         clusterFormation.router.getApp(), sql, LAG_FILTER_3);
@@ -471,14 +551,15 @@ public class PullQueryRoutingFunctionalTest {
       final String sql,
       final Map<String, ?> properties
   ) {
-    return RestIntegrationTestUtil.makeQueryRequestWithError(target, sql, Optional.empty(),
+    return RestIntegrationTestUtil.makeQueryRequestWithError(target, sql, USER_CREDS,
         properties);
   }
 
   private ClusterFormation findClusterFormation(
       TestApp testApp0, TestApp testApp1, TestApp testApp2) {
     ClusterFormation clusterFormation = new ClusterFormation();
-    ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil.sendClusterStatusRequest(testApp0.getApp());
+    ClusterStatusResponse clusterStatusResponse
+        = HighAvailabilityTestUtil.sendClusterStatusRequest(testApp0.getApp(), USER_CREDS);
     ActiveStandbyEntity entity0 = clusterStatusResponse.getClusterStatus().get(testApp0.getHost())
         .getActiveStandbyPerQuery().get(queryId);
     ActiveStandbyEntity entity1 = clusterStatusResponse.getClusterStatus().get(testApp1.getHost())
@@ -587,6 +668,48 @@ public class PullQueryRoutingFunctionalTest {
     public Shutoffs getShutoffs() {
       return shutoffs;
     }
+  }
+
+  // AuthenticationPlugin which never returns a Principal
+  public static class NoAuthPlugin implements AuthenticationPlugin {
+
+    @Override
+    public void configure(Map<String, ?> map) {
+    }
+
+    @Override
+    public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
+        WorkerExecutor workerExecutor) {
+      return CompletableFuture.completedFuture(null);
+    }
+  }
+
+  public static class WSAuthPlugin implements AuthenticationPlugin {
+
+    @Override
+    public void configure(Map<String, ?> map) {
+    }
+
+    @Override
+    public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
+        WorkerExecutor workerExecutor) {
+      if (getAuthToken(routingContext) == null){
+        routingContext.fail(HttpResponseStatus.UNAUTHORIZED.code(),
+            new KsqlApiException("Unauthorized", HttpResponseStatus.UNAUTHORIZED.code()));
+        return CompletableFuture.completedFuture(null);
+      }
+      return CompletableFuture.completedFuture(new StringPrincipal(USER_WITH_ACCESS));
+    }
+
+    @Override
+    public String getAuthToken(RoutingContext routingContext) {
+      String authToken = routingContext.request().getHeader("Authorization");
+      if (authToken == null) {
+        authToken = routingContext.request().getParam("access_token");
+      }
+      return authToken;
+    }
+
   }
 }
 

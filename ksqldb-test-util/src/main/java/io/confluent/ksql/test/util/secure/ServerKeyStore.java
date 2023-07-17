@@ -26,106 +26,128 @@ import org.apache.kafka.common.config.SslConfigs;
  * Helper for creating a client key store to enable SSL in tests.
  */
 public final class ServerKeyStore {
+  /*
+   Steps to re-create the truststore and keystore:
 
-  private static final String BASE64_ENCODED_STORE =
-      "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"
-      + "XA==";
+   Note: The first and last name asked during the keystore generation should be 'localhost', which
+         will be used as the key alias.
 
-  private static final String EXPIRED_BASE64_ENCODED_STORE =
-      "/u3+7QAAAAIAAAABAAAAAQADYmFkAAABcmJlWWEAAAUBMIIE/TAOBgorBgEEASoCEQEBBQAEggTp5B9lmw0sNM0Db50V"
-      + "zcdYaSEfkbDWyaTp4syeFm9srNGcYmO1LWCToCMXLcQXeyaMaSeOaUXXPv4BhpFUO6l7Za7pKYwKvZoV6lSsvMBttI"
-      + "7hY8hCIqGvqbXn6a7gFyEYnZ8lKxhQr4AcOsy6c5tE3gqvVABlB98PTFNNlNR9wDHfeyXDNf5gHLC2hHNZz+jaCu5w"
-      + "8xEmQ7EWTMsW0Li/adUYkx/zicQKwU2bGGKuYuahDZ5OZE4Fa6OE4cOk2jCOeQSQn4S0g1ZtwCHq6XjAYUHG1NlFaq"
-      + "5WJM7qGiLO+05qIoyL8ju7F7v+GVgerwRKyinmEOPmUZxKewG2DCbX+m/Hly+vjPpNjlwa1o93UJAyW4QZ85/wJU8u"
-      + "vLJXWqSVlJb+97XgJTKQ9nzXvGEOqCXBbAv7l3IqFahgCC/3dikTqkWLZH9V8rypdtOf9/W1X8KAQBvTP5NSjW/kaz"
-      + "q/e7ZmiP0+NpS2sjzGdPyGqO6DzATzJ+Jg8a7jyJg496bV0QbGq6XHaX4+XiPtkaB8zP+jeWFw/NEFnIpfROIiY4/t"
-      + "u+fbH/VVcb4rhVchdM57pTZLnQHPN5tvxlDmOoXSzUojGAZnQRg97ldFmUk5QlXB2hJhQ33Wg+Py81iFKqeJEevgGU"
-      + "DCVZ8/xm52mRID0K1zXsKYW52P8Kf+C6MCBd9ccx/oW9ljQRPThrkw0NpSCGdzfL8pyXe4n3suWmysIMdi4kixQbcb"
-      + "JKC59T+S5HtCiVoq24iZlI8vJS1slYm7LefQsqOIqg8Ib9VSi6bgWZEpng6yJYt0X33BUpNp6GAf+mntDLD2GEjz3B"
-      + "6poZHmuqgEL9ysoBy1D/MmkquVVyQQDBDCojp/NtDikSxLJMBOUI456sOGnikFYcuyWRSsf1HE7VI5Nd3+lrVANpB4"
-      + "dx6v8y9gduNeiL9k8pfXkWu83Hz4jS9SQZRavTD0Kmrg05ZmNbTu7kNbI0H0xLPcRK1NjeTtXYI4xCTLVy52aEosTp"
-      + "QGbPU372d0vkav1zR47LA+kRuwreBp4jmMGq9QsiMDeqCz+wwIWP4jgLhucuNy5H9MLmSQLRD4i616sNXXu+/qPb9s"
-      + "HL7LatpvoS5siEOZ1dGWdf8CfkPJtnVu1/SNsDPfz0agm96yG7v5d/BWModKaz1W+6AZGFHI4HPcFzGy5JTYe6qSlN"
-      + "KNfuYG25Npvn8GdwEUsEqhApIlmoM5B+jJumjYT24flD1UZ8nMwxAOg7Rlgi+UdSjEAgesKrxjByjuLzqEB93BrMuY"
-      + "ZNaT3I/fDC1pary8CyJTZfU5u37oErlgJJ2mB7GcuDzBoLn92mTHlRIXB5EjSjN69+ZUDS+0PQIhAWsUrp3dsbalLr"
-      + "ijZtQJpO2xifp6/QjmKRwEfxZ4tLXst5YEEWUnPCazjrIvEbgZKikbN8skOuuVXNiTvNruAWbfk6t6PViuWfjnJyNv"
-      + "DcXXF/UaH0EPW+FKTeleDGaE85mSRKvOqFp2fkMQZnCfZcEGy3BIutoRWJwDsqfy1FvxsZ+e2WZam6fVMH4D9NoXLk"
-      + "Dm6vEGkpnAzwm9qszRiAGubiuTWWBfK+17T8axX5/lFEg7huBQAA/uL+GP86dkSY5icPo7IPkbC+1ozUespMSDEjQd"
-      + "lp9Gge6nEoP6YlmnqZ5EnhdVNQfIBtiYZFYNAvnaAAAAAQAFWC41MDkAAANLMIIDRzCCAi+gAwIBAgIEJ95VKzANBg"
-      + "kqhkiG9w0BAQsFADBUMQwwCgYDVQQGEwNiYWQxDDAKBgNVBAgTA2JhZDEMMAoGA1UEBxMDYmFkMQwwCgYDVQQKEwNi"
-      + "YWQxDDAKBgNVBAsTA2JhZDEMMAoGA1UEAxMDYmFkMB4XDTIwMDUyOTIxNDUwOFoXDTIwMDUzMDIxNDUwOFowVDEMMA"
-      + "oGA1UEBhMDYmFkMQwwCgYDVQQIEwNiYWQxDDAKBgNVBAcTA2JhZDEMMAoGA1UEChMDYmFkMQwwCgYDVQQLEwNiYWQx"
-      + "DDAKBgNVBAMTA2JhZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAIr/LFqkCmt/HKa5EmJVNrVv19hi7o"
-      + "KPJvxGwj8qFTl5eXu1K+msOsz8CKTdYZsJnjScoIXvHJaI8sV1FkxgZJ5iGQWtZ2JoqzvFwRrtWjQtvHf0HOqayaE8"
-      + "d2R31b3gACUFMw3MBOk5oZrumGT823NW8aEYuwZctcvNmJR2CjUvu4B8r8js2Yl/1ym8JMuXo4BzpFc6dpokMWBFSb"
-      + "k7ccgnNQ6aiAmiheOUSs8vpRc6NorANaiGGHIH0vOCzSCwYyfnz6keapB6oBCriAdB8EoEw1mafQ4QgbeoAplXJ139"
-      + "dY7t011z34wHumtfbCH0s8qzh9qUVJgUbA97nMQKJMsCAwEAAaMhMB8wHQYDVR0OBBYEFP+CdVtbliAqK/z/txCF/+"
-      + "qg9hOEMA0GCSqGSIb3DQEBCwUAA4IBAQAMy/hbT9rvgu12TraF8JmrzdG+6NDlHAsFi1kjcYKAArF5BgoVunpVVhnc"
-      + "YDFrQfKgEMf2v3+L3GNRsC7w1sWZmW3nlJHUCWDUV7MyWD1iDhEKwXVmRNNPXBhyqTbCmhifyQWtcf6i5WePv/8sVD"
-      + "tJHjCGrFSEI4KEh44uWNcr0AN61ybTfIiyqj13QYbovUx37tE2dYy5bvZxcgbSYw01L1NRNecnUv6GsiZe6MFxANLt"
-      + "Ie3ZnMjshmx1VRF1EAb9vAW5Y2E/hnXwnC4q0dpJPWotc6BZfU3aG1dtrQi0LvbtYJd2ivBCrBNyeUC7lWeCFuAXhR"
-      + "pzVZmjiWWD9P/+PQmhOrEAKd+Yo64eW62WWV8htPg=";
+   Keystore:
+   - Generate the keystore with a keystore & key passwords (99 days validity).
+     $ keytool -keystore keystore.jks -alias localhost -keyalg RSA -storetype JKS \
+               -keypass key-password -storepass keystore-password -validity 36135 -genkey
+   - Convert to base64
+     $ openssl base64 -A -in keystore.jks
 
-  private static final String KEY_PASSWORD = "password";
-  private static final String KEYSTORE_PASSWORD = "password";
-  private static final String TRUSTSTORE_PASSWORD = "password";
+   Truststore:
+   - Export public key/certificate from keystore
+     $ keytool -export -alias localhost -keystore keystore.jks -rfc -file public.cert
+   - Create truststore from public key/certificate
+     $ keytool -import -alias localhost -file public.cert -storetype JKS \
+               -storepass truststore-password -keystore truststore.jks
+   - Convert to base64
+     $ openssl base64 -A -in truststore.jks
+  */
 
+
+  private static final String BASE64_ENCODED_TRUSTSTORE =
+      "/u3+7QAAAAIAAAABAAAAAgAJbG9jYWxob3N0AAABdmd5tvQABVguNTA5AAADfTCCA3kwggJhoAMCAQICBA4/S/IwDQY"
+      + "JKoZIhvcNAQELBQAwbDELMAkGA1UEBhMCVVMxDjAMBgNVBAgTBVRleGFzMQ8wDQYDVQQHEwZBdXN0aW4xEjAQBg"
+      + "NVBAoTCUNvbmZsdWVudDEUMBIGA1UECxMLRW5naW5lZXJpbmcxEjAQBgNVBAMTCWxvY2FsaG9zdDAgFw0yMDEyM"
+      + "TUxNjAxNTBaGA8yMTE5MTEyMjE2MDE1MFowbDELMAkGA1UEBhMCVVMxDjAMBgNVBAgTBVRleGFzMQ8wDQYDVQQH"
+      + "EwZBdXN0aW4xEjAQBgNVBAoTCUNvbmZsdWVudDEUMBIGA1UECxMLRW5naW5lZXJpbmcxEjAQBgNVBAMTCWxvY2F"
+      + "saG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALgeKtCVSFtFY+ZnzY2CnzM44A2OsLpsIxAlPv"
+      + "kLJ+hW1ld9B89Vayu1a5/lWTee0Fc2OZR6MC5zhkZmRaGxBB2Dl4XXFMUKdngJdkVh7+AOQqSNy89LdirnvEMgb"
+      + "n9tk3zNQQR/K81uQt9sMBPjd7zRIj80PGu8pvBGwTfVvVI/GU9z0gGi3B8z8GwFvY3Zzy9KYeUUWk30f9WXx6jU"
+      + "tjtck0g35Bm8CHCGAXgY05vkoGwDVrPgw9CDILlvRIF4PqyDOWzP8t7Sai4caLoU1Aa8rodHZJi5BYnFfFCVh6B"
+      + "5kBstDkBuizgQ8RVaCjt+P3+AvnsatBUKiIlYC8rTFP8CAwEAAaMhMB8wHQYDVR0OBBYEFKUXrnfy9KAyf1ey9S"
+      + "VGslYJoA/6MA0GCSqGSIb3DQEBCwUAA4IBAQAmo0bQpm3H9Yio7fvQUxrhrPd0jWjKG6ZUgqRNjQCknsDtj7RFc"
+      + "JR7VhJHW+qSr3z0mS6QkGiOBnazKk3KEPrbEPJppKxmuBTFJMesC2fPBGCi5yq6iMymjlN+Uicb/gZvbtZ9bJ6C"
+      + "Z+XUD8Xu9nu7z4DvADgHcLoduraFa6WptfTv6vwk+EKJoFTrWMZcUVupoQSh46hdQr2ePhTJtBpmtxhyOdROP/O"
+      + "hYF5z/dTYHoYJdMExBIId8tyyMrnKp35mDsWF7k+vKciTCCwyf6E1zeTJr6tDJFYYsjPx0tB8i//rTyi0Mv2Mtv"
+      + "8MvTNbzUpte61oAUJEXVDEH48OT2ejEgMJi8nTUi+2c+9A03FFiE21jlo=";
+
+  private static final String BASE64_ENCODED_KEYSTORE =
+      "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"
+      + "BT+";
+
+  private static final String EXPIRED_BASE64_ENCODED_KEYSTORE =
+      "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"
+       + "rUP7ew6gT/gSwmncHnSesD7L+IzM+2LVM=";
+
+  private static final String KEY_PASSWORD = "key-password";
+  private static final String KEYSTORE_PASSWORD = "keystore-password";
+  private static final String KEYSTORE_ALIAS = "localhost";
+  private static final String TRUSTSTORE_PASSWORD = "truststore-password";
+
+  private final AtomicReference<Path> trustStorePath = new AtomicReference<>();
+  private final AtomicReference<Path> clientTrustStorePath = new AtomicReference<>();
   private final AtomicReference<Path> keyStorePath = new AtomicReference<>();
   private final AtomicReference<Path> clientKeyStorePath = new AtomicReference<>();
 
@@ -142,7 +164,7 @@ public final class ServerKeyStore {
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath(),
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PASSWORD,
         SslConfigs.SSL_KEY_PASSWORD_CONFIG, KEY_PASSWORD,
-        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, keyStorePath(),
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath(),
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PASSWORD
     );
   }
@@ -157,16 +179,20 @@ public final class ServerKeyStore {
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientKeyStorePath(),
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PASSWORD,
         SslConfigs.SSL_KEY_PASSWORD_CONFIG, KEY_PASSWORD,
-        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, clientKeyStorePath(),
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, clientTrustStorePath(),
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUSTSTORE_PASSWORD
     );
+  }
+
+  public String getKeyAlias() {
+    return KEYSTORE_ALIAS;
   }
 
   public void writeExpiredServerKeyStore() {
     KeyStoreUtil.putStore(
         "expired-server-key-store",
         Paths.get(keyStorePath()),
-        EXPIRED_BASE64_ENCODED_STORE
+        EXPIRED_BASE64_ENCODED_KEYSTORE
     );
   }
 
@@ -174,7 +200,7 @@ public final class ServerKeyStore {
     KeyStoreUtil.putStore(
         "valid-server-key-store",
         Paths.get(keyStorePath()),
-        BASE64_ENCODED_STORE
+        BASE64_ENCODED_KEYSTORE
     );
   }
 
@@ -184,7 +210,19 @@ public final class ServerKeyStore {
         return existing;
       }
 
-      return KeyStoreUtil.createTemporaryStore("server-key-store", BASE64_ENCODED_STORE);
+      return KeyStoreUtil.createTemporaryStore("server-key-store", BASE64_ENCODED_KEYSTORE);
+    });
+
+    return path.toAbsolutePath().toString();
+  }
+
+  private String trustStorePath() {
+    final Path path = trustStorePath.updateAndGet(existing -> {
+      if (existing != null) {
+        return existing;
+      }
+
+      return KeyStoreUtil.createTemporaryStore("server-trust-store", BASE64_ENCODED_TRUSTSTORE);
     });
 
     return path.toAbsolutePath().toString();
@@ -196,7 +234,19 @@ public final class ServerKeyStore {
         return existing;
       }
 
-      return KeyStoreUtil.createTemporaryStore("client-key-store", BASE64_ENCODED_STORE);
+      return KeyStoreUtil.createTemporaryStore("client-key-store", BASE64_ENCODED_KEYSTORE);
+    });
+
+    return path.toAbsolutePath().toString();
+  }
+
+  private String clientTrustStorePath() {
+    final Path path = clientTrustStorePath.updateAndGet(existing -> {
+      if (existing != null) {
+        return existing;
+      }
+
+      return KeyStoreUtil.createTemporaryStore("client-trust-store", BASE64_ENCODED_TRUSTSTORE);
     });
 
     return path.toAbsolutePath().toString();

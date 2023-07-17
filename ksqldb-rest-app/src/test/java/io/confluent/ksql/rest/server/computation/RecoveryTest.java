@@ -16,9 +16,11 @@
 package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
@@ -121,7 +123,8 @@ public class RecoveryTest {
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ignored -> engineMetrics,
-        queryIdGenerator);
+        queryIdGenerator,
+        ksqlConfig);
   }
 
   private static class FakeCommandQueue implements CommandQueue {
@@ -629,6 +632,16 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverInsertIntosWithCustomQueryId() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "INSERT INTO B WITH(QUERY_ID='MY_INSERT_ID') SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
   public void shouldRecoverInsertIntosRecreates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
@@ -666,11 +679,77 @@ public class RecoveryTest {
   }
 
   @Test
-  public void shouldRecoverDrop() {
+  public void shouldRecoverDropWithTerminate() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
         "TERMINATE CSAS_B_1;",
+        "DROP STREAM B;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverDropWithSourceConstraintsFromOldMetastore() {
+    // Verify that an upgrade will not be affected if DROP commands are not in order.
+
+    // Create and Drop the stream just to get the QueuedCommand for the 'DROP STREAM A'
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "DROP STREAM A;"
+    );
+
+    // Get the QueuedCommand for 'DROP STREAM A'
+    final QueuedCommand originalDropA = commands.get(1);
+    final QueuedCommand duplicateDropA = new QueuedCommand(
+        originalDropA.getCommandId(),
+        originalDropA.getCommand(),
+        Optional.empty(),
+        (long) commands.size()
+    );
+
+    // Now execute the real commands again, then add the 'DROP STREAM A' to the list to recover
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_3;"
+    );
+
+    // ksqlDB does not allow this because 'A' is used by 'B', even if the query has been terminated.
+    // However, if a ksqlDB upgrade is done, then this order can be possible. Make sure stream 'A'
+    // can be dropped before dropping 'B'.
+    commands.add(duplicateDropA);
+
+    final KsqlServer recovered = new KsqlServer(commands);
+    recovered.recover();
+
+    // Original server has both streams
+    assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources().size(), is(2));
+    assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("A")));
+    assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
+
+    // Recovered server has only stream 'B'
+    assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(1));
+    assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
+  }
+
+  @Test
+  public void shouldRecoverDrop() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "DROP STREAM B;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverDropWithRecreates() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "DROP STREAM B;",
+        "CREATE STREAM B AS SELECT * FROM A;",
         "DROP STREAM B;"
     );
     shouldRecover(commands);

@@ -47,8 +47,11 @@ public final class Repartitioning {
       return true;
     }
 
+    // this is technically covered by the check below because our syntax does not
+    // yet support PARTITION BY col1, col2 but we make this explicit for when we
+    // do end up supporting this (we'll have to change the logic here)
     if (schema.key().size() != 1) {
-      throw new UnsupportedOperationException("logic only supports single key column");
+      return true;
     }
 
     if (partitionBy.size() != schema.key().size()) {

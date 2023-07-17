@@ -18,6 +18,7 @@ package io.confluent.ksql.test.driver;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
@@ -75,7 +76,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
@@ -160,7 +160,8 @@ public class KsqlTesterTest {
         NoopProcessingLogContext.INSTANCE,
         metaStore,
         ServiceInfo.create(config),
-        new SequentialQueryIdGenerator()
+        new SequentialQueryIdGenerator(),
+        this.config
     );
 
     this.expectedException = null;
@@ -341,7 +342,7 @@ public class KsqlTesterTest {
     }
   }
 
-  private Serde<Struct> keySerde(final DataSource sinkSource) {
+  private Serde<GenericKey> keySerde(final DataSource sinkSource) {
     final PersistenceSchema schema = PersistenceSchema.from(
         sinkSource.getSchema().key(),
         sinkSource.getKsqlTopic().getKeyFormat().getFeatures()

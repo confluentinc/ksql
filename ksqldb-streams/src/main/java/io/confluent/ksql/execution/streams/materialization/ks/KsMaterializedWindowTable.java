@@ -18,18 +18,25 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
+import com.google.common.collect.Streams;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherAll;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherRange;
+import io.confluent.ksql.util.IteratorUtil;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
@@ -42,28 +49,40 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
   private final KsStateStore stateStore;
   private final Duration windowSize;
+  private final WindowStoreCacheBypassFetcher cacheBypassFetcher;
+  private final WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll;
+  private final WindowStoreCacheBypassFetcherRange cacheBypassFetcherRange;
 
-  KsMaterializedWindowTable(final KsStateStore store, final Duration windowSize) {
+  KsMaterializedWindowTable(final KsStateStore store, final Duration windowSize,
+      final WindowStoreCacheBypassFetcher cacheBypassFetcher,
+                            final WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll,
+                            final WindowStoreCacheBypassFetcherRange cacheBypassFetcherRange) {
     this.stateStore = Objects.requireNonNull(store, "store");
     this.windowSize = Objects.requireNonNull(windowSize, "windowSize");
+    this.cacheBypassFetcher = Objects.requireNonNull(cacheBypassFetcher, "cacheBypassFetcher");
+    this.cacheBypassFetcherAll = Objects.requireNonNull(
+            cacheBypassFetcherAll, "cacheBypassFetcherAll");
+    this.cacheBypassFetcherRange = Objects.requireNonNull(
+            cacheBypassFetcherRange, "cacheBypassFetcherRange");
   }
 
   @Override
   public List<WindowedRow> get(
-      final Struct key,
+      final GenericKey key,
       final int partition,
       final Range<Instant> windowStartBounds,
       final Range<Instant> windowEndBounds
   ) {
     try {
-      final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
+      final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedWindowStore(), partition);
 
       final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
 
       final Instant upper = calculateUpperBound(windowStartBounds, windowEndBounds);
 
-      try (WindowStoreIterator<ValueAndTimestamp<GenericRow>> it = store.fetch(key, lower, upper)) {
+      try (WindowStoreIterator<ValueAndTimestamp<GenericRow>> it
+          = cacheBypassFetcher.fetch(store, key, lower, upper)) {
 
         final Builder<WindowedRow> builder = ImmutableList.builder();
 
@@ -97,6 +116,48 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
       }
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
+    }
+  }
+
+  public Iterator<WindowedRow> get(
+      final int partition,
+      final Range<Instant> windowStartBounds,
+      final Range<Instant> windowEndBounds) {
+    try {
+      final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
+          .store(QueryableStoreTypes.timestampedWindowStore(), partition);
+
+      final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
+
+      final Instant upper = calculateUpperBound(windowStartBounds, windowEndBounds);
+
+      final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> iterator
+          = cacheBypassFetcherAll.fetchAll(store, lower, upper);
+      return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close)).map(next -> {
+        final Instant windowStart = next.key.window().startTime();
+        if (!windowStartBounds.contains(windowStart)) {
+          return null;
+        }
+
+        final Instant windowEnd = next.key.window().endTime();
+        if (!windowEndBounds.contains(windowEnd)) {
+          return null;
+        }
+
+        final TimeWindow window =
+            new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
+
+        final WindowedRow row = WindowedRow.of(
+            stateStore.schema(),
+            new Windowed<>(next.key.key(), window),
+            next.value.value(),
+            next.value.timestamp()
+        );
+
+        return row;
+      }).filter(Objects::nonNull).iterator();
+    } catch (final Exception e) {
+      throw new MaterializationException("Failed to scan materialized table", e);
     }
   }
 

@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
-import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
+import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collections;
 import java.util.Map;
@@ -36,7 +36,7 @@ import java.util.Optional;
 public class Command {
 
   @VisibleForTesting
-  static final int VERSION = 2;
+  public static final int VERSION = 5;
 
   private final String statement;
   private final Map<String, Object> overwriteProperties;
@@ -80,7 +80,7 @@ public class Command {
   }
 
   @VisibleForTesting
-  Command(
+  public Command(
       final String statement,
       final Map<String, Object> overwriteProperties,
       final Map<String, String> originalProperties,
@@ -97,7 +97,7 @@ public class Command {
     this.version = requireNonNull(version, "version");
 
     if (expectedVersion < version.orElse(0)) {
-      throw new IncomaptibleKsqlCommandVersionException(
+      throw new IncompatibleKsqlCommandVersionException(
           "Received a command from an incompatible command topic version. "
               + "Expected version less than or equal to " + expectedVersion
               + " but got " + version.orElse(0));

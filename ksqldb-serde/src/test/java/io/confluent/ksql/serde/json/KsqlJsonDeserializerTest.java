@@ -52,6 +52,7 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,6 +73,7 @@ public class KsqlJsonDeserializerTest {
   private static final String ARRAYCOL = "ARRAYCOL";
   private static final String MAPCOL = "MAPCOL";
   private static final String CASE_SENSITIVE_FIELD = "caseField";
+  private static final String TIMESTAMPFIELD = "TIMESTAMPFIELD";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
       .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
@@ -87,6 +89,7 @@ public class KsqlJsonDeserializerTest {
           .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
           .build())
+      .field(TIMESTAMPFIELD, Timestamp.builder().optional().build())
       .build();
 
   private static final Map<String, Object> AN_ORDER = ImmutableMap.<String, Object>builder()
@@ -97,6 +100,7 @@ public class KsqlJsonDeserializerTest {
       .put("arraycol", ImmutableList.of(10.0, 20.0))
       .put("mapcol", Collections.singletonMap("key1", 10.0))
       .put("caseField", 1L)
+      .put("timestampfield", new java.sql.Timestamp(1000))
       .build();
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -126,7 +130,8 @@ public class KsqlJsonDeserializerTest {
         .put(ORDERUNITS, 10.0)
         .put(ARRAYCOL, ImmutableList.of(10.0, 20.0))
         .put(MAPCOL, ImmutableMap.of("key1", 10.0))
-        .put(CASE_SENSITIVE_FIELD, 1L);
+        .put(CASE_SENSITIVE_FIELD, 1L)
+        .put(TIMESTAMPFIELD, new java.sql.Timestamp(1000));
 
     deserializer = givenDeserializerForSchema(ORDER_SCHEMA, Struct.class);
   }
@@ -260,6 +265,7 @@ public class KsqlJsonDeserializerTest {
     row.put("orderunits", null);
     row.put("arrayCol", new Double[]{0.0, null});
     row.put("mapCol", mapValue);
+    row.put("timestampfield", null);
 
     final byte[] bytes = serializeJson(row);
 
@@ -275,6 +281,7 @@ public class KsqlJsonDeserializerTest {
         .put(ARRAYCOL, Arrays.asList(0.0, null))
         .put(MAPCOL, mapValue)
         .put(CASE_SENSITIVE_FIELD, null)
+        .put(TIMESTAMPFIELD, null)
     ));
   }
 
@@ -607,6 +614,40 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeToTimestamp() {
+    // Given:
+    final KsqlJsonDeserializer<java.sql.Timestamp> deserializer =
+        givenDeserializerForSchema(Timestamp.SCHEMA, java.sql.Timestamp.class);
+
+    final byte[] bytes = serializeJson(100L);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(((java.sql.Timestamp) result).getTime(), is(100L));
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceToTimestamp() {
+    // Given:
+    final KsqlJsonDeserializer<java.sql.Timestamp> deserializer =
+        givenDeserializerForSchema(Timestamp.SCHEMA, java.sql.Timestamp.class);
+
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: TIMESTAMP"))));
+  }
+
+  @Test
   public void shouldDeserializedJsonArray() {
     // Given:
     final KsqlJsonDeserializer<List> deserializer = givenDeserializerForSchema(
@@ -811,6 +852,26 @@ public class KsqlJsonDeserializerTest {
         givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
 
     final byte[] bytes = "\"personal info: do not log me\"".getBytes(StandardCharsets.UTF_8);
+
+    try {
+
+      // When:
+      deserializer.deserialize(SOME_TOPIC, bytes);
+
+      fail("Invalid test: should throw");
+
+    } catch (final Exception e) {
+      assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
+    }
+  }
+
+  @Test
+  public void shouldNotIncludeBadValueInExceptionOnJsonParseException() {
+    // Given:
+    final KsqlJsonDeserializer<Long> deserializer =
+        givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
+
+    final byte[] bytes = "{bad json containing personal info: do not log me".getBytes(StandardCharsets.UTF_8);
 
     try {
 

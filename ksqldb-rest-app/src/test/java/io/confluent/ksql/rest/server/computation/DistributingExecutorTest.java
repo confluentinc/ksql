@@ -74,7 +74,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;

@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.properties.with;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -24,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -131,10 +133,28 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getInt(CreateConfigs.VALUE_SCHEMA_ID));
   }
 
-  public Optional<FormatInfo> getKeyFormat() {
+  public Optional<FormatInfo> getKeyFormat(final SourceName name) {
     final String keyFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
-    return Optional.ofNullable(keyFormat).map(format -> FormatInfo.of(format, ImmutableMap.of()));
+    return Optional.ofNullable(keyFormat)
+        .map(format -> FormatInfo.of(format, getKeyFormatProperties(keyFormat, name.text())));
+  }
+
+  private Map<String, String> getKeyFormatProperties(final String keyFormat, final String name) {
+    final Builder<String, String> builder = ImmutableMap.builder();
+    if (AvroFormat.NAME.equalsIgnoreCase(keyFormat)) {
+      // ensure that the schema name for the key is unique to the sink - this allows
+      // users to always generate valid, non-conflicting avro record definitions in
+      // generated Java classes (https://github.com/confluentinc/ksql/issues/6465)
+      builder.put(AvroFormat.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
+    }
+
+    final String delimiter = props.getString(CommonCreateConfigs.KEY_DELIMITER_PROPERTY);
+    if (delimiter != null) {
+      builder.put(DelimitedFormat.DELIMITER, delimiter);
+    }
+
+    return builder.build();
   }
 
   public Optional<FormatInfo> getValueFormat() {

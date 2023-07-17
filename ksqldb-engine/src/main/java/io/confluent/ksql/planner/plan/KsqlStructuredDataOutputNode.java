@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -37,6 +36,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final KsqlTopic ksqlTopic;
   private final boolean doCreateInto;
   private final SourceName intoSourceName;
+  private final boolean orReplace;
 
   public KsqlStructuredDataOutputNode(
       final PlanNodeId id,
@@ -46,13 +46,15 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlTopic ksqlTopic,
       final OptionalInt limit,
       final boolean doCreateInto,
-      final SourceName intoSourceName
+      final SourceName intoSourceName,
+      final boolean orReplace
   ) {
     super(id, source, schema, limit, timestampColumn);
 
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
+    this.orReplace = orReplace;
 
     validate(source, intoSourceName);
   }
@@ -69,17 +71,21 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return intoSourceName;
   }
 
+  public boolean getOrReplace() {
+    return orReplace;
+  }
+
   @Override
   public Optional<SourceName> getSinkName() {
     return Optional.of(intoSourceName);
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
     final PlanNode source = getSource();
-    final SchemaKStream<?> schemaKStream = source.buildStream(builder);
+    final SchemaKStream<?> schemaKStream = source.buildStream(buildContext);
 
-    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
+    final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
 
     return schemaKStream.into(
         ksqlTopic,

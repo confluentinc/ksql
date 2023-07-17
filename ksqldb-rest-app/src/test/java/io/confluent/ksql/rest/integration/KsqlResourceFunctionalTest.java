@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,9 +27,8 @@ import static org.hamcrest.Matchers.startsWith;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -78,7 +77,6 @@ public class KsqlResourceFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
-      .withProperty(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true)
       .build();
 
   @ClassRule
@@ -169,7 +167,6 @@ public class KsqlResourceFunctionalTest {
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         SerdeFeatures.of()
     );
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(schema.logicalSchema());
 
     final SchemaTranslator translator = new AvroFormat()
         .getSchemaTranslator(ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value"));
@@ -210,7 +207,7 @@ public class KsqlResourceFunctionalTest {
     TEST_HARNESS.verifyAvailableRows(
         "books",
         contains(matches(
-            keyBuilder.build("Metamorphosis"),
+            genericKey("Metamorphosis"),
             genericRow("Franz Kafka"),
             0,
             0L,
@@ -222,16 +219,16 @@ public class KsqlResourceFunctionalTest {
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static Matcher<ConsumerRecord<Struct, GenericRow>> matches(
-      final Struct key,
+  private static Matcher<ConsumerRecord<GenericKey, GenericRow>> matches(
+      final GenericKey key,
       final GenericRow value,
       final int partition,
       final long offset,
       final long timestamp
   ) {
-    return new TypeSafeMatcher<ConsumerRecord<Struct, GenericRow>>() {
+    return new TypeSafeMatcher<ConsumerRecord<GenericKey, GenericRow>>() {
       @Override
-      protected boolean matchesSafely(final ConsumerRecord<Struct, GenericRow> item) {
+      protected boolean matchesSafely(final ConsumerRecord<GenericKey, GenericRow> item) {
         return item.key().equals(key)
             && item.value().equals(value)
             && item.offset() == offset

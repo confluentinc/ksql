@@ -15,36 +15,37 @@
 
 package io.confluent.ksql.structured;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.same;
-import static org.easymock.EasyMock.verify;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory;
@@ -53,6 +54,7 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.streams.KsqlValueJoiner;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
@@ -80,11 +82,13 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -102,13 +106,11 @@ import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Predicate;
-import org.easymock.EasyMock;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
@@ -122,17 +124,15 @@ public class SchemaKTableTest {
   private final MetaStore metaStore =
       MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
-  private final Grouped<String, String> grouped = Grouped.with(
-      "group", Serdes.String(), Serdes.String());
 
-  private SchemaKTable initialSchemaKTable;
-  private KTable kTable;
-  private KTable secondKTable;
+  private SchemaKTable<GenericKey> initialSchemaKTable;
+  private KTable<String, GenericRow> kTable;
+  private KTable<String, GenericRow> secondKTable;
   private KsqlTable<?> ksqlTable;
   private KsqlTable<?> secondKsqlTable;
-  private KTable mockKTable;
-  private SchemaKTable firstSchemaKTable;
-  private SchemaKTable secondSchemaKTable;
+  private KTable<String, GenericRow> mockKTable;
+  private SchemaKTable<GenericKey> firstSchemaKTable;
+  private SchemaKTable<GenericKey> secondSchemaKTable;
   private StepSchemaResolver schemaResolver;
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
@@ -150,13 +150,19 @@ public class SchemaKTableTest {
   private PlanBuilder planBuilder;
 
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private PlanBuildContext buildContext;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private RuntimeBuildContext executeContext;
+  @Mock
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
   private KsqlTopic topic;
+  @Mock
+  private PlanInfo planInfo;
+  @Mock
+  private MaterializationInfo.Builder materializationBuilder;
 
   @Before
   public void init() {
@@ -179,16 +185,16 @@ public class SchemaKTableTest {
             getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema())
         ));
 
-    mockKTable = EasyMock.niceMock(KTable.class);
+    mockKTable = mock(KTable.class);
     firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
 
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(executeContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(executeContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(executeContext.getProcessingLogger(any())).thenReturn(processingLogger);
 
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        executeContext,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         new StreamsFactories(
@@ -202,9 +208,9 @@ public class SchemaKTableTest {
   }
 
   private ExecutionStep buildSourceStep(final LogicalSchema schema, final KTable kTable) {
-    final ExecutionStep sourceStep = Mockito.mock(ExecutionStep.class);
-    when(sourceStep.build(any())).thenReturn(
-        KTableHolder.unmaterialized(kTable, schema, keySerdeFactory));
+    final ExecutionStep sourceStep = mock(ExecutionStep.class);
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(
+        KTableHolder.materialized(kTable, schema, executionKeyFactory, materializationBuilder));
     return sourceStep;
   }
 
@@ -278,7 +284,7 @@ public class SchemaKTableTest {
         ImmutableList.of(ColumnName.of("K")),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        queryBuilder
+        buildContext
     );
 
     // Then:
@@ -286,6 +292,108 @@ public class SchemaKTableTest {
         projectedSchemaKStream.getSchema(),
         is(schemaResolver.resolve(
             projectedSchemaKStream.getSourceStep(), initialSchemaKTable.getSchema()))
+    );
+  }
+
+  @Test
+  public void shouldBuildSchemaForSelectKey() {
+    // Given:
+    final String selectQuery = "SELECT col0 AS K, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
+        Optional.empty(),
+        childContextStacker,
+        true
+    );
+
+    // Then:
+    assertThat(
+        resultSchemaKTable.getSchema(),
+        is(schemaResolver.resolve(
+            resultSchemaKTable.getSourceStep(), initialSchemaKTable.getSchema()))
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForSelectKey() {
+    // Given:
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
+        Optional.empty(),
+        childContextStacker,
+        true
+    );
+
+    // Then:
+    assertThat(
+        resultSchemaKTable.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.tableSelectKey(
+                childContextStacker,
+                initialSchemaKTable.getSourceTableStep(),
+                InternalFormats.of(
+                    keyFormat.withSerdeFeatures(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)),
+                    valueFormat.getFormatInfo()),
+                ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")))
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldFailSelectKeyForceRepartitionOnNonKeyColumn() {
+    // Given:
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final UnsupportedOperationException e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> initialSchemaKTable.selectKey(
+            valueFormat.getFormatInfo(),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
+            Optional.empty(),
+            childContextStacker,
+            true
+    ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot repartition a TABLE source."));
+  }
+
+  @Test
+  public void shouldFailSelectKeyIfNotForced() {
+    // Given:
+    final String selectQuery = "SELECT col0 AS K, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> initialSchemaKTable.selectKey(
+            valueFormat.getFormatInfo(),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
+            Optional.empty(),
+            childContextStacker,
+            false
+    ));
+
+    // Then:
+    assertThat(
+        e.getMessage(), containsString("Cannot repartition a TABLE source.")
     );
   }
 
@@ -299,7 +407,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(ImmutableList.of(),
-        projectNode.getSelectExpressions(), childContextStacker, queryBuilder);
+        projectNode.getSelectExpressions(), childContextStacker, buildContext);
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema(),
@@ -322,7 +430,7 @@ public class SchemaKTableTest {
         ImmutableList.of(),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        queryBuilder
+        buildContext
     );
 
     // Then:
@@ -461,7 +569,7 @@ public class SchemaKTableTest {
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 Formats.of(
-                    initialSchemaKTable.keyFormat.getFormatInfo(),
+                    FormatInfo.of(JsonFormat.NAME), // key format is updated to supported multiple grouping expressions
                     valueFormat.getFormatInfo(),
                     SerdeFeatures.of(),
                     SerdeFeatures.of()
@@ -473,9 +581,9 @@ public class SchemaKTableTest {
   }
 
   @Test
-  public void shouldBuildStepForGroupByWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+  public void shouldBuildStepForGroupByBasedOnKeySerdeFeatures() {
     // Given:
-    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
     final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
@@ -498,7 +606,7 @@ public class SchemaKTableTest {
                 Formats.of(
                     initialSchemaKTable.keyFormat.getFormatInfo(),
                     valueFormat.getFormatInfo(),
-                    SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+                    SerdeFeatures.of(),
                     SerdeFeatures.of()
                 ),
                 groupByExpressions
@@ -533,17 +641,17 @@ public class SchemaKTableTest {
     // Given:
     final Serde<GenericRow> valSerde =
         getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema());
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
-    expect(
+    when(executeContext.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
+    final Grouped<Object, GenericRow> grouped = mock(Grouped.class);
+    when(
         groupedFactory.create(
             eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
-            anyObject(Serdes.String().getClass()),
+            any(),
             same(valSerde))
-    ).andReturn(grouped);
-    expect(mockKTable.filter(anyObject(Predicate.class))).andReturn(mockKTable);
-    final KGroupedTable groupedTable = mock(KGroupedTable.class);
-    expect(mockKTable.groupBy(anyObject(), same(grouped))).andReturn(groupedTable);
-    replay(groupedFactory, mockKTable);
+    ).thenReturn(grouped);
+    when(mockKTable.filter(any(Predicate.class))).thenReturn(mockKTable);
+    final KGroupedTable<Object, GenericRow> groupedTable = mock(KGroupedTable.class);
+    when(mockKTable.groupBy(any(), same(grouped))).thenReturn(groupedTable);
 
     final List<Expression> groupByExpressions = Collections.singletonList(TEST_2_COL_1);
     final SchemaKTable<?> schemaKTable = buildSchemaKTable(ksqlTable, mockKTable);
@@ -553,58 +661,60 @@ public class SchemaKTableTest {
         schemaKTable.groupBy(valueFormat.getFormatInfo(), groupByExpressions, childContextStacker);
 
     // Then:
-    result.getSourceTableStep().build(planBuilder);
-    verify(mockKTable, groupedFactory);
+    result.getSourceTableStep().build(planBuilder, planInfo);
+    verify(groupedFactory).create(
+        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
+        any(),
+        same(valSerde));
+    verify(mockKTable).filter(any(Predicate.class));
+    verify(mockKTable).groupBy(any(), same(grouped));
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableLeftJoin() {
-    expect(mockKTable.leftJoin(eq(secondKTable),
-        anyObject(KsqlValueJoiner.class)))
-        .andReturn(EasyMock.niceMock(KTable.class));
-
-    replay(mockKTable);
+    when(mockKTable.leftJoin(eq(secondKTable),
+        any(KsqlValueJoiner.class)))
+        .thenReturn(mock(KTable.class));
 
     final SchemaKStream<?> joinedKStream = firstSchemaKTable
         .leftJoin(secondSchemaKTable, KEY, childContextStacker);
 
-    ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
-    verify(mockKTable);
+    ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder, planInfo);
+    verify(mockKTable).leftJoin(eq(secondKTable),
+        any(KsqlValueJoiner.class));
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableInnerJoin() {
-    expect(mockKTable.join(eq(secondKTable),
-        anyObject(KsqlValueJoiner.class)))
-        .andReturn(EasyMock.niceMock(KTable.class));
-
-    replay(mockKTable);
+    when(mockKTable.join(eq(secondKTable),
+        any(KsqlValueJoiner.class)))
+        .thenReturn(mock(KTable.class));
 
     final SchemaKStream<?> joinedKStream = firstSchemaKTable
         .join(secondSchemaKTable, KEY, childContextStacker);
 
-    ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
-    verify(mockKTable);
+    ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder, planInfo);
+    verify(mockKTable).join(eq(secondKTable),
+        any(KsqlValueJoiner.class));
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableOuterJoin() {
-    expect(mockKTable.outerJoin(eq(secondKTable),
-        anyObject(KsqlValueJoiner.class)))
-        .andReturn(EasyMock.niceMock(KTable.class));
-
-    replay(mockKTable);
+    when(mockKTable.outerJoin(eq(secondKTable),
+        any(KsqlValueJoiner.class)))
+        .thenReturn(mock(KTable.class));
 
     final SchemaKStream<?> joinedKStream = firstSchemaKTable
         .outerJoin(secondSchemaKTable, ColumnName.of("KEY"), childContextStacker);
 
-    ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder);
-    verify(mockKTable);
+    ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder, planInfo);
+    verify(mockKTable).outerJoin(eq(secondKTable),
+        any(KsqlValueJoiner.class));
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
   }
 
@@ -621,8 +731,6 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForTableTableJoin() {
     // Given:
-    givenJoin();
-    givenLeftJoin();
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
         Pair.of(JoinType.INNER, firstSchemaKTable::join)
@@ -652,8 +760,6 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildSchemaForTableTableJoin() {
     // Given:
-    givenJoin();
-    givenLeftJoin();
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
         Pair.of(JoinType.INNER, firstSchemaKTable::join)
@@ -691,22 +797,5 @@ public class SchemaKTableTest {
 
   private PlanNode buildLogicalPlan(final String query) {
     return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
-  }
-
-  private void givenJoin() {
-    final KTable resultTable = EasyMock.niceMock(KTable.class);
-    expect(mockKTable.join(
-        eq(secondKTable),
-        anyObject(KsqlValueJoiner.class))
-    ).andReturn(resultTable);
-  }
-
-
-  private void givenLeftJoin() {
-    final KTable resultTable = EasyMock.niceMock(KTable.class);
-    expect(mockKTable.leftJoin(
-        eq(secondKTable),
-        anyObject(KsqlValueJoiner.class))
-    ).andReturn(resultTable);
   }
 }

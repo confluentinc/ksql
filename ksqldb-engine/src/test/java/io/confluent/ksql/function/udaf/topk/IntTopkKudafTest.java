@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,7 +47,7 @@ public class IntTopkKudafTest {
   @Before
   public void setup() {
     topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.INTEGER),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             createArgs(3));
   }
 
@@ -109,7 +110,7 @@ public class IntTopkKudafTest {
     // Given:
     final int topKSize = 300;
     topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.INTEGER),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             createArgs(topKSize));
     final List<Integer> initialAggregate = IntStream.range(0, topKSize)
             .boxed().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
@@ -129,7 +130,7 @@ public class IntTopkKudafTest {
   public void shouldBeThreadSafe() {
     // Given:
     topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.INTEGER),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             createArgs(12));
 
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
@@ -158,7 +159,7 @@ public class IntTopkKudafTest {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.INTEGER),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             createArgs(topX));
     final List<Integer> aggregate = new ArrayList<>();
     final long start = System.currentTimeMillis();
@@ -177,7 +178,7 @@ public class IntTopkKudafTest {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.INTEGER),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             createArgs(topX));
 
     final List<Integer> aggregate1 = IntStream.range(0, topX)

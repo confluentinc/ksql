@@ -22,13 +22,13 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.1.12-0</version>
+        <version>6.2.11-0</version>
     </parent>
 
     <artifactId>ksqldb-tools</artifactId>
 
     <properties>
-        <main-class>io.confluent.ksql.tools.printmetrics.PrintMetrics</main-class>
+        <air.main.basedir>${project.parent.basedir}</air.main.basedir>
     </properties>
 
     <dependencies>
@@ -42,12 +42,60 @@
             <artifactId>jna</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.rvesse</groupId>
+            <artifactId>airline</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-rest-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-api-client</artifactId>
+        </dependency>
+
         <!-- Required for running tests -->
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>
             <version>${io.confluent.ksql.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-rest-app</artifactId>
+            <version>${io.confluent.ksql.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-rest-app</artifactId>
+            <version>${io.confluent.ksql.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-engine</artifactId>
+            <version>${io.confluent.ksql.version}</version>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>

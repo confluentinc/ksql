@@ -6,6 +6,10 @@ description: Learn how to work with time windows in ksqlDB statements
 keywords: ksqldb, timestamp, window 
 ---
 
+!!! important
+      This page refers to timestamps as a field in records. For information
+      on the TIMESTAMP data type, see [Timestamp types](../reference/sql/data-types.md).
+
 ![Diagram showing records in a ksqlDB stream](../img/ksql-stream-records.png)
 
 In ksqlDB, a record is an immutable representation of an event in time.
@@ -109,7 +113,7 @@ ingestion-time. This approach implements *payload-time* semantics.
       milliseconds that have elapsed since 1 January 1970 at midnight UTC/GMT.
       Also, you can specify the timestamp as a string when you provide a
       TIMESTAMP_FORMAT. For more information, see
-      [Timestamp Formats](../developer-guide/syntax-reference.md#timestamp-formats).
+      [Timestamp Formats](/reference/sql/time/#timestamp-formats).
 
 When working with time you should also make sure that additional aspects
 of time, like time zones and calendars, are correctly synchronized — or

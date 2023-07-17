@@ -36,6 +36,7 @@ final class ComparisonUtil {
       .add(handler(SqlBaseType.ARRAY, ComparisonUtil::handleArray))
       .add(handler(SqlBaseType.MAP, ComparisonUtil::handleMap))
       .add(handler(SqlBaseType.STRUCT, ComparisonUtil::handleStruct))
+      .add(handler(SqlBaseType.TIMESTAMP, ComparisonUtil::handleTimestamp))
       .build();
 
   private ComparisonUtil() {
@@ -76,7 +77,7 @@ final class ComparisonUtil {
   }
 
   private static boolean handleString(final Type operator, final SqlType right) {
-    return right.baseType() == SqlBaseType.STRING;
+    return right.baseType() == SqlBaseType.STRING || right.baseType() == SqlBaseType.TIMESTAMP;
   }
 
   private static boolean handleBoolean(final Type operator, final SqlType right) {
@@ -93,6 +94,10 @@ final class ComparisonUtil {
 
   private static boolean handleStruct(final Type operator, final SqlType right) {
     return right.baseType() == SqlBaseType.STRUCT && isEqualityOperator(operator);
+  }
+
+  private static boolean handleTimestamp(final Type operator, final SqlType right) {
+    return right.baseType() == SqlBaseType.TIMESTAMP || right.baseType() == SqlBaseType.STRING;
   }
 
   private static boolean isEqualityOperator(final Type operator) {

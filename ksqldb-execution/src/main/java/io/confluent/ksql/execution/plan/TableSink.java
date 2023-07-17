@@ -83,8 +83,13 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
-    return builder.visitTableSink(this);
+  public KTableHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableSink(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableSink(this);
   }
 
   @Override

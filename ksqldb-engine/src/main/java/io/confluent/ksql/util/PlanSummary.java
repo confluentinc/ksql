@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.execution.plan.StreamGroupByV1;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
@@ -36,7 +37,9 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
+import io.confluent.ksql.execution.plan.TableGroupByV1;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -71,6 +74,7 @@ public class PlanSummary {
           .put(StreamWindowedAggregate.class, "AGGREGATE")
           .put(StreamFilter.class, "FILTER")
           .put(StreamFlatMap.class, "FLAT_MAP")
+          .put(StreamGroupByV1.class, "GROUP_BY")
           .put(StreamGroupBy.class, "GROUP_BY")
           .put(StreamGroupByKey.class, "GROUP_BY")
           .put(StreamSelect.class, "PROJECT")
@@ -83,8 +87,10 @@ public class PlanSummary {
           .put(WindowedStreamSource.class, "SOURCE")
           .put(TableAggregate.class, "AGGREGATE")
           .put(TableFilter.class, "FILTER")
+          .put(TableGroupByV1.class, "GROUP_BY")
           .put(TableGroupBy.class, "GROUP_BY")
           .put(TableSelect.class, "PROJECT")
+          .put(TableSelectKey.class, "REKEY")
           .put(TableSink.class, "SINK")
           .put(TableTableJoin.class, "JOIN")
           .put(TableSource.class, "SOURCE")

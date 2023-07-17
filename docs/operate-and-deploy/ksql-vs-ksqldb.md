@@ -75,7 +75,7 @@ HTTP Response Format
 In previous KSQL versions, push query responses could return multiple JSON
 objects that weren't wrapped in an array, so a collection of objects returned
 by the server wasn't a valid JSON document. In ksqlDB, the HTTP response format
-for [push queries](../concepts/queries/push.md) has changed such that all
+for [push queries](/concepts/queries) has changed such that all
 responses are now valid JSON documents. Push query results returned by a
 ksqlDB server are wrapped in a JSON array.
 

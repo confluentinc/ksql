@@ -22,12 +22,12 @@ import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
-import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
@@ -35,6 +35,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -43,6 +44,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,25 +68,28 @@ public class ServerVerticle extends AbstractVerticle {
   private HttpServer httpServer;
   private final Optional<Boolean> isInternalListener;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final LoggingRateLimiter loggingRateLimiter;
 
   public ServerVerticle(
       final Endpoints endpoints,
       final HttpServerOptions httpServerOptions,
       final Server server,
       final Optional<Boolean> isInternalListener,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final LoggingRateLimiter loggingRateLimiter) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.server = Objects.requireNonNull(server);
     this.isInternalListener = Objects.requireNonNull(isInternalListener);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
+    this.loggingRateLimiter = Objects.requireNonNull(loggingRateLimiter);
   }
 
   @Override
   public void start(final Promise<Void> startPromise) {
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
-        .exceptionHandler(ServerVerticle::unhandledExceptionHandler);;
+        .exceptionHandler(ServerVerticle::unhandledExceptionHandler);
     httpServer.listen(ar -> {
       if (ar.succeeded()) {
         startPromise.complete();
@@ -109,6 +114,8 @@ public class ServerVerticle extends AbstractVerticle {
 
   private Router setupRouter() {
     final Router router = Router.router(vertx);
+
+    router.route().handler(new LoggingHandler(server, loggingRateLimiter));
 
     KsqlCorsHandler.setupCorsHandler(server, router);
 
@@ -137,7 +144,7 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
-        .handler(new InsertsStreamHandler(context, endpoints, server.getWorkerExecutor()));
+        .handler(new InsertsStreamHandler(context, endpoints, server));
     router.route(HttpMethod.POST, "/close-query")
         .handler(BodyHandler.create())
         .handler(new CloseQueryHandler(server));
@@ -146,62 +153,62 @@ public class ServerVerticle extends AbstractVerticle {
     // ----------------------------------------------
 
     router.route(HttpMethod.GET, "/")
-        .handler(this::handleInfoRedirect);
+        .handler(ServerVerticle::handleInfoRedirect);
     router.route(HttpMethod.POST, "/ksql")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleKsqlRequest);
     router.route(HttpMethod.POST, "/ksql/terminate")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleTerminateRequest);
     router.route(HttpMethod.POST, "/query")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleQueryRequest);
     router.route(HttpMethod.GET, "/info")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleInfoRequest);
     router.route(HttpMethod.POST, "/heartbeat")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleHeartbeatRequest);
     router.route(HttpMethod.GET, "/clusterStatus")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleClusterStatusRequest);
     router.route(HttpMethod.GET, "/status/:type/:entity/:action")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleStatusRequest);
     router.route(HttpMethod.GET, "/status")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleAllStatusesRequest);
     router.route(HttpMethod.POST, "/lag")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleLagReportRequest);
     router.route(HttpMethod.GET, "/healthcheck")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleHealthcheckRequest);
     router.route(HttpMethod.GET, "/v1/metadata")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleServerMetadataRequest);
     router.route(HttpMethod.GET, "/v1/metadata/id")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleServerMetadataClusterIdRequest);
     router.route(HttpMethod.GET, "/ws/query")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleWebsocket);
 
@@ -213,7 +220,7 @@ public class ServerVerticle extends AbstractVerticle {
         (ksqlRequest, apiSecurityContext) ->
             endpoints
                 .executeKsqlRequest(ksqlRequest, server.getWorkerExecutor(),
-                    DefaultApiSecurityContext.create(routingContext))
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -222,7 +229,7 @@ public class ServerVerticle extends AbstractVerticle {
         (request, apiSecurityContext) ->
             endpoints
                 .executeTerminate(request, server.getWorkerExecutor(),
-                    DefaultApiSecurityContext.create(routingContext))
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -230,13 +237,18 @@ public class ServerVerticle extends AbstractVerticle {
 
     final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
     routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
-    handleOldApiRequest(server, routingContext, KsqlRequest.class, pullQueryMetrics,
+    final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
+    handleOldApiRequest(server, routingContext, KsqlRequest.class,
+        Optional.of(metricsCallbackHolder),
         (request, apiSecurityContext) ->
             endpoints
                 .executeQueryRequest(
                     request, server.getWorkerExecutor(), connectionClosedFuture,
-                    DefaultApiSecurityContext.create(routingContext),
-                    isInternalRequest(routingContext))
+                    DefaultApiSecurityContext.create(routingContext, server),
+                    isInternalRequest(routingContext),
+                    getContentType(routingContext),
+                    metricsCallbackHolder
+                )
 
     );
   }
@@ -244,21 +256,22 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleInfoRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeInfo(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeInfo(DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleClusterStatusRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeClusterStatus(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeClusterStatus(DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleHeartbeatRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, HeartbeatMessage.class, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeHeartbeat(request, DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeHeartbeat(
+                request, DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -270,35 +283,37 @@ public class ServerVerticle extends AbstractVerticle {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (r, apiSecurityContext) ->
             endpoints.executeStatus(type, entity, action,
-                DefaultApiSecurityContext.create(routingContext))
+                DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleAllStatusesRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (r, apiSecurityContext) ->
-            endpoints.executeAllStatuses(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeAllStatuses(DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleLagReportRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, LagReportingMessage.class, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeLagReport(request, DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeLagReport(
+                request, DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleHealthcheckRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeCheckHealth(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeCheckHealth(DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
   private void handleServerMetadataRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
-            endpoints.executeServerMetadata(DefaultApiSecurityContext.create(routingContext))
+            endpoints.executeServerMetadata(
+                DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
@@ -306,11 +321,12 @@ public class ServerVerticle extends AbstractVerticle {
     handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
             endpoints
-                .executeServerMetadataClusterId(DefaultApiSecurityContext.create(routingContext))
+                .executeServerMetadataClusterId(
+                    DefaultApiSecurityContext.create(routingContext, server))
     );
   }
 
-  private void handleInfoRedirect(final RoutingContext routingContext) {
+  private static void handleInfoRedirect(final RoutingContext routingContext) {
     // We redirect to the /info endpoint.
     // (This preserves behaviour of the old API)
     routingContext.response().putHeader("location", "/info")
@@ -318,15 +334,26 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleWebsocket(final RoutingContext routingContext) {
-    final ApiSecurityContext apiSecurityContext = DefaultApiSecurityContext.create(routingContext);
-    routingContext.request().toWebSocket(serverWebSocket -> endpoints
-        .executeWebsocketStream(serverWebSocket.result(), routingContext.request().params(),
-            server.getWorkerExecutor(), apiSecurityContext));
+    final ApiSecurityContext apiSecurityContext =
+        DefaultApiSecurityContext.create(routingContext, server);
+    final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
+    endpoints
+        .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
+            server.getWorkerExecutor(), apiSecurityContext);
   }
 
   private static void chcHandler(final RoutingContext routingContext) {
     routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
         .end(new JsonObject().toBuffer());
+  }
+
+  private static KsqlMediaType getContentType(final RoutingContext routingContext) {
+    final String mediaType = routingContext.getAcceptableContentType();
+    if (mediaType == null || MediaType.APPLICATION_JSON.equals(mediaType)) {
+      return KsqlMediaType.LATEST_FORMAT;
+    }
+
+    return KsqlMediaType.parse(mediaType);
   }
 
   private static void unhandledExceptionHandler(final Throwable t) {
@@ -339,6 +366,9 @@ public class ServerVerticle extends AbstractVerticle {
 
   /**
    * If the request was received on the internal listener.
+   * Effectively, it's a 3 state flag: Internal interface not in use at all,
+   * internal interface in use and this request is internal, and internal interface in use and
+   * this request is not internal.
    *
    * @return If an internal listener is in use and this is an internal request, or
    *         {@code Optional.empty} if an internal listener is not enabled.

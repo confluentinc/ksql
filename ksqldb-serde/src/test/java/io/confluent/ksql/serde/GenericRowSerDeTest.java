@@ -18,9 +18,7 @@ package io.confluent.ksql.serde;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,22 +26,16 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.GenericRowSerDe.GenericRowDeserializer;
-import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
 import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
@@ -59,8 +51,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
-  private static final Map<String, ?> SOME_CONFIG = ImmutableMap.of("some", "thing");
-  private static final byte[] SERIALIZED = "serialized".getBytes(StandardCharsets.UTF_8);
 
   @Mock
   private GenericSerdeFactory innerFactory;
@@ -90,22 +80,16 @@ public class GenericRowSerDeTest {
   private ArgumentCaptor<Serde<GenericRow>> rowSerdeCaptor;
 
   private ValueSerdeFactory factory;
-  private GenericRowSerializer serializer;
-  private GenericRowDeserializer deserializer;
 
   @Before
   public void setUp() {
     factory = new GenericRowSerDe(innerFactory);
-
-    serializer = new GenericRowSerializer(innerSerializer, 2);
-    deserializer = new GenericRowDeserializer(innerDeserializer, 2);
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
     when(innerSerde.serializer()).thenReturn(innerSerializer);
     when(innerSerde.deserializer()).thenReturn(innerDeserializer);
-    when(innerSerializer.serialize(any(), any())).thenReturn(SERIALIZED);
   }
 
   @Test
@@ -167,9 +151,9 @@ public class GenericRowSerDeTest {
     // Then:
     verify(innerFactory).wrapInLoggingSerde(rowSerdeCaptor.capture(), any(), any());
 
-    assertThat(rowSerdeCaptor.getValue().serializer(), is(instanceOf(GenericRowSerializer.class)));
+    assertThat(rowSerdeCaptor.getValue().serializer(), is(instanceOf(GenericSerializer.class)));
     assertThat(rowSerdeCaptor.getValue().deserializer(),
-        is(instanceOf(GenericRowDeserializer.class)));
+        is(instanceOf(GenericDeserializer.class)));
   }
 
   @Test
@@ -181,131 +165,5 @@ public class GenericRowSerDeTest {
 
     // Then:
     assertThat(result, is(sameInstance(loggingSerde)));
-  }
-
-  @Test
-  public void shouldConfigureInnerSerializerOnConfigure() {
-    // When:
-    serializer.configure(SOME_CONFIG, true);
-
-    // Then:
-    verify(innerSerializer).configure(SOME_CONFIG, true);
-  }
-
-  @Test
-  public void shouldConfigureInnerDeserializerOnConfigure() {
-    // When:
-    deserializer.configure(SOME_CONFIG, true);
-
-    // Then:
-    verify(innerDeserializer).configure(SOME_CONFIG, true);
-  }
-
-  @Test
-  public void shouldCloseInnerSerializerOnClose() {
-    // When:
-    serializer.close();
-
-    // Then:
-    verify(innerSerializer).close();
-  }
-
-  @Test
-  public void shouldCloseInnerDeserializerOnClose() {
-    // When:
-    deserializer.close();
-
-    // Then:
-    verify(innerDeserializer).close();
-  }
-
-  @Test
-  public void shouldSerializeNulls() {
-    // When:
-    final byte[] result = serializer.serialize("topic", null);
-
-    // Then:
-    verify(innerSerializer).serialize("topic", null);
-    assertThat(result, is(SERIALIZED));
-  }
-
-  @Test
-  public void shouldDeserializeNulls() {
-    // Given:
-    when(innerDeserializer.deserialize(any(), any())).thenReturn(null);
-
-    // When:
-    final GenericRow result = deserializer.deserialize("topic", SERIALIZED);
-
-    // Then:
-    verify(innerDeserializer).deserialize("topic", SERIALIZED);
-    assertThat(result, is(nullValue()));
-  }
-
-  @Test
-  public void shouldThrowOnSerializeOnColumnCountMismatch() {
-    // Given:
-    final GenericRow row = GenericRow.genericRow("too", "many", "columns");
-
-    // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> serializer.serialize("topicName", row)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), is("Column count mismatch on serialization."
-        + " topic: topicName"
-        + ", expected: 2"
-        + ", got: 3"
-    ));
-  }
-
-  @Test
-  public void shouldThrowOnDeserializeOnColumnCountMismatch() {
-    // Given:
-    givenInnerDeserializerReturns(ImmutableList.of("too", "many", "columns"));
-
-    // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> deserializer.deserialize("topicName", SERIALIZED)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), is("Column count mismatch on deserialization."
-        + " topic: topicName"
-        + ", expected: 2"
-        + ", got: 3"
-    ));
-  }
-
-  @Test
-  public void shouldConvertRowToListWhenSerializing() {
-    // Given:
-    final GenericRow row = GenericRow.genericRow("hello", 10);
-
-    // When:
-    serializer.serialize("topicName", row);
-
-    // Then:
-    verify(innerSerializer).serialize("topicName", row.values());
-  }
-
-  @Test
-  public void shouldConvertListToRowWhenDeserializing() {
-    // Given:
-    givenInnerDeserializerReturns(ImmutableList.of("world", -10));
-
-    // When:
-    final GenericRow row = deserializer.deserialize("topicName", SERIALIZED);
-
-    // Then:
-    assertThat(row, is(GenericRow.genericRow("world", -10)));
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private void givenInnerDeserializerReturns(final List<?> values) {
-    when(innerDeserializer.deserialize(any(), any())).thenReturn((List)values);
   }
 }

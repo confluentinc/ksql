@@ -27,7 +27,7 @@ import io.confluent.ksql.planner.RequiredColumns.Builder;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -72,17 +72,12 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
   }
 
   @Override
-  public Optional<RequiredFormat> getRequiredKeyFormat() {
-    return joiningSource.getRequiredKeyFormat();
-  }
-
-  @Override
-  public Optional<FormatInfo> getPreferredKeyFormat() {
+  public Optional<KeyFormat> getPreferredKeyFormat() {
     return joiningSource.getPreferredKeyFormat();
   }
 
   @Override
-  public void setKeyFormat(final FormatInfo format) {
+  public void setKeyFormat(final KeyFormat format) {
     joiningSource.setKeyFormat(format);
   }
 

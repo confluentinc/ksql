@@ -32,10 +32,10 @@ public class QueryAnonymizerTest {
   public void shouldWorkAsExpectedWhenPassedAParseTreeInsteadOfString() {
     // Given:
     final ParserRuleContext tree =
-        DefaultKsqlParser.getParseTree("DESCRIBE my_stream;");
+        DefaultKsqlParser.getParseTree("DESCRIBE my_stream EXTENDED;");
 
     // Then:
-    Assert.assertEquals("DESCRIBE stream1;",
+    Assert.assertEquals("DESCRIBE stream1 EXTENDED;",
         anon.anonymize(tree));
   }
 
@@ -67,14 +67,15 @@ public class QueryAnonymizerTest {
 
   @Test
   public void describeStatementsShouldGetAnonymized() {
-    Assert.assertEquals("DESCRIBE stream1;",
-        anon.anonymize("DESCRIBE my_stream;"));
+    Assert.assertEquals("DESCRIBE stream1 EXTENDED;",
+        anon.anonymize("DESCRIBE my_stream EXTENDED;"));
+    Assert.assertEquals("DESCRIBE STREAMS EXTENDED;",
+        anon.anonymize("DESCRIBE STREAMS EXTENDED;"));
     Assert.assertEquals("DESCRIBE FUNCTION function;",
         anon.anonymize("DESCRIBE FUNCTION my_function;"));
     Assert.assertEquals("DESCRIBE CONNECTOR connector;",
         anon.anonymize("DESCRIBE CONNECTOR my_connector;"));
   }
-
 
   @Test
   public void printStatementsShouldGetAnonymized() {
@@ -280,7 +281,7 @@ public class QueryAnonymizerTest {
   @Test
   public void shouldAnonymizeUDFQueriesCorrectly() {
     final String output = anon.anonymize("CREATE STREAM OUTPUT AS SELECT ID, "
-        + "MAX(numbers) AS reduce FROM test;");
+        + "REDUCE(numbers, 2, (s, x) => s + x) AS reduce FROM test;");
 
     Assert.assertEquals(
         "CREATE STREAM stream1 AS SELECT column1, udf1 FROM source1;",

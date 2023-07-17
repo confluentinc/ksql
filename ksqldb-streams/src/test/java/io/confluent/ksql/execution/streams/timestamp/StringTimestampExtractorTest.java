@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -57,6 +58,7 @@ public class StringTimestampExtractorTest {
     new StringTimestampExtractor(null, columnExtractor);
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldPassRecordToColumnExtractor() {
     // When:

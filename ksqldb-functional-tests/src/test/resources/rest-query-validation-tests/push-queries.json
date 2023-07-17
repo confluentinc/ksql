@@ -377,17 +377,14 @@
     {
       "name": "windowed join",
       "statements": [
-        "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='5 SECONDS');",
+        "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
         "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
-        "SELECT * FROM OUTPUT EMIT CHANGES LIMIT 2;"
+        "SELECT * FROM OUTPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 5000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"ID": 2}, "timestamp": 1000, "window": {"start": 1000, "end": 6000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"ID": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 7000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
+        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
@@ -395,8 +392,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`S1_K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_K` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
-          {"row":{"columns":[1, 0, 5000, 0, 5000, 1, 1, 0, 2000, 4]}},
-          {"row":{"columns":[1, 2000, 7000, 2000, 7000, 3, 1, 2000, 4000, 5]}},
+          {"row":{"columns":[1, 0, 2000, 0, 2000, 1, 1, 0, 2000, 4]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -404,17 +400,14 @@
     {
       "name": "windowed join - with rowtime",
       "statements": [
-        "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='5 SECONDS');",
+        "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
         "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
-        "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 2;"
+        "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 5000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"ID": 2}, "timestamp": 1000, "window": {"start": 1000, "end": 6000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"ID": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 7000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
+        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
@@ -422,8 +415,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`ROWTIME` BIGINT, `S1_K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_K` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
-          {"row":{"columns":[0, 1, 0, 5000, 0, 5000, 1, 1, 0, 2000, 4]}},
-          {"row":{"columns":[2000, 1, 2000, 7000, 2000, 7000, 3, 1, 2000, 4000, 5]}},
+          {"row":{"columns":[0, 1, 0, 2000, 0, 2000, 1, 1, 0, 2000, 4]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -736,9 +728,6 @@
         "CREATE STREAM INPUT (K INT KEY, ID INT) WITH (kafka_topic='test_topic', format='JSON');",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
@@ -749,6 +738,184 @@
           {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
           {"row":{"columns":[11, 100]}},
           {"row":{"columns":[11, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed stream with nulls",
+      "notes": "messages with a null value are deemed invalid and ignored",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 4;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": null, "value": {"id": 110}},
+        {"topic": "test_topic", "timestamp": 2, "key": 10, "value": null},
+        {"topic": "test_topic", "timestamp": 4, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"id": null}},
+        {"topic": "test_topic", "timestamp": 5, "key": 11, "value": {"id": 111}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[null, 110]}},
+          {"row":{"columns":[11, null]}},
+          {"row":{"columns":[11, null]}},
+          {"row":{"columns":[11, 111]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed stream with nulls",
+      "notes": "messages with a null value are deemed invalid and ignored",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session', partitions=1);",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 10, "value": null, "window": {"start": 12346, "end": 34555, "type": "session"}},
+        {"topic": "test_topic", "timestamp": 2, "key": 11, "value": {}, "window": {"start": 12347, "end": 34555, "type": "session"}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"id": null}, "window": {"start": 12348, "end": 34555, "type": "session"}},
+        {"topic": "test_topic", "timestamp": 4, "key": 11, "value": {"id": 111}, "window": {"start": 12349, "end": 34555, "type": "session"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` INTEGER"}},
+          {"row":{"columns":[11, 12347, 34555, null]}},
+          {"row":{"columns":[11, 12348, 34555, null]}},
+          {"row":{"columns":[11, 12349, 34555, 111]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed table with tombstones",
+      "notes": "message at timestamp 3 is invalid as key is null, so will be ignored",
+      "statements": [
+        "CREATE TABLE INPUT (K INT PRIMARY KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 5;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 10, "value": {"id": 110}},
+        {"topic": "test_topic", "timestamp": 2, "key": 10, "value": null},
+        {"topic": "test_topic", "timestamp": 3, "key": null, "value": {"id": 123}},
+        {"topic": "test_topic", "timestamp": 4, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 5, "key": 11, "value": {"id": null}},
+        {"topic": "test_topic", "timestamp": 6, "key": 11, "value": {"id": 111}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[10, 110]}},
+          {"row":{"columns":[10, null],"tombstone":true}},
+          {"row":{"columns":[11, null]}},
+          {"row":{"columns":[11, null]}},
+          {"row":{"columns":[11, 111]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed table with tombstones - key not in projection",
+      "notes": "message at timestamp 3 is invalid as key is null, so will be ignored",
+      "statements": [
+        "CREATE TABLE INPUT (K INT PRIMARY KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "SELECT ID FROM INPUT EMIT CHANGES LIMIT 5;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 10, "value": {"id": 110}},
+        {"topic": "test_topic", "timestamp": 2, "key": 10, "value": null},
+        {"topic": "test_topic", "timestamp": 3, "key": null, "value": {"id": 123}},
+        {"topic": "test_topic", "timestamp": 4, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 5, "key": 11, "value": {"id": null}},
+        {"topic": "test_topic", "timestamp": 6, "key": 11, "value": {"id": 111}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER"}},
+          {"row":{"columns":[110]}},
+          {"row":{"columns":[null],"tombstone":true}},
+          {"row":{"columns":[null]}},
+          {"row":{"columns":[null]}},
+          {"row":{"columns":[111]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table with tombstones",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT SUM(VAL) AS SUM, K FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K HAVING SUM(VAL) > 0;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 11, "value": {"val": 10}},
+        {"topic": "test_topic", "timestamp": 2, "key": 11, "value": {"val": -20}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"val": 21}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `SUM` INTEGER"}},
+          {"row":{"columns":[11, 0, 1000, 10]}},
+          {"row":{"columns":[11, 0, 1000, null], "tombstone": true}},
+          {"row":{"columns":[11, 0, 1000, 11]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table with tombstones - key not in projection",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT K, SUM(VAL) AS SUM FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K HAVING SUM(VAL) > 0;",
+        "SELECT SUM FROM AGGREGATE EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 11, "value": {"val": 10}},
+        {"topic": "test_topic", "timestamp": 2, "key": 11, "value": {"val": -20}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"val": 21}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`SUM` INTEGER"}},
+          {"row":{"columns":[10]}},
+          {"row":{"columns":[null], "tombstone": true}},
+          {"row":{"columns":[11]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table with tombstones - only window bounds in projection",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT K, SUM(VAL) AS SUM FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K HAVING SUM(VAL) > 0;",
+        "SELECT SUM, WINDOWSTART, WINDOWEND FROM AGGREGATE EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 11, "value": {"val": 10}},
+        {"topic": "test_topic", "timestamp": 2, "key": 11, "value": {"val": -20}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"val": 21}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`SUM` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT"}},
+          {"row":{"columns":[10, 0, 1000]}},
+          {"row":{"columns":[null, 0, 1000], "tombstone": true}},
+          {"row":{"columns":[11, 0, 1000]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

@@ -329,6 +329,11 @@ public class AggregateAnalyzer {
     @Override
     public Void visitFunctionCall(final FunctionCall node, final Void context) {
       final FunctionName functionName = node.getName();
+
+      if (!functionRegistry.isPresent(functionName)) {
+        throw new KsqlException("Can't find any functions with the name '"
+            + functionName.text() + "'");
+      }
       final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
 
       final FunctionCall functionCall = aggregateFunc && node.getArguments().isEmpty()

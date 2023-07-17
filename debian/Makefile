@@ -4,9 +4,10 @@
 SHELL=/bin/bash
 
 ifndef VERSION
-# Note that this is sensitive to this package's version being the first
-# <version> tag in the pom.xml
-VERSION=$(shell grep version pom.xml | head -n 1 | awk -F'>|<' '{ print $$3 }')
+# Query the project for the version if it was not specified
+$(info "VERSION not defined - getting VERSION from project - maven running in silent (may take a moment...)")
+VERSION:=$(shell mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+$(info "Version determined was ${VERSION}")
 endif
 
 ifndef SECURITY_SUFFIX
@@ -55,6 +56,7 @@ ifeq ($(APPLY_PATCHES),yes)
 	git reset --hard HEAD
 	cat debian/patches/series | xargs -iPATCH bash -c 'patch -p1 < debian/patches/PATCH'
 endif
+	touch apply-patches
 
 build: apply-patches
 ifeq ($(SKIP_TESTS),yes)
@@ -62,6 +64,7 @@ ifeq ($(SKIP_TESTS),yes)
 else
 	mvn -B install
 endif
+	touch build
 
 BINPATH=$(PREFIX)/bin
 LIBPATH=$(PREFIX)/share/java/$(PACKAGE_TITLE)
@@ -72,7 +75,7 @@ INSTALL_X=install -D -m 755
 
 install: build
 	# Safety precatuion to avoid removing of root dir when DESTDIR or PREFIX is not set, for wathever reason
-	if [[ $(DESTDIR)$(PREFIX) != /tmp/confluent/* ]]; then echo "DESTDIR=$(DESTDIR) or PREFIX=$(PREFIX) is weird" ; exit 1 ; fi
+	if [[ "$(DESTDIR)$(PREFIX)" =~ ^/usr* ]] || [[ "$(DESTDIR)$(PREFIX)" == / ]] || [[ "$(DESTDIR)$(PREFIX)" == ""  ]]; then echo "DESTDIR=$(DESTDIR) or PREFIX=$(PREFIX) is weird"; exit 1 ; fi
 	rm -rf $(DESTDIR)$(PREFIX)
 	mkdir -p $(DESTDIR)$(PREFIX)
 	mkdir -p $(DESTDIR)$(BINPATH)
@@ -92,6 +95,7 @@ clean:
 	rm -rf $(CURDIR)/$(PACKAGE_NAME)*
 	rm -rf $(FULL_PACKAGE_TITLE)-$(RPM_VERSION)*rpm
 	rm -rf RPM_BUILDING
+	rm -f build apply-patches
 
 distclean: clean
 	git reset --hard HEAD
@@ -102,8 +106,9 @@ test:
 .PHONY: clean install
 
 
-
+ifeq ($(RPM_VERSION),)
 RPM_VERSION=$(shell echo $(VERSION) | sed -e 's/-alpha[0-9]*//' -e 's/-beta[0-9]*//' -e 's/-rc[0-9]*//' -e 's/-SNAPSHOT//' -e 's/-cp[0-9]*//' -e 's/-hotfix[0-9]*//' -e 's/-[0-9]*//')
+endif
 # Get any -alpha, -beta (preview), -rc (release candidate), -SNAPSHOT (nightly), -cp (confluent patch), -hotfix piece that we need to put into the Release part of
 # the version since RPM versions don't support non-numeric
 # characters. Ultimately, for something like 0.8.2-beta, we want to end up with

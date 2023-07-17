@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.cli;
 
+import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
@@ -25,11 +27,11 @@ import io.vertx.core.net.JksOptions;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLHandshakeException;
-import org.apache.kafka.common.config.SslConfigs;
 
 public class WebsocketUtils {
 
@@ -49,26 +51,15 @@ public class WebsocketUtils {
       if (tls) {
         httpClientOptions.setSsl(true).setVerifyHost(false);
 
-        String trustStorePath = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-        String trustStorePassword = clientProps.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-        String keyStorePath = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-        String keyStorePassword = clientProps.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+        final Optional<JksOptions> trustStoreOptions =
+            VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
 
-        if (trustStorePath != null) {
-          JksOptions trustStoreOptions = new JksOptions().setPath(trustStorePath);
-          if (trustStorePassword != null) {
-            trustStoreOptions.setPassword(trustStorePassword);
-          }
-          httpClientOptions.setTrustStoreOptions(trustStoreOptions);
-        }
+        final String alias = clientProps.get(KsqlClient.SSL_KEYSTORE_ALIAS_CONFIG);
+        final Optional<JksOptions> keyStoreOptions =
+            VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.ofNullable(alias));
 
-        if (keyStorePath != null) {
-          JksOptions keyStoreOptions = new JksOptions().setPath(keyStorePath);
-          if (keyStorePassword != null) {
-            keyStoreOptions.setPassword(keyStorePassword);
-          }
-          httpClientOptions.setKeyStoreOptions(keyStoreOptions);
-        }
+        trustStoreOptions.ifPresent(options -> httpClientOptions.setTrustStoreOptions(options));
+        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
       }
 
       httpClient = vertx.createHttpClient(httpClientOptions);

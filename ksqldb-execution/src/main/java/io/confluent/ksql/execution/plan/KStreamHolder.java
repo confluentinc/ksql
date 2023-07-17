@@ -25,21 +25,21 @@ import org.apache.kafka.streams.kstream.KStream;
 public final class KStreamHolder<K> {
 
   private final KStream<K, GenericRow> stream;
-  private final KeySerdeFactory<K> keySerdeFactory;
+  private final ExecutionKeyFactory<K> executionKeyFactory;
   private final LogicalSchema schema;
 
   public KStreamHolder(
       final KStream<K, GenericRow> stream,
       final LogicalSchema schema,
-      final KeySerdeFactory<K> keySerdeFactory
+      final ExecutionKeyFactory<K> executionKeyFactory
   ) {
     this.stream = Objects.requireNonNull(stream, "stream");
-    this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.executionKeyFactory = Objects.requireNonNull(executionKeyFactory, "keySerdeFactory");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
 
-  public KeySerdeFactory<K> getKeySerdeFactory() {
-    return keySerdeFactory;
+  public ExecutionKeyFactory<K> getExecutionKeyFactory() {
+    return executionKeyFactory;
   }
 
   public KStream<K, GenericRow> getStream() {
@@ -49,7 +49,7 @@ public final class KStreamHolder<K> {
   public KStreamHolder<K> withStream(
       final KStream<K, GenericRow> stream,
       final LogicalSchema schema) {
-    return new KStreamHolder<>(stream, schema, keySerdeFactory);
+    return new KStreamHolder<>(stream, schema, executionKeyFactory);
   }
 
   public LogicalSchema getSchema() {

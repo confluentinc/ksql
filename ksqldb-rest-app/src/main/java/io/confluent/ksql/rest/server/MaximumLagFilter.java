@@ -56,16 +56,16 @@ public final class MaximumLagFilter implements RoutingFilter {
 
   @Override
   public boolean filter(final KsqlHostInfo hostInfo) {
-    final long allowedOffsetLag = routingOptions.getOffsetLagAllowed();
+    final long allowedOffsetLag = routingOptions.getMaxOffsetLagAllowed();
     Optional<LagInfoEntity> lag = lagByHost.get(hostInfo);
     if (lag == null) {
       lag = Optional.empty();
     }
     return lag.map(hostLag -> {
       Preconditions.checkState(maxEndOffset.isPresent(), "Should have a maxEndOffset");
-      final long endOffset = maxEndOffset.getAsLong();
       // Compute the lag from the maximum end offset reported by all hosts.  This is so that
-      // hosts that have fallen behind are held to the same end offset when computing lag
+      // hosts that have fallen behind are held to the same end offset when computing lag.
+      final long endOffset = maxEndOffset.getAsLong();
       final long offsetLag = Math.max(endOffset - hostLag.getCurrentOffsetPosition(), 0);
       return offsetLag <= allowedOffsetLag;
     })

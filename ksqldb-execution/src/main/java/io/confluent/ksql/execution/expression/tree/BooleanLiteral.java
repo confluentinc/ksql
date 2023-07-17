@@ -29,18 +29,29 @@ public class BooleanLiteral extends Literal {
 
   private final boolean value;
 
+  public BooleanLiteral(final boolean value) {
+    this(Optional.empty(), value);
+  }
+
   public BooleanLiteral(final String value) {
     this(Optional.empty(), value);
   }
 
   public BooleanLiteral(final Optional<NodeLocation> location, final String value) {
-    super(location);
-    this.value = requireNonNull(value, "value")
-        .toLowerCase(ENGLISH)
-        .equals("true");
+    this(
+        location,
+        requireNonNull(value, "value")
+            .toLowerCase(ENGLISH)
+            .equals("true")
+    );
 
     Preconditions.checkArgument(value.toLowerCase(ENGLISH).equals("true")
         || value.toLowerCase(ENGLISH).equals("false"));
+  }
+
+  public BooleanLiteral(final Optional<NodeLocation> location, final boolean value) {
+    super(location);
+    this.value = value;
   }
 
   @Override

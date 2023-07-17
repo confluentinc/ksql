@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.util;
 
 import static io.confluent.ksql.execution.testutil.TestExpressions.ADDRESS;
+import static io.confluent.ksql.execution.testutil.TestExpressions.ARRAYCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL2;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
@@ -50,6 +51,9 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
@@ -59,25 +63,36 @@ import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
-import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.testutil.TestExpressions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.DoubleType;
+import io.confluent.ksql.function.types.IntegerType;
+import io.confluent.ksql.function.types.LambdaType;
+import io.confluent.ksql.function.types.LongType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.StringType;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -278,6 +293,18 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
+  public void shouldEvaluateBooleanSchemaForInExpression() {
+    final Expression expression = new InPredicate(
+        TestExpressions.COL0,
+        new InListExpression(ImmutableList.of(new StringLiteral("key1"))));
+
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(exprType0, is(SqlTypes.BOOLEAN));
+  }
+
+
+  @Test
   public void shouldEvaluateTypeForUDF() {
     // Given:
     givenUdfWithNameAndReturnType("FLOOR", SqlTypes.DOUBLE);
@@ -289,8 +316,8 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(exprType, is(SqlTypes.DOUBLE));
-    verify(udfFactory).getFunction(ImmutableList.of(SqlTypes.DOUBLE));
-    verify(function).getReturnType(ImmutableList.of(SqlTypes.DOUBLE));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE)));
+    verify(function).getReturnType(ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE)));
   }
 
   @Test
@@ -305,8 +332,8 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(exprType, is(SqlTypes.STRING));
-    verify(udfFactory).getFunction(ImmutableList.of(SqlTypes.STRING));
-    verify(function).getReturnType(ImmutableList.of(SqlTypes.STRING));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.STRING)));
+    verify(function).getReturnType(ImmutableList.of(SqlArgument.of(SqlTypes.STRING)));
   }
 
   @Test
@@ -325,6 +352,320 @@ public class ExpressionTypeManagerTest {
 
     // When/Then:
     assertThat(expressionTypeManager.getExpressionSqlType(expression), equalTo(SqlTypes.STRING));
+  }
+
+  @Test
+  public void shouldEvaluateLambdaInUDFWithArray() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.DOUBLE);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(DoubleType.INSTANCE),
+            LambdaType.of(ImmutableList.of(DoubleType.INSTANCE), DoubleType.INSTANCE)));
+
+    final Expression expression =
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new LambdaFunctionCall(
+                    ImmutableList.of("X"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("X"),
+                        new IntegerLiteral(5))
+                )));
+
+    // When:
+    final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(exprType, is(SqlTypes.DOUBLE));
+    verify(udfFactory).getFunction(
+        ImmutableList.of(
+            SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
+            SqlArgument.of(SqlLambda.of(1))));
+    verify(function).getReturnType(
+        ImmutableList.of(
+            SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
+            SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.DOUBLE))));
+  }
+
+  @Test
+  public void shouldEvaluateLambdaInUDFWithMap() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.DOUBLE);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            MapType.of(DoubleType.INSTANCE, DoubleType.INSTANCE),
+            LambdaType.of(ImmutableList.of(LongType.INSTANCE, DoubleType.INSTANCE), DoubleType.INSTANCE)));
+
+    final Expression expression =
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                MAPCOL,
+                new LambdaFunctionCall(
+                    ImmutableList.of("X", "Y"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("X"),
+                        new IntegerLiteral(5))
+                )));
+
+    // When:
+    final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(exprType, is(SqlTypes.DOUBLE));
+    verify(udfFactory).getFunction(
+        ImmutableList.of(
+            SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
+            SqlArgument.of(SqlLambda.of(2))));
+    verify(function).getReturnType(
+        ImmutableList.of(
+            SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
+            SqlArgument.of(
+                SqlLambdaResolved.of(ImmutableList.of(SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
+  }
+
+  @Test
+  public void shouldEvaluateAnyNumberOfArgumentLambda() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.STRING);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(DoubleType.INSTANCE),
+            StringType.INSTANCE,
+            MapType.of(LongType.INSTANCE, DoubleType.INSTANCE),
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    StringType.INSTANCE,
+                    LongType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE)));
+
+    final Expression expression =
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new StringLiteral("Q"),
+                MAPCOL,
+                new LambdaFunctionCall(
+                    ImmutableList.of("A", "B", "C", "D"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("C"),
+                        new IntegerLiteral(5))
+                )));
+
+    // When:
+    final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(exprType, is(SqlTypes.STRING));
+    verify(udfFactory).getFunction(
+        ImmutableList.of(
+            SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
+            SqlArgument.of(SqlLambda.of(4))));
+    verify(function).getReturnType(
+        ImmutableList.of(
+            SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
+            SqlArgument.of(SqlTypes.STRING),
+            SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
+            SqlArgument.of(SqlLambdaResolved
+                .of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.STRING, SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
+  }
+
+  @Test
+  public void shouldEvaluateLambdaArgsToType() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.STRING);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(DoubleType.INSTANCE),
+            StringType.INSTANCE,
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    StringType.INSTANCE
+                ),
+                StringType.INSTANCE)));
+    final Expression expression =
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new StringLiteral("Q"),
+                new LambdaFunctionCall(
+                    ImmutableList.of("A", "B"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("A"),
+                        new LambdaVariable("B"))
+                )));
+
+    // When:
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), Matchers.containsString(
+        "Unsupported arithmetic types. DOUBLE STRING"));
+  }
+
+  @Test
+  public void shouldFailToEvaluateLambdaWithMismatchedArgumentNumber() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.DOUBLE);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(DoubleType.INSTANCE),
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE
+            )
+        )
+    );
+    final Expression expression =
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new LambdaFunctionCall(
+                    ImmutableList.of("X", "Y"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("X"),
+                        new IntegerLiteral(5))
+                )));
+
+    // When:
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), Matchers.containsString(
+        "Was expecting 1 arguments but found 2, [X, Y]. Check your lambda statement."));
+  }
+
+  @Test
+  public void shouldHandleMultipleLambdasInSameFunctionCallWithDifferentVariableNames() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.INTEGER);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            MapType.of(LongType.INSTANCE, DoubleType.INSTANCE),
+            IntegerType.INSTANCE,
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE),
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE
+            )
+        ));
+    final Expression expression = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                MAPCOL,
+                new IntegerLiteral(0),
+                new LambdaFunctionCall(
+                    ImmutableList.of("A", "B"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("A"),
+                        new LambdaVariable("B"))
+                ),
+                new LambdaFunctionCall(
+                    ImmutableList.of("K", "V"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("K"),
+                        new LambdaVariable("V"))
+                ))),
+        new IntegerLiteral(5)
+    );
+
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(result, is(SqlTypes.INTEGER));
+  }
+
+  @Test
+  public void shouldHandleNestedLambdas() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.INTEGER);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(LongType.INSTANCE),
+            IntegerType.INSTANCE,
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE),
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE
+            )
+        ));
+    final Expression expression = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new IntegerLiteral(0),
+                new LambdaFunctionCall(
+                    ImmutableList.of("A", "B"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new FunctionCall(
+                            FunctionName.of("TRANSFORM"),
+                            ImmutableList.of(
+                                ARRAYCOL,
+                                new IntegerLiteral(0),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("Q", "V"),
+                                    new ArithmeticBinaryExpression(
+                                        Operator.ADD,
+                                        new LambdaVariable("Q"),
+                                        new LambdaVariable("V"))
+                                ))),
+                        new LambdaVariable("B"))
+                ))),
+        new IntegerLiteral(5)
+    );
+
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(result, is(SqlTypes.INTEGER));
   }
 
   @Test
@@ -432,7 +773,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot construct an array with mismatching types"));
+        "invalid input syntax for type BIGINT: \"foo\"."));
   }
 
   @Test
@@ -471,7 +812,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot construct a map with mismatching value types"));
+        "invalid input syntax for type BIGINT: \"bar\""));
   }
 
   @Test
@@ -727,16 +1068,7 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldThrowOnTimestampLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(new TimestampLiteral("TIMESTAMP '00:00:00'"))
-    );
-  }
-
-  @Test
-  public void shouldThrowOnIn() {
+  public void shouldReturnBooleanForInPredicate() {
     // Given:
     final Expression expression = new InPredicate(
         TestExpressions.COL0,
@@ -744,10 +1076,10 @@ public class ExpressionTypeManagerTest {
     );
 
     // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(expression)
-    );
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(result, is(SqlTypes.BOOLEAN));
   }
 
   @Test

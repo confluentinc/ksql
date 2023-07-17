@@ -19,18 +19,17 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.function.BiFunction;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
 
-public final class PartitionByParams {
+public final class PartitionByParams<K> {
 
   private final LogicalSchema schema;
-  private final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper;
+  private final Mapper<K> mapper;
 
   public PartitionByParams(
       final LogicalSchema schema,
-      final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper
+      final Mapper<K> mapper
   ) {
     this.schema = requireNonNull(schema, "schema");
     this.mapper = requireNonNull(mapper, "mapper");
@@ -40,7 +39,10 @@ public final class PartitionByParams {
     return schema;
   }
 
-  public BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> getMapper() {
+  public Mapper<K> getMapper() {
     return mapper;
   }
+
+  public interface Mapper<K> extends KeyValueMapper<K, GenericRow, KeyValue<K, GenericRow>> { }
+
 }

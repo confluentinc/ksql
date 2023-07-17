@@ -66,6 +66,7 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Timestamp;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -133,6 +134,13 @@ public class KsqlAvroSerializerTest {
               + "\"scale\": 2"
               + "}");
 
+
+  private static final org.apache.avro.Schema TIMESTAMP_SCHEMA =
+      parseAvroSchema(
+          "{"
+              + "\"type\": \"long\","
+              + "\"logicalType\": \"timestamp-millis\""
+              + "}");
 
   private static final String SOME_TOPIC = "bob";
 
@@ -458,6 +466,21 @@ public class KsqlAvroSerializerTest {
     // Then:
     assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
         "java.lang.Boolean cannot be cast to java.util.List"))));
+  }
+
+  @Test
+  public void shouldSerializeTimestamp() {
+    // Given:
+    final Serializer<java.sql.Timestamp> serializer =
+        givenSerializerForSchema(Timestamp.SCHEMA, java.sql.Timestamp.class);
+    final java.sql.Timestamp value = new java.sql.Timestamp(500);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
+
+    // Then:
+    assertThat(deserialize(bytes), is(500L));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(TIMESTAMP_SCHEMA));
   }
 
   @Test

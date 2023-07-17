@@ -18,11 +18,11 @@ package io.confluent.ksql.function.udaf.sum;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -90,7 +90,7 @@ public abstract class BaseSumKudafTest<
   public void shouldComputeCorrectSumMerge() {
     final TGenerator<T> tGenerator = getTGenerator();
     final AT sumKudaf = getSumKudaf();
-    final Merger<Struct, T> merger = sumKudaf.getMerger();
+    final Merger<GenericKey, T> merger = sumKudaf.getMerger();
     final T mergeResult1 = merger.apply(null, tGenerator.fromInt(10), tGenerator.fromInt(12));
     assertThat(mergeResult1, equalTo(tGenerator.fromInt(22)));
     final T mergeResult2 = merger.apply(null, tGenerator.fromInt(10), tGenerator.fromInt(-12));

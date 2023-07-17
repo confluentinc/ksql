@@ -34,6 +34,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -118,6 +119,8 @@ public class StatementRewriterTest {
   private CreateSourceAsProperties csasProperties;
   @Mock
   private RefinementInfo refinementInfo;
+  @Mock
+  private InsertIntoProperties insertIntoProperties;
   @Captor
   private ArgumentCaptor<Context<Object>> contextCaptor;
 
@@ -737,7 +740,7 @@ public class StatementRewriterTest {
   @Test
   public void shouldRewriteInsertInto() {
     // Given:
-    final InsertInto ii = new InsertInto(location, sourceName, query);
+    final InsertInto ii = new InsertInto(location, sourceName, query, insertIntoProperties);
     when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
 
     // When:
@@ -746,14 +749,14 @@ public class StatementRewriterTest {
     // Then:
     assertThat(
         rewritten,
-        equalTo(new InsertInto(location, sourceName, rewrittenQuery))
+        equalTo(new InsertInto(location, sourceName, rewrittenQuery, insertIntoProperties))
     );
   }
 
   @Test
   public void shouldRewriteInsertIntoWithPartitionBy() {
     // Given:
-    final InsertInto ii = new InsertInto(location, sourceName, query);
+    final InsertInto ii = new InsertInto(location, sourceName, query, insertIntoProperties);
     when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
@@ -767,7 +770,8 @@ public class StatementRewriterTest {
             new InsertInto(
                 location,
                 sourceName,
-                rewrittenQuery
+                rewrittenQuery,
+                insertIntoProperties
             )
         )
     );
@@ -818,7 +822,7 @@ public class StatementRewriterTest {
     // Given:
     final PartitionBy partitionBy = new PartitionBy(
         location,
-        expression
+        ImmutableList.of(expression)
     );
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
@@ -828,7 +832,7 @@ public class StatementRewriterTest {
     // Then:
     assertThat(rewritten, equalTo(new PartitionBy(
         location,
-        rewrittenExpression
+        ImmutableList.of(rewrittenExpression)
     )));
   }
 

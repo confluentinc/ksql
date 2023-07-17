@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.rest.client;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClient;
@@ -37,9 +39,10 @@ import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
 public final class KsqlClient implements AutoCloseable {
+  public static final String SSL_KEYSTORE_ALIAS_CONFIG = "ssl.keystore.alias";
 
   static {
-    ApiJsonMapper.INSTANCE.get().registerModule(new KsqlTypesDeserializationModule());
+    initialize();
   }
 
   private final Vertx vertx;
@@ -109,6 +112,11 @@ public final class KsqlClient implements AutoCloseable {
         basicAuthHeader, server.getHost());
   }
 
+  @VisibleForTesting
+  public static void initialize() {
+    ApiJsonMapper.INSTANCE.get().registerModule(new KsqlTypesDeserializationModule());
+  }
+
   public void close() {
     try {
       httpTlsClient.close();
@@ -142,19 +150,17 @@ public final class KsqlClient implements AutoCloseable {
 
       configureHostVerification(clientProps, httpClientOptions);
 
-      final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-      if (trustStoreLocation != null) {
-        final String suppliedTruststorePassword = clientProps
-            .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
-            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
-        final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-        if (keyStoreLocation != null) {
-          final String suppliedKeyStorePassword = clientProps
-              .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
-        }
+      final Optional<JksOptions> trustStoreOptions =
+          VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
+
+      if (trustStoreOptions.isPresent()) {
+        httpClientOptions.setTrustStoreOptions(trustStoreOptions.get());
+
+        final String alias = clientProps.get(SSL_KEYSTORE_ALIAS_CONFIG);
+        final Optional<JksOptions> keyStoreOptions =
+            VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.ofNullable(alias));
+
+        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
       }
     }
     try {

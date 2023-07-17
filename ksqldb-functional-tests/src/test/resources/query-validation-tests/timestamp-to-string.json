@@ -1,10 +1,10 @@
 {
   "comments": [
-    "Tests covering the use of the TIMESTAMPTOSTRING function."
+    "Tests covering the use of the TIMESTAMPTOSTRING and  FORMAT_TIMESTAMP functions."
   ],
   "tests": [
     {
-      "name": "with valid zone",
+      "name": "millis to string with valid zone",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT K, TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss zzz','America/Los_Angeles') FROM input;"
@@ -17,7 +17,7 @@
       ]
     },
     {
-      "name": "timestamp to string in join",
+      "name": "millis to string in join",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, WLAN_SA ARRAY<VARCHAR>) WITH (kafka_topic='input', value_format='JSON');",
         "CREATE TABLE DEVICES (ROWKEY STRING PRIMARY KEY, NAME VARCHAR) WITH (kafka_topic='devices', value_format='JSON');",
@@ -29,6 +29,36 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "device", "value": {"KSQL_COL_0":"2018-05-11 22:58:33 BST"}, "timestamp": 1526075913000}
+      ]
+    },
+    {
+      "name": "timestamp to string with valid zone",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, TIME TIMESTAMP) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, FORMAT_TIMESTAMP(TIME, 'yyyy-MM-dd HH:mm:ss zzz','America/Los_Angeles') FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"time": 1526075913000}, "timestamp": 1526075913000},
+        {"topic": "input", "value": {"time": null}, "timestamp": 1526075913000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":"2018-05-11 14:58:33 PDT"}, "timestamp": 1526075913000},
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":null}, "timestamp": 1526075913000}
+      ]
+    },
+    {
+      "name": "timestamp to string without a time zone",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, TIME TIMESTAMP) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, FORMAT_TIMESTAMP(TIME, 'yyyy-MM-dd HH:mm:ss') FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"time": 1526075913000}, "timestamp": 1526075913000},
+        {"topic": "input", "value": {"time": null}, "timestamp": 1526075913000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":"2018-05-11 21:58:33"}, "timestamp": 1526075913000},
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":null}, "timestamp": 1526075913000}
       ]
     }
   ]

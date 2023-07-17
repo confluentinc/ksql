@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import static io.confluent.ksql.schema.ksql.types.SqlDecimal.validateParameters;
 
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -156,21 +157,21 @@ public final class DecimalUtil {
   }
 
   /**
-   * Converts a schema to a sql decimal with set precision/scale without losing
-   * scale or precision.
+   * Converts a SQL type to a sql decimal with set precision/scale without losing scale or
+   * precision.
    *
-   * @param schema the schema
+   * @param type the type to convert
    * @return the sql decimal
-   * @throws KsqlException if the schema cannot safely be converted to decimal
+   * @throws KsqlException if the type cannot safely be converted to decimal
    */
-  public static SqlDecimal toSqlDecimal(final SqlType schema) {
-    switch (schema.baseType()) {
-      case DECIMAL: return (SqlDecimal) schema;
+  public static SqlDecimal toSqlDecimal(final SqlType type) {
+    switch (type.baseType()) {
+      case DECIMAL: return (SqlDecimal) type;
       case INTEGER: return SqlTypes.INT_UPCAST_TO_DECIMAL;
       case BIGINT:  return SqlTypes.BIGINT_UPCAST_TO_DECIMAL;
       default:
         throw new KsqlException(
-            "Cannot convert schema of type " + schema.baseType() + " to decimal.");
+            "Cannot convert " + type.baseType() + " to " + SqlBaseType.DECIMAL + ".");
     }
   }
 
@@ -189,11 +190,35 @@ public final class DecimalUtil {
         && (s1.getPrecision() - s1.getScale()) <= (s2.getPrecision() - s2.getScale());
   }
 
+  public static BigDecimal cast(final Integer value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
+    return cast(value.longValue(), precision, scale);
+  }
+
+  public static BigDecimal cast(final Long value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
+    return cast(value.longValue(), precision, scale);
+  }
+
   public static BigDecimal cast(final long value, final int precision, final int scale) {
     validateParameters(precision, scale);
     final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));
     ensureMax(decimal, precision, scale);
     return decimal.setScale(scale, RoundingMode.UNNECESSARY);
+  }
+
+  public static BigDecimal cast(final Double value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
+    return cast(value.doubleValue(), precision, scale);
   }
 
   public static BigDecimal cast(final double value, final int precision, final int scale) {
@@ -204,6 +229,10 @@ public final class DecimalUtil {
   }
 
   public static BigDecimal cast(final BigDecimal value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
     if (precision == value.precision() && scale == value.scale()) {
       return value;
     }
@@ -214,8 +243,12 @@ public final class DecimalUtil {
   }
 
   public static BigDecimal cast(final String value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
     validateParameters(precision, scale);
-    final BigDecimal decimal = new BigDecimal(value);
+    final BigDecimal decimal = new BigDecimal(value.trim());
     ensureMax(decimal, precision, scale);
     return decimal.setScale(scale, RoundingMode.HALF_UP);
   }
@@ -235,14 +268,40 @@ public final class DecimalUtil {
   }
 
   public static SqlType fromValue(final BigDecimal value) {
-    final BigDecimal bigDecimalZero = BigDecimal.ZERO;
+    // SqlDecimal does not support negative scale:
+    final BigDecimal decimal = value.scale() < 0
+        ? value.setScale(0, BigDecimal.ROUND_UNNECESSARY)
+        : value;
 
     /* When a BigDecimal has value 0, the built-in method precision() always returns 1. To account
     for this edge case, we just take the scale and add one and use that for the precision instead.
     */
-    if (value.compareTo(bigDecimalZero) == 0) {
-      return SqlTypes.decimal(value.scale() + 1, value.scale());
+    if (decimal.compareTo(BigDecimal.ZERO) == 0) {
+      return SqlTypes.decimal(decimal.scale() + 1, decimal.scale());
     }
-    return SqlTypes.decimal(value.precision(), value.scale());
+    return SqlTypes.decimal(decimal.precision(), Math.max(decimal.scale(), 0));
+  }
+
+  /**
+   * Return a {@link SqlDecimal} wide enough to hold either the {@code t0} or {@code t1} types.
+   *
+   * <p>Both sides must support implicit casting to {@link SqlDecimal}.
+   *
+   * @param t0 the first type
+   * @param t1 the second type
+   * @return a type wide enough to hold either type.
+   */
+  public static SqlDecimal widen(final SqlType t0, final SqlType t1) {
+    final SqlDecimal lDecimal = DecimalUtil.toSqlDecimal(t0);
+    final SqlDecimal rDecimal = DecimalUtil.toSqlDecimal(t1);
+
+    final int wholePrecision = Math.max(
+        lDecimal.getPrecision() - lDecimal.getScale(),
+        rDecimal.getPrecision() - rDecimal.getScale()
+    );
+
+    final int scale = Math.max(lDecimal.getScale(), rDecimal.getScale());
+
+    return SqlTypes.decimal(wholePrecision + scale, scale);
   }
 }

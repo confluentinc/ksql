@@ -49,7 +49,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -601,7 +600,7 @@ public class AuthTest extends ApiTest {
     void run() throws Exception;
   }
 
-  private static class StringPrincipal implements Principal {
+  public static class StringPrincipal implements Principal {
 
     private final String name;
 

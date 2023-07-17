@@ -16,9 +16,11 @@
 package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -119,6 +121,7 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
+        Collections.emptyList(),
         Collections.emptyList());
 
     // Then:
@@ -143,10 +146,31 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
+        Collections.emptyList(),
         Collections.emptyList());
 
     // Then:
     assertThat(sourceDescription.getTimestamp(), is(""));
+  }
+
+  @Test
+  public void shouldReturnSourceConstraints() {
+    // Given:
+    final String kafkaTopicName = "kafka";
+    final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+
+    // When
+    final SourceDescription sourceDescription = SourceDescriptionFactory.create(
+        dataSource,
+        true,
+        Collections.emptyList(),
+        Collections.emptyList(),
+        Optional.empty(),
+        Collections.emptyList(),
+        ImmutableList.of("s1", "s2"));
+
+    // Then:
+    assertThat(sourceDescription.getSourceConstraints(), hasItems("s1", "s2"));
   }
 
   @Test
@@ -166,6 +190,7 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
+        Collections.emptyList(),
         Collections.emptyList());
 
     // Then:

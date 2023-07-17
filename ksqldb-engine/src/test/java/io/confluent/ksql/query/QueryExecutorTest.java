@@ -196,7 +196,8 @@ public class QueryExecutorTest {
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
     when(materializationInfo.stateStoreName()).thenReturn(STORE_NAME);
-    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any(), any()))
+    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any(), any(),
+        any()))
         .thenReturn(Optional.of(ksMaterialization));
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
@@ -209,6 +210,8 @@ public class QueryExecutorTest {
     when(streamsBuilder.build(any())).thenReturn(topology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
+    when(kstream.filter(any())).thenReturn(kstream);
+
     queryBuilder = new QueryExecutor(
         config,
         processingLogContext,
@@ -238,7 +241,9 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY,
         TRANSIENT_SINK_SCHEMA,
-        LIMIT
+        LIMIT,
+        Optional.empty(),
+        false
     );
 
     // Then:
@@ -342,6 +347,7 @@ public class QueryExecutorTest {
     verify(ksMaterializationFactory).create(
         eq(STORE_NAME),
         same(kafkaStreams),
+        same(topology),
         same(aggregationSchema),
         any(),
         eq(Optional.empty()),

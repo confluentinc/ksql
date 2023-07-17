@@ -19,11 +19,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
@@ -64,7 +65,7 @@ public class LongMaxKudafTest {
   @Test
   public void shouldFindCorrectMaxForMerge() {
     final LongMaxKudaf longMaxKudaf = getLongMaxKudaf();
-    final Merger<Struct, Long> merger = longMaxKudaf.getMerger();
+    final Merger<GenericKey, Long> merger = longMaxKudaf.getMerger();
     final Long mergeResult1 = merger.apply(null, 10L, 12L);
     assertThat(mergeResult1, equalTo(12L));
     final Long mergeResult2 = merger.apply(null, 10L, -12L);
@@ -76,7 +77,7 @@ public class LongMaxKudafTest {
 
   private LongMaxKudaf getLongMaxKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlTypes.BIGINT),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(LongMaxKudaf.class));
     return  (LongMaxKudaf) aggregateFunction;

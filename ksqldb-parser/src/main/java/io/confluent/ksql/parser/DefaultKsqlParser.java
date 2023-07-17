@@ -17,22 +17,19 @@ package io.confluent.ksql.parser;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -43,29 +40,6 @@ public class DefaultKsqlParser implements KsqlParser {
 
   @VisibleForTesting
   public static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
-  static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
-    @Override
-    public void syntaxError(
-        final Recognizer<?, ?> recognizer,
-        final Object offendingSymbol,
-        final int line,
-        final int charPositionInLine,
-        final String message,
-        final RecognitionException e
-    ) {
-      if (offendingSymbol instanceof Token && isKeywordError(
-              message, ((Token) offendingSymbol).getText())) {
-        //Checks if the error is a reserved keyword error
-        final String tokenName = ((Token) offendingSymbol).getText();
-        final String newMessage =
-                "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier."
-                + " You can use it as an identifier by escaping it as \'" + tokenName + "\' ";
-        throw new ParsingException(newMessage, line, charPositionInLine);
-      } else {
-        throw new ParsingException(message, line, charPositionInLine);
-      }
-    }
-  };
 
   @Override
   public List<ParsedStatement> parse(final String sql) {
@@ -92,8 +66,7 @@ public class DefaultKsqlParser implements KsqlParser {
     }
   }
 
-  public static ParsedStatement parsedStatement(
-      final SqlBaseParser.SingleStatementContext statement) {
+  public static ParsedStatement parsedStatement(final SingleStatementContext statement) {
     return ParsedStatement.of(
         getStatementString(statement),
         statement
@@ -137,10 +110,10 @@ public class DefaultKsqlParser implements KsqlParser {
     final SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
 
     sqlBaseLexer.removeErrorListeners();
-    sqlBaseLexer.addErrorListener(ERROR_LISTENER);
+    sqlBaseLexer.addErrorListener(ERROR_VALIDATOR);
 
     sqlBaseParser.removeErrorListeners();
-    sqlBaseParser.addErrorListener(ERROR_LISTENER);
+    sqlBaseParser.addErrorListener(ERROR_VALIDATOR);
 
     final Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
 
@@ -155,27 +128,17 @@ public class DefaultKsqlParser implements KsqlParser {
 
       sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.LL);
       return (SqlBaseParser.StatementsContext)parseFunction.apply(sqlBaseParser);
+    } catch (final StackOverflowError e) {
+      throw new KsqlException("Error processing statement: Statement is too large to parse. "
+          + "This may be caused by having too many nested expressions in the statement.");
     }
   }
 
-  private static String getStatementString(
-      final SqlBaseParser.SingleStatementContext singleStatementContext) {
+  private static String getStatementString(final SingleStatementContext singleStatementContext) {
     final CharStream charStream = singleStatementContext.start.getInputStream();
     return charStream.getText(Interval.of(
         singleStatementContext.start.getStartIndex(),
         singleStatementContext.stop.getStopIndex()
     ));
-  }
-
-  /**
-   * checks if the error is a reserved keyword error by checking the message and offendingSymbol
-   * @param message the error message
-   * @param offendingSymbol the symbol that caused the error
-   * @return true if the error is a reserved keyword
-   */
-  private static boolean isKeywordError(final String message, final String offendingSymbol) {
-    final Matcher m = ParserUtil.EXTRANEOUS_INPUT_PATTERN.matcher(message);
-
-    return  m.find() && ParserUtil.isReserved(offendingSymbol);
   }
 }

@@ -49,4 +49,14 @@ public class FunctionCallTest {
         )
         .testEquals();
   }
+
+  @Test
+  public void shouldReturnHasLambdaFunctionCall() {
+    final FunctionCall functionCall1 = new FunctionCall(SOME_NAME, SOME_ARGS);
+    final FunctionCall functionCall2 = new FunctionCall(SOME_NAME, ImmutableList.of(
+        new StringLiteral("jane"),
+        new LambdaFunctionCall(ImmutableList.of("x"), new StringLiteral("test"))));
+    assert !functionCall1.hasLambdaFunctionCallArguments();
+    assert functionCall2.hasLambdaFunctionCallArguments();
+  }
 }

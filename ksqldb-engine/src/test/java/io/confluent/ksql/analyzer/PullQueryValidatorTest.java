@@ -57,7 +57,6 @@ public class PullQueryValidatorTest {
   @Before
   public void setUp() {
     validator = new PullQueryValidator();
-
     when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.FINAL)));
   }
 
@@ -139,7 +138,7 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getPartitionBy()).thenReturn(Optional.of(new PartitionBy(
         Optional.empty(),
-        AN_EXPRESSION
+        ImmutableList.of(AN_EXPRESSION)
     )));
 
     // When:

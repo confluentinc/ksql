@@ -17,17 +17,17 @@ package io.confluent.ksql.execution.streams;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Struct;
 
 public class GroupByParams {
 
   private final LogicalSchema schema;
-  private final Function<GenericRow, Struct> mapper;
+  private final Function<GenericRow, GenericKey> mapper;
 
-  GroupByParams(final LogicalSchema schema, final Function<GenericRow, Struct> mapper) {
+  GroupByParams(final LogicalSchema schema, final Function<GenericRow, GenericKey> mapper) {
     this.schema = requireNonNull(schema, "schema");
     this.mapper = requireNonNull(mapper, "mapper");
   }
@@ -36,7 +36,7 @@ public class GroupByParams {
     return schema;
   }
 
-  public Function<GenericRow, Struct> getMapper() {
+  public Function<GenericRow, GenericKey> getMapper() {
     return mapper;
   }
 }

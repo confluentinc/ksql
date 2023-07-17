@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -33,6 +34,7 @@ import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
@@ -65,7 +67,7 @@ public class CommandFactories implements DdlCommandFactory {
 
   public CommandFactories(final ServiceContext serviceContext, final MetaStore metaStore) {
     this(
-        new CreateSourceFactory(serviceContext),
+        new CreateSourceFactory(serviceContext, metaStore),
         new DropSourceFactory(metaStore),
         new RegisterTypeFactory(metaStore),
         new DropTypeFactory(metaStore),
@@ -109,6 +111,15 @@ public class CommandFactories implements DdlCommandFactory {
             this,
             new CallInfo(sqlExpression, config),
             ddlStatement);
+  }
+
+  @Override
+  public DdlCommand create(final KsqlStructuredDataOutputNode outputNode) {
+    if (outputNode.getNodeOutputType() == DataSource.DataSourceType.KSTREAM) {
+      return createSourceFactory.createStreamCommand(outputNode);
+    } else {
+      return createSourceFactory.createTableCommand(outputNode);
+    }
   }
 
   private CreateStreamCommand handleCreateStream(

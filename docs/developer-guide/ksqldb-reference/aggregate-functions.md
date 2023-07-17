@@ -31,12 +31,14 @@ Stream, Table
 Return an array containing all the values of `col1` from each
 input row (for the specified grouping and time window, if any).
 Currently only works for simple types (not Map, Array, or Struct).
-This version limits the size of the result Array to a maximum of
-1000 entries and any values beyond this limit are silently ignored.
+
+The size of the result Array can be limited to a maximum of
+`ksql.functions.collect_list.limit` entries and any values beyond this 
+limit are silently ignored.
 When using with a window type of `session`, it can sometimes
 happen that two session windows get merged together into one when a
 out-of-order record with a timestamp between the two windows is
-processed. In this case the 1000 record limit is calculated by
+processed. In this case, the record limit is calculated by
 first considering all the records from the first window, then the
 out-of-order record, then the records from the second window in
 the order they were originally processed.
@@ -54,12 +56,14 @@ Stream
 Return an array containing the distinct values of `col1` from
 each input row (for the specified grouping and time window, if any).
 Currently only works for simple types (not Map, Array, or Struct).
-This version limits the size of the result Array to a maximum of
-1000 entries and any values beyond this limit are silently ignored.
+
+The size of the result Array can be limited to a maximum of
+`ksql.functions.collect_set.limit` entries and any values beyond this
+limit are silently ignored.
 When using with a window type of `session`, it can sometimes
 happen that two session windows get merged together into one when a
 out-of-order record with a timestamp between the two windows is
-processed. In this case the 1000 record limit is calculated by
+processed. In this case, the record limit is calculated by
 first considering all the records from the first window, then the
 out-of-order record, then the records from the second window in
 the order they were originally processed.
@@ -220,6 +224,18 @@ Stream
 
 Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
+
+## `STDDEV_SAMP`
+
+Since: - 0.16.0
+
+```sql
+STDDEV_SAMP(col1)
+```
+
+Stream, Table
+
+Returns the sample standard deviation for the column.
 
 ## `SUM`
 

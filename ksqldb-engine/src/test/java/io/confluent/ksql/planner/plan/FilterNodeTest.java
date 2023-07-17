@@ -22,7 +22,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -45,7 +44,7 @@ public class FilterNodeTest {
   @Mock
   private SchemaKStream schemaKStream;
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext planBuildContext;
   @Mock
   private Stacker stacker;
 
@@ -64,7 +63,7 @@ public class FilterNodeTest {
     when(schemaKStream.filter(any(), any()))
         .thenReturn(schemaKStream);
 
-    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
+    when(planBuildContext.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
 
     node = new FilterNode(NODE_ID, sourceNode, predicate);
   }
@@ -72,10 +71,10 @@ public class FilterNodeTest {
   @Test
   public void shouldApplyFilterCorrectly() {
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(planBuildContext);
 
     // Then:
-    verify(sourceNode).buildStream(ksqlStreamBuilder);
+    verify(sourceNode).buildStream(planBuildContext);
     verify(schemaKStream).filter(predicate, stacker);
   }
 
@@ -83,7 +82,7 @@ public class FilterNodeTest {
   @Test
   public void shouldUseRightOpName() {
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(planBuildContext);
 
     // Then:
     verifyNoMoreInteractions(stacker);

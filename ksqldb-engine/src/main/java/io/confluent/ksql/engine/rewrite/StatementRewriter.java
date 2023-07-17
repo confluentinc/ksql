@@ -434,7 +434,8 @@ public final class StatementRewriter<C> {
       return new InsertInto(
           node.getLocation(),
           node.getTarget(),
-          (Query) rewriter.apply(node.getQuery(), context)
+          (Query) rewriter.apply(node.getQuery(), context),
+          node.getProperties()
       );
     }
 
@@ -446,11 +447,15 @@ public final class StatementRewriter<C> {
     @Override
     protected AstNode visitPartitionBy(final PartitionBy node, final C context) {
       final Optional<AstNode> result = plugin.apply(node, new Context<>(context, this));
-      return result
-          .orElseGet(() -> new PartitionBy(
-              node.getLocation(),
-              processExpression(node.getExpression(), context)
-          ));
+      if (result.isPresent()) {
+        return result.get();
+      }
+
+      final List<Expression> rewrittenPartitionBys = node.getExpressions().stream()
+          .map(exp -> processExpression(exp, context))
+          .collect(Collectors.toList());
+
+      return new PartitionBy(node.getLocation(), rewrittenPartitionBys);
     }
 
     @Override

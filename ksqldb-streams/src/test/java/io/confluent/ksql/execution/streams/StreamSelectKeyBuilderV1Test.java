@@ -18,23 +18,24 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -45,7 +46,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
@@ -80,31 +80,29 @@ public class StreamSelectKeyBuilderV1Test {
       .valueColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .build();
 
-  private static final KeyBuilder RESULT_KEY_BUILDER = StructKeyUtil.keyBuilder(RESULT_SCHEMA);
-
   private static final long A_BOI = 5000;
   private static final long A_BIG = 3000;
 
-  private static final Struct SOURCE_KEY = StructKeyUtil
-      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-      .build("dre");
+  private static final GenericKey SOURCE_KEY = GenericKey.genericKey("dre");
 
   @Mock
-  private KStream<Struct, GenericRow> kstream;
+  private KStream<GenericKey, GenericRow> kstream;
   @Mock
-  private KStream<Struct, GenericRow> rekeyedKstream;
+  private KStream<GenericKey, GenericRow> rekeyedKstream;
   @Mock
-  private KStream<Struct, GenericRow> filteredKStream;
+  private KStream<GenericKey, GenericRow> filteredKStream;
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> sourceStep;
+  private ExecutionStep<KStreamHolder<GenericKey>> sourceStep;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private FunctionRegistry functionRegistry;
+  @Mock
+  private PlanInfo planInfo;
   @Captor
-  private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
+  private ArgumentCaptor<Predicate<GenericKey, GenericRow>> predicateCaptor;
   @Captor
-  private ArgumentCaptor<KeyValueMapper<Struct, GenericRow, Struct>> keyValueMapperCaptor;
+  private ArgumentCaptor<KeyValueMapper<GenericKey, GenericRow, GenericKey>> keyValueMapperCaptor;
 
   private final QueryContext queryContext =
       new QueryContext.Stacker().push("ya").getQueryContext();
@@ -115,14 +113,14 @@ public class StreamSelectKeyBuilderV1Test {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);
-    when(sourceStep.build(any())).thenReturn(
-        new KStreamHolder<>(kstream, SOURCE_SCHEMA, mock(KeySerdeFactory.class)));
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(
+        new KStreamHolder<>(kstream, SOURCE_SCHEMA, mock(ExecutionKeyFactory.class)));
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
@@ -137,7 +135,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldRekeyCorrectly() {
     // When:
-    final KStreamHolder<Struct> result = selectKey.build(planBuilder);
+    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder, planInfo);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(kstream, filteredKStream, rekeyedKstream);
@@ -150,15 +148,15 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldReturnCorrectSerdeFactory() {
     // When:
-    final KStreamHolder<Struct> result = selectKey.build(planBuilder);
+    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder, planInfo);
 
     // Then:
-    result.getKeySerdeFactory().buildKeySerde(
+    result.getExecutionKeyFactory().buildKeySerde(
         FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         queryContext
     );
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         queryContext);
@@ -167,22 +165,22 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldFilterOutNullValues() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
-    final Predicate<Struct, GenericRow> predicate = getPredicate();
+    final Predicate<GenericKey, GenericRow> predicate = getPredicate();
     assertThat(predicate.test(SOURCE_KEY, null), is(false));
   }
 
   @Test
   public void shouldFilterOutNullKeyColumns() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
-    final Predicate<Struct, GenericRow> predicate = getPredicate();
+    final Predicate<GenericKey, GenericRow> predicate = getPredicate();
     assertThat(
         predicate.test(SOURCE_KEY, value(A_BIG, null, 0, "dre")),
         is(false)
@@ -192,11 +190,11 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldNotFilterOutNonNullKeyColumns() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
-    final Predicate<Struct, GenericRow> predicate = getPredicate();
+    final Predicate<GenericKey, GenericRow> predicate = getPredicate();
     assertThat(
         predicate.test(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre")),
         is(true)
@@ -206,42 +204,42 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldIgnoreNullNonKeyColumns() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
-    final Predicate<Struct, GenericRow> predicate = getPredicate();
+    final Predicate<GenericKey, GenericRow> predicate = getPredicate();
     assertThat(predicate.test(SOURCE_KEY, value(null, A_BOI, 0, "dre")), is(true));
   }
 
   @Test
   public void shouldComputeCorrectKey() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
-    final KeyValueMapper<Struct, GenericRow, Struct> keyValueMapper = getKeyMapper();
+    final KeyValueMapper<GenericKey, GenericRow, GenericKey> keyValueMapper = getKeyMapper();
     assertThat(
         keyValueMapper.apply(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre")),
-        is(RESULT_KEY_BUILDER.build(A_BOI))
+        is(GenericKey.genericKey(A_BOI))
     );
   }
 
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KStreamHolder<Struct> result = selectKey.build(planBuilder);
+    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(RESULT_SCHEMA));
   }
 
-  private KeyValueMapper<Struct, GenericRow, Struct> getKeyMapper() {
+  private KeyValueMapper<GenericKey, GenericRow, GenericKey> getKeyMapper() {
     verify(filteredKStream).selectKey(keyValueMapperCaptor.capture());
     return keyValueMapperCaptor.getValue();
   }
 
-  private Predicate<Struct, GenericRow> getPredicate() {
+  private Predicate<GenericKey, GenericRow> getPredicate() {
     verify(kstream).filter(predicateCaptor.capture());
     return predicateCaptor.getValue();
   }

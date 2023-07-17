@@ -302,12 +302,12 @@ public class QueryMaskTest {
     // When
     final String maskedQuery = QueryMask.getMaskedStatement(query);
 
-    /// Then
+    // Then
     final String expected = "--this is a comment. \n"
         + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
         + "('[value]','[value]','[value]','[value]','[value]','[value]');";
 
-
+    // Then
     assertThat(maskedQuery, is(expected));
   }
 }

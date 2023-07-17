@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to control the case of identifiers 
+tagline: Casing for ksqlDB stream name and column names
+description: Use backticks to control the casing of ksqlDB stream name and column names
+keywords: case, identifier
+---
+
 # How to control the case of identifiers
 
 ## Context

@@ -67,7 +67,11 @@ public final class ProcessingLogServerUtils {
     try {
       topicClient.createTopic(topicName, nPartitions, nReplicas);
     } catch (final KafkaTopicExistsException e) {
-      LOGGER.info(String.format("Log topic %s already exists", topicName), e);
+      if (e.getPartitionOrReplicaMismatch()) {
+        LOGGER.warn(String.format("Log topic %s already exists", topicName), e);
+      } else {
+        LOGGER.info(String.format("Log topic %s already exists", topicName), e);
+      }
     }
     return Optional.of(topicName);
   }

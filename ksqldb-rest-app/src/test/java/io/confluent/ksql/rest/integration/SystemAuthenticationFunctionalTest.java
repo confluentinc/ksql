@@ -118,16 +118,18 @@ public class SystemAuthenticationFunctionalTest {
   private static Map<String, String> internalKeyStoreProps(boolean node1) {
     Map<String, String> keyStoreProps = MultiNodeKeyStore.keyStoreProps();
     Map<String, String> trustStoreProps = MultiNodeTrustStore.trustStoreNode1Node2Props();
-    return ImmutableMap.of(
-        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
-        keyStoreProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG),
-        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
-        keyStoreProps.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG),
-        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
-        trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG),
-        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
-        trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)
-    );
+
+    return ImmutableMap.<String, String>builder()
+        .put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
+            keyStoreProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+        .put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+            keyStoreProps.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG))
+        .put(SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+            keyStoreProps.get(SslConfigs.SSL_KEY_PASSWORD_CONFIG))
+        .put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+            trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
+        .put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+            trustStoreProps.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)).build();
   }
 
   private static final BasicCredentials USER1 = BasicCredentials.of(

@@ -219,7 +219,7 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
           existing.numPartitions,
           requiredNumReplicas,
           existing.replicationFactor
-      ));
+      ), true);
     }
   }
 }

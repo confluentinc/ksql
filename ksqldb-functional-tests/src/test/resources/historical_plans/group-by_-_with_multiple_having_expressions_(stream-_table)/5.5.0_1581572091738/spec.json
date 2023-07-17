@@ -67,7 +67,7 @@
       "key" : "0",
       "value" : "1,test"
     } ],
-    "outputs" : [  {
+    "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : 1,
       "value" : "1,2"

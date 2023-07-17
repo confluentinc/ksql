@@ -127,7 +127,18 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "FOO",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "OUT",
           "keyFormat" : {
@@ -136,7 +147,22 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VAL",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 1,
+                "precision" : 2,
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            } ]
+          }
         } ]
       }
     }

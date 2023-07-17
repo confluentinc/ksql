@@ -22,7 +22,9 @@ package io.confluent.ksql.cli.console;
 public final class UnclosedQuoteChecker {
   private static final String COMMENT = "--";
 
-  private UnclosedQuoteChecker() {}
+  private UnclosedQuoteChecker() {
+
+  }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static boolean isUnclosedQuote(final String line) {

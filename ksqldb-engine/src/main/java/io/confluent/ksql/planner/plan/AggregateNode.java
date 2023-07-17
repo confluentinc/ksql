@@ -192,7 +192,8 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         keyColumnNames,
         internalSchema.getAggArgExpansionList(),
         contextStacker.push(PREPARE_OP_NAME),
-        buildContext
+        buildContext,
+        valueFormat.getFormatInfo()
     );
   }
 
@@ -241,7 +242,8 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         keyColumnNames,
         finalSelectExpressions,
         contextStacker.push(PROJECT_OP_NAME),
-        buildContext
+        buildContext,
+        valueFormat.getFormatInfo()
     );
   }
 

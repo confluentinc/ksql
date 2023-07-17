@@ -24,6 +24,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -49,6 +50,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -62,6 +64,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.slf4j.Logger;
@@ -155,6 +158,27 @@ public class InsertValuesExecutor {
       final Exception rootCause = new KsqlTopicAuthorizationException(
           AclOperation.WRITE,
           e.unauthorizedTopics()
+      );
+
+      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
+    } catch (final ClusterAuthorizationException e) {
+      // ClusterAuthorizationException is thrown when using idempotent producers
+      // and either a topic write permission or a cluster-level idempotent write
+      // permission (only applicable for broker versions no later than 2.8) is
+      // missing. In this case, we include additional context to help the user
+      // distinguish this type of failure from other permissions exceptions
+      // such as the ones thrown above when TopicAuthorizationException is caught.
+      final Exception rootCause = new KsqlTopicAuthorizationException(
+          AclOperation.WRITE,
+          Collections.singletonList(dataSource.getKafkaTopicName()),
+          // Ideally we would forward e.getMessage() instead of the hard-coded
+          // message below, but until this error message is improved on the Kafka
+          // side, e.getMessage() is not helpful. (Today it is just "Cluster
+          // authorization failed.")
+          "The producer is not authorized to do idempotent sends. "
+              + "Check that you have write permissions to the specified topic, "
+              + "and disable idempotent sends by setting 'enable.idempotent=false' "
+              + " if necessary."
       );
 
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
@@ -274,7 +298,7 @@ public class InsertValuesExecutor {
           FormatFactory.fromName(dataSource.getKsqlTopic().getKeyFormat().getFormat()),
           topicName,
           true,
-          "write",
+          AclOperation.WRITE,
           e);
       LOG.error("Could not serialize key.", e);
       throw new KsqlException("Could not serialize key", e);
@@ -311,7 +335,8 @@ public class InsertValuesExecutor {
           true);
 
     } catch (final KsqlException e) {
-      maybeThrowSchemaRegistryAuthError(format, dataSource.getKafkaTopicName(), true, "read", e);
+      maybeThrowSchemaRegistryAuthError(format, dataSource.getKafkaTopicName(), true,
+          AclOperation.READ, e);
       throw new KsqlException("Could not determine that insert values operations is safe; "
           + "operation potentially overrides existing key schema in schema registry.", e);
     }
@@ -355,7 +380,7 @@ public class InsertValuesExecutor {
           FormatFactory.fromName(dataSource.getKsqlTopic().getValueFormat().getFormat()),
           topicName,
           false,
-          "write",
+          AclOperation.WRITE,
           e);
       LOG.error("Could not serialize value.", e);
       throw new KsqlException("Could not serialize value" + e.getMessage(), e);
@@ -366,7 +391,7 @@ public class InsertValuesExecutor {
       final Format format,
       final String topicName,
       final boolean isKey,
-      final String op,
+      final AclOperation op,
       final Exception e
   ) {
     if (format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
@@ -375,11 +400,10 @@ public class InsertValuesExecutor {
         switch (((RestClientException) rootCause).getStatus()) {
           case HttpStatus.SC_UNAUTHORIZED:
           case HttpStatus.SC_FORBIDDEN:
-            throw new KsqlException(String.format(
-                "Not authorized to %s Schema Registry subject: [%s]",
+            throw new KsqlSchemaAuthorizationException(
                 op,
                 KsqlConstants.getSRSubject(topicName, isKey)
-            ));
+            );
           default:
             break;
         }

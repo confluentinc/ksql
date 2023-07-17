@@ -43,7 +43,10 @@ public final class SqlTypeWalker {
       .put(SqlBaseType.DOUBLE, (v, t) -> v.visitDouble((SqlPrimitiveType) t))
       .put(SqlBaseType.STRING, (v, t) -> v.visitString((SqlPrimitiveType) t))
       .put(SqlBaseType.DECIMAL, (v, t) -> v.visitDecimal((SqlDecimal) t))
+      .put(SqlBaseType.TIME, (v, t) -> v.visitTime((SqlPrimitiveType) t))
+      .put(SqlBaseType.DATE, (v, t) -> v.visitDate((SqlPrimitiveType) t))
       .put(SqlBaseType.TIMESTAMP, (v, t) -> v.visitTimestamp((SqlPrimitiveType) t))
+      .put(SqlBaseType.BYTES, (v, t) -> v.visitBytes((SqlPrimitiveType) t))
       .put(SqlBaseType.ARRAY, SqlTypeWalker::visitArray)
       .put(SqlBaseType.MAP, SqlTypeWalker::visitMap)
       .put(SqlBaseType.STRUCT, SqlTypeWalker::visitStruct)
@@ -86,7 +89,19 @@ public final class SqlTypeWalker {
       return visitType(type);
     }
 
+    default S visitTime(final SqlPrimitiveType type) {
+      return visitPrimitive(type);
+    }
+
+    default S visitDate(final SqlPrimitiveType type) {
+      return visitPrimitive(type);
+    }
+
     default S visitTimestamp(final SqlPrimitiveType type) {
+      return visitPrimitive(type);
+    }
+
+    default S visitBytes(final SqlPrimitiveType type) {
       return visitPrimitive(type);
     }
 

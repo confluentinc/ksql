@@ -202,7 +202,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n"
         }, {
           "name" : "LEFT_JOIN",
           "keyFormat" : {
@@ -211,7 +212,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n  string F1 = 3;\n  int64 F2 = 4;\n}\n"
         }, {
           "name" : "test_table",
           "keyFormat" : {
@@ -220,7 +222,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n}\n"
         } ]
       }
     }

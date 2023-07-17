@@ -52,6 +52,7 @@ statement
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
+    | (LIST | SHOW) CONNECTOR PLUGINS                                       #listConnectorPlugins
     | (LIST | SHOW) TYPES                                                   #listTypes
     | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE sourceName EXTENDED?                                         #showColumns
@@ -150,11 +151,11 @@ limitClause
     ;
 
 retentionClause
-    : ',' RETENTION number windowUnit
+    : RETENTION number windowUnit
     ;
 
 gracePeriodClause
-    : ',' GRACE PERIOD number windowUnit
+    : GRACE PERIOD number windowUnit
     ;
 
 windowExpression
@@ -163,15 +164,15 @@ windowExpression
     ;
 
 tumblingWindowExpression
-    : TUMBLING '(' SIZE number windowUnit (retentionClause)? (gracePeriodClause)?')'
+    : TUMBLING '(' SIZE number windowUnit (',' retentionClause)? (',' gracePeriodClause)?')'
     ;
 
 hoppingWindowExpression
-    : HOPPING '(' SIZE number windowUnit ',' ADVANCE BY number windowUnit (retentionClause)? (gracePeriodClause)?')'
+    : HOPPING '(' SIZE number windowUnit ',' ADVANCE BY number windowUnit (',' retentionClause)? (',' gracePeriodClause)?')'
     ;
 
 sessionWindowExpression
-    : SESSION '(' number windowUnit (retentionClause)? (gracePeriodClause)?')'
+    : SESSION '(' number windowUnit (',' retentionClause)? (',' gracePeriodClause)?')'
     ;
 
 windowUnit
@@ -228,7 +229,7 @@ joinWindow
 
 withinExpression
     : '(' joinWindowSize ',' joinWindowSize ')' # joinWindowWithBeforeAndAfter
-    | joinWindowSize # singleJoinWindow
+    | joinWindowSize                            # singleJoinWindow
     ;
 
 joinWindowSize
@@ -332,7 +333,7 @@ type
     ;
 
 typeParameter
-    : INTEGER_VALUE | type
+    : INTEGER_VALUE | 'STRING'
     ;
 
 baseType
@@ -386,7 +387,7 @@ literal
 nonReserved
     : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | FUNCTION | SESSION
     | STRUCT | MAP | ARRAY | PARTITION
-    | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
+    | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE | 'STRING'
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
     | EXPLAIN | ANALYZE | TYPE | TYPES
     | SET | RESET
@@ -403,6 +404,7 @@ nonReserved
     | ADD
     | GRACE | PERIOD
     | DEFINE | UNDEFINE | VARIABLES
+    | PLUGINS
     ;
 
 EMIT: 'EMIT';
@@ -538,6 +540,7 @@ ASSERT: 'ASSERT';
 ADD: 'ADD';
 ALTER: 'ALTER';
 VARIABLES: 'VARIABLES';
+PLUGINS: 'PLUGINS';
 
 IF: 'IF';
 

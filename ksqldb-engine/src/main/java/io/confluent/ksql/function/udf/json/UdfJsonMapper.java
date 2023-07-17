@@ -35,6 +35,6 @@ public enum UdfJsonMapper {
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
   public ObjectMapper get() {
-    return mapper;
+    return mapper.copy();
   }
 }

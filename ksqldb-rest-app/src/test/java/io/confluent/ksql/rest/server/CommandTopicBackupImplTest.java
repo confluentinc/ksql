@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
@@ -55,7 +56,7 @@ public class CommandTopicBackupImplTest {
   private Supplier<Long> ticker;
 
   @Rule
-  public TemporaryFolder backupLocation = new TemporaryFolder();
+  public TemporaryFolder backupLocation = KsqlTestFolder.temporaryFolder();
 
   private CommandTopicBackupImpl commandTopicBackup;
 

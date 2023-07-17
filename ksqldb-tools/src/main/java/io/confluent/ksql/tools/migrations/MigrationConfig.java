@@ -54,7 +54,7 @@ public final class MigrationConfig extends AbstractConfig {
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
 
   public static final MigrationConfig DEFAULT_CONFIG =
-      new MigrationConfig(Collections.EMPTY_MAP, "ksql-service-id");
+      new MigrationConfig(Collections.emptyMap(), "ksql-service-id");
 
   public static MigrationConfig load(final String configFile) {
     final Map<String, String> configsMap =
@@ -186,8 +186,8 @@ public final class MigrationConfig extends AbstractConfig {
         configs.get(SSL_KEYSTORE_PASSWORD),
         configs.get(SSL_KEY_PASSWORD),
         configs.get(SSL_KEY_ALIAS),
-        configs.getOrDefault(SSL_ALPN, "false").toLowerCase().equals("true"),
-        configs.getOrDefault(SSL_VERIFY_HOST, "true").toLowerCase().equals("true")
+        configs.getOrDefault(SSL_ALPN, "false").equalsIgnoreCase("true"),
+        configs.getOrDefault(SSL_VERIFY_HOST, "true").equalsIgnoreCase("true")
     );
     final String serviceId;
     try {

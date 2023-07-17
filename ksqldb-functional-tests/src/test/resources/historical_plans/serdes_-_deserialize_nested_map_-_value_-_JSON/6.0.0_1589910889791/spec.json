@@ -163,7 +163,18 @@
           "valueFormat" : {
             "format" : "JSON"
           },
-          "partitions" : 1
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "ignored",
+            "fields" : [ {
+              "name" : "FOO",
+              "type" : [ "null", {
+                "type" : "map",
+                "values" : [ "null", "int" ]
+              } ]
+            } ]
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -172,7 +183,30 @@
           "valueFormat" : {
             "format" : "JSON"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "ignored",
+            "fields" : [ {
+              "name" : "FOO",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : {
+                  "type" : "record",
+                  "name" : "test",
+                  "fields" : [ {
+                    "name" : "key",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "value",
+                    "type" : [ "null", "int" ],
+                    "default" : null
+                  } ]
+                }
+              } ]
+            } ]
+          }
         } ]
       }
     }

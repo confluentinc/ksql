@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -79,6 +80,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -945,6 +947,7 @@ public class KsqlParserTest {
     assertThat(withinExpression.getBefore(), is(10L));
     assertThat(withinExpression.getAfter(), is(10L));
     assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(withinExpression.getGrace(), is(Optional.empty()));
     assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 
@@ -976,6 +979,7 @@ public class KsqlParserTest {
     assertThat(withinExpression.getAfter(), is(20L));
     assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
     assertThat(withinExpression.getAfterTimeUnit(), is(TimeUnit.MINUTES));
+    assertThat(withinExpression.getGrace(), is(Optional.empty()));
     assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 

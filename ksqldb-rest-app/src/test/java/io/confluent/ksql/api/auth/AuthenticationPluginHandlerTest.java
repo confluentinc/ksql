@@ -35,6 +35,7 @@ public class AuthenticationPluginHandlerTest {
 
     // Then:
     assertThat(skips.matcher("/heartbeat").matches(), is(true));
+    assertThat(skips.matcher("/lag").matches(), is(true));
     assertThat(skips.matcher("/foo").matches(), is(false));
   }
 

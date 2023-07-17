@@ -1,0 +1,20 @@
+[ {
+  "@type" : "streams",
+  "statementText" : "e",
+  "streams" : [ {
+    "type" : "STREAM",
+    "name" : "B",
+    "topic" : "t2",
+    "keyFormat" : "KAFKA",
+    "valueFormat" : "AVRO",
+    "isWindowed" : false
+  }, {
+    "type" : "STREAM",
+    "name" : "A",
+    "topic" : "t1",
+    "keyFormat" : "JSON",
+    "valueFormat" : "JSON",
+    "isWindowed" : true
+  } ],
+  "warnings" : [ ]
+} ]

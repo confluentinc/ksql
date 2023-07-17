@@ -74,7 +74,7 @@ they contain. Smaller state stores reduce the amount of disk read-and-write
 throughput performed by ksqlDB, resulting in better overall workload throughput.
 Also, smaller state stores minimize local and {{ site.ak }} disk storage
 consumption. State store row sizes may be minimized by eliminating unused
-fields in your events.
+fields in your records.
 
 ### Reduce the number of state stores
 
@@ -86,17 +86,17 @@ requirements.
 
 ## Serialization and deserialization
 
-Input and output events consumed and produced by ksqlDB workloads are
-serialized as {{ site.ak }} messages, so each consumed event must be
-deserialized before being processed by ksqlDB. Similarly, each output event
+Input and output records consumed and produced by ksqlDB workloads are
+serialized as {{ site.ak }} messages, so each consumed record must be
+deserialized before being processed by ksqlDB. Similarly, each output record
 produced by ksqlDB must be serialized before being written to {{ site.ak }}.
-As a result, event serialization is generally the most expensive aspect of
+As a result, record serialization is generally the most expensive aspect of
 any ksqlDB workload.
 
 !!! important
 
     You should use the format that best suits your use case, but keep in mind
-    that event serialization is usually the dominant cost for most workloads. 
+    that record serialization is usually the dominant cost for most workloads. 
 
 ### Avoid unnecessary serialization and deserialization
 
@@ -108,9 +108,9 @@ transformation and filter into a single persistent query. In this case,
 serialization and deserialization overhead would be reduced approximately by
 half.
 
-### Reduce event complexity and size
+### Reduce record complexity and size
 
-Avoid unnecessary event complexity and size. Smaller, simpler events are more
+Avoid unnecessary record complexity and size. Smaller, simpler records are more
 efficient to serialize and deserialize. If your workload doesn't require
 certain fields in your input messages, consider removing these fields as early
 as possible to improve serialization performance. In some cases, it may be
@@ -123,9 +123,9 @@ processing.
 A transformation is any reference to a column that is not a bare column
 reference. For example, a function call over a column, and an arithmetic
 expression involving one or more columns are both transformations. A filter
-is a Boolean expression invoked via a WHERE clause that excludes any events
+is a Boolean expression invoked via a WHERE clause that excludes any record
 for which that expression evaluates to false. Transformations and filters
-are thus evaluated for each input event, and typically incur a negligible
+are thus evaluated for each input record, and typically incur a negligible
 amount of performance overhead. This does not necessarily apply to
 [user-defined function](/how-to-guides/create-a-user-defined-function)
 invocations.
@@ -138,7 +138,7 @@ bottlenecks, each individual persistent query does incur a significant amount
 of system-resource overhead. For this reason, you should combine as many of
 your transformations and filters as possible into the fewest number of
 persistent queries that your workload allows. Additionally, for any
-transformations that reduce event size, we recommend that you perform these
+transformations that reduce record size, we recommend that you perform these
 transformations as early as possible in your processing pipeline.
 
 ## Topic repartitioning
@@ -154,7 +154,7 @@ nodes in the deployment.
 
 For joins, both sides of the join [must be partitioned](https://docs.ksqldb.io/en/latest/developer-guide/joins/partition-data/)
 using the same key, known as [co-partitioning](/developer-guide/joins/join-streams-and-tables/#co-partitioned-data),
-to guarantee that events for both sides of the join are always processed by the
+to guarantee that records for both sides of the join are always processed by the
 same ksqlDB node.
 
 ksqlDB re-partitions input topics automatically if they aren't partitioned in a
@@ -278,7 +278,7 @@ cases they can become expensive to execute internally.
 ### Avoid unnecessarily wide join windows
 
 Stream-stream joins require that you specify a [window](/concepts/time-and-windows-in-ksqldb-queries/#windowed-joins)
-over which to perform the join. Events on each side of the join match only if
+over which to perform the join. Records on each side of the join match only if
 they both occur within the specified window. The amount of local state required
 for a stream-stream join is directly proportional to the width of the join
 window. As a result, we recommend using stream-stream join window widths that
@@ -287,7 +287,7 @@ are no wider than your use case permits.
 ### Ensure both sides of a join are co-partitioned whenever possible
 
 ksqlDB requires that both sides of a join operation are partitioned identically
-in order to guarantee that matching events are always processed by the same
+in order to guarantee that matching records are always processed by the same
 ksqlDB node. Whenever two input streams or tables are not co-partitioned,
 ksqlDB must perform an internal repartition, thereby duplicating topic data as
 well as network round trips issued by the persistent query that does the join.

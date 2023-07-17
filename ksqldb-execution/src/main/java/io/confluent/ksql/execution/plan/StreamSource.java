@@ -20,9 +20,11 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import javax.annotation.Nonnull;
 
 @Immutable
@@ -41,14 +43,16 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
   ) {
     super(
         props,
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        pseudoColumnVersion.orElse(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -101,7 +105,8 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema);
+        && Objects.equals(sourceSchema, that.sourceSchema)
+        && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion);
   }
 
   @Override
@@ -111,7 +116,8 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        pseudoColumnVersion
     );
   }
 }

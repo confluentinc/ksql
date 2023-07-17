@@ -20,7 +20,7 @@ package io.confluent.ksql.api.client;
  */
 public interface ColumnType {
 
-  enum Type { STRING, INTEGER, BIGINT, DOUBLE, BOOLEAN, DECIMAL, ARRAY, MAP, STRUCT }
+  enum Type { STRING, INTEGER, BIGINT, DOUBLE, BOOLEAN, DECIMAL, BYTES, ARRAY, MAP, STRUCT }
 
   /**
    * Returns the type.

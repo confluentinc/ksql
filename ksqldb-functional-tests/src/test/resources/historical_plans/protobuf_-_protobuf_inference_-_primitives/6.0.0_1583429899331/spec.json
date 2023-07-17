@@ -89,7 +89,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 1
+          "partitions" : 1,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  bool c1 = 1;\n  int32 c2 = 2;\n  int64 c3 = 3;\n  double c4 = 4;\n  string c5 = 5;\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -98,7 +99,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  bool C1 = 1;\n  int32 C2 = 2;\n  int64 C3 = 3;\n  double C4 = 4;\n  string C5 = 5;\n}\n"
         } ]
       }
     }

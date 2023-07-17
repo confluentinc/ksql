@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -30,6 +31,9 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -54,10 +58,13 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter concurrencyLimiter;
+  private final SlidingWindowRateLimiter pullBandRateLimiter;
   private final HARouting routing;
 
   @VisibleForTesting
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   PullQueryPublisher(
+      // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
@@ -67,6 +74,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
@@ -78,6 +86,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = requireNonNull(rateLimiter, "rateLimiter");
     this.concurrencyLimiter = concurrencyLimiter;
+    this.pullBandRateLimiter = requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
     this.routing = requireNonNull(routing, "routing");
   }
 
@@ -96,9 +105,11 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = concurrencyLimiter.increment();
+    pullBandRateLimiter.allow();
 
+    PullQueryResult result = null;
     try {
-      final PullQueryResult result = ksqlEngine.executePullQuery(
+      result = ksqlEngine.executePullQuery(
           serviceContext,
           query,
           routing,
@@ -108,9 +119,13 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
           true
       );
 
+      final PullQueryResult finalResult = result;
       result.onCompletionOrException((v, throwable) -> {
         decrementer.decrementAtMostOnce();
-        pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
+
+        pullQueryMetrics.ifPresent(m -> {
+          recordMetrics(m, Optional.of(finalResult));
+        });
       });
 
       final PullQuerySubscription subscription = new PullQuerySubscription(
@@ -119,8 +134,27 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       subscriber.onSubscribe(subscription);
     } catch (Throwable t) {
       decrementer.decrementAtMostOnce();
+
+      if (result == null) {
+        pullQueryMetrics.ifPresent(m -> recordMetrics(m, Optional.empty()));
+      }
       throw t;
     }
+  }
+
+  private void recordMetrics(
+      final PullQueryExecutorMetrics metrics, final Optional<PullQueryResult> result) {
+    final PullSourceType sourceType = result.map(
+        PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
+    final PullPhysicalPlanType planType = result.map(
+        PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
+    final RoutingNodeType routingNodeType = result.map(
+        PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
+    metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
+    metrics.recordRowsReturned(result.map(PullQueryResult::getTotalRowsReturned).orElse(0L),
+        sourceType, planType, routingNodeType);
+    metrics.recordRowsProcessed(result.map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
+        sourceType, planType, routingNodeType);
   }
 
   private static final class PullQuerySubscription

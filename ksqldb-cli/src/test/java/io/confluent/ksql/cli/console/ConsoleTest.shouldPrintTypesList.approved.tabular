@@ -1,0 +1,7 @@
+
+ Type Name | Schema                     
+----------------------------------------
+ typeA     | STRUCT<f1 VARCHAR(STRING)> 
+ typeB     | ARRAY<VARCHAR(STRING)>     
+ typeC     | DECIMAL(10, 9)             
+----------------------------------------

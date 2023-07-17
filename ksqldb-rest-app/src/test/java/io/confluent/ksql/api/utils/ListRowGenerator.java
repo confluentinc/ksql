@@ -15,29 +15,33 @@
 
 package io.confluent.ksql.api.utils;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import java.util.Iterator;
 import java.util.List;
 
 public class ListRowGenerator implements RowGenerator {
 
-  private final List<String> columnNames;
-  private final List<String> columnTypes;
+  private final ImmutableList<String> columnNames;
+  private final ImmutableList<String> columnTypes;
   private final Iterator<GenericRow> iter;
 
   public ListRowGenerator(final List<String> columnNames, final List<String> columnTypes,
       final List<GenericRow> rows) {
-    this.columnNames = columnNames;
-    this.columnTypes = columnTypes;
+    this.columnNames = ImmutableList.copyOf(columnNames);
+    this.columnTypes = ImmutableList.copyOf(columnTypes);
     this.iter = rows.iterator();
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnNames is ImmutableList")
   public List<String> getColumnNames() {
     return columnNames;
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnTypes is ImmutableList")
   public List<String> getColumnTypes() {
     return columnTypes;
   }

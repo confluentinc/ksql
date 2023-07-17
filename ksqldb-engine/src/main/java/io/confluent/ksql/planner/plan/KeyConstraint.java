@@ -17,7 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
+import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import java.util.Objects;
 import java.util.Optional;
 

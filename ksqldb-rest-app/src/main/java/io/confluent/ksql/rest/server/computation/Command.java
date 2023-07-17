@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
@@ -36,7 +37,7 @@ import java.util.Optional;
 public class Command {
 
   @VisibleForTesting
-  public static final int VERSION = 5;
+  public static final int VERSION = 9;
 
   private final String statement;
   private final Map<String, Object> overwriteProperties;
@@ -89,8 +90,10 @@ public class Command {
       final int expectedVersion
   ) {
     this.statement = requireNonNull(statement, "statement");
+    // cannot use ImmutableMap, because we need to handle null-values
     this.overwriteProperties = Collections.unmodifiableMap(
         requireNonNull(overwriteProperties, "overwriteProperties"));
+    // cannot use ImmutableMap, because we need to handle null-values
     this.originalProperties = Collections.unmodifiableMap(
         requireNonNull(originalProperties, "originalProperties"));
     this.plan = requireNonNull(plan, "plan");
@@ -109,10 +112,18 @@ public class Command {
   }
 
   @JsonProperty("streamsProperties")
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "overwriteProperties is unmodifiableMap()"
+  )
   public Map<String, Object> getOverwriteProperties() {
-    return Collections.unmodifiableMap(overwriteProperties);
+    return overwriteProperties;
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "originalProperties is unmodifiableMap()"
+  )
   public Map<String, String> getOriginalProperties() {
     return originalProperties;
   }

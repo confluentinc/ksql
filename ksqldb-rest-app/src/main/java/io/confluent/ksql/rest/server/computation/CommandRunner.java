@@ -16,15 +16,18 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
 import java.time.Clock;
@@ -249,7 +252,7 @@ public class CommandRunner implements Closeable {
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    */
-  public void processPriorCommands() {
+  public void processPriorCommands(final PersistentQueryCleanupImpl queryCleanup) {
     try {
       final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
@@ -284,9 +287,15 @@ public class CommandRunner implements Closeable {
           .getKsqlEngine()
           .getPersistentQueries();
 
-      LOG.info("Restarting {} queries.", queries.size());
+      queryCleanup.cleanupLeakedQueries(queries);
 
-      queries.forEach(PersistentQueryMetadata::start);
+      if (commandStore.corruptionDetected()) {
+        LOG.info("Corruption detected, queries will not be started.");
+        queries.forEach(QueryMetadata::setCorruptionQueryError);
+      } else {
+        LOG.info("Restarting {} queries.", queries.size());
+        queries.forEach(PersistentQueryMetadata::start);
+      }
 
       LOG.info("Restore complete");
 
@@ -384,6 +393,7 @@ public class CommandRunner implements Closeable {
     return compatibleCommands;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public CommandQueue getCommandQueue() {
     return commandStore;
   }
@@ -465,6 +475,7 @@ public class CommandRunner implements Closeable {
         );
         closeEarly();
       } finally {
+        LOG.info("Closing command store");
         commandStore.close();
       }
     }

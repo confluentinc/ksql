@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **46**
+Next KLIP number: **53**
 
 | KLIP                                                                                                                             |  Status  | Community Release | CP Release | Discussion PR                                                |
 |----------------------------------------------------------------------------------------------------------------------------------|:--------:|:-----------------:|:----------:|--------------------------------------------------------------|
@@ -86,3 +86,10 @@ Next KLIP number: **46**
 | [KLIP-43: TIMESTAMP data type support ](klip-43-timestamp-data-type-support.md)                                                  | Approved |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6649) |
 | [KLIP-44: ksqlDB Go client](klip-44-ksqldb-golang-client.md)                                                                     | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6825) |
 | [KLIP-45: Materializing Tables for Query](klip-45-materializing-tables-for-query.md)                                             | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6997) |
+| KLIP-46: DATE and TIME data type support                                                                                         | Proposal |        0.20.0     |            | [Discussion](https://github.com/confluentinc/ksql/pull/7417) |
+| KLIP-47: NON NULL columns and component types                                                                                    | Proposal |                   |            |                                                              |
+| KLIP-48: Schemas                                                                                                                 | Proposal |                   |            |                                                              |
+| KLIP-49: Add source stream/table semantic                                                                                        | Proposal |                   |            |                                                              |
+| KLIP-50: Partition and offset in ksqlDB                                                                                          | Proposal |      0.23.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/7505) |
+| [KLIP-51: ksqlDB .NET LINQ provider](klip-51-ksqldb .NET LINQ provider.md)                                                       | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6883) |
+| [KLIP-52: BYTES data type support](klip-52-bytes-data-type-support.md)                                                           | Proposal |      0.21.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/7764) |

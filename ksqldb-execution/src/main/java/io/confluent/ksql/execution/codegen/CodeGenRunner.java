@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
@@ -38,6 +39,7 @@ import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -52,6 +54,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -171,6 +174,7 @@ public class CodeGenRunner {
     }
   }
 
+  @SuppressWarnings("unchecked")
   @VisibleForTesting
   public static IExpressionEvaluator cook(
       final String javaCode,
@@ -182,7 +186,10 @@ public class CodeGenRunner {
         .newExpressionEvaluator();
 
     ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
-    ee.setParameters(argNames, argTypes);
+    ee.setParameters(
+        ArrayUtils.addAll(argNames, "defaultValue", "logger", "row"),
+        ArrayUtils.addAll(argTypes, Object.class, ProcessingLogger.class, GenericRow.class)
+    );
     ee.setExpressionType(expressionType);
     ee.cook(javaCode);
     return ee;

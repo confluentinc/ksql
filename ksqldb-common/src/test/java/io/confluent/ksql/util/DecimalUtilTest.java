@@ -82,10 +82,19 @@ public class DecimalUtilTest {
   @Test
   public void shouldExtractPrecisionFromDecimalSchema() {
     // When:
-    final int scale = DecimalUtil.precision(DECIMAL_SCHEMA);
+    final int precision = DecimalUtil.precision(DECIMAL_SCHEMA);
 
     // Then:
-    assertThat(scale, is(2));
+    assertThat(precision, is(2));
+  }
+
+  @Test
+  public void shouldUseDefaultPrecisionIfNotPresentInSchema() {
+    // When:
+    final int precision = DecimalUtil.precision(decimalSchemaWithoutPrecision(3));
+
+    // Then:
+    assertThat(precision, is(64));
   }
 
   @Test
@@ -689,5 +698,12 @@ public class DecimalUtilTest {
         DecimalUtil.fromValue(new BigDecimal("1e3")),
         is(SqlTypes.decimal(4, 0))
     );
+  }
+
+  private static Schema decimalSchemaWithoutPrecision(final int scale) {
+    return org.apache.kafka.connect.data.Decimal
+        .builder(scale)
+        .optional()
+        .build();
   }
 }

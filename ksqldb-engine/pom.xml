@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.2.11-0</version>
+        <version>7.0.10-0</version>
     </parent>
 
     <artifactId>ksqldb-engine</artifactId>
@@ -175,12 +175,10 @@
             <artifactId>wiremock-jre8</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>confluent-log4j-extensions</artifactId>
             <version>${io.confluent.common.version}</version>
-            <scope>test</scope>
         </dependency>
 
     </dependencies>
@@ -199,23 +197,5 @@
                 </configuration>
             </plugin>
         </plugins>
-
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>ksql-version.streamsProperties</include>
-                </includes>
-            </resource>
-
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-                <excludes>
-                    <exclude>ksql-version.streamsProperties</exclude>
-                </excludes>
-            </resource>
-        </resources>
     </build>
 </project>

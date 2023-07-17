@@ -35,6 +35,9 @@ public final class StreamStreamJoinBuilder {
   private StreamStreamJoinBuilder() {
   }
 
+  // deprecation can be fixed after GRACE clause is mandatory
+  // (cf. `WithinExpression`)
+  @SuppressWarnings("deprecation")
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> left,
       final KStreamHolder<K> right,
@@ -85,8 +88,9 @@ public final class StreamStreamJoinBuilder {
     final JoinParams joinParams = JoinParamsFactory
         .create(join.getKeyColName(), leftSchema, rightSchema);
 
-    final JoinWindows joinWindows =
-        JoinWindows.of(join.getBeforeMillis()).after(join.getAfterMillis());
+    final JoinWindows joinWindows = JoinWindows.of(join.getBeforeMillis())
+        .after(join.getAfterMillis());
+
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:

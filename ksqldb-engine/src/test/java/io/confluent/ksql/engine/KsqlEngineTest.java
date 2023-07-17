@@ -78,7 +78,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
-import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
+import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.IOException;
@@ -980,7 +980,7 @@ public class KsqlEngineTest {
         if (q instanceof TransientQueryMetadata) {
           assertTrue(sq instanceof SandboxedTransientQueryMetadata);
         } else {
-          assertTrue(sq instanceof SandboxedPersistentQueryMetadata);
+          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl);
         }
       }
     }
@@ -1171,6 +1171,50 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
+    awaitCleanupComplete();
+    verify(topicClient, never()).deleteInternalTopics(any());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnReplace() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream s1 with (value_format = 'avro') as select * from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create or replace stream s1 with (value_format = 'avro') as select *, 'foo' from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+
+    // Then:
+    awaitCleanupComplete();
+    verify(topicClient, never()).deleteInternalTopics(any());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnSandboxQueryClose() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream s1 with (value_format = 'avro') as select * from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(serviceContext);
+
+    // When:
+    sandbox.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+
+    // Then:
+    awaitCleanupComplete();
     verify(topicClient, never()).deleteInternalTopics(any());
   }
 
@@ -1862,7 +1906,7 @@ public class KsqlEngineTest {
   private void awaitCleanupComplete() {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", false) {
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", false, "") {
       @Override
       public void run() {
         // do nothing

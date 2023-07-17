@@ -173,25 +173,6 @@
       ]
     },
     {
-      "name": "table table inner join should fail as the join result is not materialized",
-      "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='json');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='json');",
-        "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
-        "SELECT * FROM INNER_JOIN;"
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}}
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "The `INNER_JOIN` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_INNER_JOIN AS SELECT * FROM INNER_JOIN'. See https://cnfl.io/queries for more info.",
-        "status": 400
-      }
-    },
-    {
       "name": "pull query on `CREATE TABLE` table should fail ",
       "statements": [
         "CREATE TABLE USERS (id BIGINT PRIMARY KEY, USER_TIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'my-users-topic', VALUE_FORMAT = 'JSON', PARTITIONS=1);",

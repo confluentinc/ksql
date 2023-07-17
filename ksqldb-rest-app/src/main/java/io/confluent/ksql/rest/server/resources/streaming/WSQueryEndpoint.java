@@ -21,6 +21,7 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AG
 
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -30,6 +31,7 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -41,12 +43,14 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.ServerWebSocket;
 import java.time.Duration;
@@ -71,6 +75,7 @@ public class WSQueryEndpoint {
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher pushQueryPublisher;
+  private final ScalablePushQueryPublisher scalablePushQueryPublisher;
   private final IPullQueryPublisher pullQueryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
@@ -81,8 +86,10 @@ public class WSQueryEndpoint {
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
+  private final SlidingWindowRateLimiter pullBandRateLimiter;
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
+  private final PushRouting pushRouting;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
@@ -101,8 +108,10 @@ public class WSQueryEndpoint {
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing,
-      final Optional<LocalCommands> localCommands
+      final Optional<LocalCommands> localCommands,
+      final PushRouting pushRouting
   ) {
     this(
         ksqlConfig,
@@ -111,6 +120,7 @@ public class WSQueryEndpoint {
         commandQueue,
         exec,
         WSQueryEndpoint::startPushQueryPublisher,
+        WSQueryEndpoint::startScalablePushQueryPublisher,
         WSQueryEndpoint::startPullQueryPublisher,
         WSQueryEndpoint::startPrintPublisher,
         activenessRegistrar,
@@ -122,8 +132,10 @@ public class WSQueryEndpoint {
         routingFilterFactory,
         rateLimiter,
         pullConcurrencyLimiter,
+        pullBandRateLimiter,
         routing,
-        localCommands
+        localCommands,
+        pushRouting
     );
   }
 
@@ -136,6 +148,7 @@ public class WSQueryEndpoint {
       final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher pushQueryPublisher,
+      final ScalablePushQueryPublisher scalablePushQueryPublisher,
       final IPullQueryPublisher pullQueryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
@@ -147,8 +160,10 @@ public class WSQueryEndpoint {
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing,
-      final Optional<LocalCommands> localCommands
+      final Optional<LocalCommands> localCommands,
+      final PushRouting pushRouting
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -157,6 +172,8 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(commandQueue, "commandQueue");
     this.exec = Objects.requireNonNull(exec, "exec");
     this.pushQueryPublisher = Objects.requireNonNull(pushQueryPublisher, "pushQueryPublisher");
+    this.scalablePushQueryPublisher
+        = Objects.requireNonNull(scalablePushQueryPublisher, "scalablePushQueryPublisher");
     this.pullQueryPublisher = Objects.requireNonNull(pullQueryPublisher, "pullQueryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
     this.activenessRegistrar =
@@ -174,12 +191,14 @@ public class WSQueryEndpoint {
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     this.pullConcurrencyLimiter =
         Objects.requireNonNull(pullConcurrencyLimiter, "pullConcurrencyLimiter");
+    this.pullBandRateLimiter = Objects.requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
     this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
+    this.pushRouting = Objects.requireNonNull(pushRouting, "pushRouting");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
-      final KsqlSecurityContext ksqlSecurityContext,
+      final KsqlSecurityContext ksqlSecurityContext, final Context context,
       final Optional<Long> timeout) {
 
     try {
@@ -229,7 +248,7 @@ public class WSQueryEndpoint {
           ksqlSecurityContext);
 
       if (statement instanceof Query) {
-        handleQuery(requestContext, (Query) statement, startTimeNanos);
+        handleQuery(requestContext, (Query) statement, startTimeNanos, context);
       } else if (statement instanceof PrintTopic) {
         handlePrintTopic(requestContext, (PrintTopic) statement);
       } else {
@@ -304,7 +323,7 @@ public class WSQueryEndpoint {
   }
 
   private void handleQuery(final RequestContext info, final Query query,
-      final long startTimeNanos) {
+      final long startTimeNanos, final Context context) {
     final Map<String, Object> clientLocalProperties = info.request.getConfigOverrides();
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
@@ -330,7 +349,19 @@ public class WSQueryEndpoint {
           routingFilterFactory,
           rateLimiter,
           pullConcurrencyLimiter,
+          pullBandRateLimiter,
           routing
+      );
+    } else if (ScalablePushUtil.isScalablePushQuery(
+        statement.getStatement(), ksqlEngine, ksqlConfig, clientLocalProperties)) {
+      scalablePushQueryPublisher.start(
+          ksqlEngine,
+          info.securityContext.getServiceContext(),
+          exec,
+          configured,
+          pushRouting,
+          context,
+          streamSubscriber
       );
     } else {
       pushQueryPublisher.start(
@@ -374,7 +405,21 @@ public class WSQueryEndpoint {
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
       final Optional<LocalCommands> localCommands
   ) {
-    new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, localCommands)
+    PushQueryPublisher.createPublisher(ksqlEngine, serviceContext, exec, query, localCommands)
+        .subscribe(streamSubscriber);
+  }
+
+  private static void startScalablePushQueryPublisher(
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
+      final ConfiguredStatement<Query> query,
+      final PushRouting pushRouting,
+      final Context context,
+      final WebSocketSubscriber<StreamedRow> streamSubscriber
+  ) {
+    PushQueryPublisher.createScalablePublisher(ksqlEngine, serviceContext, exec, query, pushRouting,
+        context)
         .subscribe(streamSubscriber);
   }
 
@@ -391,6 +436,7 @@ public class WSQueryEndpoint {
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing
   ) {
     new PullQueryPublisher(
@@ -403,6 +449,7 @@ public class WSQueryEndpoint {
         routingFilterFactory,
         rateLimiter,
         pullConcurrencyLimiter,
+        pullBandRateLimiter,
         routing
     ).subscribe(streamSubscriber);
   }
@@ -430,6 +477,19 @@ public class WSQueryEndpoint {
 
   }
 
+  interface ScalablePushQueryPublisher {
+
+    void start(
+        KsqlEngine ksqlEngine,
+        ServiceContext serviceContext,
+        ListeningScheduledExecutorService exec,
+        ConfiguredStatement<Query> query,
+        PushRouting pushRouting,
+        Context context,
+        WebSocketSubscriber<StreamedRow> subscriber);
+
+  }
+
   interface IPullQueryPublisher {
 
     // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -445,6 +505,7 @@ public class WSQueryEndpoint {
         RoutingFilterFactory routingFilterFactory,
         RateLimiter rateLimiter,
         ConcurrencyLimiter pullConcurrencyLimiter,
+        SlidingWindowRateLimiter pullBandRateLimiter,
         HARouting routing
         );
 

@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,12 +41,16 @@ public interface KafkaConsumerGroupClient {
    * API POJOs
    */
   class ConsumerGroupSummary {
-    final Set<ConsumerSummary> consumerSummaries = new HashSet<>();
+    private final ImmutableSet<ConsumerSummary> consumerSummaries;
 
     public ConsumerGroupSummary(final Set<ConsumerSummary> summaries) {
-      consumerSummaries.addAll(summaries);
+      consumerSummaries = ImmutableSet.copyOf(summaries);
     }
 
+    @SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification = "consumerSummaries is ImmutableList"
+    )
     public Collection<ConsumerSummary> consumers() {
       return consumerSummaries;
     }
@@ -63,7 +69,7 @@ public interface KafkaConsumerGroupClient {
     }
 
     public List<TopicPartition> partitions() {
-      return partitions;
+      return Collections.unmodifiableList(partitions);
     }
 
     public void addPartitions(final Set<TopicPartition> topicPartitions) {

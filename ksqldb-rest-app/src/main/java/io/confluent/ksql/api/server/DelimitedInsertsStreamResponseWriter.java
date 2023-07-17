@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.entity.InsertAck;
 import io.confluent.ksql.rest.entity.InsertError;
 import io.vertx.core.buffer.Buffer;
@@ -41,6 +42,7 @@ public class DelimitedInsertsStreamResponseWriter implements InsertsStreamRespon
 
   private final HttpServerResponse response;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public DelimitedInsertsStreamResponseWriter(final HttpServerResponse response) {
     this.response = Objects.requireNonNull(response);
   }

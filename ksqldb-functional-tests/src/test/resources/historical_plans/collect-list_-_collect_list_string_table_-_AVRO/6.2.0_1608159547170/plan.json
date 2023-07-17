@@ -159,7 +159,6 @@
     "ksql.properties.overrides.denylist" : "",
     "ksql.streams.auto.offset.reset" : "earliest",
     "ksql.connect.url" : "http://localhost:8083",
-    "ksql.service.id" : "some.ksql.service.id",
     "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
     "ksql.streams.commit.interval.ms" : "2000",
     "ksql.streams.auto.commit.interval.ms" : "0",

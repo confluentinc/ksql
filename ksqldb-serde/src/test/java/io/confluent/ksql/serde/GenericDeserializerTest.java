@@ -25,7 +25,9 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
@@ -122,10 +124,12 @@ public class GenericDeserializerTest {
 
     private final List<?> values;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public TestListWrapper(final List<?> values) {
       this.values = values;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<?> getList() {
       return values;
     }

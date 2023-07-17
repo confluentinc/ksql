@@ -215,6 +215,32 @@
           },
           "valueFormat" : {
             "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "S2_F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "S2_F2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "S2_RTS",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "S2_ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "S2_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
           }
         }, {
           "name" : "s2",
@@ -224,7 +250,26 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "F2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "RTS",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "s1",
           "keyFormat" : {
@@ -233,7 +278,22 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "TS",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "S1_JOIN_S2",
           "keyFormat" : {
@@ -242,7 +302,29 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "TS",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "F2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ]
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_S2_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
@@ -250,6 +332,28 @@
           },
           "valueFormat" : {
             "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "S1_NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "S1_TS",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "S1_ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "S1_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
           }
         } ]
       }

@@ -22,11 +22,11 @@ import org.apache.kafka.common.acl.AclOperation;
 
 /**
  * An implementation of {@link KsqlAccessValidator} that provides authorization checks
- * from the Kafka service.
+ * from the backend services.
  */
 public class KsqlBackendAccessValidator implements KsqlAccessValidator {
   @Override
-  public void checkAccess(
+  public void checkTopicAccess(
       final KsqlSecurityContext securityContext,
       final String topicName,
       final AclOperation operation
@@ -41,5 +41,17 @@ public class KsqlBackendAccessValidator implements KsqlAccessValidator {
       // due to an authorization error. I used this message to keep a consistent message.
       throw new KsqlTopicAuthorizationException(operation, Collections.singleton(topicName));
     }
+  }
+
+  @Override
+  public void checkSubjectAccess(
+      final KsqlSecurityContext securityContext,
+      final String subjectName,
+      final AclOperation operation
+  ) {
+    // Nothing to do. Checking permissions for Schema Registry require an external authorization
+    // provider. Schema Registry does not have an API to list the allowed permissions for
+    // the user in a specified subject.
+    return;
   }
 }

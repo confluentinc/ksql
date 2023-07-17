@@ -157,7 +157,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
     try {
       replayFile.write(record);
-    } catch (final IOException e) {
+    } catch (final Exception e) {
       LOG.warn("Failed to write to file {}. The command topic backup is not complete. "
               + "Make sure the file exists and has permissions to write. KSQL must be restarted "
               + "afterwards to complete the backup process. Error = {}",

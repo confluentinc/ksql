@@ -116,42 +116,6 @@ public class QueryLoggerTest {
   }
 
   @Test
-  public void shouldLogQueryIfQueryCannotBeParsedIfAnonymizerIsDisabled() {
-    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(false);
-    QueryLogger.configure(config);
-
-    String message = " I love cats";
-    String query = "CREATE CAT;";
-
-    QueryLogger.debug(message, query);
-    QueryLogger.error(message, query);
-    QueryLogger.info(message, query);
-    QueryLogger.warn(message, query);
-    final List<LoggingEvent> events = testAppender.getLog();
-    events
-        .forEach(
-            (e) -> {
-              final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
-              assertEquals(msg.getMessage(), message);
-              assertEquals(msg.getQuery(), query);
-            });
-  }
-
-  @Test
-  public void shouldUseClusterNameAsNamespaceIfMissing() {
-    // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
-    when(config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("meowcluster");
-    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE)).thenReturn("");
-    QueryLogger.configure(config);
-    assertEquals("meowcluster", QueryLogger.getNamespace());
-
-    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE)).thenReturn(null);
-    QueryLogger.configure(config);
-    assertEquals("meowcluster", QueryLogger.getNamespace());
-  }
-
-  @Test
   public void shouldContainAQueryID() {
     String message = "my message";
     String query = "DESCRIBE cat EXTENDED;";
@@ -169,33 +133,6 @@ public class QueryLoggerTest {
   }
 
   @Test
-  public void shouldPassThroughIfAnonymizerDisabled() {
-    // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(false);
-    QueryLogger.configure(config);
-
-    // When:
-    String message = "my message";
-    String query = "DESCRIBE cat EXTENDED;";
-    QueryLogger.info(message, query);
-
-    // Then:
-    testAppender
-        .getLog()
-        .forEach(
-            (e) -> {
-              final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
-              assertEquals(msg.getMessage(), message);
-              assertEquals(msg.getQuery(), query);
-
-              // both guids are not the same
-              assertNotEquals(
-                  msg.getQueryIdentifier().getQueryGuid(),
-                  msg.getQueryIdentifier().getStructuralGuid());
-            });
-  }
-
-  @Test
   public void shouldAnonymizeMultipleStatements() {
     QueryLogger.configure(config);
     QueryLogger.info("a message", "list streams; list tables; select a, b from mytable; list queries;");
@@ -204,9 +141,6 @@ public class QueryLoggerTest {
     final LoggingEvent event = events.get(0);
     final QueryLoggerMessage message = (QueryLoggerMessage) event.getMessage();
     assertThat(message.getMessage(), is("a message"));
-    assertThat(message.getQuery(), is("list STREAMS;\n" +
-        "null;\n" + // list tables isn't implemented in the anonymizer before 7.3
-        "SELECT column1, column2 FROM source1;\n" +
-        "list QUERIES;"));
+    assertThat(message.getQuery(), is("<unparsable query>"));
   }
 }

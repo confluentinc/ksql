@@ -25,7 +25,7 @@ import java.util.Objects;
 
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class KsqlHostInfoEntity {
+public class KsqlHostInfoEntity implements Comparable<KsqlHostInfoEntity> {
 
   private final String host;
   private final int port;
@@ -97,5 +97,9 @@ public class KsqlHostInfoEntity {
   @Override
   public String toString() {
     return host + ":" + port;
+  }
+
+  public int compareTo(final KsqlHostInfoEntity other) {
+    return this.toString().compareTo(other.toString());
   }
 }

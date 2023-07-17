@@ -34,7 +34,6 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
-import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
@@ -57,6 +56,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.SourcePropertyInjector;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -67,6 +67,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -119,7 +120,7 @@ public final class TestExecutorUtil {
       final TopologyTestDriver topologyTestDriver = new TopologyTestDriver(
           topology,
           streamsProperties,
-          0);
+          Instant.EPOCH);
       final List<Topic> sourceTopics = persistentQueryAndSources.getSources()
           .stream()
           .map(dataSource -> {
@@ -476,18 +477,18 @@ public final class TestExecutorUtil {
 
       final ConfiguredStatement<?> withFormats =
           new DefaultFormatInjector().inject(configured);
+      final ConfiguredStatement<?> withSourceProps =
+          new SourcePropertyInjector().inject(withFormats);
       final ConfiguredStatement<?> withSchema =
           schemaInjector
-              .map(injector -> injector.inject(withFormats))
-              .orElse((ConfiguredStatement) withFormats);
-      final ConfiguredStatement<?> reformatted =
-          new SqlFormatInjector(executionContext).inject(withSchema);
+              .map(injector -> injector.inject(withSourceProps))
+              .orElse((ConfiguredStatement) withSourceProps);
 
       final KsqlPlan plan = executionContext
-          .plan(executionContext.getServiceContext(), reformatted);
+          .plan(executionContext.getServiceContext(), withSchema);
 
       return new PlannedStatement(
-          ConfiguredKsqlPlan.of(rewritePlan(plan), reformatted.getSessionConfig())
+          ConfiguredKsqlPlan.of(rewritePlan(plan), withSchema.getSessionConfig())
       );
     }
 

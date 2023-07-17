@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -60,6 +61,7 @@ public final class FormatInfo {
     return format;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "properties is ImmutableMap")
   public Map<String, String> getProperties() {
     return properties;
   }

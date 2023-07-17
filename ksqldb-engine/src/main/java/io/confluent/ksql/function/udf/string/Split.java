@@ -21,21 +21,25 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @UdfDescription(
     name = Split.NAME,
     category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Splits a string into an array of substrings based on a delimiter. "
-        + "If the delimiter is found at the beginning of the string, end of the string, or there "
-        + "are contiguous delimiters in the string, then empty strings are added to the array. "
-        + "If the delimiter is not found, then the original string is returned as the only "
-        + "element in the array. If the delimiter is empty, then all characters in the string are "
-        + "split."
+    description = "Splits a string or bytes into an array of substrings or bytes based on a "
+        + "delimiter. If the delimiter is found at the beginning of the string/bytes, end of the "
+        + "string/bytes, or there are contiguous delimiters in the string/bytes, then empty "
+        + "strings/bytes are added to the array. If the delimiter is not found, then the original "
+        + "string or bytes is returned as the only element in the array. "
+        + "If the delimiter is empty, then all characters or bytes in the string or bytes "
+        + "are split."
 )
 public class Split {
   static final String NAME = "split";
@@ -70,5 +74,27 @@ public class Split {
       throw new KsqlFunctionException(
           String.format("Invalid delimiter '%s' in the split() function.", delimiter), e);
     }
+  }
+
+  @Udf(description = "Splits a byte array into an array of bytes values based on a delimiter.")
+  public List<ByteBuffer> split(
+      @UdfParameter(
+          description = "The byte array to be split. If NULL, then function returns NULL.")
+      final ByteBuffer bytes,
+      @UdfParameter(
+          description = "The delimiter to split the byte array by. If NULL, then function"
+              + " returns NULL.")
+      final ByteBuffer delimiter) {
+    if (bytes == null || delimiter == null) {
+      return null;
+    }
+
+    final byte[] byteArray = BytesUtils.getByteArray(bytes);
+    final byte[] byteDelimiter = BytesUtils.getByteArray(delimiter);
+
+    return BytesUtils.split(byteArray, byteDelimiter)
+        .stream()
+        .map(ByteBuffer::wrap)
+        .collect(Collectors.toList());
   }
 }

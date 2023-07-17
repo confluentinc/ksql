@@ -48,6 +48,7 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListVariables;
@@ -805,6 +806,18 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(formatted, is("SHOW TABLES EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatShowConnectorPlugins() {
+    // Given:
+    final ListConnectorPlugins listConnectorPlugins = new ListConnectorPlugins(Optional.empty());
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listConnectorPlugins);
+
+    // Then:
+    assertThat(formatted, is("SHOW CONNECTOR PLUGINS"));
   }
 
   @Test

@@ -23,16 +23,20 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class InternalKsqlClientFactory {
 
-  private InternalKsqlClientFactory() {}
+  private InternalKsqlClientFactory() {
+
+  }
 
   public static KsqlClient createInternalClient(
       final Map<String, String> clientProps,
@@ -46,16 +50,19 @@ public final class InternalKsqlClientFactory {
     return new KsqlClient(
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
-        httpOptionsFactory(clientProps, verifyHost),
+        httpOptionsFactory(clientProps, verifyHost, InternalKsqlClientFactory::createClientOptions),
+        httpOptionsFactory(clientProps, verifyHost,
+            InternalKsqlClientFactory::createClientOptionsHttp2),
         socketAddressFactory,
         vertx
     );
   }
 
   private static Function<Boolean, HttpClientOptions> httpOptionsFactory(
-      final Map<String, String> clientProps, final boolean verifyHost) {
+      final Map<String, String> clientProps, final boolean verifyHost,
+      final Supplier<HttpClientOptions> optionsSupplier) {
     return (tls) -> {
-      final HttpClientOptions httpClientOptions = createClientOptions();
+      final HttpClientOptions httpClientOptions = optionsSupplier.get();
       if (!tls) {
         return httpClientOptions;
       }
@@ -84,5 +91,9 @@ public final class InternalKsqlClientFactory {
 
   private static HttpClientOptions createClientOptions() {
     return new HttpClientOptions().setMaxPoolSize(100);
+  }
+
+  private static HttpClientOptions createClientOptionsHttp2() {
+    return new HttpClientOptions().setHttp2MaxPoolSize(100).setProtocolVersion(HttpVersion.HTTP_2);
   }
 }

@@ -130,14 +130,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-KsqlTopic-Reduce-changelog",
-          "keyFormat" : {
-            "format" : "KAFKA"
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          }
-        }, {
           "name" : "SUM_ID_BY_REGION",
           "keyFormat" : {
             "format" : "KAFKA"
@@ -146,6 +138,14 @@
             "format" : "DELIMITED"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {

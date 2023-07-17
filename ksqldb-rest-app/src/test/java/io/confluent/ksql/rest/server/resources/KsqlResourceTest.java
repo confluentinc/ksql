@@ -85,6 +85,7 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -200,11 +201,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-
-import javax.xml.transform.Source;
 
 @SuppressWarnings({"unchecked", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
@@ -1187,6 +1188,34 @@ public class KsqlResourceTest {
         "DEFINE streamName = '" + streamName + "';\n"
             + "DEFINE fromStream = 'test_stream';\n"
             + csasRaw,
+        CommandStatusEntity.class);
+
+    // Then:
+    verify(commandStore).enqueueCommand(
+        argThat(is(commandIdWithString("stream/`" + streamName + "`/create"))),
+        argThat(is(commandWithStatement(csasSubstituted))),
+        any()
+    );
+
+    assertThat(results, hasSize(1));
+    assertThat(results.get(0).getStatementText(), is(csasSubstituted));
+  }
+
+  @Test
+  public void shouldSupportVariableSubstitutionWithVariablesInRequest() {
+    // Given:
+    final String csasRaw = "CREATE STREAM ${streamName} AS SELECT * FROM ${fromStream};";
+    final String csasSubstituted = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+
+
+    // When:
+    final List<CommandStatusEntity> results = makeMultipleRequest(
+        new KsqlRequest(
+            csasRaw,
+            emptyMap(),
+            emptyMap(),
+            ImmutableMap.of("streamName", streamName, "fromStream", "test_stream"),
+            null),
         CommandStatusEntity.class);
 
     // Then:
@@ -2441,6 +2470,23 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldReturnBadRequestWhenIsValidatorIsCalledWithProhibitedProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put("ksql.service.id", "");
+
+    // Given:
+    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator).validateAll(
+        properties
+    );
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(400));
+  }
+
+  @Test
   public void shouldThrowOnDenyListValidatorWhenTerminateCluster() {
     final Map<String, Object> terminateStreamProperties =
         ImmutableMap.of(DELETE_TOPIC_LIST_PROP, Collections.singletonList("Foo"));
@@ -2462,6 +2508,38 @@ public class KsqlResourceTest {
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
     assertThat(((KsqlStatementErrorMessage) response.getEntity()).getMessage(),
         containsString("deny override"));
+  }
+
+  @Test
+  public void queryLoggerShouldReceiveStatementsWhenHandleKsqlStatement() {
+    try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
+      ksqlResource.handleKsqlStatements(securityContext, VALID_EXECUTABLE_REQUEST);
+
+      logger.verify(() -> QueryLogger.info("Query created",
+          VALID_EXECUTABLE_REQUEST.getMaskedKsql()), times(1));
+    }
+  }
+
+  @Test
+  public void queryLoggerShouldReceiveTerminateStatementsWhenHandleKsqlStatementWithTerminate() {
+    // Given:
+    final PersistentQueryMetadata queryMetadata = createQuery(
+        "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
+        emptyMap());
+    final String terminateSql = "TERMINATE " + queryMetadata.getQueryId() + ";";
+
+    // When:
+    try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
+      ksqlResource.handleKsqlStatements(securityContext, new KsqlRequest(
+          terminateSql,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+          emptyMap(),
+          0L));
+
+      // Then:
+      logger.verify(() -> QueryLogger.info("Query terminated",
+          terminateSql), times(1));
+    }
   }
 
   @Test

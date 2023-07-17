@@ -133,10 +133,10 @@ public class TestExecutorUtilTest {
     assertThat(topologyTestDriverContainerList.size(), equalTo(1));
     final TopologyTestDriverContainer topologyTestDriverContainer = topologyTestDriverContainerList
         .get(0);
-    assertThat(topologyTestDriverContainer.getSourceTopics().size(), equalTo(1));
-    assertThat(topologyTestDriverContainer.getSourceTopics().iterator().next().getName(),
+    assertThat(topologyTestDriverContainer.getSourceTopicNames().size(), equalTo(1));
+    assertThat(topologyTestDriverContainer.getSourceTopicNames().iterator().next(),
         equalTo("test_topic"));
-    assertThat(topologyTestDriverContainer.getSinkTopic().getName(), equalTo("S1"));
+    assertThat(topologyTestDriverContainer.getSinkTopicName(), equalTo("S1"));
     assertThat(topologyTestDriverContainer.getTopologyTestDriver(), notNullValue());
   }
 

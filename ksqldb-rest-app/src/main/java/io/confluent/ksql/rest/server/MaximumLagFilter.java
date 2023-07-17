@@ -55,25 +55,35 @@ public final class MaximumLagFilter implements RoutingFilter {
   }
 
   @Override
-  public boolean filter(final KsqlHostInfo hostInfo) {
+  public Host filter(final KsqlHostInfo hostInfo) {
     final long allowedOffsetLag = routingOptions.getMaxOffsetLagAllowed();
-    Optional<LagInfoEntity> lag = lagByHost.get(hostInfo);
-    if (lag == null) {
-      lag = Optional.empty();
+    final Optional<LagInfoEntity> lagInfoEntity = lagByHost.get(hostInfo);
+
+    if (!lagInfoEntity.isPresent()) {
+      // If we don't have lag info, we'll be conservative and not include the host.  We have a
+      // dual purpose, in both having HA and also having lag guarantees.  This ensures that we are
+      // honoring the lag guarantees, and we'll try to minimize the window where lag isn't
+      // available to promote HA.
+      return Host.exclude(hostInfo, "Lag information is not present for host.");
     }
-    return lag.map(hostLag -> {
-      Preconditions.checkState(maxEndOffset.isPresent(), "Should have a maxEndOffset");
-      // Compute the lag from the maximum end offset reported by all hosts.  This is so that
-      // hosts that have fallen behind are held to the same end offset when computing lag.
-      final long endOffset = maxEndOffset.getAsLong();
-      final long offsetLag = Math.max(endOffset - hostLag.getCurrentOffsetPosition(), 0);
-      return offsetLag <= allowedOffsetLag;
-    })
-    // If we don't have lag info, we'll be conservative and not include the host.  We have a
-    // dual purpose, in both having HA and also having lag guarantees.  This ensures that we are
-    // honoring the lag guarantees, and we'll try to minimize the window where lag isn't
-    // available to promote HA.
-    .orElse(false);
+
+    final LagInfoEntity hostLag = lagInfoEntity.get();
+    Preconditions.checkState(maxEndOffset.isPresent(), "Should have a maxEndOffset");
+    // Compute the lag from the maximum end offset reported by all hosts.  This is so that
+    // hosts that have fallen behind are held to the same end offset when computing lag.
+    final long endOffset = maxEndOffset.getAsLong();
+    final long offsetLag = Math.max(endOffset - hostLag.getCurrentOffsetPosition(), 0);
+    if (offsetLag <= allowedOffsetLag) {
+      return Host.include(hostInfo);
+    } else {
+      return Host.exclude(
+          hostInfo,
+          String.format(
+              "Host excluded because lag %s exceeds maximum allowed lag %s.",
+              offsetLag,
+              allowedOffsetLag)
+      );
+    }
   }
 
   /**

@@ -166,6 +166,7 @@ public class QueryCapacityUtilTest {
         .thenReturn(queryLimit);
   }
 
+  @SuppressWarnings("unchecked")
   private void givenAllLiveQueries(final int numLiveQueries) {
     final List<QueryMetadata> queries = mock(List.class);
     when(queries.size()).thenReturn(numLiveQueries);

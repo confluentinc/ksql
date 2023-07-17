@@ -32,6 +32,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 public final class DecimalUtil {
 
   public static final String PRECISION_FIELD = "connect.decimal.precision";
+  public static final int PRECISION_DEFAULT = 64;
 
   private DecimalUtil() {
   }
@@ -103,7 +104,7 @@ public final class DecimalUtil {
     requireDecimal(schema);
     final String precisionString = schema.parameters().get(PRECISION_FIELD);
     if (precisionString == null) {
-      throw new KsqlException("Invalid Decimal schema: precision parameter not found.");
+      return PRECISION_DEFAULT;
     }
 
     try {

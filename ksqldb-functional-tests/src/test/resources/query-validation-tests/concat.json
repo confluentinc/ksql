@@ -4,7 +4,7 @@
   ],
   "tests": [
      {
-      "name": "concat_ws",
+      "name": "concat_ws - string",
       "format": ["JSON"],
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, S1 STRING, C1 STRING, C2 STRING, C3 STRING) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
@@ -21,6 +21,41 @@
         {"topic": "OUTPUT", "key": 2, "value": {"COMBINED": "fooSEPbazSEPliteral"}},
         {"topic": "OUTPUT", "key": 3, "value": {"COMBINED": "literal"}},
         {"topic": "OUTPUT", "key": 4, "value": {"COMBINED": null}}
+      ]
+    },
+    {
+      "name": "concat_ws - bytes",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, S1 BYTES, C1 BYTES, C2 BYTES, C3 BYTES) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, CONCAT_WS(S1, C1, C2, NULL, C3) AS COMBINED FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"S1": "YQ==", "C1": "Yg==", "C2": "eWVz", "C3": "bm8="}},
+        {"topic": "input_topic", "key": 2, "value": {"S1": "YQ==", "C1": "Yg==", "C2": "", "C3": "bm8="}},
+        {"topic": "input_topic", "key": 3, "value": {"S1": "YQ==", "C1": null, "C2": null, "C3": null}},
+        {"topic": "input_topic", "key": 4, "value": {"S1": null, "C1": "Yg==", "C2": "eWVz", "C3": "bm8="}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"COMBINED": "YmF5ZXNhbm8="}},
+        {"topic": "OUTPUT", "key": 2, "value": {"COMBINED": "YmFhbm8="}},
+        {"topic": "OUTPUT", "key": 3, "value": {"COMBINED": ""}},
+        {"topic": "OUTPUT", "key": 4, "value": {"COMBINED": null}}
+      ]
+    },
+    {
+      "name": "concat - bytes",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, C1 BYTES, C2 BYTES) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, CONCAT(C1, NULL, C2) AS THING FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"C1": "eWVz", "C2": "bm8="}},
+        {"topic": "test_topic", "value": {"C1": "", "C2": "bm8="}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"THING":"eWVzbm8="}},
+        {"topic": "OUTPUT", "value": {"THING":"bm8="}}
       ]
     },
     {

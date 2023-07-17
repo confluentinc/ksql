@@ -30,6 +30,7 @@ command.
 
 The `ksql-migrations` tool supports migrations files containing the following
 types of ksqlDB statements:
+
 * `CREATE STREAM`
 * `CREATE TABLE`
 * `CREATE STREAM ... AS SELECT` 
@@ -48,6 +49,12 @@ types of ksqlDB statements:
 * `DROP TYPE`
 * `SET <property>`
 * `UNSET <property>`
+* `DEFINE <variable>` - available if both `ksql-migrations` and the server are version 0.18 or newer
+* `UNDEFINE <variable>` - available if both `ksql-migrations` and the server are version 0.18 or newer.
+
+Any properties or variables set using the `SET`, `UNSET`, `DEFINE` and `UNDEFINE` are applied in the 
+current migration file only. They do not carry over to the next migration file, even if multiple
+migration files are applied as part of the same `ksql-migrations apply` command
 
 Requirements and Installation
 -----------------------------
@@ -218,6 +225,7 @@ ksql-migrations {-c | --config-file} <config-file> apply
                 [ {-n | --next} ] 
                 [ {-u | --until} <untilVersion> ] 
                 [ {-v | --version} <version> ]
+                [ {-d | --define} <variableName>=<variableValue> ]
                 [ --dry-run ] 
 ```
 
@@ -232,6 +240,20 @@ to apply:
   
 In addition to selecting a mode for `ksql-migrations apply`, you must also provide
 the path to the config file of your migrations project as part of the command.
+
+If both your ksqlDB server and migration tool are version 0.18 and newer, you can define variables by passing the `--define` flag followed by a string of the form
+`name=value` any number of times. For example, the following command
+
+```bash
+$ ksql-migrations --config-file /my/migrations/project/ksql-migrations.properties apply --next -d foo=bar -d car=3
+```
+
+is equivalent to having the following lines at the begining of each migration file:
+
+```
+DEFINE foo='bar';
+DEFINE car='3';
+```
 
 You can optionally use the `--dry-run` flag to see which migration file(s) the
 command will apply before running the actual `ksql-migrations apply` command
@@ -426,6 +448,7 @@ Troubleshooting
 
 Prior to applying new migrations, the `ksql-migrations` tool validates the current
 state of applied migrations including the following:
+
 - The latest migration version has completed, i.e., does not have status `RUNNING`.
 - The migration history is valid, i.e., starting from the latest applied migration
   version and repeatedly following the previous migration version saved in the
@@ -546,5 +569,10 @@ INSERT INTO MIGRATION_EVENTS (
 ``` 
 
 Once you've updated the migrations metadata stream, the migrations metadata table
-will update automatically and metadata validation will be unblocked. 
+will update automatically and metadata validation will be unblocked.
+
+Next Steps
+----------
+
+- Blog post: [Online, Managed Schema Evolution with ksqlDB Migrations](https://www.confluent.io/blog/easily-manage-database-migrations-with-evolving-schemas-in-ksqldb/)
 

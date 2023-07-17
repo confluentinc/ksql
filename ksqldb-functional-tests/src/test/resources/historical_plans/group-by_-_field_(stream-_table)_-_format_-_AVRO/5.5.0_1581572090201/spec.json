@@ -221,7 +221,18 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "DATA",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
@@ -230,7 +241,25 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "KSQL_INTERNAL_COL_0",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_INTERNAL_COL_1",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_AGG_VARIABLE_0",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -239,7 +268,21 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "DATA",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_COL_1",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ]
+          }
         } ]
       }
     }

@@ -52,6 +52,7 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
@@ -435,6 +436,13 @@ public final class SqlFormatter {
       if (node.getShowExtended()) {
         visitExtended();
       }
+      return null;
+    }
+
+    @Override
+    protected Void visitListConnectorPlugins(
+        final ListConnectorPlugins node, final Integer context) {
+      builder.append("SHOW CONNECTOR PLUGINS");
       return null;
     }
 

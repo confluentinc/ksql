@@ -23,6 +23,8 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -124,5 +126,67 @@ public class GenericExpressionResolverTest {
     // Then:
     assertTrue(o instanceof Timestamp);
     assertThat(((Timestamp) o).getTime(), is(1610167202000L));
+  }
+
+  @Test
+  public void shouldThrowIfCannotParseTime() {
+    // Given:
+    final SqlType type = SqlTypes.TIME;
+    final Expression exp = new StringLiteral("abc");
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value",
+            false).resolve(exp));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Time format must be hh:mm:ss[.S]"));
+  }
+
+  @Test
+  public void shouldParseTime() {
+    // Given:
+    final SqlType type = SqlTypes.TIME;
+    final Expression exp = new StringLiteral("04:40:02");
+
+    // When:
+    Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value",
+        false).resolve(exp);
+
+    // Then:
+    assertTrue(o instanceof Time);
+    assertThat(((Time) o).getTime(), is(16802000L));
+  }
+
+  @Test
+  public void shouldThrowIfCannotParseDate() {
+    // Given:
+    final SqlType type = SqlTypes.DATE;
+    final Expression exp = new StringLiteral("abc");
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value",
+            false).resolve(exp));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Date format must be yyyy-mm-dd"));
+  }
+
+  @Test
+  public void shouldParseDate() {
+    // Given:
+    final SqlType type = SqlTypes.DATE;
+    final Expression exp = new StringLiteral("2021-01-09");
+
+    // When:
+    Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value",
+        false).resolve(exp);
+
+    // Then:
+    assertTrue(o instanceof Date);
+    assertThat(((Date) o).getTime(), is(1610150400000L));
   }
 }

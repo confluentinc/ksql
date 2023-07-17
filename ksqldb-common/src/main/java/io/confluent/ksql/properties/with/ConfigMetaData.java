@@ -18,6 +18,7 @@ package io.confluent.ksql.properties.with;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.configdef.UnmodifiableConfigDef;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -50,18 +51,25 @@ public final class ConfigMetaData {
     this.shortConfigs = configsOfTypeShort(configDef);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "configDef is UnmodifiableConfigDef")
   public UnmodifiableConfigDef getConfigDef() {
     return configDef;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "configNames is ImmutableSet")
   public Set<String> getConfigNames() {
     return configNames;
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "orderedConfigNames is ImmutableList"
+  )
   public List<String> getOrderedConfigNames() {
     return orderedConfigNames;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "shortConfigs is ImmutableSet")
   public Set<String> getShortConfigs() {
     return shortConfigs;
   }

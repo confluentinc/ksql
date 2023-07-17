@@ -1,0 +1,124 @@
+{
+  "tests": [
+    {
+      "name": "Should fail on right non-key attribute for inner-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table JOIN right_table ON id1 = f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got LEFT_TABLE.ID1 = RIGHT_TABLE.F2."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for inner-join -- revers join condition order",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table JOIN right_table ON f2 = id1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got RIGHT_TABLE.F2 = LEFT_TABLE.ID1."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for left-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table LEFT JOIN right_table ON id1 = f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got LEFT_TABLE.ID1 = RIGHT_TABLE.F2."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for left-join -- revers join condition order",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table LEFT JOIN right_table ON f2 = id1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got RIGHT_TABLE.F2 = LEFT_TABLE.ID1."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for outer-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table FULL OUTER JOIN right_table ON id1 = f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got LEFT_TABLE.ID1 = RIGHT_TABLE.F2."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for outer-join -- reverse join condition order",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table FULL OUTER JOIN right_table ON f2 = id1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got RIGHT_TABLE.F2 = LEFT_TABLE.ID1."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for inner-join with qualifiers",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table JOIN right_table ON left_table.id1 = right_table.f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got LEFT_TABLE.ID1 = RIGHT_TABLE.F2."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for inner-join with qualifiers -- reverse join condition order",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table JOIN right_table ON right_table.f2 = left_table.id1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got RIGHT_TABLE.F2 = LEFT_TABLE.ID1."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for inner-join with alias",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table AS lt JOIN right_table AS rt ON lt.id1 = rt.f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got LT.ID1 = RT.F2."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for inner-join with alias -- reverse join condition order",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, f1, f2 FROM left_table AS lt JOIN right_table AS rt ON rt.f2 = lt.id1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table. Got RT.F2 = LT.ID1."
+      }
+    }
+  ]
+}

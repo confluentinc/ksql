@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -36,8 +38,8 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   private final Supplier<A> initialValueSupplier;
   private final SqlType aggregateSchema;
   private final SqlType outputSchema;
-  private final List<ParameterInfo> params;
-  private final List<ParamType> paramTypes;
+  private final ImmutableList<ParameterInfo> params;
+  private final ImmutableList<ParamType> paramTypes;
 
   protected final String functionName;
   private final String description;
@@ -62,8 +64,10 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     };
     this.aggregateSchema = Objects.requireNonNull(aggregateType, "aggregateType");
     this.outputSchema = Objects.requireNonNull(outputType, "outputType");
-    this.params = Objects.requireNonNull(parameters, "parameters");
-    this.paramTypes = parameters.stream().map(ParameterInfo::type).collect(Collectors.toList());
+    this.params = ImmutableList.copyOf(Objects.requireNonNull(parameters, "parameters"));
+    this.paramTypes = ImmutableList.copyOf(
+        parameters.stream().map(ParameterInfo::type).collect(Collectors.toList())
+    );
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
   }
@@ -94,11 +98,13 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     return SchemaConverters.sqlToFunctionConverter().toFunctionType(outputSchema);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "paramTypes is ImmutableList")
   public List<ParamType> parameters() {
     return paramTypes;
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "params is ImmutableList")
   public List<ParameterInfo> parameterInfo() {
     return params;
   }

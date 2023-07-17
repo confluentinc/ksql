@@ -23,22 +23,30 @@ public interface Executable {
   /**
    * Starts the executable asynchronously. Guaranteed to be called before shutdown.
    */
-  default void startAsync() throws Exception {}
+  default void startAsync() throws Exception {
+
+  }
 
   /**
    * Called to notify threads awaiting termination (see #awaitTerminated)
    * that it's time to shutdown.
    */
-  default void notifyTerminated() {}
+  default void notifyTerminated() {
+
+  }
 
   /**
    * Shutdown the service.
    */
-  default void shutdown() throws Exception {}
+  default void shutdown() throws Exception {
+
+  }
 
   /**
    * Awaits the {@link #notifyTerminated()} notification. This is a blocking
    * operation. Guaranteed to be called before shutdown.
    */
-  default void awaitTerminated() throws InterruptedException {}
+  default void awaitTerminated() throws InterruptedException {
+
+  }
 }
